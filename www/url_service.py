@@ -1,0 +1,25 @@
+from django.conf.urls import patterns, url
+from www.tests import *
+from www.services_view import *
+from www.views.service import TeamInfo
+from django.contrib.auth.decorators import login_required
+
+
+urlpatterns = patterns(
+    '',
+    url(r'^$', login_required(TenantServiceAll.as_view())),
+    url(r'^select/$', login_required(ServiceSelect.as_view())),
+
+    url(r'^app-create/$', login_required(ServiceAppCreate.as_view())),
+
+    url(r'^(?P<serviceAlias>[\w\-]+)/app-deploy/$', login_required(ServiceAppDeploy.as_view())),
+
+    url(r'^service/$', login_required(ServiceMarket.as_view())),
+    url(r'^service-deploy/$', login_required(ServiceMarketDeploy.as_view())),
+
+    url(r'^team/$', TeamInfo.as_view()),
+    url(r'^gitlab/$', login_required(GitLabManager.as_view())),
+
+    url(r'^(?P<serviceAlias>[\w\-]+)/detail/$', login_required(TenantService.as_view())),
+    url(r'^(?P<serviceAlias>[\w\-]+)/domain/$', login_required(ServiceDomainManager.as_view())),
+)

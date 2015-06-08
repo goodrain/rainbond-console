@@ -1,0 +1,35 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}用户注册{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+<div class="container">
+    <form class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
+        <h2 class="form-signin-heading">用户注册</h2>
+        {% if errors %}
+        <div class="alert alert-danger alert-dismissable">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            {% blocktrans count counter=errors|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}
+        </div>
+        {{ form.non_field_errors }}
+        {% endif %} 
+
+        <div class="row">
+            {% crispy form %}
+        </div>
+
+    </form>
+</div>
+
+
+{% endblock %}

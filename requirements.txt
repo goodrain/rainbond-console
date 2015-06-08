@@ -1,0 +1,13 @@
+Django==1.8
+MySQL-python
+pylibmc
+django-crispy-forms
+addict
+gunicorn==19.0.0
+wsgiref==0.1.2
+httplib2
+simplejson
+etcd
+beanstalkc
+urllib3
+influxdb

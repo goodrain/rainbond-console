@@ -1,0 +1,38 @@
+<div class="sidebar-toggle-box">
+    <div class="fa fa-bars tooltips" data-placement="right" data-original-title="切换导航"></div>
+</div>
+<!--logo start-->
+<a href="/" class="logo"><span>Goodrain</span></a>
+<!--logo end-->
+<div class="top-nav ">
+    <!--search & user info start-->
+    <ul class="nav pull-right top-menu">
+        <!--li>
+            <input type="text" class="form-control search" placeholder="Search">
+        </li-->
+        <li>
+            <button type="button" class="btn btn-round btn-primary" onclick="window.open('https://goodrain.kf5.com/request/new/')">提交工单</button>
+        </li>
+        <li>
+   	    <label>     </label>
+    	</li>
+        <!-- user login dropdown start-->
+        <li class="dropdown">
+            <a data-toggle="dropdown" class="dropdown-toggle" href="#">
+                <!--img alt="" src="/static/www/img/avatar1_small.jpg"-->
+                <i class="fa  fa-user"></i>
+                <span class="username">{% if user.is_authenticated %}{{ user.nick_name }}{% else %}匿名用户{% endif %}</span>
+                <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu">
+                <div class="log-arrow-up"></div>
+                <li><a href="#"><i class="fa  fa-usd"></i> 充值</a></li>
+                <li><a href="#"><i class="fa fa-list-alt"></i> 消费记录</a></li>
+                <li class="divider"></li>
+                <li><a href="/logout"><i class="fa fa-sign-out"></i> 退出</a></li>
+            </ul>
+        </li>
+        <!-- user login dropdown end -->
+    </ul>
+    <!--search & user info end-->
+</div>

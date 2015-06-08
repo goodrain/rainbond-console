@@ -1,0 +1,47 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}用户登录{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+<div class="container">
+    <form class="form-signin" enctype="multipart/form-data" action="" method="post">
+        <h2 class="form-signin-heading">用户登录</h2>
+        {% crispy form %}
+
+          <!-- Modal -->
+        <div aria-hidden="true" aria-labelledby="myModalLabel" role=
+"dialog" tabindex="-1" id="myModal" class="modal fade">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title">忘记密码？ ?</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>在下面输入您的电子邮件地址，重置密码。.</p>
+                        <input type="text" name="find_by_email" placeholder="Email" autocomplete="off" class="form-control placeholder-no-fix">
+                    </div>
+                    <div class="modal-footer">
+                        <button data-dismiss="modal" class="btn btn-default" type="button">取消</button>
+                        <button class="btn btn-success" type="button">提交</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- modal -->
+
+    </form>
+</div>
+
+
+{% endblock %}

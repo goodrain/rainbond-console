@@ -1,0 +1,115 @@
+
+#top {
+    background: #1DB1E7;
+    background-color: #15B7D3;
+    margin-bottom: 0;
+}
+
+a.navbar-brand {
+    color: #F6F8FA;
+}
+
+#main-content {
+    margin-top: 60px;
+    height: 100%;
+    position: relative;
+    min-height: 550px;
+}
+
+#left-sidebar {
+    float: left;
+    background-color: #E1F1F4;
+    min-height: 545px;
+}
+
+#right-side {
+    float: right;
+    padding-left: 5px;
+}
+
+.header-nav-item {
+    float: left;
+}
+
+.navbar-right {
+    padding: 0 15px;
+}
+
+.selectize-control {
+    margin-top: 10px;
+}
+.list-group-item {
+    background-color: #BDE6EC;
+}
+
+#service-statistics {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: azure;
+    margin-top: 5px;
+}
+
+.state-block {
+    margin-bottom: 10px;
+    margin-top: 20px;
+}
+
+.state-block p {
+    text-align: center;
+}
+
+.state-block h2 {
+    text-align: center;
+}
+
+#service-control {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+}
+
+#service-btns {
+    margin-bottom: 10px;
+}
+
+.service-block {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.no-padding {
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+.gray-border {
+    border: 1px solid #dddddd;
+}
+
+.gray-border-left {
+    border-left: 1px solid #dddddd;
+}
+
+.gray-border-right {
+    border-right: 1px solid #dddddd;
+    min-height: 125px;
+}
+
+.gray-border-bottom {
+    border-bottom: 1px solid #dddddd;
+}
+
+.gray-background {
+    background-color: rgb(230, 233, 237);
+    min-height: 30px;
+}
+
+.main-zone {
+    min-height: 100px;
+}
+
+.btn-margin {
+    margin-right: 20px;
+}

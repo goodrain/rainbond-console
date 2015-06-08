@@ -1,0 +1,62 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+
+{% block main-content %}
+
+<section class="wrapper site-min-height">
+    <div class="row">
+        <div class="col-lg-12 m-bot15">
+            <section class="panel">
+                <header class="panel-heading">团队成员</header>
+                <div class="panel-body">
+                    <p><small>点击成员名称查看权限详情</small></p>
+                    <div role="tabpanel" class="tab-pane" id="permission">
+                        <div id="action_report" class="width-3"></div>
+                        <table class="table table-hover" perm-type="tenant">
+                            <thead>
+                                <tr>
+                                    <th>成员</th>
+                                    <th>管理员</th>
+                                    <th>开发者</th>
+                                    <th>观察者</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in perm_users %}
+                                <tr entry-user="{{user.name}}">
+                                    <th><a href="/apps/goodrain/perms?user={{user.name}}">{{user.name}}</a></th>
+                                    <th class="perm-modify-enable">
+                                        <input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}>
+                                    </th>
+                                    <th class="perm-modify-enable">
+                                        <input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}>
+                                    </th>
+                                    <th class="perm-modify-enable">
+                                        <input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}>
+                                    </th>
+                                    <th>
+                                        <input type="checkbox" identity="access" checked="" disabled="">
+                                    </th>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-shadow btn-danger center-block">添加</button>
+                    <div class="bg-warning teamtips">
+                        <dl>
+                            <dt>权限体系:</dt>
+                            <dl>平台管理员 - 平台所有权限</dl>
+                            <dl>服务管理员 - 服务所有权限，需要关联服务</dl>
+                            <dl>开发者 - 代码上传权限，需要关联服务</dl>
+                            <dl>观察者 - 只读权限，需要关联服务</dl>
+                        </dl>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+
+
+{% endblock %}

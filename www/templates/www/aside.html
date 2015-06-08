@@ -1,0 +1,48 @@
+<div id="sidebar" class="nav-collapse " tabindex="5000" style="overflow: hidden; outline: none;">
+    <!-- sidebar menu start-->
+    <ul class="sidebar-menu" id="nav-accordion">
+        <li class="sub-menu">
+            <a class="{{myAppStatus}} " href="javascript:;">
+                <i class="fa fa-laptop"></i>
+                <span onclick="window.location='/apps/{{tenantName}}/'">我的应用</span>
+                <span class="dcjq-icon"></span></a>
+            <ul class="sub" style="display: block;">
+                <li {% if tenantServiceList|length < 1 or createApp == "active" %} class="active" {% endif %} >
+                  <a href="/apps/{{tenantName}}/app-create"><i class="fa fa-plus"></i><font size="2">新建应用</font></a>
+                </li>
+                {% if tenantServiceList %}
+                 	{% for item in tenantServiceList %}
+                 		<li {% if item.is_selected %}class="active"{% endif %}><a href="/apps/{{tenantName}}/{{item.service_alias}}/detail">{{item.service_alias}}</a></li>
+                 	{% endfor %}
+                {% endif %}
+            </ul>
+        </li>
+        <li>
+            <a class="{{serviceMarketStatus}}" href="/apps/{{tenantName}}/service">
+                <i class="fa fa-th"></i>
+                <span>服务市场</span>
+            </a>
+        </li>
+        <li class="sub-menu dcjq-parent-li">
+            <a href="/apps/{{tenantName}}/team" class="dcjq-parent">
+                <i class="fa fa-group"></i>
+                <span onclick="window.location='/apps/{{tenantName}}/team'">团队</span>
+                <span class="dcjq-icon"></span></a>
+            <ul class="sub" style="display: none;">
+                <li><a href="team_user.html">成员</a></li>
+            </ul>
+        </li>
+        <li class="sub-menu dcjq-parent-li">
+            <a href="javascript:;" class="dcjq-parent">
+            <i class="fa fa-cny"></i>
+            <span>财务中心</span>
+            <span class="dcjq-icon"></span></a>
+            <ul class="sub" style="display: none;">
+                <li><a href="javascript:;">账户充值</a></li>
+                <li><a href="javascript:;">发票管理</a></li>
+                <li><a href="javascript:;">消费明细</a></li>
+            </ul>
+        </li>
+    </ul>
+    <!-- sidebar menu end-->
+</div>

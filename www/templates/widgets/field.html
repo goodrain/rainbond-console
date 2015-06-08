@@ -1,0 +1,19 @@
+{% load crispy_forms_field %}
+
+{% if field.is_hidden %}
+    {{ field }}
+{% else %}
+    {% if form_show_errors%}{% if field.errors %} has-error{% endif %}{% endif %}{% if field.css_classes %} {{ field.css_classes }}{% endif %}">
+
+            {% if field|is_checkbox %}
+                <label for="{{ field.id_for_label }}" class="checkbox {% if field.field.required %} requiredField{% endif %}">
+                    {% crispy_field field %}
+                    {{ field.label|safe }}
+                    {% include 'bootstrap3/layout/help_text_and_errors.html' %}
+                </label>
+            {% else %}
+                {% crispy_field field %}
+                {% include 'bootstrap3/layout/help_text_and_errors.html' %}
+            {% endif %}
+        
+{% endif %}

@@ -1,0 +1,32 @@
+{% load url from future %}{% load i18n %}{% load staticfiles %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"zh-cn" }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+  {% block extrameta %}
+  <meta name="description" content="">
+  <meta name="author" content="">
+  {% endblock %}
+  <link rel="shortcut icon" href="img/favicon.png">
+  {% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE" />{% endblock %}
+  <title>{% block title %}{% endblock %}</title>
+  
+  <link rel="stylesheet" href="{% static "www/css/bootstrap.min.css" %}">
+  <link rel="stylesheet" href="{% static "www/css/bootstrap-reset.css" %}">
+  <link rel="stylesheet" href="{% static "www/assets/font-awesome/css/font-awesome.css" %}">
+  {% block extracss %}{% endblock %}
+
+  {{ media.css }}
+
+  {% block extrastyle %}{% endblock %}
+  <script src="{% static "www/js/jquery.min.js" %}"></script>
+  <script src="{% static "www/js/bootstrap.min.js" %}"></script>
+  {% block extrahead %}{% endblock %}
+  
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+  {% block body %}{% endblock body %}
+  {% block extrajs %}{% endblock %}
+  {{ media.js }}
+</body>
+
+</html>

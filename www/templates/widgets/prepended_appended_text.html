@@ -1,0 +1,16 @@
+{% load crispy_forms_field %}
+
+{% if field.is_hidden %}
+    {{ field }}
+{% else %}
+
+            
+                {% if crispy_prepended_text %}<span class="input-group-addon{% if active %} active{% endif %}{% if input_size %} {{ input_size }}{% endif %}">{{ crispy_prepended_text|safe }}</span>{% endif %}
+                {% crispy_field field %}
+                
+                {% if crispy_appended_text %}<div class="teamyuname">{{ crispy_appended_text|safe }} <span class="fa fa-question-circle tooltips" data-placement="bottom" data-original-title="团队域名说明文字"></span></div>
+                {% endif %}
+
+            {% include 'bootstrap3/layout/help_text_and_errors.html' %}
+
+{% endif %}

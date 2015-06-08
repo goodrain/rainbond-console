@@ -1,0 +1,112 @@
+# -*- coding: utf8 -*-
+import logging
+import uuid
+import hashlib
+import datetime
+import time
+import json
+
+from django.views.decorators.cache import never_cache
+from django.template.response import TemplateResponse
+from django.http.response import HttpResponse
+from www.views import BaseView, AuthedView
+from www.models import TenantFeeBill, TenantConsume
+
+from www.inflexdb.inflexdbservice import InflexdbService
+import logging
+logger = logging.getLogger('default')
+
+# 计费
+class Charging(BaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        try:
+            action = request.GET.get("action", "")
+            if action == "statics":
+                InflexdbService = InflexdbService()
+                InflexdbService.serviceContainerMemoryStatics()
+                InflexdbService.serviceContainerDiskStatics()
+                InflexdbService.servicePodMemoryStatics()
+                InflexdbService.serviceDiskStatics()
+            elif action == "charging":
+                pass
+        except Exception as e:
+            logger.exception(e)
+        
+class Recharging(AuthedView):
+    
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/okooostyle.css')
+        return media
+    
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        context["tenantName"] = self.tenantName
+        context['serviceAlias'] = self.serviceAlias
+        try:
+            pass
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/account_bill.html", context)
+            
+class AccountBill(AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/okooostyle.css')
+        return media
+    
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        context["tenantName"] = self.tenantName
+        context['serviceAlias'] = self.serviceAlias
+        try:
+            user_id = self.user.pk
+            context["tenantFeeBill"] = tenantFeeBill
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/account_bill.html", context)
+            
+class Account(AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/okooostyle.css')
+        return media
+    
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        context["tenantName"] = self.tenantName
+        context['serviceAlias'] = self.serviceAlias
+        try:
+            tenant_id = self.tenant.tenant_id
+            curTime = time.strftime('%Y-%m-%d') + " 00:00:00"
+            tenantConsumeList = TenantConsume.objects.filter(tenant_id=tenant_id, time__gte=curTime)
+            context["tenantConsumeList"] = tenantConsumeList
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/account_bill.html", context)
+            
+            
+class ChargingRule(AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/okooostyle.css')
+        return media
+        
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        try:
+            action = request.GET.get("action", "")
+            if action == "statics":
+                pass
+            elif action == "charging":
+                pass
+        except Exception as e:
+            logger.exception(e)
+        
