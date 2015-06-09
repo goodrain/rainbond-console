@@ -280,7 +280,6 @@ class TenantServiceAll(AuthedView):
             context["tenantServiceList"] = tenantServiceList
             context["totalFlow"] = 0
             context["totalAppNumber"] = len(tenantServiceList)
-            context["myAppStatus"] = "active"
             context["tenantName"] = self.tenantName
             totalNum = PermRelTenant.objects.filter(tenant_id=self.tenant.ID).count()
             context["totalNum"] = totalNum
