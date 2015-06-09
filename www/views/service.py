@@ -23,7 +23,7 @@ class TeamInfo(AuthedView):
     def get_media(self):
         media = super(TeamInfo, self).get_media() + self.vendor(
             'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
-            'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js'
+            'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js'
         )
         return media
 

@@ -278,7 +278,8 @@ class TenantRecharge(BaseModel):
 class TenantServiceStatics(BaseModel):
     class Meta:
         db_table = 'tenant_service_statics'
-        unique_together = ('service_id', 'time_stamp')    
+        unique_together = ('service_id', 'time_stamp')  
+        get_latest_by = 'ID'  
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     pod_id = models.CharField(max_length=32, help_text=u"服务id")
