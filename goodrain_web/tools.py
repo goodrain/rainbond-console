@@ -2,6 +2,7 @@
 import json
 import beanstalkc
 from django.conf import settings
+from django.core.paginator import Paginator
 
 import logging
 logger = logging.getLogger('default')

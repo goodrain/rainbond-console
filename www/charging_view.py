@@ -56,8 +56,8 @@ class Recharging(AuthedView):
             start=datetime.date.today() - datetime.timedelta(days=7)
             startTime= start.strftime('%Y-%m-%d') + " 00:00:00"
             recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__ge=startTime)
-            #paginator = JuncheePaginator(recharges, 10)
-            #tenantRecharges = paginator.page(1)
+            paginator = JuncheePaginator(recharges, 10)
+            tenantRecharges = paginator.page(1)
             context["tenantRecharges"]=tenantRecharges           
             context["curpage"]=10      
         except Exception as e:
