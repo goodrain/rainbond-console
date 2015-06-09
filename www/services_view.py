@@ -370,7 +370,7 @@ class TenantService(AuthedView):
 
             if self.service.category == 'application' and self.service.git_project_id==0:
                 if self.user.git_user_id > 0:
-                    project_id = gitClient.createProject(self.tenantName + "_" + service_alias)
+                    project_id = gitClient.createProject(self.tenantName + "_" + self.serviceAlias)
                     logger.debug(project_id)
                     if project_id > 0:
                         gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
