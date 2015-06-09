@@ -57,19 +57,3 @@
 		</div>
 	</div>
 </div>
-
-<script>
-	$(document).ready(function(){ 
-		$('#pageSizeScope').change(function(){ 
-			var curdatescope= $("#datescope").val()
-			if(typeof(curdatescope) == "undefined"){
-				curdatescope=7
-			}
-			var curpagesize= $("#pageSizeScope").val()
-			if(typeof(curpagesize) == "undefined"){
-				curpagesize=10
-			}
-			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize);
-		})
-	})
-</script>

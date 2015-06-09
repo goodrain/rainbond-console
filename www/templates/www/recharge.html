@@ -196,16 +196,12 @@
             	$(document).ready(function(){ 
             		_page(1);
             		
-            		$('#datescope').change(function(){ 
-            			var curdatescope= $("#datescope").val()
-                		if(typeof(curdatescope) == "undefined"){
-                			curdatescope=7
-                		}
-                		var curpagesize= $("#pageSizeScope").val()
-                		if(typeof(curpagesize) == "undefined"){
-                			curpagesize=10
-                		}
-            			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize);
+            		$("body").on("change","#datescope", function () { 
+            			_page(1);
+            		});
+            		
+            		$("body").on("change","#pageSizeScope", function () { 
+            			_page(1);
             		});
             	})
             </script>
