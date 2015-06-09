@@ -13,7 +13,7 @@ from django.http.response import HttpResponse
 from www.views import BaseView, AuthedView
 from www.models import TenantFeeBill, TenantConsume, TenantAccount, TenantRecharge
 
-#from goodrain_web.tools import JuncheePaginator
+# from goodrain_web.tools import JuncheePaginator
 
 from www.inflexdb.inflexdbservice import InflexdbService
 import logging
@@ -56,13 +56,15 @@ class Recharging(AuthedView):
                 context["tenantAccount"] = "tenantAccount" 
             except Exception as e:
                 pass
-            start=datetime.date.today() - datetime.timedelta(days=7)
-            startTime= start.strftime('%Y-%m-%d') + " 00:00:00"
-            recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__ge=startTime)
+            end = datetime.datetime.now()
+            endTime = end.strftime("%Y-%m-%d %H:%M:%S")
+            start = datetime.date.today() - datetime.timedelta(days=7)
+            startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
+            recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
             paginator = JuncheePaginator(recharges, 10)
             tenantRecharges = paginator.page(1)
-            context["tenantRecharges"]=tenantRecharges           
-            context["curpage"]=10      
+            context["tenantRecharges"] = tenantRecharges           
+            context["curpage"] = 10      
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/recharge.html", context)
