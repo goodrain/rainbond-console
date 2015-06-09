@@ -181,8 +181,14 @@
 					</section>
 					<script>
             	function _page(page){
-            		curdatescope= $("#datescope").val()
-            		curpagesize= $("#pageSizeScope").val()
+            		var curdatescope= $("#datescope").val()
+            		if(typeof(curdatescope) == "undefined"){
+            			curdatescope=7
+            		}
+            		var curpagesize= $("#pageSizeScope").val()
+            		if(typeof(curpagesize) == "undefined"){
+            			curpagesize=10
+            		}
             		$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+datescope+'&perpage='+curpagesize+'&page='+page);
             	}
             	
@@ -190,14 +196,26 @@
             		_page(1);
             		
             		$('#datescope').change(function(){ 
-            			var datescope=$("#datescope").val();
-            			var curpagesize= $("#curpagesize").val()
+            			var curdatescope= $("#datescope").val()
+                		if(typeof(curdatescope) == "undefined"){
+                			curdatescope=7
+                		}
+                		var curpagesize= $("#pageSizeScope").val()
+                		if(typeof(curpagesize) == "undefined"){
+                			curpagesize=10
+                		}
             			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+datescope+'&perpage='+curpagesize);
             		});
             		
             		#('#pageSizeScope').change(function(){ 
-            			var curdatescope= $("#curdatescope").val()
-            			var pagesize=$("#pageSizeScope").val();
+            			var curdatescope= $("#datescope").val()
+                		if(typeof(curdatescope) == "undefined"){
+                			curdatescope=7
+                		}
+                		var curpagesize= $("#pageSizeScope").val()
+                		if(typeof(curpagesize) == "undefined"){
+                			curpagesize=10
+                		}
             			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+pagesize);
             		})
             	})
