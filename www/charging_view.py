@@ -51,8 +51,11 @@ class Recharging(AuthedView):
         context['serviceAlias'] = self.serviceAlias
         context["myAppStatus"] = "active"
         try:
-            tenantAccount = TenantAccount.objects.get(tenant_id=self.tenant.tenant_id)
-            context["tenantAccount"] = "tenantAccount"            
+            try:
+                tenantAccount = TenantAccount.objects.get(tenant_id=self.tenant.tenant_id)
+                context["tenantAccount"] = "tenantAccount" 
+            except Exception as e:
+                pass
             start=datetime.date.today() - datetime.timedelta(days=7)
             startTime= start.strftime('%Y-%m-%d') + " 00:00:00"
             recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__ge=startTime)
