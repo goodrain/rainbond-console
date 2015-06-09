@@ -57,8 +57,7 @@ class AccountRecharging(AuthedView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         context["tenantName"] = self.tenantName
-        context['serviceAlias'] = self.serviceAlias
-        
+        context['serviceAlias'] = self.serviceAlias        
         date_scope = request.GET.get("datescope", "7")
         per_page = request.GET.get("perpage", "10")
         page = request.GET.get("page", "1")        
@@ -67,11 +66,15 @@ class AccountRecharging(AuthedView):
         context["per_page"] = per_page
         try:
             tenant_id = self.tenant.tenant_id
-            end = datetime.datetime.now()
-            endTime = end.strftime("%Y-%m-%d %H:%M:%S")
-            start = datetime.date.today() - datetime.timedelta(days=int(date_scope))
-            startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
-            recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
+            diffDay = int(date_scope)
+            if diffDay > 0:
+                end = datetime.datetime.now()
+                endTime = end.strftime("%Y-%m-%d %H:%M:%S")
+                start = datetime.date.today() - datetime.timedelta(days=int(date_scope))
+                startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
+                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
+            else:
+                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id)                                          
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantRecharges = paginator.page(int(page))
             context["tenantRecharges"] = tenantRecharges

@@ -51,20 +51,8 @@ class Recharging(AuthedView):
         context['serviceAlias'] = self.serviceAlias
         context["myFinanceRecharge"] = "active"
         try:
-            try:
-                tenantAccount = TenantAccount.objects.get(tenant_id=self.tenant.tenant_id)
-                context["tenantAccount"] = "tenantAccount" 
-            except Exception as e:
-                pass
-            end = datetime.datetime.now()
-            endTime = end.strftime("%Y-%m-%d %H:%M:%S")
-            start = datetime.date.today() - datetime.timedelta(days=7)
-            startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
-            recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
-            paginator = JuncheePaginator(recharges, 10)
-            tenantRecharges = paginator.page(1)
-            context["tenantRecharges"] = tenantRecharges           
-            context["curpage"] = 10      
+            tenantAccount = TenantAccount.objects.get(tenant_id=self.tenant.tenant_id)
+            context["tenantAccount"] = "tenantAccount"       
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/recharge.html", context)
@@ -126,6 +114,8 @@ class ChargingRule(AuthedView):
             if action == "statics":
                 pass
             elif action == "charging":
+                pass
+            else:
                 pass
         except Exception as e:
             logger.exception(e)
