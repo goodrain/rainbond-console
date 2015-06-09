@@ -207,7 +207,7 @@
             			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+datescope+'&perpage='+curpagesize);
             		});
             		
-            		#('#pageSizeScope').change(function(){ 
+            		$('#pageSizeScope').change(function(){ 
             			var curdatescope= $("#datescope").val()
                 		if(typeof(curdatescope) == "undefined"){
                 			curdatescope=7
