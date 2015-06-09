@@ -15,8 +15,7 @@
                  	{% endfor %}
                 {% endif %}
             </ul>
-        </li>
-        
+        </li>        
         <li>
             <a class="{{serviceMarketStatus}}" href="/apps/{{tenantName}}/service">
                 <i class="fa fa-th"></i>
@@ -28,16 +27,14 @@
                 <i class="fa fa-group"></i>
                 <span onclick="window.location='/apps/{{tenantName}}/team'">团队</span>
                 <span class="dcjq-icon"></span></a>
-        </li>
-        
-        <li class="sub-menu dcjq-parent-li">
+        </li>        
+        <li class="sub-menu">
         	<a href="javascript:;">
-            <i class="fa fa-cny"></i>
+            <i class="fa fa-laptop"></i>
             <span>财务中心</span></a>            
             <ul class="sub">
                 <li {% if myFinanceRecharge %} class="active" {% endif %}><a href="/apps/{{tenantName}}/recharge">账户充值</a></li>
                 <li {% if myFinanceAccount %} class="active" {% endif %}><a href="/apps/{{tenantName}}/consume">消费明细</a></li>
-                <!-- <li {% if myFinanceBill %} class="active" {% endif %}><a href="#">发票管理</a></li> -->
             </ul>
         </li>
     </ul>
