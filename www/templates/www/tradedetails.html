@@ -15,7 +15,7 @@
        		if(typeof(curdatescope) == "undefined"){
        			curdatescope=1
        		}
-       		$("#rechargeList").load('/ajax/{{tenantName}}/consumelist?datescope='+curdatescope+'&page='+page);
+       		$("#tenantConsumeList").load('/ajax/{{tenantName}}/consumelist?datescope='+curdatescope+'&page='+page);
        	}
        	
        	$(document).ready(function(){ 
