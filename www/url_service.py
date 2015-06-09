@@ -1,6 +1,7 @@
 from django.conf.urls import patterns, url
 from www.tests import *
 from www.services_view import *
+from www.charging_view import *
 from www.views.service import TeamInfo
 from django.contrib.auth.decorators import login_required
 
@@ -22,4 +23,8 @@ urlpatterns = patterns(
 
     url(r'^(?P<serviceAlias>[\w\-]+)/detail/$', login_required(TenantService.as_view())),
     url(r'^(?P<serviceAlias>[\w\-]+)/domain/$', login_required(ServiceDomainManager.as_view())),
+    
+    url(r'^recharge/$', login_required(Recharging.as_view())),
+    url(r'^consume/$', login_required(Account.as_view())),
+    url(r'^bill/$', login_required(AccountBill.as_view())),
 )

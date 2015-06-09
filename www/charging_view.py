@@ -49,7 +49,7 @@ class Recharging(AuthedView):
             pass
         except Exception as e:
             logger.exception(e)
-        return TemplateResponse(self.request, "www/account_bill.html", context)
+        return TemplateResponse(self.request, "www/recharge.html", context)
             
 class AccountBill(AuthedView):
 
@@ -89,7 +89,7 @@ class Account(AuthedView):
             context["tenantConsumeList"] = tenantConsumeList
         except Exception as e:
             logger.exception(e)
-        return TemplateResponse(self.request, "www/account_bill.html", context)
+        return TemplateResponse(self.request, "www/tradedetails.html", context)
             
             
 class ChargingRule(AuthedView):
