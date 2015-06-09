@@ -37,19 +37,13 @@
             <i class="fa fa-cny"></i>
             <span>财务中心</span>
             <span class="dcjq-icon"></span></a>
-            <ul class="sub" id="caiwumenu" style="display: none;">
-                <li {% if myAppStatus %}class="active"{% endif %}><a href="/apps/{{tenantName}}/recharge">账户充值</a></li>
-                <li {% if myAppStatus %}class="active"{% endif %}><a href="/apps/{{tenantName}}/consume">消费明细</a></li>
-                <li {% if myAppStatus %}class="active"{% endif %}><a href="#">发票管理</a></li>
+            <ul class="sub" id="caiwumenu" style="display: block;">
+                <li {% if myFinanceStatus %} class="active" {% endif %}><a href="/apps/{{tenantName}}/recharge">账户充值</a></li>
+                <li {% if myFinanceStatus %} class="active" {% endif %}><a href="/apps/{{tenantName}}/consume">消费明细</a></li>
+                <li {% if myFinanceStatus %} class="active" {% endif %}><a href="#">发票管理</a></li>
             </ul>
         </li>
         
-        <script>
-         	function showMenu(){
-         		$("#caiwumenu").css('display','block');
-         	}
-        	
-        </script>
     </ul>
     <!-- sidebar menu end-->
 </div>
