@@ -49,7 +49,7 @@ class Recharging(AuthedView):
         context = self.get_context()
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
-        context["myFinanceStatus"] = "active"
+        context["myFinanceRecharge"] = "active"
         try:
             try:
                 tenantAccount = TenantAccount.objects.get(tenant_id=self.tenant.tenant_id)
@@ -84,7 +84,7 @@ class AccountBill(AuthedView):
         try:
             user_id = self.user.pk
             context["tenantFeeBill"] = tenantFeeBill
-            context["myFinanceStatus"] = "active"
+            context["myFinanceBill"] = "active"
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/account_bill.html", context)
@@ -101,7 +101,7 @@ class Account(AuthedView):
         context = self.get_context()
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
-        context["myFinanceStatus"] = "active"
+        context["myFinanceAccount"] = "active"
         try:
             tenant_id = self.tenant.tenant_id
             curTime = time.strftime('%Y-%m-%d') + " 00:00:00"

@@ -377,7 +377,7 @@ class TenantService(AuthedView):
                         gitClient.addProjectMember(project_id, 2, 20)                                        
                         ts = TenantServiceInfo.objects.get(service_id=service_id)
                         ts.git_project_id = project_id
-                        ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + service_alias + ".git"
+                        ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                         ts.save()
 
             if self.service.category == 'application' and not self.service.is_code_upload:

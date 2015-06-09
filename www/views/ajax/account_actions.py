@@ -50,7 +50,32 @@ class AccountRecharging(AuthedView):
             tenant_id = self.tenant.tenant_id
             action = request.POST["action"]
         except Exception as e:
-            logger.exception(e)        
+            logger.exception(e)
+            
+    @perm_required('tenant_account')
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        context["tenantName"] = self.tenantName
+        context['serviceAlias'] = self.serviceAlias
+        
+        date_scope = request.GET.get("datescope", "7")
+        per_page = request.GET.get("perpage", "10")
+        page = request.GET.get("page", "1")        
+        try:
+            tenant_id = self.tenant.tenant_id
+            end = datetime.datetime.now()
+            endTime = end.strftime("%Y-%m-%d %H:%M:%S")
+            start = datetime.date.today() - datetime.timedelta(days=int(date_scope))
+            startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
+            recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
+            paginator = JuncheePaginator(recharges, int(per_page))
+            tenantRecharges = paginator.page(int(page))
+            context["tenantRecharges"] = tenantRecharges           
+            context["curpage"] = page
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/recharge-list.html", context)
+          
 
 class AccountQuery(AuthedView):
     @perm_required('tenant_account')

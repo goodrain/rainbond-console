@@ -16,4 +16,5 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/relation', ajax.ServiceRelation.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/perms', ajax.TenantIdentity.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/serviceinfo', ajax.AllServiceInfo.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/rechargelist', ajax.AccountRecharging.as_view()),
 )
