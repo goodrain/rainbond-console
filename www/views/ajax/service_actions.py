@@ -345,12 +345,15 @@ class ServiceNetAndDisk(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            client = RegionServiceApi()
-            result = client.netAndDiskStatics(self.service.service_id)
-            if len(result)>0 and result["disk"] is not None:
-                result["disk"] = round(result["disk"] / 1048576, 1)
-                result["bytesin"] = round(result["bytesin"] / 1024, 1)
-                result["bytesout"] = round(result["bytesout"] / 1024, 1)
+            #client = RegionServiceApi()
+            #result = client.netAndDiskStatics(self.service.service_id)
+            #if len(result)>0 and result["disk"] is not None:
+            #    result["disk"] = round(result["disk"] / 1048576, 1)
+            #   result["bytesin"] = round(result["bytesin"] / 1024, 1)
+            #   result["bytesout"] = round(result["bytesout"] / 1024, 1)
+            result["disk"]=0
+            result["bytesin"]=0
+            result["bytesout"]=0
         except Exception, e:
             logger.exception(e)
         return JsonResponse(result)
