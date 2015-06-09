@@ -1,0 +1,62 @@
+<form class="form-inline" role="form">
+     <div class="form-group">
+         <label class="control-label">时间范围</label>
+     </div>
+     <div class="form-group">
+         <select class="form-control" id="datescope">
+         	<option value="1">最近7天</option>
+             <option value="7">最近7天</option>
+             <option value="30">最近1个月</option>
+             <option value="180">最近6个月</option>
+             <option value="0">所有记录</option>
+         </select>
+     </div>
+ </form>
+ <table class="table table-striped table-advance table-hover">
+     <thead>
+         <tr>
+             <th>时间</th>
+             <th>资源占用</th>
+             <th>应付金额</th>
+             <th>实付金额</th>
+             <th>支付状态</th>
+             <th>操作</th>
+         </tr>
+     </thead>
+     <tbody>
+        {% for tenantConsume in tenantConsumes %}
+         <tr>
+             <td class=" ">{{tenantConsume.time}</td>
+             <td class=" ">{{tenantConsume.total_memory}K</td>
+             <td class=" ">{{tenantConsume.money}</td>
+             <td class=" ">{{tenantConsume.money}</td>
+             <td><span class="label label-success label-mini">{% if pay_status == "payed" %} 已支付 {% else %} 未支付 {% endif %}</span></td>
+             <td></td>
+         </tr>
+         {% endfor %}
+     </tbody>
+ </table>
+ <div class="adv-table">
+     <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
+         <div class="span6">
+             <div class="dataTables_paginate paging_bootstrap pagination">
+                 <ul>
+                 	{% if tenantConsumes.has_previous %}
+                 	<li class="prev disabled"><a href="javascript:;" onclick="_page({{tenantConsumes.previous_page_number}})">← Previous</a></li>
+					{% endif %} 
+					
+					{% for page in tenantConsumes.paginator.page_range %} 
+						{% if page = tenantConsumes.number %}
+						<li class="active"><a href="javascript:;">{{ page }}</a></li> 
+						{% else %}
+						<li><a href="javascript:;" onclick="_page({{page}})">{{page}}</a></li>
+						{% endif %} 
+					{% endfor %}
+					{% if tenantConsumes.has_next %}
+					<li class="next"><a href="javascript:;" onclick="_page({{ tenantConsumes.next_page_number }})">Next →</a></li> 
+					{% endif %}
+                 </ul>
+             </div>
+         </div>
+     </div>
+</div>

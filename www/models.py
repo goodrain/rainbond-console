@@ -310,6 +310,7 @@ class TenantConsume(BaseModel):
     money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"消费金额", default=0)
     total_memory = models.IntegerField(help_text=u"内存使用K", default=0)
     fee_rule = models.CharField(max_length=60, help_text=u"计费规则")
+    pay_status = models.CharField(max_length=10, help_text=u"扣费状态；payed,unpayed")
     time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
 
 class TenantFeeBill(BaseModel):

@@ -11,7 +11,7 @@ from django.template.response import TemplateResponse
 from django.core.paginator import Paginator
 from django.http.response import HttpResponse
 from www.views import BaseView, AuthedView
-from www.models import TenantFeeBill, TenantConsume, TenantAccount, TenantRecharge
+from www.models import TenantFeeBill, TenantConsume, TenantAccount
 
 from goodrain_web.tools import JuncheePaginator
 
@@ -90,13 +90,6 @@ class Account(AuthedView):
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
         context["myFinanceAccount"] = "active"
-        try:
-            tenant_id = self.tenant.tenant_id
-            curTime = time.strftime('%Y-%m-%d') + " 00:00:00"
-            tenantConsumeList = TenantConsume.objects.filter(tenant_id=tenant_id, time__gte=curTime)
-            context["tenantConsumeList"] = tenantConsumeList
-        except Exception as e:
-            logger.exception(e)
         return TemplateResponse(self.request, "www/tradedetails.html", context)
             
             
