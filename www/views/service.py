@@ -18,6 +18,7 @@ class TeamInfo(AuthedView):
         baseService = BaseTenantService()
         tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
         context["tenantServiceList"] = tenantServiceList
+        context["teamStatus"] = "active"
         return context
 
     def get_media(self):
