@@ -3,6 +3,7 @@ import datetime
 import json
 
 from django.views.decorators.cache import never_cache
+from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
