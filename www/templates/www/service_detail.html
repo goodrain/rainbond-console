@@ -152,8 +152,8 @@
 		                            <td>{{value.service_alias}}</td>
 		                            <td class="text-center">
 		                            	<button type="button" class="btn btn-danger"  onclick="delete_relation('{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
-		                            	<a class="btn btn-success" data-toggle="modal" href="#linkinfo">连接信息</a>
-	                                  	<div class="modal fade in" id="linkinfo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="false" style="display: none;">
+		                            	<a class="btn btn-success" data-toggle="modal" href="#linkinfo{{value.service_id}}">连接信息</a>
+	                                  	<div class="modal fade in" id="linkinfo{{value.service_id}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="false" style="display: none;">
 	                                      <div class="modal-dialog">
 		                                      <div class="modal-content">
 			                                        <div class="modal-header">
@@ -480,10 +480,6 @@
 		       })	
 			}
 	    }
-    	//$(document).ready(function() { 
-    	//	checkStatus(service_id)
-    	//	getLog()
-    	//}); 
 
         $(document).ready(function () {  
         	checkStatus();
@@ -494,7 +490,6 @@
             setInterval("getLog('operate')", 15000);
             setInterval("getLog('service')", 15000);
             setInterval("getServiceNetDisk()", 30000);
-        	//getServiceLog()
         }); 
         
 		function getLog(action){
@@ -577,76 +572,6 @@
 			}
 		}
 		
-
-    	/* function show_relation(service_type, service_alias, host, port,user_name, passpord, dep_order){
-			if(dep_order==-1){
-				connattr = service_alias+"_HOST";
-				portattr = service_alias+"_PORT";
-				userattr = service_alias+"_USER";
-				passattr = service_alias+"_PASSWORD";
-			}else if(dep_order==1){
-				connattr = service_type+"_HOST";
-				portattr = service_type+"_PORT";
-				userattr = service_type+"_USER";
-				passattr = service_type+"_PASSWORD";
-			}else{
-				connattr = service_type+"_"+service_alias+"_HOST";
-				portattr = service_type+"_"+service_alias+"_PORT";
-				userattr = service_type+"_"+service_alias+"_USER";
-				passattr = service_type+"_"+service_alias+"_PASSWORD";
-			}
-			connvalue = host;
-			portvalue = port;
-			uservalue = user_name;
-			passvalue = passpord;
-    		
-    		var msg = "<table class=\"table table-hover\">";
-		    msg=msg+"<thead>";
-		    msg=msg+"<tr>";
-		    msg=msg+"<th>说明</th>";
-		    msg=msg+"<th>变量名</th>";
-		    msg=msg+"<th>值</th>";
-		    msg=msg+"</tr>";
-		    msg=msg+"</thead>";
-		    msg=msg+"<tbody>";
-		    
-		    msg=msg+"<tr>";
-		    msg=msg+"<td>连接地址</td>";
-		    msg=msg+"<td>"+connattr+"</td>";
-		    msg=msg+"<td>"+connvalue+"</td>";
-		    msg=msg+"</tr>";
-		    
-		    msg=msg+"<tr>";
-		    msg=msg+"<td>端口</td>";
-		    msg=msg+"<td>"+portattr+"</td>";
-		    msg=msg+"<td>"+portvalue+"</td>";
-		    msg=msg+"</tr>";
-
-		    if(userattr != ""){
-		    	msg=msg+"<tr>";
-    		    msg=msg+"<td>用户名</td>";
-    		    msg=msg+"<td>"+userattr+"</td>";
-    		    msg=msg+"<td>"+uservalue+"</td>";
-    		    msg=msg+"</tr>";
-
-    		    msg=msg+"<tr>";
-    		    msg=msg+"<td>密码</td>";
-    		    msg=msg+"<td>"+passattr+"</td>";
-    		    msg=msg+"<td>"+passvalue+"</td>";
-    		    msg=msg+"</tr>";
-    		}           
-		    msg = msg+"</tbody>";
-		    msg = msg+"</table>";
-    		layer.open({
-    			type: 1,
-    		    skin: 'layui-layer-demo', //样式类名
-    		    closeBtn: false, //不显示关闭按钮
-    		    shift: 2,
-    		    shadeClose: true, //开启遮罩关闭
-    		    content: msg
-    		});
-        } */
-
         function buid_relation(curServiceName,depServiceName,tenantName){
         	//layer.msg('正在开发中');
 			
@@ -697,42 +622,6 @@
         		}
         	})
         }
-
-        /* $(function() {
-            var selectNode = $("#serviceNods");
-            if(selectNode && selectNode.length>0){
-           		var sliderNode = $("<div id='slider'></div>").insertBefore(selectNode).slider({
-                  min: 1,
-                  max: 11,
-                  range: "min",
-                  value: selectNode[0].selectedIndex + 1,
-                  slide: function( event, ui ) {
-                	  selectNode[0].selectedIndex = ui.value - 1;
-                  }
-                });
-                $( "#serviceNods" ).change(function() {
-                	sliderNode.slider( "value", this.selectedIndex + 1 );
-                });
-            }
-         }); */
-		
-        /* $(function() {
-            var selectMemory = $("#serviceMemorys");
-            if(selectMemory && selectMemory.length>0){
-            	var sliderMemory = $("<div id='slider'></div>").insertBefore(selectMemory).slider({
-                min: 1,
-                max: 6,
-                range: "min",
-                value: selectMemory[0].selectedIndex + 1,
-                slide: function( event, ui ) {
-                	selectMemory[0].selectedIndex = ui.value - 1;
-                }
-               });
-               $( "#serviceMemorys" ).change(function() {
-            	   sliderMemory.slider( "value", this.selectedIndex + 1 );
-               });
-            }
-         }); */
     </script>
 </section>
 </section>
