@@ -184,14 +184,10 @@
 									<div id="example_length" class="dataTables_length">
 										<label>每页显示 <select class="form-control" size="1"
 											name="example_length" aria-controls="example">
-												<option {% if curpage== 10 %} selected="selected"
-													{% elseif %} value="10">10</option>
-												<option {% if curpage== 25 %} selected="selected"
-													{% elseif %} value="25">25</option>
-												<option {% if curpage== 50 %} selected="selected"
-													{% elseif %} value="50">50</option>
-												<option {% if curpage== 100 %} selected="selected"
-													{% elseif %} value="100">100</option>
+												<option {% if curpage == "10" %} selected="selected" {% elseif %} value="10">10</option>
+												<option {% if curpage == "25" %} selected="selected" {% elseif %} value="25">25</option>
+												<option {% if curpage == "50" %} selected="selected" {% elseif %} value="50">50</option>
+												<option {% if curpage == "100" %} selected="selected" {% elseif %} value="100">100</option>
 										</select>行
 										</label>
 									</div>
@@ -208,8 +204,7 @@
 									</tr>
 								</thead>
 								<tbody role="alert" aria-live="polite" aria-relevant="all">
-									{% for tenantRecharge in tenantRecharges %} {{ blog.name }} {{
-									blog.content }} ......
+									{% for tenantRecharge in tenantRecharges %}
 									<tr>
 										<td class=" ">{{tenantRecharge.money}}</td>
 										<td class=" ">{{tenantRecharge.recharge_type}}</td>
@@ -224,18 +219,18 @@
 									<div class="dataTables_paginate paging_bootstrap pagination">
 										<ul>
 											{% if tenantRecharges.has_previous %}
-											<li class="prev disabled"><a href="javascript:;"
-												onclick="_page({{tenantRecharges.previous_page_number}})">←
-													Previous</a></li> {% endif %} {% for page in
-											tenantRecharges.paginator.page_range %} {% if page =
-											tenantRecharges.number %}
-											<li class="active"><a href="javascript:;">{{ page }}</a></li> {%
-											else %}
-											<li><a href="javascript:;" onclick="_page({{page}})">{{page}}</a></li>
-											{% endif %} {% endfor %} {% if tenantRecharges.has_next %}
-											<li class="next"><a href="javascript:;"
-												onclick="_page({{ tenantRecharges.next_page_number }})">Next →
-											</a></li> {% endif %}
+											<li class="prev disabled"><a href="javascript:;" onclick="_page({{tenantRecharges.previous_page_number}})">←Previous</a></li> 
+											{% endif %} 
+											
+											{% for page in tenantRecharges.paginator.page_range %} 
+												{% if page = tenantRecharges.number %}
+												<li class="active"><a href="javascript:;">{{ page }}</a></li> 
+												{% else %}
+												<li><a href="javascript:;" onclick="_page({{page}})">{{page}}</a></li>
+												{% endif %} {% endfor %} {% if tenantRecharges.has_next %}
+												<li class="next"><a href="javascript:;" onclick="_page({{ tenantRecharges.next_page_number }})">Next →</a></li> 
+												{% endif %}
+											{% endfor %}
 										</ul>
 									</div>
 								</div>
