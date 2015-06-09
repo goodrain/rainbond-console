@@ -4,11 +4,11 @@
      </div>
      <div class="form-group">
          <select class="form-control" id="datescope">
-         	<option value="1">最近7天</option>
-             <option value="7">最近7天</option>
-             <option value="30">最近1个月</option>
-             <option value="180">最近6个月</option>
-             <option value="0">所有记录</option>
+         	 <option {% if datescope == "1" %} selected="selected" {% endif %} value="1">最近1天</option>
+             <option {% if datescope == "7" %} selected="selected" {% endif %} value="7">最近7天</option>
+             <option {% if datescope == "30" %} selected="selected" {% endif %} value="30">最近1个月</option>
+             <option {% if datescope == "180" %} selected="selected" {% endif %} value="180">最近6个月</option>
+             <option {% if datescope == "0" %} selected="selected" {% endif %} value="0">所有记录</option>
          </select>
      </div>
  </form>

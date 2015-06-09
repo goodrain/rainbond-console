@@ -110,24 +110,3 @@ class AccountQuery(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/tradedetails-list.html", context)
-        
-        
-  
-class AccountNotify(AuthedView):
-    @perm_required('tenant_account')
-    def post(self, request, *args, **kwargs):
-        try:
-            tenant_id = self.tenant.tenant_id
-            action = request.POST["action"]
-        except Exception as e:
-            logger.exception(e)      
-        
-class ChargingRule(AuthedView):
-    @perm_required('tenant_account')
-    def post(self, request, *args, **kwargs):
-        try:
-            tenant_id = self.tenant.tenant_id
-            action = request.POST["action"]
-        except Exception as e:
-            logger.exception(e)   
-        
