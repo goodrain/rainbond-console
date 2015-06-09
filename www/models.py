@@ -269,8 +269,9 @@ class TenantRecharge(BaseModel):
     class Meta:
         db_table = 'tenant_recharge'
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    user_id = models.IntegerField(help_text=u"关联用户")
+    user_id = models.IntegerField(help_text=u"充值用户")
     user_name = models.CharField(max_length=40, help_text=u"用户名")
+    recharge_type = models.CharField(max_length=40, help_text=u"充值类型")
     money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"充值金额")
     time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
     
