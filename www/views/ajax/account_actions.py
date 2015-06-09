@@ -9,7 +9,7 @@ from www.views import AuthedView
 from www.decorator import perm_required
 from www.models import TenantFeeBill, TenantPaymentNotify,TenantRecharge, TenantConsume
 
-
+from goodrain_web.tools import JuncheePaginator
 
 import logging
 from django.template.defaultfilters import length
