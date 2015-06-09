@@ -189,7 +189,7 @@
             		if(typeof(curpagesize) == "undefined"){
             			curpagesize=10
             		}
-            		$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+datescope+'&perpage='+curpagesize+'&page='+page);
+            		$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize+'&page='+page);
             	}
             	
             	$(document).ready(function(){ 
@@ -204,7 +204,7 @@
                 		if(typeof(curpagesize) == "undefined"){
                 			curpagesize=10
                 		}
-            			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+datescope+'&perpage='+curpagesize);
+            			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize);
             		});
             		
             		$('#pageSizeScope').change(function(){ 
@@ -216,7 +216,7 @@
                 		if(typeof(curpagesize) == "undefined"){
                 			curpagesize=10
                 		}
-            			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+pagesize);
+            			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize);
             		})
             	})
             </script>
