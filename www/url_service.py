@@ -9,7 +9,6 @@ from django.contrib.auth.decorators import login_required
 urlpatterns = patterns(
     '',
     url(r'^$', login_required(TenantServiceAll.as_view())),
-    url(r'^select/$', login_required(ServiceSelect.as_view())),
 
     url(r'^app-create/$', login_required(ServiceAppCreate.as_view())),
 

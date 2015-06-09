@@ -12,6 +12,7 @@ from django.core.paginator import Paginator
 from django.http.response import HttpResponse
 from www.views import BaseView, AuthedView
 from www.models import TenantFeeBill, TenantConsume, TenantAccount
+from www.tenantservice.baseservice import BaseTenantService
 
 from goodrain_web.tools import JuncheePaginator
 
@@ -47,6 +48,9 @@ class Recharging(AuthedView):
     @never_cache
     def get(self, request, *args, **kwargs):
         context = self.get_context()
+        baseService = BaseTenantService()
+        tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+        context["tenantServiceList"] = tenantServiceList
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
         context["myFinanceRecharge"] = "active"
@@ -87,29 +91,10 @@ class Account(AuthedView):
     @never_cache
     def get(self, request, *args, **kwargs):
         context = self.get_context()
+        baseService = BaseTenantService()
+        tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+        context["tenantServiceList"] = tenantServiceList
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
         context["myFinanceAccount"] = "active"
         return TemplateResponse(self.request, "www/tradedetails.html", context)
-            
-            
-class ChargingRule(AuthedView):
-
-    def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css')
-        return media
-        
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        try:
-            action = request.GET.get("action", "")
-            if action == "statics":
-                pass
-            elif action == "charging":
-                pass
-            else:
-                pass
-        except Exception as e:
-            logger.exception(e)
-        

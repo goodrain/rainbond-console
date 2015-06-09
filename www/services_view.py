@@ -26,21 +26,6 @@ gitClient = GitlabApi()
 
 beanlog = BeanStalkClient()
 
-class ServiceSelect(AuthedView):
-
-    def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css')
-        return media
-
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        context = self.get_context()
-        context["tenantName"] = self.tenantName
-        
-        return TemplateResponse(self.request, "www/service_select.html", context)
-
-
 class ServiceAppCreate(AuthedView):
     
     def get_media(self):
@@ -196,6 +181,9 @@ class ServiceMarket(AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
+            baseService = BaseTenantService()
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+            context["tenantServiceList"] = tenantServiceList            
             cacheServiceList = ServiceInfo.objects.filter(status="published")
             context["cacheServiceList"] = cacheServiceList
             context["serviceMarketStatus"] = "active"
@@ -290,7 +278,6 @@ class TenantServiceAll(AuthedView):
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
             context["tenantServiceList"] = tenantServiceList
-            context["serviceList"] = tenantServiceList
             context["totalFlow"] = 0
             context["totalAppNumber"] = len(tenantServiceList)
             context["myAppStatus"] = "active"
@@ -462,31 +449,10 @@ class ServiceDomainManager(AuthedView):
             result["status"] = "failure"
         return HttpResponse(json.dumps(result))
 
-
-class ServiceLogManager(AuthedView):
-
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        try:
-            action = request.GET.get("action", "")
-            service_id = self.service.service_id
-            tenant_id = self.tenant.tenant_id
-            body = {}
-            body["tenant_id"] = tenant_id
-            if action == "operate":                
-                body = client.get_userlog(service_id, json.dumps(body))
-                return HttpResponse(json.dumps(body))
-            elif action == "service":
-                body = client.get_log(service_id, json.dumps(body))
-                return HttpResponse(json.dumps(body))
-            body = client.get_log({})
-        except Exception as e:
-            logger.exception(e)
-        return HttpResponse(json.dumps({}))
     
     
 class ServiceStaticsManager(AuthedView):
-
+    
     @never_cache
     def get(self, request, *args, **kwargs):
         result = {}
