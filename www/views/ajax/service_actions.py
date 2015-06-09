@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation
+from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics
 from www.service_http import RegionServiceApi
 from www.weblog import WebLog
 from www.gitlab_http import GitlabApi
@@ -345,15 +345,24 @@ class ServiceNetAndDisk(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            #client = RegionServiceApi()
-            #result = client.netAndDiskStatics(self.service.service_id)
-            #if len(result)>0 and result["disk"] is not None:
+            # client = RegionServiceApi()
+            # result = client.netAndDiskStatics(self.service.service_id)
+            # if len(result)>0 and result["disk"] is not None:
             #    result["disk"] = round(result["disk"] / 1048576, 1)
             #   result["bytesin"] = round(result["bytesin"] / 1024, 1)
             #   result["bytesout"] = round(result["bytesout"] / 1024, 1)
-            result["disk"]=0
-            result["bytesin"]=0
-            result["bytesout"]=0
+            tenant_id = self.tenant.tenant_id
+            service_id = self.service.service_id
+            
+            tenantServiceStatics = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('id').latest()
+            if tenantServiceStatics is not None:
+                result["disk"] = tenantServiceStatics.container_disk + tenantServiceStatics.storage_disk
+                result["bytesin"] = tenantServiceStatics.net_in
+                result["bytesout"] = tenantServiceStatics.net_out
+            else:
+                result["disk"] = 0
+                result["bytesin"] = 0
+                result["bytesout"] = 0
         except Exception, e:
             logger.exception(e)
         return JsonResponse(result)
