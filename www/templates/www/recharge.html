@@ -188,6 +188,7 @@
             	
             	$(document).ready(function(){ 
             		_page(1);
+            		
             		$('#datescope').change(function(){ 
             			var datescope=$("#datescope").val();
             			var curpagesize= $("#curpagesize").val()
@@ -199,10 +200,7 @@
             			var pagesize=$("#pageSizeScope").val();
             			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+pagesize);
             		})
-            	}) 
-            	
-            	datescope
-            	pageSizeScope
+            	})
             </script>
 				</div>
 				<!--  充值记录  内容块 结束 -->
