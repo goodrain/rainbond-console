@@ -62,6 +62,9 @@ class AccountRecharging(AuthedView):
         date_scope = request.GET.get("datescope", "7")
         per_page = request.GET.get("perpage", "10")
         page = request.GET.get("page", "1")        
+        context["date_scope"] = date_scope
+        context["curpage"] = page
+        context["per_page"] = per_page
         try:
             tenant_id = self.tenant.tenant_id
             end = datetime.datetime.now()
@@ -71,8 +74,7 @@ class AccountRecharging(AuthedView):
             recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantRecharges = paginator.page(int(page))
-            context["tenantRecharges"] = tenantRecharges           
-            context["curpage"] = page
+            context["tenantRecharges"] = tenantRecharges
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/recharge-list.html", context)

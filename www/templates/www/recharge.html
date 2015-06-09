@@ -1,252 +1,215 @@
-{% extends 'www/raster.html' %}
-{% load i18n %}
-
-{% block main-content %}
+{% extends 'www/raster.html' %} {% load i18n %} {% block main-content %}
 
 <section class="wrapper site-min-height">
-    <section class="panel">
-        <!-- 一级导航菜单 头部定义 开始-->
-        <header class="panel-heading tab-bg-dark-navy-blue ">
-            <ul class="nav nav-tabs">
-                <li class="active">
-                    <a data-toggle="tab" href="#recharge">账户充值</a>
-                </li>
-                <li class="">
-                    <a data-toggle="tab" href="#rechargelog">充值记录</a>
-                </li>
-            </ul>
-        </header>
-        <!-- 一级导航菜单 头部定义 结束 -->
+	<section class="panel">
+		<!-- 一级导航菜单 头部定义 开始-->
+		<header class="panel-heading tab-bg-dark-navy-blue ">
+			<ul class="nav nav-tabs">
+				<li class="active"><a data-toggle="tab" href="#recharge">账户充值</a>
+				</li>
+				<li class=""><a data-toggle="tab" href="#rechargelog">充值记录</a>
+				</li>
+			</ul>
+		</header>
+		<!-- 一级导航菜单 头部定义 结束 -->
 
-        <div class="panel-body">
-            <!-- 一级导航菜单 内容定义 开始 -->
-            <div class="tab-content">
-                
-                <!--  一级导航菜单 账户充值页 开始 -->
-                <div id="recharge" class="tab-pane active">
+		<div class="panel-body">
+			<!-- 一级导航菜单 内容定义 开始 -->
+			<div class="tab-content">
 
-                    <!--  一级导航菜单 账户充值页 账户余额块 开始 -->
-                    <div id="balance" class="alert alert-success alert-block active">
-                        <h4>账户余额：{% if tenantAccount %} {{tenantAccount.balance_money}} {% else %} 0 {% endif %}元</h4>
-                    </div>
-                    <!--  一级导航菜单 账户充值页 账户余额块 结束 -->
+				<!--  一级导航菜单 账户充值页 开始 -->
+				<div id="recharge" class="tab-pane active">
 
-                    <!--  账户充值页 二级导航 头部定义块 开始 -->
-                    <ul class="nav nav-tabs">
-                        <li class="active">
-                            <a data-toggle="tab" href="#onlinerecharge">在线充值</a>
-                        </li>
-                        <li class="">
-                            <a data-toggle="tab" href="#banktransfer">银行转账</a>
-                        </li>
-                    </ul>
-                    <!--  账户充值页 二级导航 头部定义块 结束 -->
+					<!--  一级导航菜单 账户充值页 账户余额块 开始 -->
+					<div id="balance" class="alert alert-success alert-block active">
+						<h4>账户余额：{% if tenantAccount %}
+							{{tenantAccount.balance_money}} {% else %} 0 {% endif %}元</h4>
+					</div>
+					<!--  一级导航菜单 账户充值页 账户余额块 结束 -->
 
-                    <!--  账户充值 －> 在线充值 内容块 开始 -->
-                    <div class="tab-content">
-                        <div id="onlinerecharge" class="tab-pane active"><br>
-                            <form class="form-inline" role="form">
-                                <div class="form-group">
-                                    <label class="col-xs-12 control-label">充值金额</label>
-                                </div>
-                                <div class="form-group">
-                                    <input type="text" class="form-control" id="rechargenum">
-                                </div>
-                            </form>
-                            
-                            <section class="panel">
-                                <div class="panel-body">
-                                    <form class="form-horizontal tasi-form" method="get">
-                                        <div class="form-group">
-                                            <div class="col-lg-2"><label class="control-label">支付方式</label></div>
-                                            <div class="col-lg-10">
-                                                <div class="row">
-                                                    <div class="col-lg-2">
-                                                        <label>
-                                                            <input type="radio" name="optionsRadios" id="optionsRadios2" value="option2">支付宝
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-lg-2">
-                                                        <label>
-                                                            <input type="radio" name="optionsRadios" id="optionsRadios2" disabled="disabled" value="option2">中国银行
-                                                        </label>
-                                                    </div>
-                                                    <div class="col-lg-2">
-                                                        <label>
-                                                            <input type="radio" name="optionsRadios" id="optionsRadios2" disabled="disabled" value="option2">中国工商银行
-                                                        </label>
-                                                    </div>
-                                                    <div class="col-lg-2">
-                                                        <label>
-                                                            <input type="radio" name="optionsRadios" id="optionsRadios2" disabled="disabled" value="option2">招生银行
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-lg-2">
-                                                        <label>
-                                                            <input type="radio" name="optionsRadios" id="optionsRadios2" disabled="disabled" value="option2">中国建设银行
-                                                        </label>
-                                                    </div>
-                                                    <div class="col-lg-2">
-                                                        <label>
-                                                            <input type="radio" name="optionsRadios" id="optionsRadios2" disabled="disabled" value="option2">中国农业银行
-                                                        </label>
-                                                    </div>
-                                                    <div class="col-lg-2">
-                                                        <label>
-                                                            <input type="radio" name="optionsRadios" id="optionsRadios2" disabled="disabled" value="option2">交通银行
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button type="submit" class="btn btn-success">&nbsp;充值&nbsp;</button>
-                                    </form>
-                                </div>
-                                <div class="alert alert-warning fade in">
-                                    <button data-dismiss="alert" class="close close-sm" type="button">
-                                        <i class="fa fa-times"></i>
-                                    </button>
-                                    <strong>温馨提示：</strong><br>1、提示：若充值过程中遇到<a href="https://cshall.alipay.com/lab/help_detail.htm?help_id=247928">交易限额</a>问题，请前往相应的网上银行进行调整后再继续。<br>
-    2、如您有欠费账单，充值后会优先补扣欠费账单。 <br>
-    3、充值后请及时对支付订单进行结算，以免影响正常服务。
-                                </div>
-                            </section>
-                        </div>
-                        <!--  账户充值 －> 在线充值 内容块 结束 -->
+					<!--  账户充值页 二级导航 头部定义块 开始 -->
+					<ul class="nav nav-tabs">
+						<li class="active"><a data-toggle="tab"
+							href="#onlinerecharge">在线充值</a></li>
+						<li class=""><a data-toggle="tab" href="#banktransfer">银行转账</a>
+						</li>
+					</ul>
+					<!--  账户充值页 二级导航 头部定义块 结束 -->
 
-                        <!--  账户充值 －> 银行汇款 内容块 开始 -->
-                        <div id="banktransfer" class="tab-pane">
-                            <section class="panel">
-                        <br>
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>开户银行</th>
-                                        <th>账户名称</th>
-                                        <th>账号</th>
-                                        <th>银行电汇代码</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>招商银行北京五道口支行</td>
-                                        <td>北京好雨科技有限公司</td>
-                                        <td>0200 0011 0902 4543 164</td>
-                                        <td>SCBLHKHHXXX</td>
-                                    </tr>
-                                    <tr>
-                                        <td>招商银行北京五道口支行</td>
-                                        <td>北京好雨科技有限公司</td>
-                                        <td>0200 0011 0902 4543 164</td>
-                                        <td>SCBLHKHHXXX</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <div class="alert alert-warning fade in">
-                                <button data-dismiss="alert" class="close close-sm" type="button">
-                                    <i class="fa fa-times"></i>
-                                </button>
-                                <strong>温馨提示：</strong><br>
-请您在转账或汇款时在留言栏或备注栏注明以下信息：<br>
-1、付款单位名称或姓名；2、付款用途；3、您在Goodrain的注册邮箱。<br>
-建议您在完成汇款后把银行回单发送给grsales@goodrain.com。如果您需要开具发票，请在发票管理页面自助申请。感谢配合!<br>
-                            </div>
-                            </section>
-                        </div>
-                    </div>
-                </div>
-                        <!--  账户充值 －> 银行汇款 内容块 结束 -->
-
-            <!--  充值记录  内容块 开始 -->
-            <div id="rechargelog" class="tab-pane"><section class="panel">
-                <div class="panel-body">
-                    <form class="form-inline" role="form">
-                        <div class="form-group">
-                            <label class="control-label">时间范围</label>
-                        </div>
-                        <div class="form-group">
-                            <select class="form-control" id="datescope">
-                                <option selected="selected">最近7天</option>
-                                <option>最近1个月</option>
-                                <option>最近6个月</option>
-                                <option>所有记录</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-success">查询</button>
-                    </form>
-                    <div class="adv-table">
-                        <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
-							<div class="row-fluid">
-								<div class="span6 text-right">
-									<div id="example_length" class="dataTables_length">
-										<label>每页显示 <select class="form-control" size="1"
-											name="example_length" aria-controls="example">
-												<option {% if curpage == "10" %} selected="selected" {% endif %} value="10">10</option>
-												<option {% if curpage == "25" %} selected="selected" {% endif %} value="25">25</option>
-												<option {% if curpage == "50" %} selected="selected" {% endif %} value="50">50</option>
-												<option {% if curpage == "100" %} selected="selected" {% endif %} value="100">100</option>
-										</select>行
-										</label>
-									</div>
+					<!--  账户充值 －> 在线充值 内容块 开始 -->
+					<div class="tab-content">
+						<div id="onlinerecharge" class="tab-pane active">
+							<br>
+							<form class="form-inline" role="form">
+								<div class="form-group">
+									<label class="col-xs-12 control-label">充值金额</label>
 								</div>
-							</div>
-							<table class="display table table-bordered table-striped dataTable"
-								id="example" aria-describedby="example_info">
-								<thead>
-									<tr role="row">
-										<th>充值金额(元)</th>
-										<th>类型</th>
-										<th>操作人</th>
-										<th>时间</th>
-									</tr>
-								</thead>
-								<tbody role="alert" aria-live="polite" aria-relevant="all">
-									{% for tenantRecharge in tenantRecharges %}
-									<tr>
-										<td class=" ">{{tenantRecharge.money}}</td>
-										<td class=" ">{{tenantRecharge.recharge_type}}</td>
-										<td class=" ">{{tenantRecharge.user_name}}</td>
-										<td>{{tenantRecharge.time}}</td>
-									</tr>
-									{% endfor %}
-								</tbody>
-							</table>
-							<div class="row-fluid">
-								<div class="span6">
-									<div class="dataTables_paginate paging_bootstrap pagination">
-										<ul>
-											{% if tenantRecharges.has_previous %}
-											<li class="prev disabled"><a href="javascript:;" onclick="_page({{tenantRecharges.previous_page_number}})">←Previous</a></li> 
-											{% endif %} 
-											
-											{% for page in tenantRecharges.paginator.page_range %} 
-												{% if page = tenantRecharges.number %}
-												<li class="active"><a href="javascript:;">{{ page }}</a></li> 
-												{% else %}
-												<li><a href="javascript:;" onclick="_page({{page}})">{{page}}</a></li>
-												{% endif %} 
-											{% endfor %} 
-											{% if tenantRecharges.has_next %}
-											<li class="next"><a href="javascript:;" onclick="_page({{ tenantRecharges.next_page_number }})">Next →</a></li> 
-											{% endif %}
-										</ul>
-									</div>
+								<div class="form-group">
+									<input type="text" class="form-control" id="rechargenum">
 								</div>
-							</div>
+							</form>
+
+							<section class="panel">
+								<div class="panel-body">
+									<form class="form-horizontal tasi-form" method="get">
+										<div class="form-group">
+											<div class="col-lg-2">
+												<label class="control-label">支付方式</label>
+											</div>
+											<div class="col-lg-10">
+												<div class="row">
+													<div class="col-lg-2">
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" value="option2">支付宝
+														</label>
+													</div>
+												</div>
+												<div class="row">
+													<div class="col-lg-2">
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" disabled="disabled" value="option2">中国银行
+														</label>
+													</div>
+													<div class="col-lg-2">
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" disabled="disabled" value="option2">中国工商银行
+														</label>
+													</div>
+													<div class="col-lg-2">
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" disabled="disabled" value="option2">招生银行
+														</label>
+													</div>
+												</div>
+												<div class="row">
+													<div class="col-lg-2">
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" disabled="disabled" value="option2">中国建设银行
+														</label>
+													</div>
+													<div class="col-lg-2">
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" disabled="disabled" value="option2">中国农业银行
+														</label>
+													</div>
+													<div class="col-lg-2">
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" disabled="disabled" value="option2">交通银行
+														</label>
+													</div>
+												</div>
+											</div>
+										</div>
+										<button type="submit" class="btn btn-success">&nbsp;充值&nbsp;</button>
+									</form>
+								</div>
+								<div class="alert alert-warning fade in">
+									<button data-dismiss="alert" class="close close-sm"
+										type="button">
+										<i class="fa fa-times"></i>
+									</button>
+									<strong>温馨提示：</strong><br>1、提示：若充值过程中遇到<a
+										href="https://cshall.alipay.com/lab/help_detail.htm?help_id=247928">交易限额</a>问题，请前往相应的网上银行进行调整后再继续。<br>
+									2、如您有欠费账单，充值后会优先补扣欠费账单。 <br> 3、充值后请及时对支付订单进行结算，以免影响正常服务。
+								</div>
+							</section>
 						</div>
-                    </div>
-                </div>
-            </section>
-        </div>
-        <!--  充值记录  内容块 结束 -->
-    </div>
-    <!-- 一级导航菜单 内容定义 结束 -->
-</div>
-</section>
+						<!--  账户充值 －> 在线充值 内容块 结束 -->
+
+						<!--  账户充值 －> 银行汇款 内容块 开始 -->
+						<div id="banktransfer" class="tab-pane">
+							<section class="panel">
+								<br>
+								<table class="table table-hover">
+									<thead>
+										<tr>
+											<th>开户银行</th>
+											<th>账户名称</th>
+											<th>账号</th>
+											<th>银行电汇代码</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr>
+											<td>招商银行北京五道口支行</td>
+											<td>北京好雨科技有限公司</td>
+											<td>0200 0011 0902 4543 164</td>
+											<td>SCBLHKHHXXX</td>
+										</tr>
+										<tr>
+											<td>招商银行北京五道口支行</td>
+											<td>北京好雨科技有限公司</td>
+											<td>0200 0011 0902 4543 164</td>
+											<td>SCBLHKHHXXX</td>
+										</tr>
+									</tbody>
+								</table>
+								<div class="alert alert-warning fade in">
+									<button data-dismiss="alert" class="close close-sm"
+										type="button">
+										<i class="fa fa-times"></i>
+									</button>
+									<strong>温馨提示：</strong><br> 请您在转账或汇款时在留言栏或备注栏注明以下信息：<br>
+									1、付款单位名称或姓名；2、付款用途；3、您在Goodrain的注册邮箱。<br>
+									建议您在完成汇款后把银行回单发送给grsales@goodrain.com。如果您需要开具发票，请在发票管理页面自助申请。感谢配合!<br>
+								</div>
+							</section>
+						</div>
+					</div>
+				</div>
+				<!--  账户充值 －> 银行汇款 内容块 结束 -->
+
+				<!--  充值记录  内容块 开始 -->
+				<div id="rechargelog" class="tab-pane">
+					<section class="panel">
+						<div class="panel-body">
+							<form class="form-inline" role="form">
+								<div class="form-group">
+									<label class="control-label">时间范围</label>
+								</div>
+								<div class="form-group">
+									<select class="form-control" id="datescope">
+										<option selected="selected" value="7">最近7天</option>
+										<option value="30">最近1个月</option>
+										<option value="180">最近6个月</option>
+										<option value="0">所有记录</option>
+									</select>
+								</div>
+							</form>
+							<div class="adv-table" id="rechargeList"></div>
+						</div>
+					</section>
+					<script>
+            	function _page(page){
+            		curdatescope= $("#datescope").val()
+            		curpagesize= $("#pageSizeScope").val()
+            		$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+datescope+'&perpage='+curpagesize+'&page='+page);
+            	}
+            	
+            	$(document).ready(function(){ 
+            		_page(1);
+            		$('#datescope').change(function(){ 
+            			var datescope=$("#datescope").val();
+            			var curpagesize= $("#curpagesize").val()
+            			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+datescope+'&perpage='+curpagesize);
+            		});
+            		
+            		#('#pageSizeScope').change(function(){ 
+            			var curdatescope= $("#curdatescope").val()
+            			var pagesize=$("#pageSizeScope").val();
+            			$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+pagesize);
+            		})
+            	}) 
+            	
+            	datescope
+            	pageSizeScope
+            </script>
+				</div>
+				<!--  充值记录  内容块 结束 -->
+			</div>
+			<!-- 一级导航菜单 内容定义 结束 -->
+		</div>
+	</section>
 </section>
 
 
