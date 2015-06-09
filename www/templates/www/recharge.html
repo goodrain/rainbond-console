@@ -228,10 +228,11 @@
 												<li class="active"><a href="javascript:;">{{ page }}</a></li> 
 												{% else %}
 												<li><a href="javascript:;" onclick="_page({{page}})">{{page}}</a></li>
-												{% endif %} {% endfor %} {% if tenantRecharges.has_next %}
-												<li class="next"><a href="javascript:;" onclick="_page({{ tenantRecharges.next_page_number }})">Next →</a></li> 
-												{% endif %}
-											{% endfor %}
+												{% endif %} 
+											{% endfor %} 
+											{% if tenantRecharges.has_next %}
+											<li class="next"><a href="javascript:;" onclick="_page({{ tenantRecharges.next_page_number }})">Next →</a></li> 
+											{% endif %}
 										</ul>
 									</div>
 								</div>
