@@ -1,9 +1,4 @@
-# -*- coding: utf8 -*-
 from django.core.mail import send_mail
-
-import sys
-reload(sys)
-sys.setdefaultencoding('UTF-8')
 
 def send_invite_mail(to, content):
     send_mail("invite user", content, 'no-reply@goodrain.com', [to])
