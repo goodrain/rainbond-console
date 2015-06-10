@@ -2,6 +2,7 @@
 import datetime
 import json
 
+from django.db.models import Sum
 from django.views.decorators.cache import never_cache
 from django.http import JsonResponse
 from www.views import AuthedView
