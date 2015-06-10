@@ -225,6 +225,7 @@ class ServiceUpgrade(AuthedView):
                         '''.format(tenant_id=self.tenant.tenant_id)
                     logger.debug(query_sql)
                     sqlobj = dsn.query(query_sql)
+                    logger.debug(sqlobj)
                     totalMemory = sqlobj["totalMemory"]
                     logger.debug(totalMemory)
                     if int(totalMemory) > 1024:
@@ -270,6 +271,7 @@ class ServiceUpgrade(AuthedView):
                         '''.format(tenant_id=self.tenant.tenant_id)
                     logger.debug(query_sql)
                     sqlobj = dsn.query(query_sql)
+                    logger.debug(sqlobj)  
                     totalMemory = sqlobj["totalMemory"]
                     logger.debug(totalMemory)                    
                     if int(totalMemory) > 1024:
