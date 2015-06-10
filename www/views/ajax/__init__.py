@@ -1,4 +1,4 @@
-from perms import ServiceIdentity, TenantIdentity, InviteServiceUser
+from perms import ServiceIdentity, TenantIdentity, InviteServiceUser, InviteTenantUser
 from service_actions import *
 from account_actions import *
 
