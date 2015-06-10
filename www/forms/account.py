@@ -57,9 +57,11 @@ class UserLoginForm(forms.Form):
         self.helper.form_tag = False
         self.helper.layout = Div(
             Field('email', 'password'),
+            #FormActions(Submit('login', u'登录', css_class='btn btn-success btn-lg btn-block')),
+            #HTML(u'''<div class="registration">还没有帐户？<a class="" href="/register">创建一个帐户
+            #    </a></div>'''),
             FormActions(Submit('login', u'登录', css_class='btn btn-success btn-lg btn-block')),
-            HTML(u'''<div class="registration">还没有帐户？<a class="" href="/register">创建一个帐户
-                </a></div>'''),
+            #HTML(u'''<div class="registration">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
             css_class='login-wrap'
         )
 

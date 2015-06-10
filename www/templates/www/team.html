@@ -9,7 +9,24 @@
             <section class="panel">
                 <header class="panel-heading">团队成员</header>
                 <div class="panel-body">
-                    <p><small>点击成员名称查看权限详情</small></p>
+                	<div role="tabpanel" class="tab-pane">
+					      <div class="col-xs-4">
+					        <input type="text" class="email-invite form-control" id="invite_email" name="invite_email" placeholder="邮件地址">
+					      </div>
+					      <div class="col-xs-2">
+					        <select class="form-control" id="ivite_perm" name="ivite_perm">
+					            <option value="viewer">观察者</option>
+					            <option value="developer">开发者</option>
+					            <option value="admin">管理员</option>
+					        </select>
+					      </div>
+					      <div class="col-xs-2">
+					        <button type="button" class="btn btn-success invite-service" id="invite_user_btn">邀请</button>
+					      </div>
+				    </div>
+				</div>
+				<br/>
+                <div class="panel-body">
                     <div role="tabpanel" class="tab-pane" id="permission">
                         <div id="action_report" class="width-3"></div>
                         <table class="table table-hover" perm-type="tenant">

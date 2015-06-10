@@ -78,8 +78,12 @@
           identity = $("#ivite_perm").val();
           email = $("#invite_email").val();
           
-          url = '/ajax/' + tenantName + '/' + serviceAlias + '/invite';
-
+          if(typeof(serviceAlias) == "undefined" || serviceAlias==""){
+        	  url = '/ajax/' + tenantName +'/invite';
+          }else{
+        	  url = '/ajax/' + tenantName + '/' + serviceAlias + '/invite';
+          }
+          
           $.ajax({
             url: url,
             data: {"csrfmiddlewaretoken":csrftoken,"email":email,"identity":identity},

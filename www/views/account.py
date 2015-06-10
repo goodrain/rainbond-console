@@ -8,7 +8,7 @@ from django.http import HttpResponse, Http404
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, InviteUserForm, InviteRegForm, InviteRegForm2, RegisterForm, SendInviteForm
 from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService
-from www.utils.mail import send_invite_mail
+from www.utils.mail import MailUtil
 from www.utils.crypt import AuthCode
 from www.api import RegionApi
 from www.gitlab_http import GitlabApi
@@ -344,7 +344,7 @@ class SendInviteView(BaseView):
     def get_response(self):
         return TemplateResponse(self.request, 'www/register.html', self.get_context())
 
-    def invite_content(self, email):
+    def invite_link(self, email):
         domain = self.request.META.get('HTTP_HOST')
         mail_body = AuthCode.encode(email, 'goodrain')
         return 'http://{0}/invite?key={1}'.format(domain, mail_body)
@@ -357,6 +357,8 @@ class SendInviteView(BaseView):
         self.form = SendInviteForm(request.POST)
         if self.form.is_valid():
             email = request.POST.get('email')
-            send_invite_mail(email, self.invite_content(email))
+            mailUtil = MailUtil()
+            content = mailUtil.get_inviteContent(self.invite_link(email))
+            mailUtil.send_invite_mail_withHtml(email, content)            
             return HttpResponse("邀请邮件已发送")
         return self.get_response()
