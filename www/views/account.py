@@ -8,7 +8,7 @@ from django.http import HttpResponse, Http404
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, InviteUserForm, InviteRegForm, InviteRegForm2, RegisterForm, SendInviteForm
 from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService
-from www.utils.mail import MailUtil
+#from www.utils.mail import MailUtil
 from www.utils.crypt import AuthCode
 from www.api import RegionApi
 from www.gitlab_http import GitlabApi

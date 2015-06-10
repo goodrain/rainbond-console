@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 from www.utils.crypt import AuthCode
-from www.utils.mail import MailUtil
+#from www.utils.mail import MailUtil
 
 from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity
 from www.gitlab_http import GitlabApi
