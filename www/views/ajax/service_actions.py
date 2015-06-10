@@ -15,6 +15,7 @@ from www.gitlab_http import GitlabApi
 from goodrain_web.tools import BeanStalkClient
 from www.etcd_client import EtcdClient
 from django.conf import settings
+from www.db import BaseConnection
 
 
 import logging
@@ -202,13 +203,36 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        action = request.POST["action"]
-        try:
-            client = RegionServiceApi()
-            if action == "vertical":
+        action = request.POST["action"]        
+        client = RegionServiceApi()
+        if action == "vertical":
+            try:
                 container_memory = request.POST["memory"]
                 container_cpu = request.POST["cpu"]
-                if int(container_memory) > 0  and int(container_cpu) > 0:                    
+                old_container_cpu=self.service.min_cpu
+                old_container_memory=self.service.min_memory
+                old_deploy_version=self.service.deploy_version
+                if int(container_memory) > 0  and int(container_cpu) > 0: 
+                    self.service.min_cpu = container_cpu          
+                    self.service.min_memory = container_memory
+                    self.service.deploy_version = deploy_version
+                    self.service.save()
+                    
+                    dsn = BaseConnection()
+                    query_sql = '''
+                        select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                        '''.format(tenant_id=self.tenant.tenant_id)
+                    logger.debug(query_sql)
+                    sqlobj = dsn.query(query_sql)
+                    totalMemory = sqlobj["totalMemory"]
+                    logger.debug(totalMemory)
+                    if int(totalMemory) > 1024:
+                        self.service.min_node = old_min_node
+                        self.service.deploy_version = old_deploy_version
+                        self.service.save()
+                        result["status"] = "overtop"
+                        return JsonResponse(result)
+                    
                     task = {}
                     task["log_msg"] = "服务开始垂直扩容部署"
                     task["service_id"] = self.service.service_id
@@ -220,37 +244,58 @@ class ServiceUpgrade(AuthedView):
                     body["container_memory"] = container_memory
                     body["deploy_version"] = deploy_version
                     body["container_cpu"] = container_cpu
-                    client.verticalUpgrade(self.service.service_id, json.dumps(body))
-                          
-                    self.service.min_cpu = container_cpu          
-                    self.service.min_memory = container_memory
+                    client.verticalUpgrade(self.service.service_id, json.dumps(body)) 
+                result["status"] = "success"                       
+            except Exception, e:
+                self.service.min_cpu = old_container_cpu          
+                self.service.min_memory = old_container_memory
+                self.service.deploy_version = old_deploy_version
+                self.service.save() 
+                logger.info("%s" % e)
+                result["status"] = "failure"            
+        elif action == "horizontal":
+            node_num = request.POST["node_num"]
+            old_min_node = self.service.min_node
+            old_deploy_version = self.service.deploy_version
+            try:
+                if int(node_num) >= 0:                    
+                    self.service.min_node = node_num
                     self.service.deploy_version = deploy_version
                     self.service.save()
+                                        
+                    dsn = BaseConnection()
+                    query_sql = '''
+                        select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                        '''.format(tenant_id=self.tenant.tenant_id)
+                    logger.debug(query_sql)
+                    sqlobj = dsn.query(query_sql)
+                    totalMemory = sqlobj["totalMemory"]
+                    logger.debug(totalMemory)                    
+                    if int(totalMemory) > 1024:
+                        self.service.min_node = old_min_node
+                        self.service.deploy_version = old_deploy_version
+                        self.service.save()
+                        result["status"] = "overtop"
+                        return JsonResponse(result)
                     
-            elif action == "horizontal":        
-                node_num = request.POST["node_num"]
-                if int(node_num) >= 0:
-                    totalMemory = (TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).aggregate(total_memory=Sum('min_memory'))['total_memory'])
-                    logger.info(totalMemory)             
                     task = {}
                     task["log_msg"] = "服务开始水平扩容部署"
                     task["service_id"] = self.service.service_id
                     task["tenant_id"] = self.tenant.tenant_id
-                    # beanlog.put("app_log", json.dumps(task))         
+                    beanlog.put("app_log", json.dumps(task))         
                     
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     body = {}
                     body["node_num"] = node_num   
                     body["deploy_version"] = deploy_version
-                    # client.horizontalUpgrade(self.service.service_id, json.dumps(body))
-                    
-                    self.service.min_node = node_num
-                    self.service.deploy_version = deploy_version
-                    # self.service.save()
-            result["status"] = "success"
-        except Exception, e:
-            logger.info("%s" % e)
-            result["status"] = "failure"
+                    client.horizontalUpgrade(self.service.service_id, json.dumps(body))
+                result["status"] = "success"
+            except Exception, e:
+                self.service.min_node = old_min_node
+                self.service.deploy_version = old_deploy_version
+                self.service.save()
+                logger.info("%s" % e)
+                result["status"] = "failure"            
         return JsonResponse(result)
 
 class ServiceRelation(AuthedView):
