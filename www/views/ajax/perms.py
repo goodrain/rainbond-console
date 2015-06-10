@@ -4,6 +4,7 @@ from www.views import AuthedView
 from www.decorator import perm_required
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_invite_mail
+from www.utils.mail import send_invite_mail_withHtml
 
 from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity
 from www.gitlab_http import GitlabApi
