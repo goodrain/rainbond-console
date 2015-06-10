@@ -230,7 +230,7 @@ class ServiceUpgrade(AuthedView):
             elif action == "horizontal":        
                 node_num = request.POST["node_num"]
                 if int(node_num) >= 0:
-                    totalMemory = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).annotate(total_memory=Sum('min_memory'))
+                    totalMemory = (TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).aggregate(total_memory=Sum('min_memory'))['total_memory'])
                     logger.info(totalMemory)             
                     task = {}
                     task["log_msg"] = "服务开始水平扩容部署"
