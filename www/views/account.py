@@ -149,7 +149,7 @@ class InviteUser(BaseView):
     def get_response(self):
         return TemplateResponse(self.request, 'www/invite.html', self.get_context())
 
-    def invite_content(self, email, tenant_name):
+    def invite_link(self, email, tenant_name):
         domain = self.request.META.get('HTTP_HOST')
         mail_body = AuthCode.encode(tenant_name + ',' + email, 'goodrain')
         return 'http://{0}/invite?key={1}'.format(domain, mail_body)
@@ -162,10 +162,11 @@ class InviteUser(BaseView):
         self.form = InviteUserForm(request.POST)
         if self.form.is_valid():
             email = request.POST.get('email')
-            tenant_name = request.POST.get('tenant')
-            send_invite_mail(email, self.invite_content(email, tenant_name))
+            tenant_name = request.POST.get('tenant')            
+            mailUtil = MailUtil()
+            content = mailUtil.get_inviteContent(self.invite_link(email, tenant_name))
+            mailUtil.send_invite_mail_withHtml(email, content)
             return redirect('/test/raster/')
-
         return self.get_response()
 
 
