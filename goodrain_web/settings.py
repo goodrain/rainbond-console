@@ -74,7 +74,7 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'goodrain_web.urls'
 
-WSGI_APPLICATION = 'goodrain_web.wsgi.application'
+WSGI_APPLICATION = 'goodrain_debug.wsgi.application'
 
 
 # Database
