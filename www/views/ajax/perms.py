@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 from www.utils.crypt import AuthCode
-#from www.utils.mail import MailUtil
+from www.utils.mail import create_invite_mail_content,send_invite_mail_withHtml
 
 from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity
 from www.gitlab_http import GitlabApi
@@ -106,9 +106,8 @@ class InviteServiceUser(AuthedView):
                     gitClient.addProjectMember(git_project_id, user.git_user_id)
 
         except Users.DoesNotExist:
-            #mailUtil = MailUtil()
-            #content = mailUtil.get_inviteContent(self.invite_link(email, self.tenantName, self.serviceAlias, identity))
-            #mailUtil.send_invite_mail_withHtml(email, content)
+            content = create_invite_mail_content(self.invite_link(email, self.tenantName, self.serviceAlias, identity))
+            send_invite_mail_withHtml(email, content)
             result['desc'] = u'已向{0}发送邀请邮件'.format(email)
 
         return JsonResponse(result, status=200)
@@ -144,9 +143,8 @@ class InviteTenantUser(AuthedView):
         except Users.DoesNotExist:
             # user = Users.objects.create(email=email, password='unset', is_active=False)
             # PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant_pk, identity=identity)
-            #mailUtil = MailUtil()
-            #content = mailUtil.get_inviteContent(self.invite_link(email, self.tenantName,identity))
-            #mailUtil.send_invite_mail_withHtml(email, content)
+            content = create_invite_mail_content(self.invite_link(email, self.tenantName,identity))
+            send_invite_mail_withHtml(email, content)
             result['desc'] = u'已向{0}发送邀请邮件'.format(email)
 
         return JsonResponse(result, status=200)

@@ -8,7 +8,7 @@ from django.http import HttpResponse, Http404
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, InviteUserForm, InviteRegForm, InviteRegForm2, RegisterForm, SendInviteForm
 from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService
-#from www.utils.mail import MailUtil
+from www.utils.mail import create_invite_mail_content, send_invite_mail_withHtml
 from www.utils.crypt import AuthCode
 from www.api import RegionApi
 from www.gitlab_http import GitlabApi
@@ -163,9 +163,8 @@ class InviteUser(BaseView):
         if self.form.is_valid():
             email = request.POST.get('email')
             tenant_name = request.POST.get('tenant')            
-            #mailUtil = MailUtil()
-            #content = mailUtil.get_inviteContent(self.invite_link(email, tenant_name))
-            #mailUtil.send_invite_mail_withHtml(email, content)
+            content = create_invite_mail_content(self.invite_link(email, tenant_name))
+            send_invite_mail_withHtml(email, content)
             return redirect('/test/raster/')
         return self.get_response()
 
@@ -358,8 +357,7 @@ class SendInviteView(BaseView):
         self.form = SendInviteForm(request.POST)
         if self.form.is_valid():
             email = request.POST.get('email')
-            #mailUtil = MailUtil()
-            #content = mailUtil.get_inviteContent(self.invite_link(email))
-            #mailUtil.send_invite_mail_withHtml(email, content)            
+            content = create_invite_mail_content(self.invite_link(email))
+            send_invite_mail_withHtml(email, content)            
             return HttpResponse("邀请邮件已发送")
         return self.get_response()
