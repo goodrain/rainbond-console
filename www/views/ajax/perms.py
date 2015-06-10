@@ -142,7 +142,7 @@ class InviteTenantUser(AuthedView):
         content = content + u"再次感谢您关注我们的产品！"
         content = content + "<br/>"
         content = content + u"好雨科技 (Goodrain Inc.) CEO 刘凡"
-        return link_url
+        return content
 
     @perm_required('tenant.perm_setting')
     def post(self, request, *args, **kwargs):
