@@ -57,15 +57,17 @@ class TenantIdentity(AuthedView):
         nick_name = request.POST.get('user')
         identity = request.POST.get('identity')
         user_id = Users.objects.get(nick_name=nick_name).pk
+        if self.user.pk == user_id:
+            desc = u"自己不能设置自己"
+            result = {"ok": True, "user": nick_name, "desc": desc}
+            return JsonResponse(result, status=200)
         tenant_perm = PermRelTenant.objects.get(user_id=user_id, tenant_id=self.tenant_pk)
         tenant_perm.identity = identity
         tenant_perm.save()
-
         my_alias = get_identity_name('tenant', identity)
         desc = u"调整用户{0}的团队身份为{1}".format(nick_name, my_alias)
         result = {"ok": True, "user": nick_name, "desc": desc}
         return JsonResponse(result, status=200)
-
 
 class InviteServiceUser(AuthedView):
     def init_request(self, *args, **kwargs):
