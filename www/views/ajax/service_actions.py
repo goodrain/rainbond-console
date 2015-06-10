@@ -251,7 +251,7 @@ class ServiceUpgrade(AuthedView):
                 self.service.min_memory = old_container_memory
                 self.service.deploy_version = old_deploy_version
                 self.service.save() 
-                logger.info("%s" % e)
+                logger.exception(e)
                 result["status"] = "failure"            
         elif action == "horizontal":
             node_num = request.POST["node_num"]
@@ -294,7 +294,7 @@ class ServiceUpgrade(AuthedView):
                 self.service.min_node = old_min_node
                 self.service.deploy_version = old_deploy_version
                 self.service.save()
-                logger.info("%s" % e)
+                logger.exception(e)
                 result["status"] = "failure"            
         return JsonResponse(result)
 
