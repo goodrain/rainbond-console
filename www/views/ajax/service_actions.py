@@ -223,11 +223,9 @@ class ServiceUpgrade(AuthedView):
                     query_sql = '''
                         select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
                         '''.format(tenant_id=self.tenant.tenant_id)
-                    logger.debug(query_sql)
                     sqlobj = dsn.query(query_sql)
                     totalMemory = int(sqlobj[0]["totalMemory"])
-                    logger.debug(totalMemory)
-                    if int(totalMemory) > 1024:
+                    if totalMemory > 1024:
                         self.service.min_node = old_min_node
                         self.service.deploy_version = old_deploy_version
                         self.service.save()
@@ -268,12 +266,9 @@ class ServiceUpgrade(AuthedView):
                     query_sql = '''
                         select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
                         '''.format(tenant_id=self.tenant.tenant_id)
-                    logger.debug(query_sql)
                     sqlobj = dsn.query(query_sql)
-                    logger.debug(sqlobj)  
-                    totalMemory = int(sqlobj[0]["totalMemory"])
-                    logger.debug(totalMemory)                    
-                    if int(totalMemory) > 1024:
+                    totalMemory = int(sqlobj[0]["totalMemory"])                  
+                    if totalMemory > 1024:
                         self.service.min_node = old_min_node
                         self.service.deploy_version = old_deploy_version
                         self.service.save()

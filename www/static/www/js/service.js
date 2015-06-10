@@ -238,6 +238,8 @@ function app_upgrade(tenantName, service_alias) {
 				var dataObj = msg;
 				if (dataObj["status"] == "success") {
 					alert("升级成功")
+				}else if(dataObj["status"] == "overtop"){
+					alert("免费资源已达上限，不能升级")
 				} else {
 					alert("升级失败")
 				}
