@@ -9,7 +9,7 @@ def send_invite_mail(to, content):
     send_mail("invite user", content, 'no-reply@goodrain.com', [to])
         
 def send_invite_mail_withHtml(to, html_content):
-    send_mail('激活你的好雨云平台账号', "", 'no-reply@goodrain.com', [to], fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=html_content)
+    send_mail(u"激活你的好雨云平台账号", "", 'no-reply@goodrain.com', [to], fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=html_content)
     
 def create_invite_mail_content(link_url):
     content = u"尊敬的用户您好，"
