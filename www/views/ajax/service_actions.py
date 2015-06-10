@@ -225,8 +225,7 @@ class ServiceUpgrade(AuthedView):
                         '''.format(tenant_id=self.tenant.tenant_id)
                     logger.debug(query_sql)
                     sqlobj = dsn.query(query_sql)
-                    logger.debug(sqlobj)
-                    totalMemory = sqlobj["totalMemory"]
+                    totalMemory = int(sqlobj[0]["totalMemory"])
                     logger.debug(totalMemory)
                     if int(totalMemory) > 1024:
                         self.service.min_node = old_min_node
@@ -272,7 +271,7 @@ class ServiceUpgrade(AuthedView):
                     logger.debug(query_sql)
                     sqlobj = dsn.query(query_sql)
                     logger.debug(sqlobj)  
-                    totalMemory = sqlobj["totalMemory"]
+                    totalMemory = int(sqlobj[0]["totalMemory"])
                     logger.debug(totalMemory)                    
                     if int(totalMemory) > 1024:
                         self.service.min_node = old_min_node
