@@ -41,7 +41,7 @@
                             <tbody>
                                 {% for user in perm_users %}
                                 <tr entry-user="{{user.name}}">
-                                    <th><a href="/apps/goodrain/perms?user={{user.name}}">{{user.name}}</a></th>
+                                    <th>{{user.name}}</th>
                                     <th class="perm-modify-enable">
                                         <input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}>
                                     </th>

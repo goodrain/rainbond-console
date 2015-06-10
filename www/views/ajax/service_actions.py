@@ -228,23 +228,24 @@ class ServiceUpgrade(AuthedView):
                     
             elif action == "horizontal":        
                 node_num = request.POST["node_num"]
-                if int(node_num) >= 0:                    
+                if int(node_num) >= 0:
+                    totalMemory = TenantServiceInfo.objects.annotate(total_memory=Sum('min_memory'))
+                    logger.info(totalMemory)             
                     task = {}
                     task["log_msg"] = "服务开始水平扩容部署"
                     task["service_id"] = self.service.service_id
                     task["tenant_id"] = self.tenant.tenant_id
-                    beanlog.put("app_log", json.dumps(task))         
+                    #beanlog.put("app_log", json.dumps(task))         
                     
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     body = {}
                     body["node_num"] = node_num   
                     body["deploy_version"] = deploy_version
-                    client.horizontalUpgrade(self.service.service_id, json.dumps(body))
+                    #client.horizontalUpgrade(self.service.service_id, json.dumps(body))
                     
                     self.service.min_node = node_num
                     self.service.deploy_version = deploy_version
-                    self.service.save()
-                    
+                    #self.service.save()
             result["status"] = "success"
         except Exception, e:
             logger.info("%s" % e)
