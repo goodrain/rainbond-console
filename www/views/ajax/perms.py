@@ -127,7 +127,7 @@ class InviteServiceUser(AuthedView):
                     gitClient.addProjectMember(git_project_id, user.git_user_id)
 
         except Users.DoesNotExist:
-            send_invite_mail(email, self.invite_content(email, self.tenantName, self.serviceAlias, identity))
+            send_invite_mail_withHtml(email, self.invite_content(email, self.tenantName, self.serviceAlias, identity))
             result['desc'] = u'已向{0}发送邀请邮件'.format(email)
 
         return JsonResponse(result, status=200)
