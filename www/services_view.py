@@ -30,7 +30,8 @@ class ServiceAppCreate(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/layer/layer.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
+            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/layer/layer.js', 
+            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -148,7 +149,8 @@ class ServiceAppDeploy(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
+            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
     
     @never_cache
@@ -173,7 +175,8 @@ class ServiceMarket(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
+            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -198,7 +201,8 @@ class ServiceMarketDeploy(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
+            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -267,7 +271,9 @@ class ServiceMarketDeploy(AuthedView):
 
 class TenantServiceAll(AuthedView):
     def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
+        media = super(AuthedView, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/okooostyle.css',
+            'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
+            'www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -278,6 +284,7 @@ class TenantServiceAll(AuthedView):
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
             context["tenantServiceList"] = tenantServiceList
+            context["totalAppStatus"] = "active"
             context["totalFlow"] = 0
             context["totalAppNumber"] = len(tenantServiceList)
             context["tenantName"] = self.tenantName
@@ -296,7 +303,7 @@ class TenantService(AuthedView):
             'www/css/owl.carousel.css', 'www/css/okooostyle.css', '/static/www/css/style.css',
             '/static/www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
             'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js', 'www/layer/layer.js',
-            'www/assets/jquery-ui/jquery-ui-1.10.1.custom.min.css', 'www/assets/jquery-ui/jquery-ui-1.10.1.custom.min.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js'
+            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js'
         )
         return media
 
