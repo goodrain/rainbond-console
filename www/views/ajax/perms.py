@@ -106,9 +106,9 @@ class InviteServiceUser(AuthedView):
                     gitClient.addProjectMember(git_project_id, user.git_user_id)
 
         except Users.DoesNotExist:
-            mailUtil = MailUtil()
-            content = mailUtil.get_inviteContent(self.invite_link(email, self.tenantName, self.serviceAlias, identity))
-            mailUtil.send_invite_mail_withHtml(email, content)
+            #mailUtil = MailUtil()
+            #content = mailUtil.get_inviteContent(self.invite_link(email, self.tenantName, self.serviceAlias, identity))
+            #mailUtil.send_invite_mail_withHtml(email, content)
             result['desc'] = u'已向{0}发送邀请邮件'.format(email)
 
         return JsonResponse(result, status=200)
@@ -144,9 +144,9 @@ class InviteTenantUser(AuthedView):
         except Users.DoesNotExist:
             # user = Users.objects.create(email=email, password='unset', is_active=False)
             # PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant_pk, identity=identity)
-            mailUtil = MailUtil()
-            content = mailUtil.get_inviteContent(self.invite_link(email, self.tenantName,identity))
-            mailUtil.send_invite_mail_withHtml(email, content)
+            #mailUtil = MailUtil()
+            #content = mailUtil.get_inviteContent(self.invite_link(email, self.tenantName,identity))
+            #mailUtil.send_invite_mail_withHtml(email, content)
             result['desc'] = u'已向{0}发送邀请邮件'.format(email)
 
         return JsonResponse(result, status=200)
