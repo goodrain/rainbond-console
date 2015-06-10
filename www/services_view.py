@@ -44,7 +44,6 @@ class ServiceAppCreate(AuthedView):
             context["tenantServiceList"] = tenantServiceList                
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"
-            context["myAppStatus"] = "active"
             cacheServiceList = ServiceInfo.objects.filter(status="published", category__in=["cache", "store"])
             context["cacheServiceList"] = cacheServiceList
             

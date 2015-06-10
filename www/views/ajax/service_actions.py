@@ -212,7 +212,8 @@ class ServiceUpgrade(AuthedView):
                 old_container_cpu=self.service.min_cpu
                 old_container_memory=self.service.min_memory
                 old_deploy_version=self.service.deploy_version
-                if int(container_memory) > 0  and int(container_cpu) > 0: 
+                if int(container_memory) > 0  and int(container_cpu) > 0:
+                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S') 
                     self.service.min_cpu = container_cpu          
                     self.service.min_memory = container_memory
                     self.service.deploy_version = deploy_version
@@ -239,7 +240,6 @@ class ServiceUpgrade(AuthedView):
                     task["tenant_id"] = self.tenant.tenant_id
                     beanlog.put("app_log", json.dumps(task))
                     
-                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     body = {}
                     body["container_memory"] = container_memory
                     body["deploy_version"] = deploy_version
@@ -258,7 +258,8 @@ class ServiceUpgrade(AuthedView):
             old_min_node = self.service.min_node
             old_deploy_version = self.service.deploy_version
             try:
-                if int(node_num) >= 0:                    
+                if int(node_num) >= 0:          
+                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')          
                     self.service.min_node = node_num
                     self.service.deploy_version = deploy_version
                     self.service.save()
@@ -282,9 +283,8 @@ class ServiceUpgrade(AuthedView):
                     task["log_msg"] = "服务开始水平扩容部署"
                     task["service_id"] = self.service.service_id
                     task["tenant_id"] = self.tenant.tenant_id
-                    beanlog.put("app_log", json.dumps(task))         
+                    beanlog.put("app_log", json.dumps(task)) 
                     
-                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     body = {}
                     body["node_num"] = node_num   
                     body["deploy_version"] = deploy_version

@@ -8,7 +8,7 @@
              </a>
          </li>
          <li>
-              <a href="/apps/{{tenantName}}/app-create" {% if tenantServiceList|length < 1 or createApp == "active" %} class="active" {% endif %}>
+              <a href="/apps/{{tenantName}}/app-create" class="{{createApp}}" >
               	<i class="fa fa-plus"></i>
               	<span>新建应用</span>
               </a>
