@@ -8,7 +8,7 @@ from django.http import HttpResponse, Http404
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, InviteUserForm, InviteRegForm, InviteRegForm2, RegisterForm, SendInviteForm
 from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService
-from www.utils.mail import create_invite_mail_content, send_invite_mail_withHtml
+from www.utils.mail import send_invite_mail_withHtml
 from www.utils.crypt import AuthCode
 from www.api import RegionApi
 from www.gitlab_http import GitlabApi
@@ -149,11 +149,33 @@ class InviteUser(BaseView):
     def get_response(self):
         return TemplateResponse(self.request, 'www/invite.html', self.get_context())
 
-    def invite_link(self, email, tenant_name):
+    def invite_content(self, email, tenant_name):
         domain = self.request.META.get('HTTP_HOST')
         mail_body = AuthCode.encode(tenant_name + ',' + email, 'goodrain')
-        return 'http://{0}/invite?key={1}'.format(domain, mail_body)
-
+        link_url = 'http://{0}/invite?key={1}'.format(domain, mail_body)
+        content = u"尊敬的用户您好，"
+        content = content + "<br/>"
+        content = content + u"非常感谢您申请试用 好雨云平台！ 请点击下面的链接完成注册:"
+        content = content + "<br/>"
+        content = content + u"注册链接: <a target='_blank' href=" + link_url + ">注册好友云平台</a>"
+        content = content + "<br/>"
+        content = content + u"我们的服务在一定的资源范围内永久免费！内测阶段也可以申请增加免费资源，增加的资源在产品正式版上线后也不会另收费用哦！另外参与内测并提交问题报告的用户，正式上线后还会有更多的福利。"
+        content = content + "<br/>"
+        content = content + u"我们的文档及博客正在建设中，以后会陆续发布一系列好雨云平台的使用教程和技巧，欢迎关注！"
+        content = content + "<br/>"
+        content = content + u"您在使用过程中遇到的任何问题，或者对平台有任何建议，都可以通过以下途径提交反馈。对于提出高质量的反馈的用户，还有精美礼品等待您！"
+        content = content + "<br/>"
+        content = content + "Email： ares@goodrain.com"
+        content = content + "<br/>"
+        content = content + u"微信公众号：goodrain-cloud "
+        content = content + "<br/>"
+        content = content + u"联系电话：13621236261"
+        content = content + "<br/>"
+        content = content + u"再次感谢您关注我们的产品！"
+        content = content + "<br/>"
+        content = content + u"好雨科技 (Goodrain Inc.) CEO 刘凡"
+        return content
+    
     def get(self, request, *args, **kwargs):
         self.form = InviteUserForm()
         return self.get_response()
@@ -162,9 +184,8 @@ class InviteUser(BaseView):
         self.form = InviteUserForm(request.POST)
         if self.form.is_valid():
             email = request.POST.get('email')
-            tenant_name = request.POST.get('tenant')            
-            content = create_invite_mail_content(self.invite_link(email, tenant_name))
-            send_invite_mail_withHtml(email, content)
+            tenant_name = request.POST.get('tenant')
+            send_invite_mail_withHtml(email, self.invite_content(email, tenant_name))
             return redirect('/test/raster/')
         return self.get_response()
 
@@ -344,10 +365,32 @@ class SendInviteView(BaseView):
     def get_response(self):
         return TemplateResponse(self.request, 'www/register.html', self.get_context())
 
-    def invite_link(self, email):
+    def invite_content(self, email):
         domain = self.request.META.get('HTTP_HOST')
         mail_body = AuthCode.encode(email, 'goodrain')
-        return 'http://{0}/invite?key={1}'.format(domain, mail_body)
+        link_url = 'http://{0}/invite?key={1}'.format(domain, mail_body)
+        content = u"尊敬的用户您好，"
+        content = content + "<br/>"
+        content = content + u"非常感谢您申请试用 好雨云平台！ 请点击下面的链接完成注册:"
+        content = content + "<br/>"
+        content = content + u"注册链接: <a target='_blank' href=" + link_url + ">注册好友云平台</a>"
+        content = content + "<br/>"
+        content = content + u"我们的服务在一定的资源范围内永久免费！内测阶段也可以申请增加免费资源，增加的资源在产品正式版上线后也不会另收费用哦！另外参与内测并提交问题报告的用户，正式上线后还会有更多的福利。"
+        content = content + "<br/>"
+        content = content + u"我们的文档及博客正在建设中，以后会陆续发布一系列好雨云平台的使用教程和技巧，欢迎关注！"
+        content = content + "<br/>"
+        content = content + u"您在使用过程中遇到的任何问题，或者对平台有任何建议，都可以通过以下途径提交反馈。对于提出高质量的反馈的用户，还有精美礼品等待您！"
+        content = content + "<br/>"
+        content = content + "Email： ares@goodrain.com"
+        content = content + "<br/>"
+        content = content + u"微信公众号：goodrain-cloud "
+        content = content + "<br/>"
+        content = content + u"联系电话：13621236261"
+        content = content + "<br/>"
+        content = content + u"再次感谢您关注我们的产品！"
+        content = content + "<br/>"
+        content = content + u"好雨科技 (Goodrain Inc.) CEO 刘凡"
+        return content
 
     def get(self, request, *args, **kwargs):
         self.form = SendInviteForm()
@@ -357,7 +400,6 @@ class SendInviteView(BaseView):
         self.form = SendInviteForm(request.POST)
         if self.form.is_valid():
             email = request.POST.get('email')
-            content = create_invite_mail_content(self.invite_link(email))
-            send_invite_mail_withHtml(email, content)            
+            send_invite_mail_withHtml(email, self.invite_content(email))            
             return HttpResponse("邀请邮件已发送")
         return self.get_response()
