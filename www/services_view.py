@@ -94,10 +94,11 @@ class ServiceAppCreate(AuthedView):
                 select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
                 '''.format(tenant_id=tenant_id)
             sqlobj = dsn.query(query_sql)
-            totalMemory = int(sqlobj[0]["totalMemory"]) + service.min_memory
-            if totalMemory > 1024:
-                data["status"] = "overtop"
-                return HttpResponse(json.dumps(data))
+            if sqlobj is not None and len(sqlobj) > 0:
+                totalMemory = int(sqlobj[0]["totalMemory"]) + service.min_memory
+                if totalMemory > 1024:
+                    data["status"] = "overtop"
+                    return HttpResponse(json.dumps(data))
             
             baseService = BaseTenantService()
             service.desc = service_desc
@@ -261,10 +262,11 @@ class ServiceMarketDeploy(AuthedView):
                 select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
                 '''.format(tenant_id=tenant_id)
             sqlobj = dsn.query(query_sql)
-            totalMemory = int(sqlobj[0]["totalMemory"]) + service.min_memory
-            if totalMemory > 1024:
-                data["status"] = "overtop"
-                return HttpResponse(json.dumps(data))
+            if sqlobj is not None and len(sqlobj) > 0:
+                totalMemory = int(sqlobj[0]["totalMemory"]) + service.min_memory
+                if totalMemory > 1024:
+                    data["status"] = "overtop"
+                    return HttpResponse(json.dumps(data))
             
             # create console service
             baseService = BaseTenantService()
