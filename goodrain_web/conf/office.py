@@ -9,10 +9,10 @@ DATABASES = {
     #}
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'console',
-        'USER': 'writer',
-        'PASSWORD': '123456',
-        'HOST': '192.168.7.10',
+        'NAME': 'goodrain',
+        'USER': 'root',
+        'PASSWORD': 'root',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
     },
 }
@@ -34,26 +34,26 @@ REGION_SERVICE_API = {
 }
 
 GITLAB_SERVICE_API = {
-    'url': 'http://code.goodrain.com/',
-    'admin_user': 'app',
-    'admin_email': 'app@goodrain.com',
+    'url': 'http://code1.goodrain.com/',
+    'admin_user': 'app1',
+    'admin_email': 'app1@goodrain.com',
     'admin_password': 'gr123465',
     'apitype': 'gitlab service',
 }
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-        'LOCATION': '192.168.7.11:11211',
-    },
-    'session': {
-        'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-        'LOCATION': '192.168.7.11:11211',
-    }
-}
+#CACHES = {
+#    'default': {
+#        'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+#        'LOCATION': '192.168.7.11:11211',
+#    },
+#    'session': {
+#        'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+#        'LOCATION': '192.168.7.11:11211',
+#    }
+#}
 
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-#SESSION_CACHE_ALIAS = 'session'
-#SESSION_COOKIE_DOMAIN = '.goodrain.com'
+#SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = 'session'
+SESSION_COOKIE_DOMAIN = '.goodrain.com'
 SESSION_COOKIE_AGE = 3600
