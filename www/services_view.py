@@ -269,8 +269,8 @@ class ServiceMarketDeploy(AuthedView):
                 if oldMemory is not None:                    
                     totalMemory = int(oldMemory) + service.min_memory
                     if totalMemory > 1024:
-                        data["status"] = "overtop"
-                        return HttpResponse(json.dumps(data))
+                        result["status"] = "overtop"
+                        return HttpResponse(json.dumps(result))
             
             # create console service
             baseService = BaseTenantService()
