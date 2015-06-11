@@ -87,7 +87,7 @@ class ServiceAppCreate(AuthedView):
             num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
             if num > 0:
                 data["status"] = "exist"
-                return HttpResponse(json.dumps(result))
+                return HttpResponse(json.dumps(data))
             
             dsn = BaseConnection()
             query_sql = '''
