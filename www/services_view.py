@@ -31,7 +31,7 @@ class ServiceAppCreate(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/layer/layer.js', 
+            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/layer/layer.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
@@ -95,10 +95,12 @@ class ServiceAppCreate(AuthedView):
                 '''.format(tenant_id=tenant_id)
             sqlobj = dsn.query(query_sql)
             if sqlobj is not None and len(sqlobj) > 0:
-                totalMemory = int(sqlobj[0]["totalMemory"]) + service.min_memory
-                if totalMemory > 1024:
-                    data["status"] = "overtop"
-                    return HttpResponse(json.dumps(data))
+                oldMemory = sqlobj[0]["totalMemory"]
+                if oldMemory is not None:
+                    totalMemory = int(oldMemory) + service.min_memory
+                    if totalMemory > 1024:
+                        data["status"] = "overtop"
+                        return HttpResponse(json.dumps(data))
             
             baseService = BaseTenantService()
             service.desc = service_desc
@@ -160,7 +162,7 @@ class ServiceAppDeploy(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 
+            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
     
@@ -186,7 +188,7 @@ class ServiceMarket(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 
+            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
@@ -212,7 +214,7 @@ class ServiceMarketDeploy(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 
+            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
@@ -263,10 +265,12 @@ class ServiceMarketDeploy(AuthedView):
                 '''.format(tenant_id=tenant_id)
             sqlobj = dsn.query(query_sql)
             if sqlobj is not None and len(sqlobj) > 0:
-                totalMemory = int(sqlobj[0]["totalMemory"]) + service.min_memory
-                if totalMemory > 1024:
-                    data["status"] = "overtop"
-                    return HttpResponse(json.dumps(data))
+                oldMemory = sqlobj[0]["totalMemory"]
+                if oldMemory is not None:                    
+                    totalMemory = int(oldMemory) + service.min_memory
+                    if totalMemory > 1024:
+                        data["status"] = "overtop"
+                        return HttpResponse(json.dumps(data))
             
             # create console service
             baseService = BaseTenantService()
@@ -295,7 +299,7 @@ class ServiceMarketDeploy(AuthedView):
 class TenantServiceAll(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/okooostyle.css',
-            'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
+            'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
             'www/js/jquery.scrollTo.min.js')
         return media
 
