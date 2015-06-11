@@ -24,6 +24,8 @@ function service_deploy(tenantName, service_key) {
 			if (dataObj["status"] == "exist") {
 				alert("服务已存在")
 				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/"
+			}else if(dataObj["status"] == "overtop"){
+				alert("免费资源已达上限，不能部署")			
 			} else if (dataObj["status"] == "success") {
 				window.location.href = "/apps/" + tenantName + "/"
 						+ dataObj["service_alias"] + "/detail/"
@@ -177,6 +179,8 @@ function appCreate(tenantName) {
 			var dataObj = eval("(" + msg + ")");
 			if (dataObj["status"] == "exist") {
 				alert("服务名已存在")
+			}else if(dataObj["status"] == "overtop"){
+				alert("免费资源已达上限，不能创建")
 			} else if (dataObj["status"] == "empty") {
 				alert("应用名称不能为空")
 			} else if (dataObj["status"] == "success") {

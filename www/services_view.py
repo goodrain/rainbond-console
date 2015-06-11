@@ -17,6 +17,7 @@ from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.inflexdb.inflexdbservice import InflexdbService
 from www.tenantfee.feeservice import TenantFeeService
+from www.db import BaseConnection
 
 client = RegionServiceApi()
 
@@ -87,6 +88,16 @@ class ServiceAppCreate(AuthedView):
             if num > 0:
                 result["status"] = "exist"
                 return HttpResponse(json.dumps(result))
+            
+            dsn = BaseConnection()
+            query_sql = '''
+                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                '''.format(tenant_id=tenant_id)
+            sqlobj = dsn.query(query_sql)
+            totalMemory = int(sqlobj[0]["totalMemory"]) + service.min_memory
+            if totalMemory > 1024:
+                data["status"] = "overtop"
+                return HttpResponse(json.dumps(data))
             
             baseService = BaseTenantService()
             service.desc = service_desc
@@ -244,6 +255,17 @@ class ServiceMarketDeploy(AuthedView):
             if num > 0:
                 result["status"] = "exist"
                 return HttpResponse(json.dumps(result))
+            
+            dsn = BaseConnection()
+            query_sql = '''
+                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                '''.format(tenant_id=tenant_id)
+            sqlobj = dsn.query(query_sql)
+            totalMemory = int(sqlobj[0]["totalMemory"]) + service.min_memory
+            if totalMemory > 1024:
+                data["status"] = "overtop"
+                return HttpResponse(json.dumps(data))
+            
             # create console service
             baseService = BaseTenantService()
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service)
