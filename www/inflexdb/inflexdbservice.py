@@ -33,9 +33,9 @@ class InflexdbService(object):
                         else:
                             tss = TenantServiceStatics.objects.get(service_id=d['serviceId'], time_stamp=timeStamp)
                         tss.pod_id = d['podId']
-                        tss.container_memory = int(round(d['memory_usage']))                    
-                        tss.container_memory_working = int(round(d['memory_working_set']))
-                        tss.container_cpu = int(round(d['cpu_cumulative_usage']))
+                        tss.container_memory = int(round(d['memory_usage']) / 1024)                    
+                        tss.container_memory_working = int(round(d['memory_working_set']) / 1024)
+                        tss.container_cpu = int(round(d['cpu_cumulative_usage']) / 1000)
                         tss.save()
         except Exception as e:
             logger.exception(e)
@@ -64,7 +64,7 @@ class InflexdbService(object):
                             tss.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         else:
                             tss = TenantServiceStatics.objects.get(service_id=d['serviceId'], time_stamp=timeStamp)
-                        tss.container_disk = int(round(d['fs_usage']))
+                        tss.container_disk = int(round(d['fs_usage']) / 1024)
                         tss.save()
         except Exception as e:
             logger.exception(e)
@@ -86,9 +86,9 @@ class InflexdbService(object):
                         count = TenantServiceStatics.objects.filter(pod_id=d['podId'], time_stamp=timeStamp).count()
                         if count > 0:
                             tss = TenantServiceStatics.objects.get(pod_id=d['podId'])                        
-                            tss.pod_memory = int(round(d['memory_usage']))                       
-                            tss.pod_memory_working = int(round(d['memory_working_set']))
-                            tss.pod_cpu = int(round(d['cpu_cumulative_usage']))
+                            tss.pod_memory = int(round(d['memory_usage']) / 1024)                       
+                            tss.pod_memory_working = int(round(d['memory_working_set']) / 1024)
+                            tss.pod_cpu = int(round(d['cpu_cumulative_usage']) / 1000)
                             tss.save()
         except Exception as e:
             logger.exception(e)
@@ -119,7 +119,7 @@ class InflexdbService(object):
                             tss.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         else:
                             tss = TenantServiceStatics.objects.get(service_id=d['service_id'], time_stamp=timeStamp)
-                        tss.storage_disk = int(round(d['disk']))
+                        tss.storage_disk = int(round(d['disk']) / 1024)
                         tss.net_in = int(round(d['bytesin']))
                         tss.net_out = int(round(d['bytesout']))
                         tss.save()

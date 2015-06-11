@@ -209,9 +209,9 @@ class ServiceUpgrade(AuthedView):
             try:
                 container_memory = request.POST["memory"]
                 container_cpu = request.POST["cpu"]
-                old_container_cpu=self.service.min_cpu
-                old_container_memory=self.service.min_memory
-                old_deploy_version=self.service.deploy_version
+                old_container_cpu = self.service.min_cpu
+                old_container_memory = self.service.min_memory
+                old_deploy_version = self.service.deploy_version
                 if int(container_memory) > 0  and int(container_cpu) > 0:
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S') 
                     self.service.min_cpu = container_cpu          
@@ -399,7 +399,7 @@ class ServiceNetAndDisk(AuthedView):
             
             tenantServiceStatics = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('ID').latest()
             if tenantServiceStatics is not None:
-                result["disk"] = tenantServiceStatics.container_disk + tenantServiceStatics.storage_disk
+                result["disk"] = int((tenantServiceStatics.container_disk + tenantServiceStatics.storage_disk) / 1024)
                 result["bytesin"] = tenantServiceStatics.net_in
                 result["bytesout"] = tenantServiceStatics.net_out
             else:
