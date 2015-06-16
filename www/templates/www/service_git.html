@@ -15,52 +15,13 @@
                       <label class="col-xs-2 control-label">HTTP</label>
                       <label class="col-xs-10 control-label">{{httpUrl}}</label>
                   </div>
-                    <br>
-                  <div class="row">
-                      <label class="col-xs-2 control-label">SSH</label>
-                      <label class="col-xs-10 contral-label">{{gitUrl}}</label>
-                  </div>
                 </div>
                           
               <header class="panel-heading">如果已经提交代码，可以   <button type="button" class="btn btn-info" id="onekey_deploy" onclick="service_oneKeyDeploy('application','{{serviceAlias}}','{{tenantName}}');">一键部署</button></header>
-              <header class="panel-heading">如果不知道如何提交代码，请参阅文档</header>
+              <header class="panel-heading">如果不知道如何提交代码，请<a hrea="http://docs.goodrain.com/usage/git.html" target="_black">参阅文档</a></header>
             </section>
           </div>
         </div>
-      <!--</div>-->
-        <!-- control start -->
-        <!-- <div role="tabpanel" class="tab-pane" id="control">control</div>-->
-        <!-- control end-->
-        <!-- log start -->
-        <!-- <div role="tabpanel" class="tab-pane" id="log">log </div>-->
-        <!-- log end-->
-
-        <!-- settings start -->
-        <!-- <div role="tabpanel" class="tab-pane" id="settings">
-            <div class="settingsbox">
-              <div class="panel-body">
-                <form class="form-horizontal tasi-form" method="get">
-                  <div class="form-group">
-                            <label class="col-sm-2 col-sm-2 control-label">应用名称</label>
-                            <div class="col-sm-10">
-                                <input type="text" class="form-control" readonly="readonly" value="{{tenantServiceInfo.service_alias}}">
-                            </div>
-                  </div>
-                  <div class="form-group yuming">
-                          <label class="col-sm-2 control-label">域名</label>
-                          <div class="col-sm-8 clearfix">
-                                <input type="text" class="form-control pull-left" id="service_app_name" value="{{tenantServiceInfo.service_alias}}" style="width:100px;"><span class="pull-left yumspan"> .usrname.mygrapps.com</span>
-                            </div>
-                          <div class="col-sm-2"> 
-                              <button type="button" class="btn btn-default m-bot15" onclick="domainSubmit('{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">更改</button>
-                              <button type="button" class="btn btn-default m-bot15" onclick="domainSubmit('{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">添加</button>
-                          </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-        </div> -->
-        <!-- settings end-->
    </div>
 
 </section>
