@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import datetime
-import time
 import json
 
 from django.db.models import Sum
@@ -40,7 +39,7 @@ class AppDeploy(AuthedView):
         diffsec = int(curVersion) - int(curVersion)
         if diffsec <= 90:
             data["status"] = "often"
-            return JsonResponse(data, status=500)        
+            return JsonResponse(data, status=200)        
         try:
             task = {}
             task["log_msg"] = "开始部署......"
