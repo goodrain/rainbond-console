@@ -36,7 +36,7 @@ class AppDeploy(AuthedView):
         service_id = self.service.service_id
         oldVerion = self.service.deploy_version        
         curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        diffsec = int(curVersion) - int(curVersion)
+        diffsec = int(curVersion) - int(oldVerion)
         if diffsec <= 90:
             data["status"] = "often"
             return JsonResponse(data, status=200)        
