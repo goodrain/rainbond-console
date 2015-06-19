@@ -2,6 +2,7 @@
 from django.db import models
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id
+from django.db.models.fields import DateTimeField
 
 # Create your models here.
 
@@ -204,8 +205,49 @@ class TenantServiceInfo(BaseModel):
 
     def __unicode__(self):
         return self.service_alias
+        
+    def toJSON(self):
+        data = {}
+        for f in self._meta.fields:
+            obj = getattr(self, f.name)
+            if type(f.name) == DateTimeField:                
+                data[f.name] = obj.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                data[f.name] = obj
+        return data
 
-
+class TenantServiceInfoDelete(BaseModel):
+    class Meta:
+        db_table = 'tenant_service_delete'
+        
+    service_id = models.CharField(max_length=32, unique=True, help_text=u"服务id")
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
+    service_alias = models.CharField(max_length=100, help_text=u"服务别名")
+    service_region = models.CharField(max_length=15, help_text=u"服务所属区")
+    desc = models.CharField(max_length=200, null=True, blank=True, help_text=u"描述")
+    category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
+    service_port = models.IntegerField(help_text=u"服务端口", default=8000)
+    is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
+    version = models.CharField(max_length=20, help_text=u"版本")
+    image = models.CharField(max_length=50, help_text=u"镜像")
+    cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
+    setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
+    env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
+    min_node = models.IntegerField(help_text=u"启动个数", default=1)
+    min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
+    min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
+    inner_port = models.IntegerField(help_text=u"内部端口")
+    volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
+    host_path = models.CharField(max_length=300, null=True, blank=True, help_text=u"mount目录")
+    deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
+    git_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"git代码仓库")
+    create_time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
+    git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
+    is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
+    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
+    delete_time = models.DateTimeField(auto_now_add=True)
+    
 class TenantServiceLog(BaseModel):
     class Meta:
         db_table = 'tenant_service_log'
@@ -271,8 +313,14 @@ class TenantRecharge(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     user_id = models.IntegerField(help_text=u"充值用户")
     user_name = models.CharField(max_length=40, help_text=u"用户名")
+    order_no = models.CharField(max_length=60, help_text=u"订单号")
     recharge_type = models.CharField(max_length=40, help_text=u"充值类型")
     money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"充值金额")
+    subject = models.CharField(max_length=40, help_text=u"主题")
+    body = models.CharField(max_length=80, help_text=u"详情")
+    show_url = models.CharField(max_length=100, help_text=u"详情url")
+    status = models.CharField(max_length=30, help_text=u"充值状态")
+    trade_no = models.CharField(max_length=64, help_text=u"支付宝交易号")
     time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
     
 class TenantServiceStatics(BaseModel):

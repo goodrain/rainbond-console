@@ -42,8 +42,14 @@ class Login(BaseView):
         tenants_has = PermRelTenant.objects.filter(user_id=self.user.pk)
         if tenants_has:
             tenant_pk = tenants_has[0].tenant_id
-            tenant_name = Tenants.objects.get(pk=tenant_pk).tenant_name
-            return redirect('/apps/{0}'.format(tenant_name))
+            tenant = Tenants.objects.get(pk=tenant_pk)
+            tenant_name = tenant.tenant_name
+            
+            num = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
+            if num > 0:
+                return redirect('/apps/{0}'.format(tenant_name))
+            else:
+                return redirect('/apps/{0}/app-create/'.format(tenant_name))
         else:
             return Http404
 
@@ -393,8 +399,13 @@ class SendInviteView(BaseView):
         return content
 
     def get(self, request, *args, **kwargs):
-        self.form = SendInviteForm()
-        return self.get_response()
+        email = request.GET.get('email')
+        if email is None or email == "":
+            self.form = SendInviteForm()
+            return self.get_response()
+        else:
+            send_invite_mail_withHtml(email, self.invite_content(email))            
+            return HttpResponse("ok")
 
     def post(self, request, *args, **kwargs):
         self.form = SendInviteForm(request.POST)

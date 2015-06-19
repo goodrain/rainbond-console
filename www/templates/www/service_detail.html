@@ -406,7 +406,18 @@
             </table>
             </div>
           </section>
-
+          
+          <!-- <section class="panel" id="permission">
+            <header class="panel-heading">应用删除 </header>
+            <div class="panel-body">
+            	<div class="row">
+		            <div class="col-xs-2">
+		              <button type="button" style="width:100px;height:30px;" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除</button>
+		            </div>
+            	</div>
+            </div>
+		  </section> -->
+		  
         </div>
         <!-- settings end-->
     </div>
@@ -485,9 +496,9 @@
         	getLog('operate');
         	getLog('service');
         	getServiceNetDisk();
-            setInterval("checkStatus()", 15000);  
-            setInterval("getLog('operate')", 15000);
-            setInterval("getLog('service')", 15000);
+            setInterval("checkStatus()", 5000);  
+            setInterval("getLog('operate')", 5000);
+            setInterval("getLog('service')", 5000);
             setInterval("getServiceNetDisk()", 30000);
         }); 
         

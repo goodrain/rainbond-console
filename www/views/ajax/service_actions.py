@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics
+from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete
 from www.service_http import RegionServiceApi
 from www.weblog import WebLog
 from www.gitlab_http import GitlabApi
@@ -81,7 +81,7 @@ class AppDeploy(AuthedView):
             return JsonResponse(data, status=200)
         except Exception as e:
             weblog.info(self.tenantName, service_alias, "%s" % e)
-            logger.info("%s" % e)
+            logger.debug(e)
             data["status"] = "failure"
         return JsonResponse(data, status=500)
 
@@ -173,28 +173,32 @@ class ServiceManage(AuthedView):
         try:
             client = RegionServiceApi()
             if action == "stop":
-                client.stop(self.service.service_id)
-                
+                client.stop(self.service.service_id)                
                 task = {}
                 task["log_msg"] = "服务已关闭"
                 task["service_id"] = self.service.service_id
                 task["tenant_id"] = self.tenant.tenant_id
-                # logger.info(task)                
                 beanlog.put("app_log", json.dumps(task))
             elif action == "restart":                
-                client.restart(self.service.service_id)
-                
+                client.restart(self.service.service_id)                
                 task = {}
                 task["log_msg"] = "服务已启动"
                 task["service_id"] = self.service.service_id
                 task["tenant_id"] = self.tenant.tenant_id
-                # logger.info(task)                
                 beanlog.put("app_log", json.dumps(task))  
             elif action == "delete":
-               client.delete(self.service.service_id)
+                data = self.service.toJSON()
+                logger.info(data)
+                newTenantServiceDelete = TenantServiceInfoDelete(**data)
+                newTenantServiceDelete.save()
+                try:
+                   client.delete(self.service.service_id)
+                except Exception:
+                   pass
+                TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()             
             result["status"] = "success"
         except Exception, e:
-            logger.info("%s" % e)
+            logger.debug(e)
             result["status"] = "failure"
         return JsonResponse(result)
 
@@ -407,7 +411,8 @@ class ServiceNetAndDisk(AuthedView):
                 result["bytesin"] = 0
                 result["bytesout"] = 0
         except Exception, e:
-            logger.exception(e)
+            #logger.info("%s" % e)
+            pass
         return JsonResponse(result)
 
 class ServiceLog(AuthedView):

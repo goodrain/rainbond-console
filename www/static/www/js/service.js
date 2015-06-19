@@ -4,7 +4,6 @@ function service_create(tenantName, service_key) {
 			+ "/service-deploy/?service_key=" + service_key
 }
 
-
 // 服务部署
 function service_deploy(tenantName, service_key) {
 	var service_name = $("#service_name").val();
@@ -23,9 +22,10 @@ function service_deploy(tenantName, service_key) {
 			var dataObj = eval("(" + msg + ")");
 			if (dataObj["status"] == "exist") {
 				alert("服务已存在")
-				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/"
-			}else if(dataObj["status"] == "overtop"){
-				alert("免费资源已达上限，不能部署")			
+				window.location.href = "/apps/" + tenantName + "/"
+						+ service_alias + "/detail/"
+			} else if (dataObj["status"] == "overtop") {
+				alert("免费资源已达上限，不能部署")
 			} else if (dataObj["status"] == "success") {
 				window.location.href = "/apps/" + tenantName + "/"
 						+ dataObj["service_alias"] + "/detail/"
@@ -179,7 +179,7 @@ function appCreate(tenantName) {
 			var dataObj = eval("(" + msg + ")");
 			if (dataObj["status"] == "exist") {
 				alert("服务名已存在")
-			}else if(dataObj["status"] == "overtop"){
+			} else if (dataObj["status"] == "overtop") {
 				alert("免费资源已达上限，不能创建")
 			} else if (dataObj["status"] == "empty") {
 				alert("应用名称不能为空")
@@ -199,8 +199,8 @@ function appCreate(tenantName) {
 
 function service_upgrade(tenantName, service_alias) {
 	var service_min_config = $("#serviceMemorys").val();
-	memory = 128 * Math.pow(2,service_min_config -1)
-	cpu = 100 * Math.pow(2,service_min_config -1)
+	memory = 128 * Math.pow(2, service_min_config - 1)
+	cpu = 100 * Math.pow(2, service_min_config - 1)
 	$.ajax({
 		type : "post",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade/",
@@ -214,9 +214,9 @@ function service_upgrade(tenantName, service_alias) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
 				alert("设置成功")
-			}else if(dataObj["status"] == "overtop"){
+			} else if (dataObj["status"] == "overtop") {
 				alert("免费资源已达上限，不能升级")
-			}else {
+			} else {
 				alert("设置失败")
 			}
 		},
@@ -242,7 +242,7 @@ function app_upgrade(tenantName, service_alias) {
 				var dataObj = msg;
 				if (dataObj["status"] == "success") {
 					alert("设置成功")
-				}else if(dataObj["status"] == "overtop"){
+				} else if (dataObj["status"] == "overtop") {
 					alert("免费资源已达上限，不能升级")
 				} else {
 					alert("设置失败")
@@ -250,6 +250,33 @@ function app_upgrade(tenantName, service_alias) {
 			},
 			error : function() {
 				alert("系统异常,请重试");
+			}
+		})
+	}
+}
+
+function delete_service(tenantName, service_alias) {
+	var statu = confirm("确定删除当前服务吗?");
+	if (statu) {
+		$.ajax({
+			type : "POST",
+			url : "/ajax/" + tenantName + "/" + service_alias + "/manage/",
+			data : "action=delete",
+			cache : false,
+			beforeSend : function(xhr, settings) {
+				var csrftoken = $.cookie('csrftoken');
+				xhr.setRequestHeader("X-CSRFToken", csrftoken);
+			},
+			success : function(msg) {
+				var dataObj = msg
+				if (dataObj["status"] == "success") {
+					alert("操作成功")
+				} else {
+					alert("操作失败")
+				}
+			},
+			error : function() {
+				alert("系统异常");
 			}
 		})
 	}

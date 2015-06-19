@@ -4,6 +4,7 @@ from www.services_view import *
 from www.charging_view import *
 from www.views.service import TeamInfo
 from django.contrib.auth.decorators import login_required
+from www import alipay_view
 
 
 urlpatterns = patterns(
@@ -26,4 +27,8 @@ urlpatterns = patterns(
     url(r'^recharge/$', login_required(Recharging.as_view())),
     url(r'^consume/$', login_required(Account.as_view())),
     url(r'^bill/$', login_required(AccountBill.as_view())),
+    
+    url(r'^recharge/alipay', login_required(alipay_view.submit)),
+    url(r'^recharge/alipay-return', alipay_view.return_url),
+    url(r'^recharge/alipay-notify', alipay_view.notify_url),
 )
