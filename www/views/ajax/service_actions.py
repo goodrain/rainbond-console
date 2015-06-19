@@ -17,7 +17,6 @@ from www.etcd_client import EtcdClient
 from django.conf import settings
 from www.db import BaseConnection
 
-
 import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
