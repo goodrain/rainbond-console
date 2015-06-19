@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import datetime
+import time
 import json
 
 from django.db.models import Sum
@@ -34,7 +35,12 @@ class AppDeploy(AuthedView):
         data = {}
         tenant_id = self.tenant.tenant_id
         service_id = self.service.service_id
-        
+        oldVerion = self.service.deploy_version        
+        curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        diffsec = int(curVersion) - int(curVersion)
+        if diffsec <= 90:
+            data["status"] = "often"
+            return JsonResponse(data, status=500)        
         try:
             task = {}
             task["log_msg"] = "开始部署......"
@@ -410,7 +416,7 @@ class ServiceNetAndDisk(AuthedView):
                 result["bytesin"] = 0
                 result["bytesout"] = 0
         except Exception, e:
-            #logger.info("%s" % e)
+            # logger.info("%s" % e)
             pass
         return JsonResponse(result)
 

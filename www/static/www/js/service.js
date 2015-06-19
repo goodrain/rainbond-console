@@ -65,6 +65,8 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
 				alert("操作成功")
+			} else if (dataObj["status"] == "often") {
+				alert("上次部署正在进行中，请稍后再试")
 			} else {
 				alert("操作失败")
 				$("#onekey_deploy").removeAttr("disabled")
