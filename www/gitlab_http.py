@@ -2,8 +2,6 @@ from django.conf import settings
 
 from goodrain_web.base import BaseHttpClient
 
-
-
 import json
 import logging
 import httplib2
@@ -25,7 +23,7 @@ class GitlabApi(BaseHttpClient):
         private_token = ""
         try:
             body = {}
-            body["login"] = "self.admin_user"
+            body["login"] = self.admin_user
             body["email"] = self.admin_email
             body["password"] = self.admin_password        
             url = self.url + PREFIX + "/session"

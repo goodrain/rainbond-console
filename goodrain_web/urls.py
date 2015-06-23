@@ -4,6 +4,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 import www.views as views
 import www.views.ajax as ajax
 from www.services_view import ServiceStaticsManager
+from www.service_delete_view import *
 
 urlpatterns = patterns(
     '',
@@ -16,6 +17,6 @@ urlpatterns = patterns(
     url(r'^register$', views.Registation.as_view()),
     url(r'^statics$', ServiceStaticsManager.as_view()),
     url(r'^apps/(?P<tenantName>[\w\-]+)/', include('www.url_service')),
-    url(r'^ajax/', include('www.url_ajax')),
-    url(r'^test/', include('www.url_test')),
+    url(r'^ajax/', include('www.url_ajax')),    
+    url(r'^service_delete/', ServiceDeleteView.as_view()),    
 ) + staticfiles_urlpatterns()

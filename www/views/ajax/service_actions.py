@@ -199,6 +199,8 @@ class ServiceManage(AuthedView):
                    client.delete(self.service.service_id)
                 except Exception:
                    pass
+                if self.service.git_project_id > 0:
+                    gitClient.deleteProject(self.service.git_project_id)
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()             
             result["status"] = "success"
         except Exception, e:
