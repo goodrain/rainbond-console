@@ -407,16 +407,20 @@
             </div>
           </section>
           
-          <section class="panel" id="permission">
-            <header class="panel-heading">应用删除 </header>
+          <section class="panel" id="delete">
+            <header class="panel-heading alert alert-block alert-danger text-danger"><strong>删除</strong> </header>
             <div class="panel-body">
-            	<div class="row">
-		            <div class="col-xs-2">
-		              <button type="button" style="width:100px;height:30px;" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除</button>
-		            </div>
-            	</div>
+              <div class="row">
+                <div class="col-xs-3 "></div>
+                <div class="col-xs-6 ">
+                  <button type="button" class="btn btn-danger btn-block" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">确认删除</button>
+                </div>
+                <div class="col-xs-3 "></div>
+              </div>
+              <br>
+              <div class="row"><div class="col-xs-12 text-center text-danger">注意：该操作会将所有相关数据永久删除，请慎重操作！</div></div>
             </div>
-		  </section>
+          </section>
 		  
         </div>
         <!-- settings end-->
