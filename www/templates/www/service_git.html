@@ -53,62 +53,62 @@
               <div class="panel-body">
                 <h4>语言识别</h4>
                 <p>java应用程序使用Maven进行构建，源代码根目录需要有<font color="red">pom.xml</font>文件</p>
-                <h5>&nbsp;- 基于tomcat的webapp</h5><p class="text-info"> 将下面的内容添加到pom.xml文件中</p>
-                <pre>&lt;build&gt;
-                      &lt;plugins&gt;
-                        &lt;plugin&gt;
-                          &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
-                          &lt;artifactId&gt;maven-dependency-plugin&lt;/artifactId&gt;
-                          &lt;version&gt;2.3&lt;/version&gt;
-                          &lt;executions&gt;
-                            &lt;execution&gt;
-                              &lt;phase&gt;package&lt;/phase&gt;
-                              &lt;goals&gt;&lt;goal&gt;copy&lt;/goal&gt;&lt;/goals&gt;
-                              &lt;configuration&gt;
-                                &lt;artifactItems&gt;
-                                  &lt;artifactItem&gt;
-                                    &lt;groupId&gt;org.mortbay.jetty&lt;/groupId&gt;
-                                    &lt;artifactId&gt;jetty-runner&lt;/artifactId&gt;
-                                    &lt;version&gt;7.5.4.v20111024&lt;/version&gt;
-                                    &lt;destFileName&gt;jetty-runner.jar&lt;/destFileName&gt;
-                                  &lt;/artifactItem&gt;
-                                &lt;/artifactItems&gt;
-                              &lt;/configuration&gt;
-                            &lt;/execution&gt;
-                          &lt;/executions&gt;
-                        &lt;/plugin&gt;
-                      &lt;/plugins&gt;
-                    &lt;/build&gt;
-                  </pre>
+                <h5>&nbsp;- 基于jetty的webapp</h5><p class="text-info"> 将下面的内容添加到pom.xml文件中</p>
+<pre>&lt;build&gt;
+  &lt;plugins&gt;
+    &lt;plugin&gt;
+      &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+      &lt;artifactId&gt;maven-dependency-plugin&lt;/artifactId&gt;
+      &lt;version&gt;2.3&lt;/version&gt;
+      &lt;executions&gt;
+        &lt;execution&gt;
+          &lt;phase&gt;package&lt;/phase&gt;
+          &lt;goals&gt;&lt;goal&gt;copy&lt;/goal&gt;&lt;/goals&gt;
+          &lt;configuration&gt;
+            &lt;artifactItems&gt;
+              &lt;artifactItem&gt;
+                &lt;groupId&gt;org.mortbay.jetty&lt;/groupId&gt;
+                &lt;artifactId&gt;jetty-runner&lt;/artifactId&gt;
+                &lt;version&gt;7.5.4.v20111024&lt;/version&gt;
+                &lt;destFileName&gt;jetty-runner.jar&lt;/destFileName&gt;
+              &lt;/artifactItem&gt;
+            &lt;/artifactItems&gt;
+          &lt;/configuration&gt;
+        &lt;/execution&gt;
+      &lt;/executions&gt;
+    &lt;/plugin&gt;
+  &lt;/plugins&gt;
+&lt;/build&gt;
+</pre>
 
-                  <h5> - 基于jetty的webapp</h5>
+                  <h5> - 基于tomcat的webapp</h5>
                   <p class="text-info"> 将下面的内容添加到pom.xml文件中</p>
-                  <pre>&lt;build&gt;
-                        &lt;plugins&gt;
-                          &lt;plugin&gt;
-                            &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
-                            &lt;artifactId&gt;maven-dependency-plugin&lt;/artifactId&gt;
-                            &lt;version&gt;2.3&lt;/version&gt;
-                            &lt;executions&gt;
-                              &lt;execution&gt;
-                                &lt;phase&gt;package&lt;/phase&gt;
-                                &lt;goals&gt;&lt;goal&gt;copy&lt;/goal&gt;&lt;/goals&gt;
-                                &lt;configuration&gt;
-                                  &lt;artifactItems&gt;
-                                    &lt;artifactItem&gt;
-                                      &lt;groupId&gt;com.github.jsimone&lt;/groupId&gt;
-                                      &lt;artifactId&gt;webapp-runner&lt;/artifactId&gt;
-                                      &lt;version&gt;7.0.57.2&lt;/version&gt;
-                                     &lt;destFileName&gt;webapp-runner.jar&lt;/destFileName&gt;
-                                    &lt;/artifactItem&gt;
-                                  &lt;/artifactItems&gt;
-                                &lt;/configuration&gt;
-                              &lt;/execution&gt;
-                            &lt;/executions&gt;
-                          &lt;/plugin&gt;
-                        &lt;/plugins&gt;
-                      &lt;/build&gt;
-                  </pre>
+<pre>&lt;build&gt;
+  &lt;plugins&gt;
+    &lt;plugin&gt;
+      &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+      &lt;artifactId&gt;maven-dependency-plugin&lt;/artifactId&gt;
+      &lt;version&gt;2.3&lt;/version&gt;
+      &lt;executions&gt;
+        &lt;execution&gt;
+          &lt;phase&gt;package&lt;/phase&gt;
+          &lt;goals&gt;&lt;goal&gt;copy&lt;/goal&gt;&lt;/goals&gt;
+          &lt;configuration&gt;
+            &lt;artifactItems&gt;
+              &lt;artifactItem&gt;
+                &lt;groupId&gt;com.github.jsimone&lt;/groupId&gt;
+                &lt;artifactId&gt;webapp-runner&lt;/artifactId&gt;
+                &lt;version&gt;7.0.57.2&lt;/version&gt;
+               &lt;destFileName&gt;webapp-runner.jar&lt;/destFileName&gt;
+              &lt;/artifactItem&gt;
+            &lt;/artifactItems&gt;
+          &lt;/configuration&gt;
+        &lt;/execution&gt;
+      &lt;/executions&gt;
+    &lt;/plugin&gt;
+  &lt;/plugins&gt;
+&lt;/build&gt;
+</pre>
 
                   <h4>运行</h4>
                   <p>源码跟目录需要有<font color="red">Procfile</font> 文件来定义启动命令，下面根据jetty和tomcat定义不同的启动命令：</p>
@@ -212,7 +212,7 @@
           <div class="panel panel-info">
             <div class="panel-heading">
               <h4 class="panel-title">
-              <a href="#accordion1_7" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle">其他 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</a></h4>
+              <a href="#accordion1_7" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">其他 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</a></h4>
             </div>
             <div class="panel-collapse collapse in" id="accordion1_7" style="height: auto;">
               <div class="panel-body"><a href="http://docs.goodrain.com/languages/" target="_blank"> 更多语言支持文档... </a></div>
