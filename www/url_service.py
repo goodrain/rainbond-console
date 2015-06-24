@@ -33,4 +33,5 @@ urlpatterns = patterns(
     url(r'^recharge/alipay-notify', alipay_view.notify_url),
     
     url(r'^githup/$', login_required(ServiceGitHub.as_view())),
+    
 )
