@@ -47,7 +47,7 @@ class GitHubApi(object):
             kw["code"] = code
             url = 'https://github.com/login/oauth/access_token'
             http = httplib2.Http()
-            headers = {'Content-Type': 'application/json'} 
+            headers = {'Content-Type': 'application/json', 'Accept': 'application/json'} 
             response, content = http.request(url, 'POST' , headers=headers, body=json.dumps(kw))
             logger.debug(content)
             return content

@@ -547,6 +547,9 @@ class ServiceGitHub(BaseView):
                 logger.debug("state=" + state)
                 content = gitHubClient.get_access_token(code)
                 logger.debug(content)
+                logger.debug(content["access_token"])
+                gitHubClient.getUser(content["access_token"])
+                
             logger.debug("start run ServiceGitHub")
 #             if code is not None and code != "":
 #                 token = gitHubClient.get_access_token(code)
