@@ -8,11 +8,13 @@ import json
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
+from django.http import HttpResponseRedirect
 from www.views import BaseView, AuthedView
 from www.decorator import perm_required
 from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
+from githup_http import GitHubApi
 from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.inflexdb.inflexdbservice import InflexdbService
@@ -27,6 +29,8 @@ gitClient = GitlabApi()
 
 beanlog = BeanStalkClient()
 
+gitHubClient = GitHubApi()
+
 class ServiceAppCreate(AuthedView):
     
     def get_media(self):
@@ -39,6 +43,11 @@ class ServiceAppCreate(AuthedView):
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         try:
+            code = request.GET.get("code", "")
+            state = request.GET.get("state", "")
+            if code != "" and state != "":
+                logger.debug("code=" + code)
+                logger.debug("state=" + state)
             context = self.get_context()
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
@@ -522,6 +531,26 @@ class ServiceStaticsManager(AuthedView):
             logger.exception(e)
         return HttpResponse(json.dumps(result))
 
+class ServiceGitHub(BaseView):        
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        action = request.GET.get("action", "")
+        if action == "authorize":
+            url = gitHubClient.authorize_url(self.user.pk)
+            return HttpResponseRedirect(url)
+        else:
+            code = request.GET.get("code", "")
+            state = request.GET.get("state", "")
+            if code != "" and state != "":
+                logger.debug("code=" + code)
+                logger.debug("state=" + state)
+            logger.debug("start run ServiceGitHub")
+#             if code is not None and code != "":
+#                 token = gitHubClient.get_access_token(code)
+#                 user = gitHubClient.getUser(token)
+#                 repos = gitHubClient.getRepos(user)                
+        return HttpResponse("ok")
+        
 class GitLabManager(AuthedView):
     @never_cache
     def get(self, request, *args, **kwargs):
