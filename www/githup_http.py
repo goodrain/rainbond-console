@@ -31,7 +31,7 @@ class GitHubApi(object):
             kw = {}
             kw["client_id"] = self.client_id
             kw["redirect_uri"] = self.redirect_uri
-            kw["scope"] = "user,public_repo"
+            kw["scope"] = "user,repo"
             kw["state"] = state
             return 'https://github.com/login/oauth/authorize?%s' % self._encode_params(kw)
         except Exception as e:
@@ -59,7 +59,7 @@ class GitHubApi(object):
         try:
             url = "https://api.github.com/user?access_token=" + token
             http = httplib2.Http()
-            headers = {'Content-Type': 'application/json', 'Authorization': token + 'OAUTH-TOKEN'} 
+            headers = {'Accept': 'application/json'} 
             response, content = http.request(url, 'GET', headers=headers)
             logger.debug(content)
             return content

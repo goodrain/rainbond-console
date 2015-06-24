@@ -545,11 +545,20 @@ class ServiceGitHub(BaseView):
             if code != "" and state != "":
                 logger.debug("code=" + code)
                 logger.debug("state=" + state)
-                content = gitHubClient.get_access_token(code)
-                logger.debug(content)
+                result = gitHubClient.get_access_token(code)
+                logger.debug(result)
+                content = json.loads(result)
                 logger.debug(content["access_token"])
-                gitHubClient.getUser(content["access_token"])
-                
+                user=gitHubClient.getUser(content["access_token"])
+                userinfo = json.loads(user)
+                logger.debug(userinfo["login"])
+                repos=gitHubClient.getRepos(userinfo["login"])
+                logger.debug(repos)
+                reposList=json.loads(repos)
+                for reposJson in reposList:
+                    logger.debug(reposJson["git_url"])
+                    logger.debug(reposJson["ssh_url"])
+                    logger.debug(reposJson["clone_url"])
             logger.debug("start run ServiceGitHub")
 #             if code is not None and code != "":
 #                 token = gitHubClient.get_access_token(code)
