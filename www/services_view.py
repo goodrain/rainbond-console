@@ -531,6 +531,7 @@ class ServiceStaticsManager(AuthedView):
             logger.exception(e)
         return HttpResponse(json.dumps(result))
 
+#d82ebe5675f2ea0d0a7b
 class ServiceGitHub(BaseView):        
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -544,6 +545,8 @@ class ServiceGitHub(BaseView):
             if code != "" and state != "":
                 logger.debug("code=" + code)
                 logger.debug("state=" + state)
+                content = gitHubClient.get_access_token(code)
+                logger.debug(content)
             logger.debug("start run ServiceGitHub")
 #             if code is not None and code != "":
 #                 token = gitHubClient.get_access_token(code)

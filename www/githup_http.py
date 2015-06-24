@@ -43,12 +43,13 @@ class GitHubApi(object):
             kw = {}
             kw["client_id"] = self.client_id
             kw["client_secret"] = self.client_secret
+            kw["redirect_uri"] = self.redirect_uri
             kw["code"] = code
             url = 'https://github.com/login/oauth/access_token'
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'} 
             response, content = self.http.request(url, 'POST' , headers=headers, body=json.dumps(kw))
-            logger.debug(content) 
+            logger.debug(content)
             return content
         except Exception as e:
             logger.exception(e)
