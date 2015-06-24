@@ -55,6 +55,18 @@ class GitHubApi(object):
             logger.exception(e)
         return ""
     
+    def getAllRepos(self, token):
+        try:
+            url = "https://api.github.com/user/repos?access_token=" + token
+            http = httplib2.Http()
+            headers = {'Content-Type': 'application/json'} 
+            response, content = http.request(url, 'GET', headers=headers)
+            logger.debug(content)
+            return content
+        except Exception as e:
+            logger.exception(e)
+        return ""
+    
     def getUser(self, token):
         try:
             url = "https://api.github.com/user?access_token=" + token
