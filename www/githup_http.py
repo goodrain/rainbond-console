@@ -48,7 +48,7 @@ class GitHubApi(object):
             url = 'https://github.com/login/oauth/access_token'
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'} 
-            response, content = self.http.request(url, 'POST' , headers=headers, body=json.dumps(kw))
+            response, content = http.request(url, 'POST' , headers=headers, body=json.dumps(kw))
             logger.debug(content)
             return content
         except Exception as e:
@@ -60,7 +60,7 @@ class GitHubApi(object):
             url = "https://api.github.com/user?access_token=" + token
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json', 'Authorization': token + 'OAUTH-TOKEN'} 
-            response, content = self.http.request(url, 'GET', headers=headers)
+            response, content = http.request(url, 'GET', headers=headers)
             logger.debug(content)
             return content
         except Exception as e:
@@ -72,7 +72,7 @@ class GitHubApi(object):
             url = "https://api.github.com/users/" + username + "/repos"
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'} 
-            response, content = self.http.request(url, 'GET', headers=headers)
+            response, content = http.request(url, 'GET', headers=headers)
             logger.debug(content)
             return content
         except Exception as e:
