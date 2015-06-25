@@ -51,7 +51,7 @@ class CodeAction(AuthedView):
                     reposList = json.loads(repos)
                     if isinstance(reposList, dict):
                         data["status"] = "unauthorized"
-                        data["url"] = gitHubClient.authorize_url(self.user.pk, self.tenantName)
+                        data["url"] = gitHubClient.authorize_url(self.user.pk)
                     else:                        
                         arr = []
                         for reposJson in reposList:
@@ -67,7 +67,7 @@ class CodeAction(AuthedView):
                         data["status"] = "success"
                 else:
                     data["status"] = "unauthorized"
-                    data["url"] = gitHubClient.authorize_url(self.user.pk, self.tenantName)
+                    data["url"] = gitHubClient.authorize_url(self.user.pk)
         except Exception as e:
             logger.exception(e)
         return JsonResponse(data, status=200)
@@ -99,7 +99,7 @@ class CodeAction(AuthedView):
                     reposList = json.loads(repos)
                     if isinstance(reposList, dict):
                         data["status"] = "unauthorized"
-                        data["url"] = gitHubClient.authorize_url(self.user.pk, self.tenantName)
+                        data["url"] = gitHubClient.authorize_url(self.user.pk)
                     else:
                         arr = []
                         for index, reposJson in reposList:
@@ -112,7 +112,7 @@ class CodeAction(AuthedView):
                         data["status"] = "success"
                 else:
                     data["status"] = "unauthorized"
-                    data["url"] = gitHubClient.authorize_url(self.user.pk, self.tenantName)
+                    data["url"] = gitHubClient.authorize_url(self.user.pk)
         except Exception as e:
             logger.exception(e)
         return JsonResponse(data, status=200)

@@ -26,11 +26,11 @@ class GitHubApi(object):
             args.append('%s=%s' % (k, qv))
         return '&'.join(args)
     
-    def authorize_url(self, state, tenantName):        
+    def authorize_url(self, state):        
         try:
             kw = {}
             kw["client_id"] = self.client_id
-            kw["redirect_uri"] = self.redirect_uri.format(tenantName)
+            kw["redirect_uri"] = self.redirect_uri
             kw["scope"] = "user,repo"
             kw["state"] = state
             return 'https://github.com/login/oauth/authorize?%s' % self._encode_params(kw)
@@ -38,12 +38,12 @@ class GitHubApi(object):
             logger.exception(e)
         return ""
     
-    def get_access_token(self, code, tenantName, state=None):
+    def get_access_token(self, code, state=None):
         try:
             kw = {}
             kw["client_id"] = self.client_id
             kw["client_secret"] = self.client_secret
-            kw["redirect_uri"] = self.redirect_uri.format(tenantName)
+            kw["redirect_uri"] = self.redirect_uri
             kw["code"] = code
             url = 'https://github.com/login/oauth/access_token'
             http = httplib2.Http()

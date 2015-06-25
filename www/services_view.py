@@ -51,37 +51,12 @@ class ServiceAppCreate(AuthedView):
             context["createApp"] = "active"
             cacheServiceList = ServiceInfo.objects.filter(status="published", category__in=["cache", "store"])
             context["cacheServiceList"] = cacheServiceList
+            request.session["app_tenant"] = self.tenantName
             
             tenant_id = self.tenant.tenant_id
             deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
             context["deployTenantServices"] = deployTenantServices
             
-            # if self.user.git_user_id > 0:
-            #    gitClient.getUser(self.user.git_user_id)
-            code = request.GET.get("code", "")
-            state = request.GET.get("state", "")
-            if code != "" and state != "" and int(state) == self.user.pk:
-                result = gitHubClient.get_access_token(code)
-                content = json.loads(result)
-                token = content["access_token"]
-                logger.debug(state + " fetch token=" + token)
-                repos = gitHubClient.getAllRepos(token)
-                reposList = json.loads(repos)
-                data = []
-                for index, reposJson in reposList:
-                    d = {}
-                    clone_url = reposJson["clone_url"]
-                    code_id = reposJson["id"]
-                    d["code_id"] = code_id
-                    d["code_repos"] = clone_url
-                    d["code_user"] = clone_url.split("/")[3]
-                    d["code_project_name"] = clone_url.split("/")[4].split(".")[0]
-                    data.append(d)
-                context["githubdata"] = data
-                user = Users.objects.get(user_id=int(state))
-                user.github_token = token
-                user.save()
-                context["isGitHub"] = True
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step1.html", context)
@@ -589,32 +564,18 @@ class ServiceStaticsManager(AuthedView):
 class ServiceGitHub(BaseView):        
     @never_cache
     def get(self, request, *args, **kwargs):
-        action = request.GET.get("action", "")
-        if action == "authorize":
-            url = gitHubClient.authorize_url(self.user.pk)
-            return HttpResponseRedirect(url)
-        else:
-            code = request.GET.get("code", "")
-            state = request.GET.get("state", "")
-            if code != "" and state != "":
-                result = gitHubClient.get_access_token(code)
-                content = json.loads(result)
-                token = content["access_token"]
-                logger.debug(state + " fetch token=" + token)
-                repos = gitHubClient.getAllRepos(token)
-                reposList = json.loads(repos)
-                data = []
-                for index, reposJson in reposList:
-                    d = {}
-                    http = reposJson["clone_url"]
-                    d["github"] = http
-                    d["user"] = http.split("/")[3]
-                    d["repos"] = http.split("/")[4].split(".")[0]
-                    data.append(d)
-                user = Users.objects.get(user_id=int(state))
-                user.github_token = token
-                user.save()
-        return HttpResponse("ok")
+        code = request.GET.get("code", "")
+        state = request.GET.get("state", "")
+        if code != "" and state != "" and int(state) == self.user.pk:
+            result = gitHubClient.get_access_token(code)
+            content = json.loads(result)
+            token = content["access_token"]
+            user = Users.objects.get(user_id=int(state))
+            user.github_token = token
+            user.save()
+        tenantName = request.session.get("app_tenant")
+        logger.debug(tenantName)
+        return HttpResponseRedirect("/apps/" + tenantName + "/app-create/")
         
 class GitLabManager(AuthedView):
     @never_cache

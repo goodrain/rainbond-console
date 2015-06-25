@@ -182,19 +182,17 @@
 			if(code_from=="gitlab_exit"){
 				var code_id = $("#service_code_id").val()
 				var code_version = $("#code_version_"+code_id).val()
-				alert(code_version)
 				if(code_version=="" || code_version== undefined){
 					result=false
 				}
-				
+				$("#service_code_version").val(code_version)
 			}else if(code_from=="github"){
 				var code_id = $("#service_code_id").val()
 				var code_version = $("#code_version_"+code_id).val()
-				alert(code_version)
 				if(code_version=="" || code_version== undefined){
 					result=false
 				}
-				$("#service_code_version").val()
+				$("#service_code_version").val(code_version)
 			}
 			
 			if (!result) {
