@@ -140,6 +140,12 @@
                               <p class="form-control-static" id="display_service_code_http"></p>
                           </div>
                       </div>
+                      <div class="form-group">
+                          <label class="col-xs-2 control-label">代码版本</label>
+                          <div class="col-xs-10">
+                              <p class="form-control-static" id="display_service_code_version"></p>
+                          </div>
+                      </div>
                       <!--<div class="form-group">
                           <label class="col-lg-2 control-label">SSH:</label>
                           <div class="col-lg-10">
@@ -183,6 +189,7 @@
 				var code_id = $("#service_code_id").val()
 				var code_version = $("#code_version_"+code_id).val()
 				if(code_version=="" || code_version== undefined){
+					alert("请选择相应的代码仓库和版本")
 					result=false
 				}
 				$("#service_code_version").val(code_version)
@@ -190,11 +197,14 @@
 				var code_id = $("#service_code_id").val()
 				var code_version = $("#code_version_"+code_id).val()
 				if(code_version=="" || code_version== undefined){
+					alert("请选择相应的代码仓库和版本")
 					result=false
 				}
 				$("#service_code_version").val(code_version)
+			}else if(code_from=="gitlab_new"){
+				var code_url="http://code.goodrain.com/app/"+$("#tenantName").val()+"_"+$("#service_name").val()+".git"
+				$("#service_code_clone_url").val(code_url)
 			}
-			
 			if (!result) {
 				return;
 			}
@@ -214,8 +224,8 @@
       		$("#default-step-2").css('display','block');
       		$("#display_service_name").html($("#service_name").val());
       		$("#display_service_desc").html($("#service_desc").val());
-      		$("#display_service_code_ssh").html("git@code.goodrain.com:app/"+$("#tenantName").val()+"_"+$("#service_name").val()+".git");
-      		$("#display_service_code_http").html("http://code.goodrain.com/app/"+$("#tenantName").val()+"_"+$("#service_name").val()+".git");
+      		$("#display_service_code_http").html($("#service_code_clone_url").val());
+      		$("#display_service_code_version").html($("#service_code_version").val());
       		
       		var serviceType = new Array();
       		var serviceKey="";
@@ -342,12 +352,12 @@
 	        				var dataList=dataObj["data"];
 		    	  			var i=0
 		    	  			var htmlmsg="";
+		    	  			htmlmsg +='<select name="code_version_'+code_id+'" id="code_version_'+code_id+'" class="form-control m-bot15">'
 		    	  			for(i=0;i<dataList.length;i++){
 		    	  				data = dataList[i]
-		    	  				htmlmsg +='<select name="code_version_'+code_id+'" id="code_version_'+code_id+'" class="form-control m-bot15">'
-		    	  				htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>'                 
-		    	  				htmlmsg +='</select>'
+		    	  				htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>'
 		    	  			}
+		    	  			htmlmsg +='</select>'
 		    	  			$("#git_"+code_id).html(htmlmsg)
 	        			}else {
 	        				alert("操作失败")

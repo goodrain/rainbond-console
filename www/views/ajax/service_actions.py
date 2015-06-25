@@ -67,8 +67,7 @@ class AppDeploy(AuthedView):
             self.service.save()
 
             body["deploy_version"] = self.service.deploy_version
-            body["gitUrl"] = gitUrl
-
+            body["gitUrl"] = "--branch "+self.service.code_version+" --depth 1 "+self.service.git_url
             para = json.dumps(body)
             client = RegionServiceApi()
             client.build_service(service_id, para)

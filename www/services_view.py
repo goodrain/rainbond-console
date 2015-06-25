@@ -140,7 +140,6 @@ class ServiceAppCreate(AuthedView):
                 ts.code_version = code_version
                 ts.save()
             elif service_code_from == "github":
-                code_user = request.POST["code_user"]
                 code_clone_url = request.POST["service_code_clone_url"]
                 code_version = request.POST["service_code_version"]
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
@@ -150,11 +149,6 @@ class ServiceAppCreate(AuthedView):
                 ts.code_from = service_code_from
                 ts.code_version = code_version
                 ts.save()
-                
-            data["status"] = "success"
-            data["service_alias"] = service_alias
-            data["service_id"] = service_id 
-            return HttpResponse(json.dumps(data))
         
             # create region tenantservice
             baseService.create_region_service(newTenantService, service, self.tenantName)
@@ -438,11 +432,10 @@ class TenantService(AuthedView):
                         ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                         ts.save()
 
-            if self.service.category == 'application' and code_from == "gitlab" and not self.service.is_code_upload:
+            if self.service.category == 'application' and self.service.code_from == "gitlab" and not self.service.is_code_upload:
                 commitTime = gitClient.getProjectCommitTime(self.service.git_project_id)
                 logger.debug(commitTime)
-                if commitTime < 1:
-                    context["gitUrl"] = "git@code.goodrain.com:app/" + self.tenantName + "_" + self.serviceAlias + ".git"                    
+                if commitTime < 1:                  
                     context["httpUrl"] = "http://code.goodrain.com/app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                     return TemplateResponse(self.request, "www/service_git.html", context)
                 else:
@@ -472,6 +465,14 @@ class TenantService(AuthedView):
             
             context["nodeList"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]      
+            
+            httpGitUrl =""
+            if self.service.code_from=="gitlab":
+                httpGitUrl="http://code.goodrain.com/app/"+self.tenantName+"_"+self.serviceAlias+".git"
+            else:
+                oldurl = self.service.git_url
+                httpGitUrl="http://"+oldurl.split("@")[1]
+            context["httpGitUrl"] = httpGitUrl 
             
             try:
                 domain = ServiceDomain.objects.get(service_id=self.service.service_id)

@@ -190,7 +190,7 @@ function appCreate(tenantName) {
 			} else if (dataObj["status"] == "success") {
 				service_alias = dataObj["service_alias"]
 				window.location.href = "/apps/" + tenantName + "/"
-						+ service_alias + "/app-deploy/"
+						+ service_alias + "/detail/"
 			} else {
 				alert("创建失败")
 			}
@@ -275,6 +275,7 @@ function delete_service(tenantName, service_alias) {
 				var dataObj = msg
 				if (dataObj["status"] == "success") {
 					alert("操作成功")
+					window.location.href = window.location.href;
 				} else {
 					alert("操作失败")
 				}
