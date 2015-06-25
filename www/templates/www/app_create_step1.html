@@ -290,7 +290,8 @@
 		    	  	  success: function(msg) {
 		    	  		var dataObj = msg;
 		    	  		if(dataObj["status"] == "unauthorized"){
-		    	  			window.location.href = dataObj["url"]
+		    	  			alert(dataObj["url"])
+	        				window.open(dataObj["url"])
 		    	  		}else if(dataObj["status"]=="success"){
 		    	  			var dataList=dataObj["data"];
 		    	  			var i=0
@@ -337,7 +338,8 @@
 	        		success : function(msg) {
 	        			var dataObj = msg
 	        			if (dataObj["status"] == "unauthorized") {
-	        				window.location.href = dataObj["url"]
+	        				alert(dataObj["url"])
+	        				window.open(dataObj["url"])
 	        			}else if(dataObj["status"] == "success"){
 	        				var dataList=dataObj["data"];
 		    	  			var i=0
