@@ -14,7 +14,7 @@ from www.decorator import perm_required
 from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
-from githup_http import GitHubApi
+from github_http import GitHubApi
 from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.inflexdb.inflexdbservice import InflexdbService
@@ -43,12 +43,7 @@ class ServiceAppCreate(AuthedView):
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         try:
-            code = request.GET.get("code", "")
-            state = request.GET.get("state", "")
-            if code != "" and state != "":
-                logger.debug("code=" + code)
-                logger.debug("state=" + state)
-            context = self.get_context()
+            context = self.get_context()            
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
             context["tenantServiceList"] = tenantServiceList                
@@ -63,6 +58,30 @@ class ServiceAppCreate(AuthedView):
             
             # if self.user.git_user_id > 0:
             #    gitClient.getUser(self.user.git_user_id)
+            code = request.GET.get("code", "")
+            state = request.GET.get("state", "")
+            if code != "" and state != "" and int(state) == self.user.pk:
+                result = gitHubClient.get_access_token(code)
+                content = json.loads(result)
+                token = content["access_token"]
+                logger.debug(state + " fetch token=" + token)
+                repos = gitHubClient.getAllRepos(token)
+                reposList = json.loads(repos)
+                data = []
+                for index, reposJson in reposList:
+                    d = {}
+                    clone_url = reposJson["clone_url"]
+                    code_id = reposJson["id"]
+                    d["code_id"] = code_id
+                    d["code_repos"] = clone_url
+                    d["code_user"] = clone_url.split("/")[3]
+                    d["code_project_name"] = clone_url.split("/")[4].split(".")[0]
+                    data.append(d)
+                context["githubdata"] = data
+                user = Users.objects.get(user_id=int(state))
+                user.github_token = token
+                user.save()
+                context["isGitHub"] = True
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step1.html", context)
@@ -82,6 +101,10 @@ class ServiceAppCreate(AuthedView):
                 return HttpResponse(json.dumps(data))            
             service_desc = request.POST["service_desc"]
             service_alias = request.POST["service_name"]
+            service_code_from = request.POST["service_code_from"]
+            if service_code_from is None or service_code_from == "":
+                data["status"] = "code_from"
+                return HttpResponse(json.dumps(data))
             if service_alias is None or service_alias == "":
                 data["status"] = "empty"
                 return HttpResponse(json.dumps(data))   
@@ -114,18 +137,50 @@ class ServiceAppCreate(AuthedView):
             baseService = BaseTenantService()
             service.desc = service_desc
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service)
-            # create git
-            project_id = 0
-            if self.user.git_user_id > 0:
-                project_id = gitClient.createProject(self.tenantName + "_" + service_alias)
-                logger.debug(project_id)
-                if project_id > 0:
-                    gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
-                    gitClient.addProjectMember(project_id, 2, 20)                                        
-                    ts = TenantServiceInfo.objects.get(service_id=service_id)
-                    ts.git_project_id = project_id
-                    ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + service_alias + ".git"
-                    ts.save()                     
+            
+            # code repos
+            if service_code_from == "gitlab_new":
+                project_id = 0
+                if self.user.git_user_id > 0:
+                    project_id = gitClient.createProject(self.tenantName + "_" + service_alias)
+                    logger.debug(project_id)
+                    if project_id > 0:
+                        gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
+                        gitClient.addProjectMember(project_id, 2, 20)                                        
+                        ts = TenantServiceInfo.objects.get(service_id=service_id)
+                        ts.git_project_id = project_id
+                        ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + service_alias + ".git"
+                        ts.code_from = service_code_from
+                        ts.code_version = "master"
+                        ts.save()                     
+            elif service_code_from == "gitlab_exit":
+                code_user = request.POST["code_user"]
+                code_clone_url = request.POST["service_code_clone_url"]
+                code_id = request.POST["service_code_id"]
+                code_version = request.POST["service_code_version"]
+                ts = TenantServiceInfo.objects.get(service_id=service_id)
+                ts.git_project_id = code_id
+                ts.git_url = code_clone_url
+                ts.code_from = service_code_from
+                ts.code_version = code_version
+                ts.save()
+            elif service_code_from == "github":
+                code_user = request.POST["code_user"]
+                code_clone_url = request.POST["service_code_clone_url"]
+                code_version = request.POST["service_code_version"]
+                ts = TenantServiceInfo.objects.get(service_id=service_id)
+                code_user = code_clone_url.split("/")[3]
+                code_project_name = code_clone_url.split("/")[4].split(".")[0]                            
+                ts.git_url = "https://" + self.user.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+                ts.code_from = service_code_from
+                ts.code_version = code_version
+                ts.save()
+                
+            data["status"] = "success"
+            data["service_alias"] = service_alias
+            data["service_id"] = service_id 
+            return HttpResponse(json.dumps(data))
+        
             # create region tenantservice
             baseService.create_region_service(newTenantService, service, self.tenantName)
             # create service dependency
@@ -151,7 +206,7 @@ class ServiceAppCreate(AuthedView):
                        logger.exception(e)
             # record log
             task = {}
-            task["log_msg"] = "应用创建成功。."
+            task["log_msg"] = "应用创建成功"
             task["service_id"] = newTenantService.service_id
             task["tenant_id"] = newTenantService.tenant_id
             beanlog.put("app_log", json.dumps(task))
@@ -186,7 +241,6 @@ class ServiceAppDeploy(AuthedView):
             context["tenantName"] = self.tenantName
             context["myAppStatus"] = "active"
             context['serviceAlias'] = self.serviceAlias
-            context["gitUrl"] = "git@code.goodrain.com:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
             context["httpUrl"] = "http://code.goodrain.com/app/" + self.tenantName + "_" + self.serviceAlias + ".git"
         except Exception as e:
             logger.exception(e)                   
@@ -409,7 +463,7 @@ class TenantService(AuthedView):
                         ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                         ts.save()
 
-            if self.service.category == 'application' and not self.service.is_code_upload:
+            if self.service.category == 'application' and code_from == "gitlab" and not self.service.is_code_upload:
                 commitTime = gitClient.getProjectCommitTime(self.service.git_project_id)
                 logger.debug(commitTime)
                 if commitTime < 1:
@@ -531,7 +585,7 @@ class ServiceStaticsManager(AuthedView):
             logger.exception(e)
         return HttpResponse(json.dumps(result))
 
-#d82ebe5675f2ea0d0a7b
+# d82ebe5675f2ea0d0a7b
 class ServiceGitHub(BaseView):        
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -543,27 +597,23 @@ class ServiceGitHub(BaseView):
             code = request.GET.get("code", "")
             state = request.GET.get("state", "")
             if code != "" and state != "":
-                logger.debug("code=" + code)
-                logger.debug("state=" + state)
                 result = gitHubClient.get_access_token(code)
-                logger.debug(result)
                 content = json.loads(result)
-                logger.debug(content["access_token"])
-                user=gitHubClient.getUser(content["access_token"])
-                #userinfo = json.loads(user)
-                #logger.debug(userinfo["login"])
-                repos=gitHubClient.getAllRepos(content["access_token"])
-                #logger.debug(repos)
-                reposList=json.loads(repos)
-                for reposJson in reposList:
-                    logger.debug(reposJson["git_url"])
-                    logger.debug(reposJson["ssh_url"])
-                    logger.debug(reposJson["clone_url"])
-            logger.debug("start run ServiceGitHub")
-#             if code is not None and code != "":
-#                 token = gitHubClient.get_access_token(code)
-#                 user = gitHubClient.getUser(token)
-#                 repos = gitHubClient.getRepos(user)                
+                token = content["access_token"]
+                logger.debug(state + " fetch token=" + token)
+                repos = gitHubClient.getAllRepos(token)
+                reposList = json.loads(repos)
+                data = []
+                for index, reposJson in reposList:
+                    d = {}
+                    http = reposJson["clone_url"]
+                    d["github"] = http
+                    d["user"] = http.split("/")[3]
+                    d["repos"] = http.split("/")[4].split(".")[0]
+                    data.append(d)
+                user = Users.objects.get(user_id=int(state))
+                user.github_token = token
+                user.save()
         return HttpResponse("ok")
         
 class GitLabManager(AuthedView):

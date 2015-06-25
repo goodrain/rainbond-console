@@ -78,6 +78,7 @@ class Users(models.Model):
     origion = models.CharField(max_length=12, choices=user_origion, help_text=u"用户来源")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     git_user_id = models.IntegerField(help_text=u"gitlab 用户id", default=0)
+    github_token = models.CharField(max_length=60, help_text=u"github token")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
@@ -197,10 +198,12 @@ class TenantServiceInfo(BaseModel):
     volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text=u"mount目录")
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
-    git_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"git代码仓库")
+    code_from = models.CharField(max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
+    git_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"code代码仓库")
     create_time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
-    is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
+    is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
+    code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
 
     def __unicode__(self):

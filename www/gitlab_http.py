@@ -180,3 +180,15 @@ class GitlabApi(BaseHttpClient):
         except Exception as e:
             logger.exception(e)
         return result
+    
+    def getProjectBranches(self, project_id):
+        try:      
+            projectId = str(project_id)
+            url = self.url + PREFIX + "/projects/" + projectId + "/repository/branches"             
+            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN':self.get_private_token()} 
+            http = httplib2.Http()
+            response, content = http.request(url, 'GET', headers=headers) 
+            return content
+        except Exception as e:
+            logger.exception(e)
+        return ""

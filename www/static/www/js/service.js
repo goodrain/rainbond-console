@@ -185,6 +185,8 @@ function appCreate(tenantName) {
 				alert("免费资源已达上限，不能创建")
 			} else if (dataObj["status"] == "empty") {
 				alert("应用名称不能为空")
+			}else if (dataObj["status"] == "empty") {
+				alert("应用资源库未选择")
 			} else if (dataObj["status"] == "success") {
 				service_alias = dataObj["service_alias"]
 				window.location.href = "/apps/" + tenantName + "/"

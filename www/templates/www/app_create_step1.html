@@ -32,30 +32,59 @@
 					             <input type="text" class="form-control servicename" value="" name="service_desc" id="service_desc" placeholder="简短的描述信息">
 					           </div>
 					       </div>
-                <div class="form-group">
-                  <label class="col-xs-2 text-right">开发语言支持</label>
-                  <label class="col-xs-10">PHP(5.4~5.6)、Python(2.4x~3.4.x)、Ruby(2.0~2.2)、Node.JS、Java、Clojure、Scala 更多开发语言后续版本支持。</label>
-                </div>
+			               <div class="form-group">
+			                  <label class="col-xs-2 text-right">开发语言支持</label>
+			                  <label class="col-xs-10">PHP(5.4~5.6)、Python(2.4x~3.4.x)、Ruby(2.0~2.2)、Node.JS、Java、Clojure、Scala 更多开发语言后续版本支持。</label>
+			               </div>
 					     </div>
 					 </section>
 					<section class="panel">
-					  <header class="panel-heading">代码</header>
+					  <header class="panel-heading">代码源</header>
 					    <div class="panel-body">
 					      <div class="col-lg-12 radio">
 					        <div class="row">
 					          <div class="col-xs-2">
-					            <label><input type="radio" name="optionsRadios" id="optionsRadios1" value="option1" checked="">新建代码仓库</label>
+					            <label><input type="radio" name="code_from" id="code_from" value="gitlab_new" {% if not isGitHub %} checked="checked" {% endif %} >新建代码仓库</label>
 					          </div>
 					          <div class="col-xs-2">
-					            <label><input type="radio" value="option2" name="optionsRadios" id="optionsRadios2" disabled="">导入现有代码</label>
+					            <label><input type="radio" name="code_from" id="code_from" value="gitlab_exit" >使用已有仓库</label>
 					          </div>
 					          <div class="col-xs-2">
-					            <label><input type="radio" value="option3" name="optionsRadios" id="optionsRadios3" disabled="">连接Github</label>
+					            <label><input type="radio" name="code_from" id="code_from" value="github" {% if isGitHub %} checked="checked" {% endif %} >连接Github</label>
 					          </div>
+					          <input type="hidden" id="service_code_from" name="service_code_from" value="">
+					          <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
+					          <input type="hidden" id="service_code_version" name="service_code_version" value="">
+					          <input type="hidden" id="service_code_id" name="service_code_id" value="">
 					        </div>
 					      </div>
 					    </div>
-					</section>
+					</section>					
+					<section id="code_repos_setting" class="panel" {% if not isGitHub %} style="display: none" {% endif %}>
+					  <header class="panel-heading">代码仓库设置</header>
+					  	 <table class="table table-hover">
+		                   <thead>
+		                     <tr>
+		                       <th></th>
+		                       <th>仓库名</th>
+		                       <th>版本</th>
+		                     </tr>
+		                   </thead>
+		                   <tbody id="code_repos_content">
+		                     {% if githubdata %}
+			                     {% for data in githubdata %}
+			                     <tr>
+			                     	<input type="hidden" id="repos_{{data.code_id}}" name="repos_{{data.code_id}}" value='{{data.code_repos}}' />
+			                       	<td><input type="radio" name="code_repos" id="code_repos" value='{{data.code_id}}'></td>
+			                       	<td>{{data.code_user}}/{{data.code_project_name}}</td>
+			                       	<td id='git_{{data.code_id}}'>
+			                       	</td>
+			                     </tr>
+			                     {% endfor %}
+		                     {% endif %}
+		                   </tbody>
+		                 </table>
+					</section>					
                     <p id="default-buttons-0" class="default-buttons"><a id="default-next-0" href="javascript:void(0);" onclick=create_next() class="button-next  btn btn-info">下一步</a></p>
                   </fieldset>
                   <fieldset title="Step 2" class="step" id="default-step-1" style="display: none;">
@@ -149,6 +178,25 @@
 				result = false;
 				$('#service_name').focus();
 			}
+			var service_code_from = $("#service_code_from").val()
+			if(code_from=="gitlab_exit"){
+				var code_id = $("#service_code_id").val()
+				var code_version = $("#code_version_"+code_id).val()
+				alert(code_version)
+				if(code_version=="" || code_version== undefined){
+					result=false
+				}
+				
+			}else if(code_from=="github"){
+				var code_id = $("#service_code_id").val()
+				var code_version = $("#code_version_"+code_id).val()
+				alert(code_version)
+				if(code_version=="" || code_version== undefined){
+					result=false
+				}
+				$("#service_code_version").val()
+			}
+			
 			if (!result) {
 				return;
 			}
@@ -232,6 +280,123 @@
 		}
       	
       	
+		function loadRepos(_url){
+			$.ajax({
+		       	  type: "GET",  
+		    		  url: _url,
+		    		  cache: false,
+		    		  beforeSend: function(xhr, settings){  
+		    		      var csrftoken = $.cookie('csrftoken');  
+		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);  
+		    		  },  
+		    	  	  success: function(msg) {
+		    	  		var dataObj = msg;
+		    	  		if(dataObj["status"] == "unauthorized"){
+		    	  			winow.loction.href=dataObj["url"]
+		    	  		}else if(dataObj["status"]=="success"){
+		    	  			var dataList=dataObj["data"];
+		    	  			var i=0
+		    	  			var htmlmsg="";
+		    	  			for(i=0;i<dataList.length;i++){
+		    	  				data = dataList[i]
+		    	  				htmlmsg +="<tr>"
+	    	  					htmlmsg +='<input type="hidden" id="repos_'+data["code_id"]+'" name="repos_'+data["code_id"]+'" value='+data["code_repos"]+' />'
+	    	  					htmlmsg +='<td><input type="radio" name="code_repos" id="code_repos" value='+data["code_id"]+'></td>'
+	    	  					htmlmsg +='<td>'+data["code_user"]+'/'+data["code_project_name"]+'</td>'
+	    	  					htmlmsg +='<td id="git_'+data["code_id"]+'"></td>'
+	    	  					htmlmsg +='</tr>'
+		    	  			}
+		    	  			$("#code_repos_content").html(htmlmsg)
+		    	  		}	 
+		    		  },
+		    		  error: function(){
+		    			//alert("系统异常");
+		      	  	}
+		      })
+		}
+		
+		function projectVersion(code_from,code_id,clone_url){
+			var action=""
+			var user =""
+			var repos =""
+			if(code_from=="gitlab_exit"){
+				action="gitlab"
+			}else if(code_from=="github"){
+				action="github"
+				user =  clone_url.split("/")[3]
+				repos = clone_url.split("/")[4].split(".")[0]
+			}
+			if(action != ""){
+				$.ajax({
+	        		type : "POST",
+	        		url : "/ajax/goodrain/code_repos",
+	        		data : "action=" + action + "&code_id="+code_id+"&user="+user+"&repos="+repos,
+	        		cache : false,
+	        		beforeSend : function(xhr, settings) {
+	        			var csrftoken = $.cookie('csrftoken');
+	        			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+	        		},
+	        		success : function(msg) {
+	        			var dataObj = msg
+	        			if (dataObj["status"] == "unauthorized") {
+	        				window.location.href = dataObj["url"]
+	        			}else if(dataObj["status"] == "success"){
+	        				var dataList=dataObj["data"];
+		    	  			var i=0
+		    	  			var htmlmsg="";
+		    	  			for(i=0;i<dataList.length;i++){
+		    	  				data = dataList[i]
+		    	  				htmlmsg +='<select name="code_version_'+code_id+'" id="code_version_'+code_id+'" class="form-control m-bot15">'
+		    	  				htmlmsg +='<option value="'+data["version"]+'"></option>'                 
+		    	  				htmlmsg +='</select>'
+		    	  			}
+		    	  			$("#git_"+code_id).html(htmlmsg)
+	        			}else {
+	        				alert("操作失败")
+	        			}
+	        		},
+	        		error : function() {
+	        			// alert("系统异常");
+	        		}
+	        	})	
+			}	
+		}
+		
+		
+		$(document).ready(function(){
+			$('body').on('change','input[id=code_from]', function () {
+				var value = $('input[type="radio"][name="code_from"]:checked').val();
+				var _url=""
+				if(value == "gitlab_exit"){
+					_url = "/ajax/goodrain/code_repos?action=gitlab"
+					$("#code_repos_content").html("");
+					$("#code_repos_setting").css('display',''); 
+					$("#service_code_from").val("gitlab_exit");
+				}else if(value == "github"){
+					_url = "/ajax/goodrain/code_repos?action=github"
+					$("#code_repos_content").html("");
+					$("#code_repos_setting").css('display','');
+					$("#service_code_from").val("github");
+				}else{
+					$("#code_repos_setting").css('display','none'); 
+					$("#service_code_from").val("gitlab_new");
+				}
+				if(_url != ""){
+					loadRepos(_url);	
+				}		
+			}); 
+		}); 
+		$(document).ready(function(){
+			$('body').on('change','input[id=code_repos]', function () {
+				var value = $('input[type="radio"][name="code_repos"]:checked').val();
+				var repos = $("#repos_"+value).val();
+				var service_code_from =$("#service_code_from").val()
+				$("#service_code_clone_url").val(repos)
+				$("#service_code_id").val(value)
+				projectVersion(service_code_from,value,repos)
+				
+			}); 
+		});		
        </script>
        
   </div>

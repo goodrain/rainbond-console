@@ -26,11 +26,11 @@ class GitHubApi(object):
             args.append('%s=%s' % (k, qv))
         return '&'.join(args)
     
-    def authorize_url(self, state):        
+    def authorize_url(self, state, tenantName):        
         try:
             kw = {}
             kw["client_id"] = self.client_id
-            kw["redirect_uri"] = self.redirect_uri
+            kw["redirect_uri"] = self.redirect_uri.format(tenantName)
             kw["scope"] = "user,repo"
             kw["state"] = state
             return 'https://github.com/login/oauth/authorize?%s' % self._encode_params(kw)
@@ -38,18 +38,17 @@ class GitHubApi(object):
             logger.exception(e)
         return ""
     
-    def get_access_token(self, code, state=None):
+    def get_access_token(self, code, tenantName, state=None):
         try:
             kw = {}
             kw["client_id"] = self.client_id
             kw["client_secret"] = self.client_secret
-            kw["redirect_uri"] = self.redirect_uri
+            kw["redirect_uri"] = self.redirect_uri.format(tenantName)
             kw["code"] = code
             url = 'https://github.com/login/oauth/access_token'
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json', 'Accept': 'application/json'} 
             response, content = http.request(url, 'POST' , headers=headers, body=json.dumps(kw))
-            logger.debug(content)
             return content
         except Exception as e:
             logger.exception(e)
@@ -61,11 +60,25 @@ class GitHubApi(object):
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'} 
             response, content = http.request(url, 'GET', headers=headers)
-            logger.debug(content)
             return content
         except Exception as e:
             logger.exception(e)
         return ""
+    
+    def getReposRefs(self, user, repos, token):        
+        try:
+            url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token
+            http = httplib2.Http()
+            headers = {'Content-Type': 'application/json'} 
+            response, content = http.request(url, 'GET', headers=headers)
+            return content
+        except Exception as e:
+            logger.exception(e)
+        return ""
+        
+    def cloneReposUrl(self, user, repos, token, version):
+        cmd = "git clone --branch " + version + " --depth 1 https://" + token + "@github.com/" + user + "/" + repos + ".git"
+        return cmd
     
     def getUser(self, token):
         try:
@@ -73,7 +86,6 @@ class GitHubApi(object):
             http = httplib2.Http()
             headers = {'Accept': 'application/json'} 
             response, content = http.request(url, 'GET', headers=headers)
-            logger.debug(content)
             return content
         except Exception as e:
             logger.exception(e)
@@ -85,7 +97,6 @@ class GitHubApi(object):
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'} 
             response, content = http.request(url, 'GET', headers=headers)
-            logger.debug(content)
             return content
         except Exception as e:
             logger.exception(e)
