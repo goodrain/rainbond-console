@@ -92,8 +92,8 @@ class CodeAction(AuthedView):
             elif action == "github":
                 user = request.POST["user"]
                 repos = request.POST["repos"]
-                user = Users.objects.get(user_id=self.user.pk)
-                token = user.github_token
+                loginuser = Users.objects.get(user_id=self.user.pk)
+                token = loginuser.github_token
                 if token is not None:
                     repos = gitHubClient.getReposRefs(user, repos, token)
                     reposList = json.loads(repos)
