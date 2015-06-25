@@ -76,7 +76,7 @@ class CodeAction(AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
-            action = request.POST("action")
+            action = request.POST["action"]
             if action == "gitlab":
                 code_id = request.POST["code_id"]
                 content = gitLabClient.getProjectBranches(code_id)

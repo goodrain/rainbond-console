@@ -292,7 +292,7 @@
 		    	  	  success: function(msg) {
 		    	  		var dataObj = msg;
 		    	  		if(dataObj["status"] == "unauthorized"){
-		    	  			winow.loction.href=dataObj["url"]
+		    	  			window.location.href = dataObj["url"]
 		    	  		}else if(dataObj["status"]=="success"){
 		    	  			var dataList=dataObj["data"];
 		    	  			var i=0
