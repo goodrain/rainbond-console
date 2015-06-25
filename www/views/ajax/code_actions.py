@@ -102,7 +102,7 @@ class CodeAction(AuthedView):
                         data["url"] = gitHubClient.authorize_url(self.user.pk)
                     else:
                         arr = []
-                        for index, reposJson in reposList:
+                        for reposJson in reposList:
                             d = {}
                             ref = reposJson["ref"]
                             d["ref"] = ref
