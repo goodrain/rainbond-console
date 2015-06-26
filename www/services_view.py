@@ -132,7 +132,6 @@ class ServiceAppCreate(AuthedView):
                         ts.code_version = "master"
                         ts.save()                     
             elif service_code_from == "gitlab_exit":
-                code_user = request.POST["code_user"]
                 code_clone_url = request.POST["service_code_clone_url"]
                 code_id = request.POST["service_code_id"]
                 code_version = request.POST["service_code_version"]
