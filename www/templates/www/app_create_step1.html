@@ -185,9 +185,10 @@
 				$('#service_name').focus();
 			}
 			var code_from = $("#service_code_from").val()
-			if(code_from==""){
+			if(code_from == ""){
 				current_code_from = $('input[type="radio"][name="code_from"]:checked').val();
 				$("#service_code_from").val(current_code_from);
+				code_from = current_code_from
 			}
 			if(code_from=="gitlab_exit"){
 				var code_id = $("#service_code_id").val()
