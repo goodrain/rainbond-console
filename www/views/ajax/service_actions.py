@@ -35,7 +35,7 @@ class AppDeploy(AuthedView):
         tenant_id = self.tenant.tenant_id
         service_id = self.service.service_id
         oldVerion = self.service.deploy_version
-        if oldVerion is not None:      
+        if oldVerion is not None or oldVerion == "":      
             curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             diffsec = int(curVersion) - int(oldVerion)
             if diffsec <= 90:
@@ -59,7 +59,7 @@ class AppDeploy(AuthedView):
             service_alias = self.service.service_alias
 
             body = {}
-            if(self.service.deploy_version == ""):
+            if self.service.deploy_version == "" or self.service.deploy_version is None:
                 body["action"] = "deploy"
             else:
                 body["action"] = "upgrade"

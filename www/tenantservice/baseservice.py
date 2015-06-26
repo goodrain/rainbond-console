@@ -60,7 +60,10 @@ class BaseTenantService(object):
             host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
         tenantServiceInfo["volume_mount_path"] = volume_path
         tenantServiceInfo["host_path"] = host_path
-        tenantServiceInfo["deploy_version"] = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        if service.service_key == 'application':            
+            tenantServiceInfo["deploy_version"] = ""
+        else:
+            tenantServiceInfo["deploy_version"] = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         tenantServiceInfo["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         tenantServiceInfo["git_project_id"] = 0
         tenantServiceInfo["service_type"] = service.service_type
@@ -94,7 +97,7 @@ class BaseTenantService(object):
         data["node_label"] = ""
         data["is_create_service"] = service.is_service
         data["is_binding_port"] = newTenantService.is_web_service
-        data["deploy_version"] = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        data["deploy_version"] = newTenantService.deploy_version
         data["domain"] = domain
         data["category"] = newTenantService.category
         client.create_service(newTenantService.tenant_id, json.dumps(data))
