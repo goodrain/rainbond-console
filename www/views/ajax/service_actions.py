@@ -35,7 +35,7 @@ class AppDeploy(AuthedView):
         tenant_id = self.tenant.tenant_id
         service_id = self.service.service_id
         oldVerion = self.service.deploy_version
-        if oldVerion is not None or oldVerion != "":      
+        if oldVerion is not None and oldVerion != "":      
             curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             diffsec = int(curVersion) - int(oldVerion)
             if diffsec <= 90:
