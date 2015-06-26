@@ -142,9 +142,11 @@ class ServiceAppCreate(AuthedView):
                 ts.code_version = code_version
                 ts.save()
             elif service_code_from == "github":
+                code_id = request.POST["service_code_id"]
                 code_clone_url = request.POST["service_code_clone_url"]
                 code_version = request.POST["service_code_version"]
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
+                ts.git_project_id = code_id
                 ts.git_url = code_clone_url
                 ts.code_from = service_code_from
                 ts.code_version = code_version
@@ -419,9 +421,9 @@ class TenantService(AuthedView):
             context["tenantName"] = self.tenantName
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()
-
-            if self.service.category == 'application' and self.service.git_project_id == 0:
-                if self.user.git_user_id > 0:
+            
+            if self.service.category == 'application' and self.service.code_from == "gitlab_new" :
+                if self.service.git_project_id == 0 and self.user.git_user_id > 0:
                     project_id = gitClient.createProject(self.tenantName + "_" + self.serviceAlias)
                     logger.debug(project_id)
                     if project_id > 0:
@@ -431,17 +433,17 @@ class TenantService(AuthedView):
                         ts.git_project_id = project_id
                         ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                         ts.save()
-
-            if self.service.category == 'application' and self.service.code_from == "gitlab_new" and not self.service.is_code_upload:
-                commitTime = gitClient.getProjectCommitTime(self.service.git_project_id)
-                logger.debug(commitTime)
-                if commitTime < 1:                  
-                    context["httpUrl"] = "http://code.goodrain.com/app/" + self.tenantName + "_" + self.serviceAlias + ".git"
-                    return TemplateResponse(self.request, "www/service_git.html", context)
-                else:
-                    ts = TenantServiceInfo.objects.get(service_id=service_id)
-                    ts.is_code_upload = True
-                    ts.save()
+                        
+                if not self.service.is_code_upload:
+                    commitTime = gitClient.getProjectCommitTime(self.service.git_project_id)
+                    logger.debug(commitTime)
+                    if commitTime < 1:                  
+                        context["httpUrl"] = "http://code.goodrain.com/app/" + self.tenantName + "_" + self.serviceAlias + ".git"
+                        return TemplateResponse(self.request, "www/service_git.html", context)
+                    else:
+                        ts = TenantServiceInfo.objects.get(service_id=service_id)
+                        ts.is_code_upload = True
+                        ts.save()
                     
             tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
             sids = []
@@ -455,9 +457,7 @@ class TenantService(AuthedView):
                  
             map = {}
             for tenantService in tenantServiceList:
-                if tenantService.category == "application":
-                    pass
-                elif tenantService.category == "manager":
+                if tenantService.category == "application" or tenantService.category == "manager":
                     pass
                 else:
                     map[tenantService.service_id] = tenantService                    
@@ -467,7 +467,7 @@ class TenantService(AuthedView):
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]      
             
             httpGitUrl = ""
-            if self.service.code_from == "gitlab":
+            if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
                 httpGitUrl = "http://code.goodrain.com/app/" + self.tenantName + "_" + self.serviceAlias + ".git"
             else:
                 httpGitUrl = self.service.git_url
