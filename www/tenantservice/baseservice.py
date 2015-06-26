@@ -28,7 +28,7 @@ class BaseTenantService(object):
             services = dsn.query(query_sql)
         return services
 
-    def create_service(self, service_id, tenant_id, service_alias, service):        
+    def create_service(self, service_id, tenant_id, service_alias, service, creater):        
         deployNum = 0
         if  service.is_service:
             deployNum = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key=service.service_key).count()
@@ -64,6 +64,7 @@ class BaseTenantService(object):
         tenantServiceInfo["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         tenantServiceInfo["git_project_id"] = 0
         tenantServiceInfo["service_type"] = service.service_type
+        tenantServiceInfo["creater"] = creater
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService

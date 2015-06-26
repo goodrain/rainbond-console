@@ -205,7 +205,8 @@ class TenantServiceInfo(BaseModel):
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
-
+    creater = models.IntegerField(help_text=u"服务创建者", default=0)
+    
     def __unicode__(self):
         return self.service_alias
         
@@ -244,12 +245,15 @@ class TenantServiceInfoDelete(BaseModel):
     volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
     host_path = models.CharField(max_length=300, null=True, blank=True, help_text=u"mount目录")
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
+    code_from = models.CharField(max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
     git_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"git代码仓库")
     create_time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
+    code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     delete_time = models.DateTimeField(auto_now_add=True)
+    creater = models.IntegerField(help_text=u"服务创建者", default=0)
     
 class TenantServiceLog(BaseModel):
     class Meta:

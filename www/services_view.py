@@ -57,6 +57,9 @@ class ServiceAppCreate(AuthedView):
             deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
             context["deployTenantServices"] = deployTenantServices
             
+            codefrom = request.GET.get("from", "")
+            if codefrom == "git":
+                context["isGitHub"] = True
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step1.html", context)
@@ -111,7 +114,7 @@ class ServiceAppCreate(AuthedView):
             
             baseService = BaseTenantService()
             service.desc = service_desc
-            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service)
+            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
             
             # code repos
             if service_code_from == "gitlab_new":
@@ -143,9 +146,7 @@ class ServiceAppCreate(AuthedView):
                 code_clone_url = request.POST["service_code_clone_url"]
                 code_version = request.POST["service_code_version"]
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
-                code_user = code_clone_url.split("/")[3]
-                code_project_name = code_clone_url.split("/")[4].split(".")[0]                            
-                ts.git_url = "https://" + self.user.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+                ts.git_url = code_clone_url
                 ts.code_from = service_code_from
                 ts.code_version = code_version
                 ts.save()
@@ -160,7 +161,7 @@ class ServiceAppCreate(AuthedView):
                         dep_service = ServiceInfo.objects.get(service_key=skey)
                         tempUuid = str(uuid.uuid4()) + skey
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
-                        depTenantService = baseService.create_service(dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service)
+                        depTenantService = baseService.create_service(dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
                         baseService.create_region_service(depTenantService, dep_service, self.tenantName)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id)
                     except Exception as e:
@@ -306,7 +307,7 @@ class ServiceMarketDeploy(AuthedView):
             
             # create console service
             baseService = BaseTenantService()
-            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service)
+            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
             # create region tenantservice
             baseService.create_region_service(newTenantService, service, self.tenantName)
             # record service log
@@ -466,13 +467,12 @@ class TenantService(AuthedView):
             context["nodeList"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]      
             
-            httpGitUrl =""
-            if self.service.code_from=="gitlab":
-                httpGitUrl="http://code.goodrain.com/app/"+self.tenantName+"_"+self.serviceAlias+".git"
+            httpGitUrl = ""
+            if self.service.code_from == "gitlab":
+                httpGitUrl = "http://code.goodrain.com/app/" + self.tenantName + "_" + self.serviceAlias + ".git"
             else:
-                oldurl = self.service.git_url
-                httpGitUrl="http://"+oldurl.split("@")[1]
-            context["httpGitUrl"] = httpGitUrl 
+                httpGitUrl = self.service.git_url
+            context["httpGitUrl"] = self.service.git_url 
             
             try:
                 domain = ServiceDomain.objects.get(service_id=self.service.service_id)
@@ -576,7 +576,7 @@ class ServiceGitHub(BaseView):
             user.save()
         tenantName = request.session.get("app_tenant")
         logger.debug(tenantName)
-        return HttpResponseRedirect("/apps/" + tenantName + "/app-create/")
+        return HttpResponseRedirect("/apps/" + tenantName + "/app-create/?from=git")
         
 class GitLabManager(AuthedView):
     @never_cache

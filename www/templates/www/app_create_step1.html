@@ -71,8 +71,8 @@
 		                     </tr>
 		                   </thead>
 		                   <tbody id="code_repos_content">
-		                     {% if githubdata %}
-			                     {% for data in githubdata %}
+		                     {% if gitHubData %}
+			                     {% for data in gitHubData %}
 			                     <tr>
 			                     	<input type="hidden" id="repos_{{data.code_id}}" name="repos_{{data.code_id}}" value='{{data.code_repos}}' />
 			                       	<td><input type="radio" name="code_repos" id="code_repos" value='{{data.code_id}}'></td>
@@ -185,6 +185,10 @@
 				$('#service_name').focus();
 			}
 			var code_from = $("#service_code_from").val()
+			if(code_from==""){
+				current_code_from = $('input[type="radio"][name="code_from"]:checked').val();
+				$("#service_code_from").val(current_code_from);
+			}
 			if(code_from=="gitlab_exit"){
 				var code_id = $("#service_code_id").val()
 				var code_version = $("#code_version_"+code_id).val()
@@ -285,6 +289,7 @@
       		$("#default-step-0").css('display','none'); 
       		$("#default-step-1").css('display','block'); 
       		$("#default-step-2").css('display','none'); 
+      		$("#submit1").attr("disabled",false); 
 		}
       	
       	
@@ -393,8 +398,7 @@
 					loadRepos(_url);	
 				}		
 			}); 
-		}); 
-		$(document).ready(function(){
+			
 			$('body').on('change','input[id=code_repos]', function () {
 				var value = $('input[type="radio"][name="code_repos"]:checked').val();
 				var repos = $("#repos_"+value).val();
@@ -403,10 +407,18 @@
 				$("#service_code_id").val(value)
 				projectVersion(service_code_from,value,repos)
 				
-			}); 
-		});		
-       </script>
-       
+			});
+			
+			current_code_from = $('input[type="radio"][name="code_from"]:checked').val();
+			if(current_code_from=="github"){
+				_url = "/ajax/goodrain/code_repos?action=github"
+				$("#code_repos_content").html("");
+				$("#code_repos_setting").css('display','');
+				$("#service_code_from").val("github");
+				loadRepos(_url);
+			}
+		});
+       </script>       
   </div>
 </div>
 {% endblock %}

@@ -185,7 +185,7 @@ function appCreate(tenantName) {
 				alert("免费资源已达上限，不能创建")
 			} else if (dataObj["status"] == "empty") {
 				alert("应用名称不能为空")
-			}else if (dataObj["status"] == "empty") {
+			}else if (dataObj["status"] == "code_from") {
 				alert("应用资源库未选择")
 			} else if (dataObj["status"] == "success") {
 				service_alias = dataObj["service_alias"]
@@ -275,7 +275,7 @@ function delete_service(tenantName, service_alias) {
 				var dataObj = msg
 				if (dataObj["status"] == "success") {
 					alert("操作成功")
-					window.location.href = window.location.href;
+					window.location.href = "http://user.goodrain.com/"
 				} else {
 					alert("操作失败")
 				}

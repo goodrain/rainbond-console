@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete
+from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users 
 from www.service_http import RegionServiceApi
 from www.weblog import WebLog
 from www.gitlab_http import GitlabApi
@@ -65,9 +65,15 @@ class AppDeploy(AuthedView):
 
             self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             self.service.save()
-
+            
+            clone_url = self.service.git_url
+            if self.service.code_from == "github":
+                code_user = clone_url.split("/")[3]
+                code_project_name = clone_url.split("/")[4].split(".")[0]
+                createUser = Users.objects.get(user_id=self.user.pk)
+                clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
             body["deploy_version"] = self.service.deploy_version
-            body["gitUrl"] = "--branch "+self.service.code_version+" --depth 1 "+self.service.git_url
+            body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             para = json.dumps(body)
             client = RegionServiceApi()
             client.build_service(service_id, para)
@@ -198,7 +204,7 @@ class ServiceManage(AuthedView):
                    client.delete(self.service.service_id)
                 except Exception:
                    pass
-                if self.service.git_project_id > 0:
+                if self.service.code_from == 'gitlab' and self.service.git_project_id > 0:
                     gitClient.deleteProject(self.service.git_project_id)
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()             
             result["status"] = "success"
