@@ -50,7 +50,7 @@ class RegionServiceApi(BaseHttpClient):
     
     def delete(self, service_id):
         url = self.url + "/v1/services/lifecycle/" + service_id + "/delete/"
-        res, body = self._post(url, self.default_headers)
+        res, body = self._delete(url, self.default_headers)
         return body
 
     def check_status(self, body):

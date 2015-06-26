@@ -34,12 +34,13 @@ class AppDeploy(AuthedView):
         data = {}
         tenant_id = self.tenant.tenant_id
         service_id = self.service.service_id
-        oldVerion = self.service.deploy_version        
-        curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        diffsec = int(curVersion) - int(oldVerion)
-        if diffsec <= 90:
-            data["status"] = "often"
-            return JsonResponse(data, status=200)        
+        oldVerion = self.service.deploy_version
+        if oldVerion is not None:      
+            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            diffsec = int(curVersion) - int(oldVerion)
+            if diffsec <= 90:
+                data["status"] = "often"
+                return JsonResponse(data, status=200)    
         try:
             task = {}
             task["log_msg"] = "开始部署......"
@@ -202,8 +203,8 @@ class ServiceManage(AuthedView):
                 newTenantServiceDelete.save()
                 try:
                    client.delete(self.service.service_id)
-                except Exception:
-                   pass
+                except Exception as e:
+                   logger.exception(e)
                 if self.service.code_from == 'gitlab' and self.service.git_project_id > 0:
                     gitClient.deleteProject(self.service.git_project_id)
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()             
