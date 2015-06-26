@@ -29,7 +29,7 @@ class CodeAction(AuthedView):
                 tenant_id = self.tenant.tenant_id
                 dsn = BaseConnection()
                 query_sql = '''
-                    select distinct git_url, git_project_id from tenant_service s where s.tenant_id = "{tenant_id}" and code_from="gitlab" and git_project_id>0 
+                    select distinct git_url, git_project_id from tenant_service s where s.tenant_id = "{tenant_id}" and code_from="gitlab_new" and git_project_id>0 
                 '''.format(tenant_id=tenant_id)
                 sqlobjList = dsn.query(query_sql)            
                 if sqlobjList is not None:
