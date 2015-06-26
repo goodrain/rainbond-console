@@ -78,7 +78,9 @@ class CodeAction(AuthedView):
             action = request.POST["action"]
             if action == "gitlab":
                 code_id = request.POST["code_id"]
+                logger.debug(code_id)
                 content = gitLabClient.getProjectBranches(code_id)
+                logger.debug(content)
                 branchList = json.loads(content)
                 arr = []
                 for branch in branchList:
