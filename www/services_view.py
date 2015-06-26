@@ -433,7 +433,7 @@ class TenantService(AuthedView):
                         ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                         ts.save()
 
-            if self.service.category == 'application' and self.service.code_from == "gitlab" and not self.service.is_code_upload:
+            if self.service.category == 'application' and self.service.code_from == "gitlab_new" and not self.service.is_code_upload:
                 commitTime = gitClient.getProjectCommitTime(self.service.git_project_id)
                 logger.debug(commitTime)
                 if commitTime < 1:                  
