@@ -471,7 +471,7 @@ class TenantService(AuthedView):
                 httpGitUrl = "http://code.goodrain.com/app/" + self.tenantName + "_" + self.serviceAlias + ".git"
             else:
                 httpGitUrl = self.service.git_url
-            context["httpGitUrl"] = self.service.git_url 
+            context["httpGitUrl"] = httpGitUrl 
             
             try:
                 domain = ServiceDomain.objects.get(service_id=self.service.service_id)
@@ -495,7 +495,7 @@ class ServiceDomainManager(AuthedView):
                 service_alias = self.serviceAlias
                 domain_name = request.POST["domain_name"]
                 num = ServiceDomain.objects.filter(service_name=tenantService.service_alias).count()
-                old_domain_name = ""
+                old_domain_name = "goodrain"
                 if(num == 0):
                     domain = {}
                     domain["service_id"] = self.service.service_id
