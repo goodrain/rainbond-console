@@ -340,10 +340,11 @@
 				user =  clone_url.split("/")[3]
 				repos = clone_url.split("/")[4].split(".")[0]
 			}
+			var tenantName = $("#tenantName").val()
 			if(action != ""){
 				$.ajax({
 	        		type : "POST",
-	        		url : "/ajax/goodrain/code_repos",
+	        		url : "/ajax/"+tenantName+"/code_repos",
 	        		data : "action=" + action + "&code_id="+code_id+"&user="+user+"&repos="+repos,
 	        		cache : false,
 	        		beforeSend : function(xhr, settings) {
@@ -381,13 +382,14 @@
 			$('body').on('change','input[id=code_from]', function () {
 				var value = $('input[type="radio"][name="code_from"]:checked').val();
 				var _url=""
+				var tenantName = $("#tenantName").val()
 				if(value == "gitlab_exit"){
-					_url = "/ajax/goodrain/code_repos?action=gitlab"
+					_url = "/ajax/"+tenantName+"/code_repos?action=gitlab"
 					$("#code_repos_content").html("");
 					$("#code_repos_setting").css('display',''); 
 					$("#service_code_from").val("gitlab_exit");
 				}else if(value == "github"){
-					_url = "/ajax/goodrain/code_repos?action=github"
+					_url = "/ajax/"+tenantName+"/code_repos?action=github"
 					$("#code_repos_content").html("");
 					$("#code_repos_setting").css('display','');
 					$("#service_code_from").val("github");
@@ -412,7 +414,8 @@
 			
 			current_code_from = $('input[type="radio"][name="code_from"]:checked').val();
 			if(current_code_from=="github"){
-				_url = "/ajax/goodrain/code_repos?action=github"
+				var tenantName = $("#tenantName").val()
+				_url = "/ajax/"+tenantName+"/code_repos?action=github"
 				$("#code_repos_content").html("");
 				$("#code_repos_setting").css('display','');
 				$("#service_code_from").val("github");
