@@ -97,7 +97,7 @@ a, a:hover, a:focus {
     -webkit-border-radius: 5px;
     border: 1px solid #eaeaea;
     box-shadow: none;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .form-signin .btn-login {
@@ -110,11 +110,13 @@ a, a:hover, a:focus {
     margin-bottom: 20px;
 }
 
-.form-signin p {
-    text-align: center;
-    color: #b6b6b6;
+.form-signup p {
+    text-align: left;
+    color: #898989;
     font-size: 16px;
     font-weight: 300;
+    margin-top: 14%;
+    margin-left: 0%;
 }
 
 .form-signin a {
