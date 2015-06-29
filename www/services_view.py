@@ -99,18 +99,19 @@ class ServiceAppCreate(AuthedView):
                 data["status"] = "exist"
                 return HttpResponse(json.dumps(data))
             
-            dsn = BaseConnection()
-            query_sql = '''
-                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                '''.format(tenant_id=tenant_id)
-            sqlobj = dsn.query(query_sql)
-            if sqlobj is not None and len(sqlobj) > 0:
-                oldMemory = sqlobj[0]["totalMemory"]
-                if oldMemory is not None:
-                    totalMemory = int(oldMemory) + service.min_memory
-                    if totalMemory > 1024:
-                        data["status"] = "overtop"
-                        return HttpResponse(json.dumps(data))
+            if self.tenant.tenant_name !="goodrain": 
+                dsn = BaseConnection()
+                query_sql = '''
+                    select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                    '''.format(tenant_id=tenant_id)
+                sqlobj = dsn.query(query_sql)
+                if sqlobj is not None and len(sqlobj) > 0:
+                    oldMemory = sqlobj[0]["totalMemory"]
+                    if oldMemory is not None:
+                        totalMemory = int(oldMemory) + service.min_memory
+                        if totalMemory > 1024:
+                            data["status"] = "overtop"
+                            return HttpResponse(json.dumps(data))
             
             baseService = BaseTenantService()
             service.desc = service_desc
@@ -293,18 +294,19 @@ class ServiceMarketDeploy(AuthedView):
                 result["status"] = "exist"
                 return HttpResponse(json.dumps(result))
             
-            dsn = BaseConnection()
-            query_sql = '''
-                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                '''.format(tenant_id=tenant_id)
-            sqlobj = dsn.query(query_sql)
-            if sqlobj is not None and len(sqlobj) > 0:
-                oldMemory = sqlobj[0]["totalMemory"]
-                if oldMemory is not None:                    
-                    totalMemory = int(oldMemory) + service.min_memory
-                    if totalMemory > 1024:
-                        result["status"] = "overtop"
-                        return HttpResponse(json.dumps(result))
+            if self.tenant.tenant_name !="goodrain":                
+                dsn = BaseConnection()
+                query_sql = '''
+                    select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                    '''.format(tenant_id=tenant_id)
+                sqlobj = dsn.query(query_sql)
+                if sqlobj is not None and len(sqlobj) > 0:
+                    oldMemory = sqlobj[0]["totalMemory"]
+                    if oldMemory is not None:                    
+                        totalMemory = int(oldMemory) + service.min_memory
+                        if totalMemory > 1024:
+                            result["status"] = "overtop"
+                            return HttpResponse(json.dumps(result))
             
             # create console service
             baseService = BaseTenantService()
@@ -364,7 +366,8 @@ class TenantService(AuthedView):
             'www/css/owl.carousel.css', 'www/css/okooostyle.css', '/static/www/css/style.css',
             '/static/www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
             'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js', 'www/layer/layer.js',
-            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js'
+            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
+            'www/js/swfobject.js','www/js/web_socket.js','www/js/websoket-goodrain.js'
         )
         return media
 

@@ -235,18 +235,19 @@ class ServiceUpgrade(AuthedView):
                     self.service.deploy_version = deploy_version
                     self.service.save()
                     
-                    dsn = BaseConnection()
-                    query_sql = '''
-                        select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                        '''.format(tenant_id=self.tenant.tenant_id)
-                    sqlobj = dsn.query(query_sql)
-                    totalMemory = int(sqlobj[0]["totalMemory"])
-                    if totalMemory > 1024:
-                        self.service.min_node = old_min_node
-                        self.service.deploy_version = old_deploy_version
-                        self.service.save()
-                        result["status"] = "overtop"
-                        return JsonResponse(result)
+                    if self.tenant.tenant_name !="goodrain":
+                        dsn = BaseConnection()
+                        query_sql = '''
+                            select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                            '''.format(tenant_id=self.tenant.tenant_id)
+                        sqlobj = dsn.query(query_sql)
+                        totalMemory = int(sqlobj[0]["totalMemory"])
+                        if totalMemory > 1024:
+                            self.service.min_node = old_min_node
+                            self.service.deploy_version = old_deploy_version
+                            self.service.save()
+                            result["status"] = "overtop"
+                            return JsonResponse(result)
                     
                     task = {}
                     task["log_msg"] = "服务开始垂直扩容部署"

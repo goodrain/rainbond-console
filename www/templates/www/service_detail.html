@@ -65,7 +65,8 @@
                         {% endifequal  %}
                         </div>
                         <div class="col-lg-6 text-right">
-                        	<button type="button" class="btn btn-danger" id="service_status_operate" data{{tenantServiceInfo.service_id}}="" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
+                        	<input type="hidden" id="service_status_value" name="service_status_value" value="" />
+                        	<button type="button" class="btn btn-danger" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
                       	</div>
                     </div>
                   </div>
@@ -121,7 +122,7 @@
 	                <div class="panel-body">
 	                  <div class="text-left  logtxtbox">
 	                    <input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
-	                    <p id="keylog">关键日志信息</p>
+	                    <p id="keylog"></p>
 	                  </div>
 	                </div>
           	 	</section>
@@ -265,7 +266,7 @@
         <div role="tabpanel" class="tab-pane" id="control">control</div>
         <!-- control end-->
         <!-- log start -->
-        <div role="tabpanel" class="tab-pane" id="log">log </div>
+        <div role="tabpanel" class="tab-pane" id="log"></div>
         <!-- log end-->
         
         <!-- settings start -->
@@ -449,42 +450,42 @@
 			    		  		$("#service_memory").html(obj["totalMemory"]+"M")
 				    		  }
 			    		  	  if(obj["status"]=="Running"){
-			    		  		$("#service_status_operate").attr("data"+service_id,"stop")
+			    		  		$("#service_status_value").val("stop")
 			    		  		$("#font"+service_id).html("关闭")
-			    		  		$("#service_status_operate").removeAttr("disabled")
-			    		  		$("#onekey_deploy").removeAttr("disabled")
+			    		  		$("#service_status_operate").show()
+			    		  		$("#onekey_deploy").show()
 			    		  		$("#service_status").html("运行中")
 			    		  		$("#service_status_operate").show()
 			    		  		$("#service_visitor").show()
 				    		  }else if(obj["status"]=="Waiting"){
-				    			$("#service_status_operate").attr("data"+service_id,"")
+				    			$("#service_status_value").val("")
 				    		  	$("#font"+service_id).html("部署中")
-				    		  	$("#service_status_operate").attr('disabled',"true")
-				    		  	$("#onekey_deploy").attr('disabled',"true")
+				    		  	$("#service_status_operate").hide()
+				    		  	$("#onekey_deploy").hide();
 				    		  	$("#service_status").html("部署中")
 				    		    $("#service_status_operate").hide();
 				    			$("#service_visitor").hide();
 				    		  }else if(obj["status"]=="Closing"){
-				    			$("#service_status_operate").attr("data"+service_id,"restart")
+				    			$("#service_status_value").val("restart")
 				    		  	$("#font"+service_id).html("启动")
-				    		  	$("#service_status_operate").removeAttr("disabled")
-				    		  	$("#onekey_deploy").attr('disabled',"true")
+				    		  	$("#service_status_operate").show()
+				    		  	$("#onekey_deploy").hide();
 				    		  	$("#service_status").html("已关闭")
 				    		  	$("#service_status_operate").show()
 				    		  	$("#service_visitor").hide();
 				    		  }else if(obj["status"]=="Undeployed"){
-				    			$("#service_status_operate").attr("data"+service_id,"")
+				    			$("#service_status_value").val("")
 				    			$("#font"+service_id).html("未部署")
-				    			$("#service_status_operate").attr('disabled',"true")
-				    			$("#onekey_deploy").removeAttr("disabled")
+				    			$("#service_status_operate").hide();
+				    			$("#onekey_deploy").show()
 				    			$("#service_status").html("未部署")
 				    			$("#service_status_operate").hide();
 				    			$("#service_visitor").hide();
 				    		  }else{
-				    			$("#service_status_operate").attr("data"+service_id,"")
+				    			$("#service_status_value").val("")
 					    		$("#font"+service_id).html("未知")
-					    		$("#service_status_operate").attr('disabled',"true")
-					    		$("#onekey_deploy").attr('disabled',"true")
+					    		$("#service_status_operate").hide()
+					    		$("#onekey_deploy").hide();
 					    		$("#service_status").html("未知")
 					    		$("#service_status_operate").hide()
 					    		$("#service_visitor").hide();
@@ -503,10 +504,26 @@
         	getLog('operate');
         	getLog('service');
         	getServiceNetDisk();
-            setInterval("checkStatus()", 5000);  
-            setInterval("getLog('operate')", 5000);
-            setInterval("getLog('service')", 5000);
+            //setInterval("checkStatus()", 5000);  
+            //setInterval("getLog('operate')", 5000);
+            //setInterval("getLog('service')", 5000);
             setInterval("getServiceNetDisk()", 30000);
+            
+        	extPushWebSocketClient.prototype = {
+       			onMessage : function(msg) {
+       				var msgs = msg.split(":")
+       				console.log(msgs.length)
+       				if(msgs[0]=="deploy"){
+       					var finalMsg = msg.substr(7) +"<br/>"+ $("#keylog").html()
+       					$("#keylog").html(finalMsg)
+       				}else{
+       					var finalMsg = msg.substr(14) +"<br/>"+ $("#log").html()
+       					$("#log").html(finalMsg)
+       				}
+       			}
+        	}
+       		var connect = new extPushWebSocketConnect();
+       		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
         }); 
         
 		function getLog(action){

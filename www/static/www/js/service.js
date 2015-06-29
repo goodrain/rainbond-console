@@ -109,7 +109,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 }
 
 function service_onOperation(service_id, service_alias, tenantName) {
-	var taction = $("#service_status_operate").attr("data" + service_id)
+	var taction = $("#service_status_value").val()
 	if (taction != "stop" && taction != "restart") {
 		alert("参数异常");
 		window.location.href = window.location.href;
