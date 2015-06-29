@@ -1,6 +1,6 @@
 var websocket_uri = "ws://123.59.40.70:6060/websocket"
 
-WEB_SOCKET_SWF_LOCATION = 'WebSocketMain.swf';
+WEB_SOCKET_SWF_LOCATION = '/static/www/js/WebSocketMain.swf';
 WEB_SOCKET_DEBUG = true;
 var browser_ua = navigator.userAgent.toLowerCase();
 if (browser_ua.indexOf('360se') != -1 || browser_ua.indexOf('maxthon') != -1) {

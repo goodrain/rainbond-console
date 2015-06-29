@@ -36,15 +36,15 @@
             </div>
             <div class="col-sm-3">
               <p>内存使用</p>
-              <lable style="font-size:18pt" id="service_memory">0M</lable>
+              <p style="font-size:18pt" id="service_memory" name="service_memory">0M</p>
             </div>
             <div class="col-sm-3">
               <p>磁盘占用</p>
-              <lable style="font-size:18pt" id="service_disk">0M</lable>
+              <p style="font-size:18pt" id="service_disk" name="service_disk">0M</p>
             </div>
             <div class="col-sm-3">
               <p>流量</p>
-              <lable style="font-size:18pt" id="service_network">0K</lable>
+              <p style="font-size:18pt" id="service_network" name="service_network">0K</p>
             </div>
           </div>
           <div class="row">
@@ -440,23 +440,26 @@
 		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/detail/", 
 		    		  cache: false,
 		    		  beforeSend: function(xhr, settings){  
-		    		      var csrftoken = $.cookie('csrftoken');  
-		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);  
+		    		      var csrftoken = $.cookie('csrftoken');
+		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
 		    		  }, 
 		    	  	  success: function(msg) {
-			    	  	  if(msg!="failure"){
-			    	  		 var obj=msg;
+		    	  		  var obj=msg;
+			    	  	  if(obj["status"]!="failure"){
 			    		  	  if(obj["totalMemory"] != undefined ){
-			    		  		$("#service_memory").html(obj["totalMemory"]+"M")
+			    		  	 	$("#service_memory").html(obj["totalMemory"]+"M")
 				    		  }
 			    		  	  if(obj["status"]=="Running"){
+			    		  		//alert("a")
 			    		  		$("#service_status_value").val("stop")
 			    		  		$("#font"+service_id).html("关闭")
 			    		  		$("#service_status_operate").show()
+			    		  		//alert("b")
 			    		  		$("#onekey_deploy").show()
 			    		  		$("#service_status").html("运行中")
 			    		  		$("#service_status_operate").show()
 			    		  		$("#service_visitor").show()
+			    		  		//alert("c")
 				    		  }else if(obj["status"]=="Waiting"){
 				    			$("#service_status_value").val("")
 				    		  	$("#font"+service_id).html("部署中")
@@ -504,7 +507,7 @@
         	getLog('operate');
         	getLog('service');
         	getServiceNetDisk();
-            setInterval("checkStatus()", 3000);  
+            setInterval("checkStatus()", 10000);  
             //setInterval("getLog('operate')", 5000);
             //setInterval("getLog('service')", 5000);
             setInterval("getServiceNetDisk()", 30000);
