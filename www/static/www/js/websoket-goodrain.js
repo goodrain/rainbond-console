@@ -70,7 +70,6 @@ extPushWebSocketConnect.prototype = {
 		self.socketStore.close();
 	},
 	keepWebSocketLive : function(client, topic, cmd, key, info) {
-		console.log(topic)
 		var self = this;
 		clearInterval(window.sockeyTryAgain);
 		clearTimeout(window.socketJoinSucc);

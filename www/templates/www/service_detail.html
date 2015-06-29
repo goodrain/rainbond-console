@@ -512,7 +512,6 @@
         	extPushWebSocketClient.prototype = {
        			onMessage : function(msg) {
        				var msgs = msg.split(":")
-       				console.log(msgs.length)
        				if(msgs[0]=="deploy"){
        					var finalMsg = msg.substr(7) +"<br/>"+ $("#keylog").html()
        					$("#keylog").html(finalMsg)
