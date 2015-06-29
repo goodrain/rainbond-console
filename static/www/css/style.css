@@ -47,7 +47,7 @@ a, a:hover, a:focus {
     background-color: #f1f2f7;
 }
 
-.form-signin  .form-signup {
+.form-signin {
     max-width: 330px;
     margin: 100px auto 0;
     background: #fff;
@@ -55,7 +55,7 @@ a, a:hover, a:focus {
     -webkit-border-radius: 5px;
 }
 
-.form-signin .form-signup h2.form-signin-heading {
+.form-signin h2.form-signin-heading {
     margin: 0;
     padding:20px 15px;
     text-align: center;
@@ -69,16 +69,16 @@ a, a:hover, a:focus {
     font-family: 'Open Sans', sans-serif;
 }
 
-.form-signin .form-signup .checkbox {
+.form-signin .checkbox {
     margin-bottom: 14px;
 }
-.form-signin .form-signup .checkbox {
+.form-signin .checkbox {
     font-weight: normal;
     color: #b6b6b6;
     font-weight: 300;
     font-family: 'Open Sans', sans-serif;
 }
-.form-signin .form-signup .form-control {
+.form-signin .form-control {
     position: relative;
     font-size: 16px;
     height: auto;
@@ -88,10 +88,10 @@ a, a:hover, a:focus {
     -moz-box-sizing: border-box;
     box-sizing: border-box;
 }
-.form-signin .form-signup .form-control:focus {
+.form-signin .form-control:focus {
     z-index: 2;
 }
-.form-signin .form-signup input[type="text"], .form-signin .form-signup input[type="password"] {
+.form-signin input[type="text"], .form-signin input[type="password"] {
     margin-bottom: 15px;
     border-radius: 5px;
     -webkit-border-radius: 5px;
@@ -100,7 +100,7 @@ a, a:hover, a:focus {
     font-size: 12px;
 }
 
-.form-signin .form-signup .btn-login {
+.form-signin .btn-login {
     background: #f67a6e;
     color: #fff;
     text-transform: uppercase;
@@ -110,20 +110,6 @@ a, a:hover, a:focus {
     margin-bottom: 20px;
 }
 
-.form-signin p {
-    text-align: center;
-    color: #b6b6b6;
-    font-size: 16px;
-    font-weight: 300;
-}
-
-.form-signin .form-signup a {
-    color: #41cac0;
-}
-
-.form-signin .form-signup a:hover {
-    color: #b6b6b6;
-}
 
 .form-signup p {
     text-align: left;
@@ -133,6 +119,16 @@ a, a:hover, a:focus {
     margin-top: 14%;
     margin-left: 0%;
 }
+
+.form-signin a {
+    color: #41cac0;
+}
+
+.form-signin a:hover {
+    color: #b6b6b6;
+}
+
+
 
 .login-wrap {
     padding: 20px;
