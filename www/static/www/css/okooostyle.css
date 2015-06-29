@@ -14,8 +14,8 @@ ul.sidebar-menu li a,ul.sidebar-menu li ul.sub li a{font-size:14px;}
     .form-teamyu{width:150px;float:left;}
     .teamyuname{line-height:39px;padding-left:10px;float: left;}
     .teamyuname .fa{top:2px;font-size: 16px; position: relative;}
-@media (min-width:768px) {
-    .form-signin-reg{max-width:660px;min-width:330px;}
+@media (min-width:450px) {
+    .form-signin-reg{max-width:450px;min-width:330px;}
     .login-wrap{width:330px;float:right;}
     .photobox{width:330px;float:left;padding:20px;}
 
