@@ -353,7 +353,11 @@ class Registation(BaseView):
             user = authenticate(username=email, password=password)
             login(request, user)
 
-            return redirect('/apps/{0}'.format(tenant.tenant_name))
+            num = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
+            if num > 0:
+                return redirect('/apps/{0}'.format(tenant.tenant_name))
+            else:
+                return redirect('/apps/{0}/app-create/'.format(tenant.tenant_name))
 
         return self.get_response()
 
