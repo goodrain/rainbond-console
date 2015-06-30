@@ -31,14 +31,14 @@ class UserLoginForm(forms.Form):
     email = forms.EmailField(
         required=True, max_length=32,
         label=u"邮件",
-        #placeholder=u"邮箱",
-        #widget=widgets.EmailInput
+        # placeholder=u"邮箱",
+        # widget=widgets.EmailInput
     )
     password = forms.CharField(
         required=True, label=u'密码',
-        #min_length=8,
+        # min_length=8,
         widget=forms.PasswordInput,
-        #widget = widgets.AdminTextareaWidget
+        # widget = widgets.AdminTextareaWidget
         validators=[password_len]
     )
     remember = forms.BooleanField(
@@ -58,7 +58,7 @@ class UserLoginForm(forms.Form):
         self.helper.layout = Div(
             Field('email', 'password'),
             FormActions(Submit('login', u'登录', css_class='btn btn-success btn-lg btn-block')),
-            #HTML(u'''<div class="registration">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
+            HTML(u'''<div class="registration">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
             css_class='login-wrap'
         )
 
@@ -94,7 +94,7 @@ class UserLoginForm(forms.Form):
                     code='wrong_email',
                     params={'email': email}
                 )
-            #params={'username': self.username_field.verbose_name},
+            # params={'username': self.username_field.verbose_name},
 
         return self.cleaned_data
 
@@ -105,7 +105,7 @@ class InviteUserForm(forms.Form):
     '''
     email = forms.EmailField(
         required=True, max_length=32, label=u'邮件地址',
-        #validators = [check_appname],
+        # validators = [check_appname],
     )
     tenant = forms.CharField(
         required=True, max_length=40, label=u"团队名称",
@@ -149,23 +149,23 @@ class RegisterForm(forms.Form):
     邀请注册表单
     '''
     email = forms.EmailField(
-        required=True, max_length=32, label=u'邮件地址',
+        required=True, max_length=32, label="",
     )
     tenant = forms.CharField(
-        required=True, max_length=40, label=u"团队名",
+        required=True, max_length=40, label="",
         validators=[is_standard_word]
     )
     nick_name = forms.CharField(
-        required=True, max_length=24, label=u'用户名',
+        required=True, max_length=24, label="",
         validators=[is_standard_word]
     )
     password = forms.CharField(
-        required=True, label=u'密码',
+        required=True, label='',
         widget=forms.PasswordInput,
         validators=[password_len]
     )
     password_repeat = forms.CharField(
-        required=True, label=u'确认密码',
+        required=True, label='',
         widget=forms.PasswordInput,
         validators=[password_len]
     )
@@ -185,20 +185,24 @@ class RegisterForm(forms.Form):
         self.helper = FormHelper(self)
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            HTML(u'''<div class="photobox"><img src="/static/www/img/okooo/photobg.jpg" alt=""><p><a href="">上传头像</a></p></div>'''),
             Div(
-                'email',
-                'tenant',
-                #AppendedText('tenant', '.myapps.com', placeholder=u"团队名称"),
-                'nick_name', 'password', 'password_repeat',
-                #template="widgets/register_field.html"
-                FormActions(Submit('register', u'提交', css_class='btn btn-success btn-lg btn-block')),
-                HTML(u'''<div class="registration">已经有账号的,<a class="" href="/login">登录</a></div>'''),
-                css_class='login-wrap'
-            ),
+                Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                Field('email', css_class="form-control", placeholder='请输入邮箱地址'),
+                HTML("<hr/>"),
+                #Field('tenant', css_class="form-control teamdomain", placeholder='团队域名'),
+                AppendedText('tenant', '.goodrain.net',placeholder='团队域名',css_class='teamdomain'),
+                #HTML('<input type="text" name="tenant" id="tenant" value="" class="teamdomain" placeholder="团队域名"> .goodrain.net'),
+                Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
+                Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
+                
+                HTML("<hr/>"),
+                
+                HTML(u'''<div style="font-size: 14px">已经有帐号，请<a class="" href="/login">登录</a></div>'''),
+                css_class="login-wrap"
+            )
 
         )
-
         self.helper.form_id = 'form-normal-reg'
         self.helper.form_class = 'form-horizontal'
 
@@ -228,7 +232,7 @@ class RegisterForm(forms.Form):
             )
         except Tenants.DoesNotExist:
             pass
-            #params={'username': self.username_field.verbose_name},
+            # params={'username': self.username_field.verbose_name},
 
         try:
             Users.objects.get(nick_name=nick_name)
