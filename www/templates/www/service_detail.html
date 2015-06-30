@@ -519,7 +519,18 @@
        					var finalMsg = msg.substr(7) +"<br/>"+ $("#keylog").html()
        					$("#keylog").html(finalMsg)
        				}else{
-       					var finalMsg = msg.substr(14) +"<br/>"+ $("#log").html()
+       					var finalMsg=""
+       					var arr=$("#log").html().split('<br>');
+       					console.log(arr.length)
+       					var totalSize=150;
+       					if(arr.length > totalSize){
+       						for(var i = 0; i < totalSize; i++){       							
+       							finalMsg += arr[totalSize-1-i]+"<br/>"
+       						}
+       					}else{
+       						finalMsg = $("#log").html()
+       					}       					
+       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
        					$("#log").html(finalMsg)
        				}
        			}
