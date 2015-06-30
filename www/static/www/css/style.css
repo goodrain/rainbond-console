@@ -95,7 +95,6 @@ a, a:hover, a:focus {
     margin-bottom: 15px;
     border-radius: 5px;
     -webkit-border-radius: 5px;
-    border: 1px solid #eaeaea;
     box-shadow: none;
     font-size: 14px;
 }
@@ -124,7 +123,7 @@ a, a:hover, a:focus {
 }
 
 .form-signin a:hover {
-    color: #b6b6b6;
+    color: #e30000;
 }
 
 .login-wrap {
