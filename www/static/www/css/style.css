@@ -107,6 +107,7 @@ a, a:hover, a:focus {
   height: 40px;
   border: 1px solid #ccc;
   color: black;
+  padding: 0.5rem;
 }
 
 .form-signin input[type="text"], .form-signin input[type="password"] {
