@@ -5524,3 +5524,7 @@ a.guest-on i {
     background-color: #fff;
     border: 0px solid #CCC;
 }
+
+.has-error .input-group-addon {
+    background-color: #FFF;
+}
