@@ -44,7 +44,7 @@ function goto_deploy(tenantName, service_alias) {
 			+ "/detail/"
 }
 
-function service_oneKeyDeploy(categroy, serviceAlias, tenantName) {
+function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 	$("#onekey_deploy").attr('disabled', "true")
 	_url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
 	if (categroy == "application") {
@@ -70,6 +70,10 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName) {
 			} else {
 				alert("操作失败")
 				$("#onekey_deploy").removeAttr("disabled")
+			}
+			if(isreload=='yes'){
+				forurl = "/apps/" + tenantName + "/" + serviceAlias+ "/detail/"
+				window.open(forurl,target="_parent")
 			}
 		},
 		error : function() {

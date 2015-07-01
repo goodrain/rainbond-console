@@ -42,7 +42,7 @@ class Recharging(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
+            'www/css/goodrainstyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
             'www/js/jquery.scrollTo.min.js')
         return media
     
@@ -68,7 +68,7 @@ class AccountBill(AuthedView):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
+            'www/css/goodrainstyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
             'www/js/jquery.scrollTo.min.js')
         return media
     
@@ -90,7 +90,7 @@ class Account(AuthedView):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
+            'www/css/goodrainstyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
             'www/js/jquery.scrollTo.min.js')
         return media
     

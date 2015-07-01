@@ -43,13 +43,8 @@ class Login(BaseView):
         if tenants_has:
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)
-            tenant_name = tenant.tenant_name
-            
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
-            if num > 0:
-                return redirect('/apps/{0}'.format(tenant_name))
-            else:
-                return redirect('/apps/{0}/app-create/'.format(tenant_name))
+            tenant_name = tenant.tenant_name            
+            return redirect('/apps/{0}'.format(tenant_name))
         else:
             return Http404
 
@@ -316,7 +311,7 @@ class Registation(BaseView):
         return context
 
     def get_media(self):
-        media = super(Registation, self).get_media() + self.vendor('www/css/okooostyle.css')
+        media = super(Registation, self).get_media() + self.vendor('www/css/goodrainstyle.css')
         return media
 
     def get_response(self):
@@ -353,11 +348,7 @@ class Registation(BaseView):
             user = authenticate(username=email, password=password)
             login(request, user)
 
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id).count()
-            if num > 0:
-                return redirect('/apps/{0}'.format(tenant.tenant_name))
-            else:
-                return redirect('/apps/{0}/app-create/'.format(tenant.tenant_name))
+            return redirect('/apps/{0}'.format(tenant.tenant_name))
 
         return self.get_response()
 
@@ -371,7 +362,7 @@ class SendInviteView(BaseView):
         return context
 
     def get_media(self):
-        media = super(SendInviteView, self).get_media() + self.vendor('www/css/okooostyle.css')
+        media = super(SendInviteView, self).get_media() + self.vendor('www/css/goodrainstyle.css')
         return media
 
     def get_response(self):

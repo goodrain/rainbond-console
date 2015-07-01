@@ -87,7 +87,7 @@
              {% ifequal item.category "application" %}
              	<td>{{item.deploy_version}}</td>
              	<td >
-                 	<button type="button" class="btn btn-shadow btn-info " id="button_{{item.service_id}}" onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}');"><i class="fa fa-refresh"></i> 部署</button>
+                 	<button type="button" class="btn btn-shadow btn-info " id="button_{{item.service_id}}" onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');"><i class="fa fa-refresh"></i> 部署</button>
              	</td>
              {% else %}
              	<td>{{item.version}}</td>

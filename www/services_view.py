@@ -35,7 +35,7 @@ class ServiceAppCreate(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/layer/layer.js',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/layer/layer.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
@@ -198,7 +198,7 @@ class ServiceAppDeploy(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
     
@@ -223,7 +223,7 @@ class ServiceMarket(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
@@ -249,7 +249,7 @@ class ServiceMarketDeploy(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
-            'www/css/okooostyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
@@ -334,7 +334,7 @@ class ServiceMarketDeploy(AuthedView):
 
 class TenantServiceAll(AuthedView):
     def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/okooostyle.css',
+        media = super(AuthedView, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
             'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
             'www/js/jquery.scrollTo.min.js')
         return media
@@ -344,6 +344,9 @@ class TenantServiceAll(AuthedView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         try:
+            num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).count()
+            if num <1:
+                return HttpResponseRedirect('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
             context["tenantServiceList"] = tenantServiceList
@@ -363,7 +366,7 @@ class TenantService(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
-            'www/css/owl.carousel.css', 'www/css/okooostyle.css', '/static/www/css/style.css',
+            'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', '/static/www/css/style.css',
             '/static/www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
             'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js', 'www/layer/layer.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
