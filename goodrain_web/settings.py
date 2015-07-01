@@ -18,7 +18,7 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 REGION_TAG = os.environ.get('REGION_TAG')
 
-DEBUG = False
+DEBUG = True
 
 conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG)
 __import__(conf_name)
