@@ -116,7 +116,7 @@
           </div>
           {% endif %}
           <div class="row">
-          	<div class="col-lg-6 text-left">
+          	<div class="col-lg-12 text-left">
           	 	<section class="panel">
           	 	   <header class="panel-heading">关键日志</header>
 	                <div class="panel-body">
@@ -431,6 +431,9 @@
     </div>
     
     <script>
+    String.prototype.trim = function() {  
+	    return this.replace(/(^\s*)|(\s*$)/g, "");  
+	}
       var service_id='{{tenantServiceInfo.service_id}}'
       var serviceAlias = $('#mytags').attr('service');
 	    function checkStatus(){
@@ -515,13 +518,21 @@
         	extPushWebSocketClient.prototype = {
        			onMessage : function(msg) {
        				var msgs = msg.split(":")
-       				if(msgs[0]=="deploy"){
-       					var finalMsg = msg.substr(7) +"<br/>"+ $("#keylog").html()
-       					$("#keylog").html(finalMsg)
-       				}else{
-       					if(msgs[1]=="builder"){
-       						var finalMsg = msg.substr(23) +"<br/>"+ $("#keylog").html()
+       				if(msgs[0].trim()=="deploy"){
+       					var newMsg = msg.substr(7)
+       					var arr=$("#keylog").html().split('<br>');
+       					if(arr[0] != newMsg){
+       						var finalMsg = newMsg +"<br/>"+ $("#keylog").html()
            					$("#keylog").html(finalMsg)
+       					}
+       				}else{
+       					if(msgs[1].trim()=="builder"){
+       						var newMsg = msg.substr(22)
+       						var arr=$("#keylog").html().split('<br>');
+       						if(arr[0] != newMsg){
+       							var finalMsg = newMsg +"<br/>"+ $("#keylog").html()
+               					$("#keylog").html(finalMsg)
+       						}
        					}else{
      						var finalMsg=""
   	       					var arr=$("#log").html().split('<br>');

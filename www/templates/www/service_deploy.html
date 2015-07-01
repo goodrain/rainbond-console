@@ -11,7 +11,7 @@
            	   <input type="hidden" class="form-control" id="service_key" name="service_key" value="{{service.service_key}}">
                <input type="text" name="service_name" id="service_name" class="form-control servicename" placeholder="服务名称" value="{{service.service_name}}" autofocus><span class="fa fa-question-circle tooltips"  data-placement="bottom" data-original-title="应用名称说明文字"></span>
                <textarea class="form-control" name="desc" id="desc" rows="3" placeholder="简短的描述信息"></textarea>
-               <select id="disabledSelect" class="form-control" disabled="" name="region" id="region">
+               <select id="disabledSelect" class="form-control" disabled="" name="region" id="region" style="display: none">
                    <option value="v1">北京</option>
                </select>
                <button class="btn btn-success btn-lg btn-block" type="button" id="submit1" name="submit1" onclick=service_deploy('{{tenantName}}','{{service.service_key}}')>完成</button>
