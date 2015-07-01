@@ -519,12 +519,20 @@
        			onMessage : function(msg) {
        				var msgs = msg.split(":")
        				if(msgs[0].trim()=="deploy"){
-       					var finalMsg = msg.substr(7) +"<br/>"+ $("#keylog").html()
-       					$("#keylog").html(finalMsg)
+       					var newMsg = msg.substr(7)
+       					var arr=$("#keylog").html().split('<br>');
+       					if(arr[0] != newMsg){
+       						var finalMsg = newMsg +"<br/>"+ $("#keylog").html()
+           					$("#keylog").html(finalMsg)
+       					}
        				}else{
        					if(msgs[1].trim()=="builder"){
-       						var finalMsg = msg.substr(22) +"<br/>"+ $("#keylog").html()
-           					$("#keylog").html(finalMsg)
+       						var newMsg = msg.substr(22)
+       						var arr=$("#keylog").html().split('<br>');
+       						if(arr[0] != newMsg){
+       							var finalMsg = newMsg +"<br/>"+ $("#keylog").html()
+               					$("#keylog").html(finalMsg)
+       						}
        					}else{
      						var finalMsg=""
   	       					var arr=$("#log").html().split('<br>');
