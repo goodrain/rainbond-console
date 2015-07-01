@@ -35,7 +35,7 @@ class ServiceAppCreate(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/layer/layer.js',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
@@ -366,9 +366,9 @@ class TenantService(AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
-            'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', '/static/www/css/style.css',
-            '/static/www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
-            'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js', 'www/layer/layer.js',
+            'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/style.css',
+            'www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
+            'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/swfobject.js','www/js/web_socket.js','www/js/websoket-goodrain.js'
         )
