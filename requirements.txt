@@ -11,3 +11,4 @@ etcd
 beanstalkc
 urllib3
 influxdb
+whitenoise

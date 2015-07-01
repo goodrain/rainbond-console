@@ -5,6 +5,8 @@ import www.views as views
 import www.views.ajax as ajax
 from www.services_view import ServiceStaticsManager,ServiceGitHub
 from www.service_delete_view import *
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = patterns(
     '',
@@ -20,4 +22,4 @@ urlpatterns = patterns(
     url(r'^ajax/', include('www.url_ajax')),    
     url(r'^service_delete/', ServiceDeleteView.as_view()), 
     url(r'^oauth/githup/$', login_required(ServiceGitHub.as_view())),   
-) + staticfiles_urlpatterns()
+)  + staticfiles_urlpatterns()

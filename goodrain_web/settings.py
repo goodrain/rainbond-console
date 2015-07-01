@@ -18,7 +18,7 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 REGION_TAG = os.environ.get('REGION_TAG')
 
-DEBUG = True
+DEBUG = False
 
 conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG)
 __import__(conf_name)
@@ -103,7 +103,11 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 
-STATIC_ROOT = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
@@ -114,6 +118,8 @@ EMAIL_PORT = 465
 EMAIL_HOST_USER = 'no-reply@goodrain.com'
 EMAIL_HOST_PASSWORD = 'Thaechee3moo'
 EMAIL_USE_SSL = True
+
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 LOGGING = {
     'version': 1,
