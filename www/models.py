@@ -206,6 +206,7 @@ class TenantServiceInfo(BaseModel):
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     creater = models.IntegerField(help_text=u"服务创建者", default=0)
+    language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
     
     def __unicode__(self):
         return self.service_alias

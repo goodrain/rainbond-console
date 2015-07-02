@@ -99,7 +99,7 @@ class ServiceAppCreate(AuthedView):
                 data["status"] = "exist"
                 return HttpResponse(json.dumps(data))
             
-            if self.tenant.tenant_name !="goodrain": 
+            if self.tenant.tenant_name != "goodrain": 
                 dsn = BaseConnection()
                 query_sql = '''
                     select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
@@ -294,7 +294,7 @@ class ServiceMarketDeploy(AuthedView):
                 result["status"] = "exist"
                 return HttpResponse(json.dumps(result))
             
-            if self.tenant.tenant_name !="goodrain":                
+            if self.tenant.tenant_name != "goodrain":                
                 dsn = BaseConnection()
                 query_sql = '''
                     select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
@@ -345,7 +345,7 @@ class TenantServiceAll(AuthedView):
         context = self.get_context()
         try:
             num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).count()
-            if num <1:
+            if num < 1:
                 return HttpResponseRedirect('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
@@ -370,7 +370,7 @@ class TenantService(AuthedView):
             'www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
             'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/swfobject.js','www/js/web_socket.js','www/js/websoket-goodrain.js'
+            'www/js/swfobject.js', 'www/js/web_socket.js', 'www/js/websoket-goodrain.js'
         )
         return media
 
@@ -582,6 +582,24 @@ class ServiceGitHub(BaseView):
         tenantName = request.session.get("app_tenant")
         logger.debug(tenantName)
         return HttpResponseRedirect("/apps/" + tenantName + "/app-create/?from=git")
+    
+class ServiceLanguage(BaseView):        
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        result = {}
+        try:
+            service_id = request.GET.get("service_id", "")
+            language = request.GET.get("language", "")
+            if service_id is not None and service_id != "" and language is not None and language != "":
+                tenantServiceInfo = TenantServiceInfo.objects.get(service_id=service_id)
+                if language == "java":
+                    tenantServiceInfo.min_memory = 256
+                tenantServiceInfo.language = language
+                tenantServiceInfo.save()
+                result["status"] = "ok"
+        except Exception as e:
+            logger.exception(e)
+        return HttpResponse(json.dumps(result))
         
 class GitLabManager(AuthedView):
     @never_cache

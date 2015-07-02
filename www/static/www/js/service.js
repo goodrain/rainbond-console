@@ -7,6 +7,15 @@ function service_create(tenantName, service_key) {
 // 服务部署
 function service_deploy(tenantName, service_key) {
 	var service_name = $("#service_name").val();
+    var serviceReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+    var result = true;
+    if (!serviceReg.test(service_name)) {
+    	alert("应用名称以英文字母开始包含数字，中划线 -，下划线 _")
+    	result = false;
+    	$('#service_name').focus();
+	if (!result) {
+		 return;
+	}
 	var desc = $("#desc").val();
 	var _data = $("form").serialize();
 	$.ajax({
