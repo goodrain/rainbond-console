@@ -82,8 +82,8 @@ extPushWebSocketConnect.prototype = {
 				self.closeWebSocket();
 				self.init(client, topic, cmd, key,info)
 			} else {
-				//self.sendCmd("check", "1", "1")
-				self.init(client, topic, cmd, key,info)
+				self.sendCmd("check", "1", "1")
+				//self.init(client, topic, cmd, key,info)
 			}
 		}, 1000 * 12 * self.keeplivetime);
 	},
