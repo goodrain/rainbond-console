@@ -13,6 +13,7 @@ function service_deploy(tenantName, service_key) {
     	alert("应用名称以英文字母开始包含数字，中划线 -，下划线 _")
     	result = false;
     	$('#service_name').focus();
+    }
 	if (!result) {
 		 return;
 	}
