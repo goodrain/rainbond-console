@@ -10,7 +10,7 @@ function service_deploy(tenantName, service_key) {
     var serviceReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
     var result = true;
     if (!serviceReg.test(service_name)) {
-    	alert("应用名称以英文字母开始包含数字，中划线 -，下划线 _")
+    	alert("服务名称以英文字母开始包含数字，中划线 -，下划线 _")
     	result = false;
     	$('#service_name').focus();
     }
