@@ -255,6 +255,7 @@ class TenantServiceInfoDelete(BaseModel):
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     delete_time = models.DateTimeField(auto_now_add=True)
     creater = models.IntegerField(help_text=u"服务创建者", default=0)
+    language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
     
 class TenantServiceLog(BaseModel):
     class Meta:
