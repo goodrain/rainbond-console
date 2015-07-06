@@ -640,7 +640,7 @@ class GitWebHook(BaseView):
                 task["service_id"] = ts.service_id
                 task["git_url"] = ts.git_url
                 logger.debug(json.dumps(task))
-                #beanlog.put("app_check", json.dumps(task))
+                # beanlog.put("app_check", json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -651,11 +651,13 @@ class GitWebHook(BaseView):
     def post(self, request, *args, **kwargs):
         result = {}
         try:
-            #event = request.META['X-GitHub-Event']
-            #logger.debug(event)            
+            # event = request.META['X-GitHub-Event']
+            # logger.debug(event)            
             payload = request.body            
             logger.debug(payload)
             logger.debug(request)
+            for (header, value) in request.META.items():
+                logger.debug(header + "=====" + value)
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -671,9 +673,9 @@ class GitCheckCode(BaseView):
             language = request.GET.get("lan", "")
             condition = request.GET.get("con", "")
             if service_id is not None and service_id != "":
-                if language is not None and language!="":
+                if language is not None and language != "":
                     ts = TenantServiceInfo.objects.get(service_id=service_id)
-                    ts.is_code_upload=True
+                    ts.is_code_upload = True
                     ts.save()
                 else:
                     pass
