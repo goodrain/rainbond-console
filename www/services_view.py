@@ -651,10 +651,11 @@ class GitWebHook(BaseView):
     def post(self, request, *args, **kwargs):
         result = {}
         try:
-            event = request.META['X-GitHub-Event']
-            logger.debug(event)            
+            #event = request.META['X-GitHub-Event']
+            #logger.debug(event)            
             payload = request.body            
             logger.debug(payload)
+            logger.debug(request)
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
