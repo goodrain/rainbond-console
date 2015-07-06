@@ -7,7 +7,8 @@ import logging
 import httplib2
 
 logger = logging.getLogger('default')
-
+GIT_HUB_WEB_HOOK_URL = "http://user.goodrain.com/service/webhook"
+GIT_HUB_SECRET = "goodrain"
 
 class GitHubApi(object):
     def __init__(self, *args, **kwargs):
@@ -96,8 +97,32 @@ class GitHubApi(object):
             url = "https://api.github.com/users/" + username + "/repos"
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'} 
-            response, content = http.request(url, 'GET', headers=headers)
+            
             return content
         except Exception as e:
             logger.exception(e)
         return ""
+    
+    def createReposHook(self, user, repos, token):
+        result = False
+        try:
+            url = "https://api.github.com/repos/" + username + "/" + repos + "/hooks?access_token=464bdb47373e5de201b3573c009e1b9dc43b45d7"
+            headers = {'Content-Type': 'application/json'} 
+            data = {}
+            data["name"] = "web"
+            data["active"] = True
+            data["events"] = '["push"]'
+            d = {}
+            d["url"] = GIT_HUB_WEB_HOOK_URL
+            d["content_type"] = "json"
+            d["secret"] = GIT_HUB_SECRET
+            d["insecure_ssl"] = "0"
+            data["config"] = d
+            http = httplib2.Http()
+            response, content = http.request(url, 'POST', headers=headers, json.dumps(data))
+            logger.debug(content)
+            result = True
+        except Exception as e:
+            logger.exception(e)
+        return result
+    

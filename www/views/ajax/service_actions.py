@@ -235,7 +235,7 @@ class ServiceUpgrade(AuthedView):
                     self.service.deploy_version = deploy_version
                     self.service.save()
                     
-                    if self.tenant.tenant_name !="goodrain":
+                    if self.tenant.tenant_name != "goodrain":
                         dsn = BaseConnection()
                         query_sql = '''
                             select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
@@ -451,3 +451,24 @@ class ServiceLog(AuthedView):
         except Exception as e:
             logger.info("%s" % e)
         return JsonResponse({})
+    
+    
+class ServiceCheck(AuthedView):
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        try:
+            if self.service.deploy_version is None or self.service.deploy_version == "":
+                return JsonResponse({})
+            else:
+                result = {}
+                if self.service.is_code_upload:
+                    result["status"] = "committed"
+                    data = {}
+                    result["data"] = data
+                else:
+                    result["status"] = "uncommitted"
+                return JsonResponse(result)
+        except Exception as e:
+            logger.info("%s" % e)
+        return JsonResponse({})
+

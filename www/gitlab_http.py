@@ -10,6 +10,7 @@ logger = logging.getLogger('default')
 
 
 PREFIX = "api/v3"
+GIT_LAB_WEB_HOOK_URL = "http://user.goodrain.com/service/webhook"
 
 class GitlabApi(BaseHttpClient):
     def __init__(self, *args, **kwargs):
@@ -173,8 +174,7 @@ class GitlabApi(BaseHttpClient):
             # url = "http://192.168.8.146:10080/api/v3/projects/2/events"
             url = self.url + PREFIX + "/projects/" + projectId + "/repository/commits"             
             headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN':self.get_private_token()} 
-            http = httplib2.Http()
-            response, content = http.request(url, 'GET', headers=headers) 
+            response, content = self._get(url, headers) 
             t1 = json.loads(content)
             result = len(t1)
         except Exception as e:
@@ -186,9 +186,27 @@ class GitlabApi(BaseHttpClient):
             projectId = str(project_id)
             url = self.url + PREFIX + "/projects/" + projectId + "/repository/branches"             
             headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN':self.get_private_token()} 
-            http = httplib2.Http()
-            response, content = http.request(url, 'GET', headers=headers) 
+            response, content = self._get(url, headers) 
             return content
         except Exception as e:
             logger.exception(e)
         return ""
+    
+    def createWebHook(self, project_id):
+        result = False
+        try:      
+            projectId = str(project_id)
+            project_hook = {}                                                            
+            project_hook["url"] = GIT_LAB_WEB_HOOK_URL                                                        
+            project_hook["push_events"] = True
+            project_hook["issues_events"] = False
+            project_hook["merge_requests_events"] = False
+            project_hook["tag_push_events"] = False
+            url = self.url + PREFIX + "/projects/" + projectId + "/hooks"             
+            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN':self.get_private_token()}
+            res, body = self._post(url, headers, json.dumps(project_hook))
+            logger.debug(body)
+            result = True
+        except Exception as e:
+            logger.exception(e)
+        return result

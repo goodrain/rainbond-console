@@ -618,3 +618,51 @@ class GitLabManager(AuthedView):
         #        gitClient.addProjectMember(project_id,self.user.git_user_id,30)
         #        gitClient.addProjectMember(project_id,2,20)
         return HttpResponse(str(project_id))
+
+class GitWebHook(BaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        result = {}
+        try:
+            payload = request.GET.get("Payload", "")
+            logger.debug(payload)
+            payloadJson = json.loads(payload)
+            repositoryJson = payloadJson["repository"]
+            full_name = repositoryJson["full_name"]
+            logger.debug(full_name)
+            git_url = repositoryJson["git_url"]
+            listTs = TenantServiceInfo.objects.filter(git_url=git_url)
+            for ts in listTs:
+                task = {}
+                task["tenant_id"] = ts.tenant_id
+                task["service_id"] = ts.service_id
+                task["git_url"] = ts.git_url
+                logger.debug(json.dumps(task))
+                #beanlog.put("app_check", json.dumps(task))
+            result["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return HttpResponse(json.dumps(result))
+    
+    
+class GitCheckCode(BaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        result = {}
+        try:
+            service_id = request.GET.get("sid", "")
+            language = request.GET.get("lan", "")
+            condition = request.GET.get("con", "")
+            if service_id is not None and service_id != "":
+                if language is not None and language!="":
+                    ts = TenantServiceInfo.objects.get(service_id=service_id)
+                    ts.is_code_upload=True
+                    ts.save()
+                else:
+                    pass
+                result["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return HttpResponse(json.dumps(result))
