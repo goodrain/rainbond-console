@@ -621,48 +621,40 @@ class GitLabManager(AuthedView):
         return HttpResponse(str(project_id))
 
 
-class GitWebHook(BaseView):
+class GitLabWebHook(BaseView):
     @never_cache
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         result = {}
-        try:
-            payload = request.GET.get("Payload", "")
+        try: 
+            payload = request.body            
             logger.debug(payload)
             payloadJson = json.loads(payload)
             repositoryJson = payloadJson["repository"]
-            full_name = repositoryJson["full_name"]
-            logger.debug(full_name)
-            git_url = repositoryJson["git_url"]
-            listTs = TenantServiceInfo.objects.filter(git_url=git_url)
-            for ts in listTs:
-                task = {}
-                task["tenant_id"] = ts.tenant_id
-                task["service_id"] = ts.service_id
-                task["git_url"] = ts.git_url
-                logger.debug(json.dumps(task))
-                # beanlog.put("app_check", json.dumps(task))
+            name = repositoryJson["name"]
+            git_url = repositoryJson["git_http_url"]
+            logger.debug(name + "==" + git_url)
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"
         return HttpResponse(json.dumps(result))
-    
+
+class GitHubWebHook(BaseView):
     @never_cache
     def post(self, request, *args, **kwargs):
         result = {}
         try:
-            #event = request.META['HTTP_X_GITHUB_EVENT']
-            #logger.debug(event)            
+            # event = request.META['HTTP_X_GITHUB_EVENT']
+            # logger.debug(event)            
             payload = request.body            
             logger.debug(payload)
             payloadJson = json.loads(payload)
             repositoryJson = payloadJson["repository"]
-            full_name = repositoryJson["full_name"]
-            logger.debug(full_name)
-            git_url = repositoryJson["git_url"]
-            logger.debug(git_url)
-            #listTs = TenantServiceInfo.objects.filter(git_url=git_url)
-            #for ts in listTs:
+            fullname = repositoryJson["full_name"]
+            git_url = repositoryJson["clone_url"]
+            logger.debug(fullname + "==" + git_url)
+            # listTs = TenantServiceInfo.objects.filter(git_url=git_url)
+            # for ts in listTs:
             #    task = {}
             #    task["tenant_id"] = ts.tenant_id
             #    task["service_id"] = ts.service_id

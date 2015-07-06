@@ -24,6 +24,7 @@ urlpatterns = patterns(
     url(r'^service_delete/', ServiceDeleteView.as_view()), 
     url(r'^oauth/githup/$', login_required(ServiceGitHub.as_view())),   
     url(r'^service/language/$', ServiceLanguage.as_view()),
-    url(r'^service/webhook/$', csrf_exempt(GitWebHook.as_view())),
+    url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
+    url(r'^service/githubhook/$', csrf_exempt(GitHubWebHook.as_view())),
     url(r'^service/codecheck/$', csrf_exempt(GitCheckCode.as_view())),
 )  + staticfiles_urlpatterns()
