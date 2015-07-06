@@ -657,7 +657,8 @@ class GitWebHook(BaseView):
             logger.debug(payload)
             logger.debug(request)
             for (header, value) in request.META.items():
-                logger.debug(header + "=====" + value)
+                logger.debug(header)
+                logger.debug(value)
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
