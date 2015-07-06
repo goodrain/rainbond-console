@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import HttpResponseRedirect
+from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
 from www.decorator import perm_required
 from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation
@@ -619,6 +620,7 @@ class GitLabManager(AuthedView):
         #        gitClient.addProjectMember(project_id,2,20)
         return HttpResponse(str(project_id))
 
+
 class GitWebHook(BaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -645,7 +647,18 @@ class GitWebHook(BaseView):
             result["status"] = "failure"
         return HttpResponse(json.dumps(result))
     
-    
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        result = {}
+        try:
+            payload = request.POST.get("Payload","")
+            logger.debug(payload)
+            result["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return HttpResponse(json.dumps(result))
+
 class GitCheckCode(BaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
