@@ -97,7 +97,7 @@ class GitHubApi(object):
             url = "https://api.github.com/users/" + username + "/repos"
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'} 
-            
+            response, content = http.request(url, 'GET', headers=headers)
             return content
         except Exception as e:
             logger.exception(e)
@@ -119,7 +119,7 @@ class GitHubApi(object):
             d["insecure_ssl"] = "0"
             data["config"] = d
             http = httplib2.Http()
-            response, content = http.request(url, 'POST', headers=headers, json.dumps(data))
+            response, content = http.request(url, 'POST', headers=headers, body=json.dumps(data))
             logger.debug(content)
             result = True
         except Exception as e:
