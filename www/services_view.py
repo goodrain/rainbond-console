@@ -657,7 +657,6 @@ class GitHubWebHook(BaseView):
             # event = request.META['HTTP_X_GITHUB_EVENT']
             # logger.debug(event)            
             payload = request.body            
-            logger.debug(payload)
             payloadJson = json.loads(payload)
             repositoryJson = payloadJson["repository"]
             fullname = repositoryJson["full_name"]
