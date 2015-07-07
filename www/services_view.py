@@ -633,7 +633,7 @@ class GitLabWebHook(BaseView):
             name = repositoryJson["name"]
             git_url = repositoryJson["git_http_url"]
             logger.debug(str(project_id) + "==" + name + "==" + git_url)
-            listTs = TenantServiceInfo.objects.filter(project_id=project_id).exclude(code_from="github")
+            listTs = TenantServiceInfo.objects.filter(git_project_id=project_id).exclude(code_from="github")
             if len(listTs) > 0:
                 for ts in listTs:
                     task = {}
@@ -664,7 +664,7 @@ class GitHubWebHook(BaseView):
             git_url = repositoryJson["clone_url"]
             project_id = repositoryJson["id"]
             logger.debug(str(project_id) + "==" + fullname + "==" + git_url)
-            listTs = TenantServiceInfo.objects.filter(project_id=project_id, code_from="github")
+            listTs = TenantServiceInfo.objects.filter(git_project_id=project_id, code_from="github")
             if len(listTs) > 0:
                 for ts in listTs:
                     task = {}
