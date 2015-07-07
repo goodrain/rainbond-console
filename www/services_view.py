@@ -474,7 +474,8 @@ class TenantService(AuthedView):
             
             httpGitUrl = ""
             if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
-                httpGitUrl = "http://code.goodrain.com/app/" + self.tenantName + "_" + self.serviceAlias + ".git"
+                cur_git_url = self.service.git_url.split("/")
+                httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
             else:
                 httpGitUrl = self.service.git_url
             context["httpGitUrl"] = httpGitUrl 
