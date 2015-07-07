@@ -4,7 +4,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.decorators.csrf import csrf_exempt
 import www.views as views
 import www.views.ajax as ajax
-from www.services_view import ServiceStaticsManager,ServiceGitHub,ServiceLanguage,GitLabWebHook,GitHubWebHook,GitCode
+from www.services_view import ServiceStaticsManager,ServiceGitHub,ServiceLanguage,GitLabWebHook,GitHubWebHook,GitCheckCode
 from www.service_delete_view import *
 from django.conf import settings
 from django.conf.urls.static import static
