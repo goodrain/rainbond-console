@@ -12,7 +12,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
 from www.decorator import perm_required
-from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation
+from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
@@ -88,10 +88,6 @@ class ServiceAppCreate(AuthedView):
                 data["status"] = "empty"
                 return HttpResponse(json.dumps(data))   
             service_alias = service_alias.lower()
-                    
-            createService = request.POST["createService"]
-            hasService = request.POST["hasService"]
-            
             # get base service
             service = ServiceInfo.objects.get(service_key="application")
             # create console tenant service
@@ -156,7 +152,10 @@ class ServiceAppCreate(AuthedView):
         
             # create region tenantservice
             baseService.create_region_service(newTenantService, service, self.tenantName)
+            
             # create service dependency
+            createService = request.POST["createService"]
+            hasService = request.POST["hasService"]
             if createService is not None and createService != "":
                 serviceKeys = createService.split(",")
                 for skey in serviceKeys:
@@ -642,7 +641,7 @@ class GitLabWebHook(BaseView):
                     gitUrl = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
                     task["git_url"] = gitUrl
                     logger.debug(json.dumps(task))
-                    # beanlog.put("app_check", json.dumps(task))
+                    beanlog.put("code_check", json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -677,7 +676,7 @@ class GitHubWebHook(BaseView):
                     gitUrl = "--branch " + ts.code_version + " --depth 1 " + clone_url
                     task["git_url"] = gitUrl
                     logger.debug(json.dumps(task))
-                    # beanlog.put("app_check", json.dumps(task))
+                    beanlog.put("code_check", json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -689,9 +688,11 @@ class GitCheckCode(BaseView):
     def get(self, request, *args, **kwargs):
         try:
             service_id = request.GET.get("service_id", "")
+            logger.debug("git code request: " + service_id)
+            tse = TenantServiceEnv.objects.get(service_id=service_id)
         except Exception as e:
             logger.exception(e)
-            result["status"] = "failure"
+            result = {}
         return HttpResponse(json.dumps(result))
     
     @never_cache
@@ -700,15 +701,20 @@ class GitCheckCode(BaseView):
         try:
             service_id = request.POST.get("service_id", "")
             language = request.POST.get("language", "")
-            condition = request.POST.get("condition", "")
+            dependency = request.POST.get("dependency", "")
+            logger.debug(service_id + "=" + language + "=" + dependency)
             if service_id is not None and service_id != "":
                 if language is not None and language != "":
-                    ts = TenantServiceInfo.objects.get(service_id=service_id)
-                    ts.is_code_upload = True
-                    ts.save()
-                else:
-                    pass
-                result["status"] = "success"
+                    try:
+                        tse = TenantServiceEnv.objects.get(service_id=service_id)
+                        if tse.language != language:
+                            tse.language = language
+                            tse.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            tse.save()
+                    except Exception:
+                        tse = TenantServiceEnv(service_id=service_id, language=language, dependency=dependency, create_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        tse.save()         
+            result["status"] = "success"
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"

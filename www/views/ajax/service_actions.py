@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users 
+from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv 
 from www.service_http import RegionServiceApi
 from www.weblog import WebLog
 from www.gitlab_http import GitlabApi
@@ -454,21 +454,37 @@ class ServiceLog(AuthedView):
     
     
 class ServiceCheck(AuthedView):
-    @perm_required('view_service')
+    @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
+        result = {}
         try:
-            if self.service.deploy_version is None or self.service.deploy_version == "":
-                return JsonResponse({})
+            tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+            if self.service.language is None or self.service.language == "":
+                result["status"] = "show"
+                result["data"] = tse.dependency
             else:
-                result = {}
-                if self.service.is_code_upload:
-                    result["status"] = "committed"
-                    data = {}
-                    result["data"] = data
+                if self.service.language != self.service.language:
+                    result["status"] = "change"
                 else:
-                    result["status"] = "uncommitted"
-                return JsonResponse(result)
+                    result["status"] = "hidden"
+                result["data"] = {}
         except Exception as e:
-            logger.info("%s" % e)
-        return JsonResponse({})
-
+            logger.exception(e)
+            result["status"] = "checking"
+            result["data"] = {}
+        return JsonResponse(result)
+    
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        try:
+            tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+            tse.dependency = dependency
+            tse.language = language
+            tse.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            tse.save()
+            result["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return JsonResponse(result)

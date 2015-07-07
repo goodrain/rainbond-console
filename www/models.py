@@ -281,9 +281,10 @@ class TenantServiceRelation(BaseModel):
 class TenantServiceEnv(BaseModel):
     class Meta:
         db_table = 'tenant_service_env'
-    
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
+    dependency = models.CharField(max_length=400, null=True, blank=True, help_text=u"服务运行环境依赖")
+    create_time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
 
 
 class ServiceDomain(BaseModel):
