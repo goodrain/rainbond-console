@@ -128,7 +128,14 @@ class InviteServiceUser(AuthedView):
                 # add gitlab project member
                 git_project_id = self.service.git_project_id
                 if git_project_id > 0 and user.git_user_id > 0:
-                    gitClient.addProjectMember(git_project_id, user.git_user_id)
+                    level = 10
+                    if identity == "viewer":
+                        level = 20
+                    elif identity == "developer":
+                        level = 30
+                    elif identity == "admin":
+                        level = 40
+                    gitClient.addProjectMember(git_project_id, user.git_user_id, level)
 
         except Users.DoesNotExist:
             send_invite_mail_withHtml(email, self.invite_content(email, self.tenantName, self.serviceAlias, identity))
@@ -190,7 +197,7 @@ class InviteTenantUser(AuthedView):
         except Users.DoesNotExist:
             # user = Users.objects.create(email=email, password='unset', is_active=False)
             # PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant_pk, identity=identity)
-            send_invite_mail_withHtml(email, self.invite_content(email, self.tenantName,identity))
+            send_invite_mail_withHtml(email, self.invite_content(email, self.tenantName, identity))
             result['desc'] = u'已向{0}发送邀请邮件'.format(email)
 
         return JsonResponse(result, status=200)

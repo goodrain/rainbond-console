@@ -241,7 +241,14 @@ class InviteRegistation(BaseView):
 
         git_project_id = service.git_project_id
         if git_project_id > 0 and user.git_user_id > 0:
-            gitClient.addProjectMember(git_project_id, user.git_user_id)
+            level = 10
+            if identity == "viewer":
+                level = 20
+            elif identity == "developer":
+                level = 30
+            elif identity == "admin":
+                level = 40
+            gitClient.addProjectMember(git_project_id, user.git_user_id, level)
 
     def add_git_user(self, user, password):
         git_user_id = gitClient.createUser(user.email, password, user.nick_name, user.nick_name)

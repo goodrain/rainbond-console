@@ -71,7 +71,7 @@ class AppDeploy(AuthedView):
             if self.service.code_from == "github":
                 code_user = clone_url.split("/")[3]
                 code_project_name = clone_url.split("/")[4].split(".")[0]
-                createUser = Users.objects.get(user_id=self.user.pk)
+                createUser = Users.objects.get(user_id=self.service.creater)
                 clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url

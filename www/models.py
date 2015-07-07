@@ -278,6 +278,14 @@ class TenantServiceRelation(BaseModel):
     dep_service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     dep_order = models.IntegerField(help_text=u"依赖顺序")
 
+class TenantServiceEnv(BaseModel):
+    class Meta:
+        db_table = 'tenant_service_env'
+    
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
+
+
 class ServiceDomain(BaseModel):
     class Meta:
         db_table = 'service_domain'

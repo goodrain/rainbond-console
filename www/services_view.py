@@ -626,13 +626,23 @@ class GitLabWebHook(BaseView):
     def post(self, request, *args, **kwargs):
         result = {}
         try: 
-            payload = request.body            
-            logger.debug(payload)
+            payload = request.body
             payloadJson = json.loads(payload)
+            project_id = payloadJson["project_id"]
             repositoryJson = payloadJson["repository"]
             name = repositoryJson["name"]
             git_url = repositoryJson["git_http_url"]
-            logger.debug(name + "==" + git_url)
+            logger.debug(project_id + "==" + name + "==" + git_url)
+            listTs = TenantServiceInfo.objects.filter(project_id=project_id).exclude(code_from="github")
+            if len(listTs) > 0:
+                for ts in listTs:
+                    task = {}
+                    task["tenant_id"] = ts.tenant_id
+                    task["service_id"] = ts.service_id
+                    gitUrl = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
+                    task["git_url"] = gitUrl
+                    logger.debug(json.dumps(task))
+                    # beanlog.put("app_check", json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -652,15 +662,23 @@ class GitHubWebHook(BaseView):
             repositoryJson = payloadJson["repository"]
             fullname = repositoryJson["full_name"]
             git_url = repositoryJson["clone_url"]
-            logger.debug(fullname + "==" + git_url)
-            # listTs = TenantServiceInfo.objects.filter(git_url=git_url)
-            # for ts in listTs:
-            #    task = {}
-            #    task["tenant_id"] = ts.tenant_id
-            #    task["service_id"] = ts.service_id
-            #    task["git_url"] = ts.git_url
-            #    logger.debug(json.dumps(task))
-                # beanlog.put("app_check", json.dumps(task))
+            project_id = repositoryJson["id"]
+            logger.debug(id + "==" + fullname + "==" + git_url)
+            listTs = TenantServiceInfo.objects.filter(project_id=project_id, code_from="github")
+            if len(listTs) > 0:
+                for ts in listTs:
+                    task = {}
+                    task["tenant_id"] = ts.tenant_id
+                    task["service_id"] = ts.service_id
+                    clone_url = ts.git_url
+                    code_user = clone_url.split("/")[3]
+                    code_project_name = clone_url.split("/")[4].split(".")[0]
+                    createUser = Users.objects.get(user_id=ts.creater)
+                    clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+                    gitUrl = "--branch " + ts.code_version + " --depth 1 " + clone_url
+                    task["git_url"] = gitUrl
+                    logger.debug(json.dumps(task))
+                    # beanlog.put("app_check", json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -670,11 +688,20 @@ class GitHubWebHook(BaseView):
 class GitCheckCode(BaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
+        try:
+            service_id = request.GET.get("service_id", "")
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return HttpResponse(json.dumps(result))
+    
+    @never_cache
+    def post(self, request, *args, **kwargs):
         result = {}
         try:
-            service_id = request.GET.get("sid", "")
-            language = request.GET.get("lan", "")
-            condition = request.GET.get("con", "")
+            service_id = request.POST.get("service_id", "")
+            language = request.POST.get("language", "")
+            condition = request.POST.get("condition", "")
             if service_id is not None and service_id != "":
                 if language is not None and language != "":
                     ts = TenantServiceInfo.objects.get(service_id=service_id)
