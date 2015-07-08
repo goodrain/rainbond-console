@@ -173,8 +173,9 @@ class GitlabApi(BaseHttpClient):
             projectId = str(project_id)
             # url = "http://192.168.8.146:10080/api/v3/projects/2/events"
             url = self.url + PREFIX + "/projects/" + projectId + "/repository/commits"             
-            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN':self.get_private_token()} 
-            response, content = self._get(url, headers) 
+            http = httplib2.Http()
+            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN':self.get_private_token()}
+            response, content = http.request(url, 'GET', headers=headers)
             t1 = json.loads(content)
             result = len(t1)
         except Exception as e:
