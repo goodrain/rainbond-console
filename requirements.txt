@@ -12,3 +12,4 @@ beanstalkc
 urllib3
 influxdb
 whitenoise
+PIL
