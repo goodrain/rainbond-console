@@ -2,16 +2,21 @@
 from django.conf import settings
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.http import HttpResponse, Http404
 
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, InviteUserForm, InviteRegForm, InviteRegForm2, RegisterForm, SendInviteForm
-from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService
+from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode
 from www.utils.mail import send_invite_mail_withHtml
 from www.utils.crypt import AuthCode
 from www.api import RegionApi
 from www.gitlab_http import GitlabApi
+from www.db import BaseConnection
+import datetime, time
+import random
+import re
 
 from base import BaseView
 
@@ -310,6 +315,7 @@ class InviteRegistation(BaseView):
 
 
 class Registation(BaseView):
+    
     def get_context(self):
         context = super(Registation, self).get_context()
         context.update({
@@ -318,7 +324,7 @@ class Registation(BaseView):
         return context
 
     def get_media(self):
-        media = super(Registation, self).get_media() + self.vendor('www/css/goodrainstyle.css')
+        media = super(Registation, self).get_media() + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
         return media
 
     def get_response(self):
@@ -332,15 +338,28 @@ class Registation(BaseView):
     def get(self, request, *args, **kwargs):
         self.form = RegisterForm()
         return self.get_response()
+    
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
     def post(self, request, *args, **kwargs):
-        self.form = RegisterForm(request.POST)
+        querydict= request.POST
+        querydict.update({u'real_captcha_code':request.session.get("captcha_code")})
+        print querydict
+        self.form = RegisterForm(querydict)
+        
         if self.form.is_valid():
             email = request.POST.get('email')
             nick_name = request.POST.get('nick_name')
             password = request.POST.get('password')
             tenant_name = request.POST.get('tenant')
-            user = Users(email=email, nick_name=nick_name)
+            phone = request.POST.get('phone')
+            user = Users(email=email, nick_name=nick_name, phone=phone, client_ip=self.get_client_ip(request))
             user.set_password(password)
             user.save()
             tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type='free')
@@ -420,3 +439,47 @@ class SendInviteView(BaseView):
             send_invite_mail_withHtml(email, self.invite_content(email))            
             return HttpResponse("邀请邮件已发送")
         return self.get_response()
+    
+class PhoneCodeView(BaseView):
+    
+    def post(self, request, *args, **kwargs):
+        result = {}
+        phone = request.POST.get('phone')
+        if phone is not None:
+            r = re.compile(r'^1[358]\d{9}$|^147\d{8}$')
+            if not r.match(phone):
+                result["status"] = "errorphone"
+                return JsonResponse(result) 
+        else:
+            result["status"] = "errorphone"
+            return JsonResponse(result) 
+        try:
+            phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
+            if len(phoneCodes) > 0:
+                phoneCode = phoneCodes[0]
+                last = int(phoneCode.create_time.strftime("%s"))
+                print last
+                now = int(time.time())
+                if now - last < 90:
+                    result["status"] = "often"
+                    return JsonResponse(result) 
+            dsn = BaseConnection()
+            query_time = datetime.datetime.now().strftime('%Y-%m-%d')
+            query_sql = '''
+                select count(1) as sendNumber from phone_code where phone = "{phone}" and create_time >= "{query_time}"
+                '''.format(phone=phone, query_time=query_time + " 00:00:00")
+            sqlobj = dsn.query(query_sql)
+            if len(sqlobj) > 0:
+                sendNumber = int(sqlobj[0]["sendNumber"])
+                if sendNumber > 3:
+                    result["status"] = "limited"
+                    return JsonResponse(result) 
+            phone_code = random.randrange(0, 1000001, 6)
+            newpc = PhoneCode(phone=phone, type="register", code=phone_code)
+            newpc.save()
+            result["status"] = "success"
+            return JsonResponse(result) 
+        except Exception as e:
+            logger.exception(e)
+        result["status"] = "error"
+        return JsonResponse(result) 

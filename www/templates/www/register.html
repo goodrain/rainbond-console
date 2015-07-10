@@ -36,5 +36,67 @@
     </div>
 
   </form>
+  
+  <script>
+   var InterValObj; //timer变量，控制时间
+   var count = 90; //间隔函数，1秒执行
+   var curCount;//当前剩余秒数
+  
+  	function getPhoneCode(){
+  		curCount = count;
+  		var phone = $("#id_phone").val()
+  		if(phone==""){
+  			alert("手机号不能为空")
+  			return false;
+  		}
+  		$("#PhoneCodeBtn").attr("disabled", "true");
+  		InterValObj = window.setInterval(SetRemainTime, 1000);
+  		$.ajax({
+    		type : "POST",
+    		url : "/phone_code",
+    		data : "phone="+phone,
+    		cache : false,
+    		beforeSend : function(xhr, settings) {
+    			var csrftoken = $.cookie('csrftoken');
+    			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    		},
+    		success : function(msg) {
+    			var dataObj = msg
+    			if (dataObj["status"] == "success") {
+    				alert("发送成功")
+    			} else if(dataObj["status"] == "often"){
+    				alert("请稍后发送")
+    			}else if(dataObj["status"] == "errorphone"){
+    				alert("错误的手机号")
+    			}else if(dataObj["status"] == "limited"){
+    				alert("超过发送次数")
+    			} else {
+    				alert("发送失败")
+    			}
+    		},
+    		error : function() {
+    			// alert("系统异常");
+    		}
+    	})
+    	return false;
+  	}
+  	function SetRemainTime() {
+        if (curCount == 0) {                
+            window.clearInterval(InterValObj);//停止计时器
+            $("#PhoneCodeBtn").removeAttr("disabled");//启用按钮
+            $("#PhoneCodeBtn").val("重新发送验证码");
+        }
+        else {
+            curCount--;
+            $("#PhoneCodeBtn").html("请在" + curCount + "秒内输入验证码");
+        }
+    }
+  	
+  	function refresh(){
+  		var img = document.getElementById("captcha_code");  
+        img.src = "/captcha?rnd=" + Math.random();  
+  	}
+  	
+  </script>
 </div>
 {% endblock %}

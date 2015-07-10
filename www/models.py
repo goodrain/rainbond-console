@@ -79,6 +79,7 @@ class Users(models.Model):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     git_user_id = models.IntegerField(help_text=u"gitlab 用户id", default=0)
     github_token = models.CharField(max_length=60, help_text=u"github token")
+    client_ip = models.CharField(max_length=20, help_text=u"注册ip")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
@@ -101,7 +102,6 @@ class Users(models.Model):
 
     def __unicode__(self):
         return self.nick_name or self.email
-
 
 class Tenants(models.Model):
     class Meta:
@@ -401,6 +401,13 @@ class TenantPaymentNotify(BaseModel):
     send_person = models.CharField(max_length=20, help_text=u"通知人")
     time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
 
+class PhoneCode(BaseModel):
+    class Meta:
+        db_table = 'phone_code'
+    phone = models.CharField(max_length=11,help_text=u"手机号码")
+    type =  models.CharField(max_length=10, help_text=u"类型")
+    code =  models.CharField(max_length=10, help_text=u"类型")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
     
 
