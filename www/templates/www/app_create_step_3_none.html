@@ -1,0 +1,31 @@
+{% extends 'www/raster.html' %} {% load i18n %} {% block main-content%}
+<section class="wrapper site-min-height">
+	<!-- page start-->
+	<section class="panel">
+		<div class="panel-body">
+			<div class=" form">
+				<form class="cmxform form-horizontal tasi-form" id="commentForm"
+					method="get" action="" novalidate="novalidate">
+					<div class="form-group">
+						<div class="col-lg-12 ">
+							<div
+								class="col-lg-offset-3 col-lg-6 alert text-center alert-danger fade in">
+
+								<h2>
+									代码语言： <strong>未知</strong>
+								</h2>
+							</div>
+							<div class="col-lg-offset-3 col-lg-6">
+								<p>
+									系统没有识别出您提交的代码语言，请参见 <a class=" p-head" href="#">语言支持文档</a>
+								</p>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</section>
+	<!-- page end-->
+</section>
+{% endblock %}

@@ -1,0 +1,420 @@
+{% extends 'www/raster.html' %} {% load i18n %} {% block main-content%}
+<section class="wrapper site-min-height">
+	<!-- page start-->
+	<section class="panel">
+		<div class="panel-body">
+			<div class=" form">
+				<form class="cmxform form-horizontal tasi-form" id="commentForm"
+					method="post" action="" novalidate="novalidate">
+					<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+					<input type="hidden" id="service_name" name="service_name" value="{{tenantService.service_alias}}" />
+					<input type="hidden" id="language" name="language" value="{{tenantService.language}}" />
+					<div class="form-group">
+						<div class="col-lg-12 ">
+							<div
+								class="col-lg-offset-3 col-lg-6 alert text-center alert-default fade in">
+
+								<h2>
+									代码语言： <strong>PHP</strong>
+								</h2>
+							</div>
+						</div>
+					</div>
+					{% if dependencyData.runtimes = "false" %}
+					<div class="form-group ">
+						<label class="control-label col-lg-2 ">版本 </label>
+						<div class="col-lg-2">
+							<select class="form-control" id="service_version" name="service_version">
+								<option value="5.6.10" selected="selected">5.6.10（默认）</option>
+								<option value="5.5.26">5.5.26</option>
+								<option value="5.4.40">5.4.40</option>
+							</select>
+						</div>
+					</div>
+					{% endif %}
+					{% if dependencyData.procfile = "false" %}
+					<div class="form-group">
+						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">web服务器</label>
+						<div class="col-lg-2">
+							<select class="form-control m-bot5" id="service_server" name="service_server">
+								<option value="apache">apache</option>
+								<option value="nginx">nginx</option>
+							</select>
+						</div>
+					</div>
+					{% endif %}
+					{% if dependencyData.dependencies = "false" %}
+					<div class="form-group">
+						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">扩展</label>
+						<div class="col-lg-10">
+							<div class="row">
+								<div class="col-md-2">
+									<ul class="vertical-menu">
+										<li class="active"><a href="#tab_1" data-toggle="tab">
+												默认扩展</a></li>
+										<li class=""><a href="#tab_2" data-toggle="tab">更多扩展</a></li>
+
+									</ul>
+								</div>
+								<div class="col-md-8">
+									<div class="tab-content">
+										<div class="tab-pane active" id="tab_1">
+											<div class="panel-group" id="accordion1">
+												<div class="panel panel-success">
+													<div class="panel-heading">
+														<h4 class="panel-title">
+															<a href="#accordion1_1" data-parent="#accordion1"
+																data-toggle="collapse" class="accordion-toggle">PHP内置扩展，默认启用</a>
+														</h4>
+													</div>
+													<div class="panel-collapse collapse in" id="accordion1_1"
+														style="height: auto;">
+														<div class="panel-body">
+															<table class="table table-bordered table-striped">
+																<thead>
+																	<tr>
+
+																		<th>名称</th>
+																		<th>版本</th>
+
+																	</tr>
+																</thead>
+																<tbody>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/bzip2">Bzip2</a></td>
+																		<td>1.0.6, 6-Sept-2010</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/curl">cURL</a></td>
+																		<td>7.35.0</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/fpm">FPM</a></td>
+																		<td></td>
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/mcrypt">mcrypt</a></td>
+																		<td>2.5.8</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/pdo_mysql">MySQL
+																				(PDO)</a></td>
+																		<td>mysqlnd 5.0.11-dev - 20120503</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/mysqli">MySQLi</a></td>
+																		<td>mysqlnd 5.0.11-dev - 20120503</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/opcache">OPcache</a></td>
+																		<td>Mosa</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/openssl">OpenSSL</a></td>
+																		<td>Mosa</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/pgsql">PostgreSQL</a></td>
+																		<td>Mosa</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/pdo_pgsql">PostgreSQL
+																				(PDO)</a></td>
+																		<td>9.3.6</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/readline">Readline</a></td>
+																		<td>6.3</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/sockets">Sockets</a></td>
+																		<td></td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/zip">Zip</a></td>
+																		<td>1.12.5</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><a href="http://docs.php.net/zlib">Zlib</a></td>
+																		<td>1.2.8</td>
+
+																	</tr>
+																</tbody>
+															</table>
+
+
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+										<div class="tab-pane" id="tab_2">
+											<div class="panel-group" id="accordion2">
+												<div class="panel panel-success">
+													<div class="panel-heading">
+														<h4 class="panel-title">
+															<a href="#accordion2_1" data-parent="#accordion2"
+																data-toggle="collapse" class="accordion-toggle">非内置扩展通过勾选后启用</a>
+														</h4>
+													</div>
+													<div class="panel-collapse collapse  in" id="accordion2_1">
+														<div class="panel-body">
+															<table class="table table-bordered table-striped">
+																<thead>
+																	<tr>
+
+																		<th style="width: 50px;"><label> <input
+																				type="checkbox">
+																		</label></th>
+																		<th>名称</th>
+																		<th>版本</th>
+
+																	</tr>
+																</thead>
+																<tbody>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="BCMath">
+																		</label></td>
+																		<td><a href="http://docs.php.net/bcmath">BCMath</a></td>
+																		<td></td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="Calendar">
+																		</label></td>
+																		<td><a href="http/docs.php.net/calendar">Calendar</a></td>
+																		<td></td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="Exif">
+																		</label></td>
+																		<td><a href="http://docs.php.net/exif">Exif</a></td>
+																		<td>1.4</td>
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox"  name="service_dependency" value="FTP">
+																		</label></td>
+																		<td><a href="http://docs.php.net/ftp">FTP</a></td>
+																		<td></td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="GD">
+																		</label></td>
+																		<td><a href="http://docs.php.net/gd">GD(支持
+																				PNG, JPEG 和 FreeType)</a></td>
+																		<td>2.1.0</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="gettext">
+																		</label></td>
+																		<td><a href="http://docs.php.net/gettext">gettext</a></td>
+																		<td></td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="intl">
+																		</label></td>
+																		<td><a href="http://docs.php.net/intl">intl</a></td>
+																		<td>1.1.0</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="mbstring">
+																		</label></td>
+																		<td><a href="http://docs.php.net/mbstring">mbstring</a></td>
+																		<td>1.3.2</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="MySQL">
+																		</label></td>
+																		<td><a href="http://docs.php.net/book.mysql">MySQL(
+																				PHP 5.5 版本已经停止支持，请使用 MySQLi 或 PDO)</a></td>
+																		<td>mysqlnd 5.0.11-dev</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="PCNTL">
+																		</label></td>
+																		<td><a href="http://docs.php.net/pcntl">PCNTL</a></td>
+																		<td></td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="Shmop">
+																		</label></td>
+																		<td><a href="http://docs.php.net/shmop">Shmop</a></td>
+																		<td></td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="SOAP">
+																		</label></td>
+																		<td><a href="http://docs.php.net/soap">SOAP</a></td>
+																		<td></td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="SQLite3">
+																		</label></td>
+																		<td><a href="http://docs.php.net/sqlite3">SQLite3</a></td>
+																		<td>0.7-dev</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="SQLite">
+																		</label></td>
+																		<td><a href="http://docs.php.net/pdo_sqlite">SQLite
+																				(PDO)</a></td>
+																		<td>3.8.2</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="XMLRPC">
+																		</label></td>
+																		<td><a href="http://docs.php.net/xmlrpc">XMLRPC</a></td>
+																		<td>0.51</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="XSL">
+																		</label></td>
+																		<td><a href="http://docs.php.net/xsl">XSL</a></td>
+																		<td>1.1.28</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="APCu">
+																		</label></td>
+																		<td><a href="http://pecl.php.net/package/apcu">APCu</a></td>
+																		<td>4.0.6</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="Blackfire">
+																		</label></td>
+																		<td><a href="http://blackfire.io/">Blackfire</a></td>
+																		<td>0.20.6</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="ImageMagick">
+																		</label></td>
+																		<td><a href="http://docs.php.net/imagick">ImageMagick</a></td>
+																		<td>3.1.2</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="memcached">
+																		</label></td>
+																		<td><a href="http://docs.php.net/memcached">memcached</a></td>
+																		<td>2.2.0</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="MongoDB">
+																		</label></td>
+																		<td><a href="http://docs.php.net/mongo">MongoDB</a></td>
+																		<td>1.6.6</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="NewRelic">
+																		</label></td>
+																		<td><a href="http://newrelic.com/php">New
+																				Relic</a></td>
+																		<td>4.19.0.90</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="OAuth">
+																		</label></td>
+																		<td><a href="http://docs.php.net/oauth">OAuth</a></td>
+																		<td>1.2.3</td>
+
+																	</tr>
+																	<tr>
+
+																		<td><label> <input type="checkbox" name="service_dependency" value="PHPRedis">
+																		</label></td>
+																		<td><a href="http://pecl.php.net/package/redis">PHPRedis</a></td>
+																		<td>2.2.7</td>
+
+																	</tr>
+																</tbody>
+															</table>
+
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+										<p style="text-align: center;">如果您需要的扩展没有在这里列出，请通过在线咨询与我们联系</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					{% endif %}
+					<div class="col-lg-offset-3 col-lg-6 ">
+						<button type="button" id="language_btn" class="btn btn-lg btn-info btn-block">下一步</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</section>
+	<!-- page end-->
+</section>
+{% endblock %}
