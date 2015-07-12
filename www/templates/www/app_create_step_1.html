@@ -1,0 +1,88 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <!-- page start-->
+    <section class="panel">
+	    <div class="panel-body">
+	        <div class=" form">
+	            <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+	            <div class="form-group">
+	                <div class="col-lg-12 ">
+	                    <div class="col-lg-offset-3 col-lg-6 alert text-center alert-default fade in">
+	                        <h2>应用名称与代码仓库</h2>
+	                    </div>
+	                </div>
+	            </div>
+	            <div class="form-group ">
+	                <label for="create_app_name" class="control-label col-lg-2 app_name">名称</label>
+	                <div class="col-lg-8">
+	                    <input class="form-control valid" id="create_app_name" name="create_app_name" minlength="2" type="text" required="" placeholder="给应用起个名字">
+	                    <div id="create_appname_notice" class="alert alert-danger" role="alert" style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">应用名称以英文字母开始包含数字、中划线 -、下划线 _</div>
+	                </div>
+	            </div>
+	            <div class="form-group">
+	                <label class="col-sm-2 control-label col-lg-2" for="inputSuccess">代码仓库</label>
+	                <div id="sel_code_store" class="col-lg-10">
+	                    <label style="font-size:14px" class="checkbox-inline">
+	                    <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
+	                    <input type="hidden" id="service_code_from" name="service_code_from" value="gitlab_new">
+		                <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
+		                <input type="hidden" id="service_code_version" name="service_code_version" value="">
+		                <input type="hidden" id="service_code_id" name="service_code_id" value="">
+	                    
+	                    <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" checked> 新建仓库</label>
+	                    <label style="font-size:14px" class="checkbox-inline ">
+	                    <input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2"> 使用已有仓库</label>
+	                    <label style="font-size:14px" class="checkbox-inline select_git">
+	                    <input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3"> 连接Github</label>
+	                </div>
+	            </div>
+	            <h4 id="wait_loading" class="col-lg-offset-2 col-lg-10" style="padding-bottom: 30px; display: none;">数据连接中，请稍候……</h4>
+	            <div id="code_store_list" class="form-group" style="display: none;">
+	                <div class="col-lg-offset-2 col-lg-10">
+	                    <div id="create_codestore_notice" class="alert alert-danger" role="alert" style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">请选择相应的代码仓库和分支</div>
+	                    <table class="table table-hover">
+	                        <thead>
+	                            <tr>
+	                                <th class="text-center" style="width: 100px;">选择</th>
+	                                <th>仓库名称</th>
+	                                <th>分支</th>
+	                            </tr>
+	                        </thead>
+	                        <tbody>
+	                            <tr>
+	                                <td class="text-center"><i class="fa fa-check text-success"></i></td>
+	                                <td>Mark</td>
+	                                <td>Otto</td>
+	                            </tr>
+	                            <tr>
+	                                <td class="text-center"></td>
+	                                <td>Jacob</td>
+	                                <td>Thornton</td>
+	                            </tr>
+	                            <tr>
+	                                <td class="text-center"></td>
+	                                <td>Larry the Bird</td>
+	                                <td>@twitter</td>
+	                            </tr>
+	                            <tr>
+	                                <td class="text-center"></td>
+	                                <td>Sumon</td>
+	                                <td>Mosa</td>
+	                            </tr>
+	                        </tbody>
+	                    </table>
+	                </div>
+	            </div>
+	            <div class="col-lg-offset-3 col-lg-6 ">
+	                <button id="first_step" type="button" class="btn btn-lg btn-info btn-block">下一步</button>
+	            </div>
+	        </form>
+	        </div>
+	    </div>
+    </section><!-- page end-->
+</section>
+{% endblock %}
