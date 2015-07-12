@@ -25,7 +25,7 @@ ul.sidebar-menu li a,ul.sidebar-menu li ul.sub li a{font-size:14px;}
 .createbox-item{width:45%;float:left;padding:20px 0 10px 0;}
 .createbox .look{float:right;}
 .createbox .fa{font-size:50px;}
-.login-wrap-create textarea,.form-signin .form-control {font-size: 12px;margin-bottom:20px;}
+.login-wrap-create textarea,.form-signin .form-control {font-size: 14px;margin-bottom:20px;}
 .servicename{width:88%;float:left;}
 .login-wrap-create .fa-question-circle{top:2px;font-size: 18px;line-height:34px;margin-left:10px; position: relative;}
 
@@ -91,7 +91,7 @@ ul.sidebar-menu li a,ul.sidebar-menu li ul.sub li a{font-size:14px;}
 .settingsbox .form-control{padding:6px 0px;}
 @media (min-width:768px) {
     .settingsbox .col-sm-2,.settingsbox .col-sm-8,.settingsbox .col-sm-10,.settingsbox .col-xs-2,.settingsbox .col-xs-6{padding-left:10px;padding-right:10px;}
-    .settingsbox .form-control{padding:6px 12px;}
+    .settingsbox .form-control{padding:6px 14px;}
 }
 .yuming .yumspan{margin-bottom:10px;line-height:34px;}
 .form-horizontal.tasi-form .form-group{padding-bottom:0;}
@@ -101,5 +101,5 @@ margin-right: -15px;}
     .guanliboxcon{padding:15px;}
 /*service*/
 .servicebox{border:1px solid #ccc;border-radius:4px;-moz-border-radius:4px;-webkit-border-radius:4px; background-color: #fff;width:150px;height:150px;float:left;margin:15px;}
-.teamtips{padding:15px;margin-top:20px;font-size:12px;}
+.teamtips{padding:15px;margin-top:20px;font-size:14px;}
  .teamtips dl{margin:0;}
