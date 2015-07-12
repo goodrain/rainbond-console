@@ -18,7 +18,7 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 REGION_TAG = os.environ.get('REGION_TAG')
 
-DEBUG = False
+DEBUG = True
 if not DEBUG and (REGION_TAG is None or REGION_TAG==""):
     REGION_TAG="www_com"
 

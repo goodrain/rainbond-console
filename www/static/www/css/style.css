@@ -5,6 +5,9 @@ Author: Mosaddek Hossain
 Website: http://thevectorlab.net/
 */
 
+/* Import fonts */
+@import url(http://fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic);
+
 body {
     color: #797979;
     background: #f1f2f7;
@@ -44,7 +47,7 @@ a, a:hover, a:focus {
 }
 
 .form-signin {
-    max-width: 450px;
+    max-width: 330px;
     margin: 100px auto 0;
     background: #fff;
     border-radius: 5px;
@@ -79,7 +82,6 @@ a, a:hover, a:focus {
     font-size: 16px;
     height: auto;
     padding: 10px;
-    color: black;
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
@@ -87,31 +89,13 @@ a, a:hover, a:focus {
 .form-signin .form-control:focus {
     z-index: 2;
 }
-
-.teamdomain:focus {
-  z-index: 2;
-}
-
-.teamdomain{
-  margin-bottom: 15px;
-  border-radius: 5px;
-  -webkit-border-radius: 5px;
-  box-shadow: none;
-  font-size: 14px;
-  width: 200px;
-  text-align: right;
-  height: 40px;
-  border: 1px solid #ccc;
-  color: black;
-  padding: 0.5rem;
-}
-
 .form-signin input[type="text"], .form-signin input[type="password"] {
     margin-bottom: 15px;
     border-radius: 5px;
     -webkit-border-radius: 5px;
+    border: 1px solid #eaeaea;
     box-shadow: none;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .form-signin .btn-login {
@@ -125,12 +109,10 @@ a, a:hover, a:focus {
 }
 
 .form-signin p {
-    text-align: left;
-    color: #898989;
+    text-align: center;
+    color: #b6b6b6;
     font-size: 16px;
     font-weight: 300;
-    margin-top: 14%;
-    margin-left: 0%;
 }
 
 .form-signin a {
@@ -138,7 +120,7 @@ a, a:hover, a:focus {
 }
 
 .form-signin a:hover {
-    color: #e30000;
+    color: #b6b6b6;
 }
 
 .login-wrap {
@@ -256,7 +238,7 @@ ul.sidebar-menu li ul.sub li:last-child{
 }
 
 ul.sidebar-menu li ul.sub li a {
-    font-size: 14px;
+    font-size: 12px;
     padding: 6px 0;
     line-height: 35px;
     height: 35px;
@@ -298,7 +280,7 @@ ul.sidebar-menu li a{
     text-decoration: none;
     display: block;
     padding: 15px 0 15px 10px;
-    font-size: 14px;
+    font-size: 12px;
     outline: none;
     -webkit-transition: all 0.3s ease;
     -moz-transition: all 0.3s ease;
@@ -5503,7 +5485,7 @@ a.guest-on i {
     padding: 4px;
     border-radius: 3px;
     -webkit-border-radius: 3px;
-    margin-right: 5px;
+    margin-right: 5px;     gggg
 }
 
 .chat-txt {
@@ -5516,11 +5498,6 @@ a.guest-on i {
     padding: 0 !important;
 }
 
-.input-group-addon {
-    background-color: #fff;
-    border: 0px solid #CCC;
-}
-
-.has-error .input-group-addon {
-    background-color: #FFF;
-}
+/*add by wangjj*/
+.create_codestore_trsed{background-color: #f5f5f5;}
+.duigou_icon{display: inline-block; width: 24px; height: 24px; background: url("../img/duigou-24.png") left top no-repeat;}

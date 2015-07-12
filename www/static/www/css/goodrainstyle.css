@@ -87,7 +87,7 @@ ul.sidebar-menu li a,ul.sidebar-menu li ul.sub li a{font-size:14px;}
 .logtxtbox{padding: 9px 14px;margin-bottom: 14px;background-color: #f7f7f9;border: 1px solid #e1e1e8;border-radius: 4px;min-height:150px;}
 .settingsbox .col-sm-2,.settingsbox .col-sm-8,.settingsbox .col-sm-10,.settingsbox .col-xs-2,.settingsbox .col-xs-6{padding-left:0;padding-right:0;}
 .settingsbox .col-xs-4{padding-left:10px;padding-right:10px;}
-.form-horizontal .control-label{text-align: right;}
+.form-horizontal .control-label{text-align: left;}
 .settingsbox .form-control{padding:6px 0px;}
 @media (min-width:768px) {
     .settingsbox .col-sm-2,.settingsbox .col-sm-8,.settingsbox .col-sm-10,.settingsbox .col-xs-2,.settingsbox .col-xs-6{padding-left:10px;padding-right:10px;}

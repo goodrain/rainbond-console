@@ -461,13 +461,12 @@ class ServiceCheck(AuthedView):
             tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             if self.service.language is None or self.service.language == "":
                 result["status"] = "show"
-                result["data"] = tse.dependency
             else:
                 if self.service.language != self.service.language:
                     result["status"] = "change"
                 else:
                     result["status"] = "hidden"
-                result["data"] = {}
+            result["data"] = {}
         except Exception as e:
             logger.exception(e)
             result["status"] = "checking"
@@ -479,7 +478,7 @@ class ServiceCheck(AuthedView):
         result = {}
         try:
             tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-            tse.dependency = dependency
+            tse.check_dependency = dependency
             tse.language = language
             tse.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             tse.save()
