@@ -9,9 +9,9 @@ from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import HttpResponseRedirect
+from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
-from django.shortcuts import redirect
 from www.decorator import perm_required
 from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv
 from service_http import RegionServiceApi
@@ -235,20 +235,21 @@ class TenantService(AuthedView):
         try:
             if self.service.category == "application" and (self.service.language == "" or self.service.language is None):
                 last = int(self.service.create_time.strftime("%s"))
+                logger.debug(last)
                 if last < 1436696108:
                     task = {}
                     task["tenant_id"] = self.service.tenant_id
                     task["service_id"] = self.service.service_id
-                    if self.service.code_from == "github":
-                         gitUrl = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
+                    if self.service.code_from != "github":
+                         gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
                          task["git_url"] = gitUrl
                     else:
                         clone_url = self.service.git_url
                         code_user = clone_url.split("/")[3]
                         code_project_name = clone_url.split("/")[4].split(".")[0]
-                        createUser = Users.objects.get(user_id=ts.creater)
+                        createUser = Users.objects.get(user_id=self.service.creater)
                         clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
-                        gitUrl = "--branch " + ts.code_version + " --depth 1 " + clone_url
+                        gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
                         task["git_url"] = gitUrl
                     logger.debug(json.dumps(task))
                     beanlog.put("code_check", json.dumps(task))                    

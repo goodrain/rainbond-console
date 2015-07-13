@@ -37,7 +37,7 @@ class AppCreateView(AuthedView):
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/goodrainstyle.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
+            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js', 'www/js/app-create.js')
         return media
@@ -168,9 +168,18 @@ class AppCreateView(AuthedView):
     
 class AppWaitingCodeView(AuthedView):
     
+    def get_service_list(self):
+        baseService = BaseTenantService()
+        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+        for s in services:
+            if s.service_alias == self.serviceAlias:
+                s.is_selected = True
+                break
+        return services
+    
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/goodrainstyle.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
+            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js', 'www/js/app-waiting.js')
         return media
@@ -182,12 +191,10 @@ class AppWaitingCodeView(AuthedView):
             if self.service.language != "" and self.service.language is not None:
                 return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
             else:
-                context = self.get_context()            
-                baseService = BaseTenantService()
-                tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-                context["tenantServiceList"] = tenantServiceList                
+                context = self.get_context()      
+                context["myAppStatus"] = "active"
+                context["tenantServiceList"] = self.get_service_list()                
                 context["tenantName"] = self.tenantName
-                context["createApp"] = "active"
                 context["tenantService"] = self.service
                 
                 httpGitUrl = ""
@@ -208,9 +215,18 @@ class AppWaitingCodeView(AuthedView):
     
 class AppLanguageCodeView(AuthedView):
     
+    def get_service_list(self):
+        baseService = BaseTenantService()
+        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+        for s in services:
+            if s.service_alias == self.serviceAlias:
+                s.is_selected = True
+                break
+        return services
+    
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/goodrainstyle.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
+            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js', 'www/js/app-language.js')
         return media
@@ -220,44 +236,45 @@ class AppLanguageCodeView(AuthedView):
     def get(self, request, *args, **kwargs):
         language = "none"
         try:
+            context = self.get_context()            
             if self.service.language == "" or self.service.language is None:
                 return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
             else:
-                context = self.get_context()            
-                baseService = BaseTenantService()
-                tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-                context["tenantServiceList"] = tenantServiceList                
+                context["myAppStatus"] = "active"
+                context["tenantServiceList"] = self.get_service_list()                
                 context["tenantName"] = self.tenantName
-                context["createApp"] = "active"
                 context["tenantService"] = self.service
                 tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 data = json.loads(tenantServiceEnv.check_dependency)
                 context["dependencyData"] = data
                 language = self.service.language
-                redirect = False
+                redirectme = False
                 if language == "PHP":
                     if data["runtimes"] == "true" and data["dependencies"] == "true" and data["procfile"] == "true":
-                        redirect = True   
+                        redirectme = True   
                 elif language == "Ruby":
                     if data["runtimes"] == "true":
-                        redirect = True
+                        redirectme = True
                 elif language == "Python":
                     if data["runtimes"] == "true" and data["dependencies"] == "true":
-                        redirect = True
+                        redirectme = True
                 elif language == "Java-maven":
                     if data["runtimes"] == "true":
-                        redirect = True
+                        redirectme = True
                 elif language == "Java-war":
                     if data["runtimes"] == "true" and data["procfile"] == "true":
-                        redirect = True
+                        redirectme = True
                 elif language == "Node.js":
                     if data["procfile"] == "true":
-                        redirect = True
+                        redirectme = True
                 elif language == "static":
                     if data["procfile"] == "true":
-                        redirect = True
+                        redirectme = True
                 else:
                     language = "none"
+                    
+                if redirectme:
+                    return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
@@ -300,9 +317,18 @@ class AppLanguageCodeView(AuthedView):
     
 class AppDependencyCodeView(AuthedView):
     
+    def get_service_list(self):
+        baseService = BaseTenantService()
+        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+        for s in services:
+            if s.service_alias == self.serviceAlias:
+                s.is_selected = True
+                break
+        return services
+    
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/goodrainstyle.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
+            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js', 'www/js/app-dependency.js')
         return media
@@ -311,12 +337,10 @@ class AppDependencyCodeView(AuthedView):
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         try:
-            context = self.get_context()            
-            baseService = BaseTenantService()
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList                
+            context = self.get_context()           
+            context["myAppStatus"] = "active"
+            context["tenantServiceList"] = self.get_service_list()                
             context["tenantName"] = self.tenantName
-            context["createApp"] = "active"
             context["tenantService"] = self.service
             
             cacheServiceList = ServiceInfo.objects.filter(status="published", category__in=["cache", "store"])
