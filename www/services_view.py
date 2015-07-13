@@ -232,7 +232,7 @@ class TenantService(AuthedView):
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
         try:
-            if self.service.category == "application" and self.service.language != "" and self.service.language is not None:
+            if self.service.category == "application" and (self.service.language == "" or self.service.language is None):
                 last = int(self.service.create_time.strftime("%s"))
                 if last < 1436696108:
                     task = {}
