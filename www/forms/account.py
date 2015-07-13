@@ -62,10 +62,12 @@ class UserLoginForm(forms.Form):
         self.helper = FormHelper(self)
         self.helper.form_tag = False
         self.helper.layout = Div(
-            Field('email', 'password'),
-            FormActions(Submit('login', u'登录', css_class='btn btn-success btn-lg btn-block')),
+            Field('email', css_class="form-control", placeholder=''),
+            Field('password', css_class="form-control", placeholder=''),
+            FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
             HTML(u'''<div class="registration">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
-            css_class='login-wrap'
+            css_class='login-wrap',
+            style="background: #FFFFFF;",
         )
 
         self.helper.help_text_inline = True
@@ -145,6 +147,9 @@ class RegisterForm(forms.Form):
     real_captcha_code = forms.CharField(
         required=True, label='',
     )
+    invite_tag = forms.CharField(
+        required=False, label='',
+    )
     
     checkboxes = forms.MultipleChoiceField(
         label="",
@@ -168,10 +173,22 @@ class RegisterForm(forms.Form):
     }
 
     def __init__(self, *args, **kwargs):
+        init_phone =""
+        init_email =""
+        init_tenant =""
+        if len(kwargs)>0 and kwargs["initial"] is not None:
+            init_phone = kwargs["initial"]["phone"]
+            init_email = kwargs["initial"]["email"]
+            init_tenant = kwargs["initial"]["tenant"]
         super(RegisterForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
-        self.helper.form_tag = False
-        
+        self.helper.form_tag = False       
+        if init_phone is not None and init_phone !="":
+            self.fields['phone'].widget.attrs['readonly'] = True
+        if init_email is not None and init_email !="":
+            self.fields['email'].widget.attrs['readonly'] = True
+        if init_tenant is not None and init_tenant !="":
+            self.fields['tenant'].widget.attrs['readonly'] = True                    
         self.helper.layout = Layout(
             Div(
                 Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
@@ -185,7 +202,7 @@ class RegisterForm(forms.Form):
                 
                 Field('phone', css_class="form-control", placeholder='手机号'),
                 
-                AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>', css_class='input-xlarge', placeholder='手机验证码'),
+                # AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>', css_class='input-xlarge', placeholder='手机验证码'),
                 
                 # PrependedText('prepended_text','captcha'),
                 
@@ -228,7 +245,7 @@ class RegisterForm(forms.Form):
         phone_code = self.cleaned_data.get('phone_code')
         captcha_code = self.cleaned_data.get('captcha_code')
         real_captcha_code = self.cleaned_data.get('real_captcha_code')
-        print real_captcha_code
+        invite_tag = self.cleaned_data.get('invite_tag')
         try:
             Users.objects.get(email=email)
             raise forms.ValidationError(
@@ -238,18 +255,18 @@ class RegisterForm(forms.Form):
             )
         except Users.DoesNotExist:
             pass
-
-        try:
-            Tenants.objects.get(tenant_name=tenant)
-            raise forms.ValidationError(
-                self.error_messages['tenant_used'],
-                code='tenant_used',
-                params={'tenant': tenant}
-            )
-        except Tenants.DoesNotExist:
-            pass
-            # params={'username': self.username_field.verbose_name},
-
+        
+        if invite_tag is None or invite_tag == "":        
+            try:
+                Tenants.objects.get(tenant_name=tenant)
+                raise forms.ValidationError(
+                    self.error_messages['tenant_used'],
+                    code='tenant_used',
+                    params={'tenant': tenant}
+                )
+            except Tenants.DoesNotExist:
+                pass
+            
         try:
             Users.objects.get(nick_name=nick_name)
             raise forms.ValidationError(

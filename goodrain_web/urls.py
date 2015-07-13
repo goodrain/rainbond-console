@@ -20,7 +20,7 @@ urlpatterns = patterns(
     # url(r'^send_invite', views.SendInviteView.as_view()),
     url(r'^phone_code', views.PhoneCodeView.as_view()),
     url(r'^captcha', ChekcCodeImage.as_view()),
-    # url(r'^invite$', views.InviteRegistation.as_view()),
+    url(r'^invite$', views.InviteRegistation.as_view()),
     url(r'^register$', views.Registation.as_view()),
     url(r'^statics$', ServiceStaticsManager.as_view()),
     url(r'^apps/(?P<tenantName>[\w\-]+)/', include('www.url_service')),

@@ -7,7 +7,7 @@ from django.shortcuts import redirect
 from django.http import HttpResponse, Http404
 
 from www.auth import authenticate, login, logout
-from www.forms.account import UserLoginForm,  RegisterForm
+from www.forms.account import UserLoginForm, RegisterForm
 from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode
 from www.utils.mail import send_invite_mail_withHtml
 from www.utils.crypt import AuthCode
@@ -37,7 +37,7 @@ class Login(BaseView):
         return context
 
     def get_media(self):
-        media = super(Login, self).get_media()
+        media = super(Login, self).get_media() + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
         return media
 
     def get_response(self):
@@ -176,9 +176,7 @@ class Registation(BaseView):
     def post(self, request, *args, **kwargs):
         querydict = request.POST
         querydict.update({u'real_captcha_code':request.session.get("captcha_code")})
-        print querydict
-        self.form = RegisterForm(querydict)
-        
+        self.form = RegisterForm(querydict)        
         if self.form.is_valid():
             email = request.POST.get('email')
             nick_name = request.POST.get('nick_name')
@@ -204,6 +202,131 @@ class Registation(BaseView):
 
         return self.get_response()
 
+class InviteRegistation(BaseView):
+    
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
+    def get_context(self):
+        context = super(InviteRegistation, self).get_context()
+        context.update({
+            'form': self.form,
+        })
+        return context
+
+    def get_media(self):
+        media = super(InviteRegistation, self).get_media() + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
+        return media
+
+    def get_response(self):
+        return TemplateResponse(self.request, 'www/register.html', self.get_context())
+
+    def register_for_tenant(self, user, password, data):
+        email, tenant_name, identity = data
+        tenant = Tenants.objects.get(tenant_name=tenant_name)
+        PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity=identity)
+        self.add_git_user(user, password)
+
+    def register_for_service(self, user, password, data):
+        email, tenant_name, service_alias, identity = data
+        tenant = Tenants.objects.get(tenant_name=tenant_name)
+        service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_alias)
+        PermRelService.objects.create(user_id=user.pk, service_id=service.pk, identity=identity)
+
+        perm_t, created = PermRelTenant.objects.get_or_create(user_id=user.pk, tenant_id=tenant.pk)
+        if created:
+            perm_t.identity = 'access'
+            perm_t.save()
+            self.add_git_user(user, password)
+
+        git_project_id = service.git_project_id
+        if git_project_id > 0 and user.git_user_id > 0:
+            level = 10
+            if identity == "viewer":
+                level = 20
+            elif identity == "developer":
+                level = 30
+            elif identity == "admin":
+                level = 40
+            gitClient.addProjectMember(git_project_id, user.git_user_id, level)
+
+    def add_git_user(self, user, password):
+        git_user_id = gitClient.createUser(user.email, password, user.nick_name, user.nick_name)
+        user.git_user_id = git_user_id
+        user.save()
+
+    def get(self, request, *args, **kwargs):
+        encoded_data = str(request.GET.get('key'))
+        self.key = encoded_data
+        logger.debug(self.key)
+        data = AuthCode.decode(encoded_data, 'goodrain').split(',')
+        logger.debug(data)
+        # tenant member
+        if len(data) == 3: 
+            self.email, self.tenant_name = data[0:2]
+            self.service_name = ""
+        elif len(data) == 4:
+            self.email, self.tenant_name, self.service_name = data[0:3]
+        else:
+            redirect('/register')
+        try:
+            if self.email.find("@") > 0:
+                Users.objects.get(email=self.email)
+            else:
+                Users.objects.get(phone=self.email)
+            return redirect('/login')
+        except Users.DoesNotExist:
+            curemail = ""
+            curphone = ""
+            if self.email.find("@"):
+                curemail = self.email
+            else:
+                curphone = self.email            
+            self.form = RegisterForm(
+                initial={
+                    "tenant":self.tenant_name,
+                    "phone" : curphone,
+                    "email":curemail
+                }
+            )
+            return self.get_response()
+        
+    def post(self, request, *args, **kwargs):
+        encoded_data = str(request.GET.get('key'))
+        data = AuthCode.decode(encoded_data, 'goodrain').split(',')        
+        querydict = request.POST
+        querydict.update({u'invite_tag':"invite"})
+        querydict.update({u'real_captcha_code':request.session.get("captcha_code")})
+        self.form = RegisterForm(querydict)        
+        if not self.form.is_valid():
+            return self.get_response()
+                
+        email = request.POST.get('email')
+        nick_name = request.POST.get('nick_name')
+        password = request.POST.get('password')
+        tenant_name = request.POST.get('tenant')
+        phone = request.POST.get('phone')
+        user = Users(email=email, nick_name=nick_name, phone=phone, client_ip=self.get_client_ip(request))
+        user.set_password(password)
+        user.save()
+        
+        if len(data) == 3:
+            pass
+            #self.register_for_tenant(user, password, data)
+        elif len(data) == 4:
+            pass
+        else:
+            redirect('/register')
+            #self.register_for_service(user, password, data)
+        user = authenticate(username=email, password=password)
+        login(request, user)
+        return redirect('/apps/{0}'.format(self.tenant_name))
+
 class PhoneCodeView(BaseView):
     
     def post(self, request, *args, **kwargs):
@@ -222,7 +345,6 @@ class PhoneCodeView(BaseView):
             if len(phoneCodes) > 0:
                 phoneCode = phoneCodes[0]
                 last = int(phoneCode.create_time.strftime("%s"))
-                print last
                 now = int(time.time())
                 if now - last < 90:
                     result["status"] = "often"

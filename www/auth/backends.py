@@ -8,7 +8,10 @@ class ModelBackend(object):
             username = kwargs.get('email')
 
         try:
-            user = Users.objects.get(email=username)
+            if username.find("@") > 0:
+               user = Users.objects.get(email=username)
+            else:
+                user = Users.objects.get(phone=username)            
             if user.check_password(password):
                 return user
         except Users.DoesNotExist:
