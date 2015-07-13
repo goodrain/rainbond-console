@@ -486,7 +486,11 @@ class GitCheckCode(BaseView):
                             tse.save()
                     except Exception:
                         tse = TenantServiceEnv(service_id=service_id, language=language, check_dependency=dependency)
-                        tse.save()         
+                        tse.save()
+                    service = TenantServiceInfo.objects.get(service_id=service_id)
+                    if service.language is None or service.language == "":
+                        service.language = language
+                        service.save()
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)

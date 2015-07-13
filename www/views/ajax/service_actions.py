@@ -471,18 +471,3 @@ class ServiceCheck(AuthedView):
             result["status"] = "checking"
             result["data"] = {}
         return JsonResponse(result)
-    
-    @perm_required('manage_service')
-    def post(self, request, *args, **kwargs):
-        result = {}
-        try:
-            tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-            tse.check_dependency = dependency
-            tse.language = language
-            tse.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            tse.save()
-            result["status"] = "success"
-        except Exception as e:
-            logger.exception(e)
-            result["status"] = "failure"
-        return JsonResponse(result)
