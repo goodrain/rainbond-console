@@ -57,8 +57,7 @@ class ServiceMarket(AuthedView):
         return TemplateResponse(self.request, "www/service_market.html", context)
     
 class ServiceMarketDeploy(AuthedView):
-    
-    
+
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
@@ -233,7 +232,7 @@ class TenantService(AuthedView):
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
         try:
-            if self.service.language != "" and self.service.language is not None:
+            if self.service.category == "application" and self.service.language != "" and self.service.language is not None:
                 last = int(self.service.create_time.strftime("%s"))
                 if last < 1436696108:
                     task = {}

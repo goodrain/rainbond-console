@@ -86,7 +86,7 @@ class BaseTenantService(object):
         data["volume_mount_path"] = newTenantService.volume_mount_path
         data["host_path"] = newTenantService.host_path
         data["extend_method"] = service.extend_method
-        data["status"] = True
+        data["status"] = False
         data["replicas"] = newTenantService. min_node
         data["service_alias"] = newTenantService.service_alias
         data["service_port"] = newTenantService.service_port
