@@ -22,6 +22,7 @@ from www.tenantservice.baseservice import BaseTenantService
 from www.inflexdb.inflexdbservice import InflexdbService
 from www.tenantfee.feeservice import TenantFeeService
 from www.db import BaseConnection
+from www.utils.language import is_redirect
 
 client = RegionServiceApi()
 
@@ -29,7 +30,7 @@ logger = logging.getLogger('default')
 
 gitClient = GitlabApi()
 
-beanlog = BeanStalkClient()
+beanclient = BeanStalkClient()
 
 gitHubClient = GitHubApi()
 
@@ -155,7 +156,7 @@ class AppCreateView(AuthedView):
             task["log_msg"] = "应用创建成功"
             task["service_id"] = newTenantService.service_id
             task["tenant_id"] = newTenantService.tenant_id
-            beanlog.put("app_log", json.dumps(task))
+            beanclient.put("app_log", json.dumps(task))
             
             data["status"] = "success"
             data["service_alias"] = service_alias
@@ -244,35 +245,11 @@ class AppLanguageCodeView(AuthedView):
                 context["tenantServiceList"] = self.get_service_list()                
                 context["tenantName"] = self.tenantName
                 context["tenantService"] = self.service
+                language = self.service.language
                 tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 data = json.loads(tenantServiceEnv.check_dependency)
                 context["dependencyData"] = data
-                language = self.service.language
-                redirectme = False
-                if language == "PHP":
-                    if data["runtimes"] == "true" and data["dependencies"] == "true" and data["procfile"] == "true":
-                        redirectme = True   
-                elif language == "Ruby":
-                    if data["runtimes"] == "true":
-                        redirectme = True
-                elif language == "Python":
-                    if data["runtimes"] == "true" and data["dependencies"] == "true":
-                        redirectme = True
-                elif language == "Java-maven":
-                    if data["runtimes"] == "true":
-                        redirectme = True
-                elif language == "Java-war":
-                    if data["runtimes"] == "true" and data["procfile"] == "true":
-                        redirectme = True
-                elif language == "Node.js":
-                    if data["procfile"] == "true":
-                        redirectme = True
-                elif language == "static":
-                    if data["procfile"] == "true":
-                        redirectme = True
-                else:
-                    language = "none"
-                    
+                redirectme = is_redirect(self.service.language, data)
                 if redirectme:
                     return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
         except Exception as e:
@@ -287,6 +264,7 @@ class AppLanguageCodeView(AuthedView):
             service_version = request.POST.get("service_version", "")
             service_server = request.POST.get("service_server", "")
             service_dependency = request.POST.get("service_dependency", "")
+            logger.debug(service_dependency)
             checkJson = {}
             checkJson["language"] = self.service.language
             if service_version != "":
@@ -303,9 +281,9 @@ class AppLanguageCodeView(AuthedView):
                 for dp in dps:
                     if dp is not None and dp != "":
                         d["ext-" + dp] = "*"
-                data["dependencies"] = d
+                checkJson["dependencies"] = d
             else:
-                data["dependencies"] = {}            
+                checkJson["dependencies"] = {}            
             
             tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             tenantServiceEnv.user_dependency = json.dumps(checkJson)
@@ -410,7 +388,7 @@ class GitLabWebHook(BaseView):
                     gitUrl = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
                     task["git_url"] = gitUrl
                     logger.debug(json.dumps(task))
-                    beanlog.put("code_check", json.dumps(task))
+                    beanclient.put("code_check", json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -445,7 +423,7 @@ class GitHubWebHook(BaseView):
                     gitUrl = "--branch " + ts.code_version + " --depth 1 " + clone_url
                     task["git_url"] = gitUrl
                     logger.debug(json.dumps(task))
-                    beanlog.put("code_check", json.dumps(task))
+                    beanclient.put("code_check", json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
