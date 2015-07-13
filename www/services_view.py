@@ -11,6 +11,7 @@ from django.http.response import HttpResponse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
+from django.shortcuts import redirect
 from www.decorator import perm_required
 from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv
 from service_http import RegionServiceApi
