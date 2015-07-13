@@ -5,9 +5,6 @@ Author: Mosaddek Hossain
 Website: http://thevectorlab.net/
 */
 
-/* Import fonts */
-@import url(http://fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic);
-
 body {
     color: #797979;
     background: #f1f2f7;
@@ -5496,6 +5493,15 @@ a.guest-on i {
 
 .lobby {
     padding: 0 !important;
+}
+
+.input-group-addon {
+    background-color: #fff;
+    border: 0px solid #CCC;
+}
+
+.has-error .input-group-addon {
+    background-color: #FFF;
 }
 
 /*add by wangjj*/
