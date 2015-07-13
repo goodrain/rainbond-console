@@ -316,13 +316,11 @@ class InviteRegistation(BaseView):
         user.save()
         
         if len(data) == 3:
-            pass
-            #self.register_for_tenant(user, password, data)
+            self.register_for_tenant(user, password, data)
         elif len(data) == 4:
             pass
         else:
-            redirect('/register')
-            #self.register_for_service(user, password, data)
+            self.register_for_service(user, password, data)
         user = authenticate(username=email, password=password)
         login(request, user)
         return redirect('/apps/{0}'.format(self.tenant_name))
