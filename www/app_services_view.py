@@ -458,10 +458,9 @@ class GitCheckCode(BaseView):
                 if language is not None and language != "":
                     try:
                         tse = TenantServiceEnv.objects.get(service_id=service_id)
-                        if tse.language != language:
-                            tse.language = language
-                            tse.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                            tse.save()
+                        tse.language = language
+                        tse.check_dependency = dependency
+                        tse.save() 
                     except Exception:
                         tse = TenantServiceEnv(service_id=service_id, language=language, check_dependency=dependency)
                         tse.save()
