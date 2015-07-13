@@ -46,7 +46,7 @@ $(function() {
 				var dataObj = msg;
 				if (dataObj["status"] == "success") {
 					window.location.href = "/apps/" + tenantName + "/"
-							+ service_name + "/detail/"
+							+ service_name + "/app-waiting/"
 				} else {
 					alert("创建失败")
 					$("#service_dependency_finished").attr('disabled', "false")

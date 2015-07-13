@@ -25,7 +25,7 @@ $(function() {
 					var dataObj = msg
 					if (dataObj["status"] == "success") {
 						window.location.href = "/apps/" + tenantName + "/"
-								+ service_name + "/app-dependency/"
+								+ service_name + "/detail/"
 					} else {
 						alert("创建失败")
 						$("#language_btn").attr('disabled', "false")

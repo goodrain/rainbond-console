@@ -124,46 +124,46 @@ class AllServiceInfo(AuthedView):
                                 result[s.service_id] = child1
                             else:
                                 service_ids.append(s['service_id'])
-            id_string = ','.join(service_ids)
-            client = RegionServiceApi()
-            bodys = client.check_status(json.dumps({"service_ids": id_string}))
-
-            for sid in service_ids:
-                service = TenantServiceInfo.objects.get(service_id=sid)
-                body = bodys[sid]
-                nodeNum = 0
-                runningNum = 0
-                isDeploy = 0
-                child = {}
-                for item in body:
-                    nodeNum += 1
-                    status = body[item]['status']
-                    if status == "Undeployed":
-                        isDeploy = -1
-                        break                      
-                    elif status == 'Running':
-                        runningNum += 1
-                        isDeploy += 1
-                    else:
-                        isDeploy += 1
-                if isDeploy > 0:
-                    if nodeNum == runningNum:
-                        if runningNum > 0:
-                            child["totalMemory"] = runningNum * service.min_memory
-                            child["status"] = "Running"
+            if len(service_ids) > 1:
+                id_string = ','.join(service_ids)
+                client = RegionServiceApi()
+                bodys = client.check_status(json.dumps({"service_ids": id_string}))
+                for sid in service_ids:
+                    service = TenantServiceInfo.objects.get(service_id=sid)
+                    body = bodys[sid]
+                    nodeNum = 0
+                    runningNum = 0
+                    isDeploy = 0
+                    child = {}
+                    for item in body:
+                        nodeNum += 1
+                        status = body[item]['status']
+                        if status == "Undeployed":
+                            isDeploy = -1
+                            break                      
+                        elif status == 'Running':
+                            runningNum += 1
+                            isDeploy += 1
+                        else:
+                            isDeploy += 1
+                    if isDeploy > 0:
+                        if nodeNum == runningNum:
+                            if runningNum > 0:
+                                child["totalMemory"] = runningNum * service.min_memory
+                                child["status"] = "Running"
+                            else:
+                                child["totalMemory"] = 0
+                                child["status"] = "Waiting"
                         else:
                             child["totalMemory"] = 0
                             child["status"] = "Waiting"
+                    elif isDeploy == -1 :
+                        child["totalMemory"] = 0
+                        child["status"] = "Undeployed"
                     else:
                         child["totalMemory"] = 0
-                        child["status"] = "Waiting"
-                elif isDeploy == -1 :
-                    child["totalMemory"] = 0
-                    child["status"] = "Undeployed"
-                else:
-                    child["totalMemory"] = 0
-                    child["status"] = "Closing"
-                result[sid] = child
+                        child["status"] = "Closing"
+                    result[sid] = child
         except Exception, e:
             logger.exception(e)
             logger.info("%s" % e)

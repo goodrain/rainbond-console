@@ -54,7 +54,7 @@ $(function(){
     			} else if (dataObj["status"] == "success") {
     				service_alias = dataObj["service_alias"]
     				window.location.href = "/apps/" + tenantName + "/"
-    						+ service_alias + "/app-waiting/"
+    						+ service_alias + "/app-dependency/"
     			} else {
     				alert("创建失败")
     				$("#first_step").attr('disabled', "false")

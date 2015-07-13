@@ -196,10 +196,15 @@ class AppWaitingCodeView(AuthedView):
                     httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
                 else:
                     httpGitUrl = self.service.git_url
-                context["httpGitUrl"] = httpGitUrl             
+                context["httpGitUrl"] = httpGitUrl
+                
+                tenant_id = self.tenant.tenant_id
+                deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
+                context["deployTenantServices"] = deployTenantServices
+                
         except Exception as e:
             logger.exception(e)
-        return TemplateResponse(self.request, "www/app_create_step_2_waiting.html", context)
+        return TemplateResponse(self.request, "www/app_create_step_3_waiting.html", context)
     
 class AppLanguageCodeView(AuthedView):
     
@@ -215,7 +220,7 @@ class AppLanguageCodeView(AuthedView):
     def get(self, request, *args, **kwargs):
         language = "none"
         try:
-            if self.service.language == "" and self.service.language is None:
+            if self.service.language == "" or self.service.language is None:
                 return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
             else:
                 context = self.get_context()            
@@ -246,7 +251,7 @@ class AppLanguageCodeView(AuthedView):
                     if data["runtimes"] == "true" and data["procfile"] == "true":
                         redirect = True
                 elif language == "Node.js":
-                    if data["runtimes"] == "true":
+                    if data["procfile"] == "true":
                         redirect = True
                 elif language == "static":
                     if data["procfile"] == "true":
@@ -255,7 +260,7 @@ class AppLanguageCodeView(AuthedView):
                     language = "none"
         except Exception as e:
             logger.exception(e)
-        return TemplateResponse(self.request, "www/app_create_step_3_" + language.replace(".", "").lower() + ".html", context)
+        return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
     
     @never_cache
     @perm_required('create_service')
@@ -269,10 +274,22 @@ class AppLanguageCodeView(AuthedView):
             checkJson["language"] = self.service.language
             if service_version != "":
                 checkJson["runtimes"] = service_version
-            if service_dependency != "":
-                checkJson["dependencies"] = service_dependency
+            else:
+                checkJson["runtimes"] = ""
             if service_server != "":
                 checkJson["procfile"] = service_server
+            else:
+                checkJson["procfile"] = ""
+            if service_dependency != "":
+                dps = service_dependency.split(",")
+                d = {}
+                for dp in dps:
+                    if dp is not None and dp != "":
+                        d["ext-" + dp] = "*"
+                data["dependencies"] = d
+            else:
+                data["dependencies"] = {}            
+            
             tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             tenantServiceEnv.user_dependency = json.dumps(checkJson)
             tenantServiceEnv.save()
@@ -294,26 +311,23 @@ class AppDependencyCodeView(AuthedView):
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         try:
-            if self.service.language == "" or self.service.language is None:
-                return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-            else:
-                context = self.get_context()            
-                baseService = BaseTenantService()
-                tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-                context["tenantServiceList"] = tenantServiceList                
-                context["tenantName"] = self.tenantName
-                context["createApp"] = "active"
-                context["tenantService"] = self.service
-                
-                cacheServiceList = ServiceInfo.objects.filter(status="published", category__in=["cache", "store"])
-                context["cacheServiceList"] = cacheServiceList
-                
-                tenant_id = self.tenant.tenant_id
-                deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
-                context["deployTenantServices"] = deployTenantServices
+            context = self.get_context()            
+            baseService = BaseTenantService()
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+            context["tenantServiceList"] = tenantServiceList                
+            context["tenantName"] = self.tenantName
+            context["createApp"] = "active"
+            context["tenantService"] = self.service
+            
+            cacheServiceList = ServiceInfo.objects.filter(status="published", category__in=["cache", "store"])
+            context["cacheServiceList"] = cacheServiceList
+            
+            tenant_id = self.tenant.tenant_id
+            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
+            context["deployTenantServices"] = deployTenantServices 
         except Exception as e:
             logger.exception(e)
-        return TemplateResponse(self.request, "www/app_create_step_4_dependency.html", context)
+        return TemplateResponse(self.request, "www/app_create_step_2_dependency.html", context)
     
     @never_cache
     @perm_required('create_service')
@@ -417,15 +431,18 @@ class GitHubWebHook(BaseView):
 class GitCheckCode(BaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
+        data = {}
         try:
             service_id = request.GET.get("service_id", "")
             logger.debug("git code request: " + service_id)
             tse = TenantServiceEnv.objects.get(service_id=service_id)
+            result = tse.user_dependency
+            if result is not None and result != "":
+                data = json.loads(result)
         except Exception as e:
-            logger.exception(e)
-            result = {}
-        return HttpResponse(json.dumps(result))
-    
+            logger.exception(e)            
+        return JsonResponse(data, status=200)
+        
     @never_cache
     def post(self, request, *args, **kwargs):
         result = {}

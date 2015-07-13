@@ -8,3 +8,13 @@ def mkey(d, key):
     except Exception:
         pass
     return value
+
+@register.filter
+def mod(firstValue, factor):
+    value=0
+    try:
+        value = int(firstValue) % int(factor)
+    except Exception:
+        pass
+    return value
+
