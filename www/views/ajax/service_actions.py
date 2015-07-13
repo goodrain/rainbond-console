@@ -468,7 +468,6 @@ class ServiceCheck(AuthedView):
                     result["status"] = "hidden"
             result["data"] = {}
         except Exception as e:
-            logger.exception(e)
             result["status"] = "checking"
             result["data"] = {}
         return JsonResponse(result)

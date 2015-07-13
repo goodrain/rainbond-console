@@ -472,10 +472,11 @@ class GitCheckCode(BaseView):
         result = {}
         try:
             service_id = request.POST.get("service_id", "")
-            language = request.POST.get("language", "")
-            dependency = request.POST.get("dependency", "")
-            logger.debug(service_id + "=" + language + "=" + dependency)
+            dependency = request.POST.get("condition", "")
+            logger.debug(service_id + "=" + dependency)
             if service_id is not None and service_id != "":
+                dps = json.loads(dependency)
+                language = dps["language"]
                 if language is not None and language != "":
                     try:
                         tse = TenantServiceEnv.objects.get(service_id=service_id)
@@ -484,7 +485,7 @@ class GitCheckCode(BaseView):
                             tse.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             tse.save()
                     except Exception:
-                        tse = TenantServiceEnv(service_id=service_id, language=language, dependency=dependency, create_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        tse = TenantServiceEnv(service_id=service_id, language=language, check_dependency=dependency)
                         tse.save()         
             result["status"] = "success"
         except Exception as e:
