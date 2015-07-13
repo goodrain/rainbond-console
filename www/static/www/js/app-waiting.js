@@ -14,7 +14,7 @@ function getGitCodeCheck() {
 				var dataObj = msg;
 				if (dataObj["status"] == "hidden"
 						|| dataObj["status"] == "change") {
-					window.location.href = "/app/" + tenantName + "/"
+					window.location.href = "/apps/" + tenantName + "/"
 							+ service_name + "/app-language/"
 				}
 			},
