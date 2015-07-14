@@ -26,10 +26,10 @@ $(function(){
         }
         var codeStoreSel = $(':radio:checked', $('#sel_code_store')).val();
         if((codeStoreSel == 'option2' || codeStoreSel == 'option3') && !$('.duigou_icon', $('#code_store_list')).length){
-            $('#create_codestore_notice').slideDown();
+            $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').slideDown();
             return;
         }
-        $("#first_step").attr('disabled', "true")
+        $("#first_step").attr('disabled', "true");
     	var _data = $("form").serialize();
         var tenantName= $('#currentTeantName').val();
     	$.ajax({
@@ -44,25 +44,24 @@ $(function(){
     		success : function(msg) {
     			var dataObj = msg;
     			if (dataObj["status"] == "exist") {
-    				alert("服务名已存在")
+    				alert("服务名已存在");
     			} else if (dataObj["status"] == "overtop") {
-    				alert("免费资源已达上限，不能创建")
+    				alert("免费资源已达上限，不能创建");
     			} else if (dataObj["status"] == "empty") {
-    				alert("应用名称不能为空")
+    				alert("应用名称不能为空");
     			}else if (dataObj["status"] == "code_from") {
-    				alert("应用资源库未选择")
+    				alert("应用资源库未选择");
     			} else if (dataObj["status"] == "success") {
     				service_alias = dataObj["service_alias"]
-    				window.location.href = "/apps/" + tenantName + "/"
-    						+ service_alias + "/app-dependency/"
+    				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-dependency/";
     			} else {
-    				alert("创建失败")
-    				$("#first_step").attr('disabled', "false")
+    				alert("创建失败");
+    				$("#first_step").attr('disabled', "false");
     			}
     		},
     		error : function() {
     			alert("系统异常,请重试");
-    			$("#first_step").attr('disabled', "false")
+    			$("#first_step").attr('disabled', "false");
     		}
     	})
     });
@@ -80,7 +79,7 @@ $(function(){
             $('#wait_loading').slideDown();
             var tenantName= $('#currentTeantName').val();
             _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
-            loadRepos(_url)
+            loadRepos(_url);
         }else if(selOption == 'option3'){
         	$('#service_code_from').val("github");
             $('#code_store_list').hide();
@@ -88,7 +87,7 @@ $(function(){
             $('#wait_loading').slideDown();
             var tenantName= $('#currentTeantName').val();
             _url = "/ajax/"+tenantName+"/code_repos?action=github";
-            loadRepos(_url)
+            loadRepos(_url);
         }
     });
 });
@@ -99,59 +98,60 @@ function loadRepos(_url){
 	     type: "GET",
 	     url: _url,
 	     cache: false,
-         success: function(msg) {
-         var dataObj = msg;
-         if(dataObj["status"] == "unauthorized"){
-           window.open(dataObj["url"],"_parent")
-         }else if(dataObj["status"]=="success"){
-           var dataList=dataObj["data"];
-           var htmlmsg="";
-           for(var i=0;i<dataList.length;i++){
-             data = dataList[i]
-             htmlmsg +='<tr idx="'+ i +'" data="'+data["code_id"]+'">'
-             htmlmsg +='<input type="hidden" id="repos_'+data["code_id"]+'" name="repos_'+data["code_id"]+'" value='+data["code_repos"]+' />'
-             htmlmsg +='<td class="text-center"><i></i></td>'
-             htmlmsg +='<td>'+data["code_user"]+'/'+data["code_project_name"]+'</td>'
-             htmlmsg +='<td> <select class="form-control" style="width: 150px;" id="git_version_'+data["code_id"]+'"> </select></td>'
-             htmlmsg +='</tr>'
-           }
-           $('tbody', listWrap).html(htmlmsg);
-           $('#wait_loading').hide();
-           listWrap.slideDown();
-           
-           $('select', listWrap).click(function(e){
-               event = e || window.event;
-               event.stopPropagation();
-           });
-           
-           $('tr', listWrap).click(function(){
-               var iObj = $('i', $(this));
-               if(iObj.hasClass('duigou_icon')){
-                   iObj.removeClass('duigou_icon');
-                   $(this).removeClass('create_codestore_trsed');
-                   var service_code_id=$(this).attr("data")
-                   $("#service_code_id").val("");
-               }else{
-                   $('.duigou_icon', listWrap).removeClass('duigou_icon');
-                   $('.create_codestore_trsed', listWrap).removeClass('create_codestore_trsed');
-                   iObj.addClass('duigou_icon');
-                   $(this).addClass('create_codestore_trsed');
-                   var service_code_id=$(this).attr("data");
-                   var gitValue = $("#git_version_"+service_code_id).val();
-                   if(gitValue == null || gitValue == ""){
-                	   var clone_url = $('#repos_'+service_code_id).val();
-                       $("#service_code_clone_url").val(clone_url);
-                       $("#service_code_id").val(service_code_id);
-                       var service_code_from = $('#service_code_from').val()
-                       $('#create_codestore_notice').html("正在读取项目分支信息")
-                       $('#create_codestore_notice').show();
-                       projectVersion(service_code_from,service_code_id,clone_url)
-                   }
+         success: function(msg){
+             var dataObj = msg;
+             if(dataObj["status"] == "unauthorized"){
+                window.open(dataObj["url"], "_parent");
+             }else if(dataObj["status"]=="success"){
+               var dataList=dataObj["data"];
+               var htmlmsg="";
+               for(var i=0;i<dataList.length;i++){
+                 data = dataList[i];
+                 htmlmsg +='<tr idx="'+ i +'" data="'+data["code_id"]+'">';
+                 htmlmsg +='<input type="hidden" id="repos_'+data["code_id"]+'" name="repos_'+data["code_id"]+'" value='+data["code_repos"]+' />';
+                 htmlmsg +='<td class="text-center"><i></i></td>';
+                 htmlmsg +='<td>'+data["code_user"]+'/'+data["code_project_name"]+'</td>';
+                 htmlmsg +='<td> <select class="form-control" style="width: 150px;" id="git_version_'+data["code_id"]+'"> </select></td>';
+                 htmlmsg +='</tr>';
                }
-           });           
-         }else{
-           $('#wait_loading').html("无可用仓库")
-         }
+               $('tbody', listWrap).html(htmlmsg);
+               $('#wait_loading').hide();
+               listWrap.slideDown();
+               
+               $('select', listWrap).click(function(e){
+                   event = e || window.event;
+                   event.stopPropagation();
+               });
+               
+               $('tr', listWrap).click(function(){
+                   var iObj = $('i', $(this));
+                   if(iObj.hasClass('duigou_icon')){
+                       iObj.removeClass('duigou_icon');
+                       $(this).removeClass('create_codestore_trsed');
+                       var service_code_id=$(this).attr("data");
+                       $("#service_code_id").val("");
+                       $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').html('请选择相应的代码仓库和分支');
+                   }else{
+                       $('.duigou_icon', listWrap).removeClass('duigou_icon');
+                       $('.create_codestore_trsed', listWrap).removeClass('create_codestore_trsed');
+                       iObj.addClass('duigou_icon');
+                       $(this).addClass('create_codestore_trsed');
+                       var service_code_id=$(this).attr("data");
+                       var gitValue = $("#git_version_"+service_code_id).val();
+                       if(gitValue == null || gitValue == ""){
+                    	   var clone_url = $('#repos_'+service_code_id).val();
+                           $("#service_code_clone_url").val(clone_url);
+                           $("#service_code_id").val(service_code_id);
+                           var service_code_from = $('#service_code_from').val();
+                           $('#create_codestore_notice').removeClass('alert-danger').addClass('alert-info').html("正在读取项目分支信息");
+                           $('#create_codestore_notice').slideDown();
+                           projectVersion(service_code_from,service_code_id,clone_url);
+                       }
+                   }
+               });           
+             }else{
+               $('#wait_loading').html("无可用仓库")
+             }
        },
        error: function(){
        //alert("系统异常");
@@ -160,15 +160,15 @@ function loadRepos(_url){
 }
 
 function projectVersion(code_from,code_id,clone_url){
-	var action=""
-	var user =""
-	var repos =""
+	var action="";
+	var user ="";
+	var repos ="";
 	if(code_from=="gitlab_exit"){
-		action="gitlab"
+		action="gitlab";
 	}else if(code_from=="github"){
-		action="github"
-		user =  clone_url.split("/")[3]
-		repos = clone_url.split("/")[4].split(".")[0]
+		action="github";
+		user =  clone_url.split("/")[3];
+		repos = clone_url.split("/")[4].split(".")[0];
 	}
 	var tenantName= $('#currentTeantName').val();
 	if(action != ""){
@@ -182,22 +182,22 @@ function projectVersion(code_from,code_id,clone_url){
 	         xhr.setRequestHeader("X-CSRFToken", csrftoken);
 	       },
 	       success : function(msg) {
-	         var dataObj = msg
-	         if (dataObj["status"] == "unauthorized") {
-	           window.open(dataObj["url"],"_parent")
+	         var dataObj = msg;
+	         if(dataObj["status"] == "unauthorized") {
+	           window.open(dataObj["url"],"_parent");
 	         }else if(dataObj["status"] == "success"){
-	           var dataList=dataObj["data"];
-	           var htmlmsg="";
-	           //htmlmsg +='<select name="code_version_'+code_id+'" id="code_version_'+code_id+'" class="form-control" style="width: 150px;">'
-	           for(var i=0;i<dataList.length;i++){
-	             data = dataList[i]
-	             htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>'
-	           }
-	           //htmlmsg +='</select>'
-	           $('#create_codestore_notice').hide();
-	           $("#git_version_"+code_id).html(htmlmsg)
+                var dataList=dataObj["data"];
+                var htmlmsg="";
+                //htmlmsg +='<select name="code_version_'+code_id+'" id="code_version_'+code_id+'" class="form-control" style="width: 150px;">'
+                for(var i=0;i<dataList.length;i++){
+                     data = dataList[i];
+                     htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>';
+                }
+                //htmlmsg +='</select>'
+                $('#create_codestore_notice').hide();
+                $("#git_version_"+code_id).html(htmlmsg);
 	         }else {
-	           alert("操作失败")
+	           alert("操作失败");
 	         }
 	       },
 	       error : function() {
