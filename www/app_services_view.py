@@ -381,6 +381,7 @@ class AppDependencyCodeView(AuthedView):
                        logger.exception(e)
             # exist service dependency
             if hasService is not None and hasService != "":
+                baseService = BaseTenantService()
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
