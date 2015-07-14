@@ -200,7 +200,7 @@ class TenantServiceInfo(BaseModel):
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
     code_from = models.CharField(max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
     git_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"code代码仓库")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否上传代码")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
@@ -248,7 +248,7 @@ class TenantServiceInfoDelete(BaseModel):
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
     code_from = models.CharField(max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
     git_url = models.CharField(max_length=100, null=True, blank=True, help_text=u"git代码仓库")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
     code_version = models.CharField(max_length=100, null=True, blank=True, help_text=u"代码版本")
@@ -285,7 +285,7 @@ class TenantServiceEnv(BaseModel):
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
     check_dependency = models.CharField(max_length=100, null=True, blank=True, help_text=u"服务运行环境依赖")
     user_dependency = models.CharField(max_length=400, null=True, blank=True, help_text=u"服务运行环境依赖")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
 class ServiceDomain(BaseModel):
@@ -295,7 +295,7 @@ class ServiceDomain(BaseModel):
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_name = models.CharField(max_length=32, help_text=u"服务名")
     domain_name = models.CharField(max_length=32, help_text=u"域名")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
     def __unicode__(self):
         return self.domain_name
@@ -340,7 +340,7 @@ class TenantRecharge(BaseModel):
     show_url = models.CharField(max_length=100, help_text=u"详情url")
     status = models.CharField(max_length=30, help_text=u"充值状态")
     trade_no = models.CharField(max_length=64, help_text=u"支付宝交易号")
-    time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     
 class TenantServiceStatics(BaseModel):
     class Meta:
@@ -362,7 +362,7 @@ class TenantServiceStatics(BaseModel):
     net_in = models.IntegerField(help_text=u"网络使用K", default=0)
     net_out = models.IntegerField(help_text=u"网络使用K", default=0)    
     time_stamp = models.IntegerField(help_text=u"时间戳", default=0)
-    time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     
 class TenantConsume(BaseModel):
     class Meta:
@@ -379,7 +379,7 @@ class TenantConsume(BaseModel):
     total_memory = models.IntegerField(help_text=u"内存使用K", default=0)
     fee_rule = models.CharField(max_length=60, help_text=u"计费规则")
     pay_status = models.CharField(max_length=10, help_text=u"扣费状态；payed,unpayed")
-    time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 class TenantFeeBill(BaseModel):
     class Meta:
@@ -391,7 +391,7 @@ class TenantFeeBill(BaseModel):
     bill_phone = models.CharField(max_length=100, help_text=u"邮寄电话")
     money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"发票金额")
     status = models.CharField(max_length=10, help_text=u"审核状态:已审核(approved)，未审核(unapproved)")
-    time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 class TenantPaymentNotify(BaseModel):
     class Meta:
@@ -400,14 +400,14 @@ class TenantPaymentNotify(BaseModel):
     notify_type = models.CharField(max_length=10, help_text=u"通知类型：余额不足，欠费") 
     notify_content = models.CharField(max_length=200, help_text=u"通知类容")
     send_person = models.CharField(max_length=20, help_text=u"通知人")
-    time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 class PhoneCode(BaseModel):
     class Meta:
         db_table = 'phone_code'
-    phone = models.CharField(max_length=11,help_text=u"手机号码")
-    type =  models.CharField(max_length=10, help_text=u"类型")
-    code =  models.CharField(max_length=10, help_text=u"类型")
+    phone = models.CharField(max_length=11, help_text=u"手机号码")
+    type = models.CharField(max_length=10, help_text=u"类型")
+    code = models.CharField(max_length=10, help_text=u"类型")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
     
