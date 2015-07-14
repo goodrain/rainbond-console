@@ -236,24 +236,22 @@ class TenantService(AuthedView):
         try:
             if self.service.category == "application":
                 if self.service.language == "" or self.service.language is None:
-                    last = int(self.service.create_time.strftime("%s"))
-                    if last < 1436696108:
-                        task = {}
-                        task["tenant_id"] = self.service.tenant_id
-                        task["service_id"] = self.service.service_id
-                        if self.service.code_from != "github":
-                             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
-                             task["git_url"] = gitUrl
-                        else:
-                            clone_url = self.service.git_url
-                            code_user = clone_url.split("/")[3]
-                            code_project_name = clone_url.split("/")[4].split(".")[0]
-                            createUser = Users.objects.get(user_id=self.service.creater)
-                            clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
-                            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-                            task["git_url"] = gitUrl
-                        logger.debug(json.dumps(task))
-                        beanclient.put("code_check", json.dumps(task))                    
+                    task = {}
+                    task["tenant_id"] = self.service.tenant_id
+                    task["service_id"] = self.service.service_id
+                    if self.service.code_from != "github":
+                         gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
+                         task["git_url"] = gitUrl
+                    else:
+                        clone_url = self.service.git_url
+                        code_user = clone_url.split("/")[3]
+                        code_project_name = clone_url.split("/")[4].split(".")[0]
+                        createUser = Users.objects.get(user_id=self.service.creater)
+                        clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+                        gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
+                        task["git_url"] = gitUrl
+                    logger.debug(json.dumps(task))
+                    beanclient.put("code_check", json.dumps(task))                    
                     return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
                 else:
                     tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)

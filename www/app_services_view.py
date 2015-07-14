@@ -133,6 +133,13 @@ class AppCreateView(AuthedView):
                 ts.code_from = service_code_from
                 ts.code_version = code_version
                 ts.save()
+                
+                task = {}
+                task["tenant_id"] = ts.tenant_id
+                task["service_id"] = ts.service_id
+                task["git_url"] = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
+                logger.debug(json.dumps(task))
+                beanclient.put("code_check", json.dumps(task))     
             elif service_code_from == "github":
                 code_id = request.POST["service_code_id"]
                 code_clone_url = request.POST["service_code_clone_url"]
@@ -147,6 +154,14 @@ class AppCreateView(AuthedView):
                 code_project_name = code_clone_url.split("/")[4].split(".")[0]
                 createUser = Users.objects.get(user_id=self.service.creater)
                 gitHubClient.createReposHook(code_user, code_project_name, createUser.github_token)
+                
+                task = {}
+                task["tenant_id"] = ts.tenant_id
+                task["service_id"] = ts.service_id
+                clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+                task["git_url"] = "--branch " + ts.code_version + " --depth 1 " + clone_url
+                logger.debug(json.dumps(task))
+                beanclient.put("code_check", json.dumps(task))
         
             # create region tenantservice
             baseService.create_region_service(newTenantService, service, self.tenantName)
