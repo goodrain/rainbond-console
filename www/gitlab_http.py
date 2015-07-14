@@ -127,8 +127,9 @@ class GitlabApi(BaseHttpClient):
             logger.debug(private_token)
             projectId = str(project_id)
             url = self.url + PREFIX + "/projects/" + projectId
-            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN':private_token} 
-            res, body = self._delete(url, headers)
+            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN':private_token}
+            http = httplib2.Http()
+            res, body = http.request(url, 'DELETE', headers=headers)
             return body
         except Exception as e:
             logger.exception(e)
