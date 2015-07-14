@@ -159,8 +159,8 @@ function loadRepos(_url){
                                 projectVersion(service_code_from,service_code_id,clone_url);
                            }
                            // $('#create_codestore_notice').removeClass('alert-danger').addClass('alert-info').html("正在读取项目分支信息");
-                           // $('#create_codestore_notice').slideDown();
                        }
+                        $('#create_codestore_notice').slideUp();
                    }
                });           
              }else{
