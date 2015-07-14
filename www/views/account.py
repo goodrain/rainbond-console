@@ -245,7 +245,7 @@ class InviteRegistation(BaseView):
             self.add_git_user(user, password)
 
         git_project_id = service.git_project_id
-        if git_project_id > 0 and user.git_user_id > 0:
+        if service.code_from != 'github' and git_project_id > 0 and user.git_user_id > 0:
             level = 10
             if identity == "viewer":
                 level = 20

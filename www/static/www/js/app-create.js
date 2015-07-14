@@ -29,7 +29,14 @@ $(function(){
             $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').slideDown();
             return;
         }
+<<<<<<< HEAD
         $("#first_step").attr('disabled', "true");
+=======
+        var service_code_id = $("#service_code_id").val()
+        var gitValue = $("#git_version_"+service_code_id).val();
+        $("#service_code_version").val(gitValue)        
+        $("#first_step").attr('disabled', "true")
+>>>>>>> 8210a4ca4377c01cf6bce643d090ba3b67e0b26e
     	var _data = $("form").serialize();
         var tenantName= $('#currentTeantName').val();
     	$.ajax({
@@ -50,8 +57,15 @@ $(function(){
     			} else if (dataObj["status"] == "empty") {
     				alert("应用名称不能为空");
     			}else if (dataObj["status"] == "code_from") {
+<<<<<<< HEAD
     				alert("应用资源库未选择");
     			} else if (dataObj["status"] == "success") {
+=======
+    				alert("应用资源库未选择")
+    			}else if (dataObj["status"] == "code_repos") {
+    				alert("代码仓库异常")
+    			}else if (dataObj["status"] == "success") {
+>>>>>>> 8210a4ca4377c01cf6bce643d090ba3b67e0b26e
     				service_alias = dataObj["service_alias"]
     				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-dependency/";
     			} else {

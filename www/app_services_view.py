@@ -70,16 +70,16 @@ class AppCreateView(AuthedView):
             tenant_id = self.tenant.tenant_id
             if tenant_id == "" or self.user.pk == "":
                 data["status"] = "failure"
-                return HttpResponse(json.dumps(data))            
+                return JsonResponse(data, status=200)            
             service_desc = ""
             service_alias = request.POST.get("create_app_name", "")
             service_code_from = request.POST.get("service_code_from", "")
             if service_code_from is None or service_code_from == "":
                 data["status"] = "code_from"
-                return HttpResponse(json.dumps(data))
+                return JsonResponse(data, status=200)
             if service_alias is None or service_alias == "":
                 data["status"] = "empty"
-                return HttpResponse(json.dumps(data))   
+                return JsonResponse(data, status=200)   
             service_alias = service_alias.lower()
             # get base service
             service = ServiceInfo.objects.get(service_key="application")
@@ -87,7 +87,7 @@ class AppCreateView(AuthedView):
             num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
             if num > 0:
                 data["status"] = "exist"
-                return HttpResponse(json.dumps(data))
+                return JsonResponse(data, status=200)
             
             if self.tenant.tenant_name != "goodrain": 
                 dsn = BaseConnection()
@@ -101,7 +101,7 @@ class AppCreateView(AuthedView):
                         totalMemory = int(oldMemory) + service.min_memory
                         if totalMemory > 1024:
                             data["status"] = "overtop"
-                            return HttpResponse(json.dumps(data))
+                            return JsonResponse(data, status=200)
             
             baseService = BaseTenantService()
             service.desc = service_desc
@@ -124,16 +124,19 @@ class AppCreateView(AuthedView):
                         ts.save()  
                         gitClient.createWebHook(project_id)         
             elif service_code_from == "gitlab_exit":
-                code_clone_url = request.POST["service_code_clone_url"]
-                code_id = request.POST["service_code_id"]
-                code_version = request.POST["service_code_version"]
+                code_clone_url = request.POST.get("service_code_clone_url", "")
+                code_id = request.POST.get("service_code_id", "")
+                code_version = request.POST.get("service_code_version", "master")
+                if code_id == "" or code_clone_url == "":
+                    data["status"] = "code_repos"
+                    return JsonResponse(data, status=200)
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
                 ts.git_project_id = code_id
                 ts.git_url = code_clone_url
                 ts.code_from = service_code_from
                 ts.code_version = code_version
                 ts.save()
-                
+                                
                 task = {}
                 task["tenant_id"] = ts.tenant_id
                 task["service_id"] = ts.service_id
@@ -141,9 +144,12 @@ class AppCreateView(AuthedView):
                 logger.debug(json.dumps(task))
                 beanclient.put("code_check", json.dumps(task))     
             elif service_code_from == "github":
-                code_id = request.POST["service_code_id"]
-                code_clone_url = request.POST["service_code_clone_url"]
-                code_version = request.POST["service_code_version"]
+                code_id = request.POST.get("service_code_id", "")
+                code_clone_url = request.POST.get("service_code_clone_url", "")
+                code_version = request.POST.get("service_code_version", "master")
+                if code_id == "" or code_clone_url == "":
+                    data["status"] = "code_repos"
+                    return JsonResponse(data, status=200)
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
                 ts.git_project_id = code_id
                 ts.git_url = code_clone_url
@@ -152,7 +158,7 @@ class AppCreateView(AuthedView):
                 ts.save()
                 code_user = code_clone_url.split("/")[3]
                 code_project_name = code_clone_url.split("/")[4].split(".")[0]
-                createUser = Users.objects.get(user_id=self.service.creater)
+                createUser = Users.objects.get(user_id=ts.creater)
                 gitHubClient.createReposHook(code_user, code_project_name, createUser.github_token)
                 
                 task = {}
@@ -306,6 +312,7 @@ class AppLanguageCodeView(AuthedView):
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)
+            data["status"] = "failure"
         return JsonResponse(data, status=200)
     
 class AppDependencyCodeView(AuthedView):
@@ -351,12 +358,16 @@ class AppDependencyCodeView(AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
+            tenant_id = self.tenant.tenant_id
+            service_alias = self.service.service_alias
+            service_id = self.service.service_id
              # create service dependency
             createService = request.POST.get("createService", "")
             hasService = request.POST.get("hasService", "")
             logger.debug(createService)
             logger.debug(hasService)
             if createService is not None and createService != "":
+                baseService = BaseTenantService()
                 serviceKeys = createService.split(",")
                 for skey in serviceKeys:
                     try:
@@ -370,6 +381,7 @@ class AppDependencyCodeView(AuthedView):
                        logger.exception(e)
             # exist service dependency
             if hasService is not None and hasService != "":
+                baseService = BaseTenantService()
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
@@ -380,6 +392,7 @@ class AppDependencyCodeView(AuthedView):
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)
+            data["status"] = "failure"
         return JsonResponse(data, status=200)
     
 class GitLabWebHook(BaseView):
@@ -481,6 +494,11 @@ class GitCheckCode(BaseView):
                         tse.save()
                     service = TenantServiceInfo.objects.get(service_id=service_id)
                     if service.language is None or service.language == "":
+                        if language.find("Java") > -1:
+                            service.min_memory = 256
+                            data = {}
+                            data["language"] = "java" 
+                            client.changeMemory(service_id, json.dumps(data))
                         service.language = language
                         service.save()
             result["status"] = "success"
