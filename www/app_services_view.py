@@ -483,7 +483,7 @@ class GitCheckCode(BaseView):
             if service_id is not None and service_id != "":
                 dps = json.loads(dependency)
                 language = dps["language"]
-                if language is not None and language != "":
+                if language is not None and language != "" and language != "no":
                     try:
                         tse = TenantServiceEnv.objects.get(service_id=service_id)
                         tse.language = language
