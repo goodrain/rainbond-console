@@ -80,6 +80,7 @@ $(function(){
             $('#code_store_list').slideUp();
             $('#wait_loading').hide();
         }else if(selOption == 'option2'){
+            BranchLocalData = {};
         	$('#service_code_from').val("gitlab_exit");
             $('#code_store_list').hide();
             $('#create_codestore_notice').hide();
@@ -88,6 +89,7 @@ $(function(){
             _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
             loadRepos(_url);
         }else if(selOption == 'option3'){
+            BranchLocalData = {};
         	$('#service_code_from').val("github");
             $('#code_store_list').hide();
             $('#create_codestore_notice').hide();
