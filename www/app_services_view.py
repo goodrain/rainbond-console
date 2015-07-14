@@ -494,6 +494,11 @@ class GitCheckCode(BaseView):
                         tse.save()
                     service = TenantServiceInfo.objects.get(service_id=service_id)
                     if service.language is None or service.language == "":
+                        if language.find("Java") > -1:
+                            service.min_memory = 256
+                            data = {}
+                            data["language"] = "java" 
+                            client.changeMemory(service_id, json.dumps(data))
                         service.language = language
                         service.save()
             result["status"] = "success"

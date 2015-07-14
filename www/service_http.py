@@ -97,3 +97,9 @@ class RegionServiceApi(BaseHttpClient):
         headers = {'Content-Type': 'application/json'}
         res, body = self._post(url, headers, body)
         return body
+    
+    def changeMemory(self, service_id, body):
+        url = self.url + "/v1/services/" + service_id + "/language"
+        headers = {'Content-Type': 'application/json'}  
+        res, body = self._post(url, headers, body)
+        return body
