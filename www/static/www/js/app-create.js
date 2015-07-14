@@ -159,8 +159,8 @@ function loadRepos(_url){
                                 projectVersion(service_code_from,service_code_id,clone_url);
                            }
                            // $('#create_codestore_notice').removeClass('alert-danger').addClass('alert-info').html("正在读取项目分支信息");
+                            // $('#create_codestore_notice').slideUp(); 
                        }
-                        $('#create_codestore_notice').slideUp();
                    }
                });           
              }else{
@@ -212,8 +212,8 @@ function projectVersion(code_from,code_id,clone_url){
                      htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>';
                 }
                 //htmlmsg +='</select>'
-                $('#create_codestore_notice').hide();
-                $("#git_version_"+codeId).html(htmlmsg);
+                $('#create_codestore_notice').slideUp();
+                $("#git_version_"+codeId).html(htmlmsg).show();
                 $("#git_version_notice_" + codeId).hide();
 	         }else {
 	           alert("操作失败");
