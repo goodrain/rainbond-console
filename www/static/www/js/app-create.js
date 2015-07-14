@@ -29,6 +29,9 @@ $(function(){
             $('#create_codestore_notice').slideDown();
             return;
         }
+        var service_code_id = $("#service_code_id").val()
+        var gitValue = $("#git_version_"+service_code_id).val();
+        $("#service_code_version").val(gitValue)        
         $("#first_step").attr('disabled', "true")
     	var _data = $("form").serialize();
         var tenantName= $('#currentTeantName').val();
@@ -51,7 +54,9 @@ $(function(){
     				alert("应用名称不能为空")
     			}else if (dataObj["status"] == "code_from") {
     				alert("应用资源库未选择")
-    			} else if (dataObj["status"] == "success") {
+    			}else if (dataObj["status"] == "code_repos") {
+    				alert("代码仓库异常")
+    			}else if (dataObj["status"] == "success") {
     				service_alias = dataObj["service_alias"]
     				window.location.href = "/apps/" + tenantName + "/"
     						+ service_alias + "/app-dependency/"
