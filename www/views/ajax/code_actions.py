@@ -90,10 +90,13 @@ class CodeAction(AuthedView):
                     arr.append(d)
                 data["data"] = arr
                 data["status"] = "success"
+                data["code_id"] = code_id
             elif action == "github":
                 user = request.POST["user"]
                 repos = request.POST["repos"]
+                code_id = request.POST["code_id"]
                 token = self.user.github_token
+                data["code_id"] = code_id
                 if token is not None:
                     repos = gitHubClient.getReposRefs(user, repos, token)
                     reposList = json.loads(repos)
