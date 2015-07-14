@@ -289,7 +289,7 @@ function delete_service(tenantName, service_alias) {
 				var dataObj = msg
 				if (dataObj["status"] == "success") {
 					alert("操作成功")
-					window.location.href = "http://user.goodrain.com/"
+					window.location.href = "/apps/"+tenantName
 				} else {
 					alert("操作失败")
 				}
