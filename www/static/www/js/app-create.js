@@ -1,3 +1,4 @@
+var BranchLocalData = {};
 //创建应用
 $(function(){
     $('#create_app_name').blur(function(){
@@ -26,7 +27,8 @@ $(function(){
         }
         var codeStoreSel = $(':radio:checked', $('#sel_code_store')).val();
         if((codeStoreSel == 'option2' || codeStoreSel == 'option3') && !$('.duigou_icon', $('#code_store_list')).length){
-            $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').slideDown();
+            // $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').slideDown();
+            $('#create_codestore_notice').slideDown();
             return;
         }
         var service_code_id = $("#service_code_id").val()
@@ -116,7 +118,7 @@ function loadRepos(_url){
                  htmlmsg +='<input type="hidden" id="repos_'+data["code_id"]+'" name="repos_'+data["code_id"]+'" value='+data["code_repos"]+' />';
                  htmlmsg +='<td class="text-center"><i></i></td>';
                  htmlmsg +='<td>'+data["code_user"]+'/'+data["code_project_name"]+'</td>';
-                 htmlmsg +='<td> <select class="form-control" style="width: 150px;" id="git_version_'+data["code_id"]+'"> </select></td>';
+                 htmlmsg +='<td><select class="form-control" style="width: 150px; display: none;" id="git_version_'+data['code_id']+'"> </select><div id="git_version_notice_'+ data['code_id'] +'" style="height: 34px; line-height: 34px; color: #31708f; display: none;">正在读取项目分支信息</div></td>';
                  htmlmsg +='</tr>';
                }
                $('tbody', listWrap).html(htmlmsg);
@@ -135,7 +137,7 @@ function loadRepos(_url){
                        $(this).removeClass('create_codestore_trsed');
                        var service_code_id=$(this).attr("data");
                        $("#service_code_id").val("");
-                       $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').html('请选择相应的代码仓库和分支');
+                       // $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').html('请选择相应的代码仓库和分支');
                    }else{
                        $('.duigou_icon', listWrap).removeClass('duigou_icon');
                        $('.create_codestore_trsed', listWrap).removeClass('create_codestore_trsed');
@@ -148,9 +150,13 @@ function loadRepos(_url){
                            $("#service_code_clone_url").val(clone_url);
                            $("#service_code_id").val(service_code_id);
                            var service_code_from = $('#service_code_from').val();
-                           $('#create_codestore_notice').removeClass('alert-danger').addClass('alert-info').html("正在读取项目分支信息");
-                           $('#create_codestore_notice').slideDown();
-                           projectVersion(service_code_from,service_code_id,clone_url);
+                           var isLoad = $('#git_version_notice_' + service_code_id).attr('load');
+                           if(typeof BranchLocalData[service_code_id] == 'undefined'){
+                                $('#git_version_notice_' + service_code_id).show();
+                                projectVersion(service_code_from,service_code_id,clone_url);
+                           }
+                           // $('#create_codestore_notice').removeClass('alert-danger').addClass('alert-info').html("正在读取项目分支信息");
+                           // $('#create_codestore_notice').slideDown();
                        }
                    }
                });           
@@ -193,14 +199,19 @@ function projectVersion(code_from,code_id,clone_url){
 	         }else if(dataObj["status"] == "success"){
                 var dataList=dataObj["data"];
                 var htmlmsg="";
+                var codeId = dataObj['code_id'];
                 //htmlmsg +='<select name="code_version_'+code_id+'" id="code_version_'+code_id+'" class="form-control" style="width: 150px;">'
+                if(typeof BranchLocalData[codeId] == 'undefined'){
+                    BranchLocalData[codeId] = dataList;
+                }
                 for(var i=0;i<dataList.length;i++){
                      data = dataList[i];
                      htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>';
                 }
                 //htmlmsg +='</select>'
                 $('#create_codestore_notice').hide();
-                $("#git_version_"+code_id).html(htmlmsg);
+                $("#git_version_"+codeId).html(htmlmsg);
+                $("#git_version_notice_" + codeId).hide();
 	         }else {
 	           alert("操作失败");
 	         }
