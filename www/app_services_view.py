@@ -358,6 +358,9 @@ class AppDependencyCodeView(AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
+            tenant_id = self.tenant.tenant_id
+            service_alias = self.service.service_alias
+            service_id = self.service.service_id
              # create service dependency
             createService = request.POST.get("createService", "")
             hasService = request.POST.get("hasService", "")
