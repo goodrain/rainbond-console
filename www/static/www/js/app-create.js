@@ -117,8 +117,8 @@ function loadRepos(_url){
                  htmlmsg +='<tr idx="'+ i +'" data="'+data["code_id"]+'">';
                  htmlmsg +='<input type="hidden" id="repos_'+data["code_id"]+'" name="repos_'+data["code_id"]+'" value='+data["code_repos"]+' />';
                  htmlmsg +='<td class="text-center"><i></i></td>';
-                 htmlmsg +='<td>'+data["code_user"]+'/'+data["code_project_name"]+'</td>';
-                 htmlmsg +='<td><select class="form-control" style="width: 150px; display: none;" id="git_version_'+data['code_id']+'"> </select><div id="git_version_notice_'+ data['code_id'] +'" style="height: 34px; line-height: 34px; color: #31708f; display: none;">正在读取项目分支信息</div></td>';
+                 htmlmsg +='<td><div class="lh34">'+data["code_user"]+'/'+data["code_project_name"]+'</div></td>';
+                 htmlmsg +='<td><select class="form-control" style="width: 150px; display: none;" id="git_version_'+data['code_id']+'"> </select><div class="lh34" id="git_version_notice_'+ data['code_id'] +'" style="color: #31708f; display: none;">正在读取项目分支信息</div></td>';
                  htmlmsg +='</tr>';
                }
                $('tbody', listWrap).html(htmlmsg);
@@ -137,6 +137,9 @@ function loadRepos(_url){
                        $(this).removeClass('create_codestore_trsed');
                        var service_code_id=$(this).attr("data");
                        $("#service_code_id").val("");
+                       if(!$('.duigou_icon', $('#code_store_list')).length){
+                            $('#create_codestore_notice').slideDown();
+                       }
                        // $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').html('请选择相应的代码仓库和分支');
                    }else{
                        $('.duigou_icon', listWrap).removeClass('duigou_icon');
