@@ -214,9 +214,13 @@ function projectVersion(code_from,code_id,clone_url){
                      htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>';
                 }
                 //htmlmsg +='</select>'
-                $('#create_codestore_notice').slideUp();
-                $("#git_version_"+codeId).html(htmlmsg).show();
-                $("#git_version_notice_" + codeId).hide();
+                if(htmlmsg){
+                    $('#create_codestore_notice').slideUp();
+                    $("#git_version_"+codeId).html(htmlmsg).show();
+                    $("#git_version_notice_" + codeId).hide();
+                }else{
+                    $("#git_version_notice_" + codeId).text('暂无可选分支');
+                }
 	         }else {
 	           alert("操作失败");
 	         }
