@@ -158,7 +158,7 @@ class AppCreateView(AuthedView):
                 ts.save()
                 code_user = code_clone_url.split("/")[3]
                 code_project_name = code_clone_url.split("/")[4].split(".")[0]
-                createUser = Users.objects.get(user_id=self.service.creater)
+                createUser = Users.objects.get(user_id=ts.creater)
                 gitHubClient.createReposHook(code_user, code_project_name, createUser.github_token)
                 
                 task = {}
