@@ -221,7 +221,7 @@ class ServiceManage(AuthedView):
                 try:
                     etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
                     etcdPath = '/goodrain/' + self.service.tenant_id + '/services/' + self.service.service_id
-                    etcdClient.delete(etcdPath)
+                    etcdClient.delete(etcdPath,recursive=True)
                 except Exception as e:
                     logger.exception(e)
             result["status"] = "success"
