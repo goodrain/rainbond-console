@@ -1,7 +1,6 @@
 $(function() {
   $('#service_dependency_finished').click(
-	function() {
-		$("#service_dependency_finished").attr('disabled', "true")	
+	function() {		
 		var serviceKey="";
 		var serviceId="";
 		$("input[name='inlineCheckbox1']:checkbox").each(function() {
@@ -33,6 +32,7 @@ $(function() {
 		var tenantName = $('#tenantName').val();
 		var service_name = $('#service_name').val();
 		var _data = $("form").serialize();
+		$("#service_dependency_finished").attr('disabled', "true")	
 		$.ajax({
 			type : "post",
 			url : "/apps/" + tenantName + "/"+ service_name + "/app-dependency/",
@@ -49,12 +49,12 @@ $(function() {
 							+ service_name + "/app-waiting/"
 				} else {
 					alert("创建失败")
-					$("#service_dependency_finished").attr('disabled', "false")
+					$("#service_dependency_finished").removeAttr('disabled')
 				}
 			},
 			error : function() {
 				alert("系统异常,请重试");
-				$("#service_dependency_finished").attr('disabled', "false")
+				$("#service_dependency_finished").removeAttr('disabled')
 			}
 		})
 	})

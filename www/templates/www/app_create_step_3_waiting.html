@@ -34,6 +34,7 @@
 						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">数据存储服务</label>
 						{% for deplyts in deployTenantServices %}
 							 {% with A=forloop.counter|mod:4 %}
+							 {% with auth=authMap|mkey:deplyts.service_id %}
 								 {% if A = 0 %}
 								 	<div class="col-lg-10">
 								 {% endif %}								
@@ -41,7 +42,7 @@
 									<div class="panel-body">
 										<div class="task-thumb-details">
 											<h1>
-												<a href="#">{{deplyts.service_key.upper}}</a>
+												<a href="#">{{deplyts.service_alias.upper}}</a>
 											</h1>
 											<p>点击查看连接方式</p>
 										</div>
@@ -63,10 +64,13 @@
 												<td>用户名</td>
 												<td>admin</td>
 											</tr>
-											<tr>
-	
+											<tr>	
 												<td>密码</td>
-												<td>admin</td>
+												{% if auth %}
+                                                <td>{{auth.password}}</td>
+                                                {% else %}
+                                                <td>admin</td>
+                                                {% endif %}
 											</tr>
 											{% endif %}
 										</tbody>
@@ -75,6 +79,7 @@
 								{% if A = 0 %}
 								   </div>
 								{% endif %}
+							{% endwith %}
 							{% endwith %}
 						{% endfor %}
 					</div>

@@ -12,10 +12,11 @@ function getGitCodeCheck() {
 			cache : false,
 			success : function(msg) {
 				var dataObj = msg;
-				if (dataObj["status"] == "hidden"
-						|| dataObj["status"] == "change") {
+				if (dataObj["status"] == "checked") {
 					window.location.href = "/apps/" + tenantName + "/"
 							+ service_name + "/app-language/"
+				} else if (dataObj["status"] == "check_error") {
+					$("#git_code_upload").html("语言未识别，请重新提交代码...")
 				}
 			},
 			error : function() {

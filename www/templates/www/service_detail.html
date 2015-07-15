@@ -82,31 +82,30 @@
                    <thead>
                      <tr>
                        <th>说明</th>
-                       <!-- <th>变量名</th> -->
                        <th>值</th>
                      </tr>
                    </thead>
                    <tbody>
                      <tr>
                        <td>连接地址</td>
-                       <!-- <td>{{tenantServiceInfo.service_alias.upper }}_HOST</td> -->
                        <td>127.0.0.1</td>
                      </tr>
                      <tr>
                        <td>端口</td>
-                       <!-- <td>{{tenantServiceInfo.service_alias.upper }}_PORT</td> -->
                        <td>{{tenantServiceInfo.service_port }}</td>
                      </tr>
                      {% ifequal tenantServiceInfo.service_type "mysql" %}
                      <tr>
                        <td>用户名</td>
-                       <!-- <td>{{tenantServiceInfo.service_alias.upper }}_USER</td>  -->
                        <td>admin</td>
                      </tr>
                      <tr>
                        <td>密码</td>
-                       <!-- <td>{{tenantServiceInfo.service_alias.upper }}_PASSWORD</td> -->
-                       <td>admin</td>
+                       {% if serviceAuth %}
+                       	<td>{{serviceAuth.password}}</td>
+                       {% else %}
+                       	<td>admin</td>
+                       {% endif %}
                      </tr>
                      {% endifequal  %}
                    </tbody>
@@ -148,6 +147,7 @@
 	                 		{% for sid in serviceIds %}
 	                 		   {% with value=serviceMap|mkey:sid %}
 	                 		   {% with dep_order=serviceIdsMap|mkey:sid %}
+	                 		   {% with auth=authMap|mkey:sid %}
 		                        <tr>
 		                            <td>{{value.service_type}}</td>
 		                            <td>{{value.service_alias}}</td>
@@ -191,7 +191,11 @@
 				                                              <tr>
 				                                                <td>密码</td>
 				                                                <td>{{value.service_type.upper }}_PASSWORD</td>
+				                                                {% if auth %}
+				                                                <td>{{auth.password}}</td>
+				                                                {% else %}
 				                                                <td>admin</td>
+				                                                {% endif %}
 				                                              </tr>
 				                                              {% endif %}
 			                                              {% else %}
@@ -214,7 +218,11 @@
 				                                              <tr>
 				                                                <td>密码</td>
 				                                                <td>{{value.service_type.upper}}_{{value.service_alias.upper }}_PASSWORD</td>
+				                                                {% if auth %}
+				                                                <td>{{auth.password}}</td>
+				                                                {% else %}
 				                                                <td>admin</td>
+				                                                {% endif %}
 				                                              </tr>
 				                                              {% endif %}
 			                                              {% endif %}
@@ -229,6 +237,7 @@
 	                                    </div>
 		                            </td>
 		                        </tr>
+		                        {% endwith %}
 		                        {% endwith %}
 		                        {% endwith %}
 	                        {% endfor %}

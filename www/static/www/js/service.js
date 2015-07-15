@@ -1,54 +1,3 @@
-//服务创建
-function service_create(tenantName, service_key) {
-	window.location.href = "/apps/" + tenantName
-			+ "/service-deploy/?service_key=" + service_key
-}
-
-// 服务部署
-function service_deploy(tenantName, service_key) {
-	var service_name = $("#service_name").val();
-    var serviceReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
-    var result = true;
-    if (!serviceReg.test(service_name)) {
-    	alert("服务名称以英文字母开始包含数字，中划线 -，下划线 _")
-    	result = false;
-    	$('#service_name').focus();
-    }
-	if (!result) {
-		 return;
-	}
-	var desc = $("#desc").val();
-	var _data = $("form").serialize();
-	$.ajax({
-		type : "POST",
-		url : "/apps/" + tenantName + "/service-deploy/",
-		data : _data,
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(msg) {
-			var dataObj = eval("(" + msg + ")");
-			if (dataObj["status"] == "exist") {
-				alert("服务已存在")
-				window.location.href = "/apps/" + tenantName + "/"
-						+ service_alias + "/detail/"
-			} else if (dataObj["status"] == "overtop") {
-				alert("免费资源已达上限，不能部署")
-			} else if (dataObj["status"] == "success") {
-				window.location.href = "/apps/" + tenantName + "/"
-						+ dataObj["service_alias"] + "/detail/"
-			} else {
-				alert("服务部署失败")
-			}
-		},
-		error : function() {
-			// alert("系统异常");
-		}
-	})
-}
-
 function goto_deploy(tenantName, service_alias) {
 	window.location.href = "/apps/" + tenantName + "/" + service_alias
 			+ "/detail/"
@@ -175,42 +124,6 @@ function domainSubmit(service_id, tenantName, service_alias) {
 		},
 		error : function() {
 			alert("系统异常");
-		}
-	})
-}
-
-function appCreate(tenantName) {
-	$("#submit1").attr('disabled', "true")
-	var _data = $("form").serialize();
-	$.ajax({
-		type : "post",
-		url : "/apps/" + tenantName + "/app-create/",
-		data : _data,
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(msg) {
-			var dataObj = eval("(" + msg + ")");
-			if (dataObj["status"] == "exist") {
-				alert("服务名已存在")
-			} else if (dataObj["status"] == "overtop") {
-				alert("免费资源已达上限，不能创建")
-			} else if (dataObj["status"] == "empty") {
-				alert("应用名称不能为空")
-			}else if (dataObj["status"] == "code_from") {
-				alert("应用资源库未选择")
-			} else if (dataObj["status"] == "success") {
-				service_alias = dataObj["service_alias"]
-				window.location.href = "/apps/" + tenantName + "/"
-						+ service_alias + "/detail/"
-			} else {
-				alert("创建失败")
-			}
-		},
-		error : function() {
-			alert("系统异常,请重试");
 		}
 	})
 }

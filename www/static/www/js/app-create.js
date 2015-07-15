@@ -50,25 +50,30 @@ $(function(){
     			var dataObj = msg;
     			if (dataObj["status"] == "exist") {
     				alert("服务名已存在");
+    				$("#first_step").removeAttr('disabled')
     			} else if (dataObj["status"] == "overtop") {
     				alert("免费资源已达上限，不能创建");
+    				$("#first_step").removeAttr('disabled')
     			} else if (dataObj["status"] == "empty") {
     				alert("应用名称不能为空");
+    				$("#first_step").removeAttr('disabled')
     			}else if (dataObj["status"] == "code_from") {
     				alert("应用资源库未选择");
+    				$("#first_step").removeAttr('disabled')
     			}else if (dataObj["status"] == "code_repos") {
     				alert("代码仓库异常");
+    				$("#first_step").removeAttr('disabled')
     			}else if (dataObj["status"] == "success") {
     				service_alias = dataObj["service_alias"]
     				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-dependency/";
     			} else {
     				alert("创建失败");
+    				$("#first_step").removeAttr('disabled')
                 }
-    			$("#first_step").attr('disabled', false);
     		},
     		error : function() {
     			alert("系统异常,请重试");
-    			$("#first_step").attr('disabled', false);
+    			$("#first_step").removeAttr('disabled')
     		}
     	})
     });

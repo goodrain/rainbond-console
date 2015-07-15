@@ -13,14 +13,12 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
 from www.decorator import perm_required
-from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv
+from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, ServiceDomain, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
 from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
-from www.inflexdb.inflexdbservice import InflexdbService
-from www.tenantfee.feeservice import TenantFeeService
 from www.db import BaseConnection
 from www.utils.language import is_redirect
 
@@ -185,6 +183,7 @@ class AppCreateView(AuthedView):
         except Exception as e:
             logger.exception(e)
             TenantServiceInfo.objects.get(service_id=service_id).delete()
+            TenantServiceAuth.objects.get(service_id=service_id).delete()
             data["status"] = "failure"
         return JsonResponse(data, status=200)
     
@@ -230,6 +229,17 @@ class AppWaitingCodeView(AuthedView):
                 tenant_id = self.tenant.tenant_id
                 deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
                 context["deployTenantServices"] = deployTenantServices
+                if len(deployTenantServices) > 0:
+                    sids = []
+                    for dts in deployTenantServices:
+                        sids.append(dts.service_id)
+                        
+                    authList = TenantServiceAuth.objects.filter(service_id__in=sids)
+                    if len(authList) > 0:
+                        authMap = {}
+                        for auth in authList:
+                            authMap[auth.service_id] = auth
+                        context["authMap"] = authMap
                 
         except Exception as e:
             logger.exception(e)
@@ -385,7 +395,6 @@ class AppDependencyCodeView(AuthedView):
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
-                        pass
                         baseService.create_service_dependency(tenant_id, service_id, sid) 
                     except Exception as e:
                        logger.exception(e)
@@ -493,7 +502,7 @@ class GitCheckCode(BaseView):
                         tse = TenantServiceEnv(service_id=service_id, language=language, check_dependency=dependency)
                         tse.save()
                     service = TenantServiceInfo.objects.get(service_id=service_id)
-                    if service.language is None or service.language == "":
+                    if language != "false" :
                         if language.find("Java") > -1:
                             service.min_memory = 256
                             data = {}

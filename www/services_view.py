@@ -13,7 +13,7 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
 from www.decorator import perm_required
-from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv
+from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
@@ -33,118 +33,6 @@ gitClient = GitlabApi()
 beanclient = BeanStalkClient()
 
 gitHubClient = GitHubApi()
-
-class ServiceMarket(AuthedView):
-    def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
-            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
-            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
-            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
-        return media
-
-    @never_cache
-    @perm_required('tenant_access')
-    def get(self, request, *args, **kwargs):
-        try:
-            context = self.get_context()
-            baseService = BaseTenantService()
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList            
-            cacheServiceList = ServiceInfo.objects.filter(status="published")
-            context["cacheServiceList"] = cacheServiceList
-            context["serviceMarketStatus"] = "active"
-            context["tenantName"] = self.tenantName
-        except Exception as e:
-            logger.exception(e)
-        return TemplateResponse(self.request, "www/service_market.html", context)
-    
-class ServiceMarketDeploy(AuthedView):
-
-    def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
-            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
-            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js',
-            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
-        return media
-
-    @never_cache
-    @perm_required('code_deploy')
-    def get(self, request, *args, **kwargs):
-        context = self.get_context()
-        try:
-            service_key = request.GET.get("service_key", "")
-            serviceObj = ServiceInfo.objects.get(service_key=service_key)
-            context["service"] = serviceObj
-            context["tenantName"] = self.tenantName
-        except Exception as e:
-            logger.exception(e)
-        return TemplateResponse(self.request, "www/service_deploy.html", context)
-
-    @never_cache
-    @perm_required('code_deploy')
-    def post(self, request, *args, **kwargs):
-        service_alias = ""
-        uid = str(uuid.uuid4()) + self.tenant.tenant_id
-        service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
-        result = {}
-        try:
-            tenant_id = self.tenant.tenant_id
-            if tenant_id == "" or self.user.pk == "":
-                result["status"] = "failure"
-                return HttpResponse(json.dumps(result))            
-             
-            service_key = request.POST["service_key"]
-            
-            service = ServiceInfo.objects.get(service_key=service_key)
-            
-            service_alias = request.POST["service_name"]
-            if service_alias == "":
-               result["status"] = "failure"
-               return HttpResponse(json.dumps(result))
-            service_alias = service_alias.lower()
-                                    
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
-            if num > 0:
-                result["status"] = "exist"
-                return HttpResponse(json.dumps(result))
-            
-            if self.tenant.tenant_name != "goodrain":                
-                dsn = BaseConnection()
-                query_sql = '''
-                    select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                    '''.format(tenant_id=tenant_id)
-                sqlobj = dsn.query(query_sql)
-                if sqlobj is not None and len(sqlobj) > 0:
-                    oldMemory = sqlobj[0]["totalMemory"]
-                    if oldMemory is not None:                    
-                        totalMemory = int(oldMemory) + service.min_memory
-                        if totalMemory > 1024:
-                            result["status"] = "overtop"
-                            return HttpResponse(json.dumps(result))
-            
-            # create console service
-            baseService = BaseTenantService()
-            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
-            # create region tenantservice
-            baseService.create_region_service(newTenantService, service, self.tenantName)
-            # record service log
-            task = {}
-            task["log_msg"] = "服务创建成功，开始部署....."
-            task["service_id"] = newTenantService.service_id
-            task["tenant_id"] = newTenantService.tenant_id
-            logger.info(task)
-            beanclient.put("app_log", json.dumps(task))
-            
-            result["status"] = "success"
-            result["service_id"] = service_id
-            result["service_alias"] = service_alias
-        except Exception as e:
-            logger.exception(e)
-            TenantServiceInfo.objects.get(service_id=service_id).delete()
-            logger.info(self.tenantName, service_alias, "%s" % e)
-            result["status"] = "failure"
-        return HttpResponse(json.dumps(result))
-
 
 class TenantServiceAll(AuthedView):
     def get_media(self):
@@ -205,7 +93,6 @@ class TenantService(AuthedView):
             'developerCheck': False,
             'developerDisable': False,
         }
-
         identities = PermRelService.objects.filter(service_id=self.service.pk)
         for i in identities:
             user_perm = perm_template.copy()
@@ -227,6 +114,35 @@ class TenantService(AuthedView):
 
         return perm_users
 
+    def createGitProject(self):
+        if self.service.code_from == "gitlab_new" and self.service.git_project_id == 0 and self.user.git_user_id > 0:
+            project_id = gitClient.createProject(self.tenantName + "_" + self.serviceAlias)
+            logger.debug(project_id)
+            if project_id > 0:
+                gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
+                gitClient.addProjectMember(project_id, 2, 20)                                        
+                ts = TenantServiceInfo.objects.get(service_id=service_id)
+                ts.git_project_id = project_id
+                ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
+                ts.save()
+    def sendCodeCheckMsg(self):
+        task = {}
+        task["tenant_id"] = self.service.tenant_id
+        task["service_id"] = self.service.service_id
+        if self.service.code_from != "github":
+             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
+             task["git_url"] = gitUrl
+        else:
+            clone_url = self.service.git_url
+            code_user = clone_url.split("/")[3]
+            code_project_name = clone_url.split("/")[4].split(".")[0]
+            createUser = Users.objects.get(user_id=self.service.creater)
+            clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
+            task["git_url"] = gitUrl
+        logger.debug(json.dumps(task))
+        beanclient.put("code_check", json.dumps(task))
+    
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
@@ -236,34 +152,10 @@ class TenantService(AuthedView):
         try:
             if self.service.category == "application":
                 # no create gitlab repos
-                if self.service.code_from == "gitlab_new" and self.service.git_project_id == 0 and self.user.git_user_id > 0:
-                    project_id = gitClient.createProject(self.tenantName + "_" + self.serviceAlias)
-                    logger.debug(project_id)
-                    if project_id > 0:
-                        gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
-                        gitClient.addProjectMember(project_id, 2, 20)                                        
-                        ts = TenantServiceInfo.objects.get(service_id=service_id)
-                        ts.git_project_id = project_id
-                        ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
-                        ts.save()
+                self.createGitProject()
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
-                    task = {}
-                    task["tenant_id"] = self.service.tenant_id
-                    task["service_id"] = self.service.service_id
-                    if self.service.code_from != "github":
-                         gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
-                         task["git_url"] = gitUrl
-                    else:
-                        clone_url = self.service.git_url
-                        code_user = clone_url.split("/")[3]
-                        code_project_name = clone_url.split("/")[4].split(".")[0]
-                        createUser = Users.objects.get(user_id=self.service.creater)
-                        clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
-                        gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-                        task["git_url"] = gitUrl
-                    logger.debug(json.dumps(task))
-                    beanclient.put("code_check", json.dumps(task))                    
+                    self.sendCodeCheckMsg()                    
                     return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
                 else:
                     tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
@@ -277,42 +169,55 @@ class TenantService(AuthedView):
             context["tenantServiceList"] = tenantServiceList
             context["tenantName"] = self.tenantName
             context["myAppStatus"] = "active"
-            context["perm_users"] = self.get_user_perms()
-            
-            tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
-            sids = []
-            sidMap = {}
-            if len(tsrs) > 0:                
-                for tsr in tsrs:
-                    sids.append(tsr.dep_service_id)
-                    sidMap[tsr.dep_service_id] = tsr.dep_order
-            context["serviceIds"] = sids  
-            context["serviceIdsMap"] = sidMap
-                 
-            map = {}
-            for tenantService in tenantServiceList:
-                if tenantService.category == "application" or tenantService.category == "manager":
-                    pass
-                else:
-                    map[tenantService.service_id] = tenantService                    
-            context["serviceMap"] = map
-            
+            context["perm_users"] = self.get_user_perms()   
             context["nodeList"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]      
+            context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]         
             
-            httpGitUrl = ""
-            if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
-                cur_git_url = self.service.git_url.split("/")
-                httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+            if self.service.category == "application" or  self.service.category == "manager":
+                # service relationships
+                tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
+                sids = []
+                sidMap = {}
+                if len(tsrs) > 0:                
+                    for tsr in tsrs:
+                        sids.append(tsr.dep_service_id)
+                        sidMap[tsr.dep_service_id] = tsr.dep_order
+                    context["serviceIds"] = sids  
+                    context["serviceIdsMap"] = sidMap
+                    map = {}
+                    for tenantService in tenantServiceList:
+                        if tenantService.category == "application" or tenantService.category == "manager":
+                            pass
+                        else:
+                            map[tenantService.service_id] = tenantService                    
+                    context["serviceMap"] = map
+                    # relationships password
+                    authList = TenantServiceAuth.objects.filter(service_id__in=sids)
+                    if len(authList) > 0:
+                        authMap = {}
+                        for auth in authList:
+                            authMap[auth.service_id] = auth
+                        context["authMap"] = authMap
+                # service git repository
+                httpGitUrl = ""
+                if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
+                    cur_git_url = self.service.git_url.split("/")
+                    httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+                else:
+                    httpGitUrl = self.service.git_url
+                context["httpGitUrl"] = httpGitUrl 
+                # service domain
+                try:
+                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                    context["serviceDomain"] = domain     
+                except Exception as e:
+                    pass
             else:
-                httpGitUrl = self.service.git_url
-            context["httpGitUrl"] = httpGitUrl 
-            
-            try:
-                domain = ServiceDomain.objects.get(service_id=self.service.service_id)
-                context["serviceDomain"] = domain     
-            except Exception as e:
-                pass
+                try:
+                    serviceAuth = TenantServiceAuth.objects.get(service_id=self.service.service_id)
+                    context["serviceAuth"] = serviceAuth     
+                except Exception as e:
+                    pass
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_detail.html", context)

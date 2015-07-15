@@ -2,6 +2,7 @@ from django.conf.urls import patterns, url
 from www.tests import *
 from www.services_view import *
 from www.app_services_view import *
+from www.back_services_view import *
 from www.charging_view import *
 from www.views.service import TeamInfo
 from django.contrib.auth.decorators import login_required

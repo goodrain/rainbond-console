@@ -28,12 +28,12 @@ $(function() {
 								+ service_name + "/detail/"
 					} else {
 						alert("创建失败")
-						$("#language_btn").attr('disabled', "false")
+						$("#language_btn").removeAttr('disabled')
 					}
 				},
 				error : function() {
 					alert("系统异常,请重试");
-					$("#language_btn").attr('disabled', "false")
+					$("#language_btn").removeAttr('disabled')
 				}
 			})
 		})
