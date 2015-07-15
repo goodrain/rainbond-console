@@ -143,7 +143,7 @@ class ServiceMarketDeploy(AuthedView):
             logger.debug(createService)            
             
             # calculate resource
-            totalMemory = calculate_resource(createService, service)
+            totalMemory = self.calculate_resource(createService, service)
             if totalMemory > 1024:
                 result["status"] = "overtop"
                 return JsonResponse(result, status=200)
@@ -193,7 +193,7 @@ class ServiceMarketDeploy(AuthedView):
             result["service_alias"] = service_alias
         except Exception as e:
             logger.exception(e)
-            TenantServiceInfo.objects.get(service_id=service_id).delete()
+            TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
             result["status"] = "failure"
         return JsonResponse(result, status=200)
