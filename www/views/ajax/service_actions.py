@@ -216,6 +216,7 @@ class ServiceManage(AuthedView):
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).delete()
+                TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
                 # etcd delete
                 try:
                     etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
