@@ -338,16 +338,17 @@ class AppDependencyCodeView(AuthedView):
     
     def calculate_resource(self, createService):
         totalMemory = 0
-        serviceKeys = createService.split(",")
-        dsn = BaseConnection()
-        query_sql = '''
-            select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-            '''.format(tenant_id=tenant_id)
-        sqlobj = dsn.query(query_sql)
-        if sqlobj is not None and len(sqlobj) > 0:
-            oldMemory = sqlobj[0]["totalMemory"]
-            if oldMemory is not None:                    
-                totalMemory = int(oldMemory) + len(serviceKeys) * 128
+        if self.tenant.tenant_name != "goodrain":  
+            serviceKeys = createService.split(",")
+            dsn = BaseConnection()
+            query_sql = '''
+                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                '''.format(tenant_id=self.tenant.tenant_id)
+            sqlobj = dsn.query(query_sql)
+            if sqlobj is not None and len(sqlobj) > 0:
+                oldMemory = sqlobj[0]["totalMemory"]
+                if oldMemory is not None:                    
+                    totalMemory = int(oldMemory) + len(serviceKeys) * 128
         return totalMemory
     
     def get_media(self):
