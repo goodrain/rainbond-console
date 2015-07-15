@@ -94,7 +94,7 @@ $(function(){
     				$("#back_service_finished").removeAttr('disabled')
     			}else if (dataObj["status"] == "success") {
     				service_alias = dataObj["service_alias"]
-    				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-dependency/";
+    				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
     			} else {
     				alert("创建失败");
     				$("#back_service_finished").removeAttr('disabled')
