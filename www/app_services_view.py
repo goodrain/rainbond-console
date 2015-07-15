@@ -396,6 +396,7 @@ class AppDependencyCodeView(AuthedView):
                     return JsonResponse(result, status=200)
                 
                 baseService = BaseTenantService()
+                serviceKeys = createService.split(",")
                 for skey in serviceKeys:
                     try:
                         dep_service = ServiceInfo.objects.get(service_key=skey)
