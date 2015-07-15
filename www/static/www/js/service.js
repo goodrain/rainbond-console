@@ -203,7 +203,9 @@ function delete_service(tenantName, service_alias) {
 				if (dataObj["status"] == "success") {
 					alert("操作成功")
 					window.location.href = "/apps/"+tenantName
-				} else {
+				}else if(dataObj["status"] == "dependency"){
+					alert("当前服务被依赖不能删除")
+				}else {
 					alert("操作失败")
 				}
 			},

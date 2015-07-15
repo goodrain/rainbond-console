@@ -197,6 +197,10 @@ class ServiceManage(AuthedView):
                 task["tenant_id"] = self.tenant.tenant_id
                 beanlog.put("app_log", json.dumps(task))  
             elif action == "delete":
+                depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
+                if depNumber > 0:
+                    result["status"] = "dependency"
+                    return JsonResponse(result)
                 data = self.service.toJSON()
                 logger.info(data)
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
