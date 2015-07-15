@@ -24,15 +24,21 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
 				alert("操作成功")
+			} else if (dataObj["status"] == "language") {
+				alert("应用语言监测为通过")
+				forurl = "/apps/" + tenantName + "/" + serviceAlias
+						+ "/detail/"
+				window.open(forurl, target = "_parent")
 			} else if (dataObj["status"] == "often") {
 				alert("上次部署正在进行中，请稍后再试")
 			} else {
 				alert("操作失败")
 				$("#onekey_deploy").removeAttr("disabled")
 			}
-			if(isreload=='yes'){
-				forurl = "/apps/" + tenantName + "/" + serviceAlias+ "/detail/"
-				window.open(forurl,target="_parent")
+			if (isreload == 'yes') {
+				forurl = "/apps/" + tenantName + "/" + serviceAlias
+						+ "/detail/"
+				window.open(forurl, target = "_parent")
 			}
 		},
 		error : function() {
@@ -202,10 +208,10 @@ function delete_service(tenantName, service_alias) {
 				var dataObj = msg
 				if (dataObj["status"] == "success") {
 					alert("操作成功")
-					window.location.href = "/apps/"+tenantName
-				}else if(dataObj["status"] == "dependency"){
+					window.location.href = "/apps/" + tenantName
+				} else if (dataObj["status"] == "dependency") {
 					alert("当前服务被依赖不能删除")
-				}else {
+				} else {
 					alert("操作失败")
 				}
 			},

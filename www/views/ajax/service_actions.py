@@ -30,8 +30,12 @@ beanlog = BeanStalkClient()
 class AppDeploy(AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        service_alias = ""
         data = {}
+        service_alias = ""
+        if self.service.language is None or self.service.language == "":
+            data["status"] = "language"
+            return JsonResponse(data, status=200)
+        
         tenant_id = self.tenant.tenant_id
         service_id = self.service.service_id
         oldVerion = self.service.deploy_version
