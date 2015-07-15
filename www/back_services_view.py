@@ -65,6 +65,12 @@ class ServiceMarketDeploy(AuthedView):
             service_key = request.GET.get("service_key", "")
             if service_key == "":
                 return HttpResponseRedirect('/apps/{0}/service/'.format(self.tenant.tenant_name))
+            
+            baseService = BaseTenantService()
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+            context["tenantServiceList"] = tenantServiceList            
+            context["serviceMarketStatus"] = "active"
+            
             serviceObj = ServiceInfo.objects.get(service_key=service_key)
             context["service"] = serviceObj
             if serviceObj.dependecy is not None and serviceObj.dependecy != "":

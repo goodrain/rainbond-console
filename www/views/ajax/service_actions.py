@@ -213,17 +213,19 @@ class ServiceManage(AuthedView):
                     gitClient.deleteProject(self.service.git_project_id)
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
                 # env/auth/relationship delete
+                
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
-                TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).delete()
-                TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
-                # etcd delete
-                try:
-                    etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
-                    etcdPath = '/goodrain/' + self.service.tenant_id + '/services/' + self.service.service_id
-                    etcdClient.delete(etcdPath,recursive=True)
-                except Exception as e:
-                    logger.exception(e)
+                                
+                tdrNumber = TenantServiceRelation.objects.filter(service_id=self.service.service_id).count()
+                if tdrNumber > 0:
+                    TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
+                    try:
+                        etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
+                        etcdPath = '/goodrain/' + self.service.tenant_id + '/services/' + self.service.service_id
+                        etcdClient.delete(etcdPath, recursive=True)
+                    except Exception as e:
+                        logger.exception(e)
             result["status"] = "success"
         except Exception, e:
             logger.debug(e)
