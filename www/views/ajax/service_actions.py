@@ -216,10 +216,10 @@ class ServiceManage(AuthedView):
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).delete()
-                #etcd delete
+                # etcd delete
                 try:
                     etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
-                    etcdPath = '/goodrain/' + tenant_id + '/services/' + service_id
+                    etcdPath = '/goodrain/' + self.service.tenant_id + '/services/' + self.service.service_id
                     etcdClient.delete(etcdPath)
                 except Exception as e:
                     logger.exception(e)
