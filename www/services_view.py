@@ -235,6 +235,18 @@ class TenantService(AuthedView):
         context['serviceAlias'] = self.serviceAlias
         try:
             if self.service.category == "application":
+                # no create gitlab repos
+                if self.service.code_from == "gitlab_new" and self.service.git_project_id == 0 and self.user.git_user_id > 0:
+                    project_id = gitClient.createProject(self.tenantName + "_" + self.serviceAlias)
+                    logger.debug(project_id)
+                    if project_id > 0:
+                        gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
+                        gitClient.addProjectMember(project_id, 2, 20)                                        
+                        ts = TenantServiceInfo.objects.get(service_id=service_id)
+                        ts.git_project_id = project_id
+                        ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
+                        ts.save()
+                # no upload code
                 if self.service.language == "" or self.service.language is None:
                     task = {}
                     task["tenant_id"] = self.service.tenant_id
