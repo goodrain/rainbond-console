@@ -336,6 +336,20 @@ class AppDependencyCodeView(AuthedView):
                 break
         return services
     
+    def calculate_resource(self, createService):
+        totalMemory = 0
+        serviceKeys = createService.split(",")
+        dsn = BaseConnection()
+        query_sql = '''
+            select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+            '''.format(tenant_id=tenant_id)
+        sqlobj = dsn.query(query_sql)
+        if sqlobj is not None and len(sqlobj) > 0:
+            oldMemory = sqlobj[0]["totalMemory"]
+            if oldMemory is not None:                    
+                totalMemory = int(oldMemory) + len(serviceKeys) * 128
+        return totalMemory
+    
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
@@ -373,12 +387,14 @@ class AppDependencyCodeView(AuthedView):
             service_id = self.service.service_id
              # create service dependency
             createService = request.POST.get("createService", "")
-            hasService = request.POST.get("hasService", "")
-            logger.debug(createService)
-            logger.debug(hasService)
+            logger.debug(createService)            
             if createService is not None and createService != "":
+                totalMemory = self.calculate_resource(createService)
+                if totalMemory > 1024:
+                    result["status"] = "overtop"
+                    return JsonResponse(result, status=200)
+                
                 baseService = BaseTenantService()
-                serviceKeys = createService.split(",")
                 for skey in serviceKeys:
                     try:
                         dep_service = ServiceInfo.objects.get(service_key=skey)
@@ -389,7 +405,9 @@ class AppDependencyCodeView(AuthedView):
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id)
                     except Exception as e:
                        logger.exception(e)
-            # exist service dependency
+            # exist service dependency.
+            hasService = request.POST.get("hasService", "")
+            logger.debug(hasService)
             if hasService is not None and hasService != "":
                 baseService = BaseTenantService()
                 serviceIds = hasService.split(",")

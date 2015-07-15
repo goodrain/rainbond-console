@@ -47,7 +47,10 @@ $(function() {
 				if (dataObj["status"] == "success") {
 					window.location.href = "/apps/" + tenantName + "/"
 							+ service_name + "/app-waiting/"
-				} else {
+				}else if (dataObj["status"] == "overtop") {
+    				alert("免费资源已达上限，不能创建");
+    				$("#service_dependency_finished").removeAttr('disabled')
+    			} else {
 					alert("创建失败")
 					$("#service_dependency_finished").removeAttr('disabled')
 				}

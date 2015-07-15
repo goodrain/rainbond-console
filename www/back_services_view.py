@@ -49,7 +49,24 @@ class ServiceMarket(AuthedView):
         return TemplateResponse(self.request, "www/service_market.html", context)
     
 class ServiceMarketDeploy(AuthedView):
-
+    
+    def calculate_resource(self, createService, servicekeyObj):
+        totalMemory = 0 
+        if self.tenant.tenant_name != "goodrain":                
+            dsn = BaseConnection()
+            query_sql = '''
+                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                '''.format(tenant_id=tenant_id)
+            sqlobj = dsn.query(query_sql)
+            if sqlobj is not None and len(sqlobj) > 0:
+                oldMemory = sqlobj[0]["totalMemory"]
+                if oldMemory is not None:                    
+                    totalMemory = int(oldMemory) + servicekeyObj.min_memory
+                    if createService != "":
+                       serviceKeys = createService.split(",")
+                       totalMemory = totalMemory + len(serviceKeys) * 128
+        return totalMemory
+    
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
@@ -122,25 +139,16 @@ class ServiceMarketDeploy(AuthedView):
                     ccpu = int(cm / 128) * 100
                     service.min_cpu = ccpu
                     service.min_memory = cm
-
-            if self.tenant.tenant_name != "goodrain":                
-                dsn = BaseConnection()
-                query_sql = '''
-                    select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                    '''.format(tenant_id=tenant_id)
-                sqlobj = dsn.query(query_sql)
-                if sqlobj is not None and len(sqlobj) > 0:
-                    oldMemory = sqlobj[0]["totalMemory"]
-                    if oldMemory is not None:                    
-                        totalMemory = int(oldMemory) + service.min_memory
-                        if totalMemory > 1024:
-                            result["status"] = "overtop"
-                            return JsonResponse(result, status=200)
-            
             createService = request.POST.get("createService", "")
-            hasService = request.POST.get("hasService", "")
-            logger.debug(createService)
-            logger.debug(hasService)
+            logger.debug(createService)            
+            
+            # calculate resource
+            totalMemory = calculate_resource(createService, service)
+            if totalMemory > 1024:
+                result["status"] = "overtop"
+                return JsonResponse(result, status=200)
+                 
+            # create new service       
             if createService != "":
                 baseService = BaseTenantService()
                 serviceKeys = createService.split(",")
@@ -154,7 +162,10 @@ class ServiceMarketDeploy(AuthedView):
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id)
                     except Exception as e:
                        logger.exception(e)
+
             # exist service dependency
+            hasService = request.POST.get("hasService", "")
+            logger.debug(hasService)
             if hasService != "":
                 baseService = BaseTenantService()
                 serviceIds = hasService.split(",")
