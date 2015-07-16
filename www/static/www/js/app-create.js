@@ -49,25 +49,25 @@ $(function(){
     		success : function(msg) {
     			var dataObj = msg;
     			if (dataObj["status"] == "exist") {
-    				swal("服务名已存在！");
+    				swal("服务名已存在");
     			} else if (dataObj["status"] == "overtop") {
-    				swal("免费资源已达上限，不能创建！");
+    				swal("免费资源已达上限，不能创建");
     			} else if (dataObj["status"] == "empty") {
-    				swal("应用名称不能为空！");
+    				swal("应用名称不能为空");
     			}else if (dataObj["status"] == "code_from") {
-    				swal("应用资源库未选择！");
+    				swal("应用资源库未选择");
     			}else if (dataObj["status"] == "code_repos") {
-    				swal("代码仓库异常！");
+    				swal("代码仓库异常");
     			}else if (dataObj["status"] == "success") {
     				service_alias = dataObj["service_alias"]
     				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-dependency/";
     			} else {
-    				swal("创建失败！");
+    				swal("创建失败");
                 }
     		    $("#first_step").attr('disabled', false);
     		},
     		error : function() {
-    			swal("系统异常,请重试！");
+    			swal("系统异常,请重试");
     			$("#first_step").attr('disabled', false);
     		}
     	})
@@ -222,7 +222,7 @@ function projectVersion(code_from,code_id,clone_url){
                     $("#git_version_notice_" + codeId).text('暂无可选分支');
                 }
 	         }else {
-	           swal("操作失败！");
+	           swal("操作失败");
 	         }
 	       },
 	       error : function() {

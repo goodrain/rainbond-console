@@ -39,7 +39,7 @@
               
               statusCode: {
                 403: function(event) {
-                  alert("你没有此权限");
+                  swal("你没有此权限！");
                 }
               },
               
@@ -63,7 +63,7 @@
 
               statusCode: {
                 403: function(event) {
-                  alert("你没有此权限");
+                  swal("你没有此权限！");
                 }
               },
             });
@@ -95,7 +95,7 @@
 
             statusCode: {
               500: function() {
-                alert("服务器错误,请稍后再尝试");
+                swal("服务器错误,请稍后再尝试！");
               }
             }
           });

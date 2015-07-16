@@ -20,7 +20,7 @@
   // swfobject.hasFlashPlayerVersion("10.0.0") doesn't work with Gnash.
   if (swfobject.getFlashPlayerVersion().major < 10 && navigator.userAgent.toLowerCase().indexOf('msie') != -1) {
     logger.error("Flash Player >= 10.0.0 is required.");
-    alert('您的Flash版本过低，无法正常查看比分直播！\n建议升级到10.0以上版本！');
+    alert('您的Flash版本过低，无法正常体验网站功能！\n建议升级到10.0以上版本！');
     return;
   }
   if (location.protocol == "file:") {

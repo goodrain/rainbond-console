@@ -48,15 +48,15 @@ $(function() {
 					window.location.href = "/apps/" + tenantName + "/"
 							+ service_name + "/app-waiting/"
 				}else if (dataObj["status"] == "overtop") {
-    				alert("免费资源已达上限，不能创建");
+    				swal("免费资源已达上限，不能创建");
     				$("#service_dependency_finished").removeAttr('disabled')
     			} else {
-					alert("创建失败")
+					swal("创建失败")
 					$("#service_dependency_finished").removeAttr('disabled')
 				}
 			},
 			error : function() {
-				alert("系统异常,请重试");
+				swal("系统异常,请重试");
 				$("#service_dependency_finished").removeAttr('disabled')
 			}
 		})
