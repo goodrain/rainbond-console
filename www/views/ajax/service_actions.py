@@ -346,7 +346,7 @@ class ServiceRelation(AuthedView):
             tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)            
             if action == "add":
                 baseService = BaseTenantService()
-                create_service_dependency(tenant_id, service_id, tenantS.service_id)
+                baseService.create_service_dependency(tenant_id, service_id, tenantS.service_id)
             elif action == "cancel":
                 etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
                 etcdPath = '/goodrain/' + tenant_id + '/services/' + service_id + '/dependency/' + tenantS.service_id
