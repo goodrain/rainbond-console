@@ -16,6 +16,7 @@ from goodrain_web.tools import BeanStalkClient
 from www.etcd_client import EtcdClient
 from django.conf import settings
 from www.db import BaseConnection
+from www.tenantservice.baseservice import BaseTenantService
 
 import logging
 from django.template.defaultfilters import length
