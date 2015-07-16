@@ -427,18 +427,15 @@
 
                 <div class="form-group">
                   <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_alias}}</label>
-                  <div class="col-sm-10 col-lg-10">
-                    {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
-                    <button type="button" class="btn btn-danger" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除这个应用</button>
-                    {% else %}
-                    <button type="button" class="btn btn-danger" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除这个服务</button>
-                    {% endif %}
-                    <div class=" text-left text-danger">注意：该操作会将所有相关数据永久删除，请慎重操作！</div>
+                  <div class="col-sm8 col-lg-2 text-center">
+                    <button type="button" class="btn btn-danger" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除</button>
                   </div>
-                </div>
+                <div class="col-sm-8 col-lg-8 text-left control-label text-danger">注意：该操作会将所有相关数据永久删除，请慎重操作！</div></div>
               </form>
+
             </div>
           </section>
+
 
         </div>
         <!-- settings end-->
