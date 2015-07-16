@@ -1,5 +1,12 @@
+var gitcodechecktimmer
 $(function() {
-	setInterval("getGitCodeCheck()", 3000);
+	gitcodechecktimmer = setInterval("getGitCodeCheck()", 3000);
+	$('#service_code_waiting').click(
+	 function() {
+		 var tenantName = $('#tenantName').val();
+		 var service_name = $('#service_name').val();
+		 window.location.href = "/apps/" + tenantName + "/" + service_name + "/app-language/"
+	})
 });
 
 function getGitCodeCheck() {
@@ -13,8 +20,7 @@ function getGitCodeCheck() {
 			success : function(msg) {
 				var dataObj = msg;
 				if (dataObj["status"] == "checked") {
-					window.location.href = "/apps/" + tenantName + "/"
-							+ service_name + "/app-language/"
+					clearInterval(gitcodechecktimmer);
 				} else if (dataObj["status"] == "check_error") {
 					$("#git_code_upload").html("语言未识别，请重新提交代码...")
 				}

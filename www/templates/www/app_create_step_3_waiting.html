@@ -31,6 +31,7 @@
 							</label>
 						</div>
 					</div>
+					{% if deployTenantServices %}
 					<div class="form-group">
 						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">数据存储服务</label>
 						{% for deplyts in deployTenantServices %}
@@ -84,6 +85,7 @@
 							{% endwith %}
 						{% endfor %}
 					</div>
+					{% endif %}
 					<div class="form-group">
 						<label class="col-xs-2 control-label col-lg-2" for="inputSuccess">Git相关文档</label>
 						<div class="col-xs-10 col-lg-10">
@@ -97,6 +99,10 @@
 								<a href="#">linux系统git使用</a>
 							</div>
 						</div>
+					</div>
+					
+					<div class="col-lg-offset-3 col-lg-6 ">
+						<button type="button" id="service_code_waiting" class="btn btn-lg btn-info btn-block">下一步</button>
 					</div>
 					<!-- <div class="col-lg-offset-3 col-lg-6 ">
 						<button type="button" id="create_delete" onclick="app_create_delete();" class="btn btn-lg btn-danger btn-block">删除</button>
