@@ -4,8 +4,7 @@ def is_redirect(language, data):
         if data["runtimes"] == "true" and data["dependencies"] == "true" and data["procfile"] == "true":
             redirectme = True   
     elif language == "Ruby":
-        if data["runtimes"] == "true":
-            redirectme = True
+        redirectme = True
     elif language == "Python":
         if data["runtimes"] == "true" and data["dependencies"] == "true":
             redirectme = True

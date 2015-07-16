@@ -382,6 +382,8 @@ class AppLanguageCodeView(AuthedView):
             context["dependencyData"] = data
             redirectme = is_redirect(self.service.language, data)
             context["redirectme"] = redirectme
+            if redirectme:
+                language= "default"
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
