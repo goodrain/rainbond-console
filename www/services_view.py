@@ -173,19 +173,22 @@ class TenantService(AuthedView):
             context["nodeList"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]         
             
+            print self.service.category
             if self.service.category == "application" or  self.service.category == "manager":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
-                sids = []
+                
+                relationsids = []
                 sidMap = {}
-                if len(tsrs) > 0:                
+                if len(tsrs) > 0:
                     for tsr in tsrs:
-                        sids.append(tsr.dep_service_id)
+                        relationsids.append(tsr.dep_service_id)
                         sidMap[tsr.dep_service_id] = tsr.dep_order
-                    context["serviceIds"] = sids  
-                    context["serviceIdsMap"] = sidMap
+                context["serviceIds"] = relationsids  
+                context["serviceIdsMap"] = sidMap
                     
                 map = {}
+                sids = []
                 for tenantService in tenantServiceList:
                     if tenantService.category != "application" and tenantService.category != "manager":
                         sids.append(tenantService.service_id)
@@ -193,12 +196,12 @@ class TenantService(AuthedView):
                 context["serviceMap"] = map
                 
                 # relationships password
+                authMap = {}
                 authList = TenantServiceAuth.objects.filter(service_id__in=sids)
-                if len(authList) > 0:
-                    authMap = {}
+                if len(authList) > 0:                    
                     for auth in authList:
                         authMap[auth.service_id] = auth
-                    context["authMap"] = authMap
+                context["authMap"] = authMap
                                 
                 # service git repository
                 httpGitUrl = ""
