@@ -60,7 +60,7 @@
 												<td>连接端口</td>
 												<td>{{deplyts.service_port }}</td>
 											</tr>
-											{% if deplyts.service_type == "mysql" %}
+											{% if deplyts.service_type == "mysql" or deplyts.service_type == "postgresql" %}
 											<tr>	
 												<td>用户名</td>
 												<td>admin</td>
