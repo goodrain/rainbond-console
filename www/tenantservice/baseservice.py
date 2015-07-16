@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceStatics
+from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceStatics, TenantServiceAuth
 from www.service_http import RegionServiceApi
 from www.etcd_client import EtcdClient
 from django.conf import settings
@@ -46,7 +46,14 @@ class BaseTenantService(object):
         tenantServiceInfo["image"] = service.image
         tenantServiceInfo["cmd"] = service.cmd
         tenantServiceInfo["setting"] = service.setting
-        envar = service.env + ","
+        if service.is_init_accout:
+            uk = service.service_key.upper() + "_USER=" + "admin"
+            up = service.service_key.upper() + "_PASS=" + service_id[:8]
+            envar = service.env + "," + uk + "," + up + ","
+            ta = TenantServiceAuth(service_id=service_id, user="admin", password=service_id[:8])
+            ta.save()
+        else:
+            envar = service.env + ","
         tenantServiceInfo["env"] = envar
         tenantServiceInfo["min_node"] = service.min_node
         tenantServiceInfo["min_cpu"] = service.min_cpu
@@ -126,7 +133,11 @@ class BaseTenantService(object):
         data[attr + "_HOST"] = "127.0.0.1"
         data[attr + "_PORT"] = tenantS.service_port
         data[attr + "_USER"] = "admin"
-        data[attr + "_PASSWORD"] = "admin"
+        try:
+            ts = TenantServiceAuth.objects.get(service_id=tenantS.service_id)
+            data[attr + "_PASSWORD"] = ts.password
+        except Exception as e:
+            data[attr + "_PASSWORD"] = "admin"
         etcdClient.write(etcdPath, json.dumps(data))
         res = etcdClient.get(etcdPath)
         logger.debug(res)

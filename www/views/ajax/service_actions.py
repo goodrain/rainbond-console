@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv 
+from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth 
 from www.service_http import RegionServiceApi
 from www.weblog import WebLog
 from www.gitlab_http import GitlabApi
@@ -30,8 +30,12 @@ beanlog = BeanStalkClient()
 class AppDeploy(AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        service_alias = ""
         data = {}
+        service_alias = ""
+        if self.service.language is None or self.service.language == "":
+            data["status"] = "language"
+            return JsonResponse(data, status=200)
+        
         tenant_id = self.tenant.tenant_id
         service_id = self.service.service_id
         oldVerion = self.service.deploy_version
@@ -197,6 +201,10 @@ class ServiceManage(AuthedView):
                 task["tenant_id"] = self.tenant.tenant_id
                 beanlog.put("app_log", json.dumps(task))  
             elif action == "delete":
+                depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
+                if depNumber > 0:
+                    result["status"] = "dependency"
+                    return JsonResponse(result)
                 data = self.service.toJSON()
                 logger.info(data)
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
@@ -208,10 +216,20 @@ class ServiceManage(AuthedView):
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
                     gitClient.deleteProject(self.service.git_project_id)
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
-                try:
-                   TenantServiceEnv.objects.get(service_id=self.service.service_id).delete()
-                except Exception as e:
-                    pass                 
+                # env/auth/relationship delete
+                
+                TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
+                TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
+                                
+                tdrNumber = TenantServiceRelation.objects.filter(service_id=self.service.service_id).count()
+                if tdrNumber > 0:
+                    TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
+                    try:
+                        etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
+                        etcdPath = '/goodrain/' + self.service.tenant_id + '/services/' + self.service.service_id
+                        etcdClient.delete(etcdPath, recursive=True)
+                    except Exception as e:
+                        logger.exception(e)
             result["status"] = "success"
         except Exception, e:
             logger.debug(e)
@@ -324,29 +342,13 @@ class ServiceRelation(AuthedView):
         try:
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
-            tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
-            etcdPath = '/goodrain/' + tenant_id + '/services/' + service_id + '/dependency/' + tenantS.service_id
-            etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
+            tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)            
             if action == "add":
-                depNum = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id, dep_service_type=tenantS.service_type).count()
-                attr = tenantS.service_type.upper()
-                if depNum > 0 :
-                    attr = attr + "_" + tenantS.service_alias.upper()
-                data = {}
-                data[attr + "_HOST"] = "127.0.0.1"
-                data[attr + "_PORT"] = tenantS.service_port
-                data[attr + "_USER"] = "admin"
-                data[attr + "_PASSWORD"] = "admin"
-                etcdClient.write(etcdPath, json.dumps(data))
-                res = etcdClient.get(etcdPath)
-                tsr = TenantServiceRelation()
-                tsr.tenant_id = tenant_id
-                tsr.service_id = service_id
-                tsr.dep_service_id = tenantS.service_id
-                tsr.dep_service_type = tenantS.service_type
-                tsr.dep_order = depNum + 1
-                tsr.save()
+                baseService = BaseTenantService()
+                create_service_dependency(tenant_id, service_id, tenantS.service_id)
             elif action == "cancel":
+                etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
+                etcdPath = '/goodrain/' + tenant_id + '/services/' + service_id + '/dependency/' + tenantS.service_id
                 etcdClient.delete(etcdPath)
                 TenantServiceRelation.objects.get(tenant_id=tenant_id, service_id=service_id, dep_service_id=tenantS.service_id).delete()
             result["status"] = "success"    
@@ -462,14 +464,15 @@ class ServiceCheck(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             if self.service.language is None or self.service.language == "":
-                result["status"] = "show"
-            else:
-                if self.service.language != self.service.language:
-                    result["status"] = "change"
+                tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+                dps = json.loads(tse.check_dependency)
+                if dps["language"] == "false":
+                    result["status"] = "check_error"
                 else:
-                    result["status"] = "hidden"
+                    result["status"] = "checking"
+            else:                
+                result["status"] = "checked"                    
             result["data"] = {}
         except Exception as e:
             result["status"] = "checking"

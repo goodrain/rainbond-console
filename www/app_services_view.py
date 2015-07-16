@@ -13,14 +13,12 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
 from www.decorator import perm_required
-from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv
+from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, ServiceDomain, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
 from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
-from www.inflexdb.inflexdbservice import InflexdbService
-from www.tenantfee.feeservice import TenantFeeService
 from www.db import BaseConnection
 from www.utils.language import is_redirect
 
@@ -185,6 +183,7 @@ class AppCreateView(AuthedView):
         except Exception as e:
             logger.exception(e)
             TenantServiceInfo.objects.get(service_id=service_id).delete()
+            TenantServiceAuth.objects.get(service_id=service_id).delete()
             data["status"] = "failure"
         return JsonResponse(data, status=200)
     
@@ -230,6 +229,17 @@ class AppWaitingCodeView(AuthedView):
                 tenant_id = self.tenant.tenant_id
                 deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
                 context["deployTenantServices"] = deployTenantServices
+                if len(deployTenantServices) > 0:
+                    sids = []
+                    for dts in deployTenantServices:
+                        sids.append(dts.service_id)
+                        
+                    authList = TenantServiceAuth.objects.filter(service_id__in=sids)
+                    if len(authList) > 0:
+                        authMap = {}
+                        for auth in authList:
+                            authMap[auth.service_id] = auth
+                        context["authMap"] = authMap
                 
         except Exception as e:
             logger.exception(e)
@@ -326,6 +336,21 @@ class AppDependencyCodeView(AuthedView):
                 break
         return services
     
+    def calculate_resource(self, createService):
+        totalMemory = 0
+        if self.tenant.tenant_name != "goodrain":  
+            serviceKeys = createService.split(",")
+            dsn = BaseConnection()
+            query_sql = '''
+                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                '''.format(tenant_id=self.tenant.tenant_id)
+            sqlobj = dsn.query(query_sql)
+            if sqlobj is not None and len(sqlobj) > 0:
+                oldMemory = sqlobj[0]["totalMemory"]
+                if oldMemory is not None:                    
+                    totalMemory = int(oldMemory) + len(serviceKeys) * 128
+        return totalMemory
+    
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
@@ -363,10 +388,13 @@ class AppDependencyCodeView(AuthedView):
             service_id = self.service.service_id
              # create service dependency
             createService = request.POST.get("createService", "")
-            hasService = request.POST.get("hasService", "")
-            logger.debug(createService)
-            logger.debug(hasService)
+            logger.debug(createService)            
             if createService is not None and createService != "":
+                totalMemory = self.calculate_resource(createService)
+                if totalMemory > 1024:
+                    data["status"] = "overtop"
+                    return JsonResponse(data, status=200)
+                
                 baseService = BaseTenantService()
                 serviceKeys = createService.split(",")
                 for skey in serviceKeys:
@@ -379,13 +407,14 @@ class AppDependencyCodeView(AuthedView):
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id)
                     except Exception as e:
                        logger.exception(e)
-            # exist service dependency
+            # exist service dependency.
+            hasService = request.POST.get("hasService", "")
+            logger.debug(hasService)
             if hasService is not None and hasService != "":
                 baseService = BaseTenantService()
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
-                        pass
                         baseService.create_service_dependency(tenant_id, service_id, sid) 
                     except Exception as e:
                        logger.exception(e)
@@ -483,7 +512,7 @@ class GitCheckCode(BaseView):
             if service_id is not None and service_id != "":
                 dps = json.loads(dependency)
                 language = dps["language"]
-                if language is not None and language != "":
+                if language is not None and language != "" and language != "no":
                     try:
                         tse = TenantServiceEnv.objects.get(service_id=service_id)
                         tse.language = language
@@ -493,7 +522,7 @@ class GitCheckCode(BaseView):
                         tse = TenantServiceEnv(service_id=service_id, language=language, check_dependency=dependency)
                         tse.save()
                     service = TenantServiceInfo.objects.get(service_id=service_id)
-                    if service.language is None or service.language == "":
+                    if language != "false" :
                         if language.find("Java") > -1:
                             service.min_memory = 256
                             data = {}

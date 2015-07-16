@@ -49,14 +49,13 @@ $(function(){
     		success : function(msg) {
     			var dataObj = msg;
     			if (dataObj["status"] == "exist") {
-    				// alert("服务名已存在");
-                    swal("服务名已存在！")
+    				swal("服务名已存在！");
     			} else if (dataObj["status"] == "overtop") {
     				swal("免费资源已达上限，不能创建！");
     			} else if (dataObj["status"] == "empty") {
     				swal("应用名称不能为空！");
     			}else if (dataObj["status"] == "code_from") {
-    				swal("应用资源库未选择");
+    				swal("应用资源库未选择！");
     			}else if (dataObj["status"] == "code_repos") {
     				swal("代码仓库异常！");
     			}else if (dataObj["status"] == "success") {
@@ -65,7 +64,7 @@ $(function(){
     			} else {
     				swal("创建失败！");
                 }
-    			$("#first_step").attr('disabled', false);
+    		    $("#first_step").attr('disabled', false);
     		},
     		error : function() {
     			swal("系统异常,请重试！");

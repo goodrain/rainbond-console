@@ -8,10 +8,10 @@ Website: http://thevectorlab.net/
 body {
     color: #797979;
     background: #f1f2f7;
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
     padding: 0px !important;
     margin: 0px !important;
-    font-size:13px;
+    font-size:14px;
 }
 
 ul li {
@@ -62,7 +62,7 @@ a, a:hover, a:focus {
     font-size: 18px;
     text-transform: uppercase;
     font-weight: 300;
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
 }
 
 .form-signin .checkbox {
@@ -72,7 +72,7 @@ a, a:hover, a:focus {
     font-weight: normal;
     color: #b6b6b6;
     font-weight: 300;
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
 }
 .form-signin .form-control {
     position: relative;
@@ -92,7 +92,7 @@ a, a:hover, a:focus {
     -webkit-border-radius: 5px;
     border: 1px solid #eaeaea;
     box-shadow: none;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .form-signin .btn-login {
@@ -100,7 +100,7 @@ a, a:hover, a:focus {
     color: #fff;
     text-transform: uppercase;
     font-weight: 300;
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
     box-shadow: 0 4px #e56b60;
     margin-bottom: 20px;
 }
@@ -235,7 +235,7 @@ ul.sidebar-menu li ul.sub li:last-child{
 }
 
 ul.sidebar-menu li ul.sub li a {
-    font-size: 12px;
+    font-size: 14px;
     padding: 6px 0;
     line-height: 35px;
     height: 35px;
@@ -459,7 +459,7 @@ ul.top-menu > li > a:hover, ul.top-menu > li > a:focus {
 
 .dropdown-menu.extended li a {
     border-bottom: 1px solid #EBEBEB !important;
-    font-size: 12px;
+    font-size: 14px;
     list-style: none;
 }
 
@@ -2193,12 +2193,12 @@ ul.inbox-pagination li {
 
 .modal-header h4.modal-title {
     font-weight: 300;
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
 }
 
 .modal-body label {
     font-weight: 400;
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
 }
 
 .heading-inbox h4{
@@ -2943,7 +2943,7 @@ ul.amounts li {
 
 .panel-heading .nav {
     border: medium none;
-    font-size: 13px;
+    font-size: 14px;
     margin: -10px -15px -11px;
 }
 
@@ -3455,7 +3455,7 @@ table.sliders tr td {
     background: transparent;
     border: none;
     color: #34495e;
-    font-family: "Lato", sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
     font-size: 14px;
     margin: 0px;
     padding: 0 0 0 5px;
@@ -3600,7 +3600,7 @@ table.sliders tr td {
 }
 
 .daterangepicker .calendar th, .daterangepicker .calendar td {
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
     font-weight: 300;
     text-align: center;
     white-space: nowrap;
@@ -4148,7 +4148,7 @@ span.customSelect.changed {
     margin: 0;
     overflow: hidden;
     font-weight: normal;
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
 }
 
 #headerLeft h2
@@ -4550,7 +4550,7 @@ tr.odd.gradeX td.sorting_1, tr.even.gradeX td.sorting_1, table.display tr.even.g
     margin-bottom: 80px;
     display: inline-block;
     text-align: center;
-    font-family: 'Open Sans', sans-serif;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
     font-weight: 300;
 }
 

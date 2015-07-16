@@ -19,26 +19,27 @@
 						</div>
 					</div>
 					<div class="form-group ">
-						<div class="col-lg-2">
-							<label class="control-label">已有服务</label>
-						</div>
-						{% if deployTenantServices %} 
-							{% for deployCache in deployTenantServices %}
+						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">已有服务</label>
+						{% if deployTenantServices %} 							
 							<div class="col-lg-10">
+								{% for deployCache in deployTenantServices %}
+							   <div class="col-xs-2">
 								<label class="checkbox-inline"> <input type="checkbox"
 									name="delineCheckbox1"
 									value="{{deployCache.service_id}}_{{deployCache.service_type}}">
 									{{deployCache.service_alias}}
 								</label>
+								</div>
+								{% endfor %} 
 							</div>
-							{% endfor %} 
+							
 						{% endif %} 
 						<input type="hidden" id="hasService" name="hasService" value="">
 					</div>
 					<div class="form-group">
 						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">新建服务</label>
-						<div class="col-lg-10">
-							{% if cacheServiceList %} 
+						{% if cacheServiceList %} 
+						<div class="col-lg-10">							
 								{% for cache in cacheServiceList %}
 								<div class="col-xs-2">
 									<label class="checkbox-inline"> <input type="checkbox"
@@ -48,12 +49,12 @@
 									</label>
 								</div>
 								{% endfor %} 
-							{% endif %} 
 							<input type="hidden" id="createService" name="createService" value="">
 						</div>
+						{% endif %} 
 					</div>
 					<div class="col-lg-offset-3 col-lg-6 ">
-						<button type="button" id="service_dependency_finished" class="btn btn-lg btn-success btn-block">完成</button>
+						<button type="button" id="service_dependency_finished" class="btn btn-lg btn-info btn-block">下一步</button>
 					</div>
 				</form>
 			</div>

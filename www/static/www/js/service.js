@@ -1,54 +1,3 @@
-//服务创建
-function service_create(tenantName, service_key) {
-	window.location.href = "/apps/" + tenantName
-			+ "/service-deploy/?service_key=" + service_key
-}
-
-// 服务部署
-function service_deploy(tenantName, service_key) {
-	var service_name = $("#service_name").val();
-    var serviceReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
-    var result = true;
-    if (!serviceReg.test(service_name)) {
-    	alert("服务名称以英文字母开始包含数字，中划线 -，下划线 _")
-    	result = false;
-    	$('#service_name').focus();
-    }
-	if (!result) {
-		 return;
-	}
-	var desc = $("#desc").val();
-	var _data = $("form").serialize();
-	$.ajax({
-		type : "POST",
-		url : "/apps/" + tenantName + "/service-deploy/",
-		data : _data,
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(msg) {
-			var dataObj = eval("(" + msg + ")");
-			if (dataObj["status"] == "exist") {
-				alert("服务已存在")
-				window.location.href = "/apps/" + tenantName + "/"
-						+ service_alias + "/detail/"
-			} else if (dataObj["status"] == "overtop") {
-				alert("免费资源已达上限，不能部署")
-			} else if (dataObj["status"] == "success") {
-				window.location.href = "/apps/" + tenantName + "/"
-						+ dataObj["service_alias"] + "/detail/"
-			} else {
-				alert("服务部署失败")
-			}
-		},
-		error : function() {
-			// alert("系统异常");
-		}
-	})
-}
-
 function goto_deploy(tenantName, service_alias) {
 	window.location.href = "/apps/" + tenantName + "/" + service_alias
 			+ "/detail/"
@@ -75,15 +24,21 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
 				alert("操作成功")
+			} else if (dataObj["status"] == "language") {
+				alert("应用语言监测为通过")
+				forurl = "/apps/" + tenantName + "/" + serviceAlias
+						+ "/detail/"
+				window.open(forurl, target = "_parent")
 			} else if (dataObj["status"] == "often") {
 				alert("上次部署正在进行中，请稍后再试")
 			} else {
 				alert("操作失败")
 				$("#onekey_deploy").removeAttr("disabled")
 			}
-			if(isreload=='yes'){
-				forurl = "/apps/" + tenantName + "/" + serviceAlias+ "/detail/"
-				window.open(forurl,target="_parent")
+			if (isreload == 'yes') {
+				forurl = "/apps/" + tenantName + "/" + serviceAlias
+						+ "/detail/"
+				window.open(forurl, target = "_parent")
 			}
 		},
 		error : function() {
@@ -179,42 +134,6 @@ function domainSubmit(service_id, tenantName, service_alias) {
 	})
 }
 
-function appCreate(tenantName) {
-	$("#submit1").attr('disabled', "true")
-	var _data = $("form").serialize();
-	$.ajax({
-		type : "post",
-		url : "/apps/" + tenantName + "/app-create/",
-		data : _data,
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(msg) {
-			var dataObj = eval("(" + msg + ")");
-			if (dataObj["status"] == "exist") {
-				alert("服务名已存在")
-			} else if (dataObj["status"] == "overtop") {
-				alert("免费资源已达上限，不能创建")
-			} else if (dataObj["status"] == "empty") {
-				alert("应用名称不能为空")
-			}else if (dataObj["status"] == "code_from") {
-				alert("应用资源库未选择")
-			} else if (dataObj["status"] == "success") {
-				service_alias = dataObj["service_alias"]
-				window.location.href = "/apps/" + tenantName + "/"
-						+ service_alias + "/detail/"
-			} else {
-				alert("创建失败")
-			}
-		},
-		error : function() {
-			alert("系统异常,请重试");
-		}
-	})
-}
-
 function service_upgrade(tenantName, service_alias) {
 	var service_min_config = $("#serviceMemorys").val();
 	memory = 128 * Math.pow(2, service_min_config - 1)
@@ -289,7 +208,9 @@ function delete_service(tenantName, service_alias) {
 				var dataObj = msg
 				if (dataObj["status"] == "success") {
 					alert("操作成功")
-					window.location.href = "/apps/"+tenantName
+					window.location.href = "/apps/" + tenantName
+				} else if (dataObj["status"] == "dependency") {
+					alert("当前服务被依赖不能删除")
 				} else {
 					alert("操作失败")
 				}
