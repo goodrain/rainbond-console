@@ -34,7 +34,6 @@ $(function(){
         var serviceKey="";
 		var serviceId="";
 		var _selectValue = $('input[type="radio"][name="delineCheckbox1"]:checked').val()
-		alert(_selectValue)
 		var str = _selectValue.split("_");
 		if(str[0] == service_dependecy){
 			$("#createService").val(str[0])
