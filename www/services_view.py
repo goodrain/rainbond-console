@@ -184,20 +184,22 @@ class TenantService(AuthedView):
                         sidMap[tsr.dep_service_id] = tsr.dep_order
                     context["serviceIds"] = sids  
                     context["serviceIdsMap"] = sidMap
-                    map = {}
-                    for tenantService in tenantServiceList:
-                        if tenantService.category == "application" or tenantService.category == "manager":
-                            pass
-                        else:
-                            map[tenantService.service_id] = tenantService                    
-                    context["serviceMap"] = map
-                    # relationships password
-                    authList = TenantServiceAuth.objects.filter(service_id__in=sids)
-                    if len(authList) > 0:
-                        authMap = {}
-                        for auth in authList:
-                            authMap[auth.service_id] = auth
-                        context["authMap"] = authMap
+                    
+                map = {}
+                for tenantService in tenantServiceList:
+                    if tenantService.category != "application" and tenantService.category != "manager":
+                        sids.append(tenantService.service_id)
+                        map[tenantService.service_id] = tenantService
+                context["serviceMap"] = map
+                
+                # relationships password
+                authList = TenantServiceAuth.objects.filter(service_id__in=sids)
+                if len(authList) > 0:
+                    authMap = {}
+                    for auth in authList:
+                        authMap[auth.service_id] = auth
+                    context["authMap"] = authMap
+                                
                 # service git repository
                 httpGitUrl = ""
                 if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
