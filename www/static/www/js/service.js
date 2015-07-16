@@ -9,7 +9,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 	if (categroy == "application") {
 		_url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
 	} else {
-		alert("暂时不支持")
+		swal("暂时不支持")
 		return;
 	}
 	$.ajax({
@@ -23,16 +23,16 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 		success : function(msg) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
-				alert("操作成功")
+				swal("操作成功")
 			} else if (dataObj["status"] == "language") {
-				alert("应用语言监测为通过")
+				swal("应用语言监测为通过")
 				forurl = "/apps/" + tenantName + "/" + serviceAlias
 						+ "/detail/"
 				window.open(forurl, target = "_parent")
 			} else if (dataObj["status"] == "often") {
-				alert("上次部署正在进行中，请稍后再试")
+				swal("上次部署正在进行中，请稍后再试")
 			} else {
-				alert("操作失败")
+				swal("操作失败")
 				$("#onekey_deploy").removeAttr("disabled")
 			}
 			if (isreload == 'yes') {
@@ -43,7 +43,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 		},
 		error : function() {
 			$("#onekey_deploy").removeAttr("disabled")
-			// alert("系统异常");
+			// swal("系统异常");
 		}
 	})
 }
@@ -51,7 +51,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 function service_my_onOperation(service_id, service_alias, tenantName) {
 	var taction = $("#operate_" + service_id).attr("data" + service_id)
 	if (taction != "stop" && taction != "restart") {
-		alert("系统异常");
+		swal("系统异常");
 		window.location.href = window.location.href;
 	}
 	$.ajax({
@@ -66,13 +66,13 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 		success : function(msg) {
 			var dataObj = msg
 			if (dataObj["status"] == "success") {
-				alert("操作成功")
+				swal("操作成功")
 			} else {
-				alert("操作失败")
+				swal("操作失败")
 			}
 		},
 		error : function() {
-			alert("系统异常");
+			swal("系统异常");
 		}
 	})
 }
@@ -80,7 +80,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 function service_onOperation(service_id, service_alias, tenantName) {
 	var taction = $("#service_status_value").val()
 	if (taction != "stop" && taction != "restart") {
-		alert("参数异常");
+		swal("参数异常");
 		window.location.href = window.location.href;
 	}
 	$.ajax({
@@ -95,13 +95,13 @@ function service_onOperation(service_id, service_alias, tenantName) {
 		success : function(msg) {
 			var dataObj = msg
 			if (dataObj["status"] == "success") {
-				alert("操作成功")
+				swal("操作成功")
 			} else {
-				alert("操作失败")
+				swal("操作失败")
 			}
 		},
 		error : function() {
-			alert("系统异常");
+			swal("系统异常");
 		}
 	})
 }
@@ -123,13 +123,13 @@ function domainSubmit(service_id, tenantName, service_alias) {
 		success : function(msg) {
 			var dataObj = eval("(" + msg + ")");
 			if (dataObj["status"] == "success") {
-				alert("操作成功")
+				swal("操作成功")
 			} else {
-				alert("操作失败")
+				swal("操作失败")
 			}
 		},
 		error : function() {
-			alert("系统异常");
+			swal("系统异常");
 		}
 	})
 }
@@ -150,15 +150,15 @@ function service_upgrade(tenantName, service_alias) {
 		success : function(msg) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
-				alert("设置成功")
+				swal("设置成功")
 			} else if (dataObj["status"] == "overtop") {
-				alert("免费资源已达上限，不能升级")
+				swal("免费资源已达上限，不能升级")
 			} else {
-				alert("设置失败")
+				swal("设置失败")
 			}
 		},
 		error : function() {
-			alert("系统异常,请重试");
+			swal("系统异常,请重试");
 		}
 	})
 }
@@ -178,15 +178,15 @@ function app_upgrade(tenantName, service_alias) {
 			success : function(msg) {
 				var dataObj = msg;
 				if (dataObj["status"] == "success") {
-					alert("设置成功")
+					swal("设置成功")
 				} else if (dataObj["status"] == "overtop") {
-					alert("免费资源已达上限，不能升级")
+					swal("免费资源已达上限，不能升级")
 				} else {
-					alert("设置失败")
+					swal("设置失败")
 				}
 			},
 			error : function() {
-				alert("系统异常,请重试");
+				swal("系统异常,请重试");
 			}
 		})
 	}
@@ -207,16 +207,16 @@ function delete_service(tenantName, service_alias) {
 			success : function(msg) {
 				var dataObj = msg
 				if (dataObj["status"] == "success") {
-					alert("操作成功")
+					swal("操作成功")
 					window.location.href = "/apps/" + tenantName
 				} else if (dataObj["status"] == "dependency") {
-					alert("当前服务被依赖不能删除")
+					swal("当前服务被依赖不能删除")
 				} else {
-					alert("操作失败")
+					swal("操作失败")
 				}
 			},
 			error : function() {
-				alert("系统异常");
+				swal("系统异常");
 			}
 		})
 	}

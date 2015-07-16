@@ -20,7 +20,7 @@ function getGitCodeCheck() {
 				}
 			},
 			error : function() {
-				// alert("系统异常");
+				// swal("系统异常");
 			}
 		})
 	}
@@ -44,16 +44,16 @@ function app_create_delete(){
 				success : function(msg) {
 					var dataObj = msg
 					if (dataObj["status"] == "success") {
-						alert("操作成功")
+						swal("操作成功")
 						window.location.href = "/apps/" + tenantName
 					} else if (dataObj["status"] == "dependency") {
-						alert("当前服务被依赖不能删除")
+						swal("当前服务被依赖不能删除")
 					} else {
-						alert("操作失败")
+						swal("操作失败")
 					}
 				},
 				error : function() {
-					alert("系统异常");
+					swal("系统异常");
 				}
 			})
 		}

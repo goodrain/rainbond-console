@@ -11,7 +11,7 @@ $(function() {
 			if(language=="Node.js"){
 				var service_server = $('#service_server').val();
 				if(service_server==""){
-					alert("启动命令不能为空")
+					swal("启动命令不能为空")
 					return false;
 				}
 			}
@@ -35,12 +35,12 @@ $(function() {
 						window.location.href = "/apps/" + tenantName + "/"
 								+ service_name + "/detail/"
 					} else {
-						alert("创建失败")
+						swal("创建失败")
 						$("#language_btn").removeAttr('disabled')
 					}
 				},
 				error : function() {
-					alert("系统异常,请重试");
+					swal("系统异常,请重试");
 					$("#language_btn").removeAttr('disabled')
 				}
 			})

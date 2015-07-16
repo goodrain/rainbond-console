@@ -81,27 +81,27 @@ $(function(){
     		success : function(msg) {
     			var dataObj = msg;
     			if (dataObj["status"] == "notexist"){
-    				alert("所选的服务类型不存在");
+    				swal("所选的服务类型不存在");
     				$("#back_service_finished").removeAttr('disabled')
     			} else if (dataObj["status"] == "exist") {
-    				alert("服务名已存在");
+    				swal("服务名已存在");
     				$("#back_service_finished").removeAttr('disabled')
     			} else if (dataObj["status"] == "overtop") {
-    				alert("免费资源已达上限，不能创建");
+    				swal("免费资源已达上限，不能创建");
     				$("#back_service_finished").removeAttr('disabled')
     			} else if (dataObj["status"] == "empty") {
-    				alert("服务名称不能为空");
+    				swal("服务名称不能为空");
     				$("#back_service_finished").removeAttr('disabled')
     			}else if (dataObj["status"] == "success") {
     				service_alias = dataObj["service_alias"]
     				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
     			} else {
-    				alert("创建失败");
+    				swal("创建失败");
     				$("#back_service_finished").removeAttr('disabled')
                 }
     		},
     		error : function() {
-    			alert("系统异常,请重试");
+    			swal("系统异常,请重试");
     			$("#back_service_finished").removeAttr('disabled')
     		}
     	})
