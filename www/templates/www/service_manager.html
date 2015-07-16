@@ -167,10 +167,10 @@ function createService(tenantName){
 		  data: _data,
 		  cache: false,
 	  	  success: function(msg) {
-	  		alert(msg)
+	  		swal(msg)
 		  },
 		  error: function(){
-			alert("系统异常");
+			swal("系统异常");
     	  	}
      })
 }

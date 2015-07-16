@@ -508,7 +508,7 @@
 				    	  }	    		  	  
 		    		  },
 		    		  error: function(){
-		    			//alert("系统异常");
+		    			//swal("系统异常");
 		      	  	}
 		       })	
 			}
@@ -585,7 +585,7 @@
 				    	}		    	  		 
 		    		  },
 		    		  error: function(){
-		    			//alert("系统异常");
+		    			//swal("系统异常");
 		      	  	}
 		       })	
 			}
@@ -608,7 +608,7 @@
 		    	  		$("#keylog").html(dataObj["log"])		    	  		 
 		    		  },
 		    		  error: function(){
-		    			//alert("系统异常");
+		    			//swal("系统异常");
 		      	  	}
 		       })	
 			}
@@ -637,7 +637,7 @@
 			    	  	}   	  		 
 		    		  },
 		    		  error: function(){
-		    			//alert("系统异常");
+		    			//swal("系统异常");
 		      	  	}
 		       })	
 			}
@@ -656,14 +656,14 @@
         		success : function(msg) {
         			var dataObj = msg
         			if (dataObj["status"] == "success") {
-        				alert("操作成功")
+        				swal("操作成功")
         				window.location.href = window.location.href 
         			} else {
-        				alert("操作失败")
+        				swal("操作失败")
         			}
         		},
         		error : function() {
-        			// alert("系统异常");
+        			// swal("系统异常");
         		}
         	})
         }
@@ -680,14 +680,14 @@
         		success : function(msg) {
         			var dataObj = msg
         			if (dataObj["status"] == "success") {
-        				alert("操作成功")
+        				swal("操作成功")
         				window.location.href = window.location.href 
         			} else {
-        				alert("操作失败")
+        				swal("操作失败")
         			}
         		},
         		error : function() {
-        			// alert("系统异常");
+        			// swal("系统异常");
         		}
         	})
         }

@@ -178,7 +178,7 @@
 var serviceReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 var result = true;
 if (!serviceReg.test(service_name)) {
- alert("应用名称以英文字母开始包含数字，中划线 -，下划线 _")
+ swal("应用名称以英文字母开始包含数字，中划线 -，下划线 _")
  result = false;
  $('#service_name').focus();
 }
@@ -192,7 +192,7 @@ if(code_from=="gitlab_exit"){
  var code_id = $("#service_code_id").val()
  var code_version = $("#code_version_"+code_id).val()
  if(code_version=="" || code_version== undefined){
-   alert("请选择相应的代码仓库和版本")
+   swal("请选择相应的代码仓库和版本")
    result=false
  }
  $("#service_code_version").val(code_version)
@@ -200,7 +200,7 @@ if(code_from=="gitlab_exit"){
  var code_id = $("#service_code_id").val()
  var code_version = $("#code_version_"+code_id).val()
  if(code_version=="" || code_version== undefined){
-   alert("请选择相应的代码仓库和版本")
+   swal("请选择相应的代码仓库和版本")
    result=false
  }
  $("#service_code_version").val(code_version)
@@ -322,7 +322,7 @@ $.ajax({
          }
        },
        error: function(){
-       //alert("系统异常");
+       //swal("系统异常");
          }
    })
 }
@@ -365,11 +365,11 @@ if(action != ""){
            htmlmsg +='</select>'
            $("#git_"+code_id).html(htmlmsg)
          }else {
-           alert("操作失败")
+           swal("操作失败")
          }
        },
        error : function() {
-         // alert("系统异常");
+         // swal("系统异常");
        }
      })
 }
