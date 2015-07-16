@@ -392,8 +392,8 @@ class AppDependencyCodeView(AuthedView):
             if createService is not None and createService != "":
                 totalMemory = self.calculate_resource(createService)
                 if totalMemory > 1024:
-                    result["status"] = "overtop"
-                    return JsonResponse(result, status=200)
+                    data["status"] = "overtop"
+                    return JsonResponse(data, status=200)
                 
                 baseService = BaseTenantService()
                 serviceKeys = createService.split(",")
