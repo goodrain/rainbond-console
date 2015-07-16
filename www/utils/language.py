@@ -21,4 +21,16 @@ def is_redirect(language, data):
     elif language == "static":
         if data["procfile"] == "true":
             redirectme = True
+    elif language == "Clojure":
+        redirectme = True
+    elif language == "Go":
+        redirectme = True
+    elif language == "Play":
+        redirectme = True
+    elif language == "Grails":
+        redirectme = True
+    elif language == "Scala":
+        redirectme = True
+    elif language == "Gradle":
+        redirectme = True
     return redirectme
