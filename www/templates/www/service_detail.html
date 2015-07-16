@@ -54,7 +54,7 @@
                 <div class="panel-body">
                     <div class="row">
                     	<div class="col-lg-6 text-left">
-                        {% ifequal tenantServiceInfo.category "application" %}                      
+                        {% ifequal tenantServiceInfo.category "application" %}
                         {% if 'code_deploy' in user.actions %}<button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-cloud-upload"></i> 一键部署</button>
                         {% endif %}
                         <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.goodrain.net');"><i class="fa fa-eye"></i>访问</button>
@@ -73,7 +73,7 @@
               </section>
             </div>
           </div>
-          {% if tenantServiceInfo.category == "store" or tenantServiceInfo.category == "cache" %} 
+          {% if tenantServiceInfo.category == "store" or tenantServiceInfo.category == "cache" %}
           <div class="row">
           	<div class="col-lg-6 text-left">
                <section class="panel">
@@ -242,7 +242,7 @@
 		                        {% endwith %}
 	                        {% endfor %}
                         {% endif %}
-                        
+
                         {% if serviceMap %}
 	                 		{% for k,value in serviceMap.items %}
 	                 		   {% if k not in serviceIds %}
@@ -253,7 +253,7 @@
 			                            	<button type="button" class="btn btn-success"  onclick="buid_relation('{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">关联</button>
 			                            </td>
 			                        </tr>
-	                 		   {% endif %}		                        
+	                 		   {% endif %}
 	                        {% endfor %}
                 		{% endif %}
                           <tr>
@@ -263,10 +263,10 @@
                               <i class="fa fa-plus"></i>   创建服务</button>
                             </td>
                             <td></td>
-                          </tr>  		
+                          </tr>
                        </tbody>
                     </table>
-                </section>                
+                </section>
             </div>
             {% endif  %}
         </div>
@@ -277,7 +277,7 @@
         <!-- log start -->
         <div role="tabpanel" class="tab-pane" id="log"></div>
         <!-- log end-->
-        
+
         <!-- settings start -->
         <div role="tabpanel" class="tab-pane" id="settings">
           <section class="panel">
@@ -348,7 +348,7 @@
                   {% if curNum == tenantServiceInfo.min_node %}
                   <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
                   {% else %}
-                  <option value="{{forloop.counter}}">{{curNum}}</option>   
+                  <option value="{{forloop.counter}}">{{curNum}}</option>
                   {% endif %}
                 {% endfor %}
               </select>
@@ -362,7 +362,7 @@
               <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
                 {% for cuMemory in memoryList %}
                   {% if cuMemory == tenantServiceInfo.min_memory %}
-                  <option value={{forloop.counter}}  selected="selected">{{cuMemory}}M</option> 
+                  <option value={{forloop.counter}}  selected="selected">{{cuMemory}}M</option>
                   {% else %}
                   <option value="{{forloop.counter}}">{{cuMemory}}M</option>
                   {% endif %}
@@ -372,7 +372,7 @@
             <div class="col-xs-2 control-label">
               <button type="button"  onclick="service_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
             </div>
-            {% endif %} 
+            {% endif %}
             </div>
           </div>
           </section>
@@ -396,7 +396,7 @@
 	            </div>
             </div>
             <br>
-            <div id="action_report" class="width-3"></div>            
+            <div id="action_report" class="width-3"></div>
             <table class="table" perm-type="service">
               <tbody>
               <tr>
@@ -419,42 +419,47 @@
             </table>
             </div>
           </section>
-          
+
           <section class="panel" id="delete">
             <header class="panel-heading alert-block alert-danger text-danger"><strong>删除</strong> </header>
             <div class="panel-body">
-              <div class="row">
-                <div class="col-xs-3 "></div>
-                <div class="col-xs-6 ">
-                  <button type="button" class="btn btn-danger btn-block" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">确认删除</button>
+              <form class="form-horizontal" role="form">
+
+                <div class="form-group">
+                  <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_alias}}</label>
+                  <div class="col-sm-10 col-lg-10">
+                    {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
+                    <button type="button" class="btn btn-danger" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除这个应用</button>
+                    {% else %}
+                    <button type="button" class="btn btn-danger" id="delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除这个服务</button>
+                    {% endif %}
+                    <div class=" text-left text-danger">注意：该操作会将所有相关数据永久删除，请慎重操作！</div>
+                  </div>
                 </div>
-                <div class="col-xs-3 "></div>
-              </div>
-              <br>
-              <div class="row"><div class="col-xs-12 text-center text-danger">注意：该操作会将所有相关数据永久删除，请慎重操作！</div></div>
+              </form>
             </div>
           </section>
-		  
+
         </div>
         <!-- settings end-->
     </div>
-    
+
     <script>
-    String.prototype.trim = function() {  
-	    return this.replace(/(^\s*)|(\s*$)/g, "");  
+    String.prototype.trim = function() {
+	    return this.replace(/(^\s*)|(\s*$)/g, "");
 	}
       var service_id='{{tenantServiceInfo.service_id}}'
       var serviceAlias = $('#mytags').attr('service');
 	    function checkStatus(){
 		    if(service_id!=""){
 		    	$.ajax({
-		       	  type: "GET",  
-		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/detail/", 
+		       	  type: "GET",
+		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/detail/",
 		    		  cache: false,
-		    		  beforeSend: function(xhr, settings){  
+		    		  beforeSend: function(xhr, settings){
 		    		      var csrftoken = $.cookie('csrftoken');
 		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		    		  }, 
+		    		  },
 		    	  	  success: function(msg) {
 		    	  		  var obj=msg;
 			    	  	  if(obj["status"]!="failure"){
@@ -505,25 +510,25 @@
 					    		$("#service_status_operate").hide()
 					    		$("#service_visitor").hide();
 				    		  }
-				    	  }	    		  	  
+				    	  }
 		    		  },
 		    		  error: function(){
 		    			//swal("系统异常");
 		      	  	}
-		       })	
+		       })
 			}
 	    }
 
-        $(document).ready(function () {  
+        $(document).ready(function () {
         	checkStatus();
         	getLog('operate');
         	getLog('service');
         	getServiceNetDisk();
-            setInterval("checkStatus()", 10000);  
+            setInterval("checkStatus()", 10000);
             //setInterval("getLog('operate')", 5000);
             //setInterval("getLog('service')", 5000);
             setInterval("getServiceNetDisk()", 30000);
-            
+
         	extPushWebSocketClient.prototype = {
        			onMessage : function(msg) {
        				var msgs = msg.split(":")
@@ -547,12 +552,12 @@
   	       					var arr=$("#log").html().split('<br>');
   	       					var totalSize=150;
   	       					if(arr.length > totalSize){
-  	       						for(var i = 0; i < totalSize; i++){       							
+  	       						for(var i = 0; i < totalSize; i++){
   	       							finalMsg += arr[totalSize-1-i]+"<br/>"
   	       						}
   	       					}else{
   	       						finalMsg = $("#log").html()
-  	       					}       					
+  	       					}
   	       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
   	       					$("#log").html(finalMsg)
        					}
@@ -561,20 +566,20 @@
         	}
        		var connect = new extPushWebSocketConnect();
        		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
-        }); 
-        
+        });
+
 		function getLog(action){
 			var service_name=$("#service_name").val()
 			if(service_name!="" && service_name != undefined ){
 				$.ajax({
-		       	  type: "GET",  
-		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log/", 		  
+		       	  type: "GET",
+		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log/",
 		    		  data: "action="+action,
 		    		  cache: false,
-		    		  beforeSend: function(xhr, settings){  
-		    		      var csrftoken = $.cookie('csrftoken');  
-		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);  
-		    		  },  
+		    		  beforeSend: function(xhr, settings){
+		    		      var csrftoken = $.cookie('csrftoken');
+		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		    		  },
 		    	  	  success: function(msg) {
 		    	  		var dataObj = msg;
 		    	  		if(action=="operate"){
@@ -582,12 +587,12 @@
 			    	  	}
 			    	  	if(action=="service"){
 			    	  		$("#log").html(dataObj["log"])
-				    	}		    	  		 
+				    	}
 		    		  },
 		    		  error: function(){
 		    			//swal("系统异常");
 		      	  	}
-		       })	
+		       })
 			}
 		}
 
@@ -595,22 +600,22 @@
 			var service_name=$("#service_name").val()
 			if(service_name!="" && service_name != undefined ){
 				$.ajax({
-		       	  type: "GET",  
-		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log", 		  
+		       	  type: "GET",
+		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
 		    		  data: "action=service",
 		    		  cache: false,
-		    		  beforeSend: function(xhr, settings){  
-		    		      var csrftoken = $.cookie('csrftoken');  
-		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);  
-		    		  },  
+		    		  beforeSend: function(xhr, settings){
+		    		      var csrftoken = $.cookie('csrftoken');
+		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		    		  },
 		    	  	  success: function(msg) {
 		    	  		var dataObj = msg;
-		    	  		$("#keylog").html(dataObj["log"])		    	  		 
+		    	  		$("#keylog").html(dataObj["log"])
 		    		  },
 		    		  error: function(){
 		    			//swal("系统异常");
 		      	  	}
-		       })	
+		       })
 			}
 		}
 
@@ -618,13 +623,13 @@
 			var service_name=$("#service_name").val()
 			if(service_name!="" && service_name != undefined ){
 				$.ajax({
-		       	  type: "GET",  
+		       	  type: "GET",
 		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/net-disk",
 		    		  cache: false,
-		    		  beforeSend: function(xhr, settings){  
-		    		      var csrftoken = $.cookie('csrftoken');  
-		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);  
-		    		  },  
+		    		  beforeSend: function(xhr, settings){
+		    		      var csrftoken = $.cookie('csrftoken');
+		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		    		  },
 		    	  	  success: function(msg) {
 		    	  		var dataObj = msg;
 		    	  		if(dataObj["disk"] != undefined ){
@@ -634,15 +639,15 @@
 			    	  		}else{
 			    	  			$("#service_network").html(dataObj["bytesout"]+"K")
 				    	  	}
-			    	  	}   	  		 
+			    	  	}
 		    		  },
 		    		  error: function(){
 		    			//swal("系统异常");
 		      	  	}
-		       })	
+		       })
 			}
 		}
-		
+
         function buid_relation(curServiceName,depServiceName,tenantName){
         	$.ajax({
         		type : "POST",
@@ -657,7 +662,7 @@
         			var dataObj = msg
         			if (dataObj["status"] == "success") {
         				swal("操作成功")
-        				window.location.href = window.location.href 
+        				window.location.href = window.location.href
         			} else {
         				swal("操作失败")
         			}
@@ -681,7 +686,7 @@
         			var dataObj = msg
         			if (dataObj["status"] == "success") {
         				swal("操作成功")
-        				window.location.href = window.location.href 
+        				window.location.href = window.location.href
         			} else {
         				swal("操作失败")
         			}
