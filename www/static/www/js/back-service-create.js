@@ -29,37 +29,23 @@ $(function(){
         }else{
             $('#create_service_notice').slideUp();
         }    
+        
+        var service_dependecy = $("#service_dependecy").val()
         var serviceKey="";
 		var serviceId="";
-		$("input[name='inlineCheckbox1']:checkbox").each(function() {
-			if ($(this).is(":checked")) {
-				var str = $(this).val().split("_");
-				if (str.length == 2) {
-					if (serviceKey != "") {
-						serviceKey = serviceKey + ","
-					}
-					serviceKey = serviceKey + str[0]
-				}
-			}
-		});
-		$("#createService").val(serviceKey)	
-		
-		$("input[name='delineCheckbox1']:checkbox").each(function() {
-			if ($(this).is(":checked")) {
-				var str = $(this).val().split("_");
-				if (str.length == 2) {
-					if (serviceId != "") {
-						serviceId = serviceId + ","
-					}
-					serviceId = serviceId + str[0]
-				}
-			}
-		});
-		$("#hasService").val(serviceId)
-		
-		var service_dependecy = $("#service_dependecy").val()
+		var _selectValue = $('input[type="radio"][name="delineCheckbox1"]:checked').val()
+		alert(_selectValue)
+		var str = _selectValue.split("_");
+		if(str[0] == service_dependecy){
+			$("#createService").val(str[0])
+			$("#hasService").val("")
+		}else{
+			$("#hasService").val(str[0])
+			$("#createService").val("")
+		}
 		var createService = $("#createService").val()
 		var hasService = $('#hasService').val()
+		
 		if(service_dependecy !=""){			
 			if(createService=="" && hasService==""){
 				$('#create_dependency_service_notice').slideDown();

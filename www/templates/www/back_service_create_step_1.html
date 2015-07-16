@@ -45,47 +45,29 @@
 								<option value="4096" {% if service.min_memory = 4096 %} selected="selected" {% endif %}>4096M</option>								
 							</select>
 						</div>
-					</div>
-					
+					</div>					
 					{% if service.dependecy %}
-						<div class="form-group">
-							<div class="col-lg-12 ">
-								<div
-									class="col-lg-offset-3 col-lg-6 alert text-center alert-default fade in">
-									<h2>选择依赖服务</h2>
-								</div>
-							</div>
-						</div>
 						{% if deployTenantServices %}
+						<input type="hidden" id="createService" name="createService" value="">
+						<input type="hidden" id="hasService" name="hasService" value="">
 						<div class="form-group ">
-							<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">已有服务</label>
+							<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{service.dependecy.upper}}服务</label>
 							<div class="col-lg-10">
+							    <label class="radio-inline"> <input type="radio"
+									name="delineCheckbox1"
+									value="{{service.dependecy}}_{{service.dependecy}}" checked="checked">新建{{service.dependecy.upper}}
+								</label>
+								
 								{% for deployCache in deployTenantServices %}
-								<label class="checkbox-inline"> <input type="checkbox"
+								<label class="radio-inline"> <input type="radio"
 									name="delineCheckbox1"
 									value="{{deployCache.service_id}}_{{deployCache.service_type}}">
 									{{deployCache.service_alias}}
 								</label>
-								{% endfor %} 
-							<input type="hidden" id="hasService" name="hasService" value="">
+								{% endfor %}
 							</div>
 						</div>
-						{% endif %}
-						{% if cacheServiceList %}
-						<div class="form-group">
-							<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">新建服务</label>
-							<div class="col-lg-10">
-								{% for cache in cacheServiceList %}
-								<label class="checkbox-inline"> <input type="checkbox"
-									name="inlineCheckbox1"
-									value="{{cache.service_key}}_{{cache.service_type}}">
-									{{cache.service_name}}
-								</label>
-								{% endfor %}  
-								<input type="hidden" id="createService" name="createService" value="">
-							</div>
-						</div>
-						{% endif %}
+						{% endif %}						
 						<div class="form-group ">
 							<div id="create_dependency_service_notice" class="alert alert-danger"
 									role="alert"

@@ -90,9 +90,7 @@ class ServiceMarketDeploy(AuthedView):
             
             serviceObj = ServiceInfo.objects.get(service_key=service_key)
             context["service"] = serviceObj
-            if serviceObj.dependecy is not None and serviceObj.dependecy != "":
-                cacheServiceList = ServiceInfo.objects.filter(status="published", service_type=serviceObj.dependecy)
-                context["cacheServiceList"] = cacheServiceList            
+            if serviceObj.dependecy is not None and serviceObj.dependecy != "":          
                 tenant_id = self.tenant.tenant_id
                 deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_type=serviceObj.dependecy)
                 context["deployTenantServices"] = deployTenantServices                 
