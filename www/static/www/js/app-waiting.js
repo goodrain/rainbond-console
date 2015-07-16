@@ -21,6 +21,7 @@ function getGitCodeCheck() {
 				var dataObj = msg;
 				if (dataObj["status"] == "checked") {
 					clearInterval(gitcodechecktimmer);
+					$("#git_code_upload").html("代码已提交，语言识别为 "+dataObj["language"])
 				} else if (dataObj["status"] == "check_error") {
 					$("#git_code_upload").html("语言未识别，请重新提交代码...")
 				}

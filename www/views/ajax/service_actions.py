@@ -473,7 +473,8 @@ class ServiceCheck(AuthedView):
                 else:
                     result["status"] = "checking"
             else:                
-                result["status"] = "checked"                    
+                result["status"] = "checked"  
+                result["language"] = self.service.language                 
             result["data"] = {}
         except Exception as e:
             result["status"] = "checking"
