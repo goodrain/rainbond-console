@@ -60,7 +60,7 @@ function app_oneKeyDeploy(tenantName, serviceAlias) {
 			xhr.setRequestHeader("X-CSRFToken", csrftoken);
 		},
 		success : function(msg) {
-			window.location.href = "/apps/" + tenantName + "/" + service_name + "/detail/"
+			window.location.href = "/apps/" + tenantName + "/" + serviceAlias + "/detail/"
 		},
 		error : function() {
 			// swal("系统异常");
