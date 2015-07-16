@@ -326,7 +326,7 @@ class AppWaitingCodeView(AuthedView):
             context["httpGitUrl"] = httpGitUrl
             
             tenantServiceRelations = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
-            if len(enantServiceRelation) > 0:
+            if len(tenantServiceRelations) > 0:
                 dpsids = []
                 for tsr in tenantServiceRelations:
                     dpsids.append(tsr.dep_service_id)
