@@ -193,31 +193,43 @@ function app_upgrade(tenantName, service_alias) {
 }
 
 function delete_service(tenantName, service_alias) {
-	var statu = confirm("确定删除当前服务吗?");
-	if (statu) {
-		$.ajax({
-			type : "POST",
-			url : "/ajax/" + tenantName + "/" + service_alias + "/manage/",
-			data : "action=delete",
-			cache : false,
-			beforeSend : function(xhr, settings) {
-				var csrftoken = $.cookie('csrftoken');
-				xhr.setRequestHeader("X-CSRFToken", csrftoken);
-			},
-			success : function(msg) {
-				var dataObj = msg
-				if (dataObj["status"] == "success") {
-					swal("操作成功")
-					window.location.href = "/apps/" + tenantName
-				} else if (dataObj["status"] == "dependency") {
-					swal("当前服务被依赖不能删除")
-				} else {
-					swal("操作失败")
+	swal({
+		title: "确定删除当前服务吗？",
+		type: "warning",
+	    showCancelButton: true,
+		confirmButtonColor: "#DD6B55",
+		confirmButtonText: "确定",
+		cancelButtonText: "取消",
+		closeOnConfirm: false,
+		closeOnCancel: false
+	}, function (isConfirm) {
+		if(isConfirm) {
+			$.ajax({
+				type : "POST",
+				url : "/ajax/" + tenantName + "/" + service_alias + "/manage/",
+				data : "action=delete",
+				cache : false,
+				beforeSend : function(xhr, settings) {
+					var csrftoken = $.cookie('csrftoken');
+					xhr.setRequestHeader("X-CSRFToken", csrftoken);
+				},
+				success : function(msg) {
+					var dataObj = msg
+					if (dataObj["status"] == "success") {
+						swal("操作成功")
+						window.location.href = "/apps/" + tenantName
+					} else if (dataObj["status"] == "dependency") {
+						swal("当前服务被依赖不能删除")
+					} else {
+						swal("操作失败")
+					}
+				},
+				error : function() {
+					swal("系统异常");
 				}
-			},
-			error : function() {
-				swal("系统异常");
-			}
-		})
-	}
+			});
+		}else{
+			swal.close();
+		}
+	});
 }
