@@ -159,7 +159,7 @@ class TenantService(AuthedView):
                     return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 if tse.user_dependency is None or tse.user_dependency == "":
-                    return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
+                    return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
                         
             service_id = self.service.service_id
             context["tenantServiceInfo"] = self.service
