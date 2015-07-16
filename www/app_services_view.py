@@ -186,145 +186,7 @@ class AppCreateView(AuthedView):
             TenantServiceAuth.objects.get(service_id=service_id).delete()
             data["status"] = "failure"
         return JsonResponse(data, status=200)
-    
-class AppWaitingCodeView(AuthedView):
-    
-    def get_service_list(self):
-        baseService = BaseTenantService()
-        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-        for s in services:
-            if s.service_alias == self.serviceAlias:
-                s.is_selected = True
-                break
-        return services
-    
-    def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
-            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js', 'www/js/app-waiting.js')
-        return media
-    
-    @never_cache
-    @perm_required('create_service')
-    def get(self, request, *args, **kwargs):
-        try:
-            if self.service.language != "" and self.service.language is not None:
-                return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
-            else:
-                context = self.get_context()      
-                context["myAppStatus"] = "active"
-                context["tenantServiceList"] = self.get_service_list()                
-                context["tenantName"] = self.tenantName
-                context["tenantService"] = self.service
-                
-                httpGitUrl = ""
-                if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
-                    cur_git_url = self.service.git_url.split("/")
-                    httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
-                else:
-                    httpGitUrl = self.service.git_url
-                context["httpGitUrl"] = httpGitUrl
-                
-                tenant_id = self.tenant.tenant_id
-                deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
-                context["deployTenantServices"] = deployTenantServices
-                if len(deployTenantServices) > 0:
-                    sids = []
-                    for dts in deployTenantServices:
-                        sids.append(dts.service_id)
-                        
-                    authList = TenantServiceAuth.objects.filter(service_id__in=sids)
-                    if len(authList) > 0:
-                        authMap = {}
-                        for auth in authList:
-                            authMap[auth.service_id] = auth
-                        context["authMap"] = authMap
-                
-        except Exception as e:
-            logger.exception(e)
-        return TemplateResponse(self.request, "www/app_create_step_3_waiting.html", context)
-    
-class AppLanguageCodeView(AuthedView):
-    
-    def get_service_list(self):
-        baseService = BaseTenantService()
-        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-        for s in services:
-            if s.service_alias == self.serviceAlias:
-                s.is_selected = True
-                break
-        return services
-    
-    def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
-            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js', 'www/js/app-language.js')
-        return media
-    
-    @never_cache
-    @perm_required('create_service')
-    def get(self, request, *args, **kwargs):
-        language = "none"
-        try:
-            context = self.get_context()            
-            if self.service.language == "" or self.service.language is None:
-                return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-            else:
-                context["myAppStatus"] = "active"
-                context["tenantServiceList"] = self.get_service_list()                
-                context["tenantName"] = self.tenantName
-                context["tenantService"] = self.service
-                language = self.service.language
-                tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-                data = json.loads(tenantServiceEnv.check_dependency)
-                context["dependencyData"] = data
-                redirectme = is_redirect(self.service.language, data)
-                if redirectme:
-                    return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
-        except Exception as e:
-            logger.exception(e)
-        return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
-    
-    @never_cache
-    @perm_required('create_service')
-    def post(self, request, *args, **kwargs):
-        data = {}
-        try:
-            service_version = request.POST.get("service_version", "")
-            service_server = request.POST.get("service_server", "")
-            service_dependency = request.POST.get("service_dependency", "")
-            logger.debug(service_dependency)
-            checkJson = {}
-            checkJson["language"] = self.service.language
-            if service_version != "":
-                checkJson["runtimes"] = service_version
-            else:
-                checkJson["runtimes"] = ""
-            if service_server != "":
-                checkJson["procfile"] = service_server
-            else:
-                checkJson["procfile"] = ""
-            if service_dependency != "":
-                dps = service_dependency.split(",")
-                d = {}
-                for dp in dps:
-                    if dp is not None and dp != "":
-                        d["ext-" + dp] = "*"
-                checkJson["dependencies"] = d
-            else:
-                checkJson["dependencies"] = {}            
-            
-            tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-            tenantServiceEnv.user_dependency = json.dumps(checkJson)
-            tenantServiceEnv.save()
-            data["status"] = "success"
-        except Exception as e:
-            logger.exception(e)
-            data["status"] = "failure"
-        return JsonResponse(data, status=200)
-    
+
 class AppDependencyCodeView(AuthedView):
     
     def get_service_list(self):
@@ -418,6 +280,144 @@ class AppDependencyCodeView(AuthedView):
                         baseService.create_service_dependency(tenant_id, service_id, sid) 
                     except Exception as e:
                        logger.exception(e)
+            data["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            data["status"] = "failure"
+        return JsonResponse(data, status=200)
+      
+class AppWaitingCodeView(AuthedView):
+    
+    def get_service_list(self):
+        baseService = BaseTenantService()
+        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+        for s in services:
+            if s.service_alias == self.serviceAlias:
+                s.is_selected = True
+                break
+        return services
+    
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
+            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
+            'www/js/respond.min.js', 'www/js/app-waiting.js')
+        return media
+    
+    @never_cache
+    @perm_required('create_service')
+    def get(self, request, *args, **kwargs):
+        try:
+            if self.service.language != "" and self.service.language is not None:
+                return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
+            
+            context = self.get_context()      
+            context["myAppStatus"] = "active"
+            context["tenantServiceList"] = self.get_service_list()                
+            context["tenantName"] = self.tenantName
+            context["tenantService"] = self.service
+            
+            httpGitUrl = ""
+            if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
+                cur_git_url = self.service.git_url.split("/")
+                httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+            else:
+                httpGitUrl = self.service.git_url
+            context["httpGitUrl"] = httpGitUrl
+            
+            tenantServiceRelations = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+            if len(enantServiceRelation) > 0:
+                dpsids = []
+                for tsr in tenantServiceRelations:
+                    dpsids.append(tsr.dep_service_id)
+                deployTenantServices = TenantServiceInfo.objects.filter(service_id__in=dpsids)
+                context["deployTenantServices"] = deployTenantServices
+                authList = TenantServiceAuth.objects.filter(service_id__in=dpsids)
+                if len(authList) > 0:
+                    authMap = {}
+                    for auth in authList:
+                        authMap[auth.service_id] = auth
+                    context["authMap"] = authMap
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/app_create_step_3_waiting.html", context)
+    
+class AppLanguageCodeView(AuthedView):
+    
+    def get_service_list(self):
+        baseService = BaseTenantService()
+        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
+        for s in services:
+            if s.service_alias == self.serviceAlias:
+                s.is_selected = True
+                break
+        return services
+    
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
+            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
+            'www/js/respond.min.js', 'www/js/app-language.js')
+        return media
+    
+    @never_cache
+    @perm_required('create_service')
+    def get(self, request, *args, **kwargs):
+        language = "none"
+        try:
+            context = self.get_context()            
+            if self.service.language == "" or self.service.language is None:
+                return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+            
+            tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+            if tenantServiceEnv.user_dependency is not None and tenantServiceEnv.user_dependency != "":
+                return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
+            
+            context["myAppStatus"] = "active"
+            context["tenantServiceList"] = self.get_service_list()                
+            context["tenantName"] = self.tenantName
+            context["tenantService"] = self.service
+            language = self.service.language            
+            data = json.loads(tenantServiceEnv.check_dependency)
+            context["dependencyData"] = data
+            redirectme = is_redirect(self.service.language, data)
+            context["redirectme"] = redirectme
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
+    
+    @never_cache
+    @perm_required('create_service')
+    def post(self, request, *args, **kwargs):
+        data = {}
+        try:
+            service_version = request.POST.get("service_version", "")
+            service_server = request.POST.get("service_server", "")
+            service_dependency = request.POST.get("service_dependency", "")
+            logger.debug(service_dependency)
+            checkJson = {}
+            checkJson["language"] = self.service.language
+            if service_version != "":
+                checkJson["runtimes"] = service_version
+            else:
+                checkJson["runtimes"] = ""
+            if service_server != "":
+                checkJson["procfile"] = service_server
+            else:
+                checkJson["procfile"] = ""
+            if service_dependency != "":
+                dps = service_dependency.split(",")
+                d = {}
+                for dp in dps:
+                    if dp is not None and dp != "":
+                        d["ext-" + dp] = "*"
+                checkJson["dependencies"] = d
+            else:
+                checkJson["dependencies"] = {}            
+            
+            tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+            tenantServiceEnv.user_dependency = json.dumps(checkJson)
+            tenantServiceEnv.save()
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)

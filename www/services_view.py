@@ -157,12 +157,10 @@ class TenantService(AuthedView):
                 if self.service.language == "" or self.service.language is None:
                     self.sendCodeCheckMsg()                    
                     return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-                else:
-                    tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-                    if tse.user_dependency is None or tse.user_dependency == "":
-                        redirectme = is_redirect(self.service.language, json.loads(tse.check_dependency))
-                        if not redirectme:
-                            return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))       
+                tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+                if tse.user_dependency is None or tse.user_dependency == "":
+                    return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
+                        
             service_id = self.service.service_id
             context["tenantServiceInfo"] = self.service
             tenantServiceList = self.get_service_list()

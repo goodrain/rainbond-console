@@ -25,7 +25,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
 			} else if (dataObj["status"] == "language") {
-				swal("应用语言监测为通过")
+				swal("应用语言监测未通过")
 				forurl = "/apps/" + tenantName + "/" + serviceAlias
 						+ "/detail/"
 				window.open(forurl, target = "_parent")

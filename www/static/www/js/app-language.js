@@ -32,8 +32,7 @@ $(function() {
 				success : function(msg) {
 					var dataObj = msg
 					if (dataObj["status"] == "success") {
-						window.location.href = "/apps/" + tenantName + "/"
-								+ service_name + "/detail/"
+						app_oneKeyDeploy(tenantName,service_name);
 					} else {
 						swal("创建失败")
 						$("#language_btn").removeAttr('disabled')
@@ -46,3 +45,25 @@ $(function() {
 			})
 		})
 });
+
+
+
+
+function app_oneKeyDeploy(tenantName, serviceAlias) {
+	_url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
+	$.ajax({
+		type : "POST",
+		url : _url,
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(msg) {
+			window.location.href = "/apps/" + tenantName + "/" + service_name + "/detail/"
+		},
+		error : function() {
+			// swal("系统异常");
+		}
+	})
+}
