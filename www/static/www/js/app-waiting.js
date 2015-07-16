@@ -1,5 +1,7 @@
 var gitcodechecktimmer
 $(function() {
+	$('#service_code_waiting').attr('disabled', "true")	
+	getGitCodeCheck()	
 	gitcodechecktimmer = setInterval("getGitCodeCheck()", 3000);
 	$('#service_code_waiting').click(
 	 function() {
@@ -22,6 +24,7 @@ function getGitCodeCheck() {
 				if (dataObj["status"] == "checked") {
 					clearInterval(gitcodechecktimmer);
 					$("#git_code_upload").html("代码已提交，语言识别为 "+dataObj["language"])
+					$("#service_code_waiting").removeAttr('disabled')
 				} else if (dataObj["status"] == "check_error") {
 					$("#git_code_upload").html("语言未识别，请重新提交代码...")
 				}
