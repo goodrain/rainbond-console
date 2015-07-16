@@ -9,7 +9,7 @@ class ModelBackend(object):
 
         try:
             if username.find("@") > 0:
-               user = Users.objects.get(email=username)
+                user = Users.objects.get(email=username)
             else:
                 user = Users.objects.get(phone=username)            
             if user.check_password(password):
