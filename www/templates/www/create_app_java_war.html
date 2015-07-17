@@ -1,0 +1,482 @@
+<html lang="en" style="overflow: hidden;"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="Mosaddek">
+  <meta name="keyword" content="FlatLab, Dashboard, Bootstrap, Admin, Template, Theme, Responsive, Fluid, Retina">
+  <link rel="shortcut icon" href="img/favicon.png">
+
+  <title>Blank</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/bootstrap-reset.css" rel="stylesheet">
+  <!--external css-->
+  <link href="assets/font-awesome/css/font-awesome.css" rel="stylesheet">
+  <!-- Custom styles for this template -->
+  <link href="css/style.css" rel="stylesheet">
+  <link href="css/style-responsive.css" rel="stylesheet">
+
+  <!-- HTML5 shim and Respond.js IE8 support of HTML5 tooltipss and media queries -->
+  <!--[if lt IE 9]>
+      <script src="js/html5shiv.js"></script>
+      <script src="js/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+
+  <section id="container" class="">
+    <!--header start-->
+    <header class="header white-bg">
+      <div class="sidebar-toggle-box">
+        <div data-original-title="Toggle Navigation" data-placement="right" class="fa fa-bars tooltips"></div>
+      </div>
+      <!--logo start-->
+      <a href="index.html" class="logo">好雨<span>云平台</span></a>
+      <!--logo end-->
+
+      <div class="top-nav ">
+        <ul class="nav pull-right top-menu">
+
+          <!-- user login dropdown start-->
+          <li class="dropdown">
+            <a data-toggle="dropdown" class="dropdown-toggle" href="#">
+              <img alt="" src="img/avatar1_small.jpg">
+              <span class="username">用户名</span>
+              <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu extended logout">
+              <div class="log-arrow-up"></div>
+              <li><a href="#"><i class=" fa fa-suitcase"></i>Profile</a></li>
+              <li><a href="#"><i class="fa fa-cog"></i> Settings</a></li>
+              <li><a href="#"><i class="fa fa-bell-o"></i> Notification</a></li>
+              <li><a href="login.html"><i class="fa fa-key"></i> Log Out</a></li>
+            </ul>
+          </li>
+          <!-- user login dropdown end -->
+        </ul>
+      </div>
+    </header>
+    <!--header end-->
+    <!--sidebar start-->
+    <aside>
+      <div id="sidebar" class="nav-collapse " tabindex="5000" style="overflow: hidden; outline: none;">
+        <!-- sidebar menu start-->
+        <ul class="sidebar-menu" id="nav-accordion" style="display: block;">
+
+
+
+
+
+
+
+
+
+
+          <li class="sub-menu dcjq-parent-li">
+            <a href="javascript:;" class="dcjq-parent active">
+              <i class="fa fa-glass"></i>
+              <span>新建应用</span>
+              <span class="dcjq-icon"></span>
+              <span class="dcjq-icon"></span>
+              <span class="dcjq-icon"></span>
+              <span class="dcjq-icon"></span>
+              <span class="dcjq-icon"></span>
+              <span class="dcjq-icon"></span>
+              <span class="dcjq-icon"></span>
+              <span class="dcjq-icon"></span>
+            <span class="dcjq-icon"></span></a>
+            <ul class="sub" style="display: block;">
+              <li class=""><a href="create_app.html">应用名称与代码仓库</a></li>
+              <li><a class="active" href="create_app_waitting.html">等待提交代码</a></li>
+              <li><a href="create_app_php.html">PHP语言检查</a></li>
+              <li><a href="create_app_python.html">Python语言检查</a></li>
+              <li><a href="create_app_ruby.html">Ruby语言检查</a></li>
+              <li><a href="create_app_java_war.html">Java-war语言检查</a></li>
+              <li><a href="create_app_java_maven.html">java maven语言检查</a></li>
+              <li><a href="create_app_nodejs.html">Node.js语言检查</a></li>
+              <li><a href="create_app_static.html">静态语言</a></li>
+              <li><a href="create_app_none.html">未识别语言</a></li>
+              <li><a href="create_app_select_db.html">选择数据服务</a></li>
+            </ul>
+          </li>
+
+
+          <!--multi level menu start-->
+
+          <!--multi level menu end-->
+
+        </ul>
+        <!-- sidebar menu end-->
+      </div>
+    </aside>
+    <!--sidebar end-->
+    <!--main content start-->
+    <section id="main-content">
+      <section class="wrapper site-min-height">
+        <!-- page start-->
+        <section class="panel">
+
+            <div class="panel-body">
+              <div class=" form">
+                <form class="cmxform form-horizontal tasi-form" id="commentForm" method="get" action="" novalidate="novalidate">
+                  <div class="form-group">
+                    <div class="col-lg-12 ">
+                      <div class="col-lg-offset-3 col-lg-6 alert text-center alert-default fade in">
+
+                        <h2>代码语言：
+                          <strong>Java WAR包</strong>
+                        </h2>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group ">
+                    <div class="col-lg-2">
+                      <label class="control-label">
+                        版本
+                      </label>
+                    </div>
+                    <div class="col-lg-4">
+                      <select class="form-control">
+                        <option>openjdk 1.6.0_27</option>
+                        <option>openjdk 1.7.0_79</option>
+                        <option selected="selected">openjdk 1.8.0_40(默认)</option>
+
+                      </select>
+
+
+                    </div>
+                  </div>
+
+                  <!-- <div class="form-group">
+                    <label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖</label>
+                    <div class="col-lg-10">
+<p>请本地代码根目录 执行:</p>
+<pre> pip freeze &gt; requirements.txt</pre><p>完成后重新提交代码</p>
+                    </div>
+                  </div>-->
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label col-lg-2" for="inputSuccess">web服务器</label>
+                    <div class="col-lg-4">
+                      <select class="form-control">
+                        <option>tomcat 6</option>
+                        <option selected="selected">tomcat 7（默认）</option>
+                        <option>tomcat 8</option>
+
+                        <option>jetty 7.5</option>
+
+
+
+
+                      </select>
+
+
+                    </div>
+                  </div>
+                  <div class="col-lg-offset-3 col-lg-6 ">
+                    <button type="button" class="btn btn-lg btn-info btn-block">下一步</button>
+                  </div>
+                </form>
+              </div>
+
+
+            </div>
+          </section>
+        <!-- page end-->
+      </section>
+    </section>
+    <!--main content end-->
+    <!--footer start-->
+
+    <!--footer end-->
+  </section>
+
+  <!-- js placed at the end of the document so the pages load faster -->
+  <script src="js/jquery.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <script class="include" type="text/javascript" src="js/jquery.dcjqaccordion.2.7.js"></script>
+  <script src="js/jquery.scrollTo.min.js"></script>
+  <script src="js/jquery.nicescroll.js" type="text/javascript"></script>
+  <script src="js/respond.min.js"></script>
+
+  <!--common script for all pages-->
+  <script src="js/common-scripts.js"></script><div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 470px; display: block; opacity: 0; background: rgb(64, 64, 64);"><div style="position: relative; top: 0px; float: right; width: 3px; height: 456px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div></div><div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);"><div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div></div><div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);"><div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div></div><div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);"><div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div></div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 470px; display: block; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 456px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 470px; display: block; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 456px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; opacity: 0; width: 207px; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 470px; opacity: 0; display: block; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 456px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 230px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 470px; opacity: 0; display: block; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 456px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 53px; float: right; width: 6px; height: 172px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 470px; display: block; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 456px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 53px; float: right; width: 6px; height: 172px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 730px; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 0px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 14px; float: right; width: 6px; height: 134px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 730px; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 0px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 296px; float: right; width: 6px; height: 190px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 426px; display: block; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 375px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 175px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 426px; opacity: 0; display: block; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 375px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 49px; float: right; width: 6px; height: 146px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 426px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 375px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 96px; float: right; width: 6px; height: 189px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 426px; opacity: 0; display: block; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 375px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 64px; float: right; width: 6px; height: 189px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 426px; opacity: 0; display: block; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 375px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 64px; float: right; width: 6px; height: 189px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 367px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 278px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 55px; float: right; width: 6px; height: 140px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 367px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 278px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 140px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 338px; display: block; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 236px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; opacity: 0; width: 207px; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 336px; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 0px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 118px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 730px; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 336px; display: block; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 233px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; opacity: 0; width: 207px; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 210px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 730px; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 0px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 730px; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 730px; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 0px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 555px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000" class="nicescroll-rails" style="width: 3px; z-index: auto; cursor: default; position: fixed; height: 336px; opacity: 0; display: none; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 3px; height: 0px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2000-hr" class="nicescroll-rails" style="height: 3px; z-index: auto; position: fixed; cursor: default; display: none; width: 207px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 3px; width: 0px; border-radius: 10px; left: 0px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001" class="nicescroll-rails" style="width: 6px; z-index: 1000; cursor: default; position: fixed; top: 0px; height: 100%; right: 0px; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; float: right; width: 6px; height: 553px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+  <div id="ascrail2001-hr" class="nicescroll-rails" style="height: 6px; z-index: 1000; position: fixed; left: 0px; width: 100%; bottom: 0px; cursor: default; display: none; opacity: 0; background: rgb(64, 64, 64);">
+    <div style="position: relative; top: 0px; height: 6px; width: 1431px; border-radius: 10px; background-color: rgb(232, 64, 63); background-clip: padding-box;"></div>
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body></html>
