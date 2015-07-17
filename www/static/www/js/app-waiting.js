@@ -9,9 +9,9 @@ $(function() {
 		 var service_name = $('#service_name').val();
 		 window.location.href = "/apps/" + tenantName + "/" + service_name + "/app-language/";
 	});
-    $('#view_detailinfo').click(function(){
+    $('.ctrl_viewdetailinfo').click(function(){
         $('.ctrl_garyinfo', $(this)).remove();
-        $('#detailinfo_list').slideDown();
+        $(this).parent().next().slideDown();
     });
 });
 
