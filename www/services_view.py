@@ -121,7 +121,7 @@ class TenantService(AuthedView):
             if project_id > 0:
                 gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
                 gitClient.addProjectMember(project_id, 2, 20)                                        
-                ts = TenantServiceInfo.objects.get(service_id=service_id)
+                ts = TenantServiceInfo.objects.get(service_id=self.service.service_id)
                 ts.git_project_id = project_id
                 ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                 ts.save()
