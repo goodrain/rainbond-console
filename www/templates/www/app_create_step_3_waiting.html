@@ -42,14 +42,14 @@
 								 {% endif %}
 								<section class="panel col-lg-3">
 									<div class="panel-body">
-										<div class="task-thumb-details">
+										<div id="view_detailinfo" class="task-thumb-details">
 											<h1>
-												<a href="#">{{deplyts.service_alias.upper}}</a>
+												<a href="javascript:;">{{deplyts.service_alias.upper}}</a>
 											</h1>
-											<p>点击查看连接方式</p>
+											<p class="ctrl_garyinfo">查看详情</p>
 										</div>
 									</div>
-									<table class="table table-hover personal-task">
+									<table id="detailinfo_list" class="table table-hover personal-task" style="display: none;">
 										<tbody>
 											<tr>
 
