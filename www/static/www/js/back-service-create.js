@@ -28,24 +28,23 @@ $(function(){
             return;
         }else{
             $('#create_service_notice').slideUp();
-        }    
-        
-        var service_dependecy = $("#service_dependecy").val()
-        var serviceKey="";
-		var serviceId="";
-		var _selectValue = $('input[type="radio"][name="delineCheckbox1"]:checked').val()
-		var str = _selectValue.split("_");
-		if(str[0] == service_dependecy){
-			$("#createService").val(str[0])
-			$("#hasService").val("")
-		}else{
-			$("#hasService").val(str[0])
-			$("#createService").val("")
-		}
-		var createService = $("#createService").val()
-		var hasService = $('#hasService').val()
-		
-		if(service_dependecy !=""){			
+        }        
+        var service_dependecy = $("#service_dependecy").val()        
+		if(service_dependecy !=""){
+			var _selectValue = $('input[type="radio"][name="delineCheckbox1"]:checked').val()
+			if (typeof(_selectValue) != "undefined") { 
+				var str = _selectValue.split("_");
+				if(str[0] == service_dependecy){
+					$("#createService").val(str[0])
+					$("#hasService").val("")
+				}else{
+					$("#hasService").val(str[0])
+					$("#createService").val("")
+				}
+			}			
+			var createService = $("#createService").val()
+			var hasService = $('#hasService').val()
+			
 			if(createService=="" && hasService==""){
 				$('#create_dependency_service_notice').slideDown();
 				return;
