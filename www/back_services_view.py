@@ -137,9 +137,9 @@ class ServiceMarketDeploy(AuthedView):
                     ccpu = int(cm / 128) * 100
                     service.min_cpu = ccpu
                     service.min_memory = cm
+            logger.debug(service.min_memory)       
             createService = request.POST.get("createService", "")
-            logger.debug(createService)            
-            
+            logger.debug(createService)       
             # calculate resource
             totalMemory = self.calculate_resource(createService, service)
             if totalMemory > 1024:
