@@ -150,7 +150,7 @@ class TenantService(AuthedView):
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
         try:
-            if self.service.category == "application":
+            if self.service.category == "application" and self.service.ID > 598:
                 # no create gitlab repos
                 self.createGitProject()
                 # no upload code
@@ -171,7 +171,6 @@ class TenantService(AuthedView):
             context["nodeList"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]         
             
-            print self.service.category
             if self.service.category == "application" or  self.service.category == "manager":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)

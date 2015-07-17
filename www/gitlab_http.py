@@ -8,9 +8,8 @@ import httplib2
 
 logger = logging.getLogger('default')
 
-
 PREFIX = "api/v3"
-GIT_LAB_WEB_HOOK_URL = "http://zyq-debug.goodrain.com/service/gitlabhook/"
+GIT_LAB_WEB_HOOK_URL = "http://user.goodrain.com/service/gitlabhook/"
 
 class GitlabApi(BaseHttpClient):
     def __init__(self, *args, **kwargs):

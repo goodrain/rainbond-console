@@ -7,7 +7,8 @@ import logging
 import httplib2
  
 logger = logging.getLogger('default')
-GIT_HUB_WEB_HOOK_URL = "http://zyq-debug.goodrain.com/service/githubhook/"
+
+GIT_HUB_WEB_HOOK_URL = "http://user.goodrain.com/service/githubhook/"
 GIT_HUB_SECRET = "goodrain"
 
 class GitHubApi(object):
