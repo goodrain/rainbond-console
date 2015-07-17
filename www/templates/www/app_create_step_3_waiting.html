@@ -6,13 +6,13 @@
 			<div class=" form">
 				<form class="cmxform form-horizontal tasi-form" id="commentForm"
 					method="post" action="" novalidate="novalidate">
-					<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" /> 
+					<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
 					<input type="hidden" id="service_name" name="service_name" value="{{tenantService.service_alias}}" />
 					<div class="form-group">
-						<div class="col-lg-12 ">
-							<div
-								class="col-lg-offset-3 col-lg-6 alert text-center alert-warning fade in">
-								<h2 id="git_code_upload">等待提交代码...</h2>
+						<div class="col-lg-12 text-center">
+							<img src="/static/www/img/step-3.png" width="80%" style="padding-bottom: 50px;padding-top: 30px;"/>
+							<div class="col-lg-offset-3 col-lg-6 alert text-center alert-warning fade in">
+								<h3 id="git_code_upload">等待提交代码...</h3>
 								<h7><a class=" p-head" href="http://docs.goodrain.com/languages/" target="_block">语言支持文档</a></h7>
 							</div>
 						</div>
@@ -39,7 +39,7 @@
 							 {% with auth=authMap|mkey:deplyts.service_id %}
 								 {% if A = 0 %}
 								 	<div class="col-lg-10">
-								 {% endif %}								
+								 {% endif %}
 								<section class="panel col-lg-3">
 									<div class="panel-body">
 										<div class="task-thumb-details">
@@ -52,21 +52,21 @@
 									<table class="table table-hover personal-task">
 										<tbody>
 											<tr>
-	
+
 												<td>连接地址</td>
 												<td>127.0.0.1</td>
 											</tr>
 											<tr>
-	
+
 												<td>连接端口</td>
 												<td>{{deplyts.service_port }}</td>
 											</tr>
 											{% if deplyts.service_type == "mysql" or deplyts.service_type == "postgresql" %}
-											<tr>	
+											<tr>
 												<td>用户名</td>
 												<td>admin</td>
 											</tr>
-											<tr>	
+											<tr>
 												<td>密码</td>
 												{% if auth %}
                                                 <td>{{auth.password}}</td>
@@ -100,8 +100,8 @@
 							</div>
 						</div>
 					</div>
-					
-					<div class="col-lg-offset-3 col-lg-6 ">
+
+					<div class="col-lg-offset-3 col-lg-6 " style="padding-top: 50px;padding-bottom: 20px;">
 						<button type="button" id="service_code_waiting" class="btn btn-lg btn-info btn-block">下一步</button>
 					</div>
 					<!-- <div class="col-lg-offset-3 col-lg-6 ">
