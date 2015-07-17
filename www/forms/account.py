@@ -173,21 +173,21 @@ class RegisterForm(forms.Form):
     }
 
     def __init__(self, *args, **kwargs):
-        init_phone =""
-        init_email =""
-        init_tenant =""
-        if len(kwargs)>0 and kwargs["initial"] is not None:
+        init_phone = ""
+        init_email = ""
+        init_tenant = ""
+        if len(kwargs) > 0 and kwargs["initial"] is not None:
             init_phone = kwargs["initial"]["phone"]
             init_email = kwargs["initial"]["email"]
             init_tenant = kwargs["initial"]["tenant"]
         super(RegisterForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_tag = False       
-        if init_phone is not None and init_phone !="":
+        if init_phone is not None and init_phone != "":
             self.fields['phone'].widget.attrs['readonly'] = True
-        if init_email is not None and init_email !="":
+        if init_email is not None and init_email != "":
             self.fields['email'].widget.attrs['readonly'] = True
-        if init_tenant is not None and init_tenant !="":
+        if init_tenant is not None and init_tenant != "":
             self.fields['tenant'].widget.attrs['readonly'] = True                    
         self.helper.layout = Layout(
             Div(
@@ -282,20 +282,19 @@ class RegisterForm(forms.Form):
                 code='password_repeat',
             )
             
-        try:
-            if phone is not None and phone != "":
-                Users.objects.get(phone=phone)
+        if phone is not None and phone != "":
+            phoneNumber = Users.objects.filter(phone=phone).count()
+            logger.debug(phoneNumber)
+            if phoneNumber > 0:
                 raise forms.ValidationError(
                     self.error_messages['phone_used'],
                     code='phone_used'
                 )
-            else:
-                raise forms.ValidationError(
-                    self.error_messages['phone_empty'],
-                    code='phone_empty'
-                )
-        except Exception as e:
-            pass
+        else:
+            raise forms.ValidationError(
+                self.error_messages['phone_empty'],
+                code='phone_empty'
+            )
         
 #         try:
 #             if phone is not None and phone != "":
