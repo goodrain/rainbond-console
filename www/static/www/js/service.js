@@ -212,16 +212,22 @@ function delete_service(tenantName, service_alias) {
 				beforeSend : function(xhr, settings) {
 					var csrftoken = $.cookie('csrftoken');
 					xhr.setRequestHeader("X-CSRFToken", csrftoken);
+					swal({
+						title: "正在执行删除操作，请稍候...",
+						text: "5秒后自动关闭",
+						timer: 5000,
+						showConfirmButton : false
+					});
 				},
 				success : function(msg) {
 					var dataObj = msg
 					if (dataObj["status"] == "success") {
-						swal("操作成功")
+						swal("操作成功");
 						window.location.href = "/apps/" + tenantName
 					} else if (dataObj["status"] == "dependency") {
-						swal("当前服务被依赖不能删除")
+						swal("当前服务被依赖不能删除");
 					} else {
-						swal("操作失败")
+						swal("操作失败");
 					}
 				},
 				error : function() {
