@@ -266,7 +266,7 @@ class ServiceUpgrade(AuthedView):
                         sqlobj = dsn.query(query_sql)
                         totalMemory = int(sqlobj[0]["totalMemory"])
                         if totalMemory > 1024:
-                            self.service.min_node = old_min_node
+                            self.service.min_memory = old_container_memory
                             self.service.deploy_version = old_deploy_version
                             self.service.save()
                             result["status"] = "overtop"

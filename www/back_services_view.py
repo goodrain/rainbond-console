@@ -133,7 +133,7 @@ class ServiceMarketDeploy(AuthedView):
             service_memory = request.POST.get("service_memory", "")
             if service_memory != "":
                 cm = int(service_memory)
-                if cm > 128:
+                if cm >= 128:
                     ccpu = int(cm / 128) * 100
                     service.min_cpu = ccpu
                     service.min_memory = cm
