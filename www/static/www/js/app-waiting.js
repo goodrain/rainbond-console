@@ -1,14 +1,18 @@
-var gitcodechecktimmer
+var gitcodechecktimmer;
 $(function() {
-	$('#service_code_waiting').attr('disabled', "true")	
-	getGitCodeCheck()	
+	$('#service_code_waiting').attr('disabled', "true");
+	getGitCodeCheck();
 	gitcodechecktimmer = setInterval("getGitCodeCheck()", 3000);
 	$('#service_code_waiting').click(
 	 function() {
 		 var tenantName = $('#tenantName').val();
 		 var service_name = $('#service_name').val();
-		 window.location.href = "/apps/" + tenantName + "/" + service_name + "/app-language/"
-	})
+		 window.location.href = "/apps/" + tenantName + "/" + service_name + "/app-language/";
+	});
+    $('#view_detailinfo').click(function(){
+        $('.ctrl_garyinfo', $(this)).remove();
+        $('#detailinfo_list').slideDown();
+    });
 });
 
 function getGitCodeCheck() {
@@ -23,10 +27,10 @@ function getGitCodeCheck() {
 				var dataObj = msg;
 				if (dataObj["status"] == "checked") {
 					clearInterval(gitcodechecktimmer);
-					$("#git_code_upload").html("代码已提交，语言识别为 "+dataObj["language"])
+					$("#git_code_upload").html("代码已提交，语言识别为 "+dataObj["language"]);
 					$("#service_code_waiting").removeAttr('disabled')
 				} else if (dataObj["status"] == "check_error") {
-					$("#git_code_upload").html("语言未识别，请重新提交代码...")
+					$("#git_code_upload").html("语言未识别，请重新提交代码...");
 				}
 			},
 			error : function() {
@@ -52,14 +56,14 @@ function app_create_delete(){
 					xhr.setRequestHeader("X-CSRFToken", csrftoken);
 				},
 				success : function(msg) {
-					var dataObj = msg
+					var dataObj = msg;
 					if (dataObj["status"] == "success") {
-						swal("操作成功")
-						window.location.href = "/apps/" + tenantName
+						swal("操作成功");
+						window.location.href = "/apps/" + tenantName;
 					} else if (dataObj["status"] == "dependency") {
-						swal("当前服务被依赖不能删除")
+						swal("当前服务被依赖不能删除");
 					} else {
-						swal("操作失败")
+						swal("操作失败");
 					}
 				},
 				error : function() {
