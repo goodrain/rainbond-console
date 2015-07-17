@@ -74,7 +74,7 @@
 						</div>
 					</div>					
 					{% if service.dependecy %}
-						{% if deployTenantServices %}
+						
 						<input type="hidden" id="createService" name="createService" value="">
 						<input type="hidden" id="hasService" name="hasService" value="">
 						<div class="form-group ">
@@ -84,17 +84,18 @@
 									name="delineCheckbox1"
 									value="{{service.dependecy}}_{{service.dependecy}}" checked="checked">新建{{service.dependecy.upper}}
 								</label>
-								
-								{% for deployCache in deployTenantServices %}
-								<label class="radio-inline"> <input type="radio"
-									name="delineCheckbox1"
-									value="{{deployCache.service_id}}_{{deployCache.service_type}}">
-									{{deployCache.service_alias}}
-								</label>
-								{% endfor %}
+								{% if deployTenantServices %}
+									{% for deployCache in deployTenantServices %}
+									<label class="radio-inline"> <input type="radio"
+										name="delineCheckbox1"
+										value="{{deployCache.service_id}}_{{deployCache.service_type}}">
+										{{deployCache.service_alias}}
+									</label>
+									{% endfor %}
+								{% endif %}
 							</div>
 						</div>
-						{% endif %}						
+												
 						<div class="form-group ">
 							<div id="create_dependency_service_notice" class="alert alert-danger"
 									role="alert"
