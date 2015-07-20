@@ -58,7 +58,7 @@
   		$.ajax({
     		type : "POST",
     		url : "/phone_code",
-    		data : "phone="+phone,
+    		data : "phone="+phone+"&captcha_code="+captcha_code,
     		cache : false,
     		beforeSend : function(xhr, settings) {
     			var csrftoken = $.cookie('csrftoken');
