@@ -367,7 +367,7 @@ class PhoneCodeView(BaseView):
                     result["status"] = "limited"
                     return JsonResponse(result) 
             phone_code = random.randrange(0, 1000001, 6)
-            #send_phone_message(phone,phone_code)
+            send_phone_message(phone,phone_code)
             newpc = PhoneCode(phone=phone, type="register", code=phone_code)
             newpc.save()
             result["status"] = "success"
