@@ -55,7 +55,6 @@
   			return false;
   		}
   		$("#PhoneCodeBtn").attr("disabled", "true");
-  		InterValObj = window.setInterval(SetRemainTime, 1000);
   		$.ajax({
     		type : "POST",
     		url : "/phone_code",
@@ -69,6 +68,7 @@
     			var dataObj = msg
     			if (dataObj["status"] == "success") {
     				swal("发送成功")
+    				InterValObj = window.setInterval(SetRemainTime, 1000);
     			} else if(dataObj["status"] == "often"){
     				swal("请稍后发送")
     			}else if(dataObj["status"] == "errorcaptchacode"){

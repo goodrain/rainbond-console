@@ -332,6 +332,8 @@ class PhoneCodeView(BaseView):
         phone = request.POST.get('phone')
         captcha_code = request.POST.get('captcha_code')
         real_captcha_code = request.session.get("captcha_code")
+        logger.debug(captcha_code)
+        logger.debug(real_captcha_code)
         if captcha_code != real_captcha_code:
             result["status"] = "errorcaptchacode"
             return JsonResponse(result) 
