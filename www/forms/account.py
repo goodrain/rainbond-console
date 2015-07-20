@@ -302,17 +302,20 @@ class RegisterForm(forms.Form):
                     phoneCode = phoneCodes[0]
                     last = int(phoneCode.create_time.strftime("%s"))
                     now = int(time.time())
-                    if now - last > 90:
+                    if now - last > 1800:
+                        logger.debug(phone+"too long time")
                         raise forms.ValidationError(
                             self.error_messages['phone_code_error'],
                             code='phone_code_error'
-                        )
+                        )                        
                     if phoneCode.code != phone_code:
+                        logger.debug(phone+" different")
                         raise forms.ValidationError(
                             self.error_messages['phone_code_error'],
                             code='phone_code_error'
                         )
             else:
+                logger.debug(phone+" is None")
                 raise forms.ValidationError(
                     self.error_messages['phone_code_error'],
                     code='phone_code_error'

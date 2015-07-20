@@ -95,7 +95,11 @@
         }
         else {
             curCount--;
-            $("#PhoneCodeBtn").html("请在" + curCount + "秒内输入验证码");
+            if(curCount==0){
+            	$("#PhoneCodeBtn").html("请输入手机验证码");
+            }else{
+            	$("#PhoneCodeBtn").html("请在" + curCount + "秒内输入手机验证码");
+            }
         }
     }
   	
