@@ -330,6 +330,12 @@ class PhoneCodeView(BaseView):
     def post(self, request, *args, **kwargs):
         result = {}
         phone = request.POST.get('phone')
+        captcha_code = request.POST.get('captcha_code')
+        real_captcha_code = request.session.get("captcha_code")
+        if captcha_code != real_captcha_code:
+            result["status"] = "errorcaptchacode"
+            return JsonResponse(result) 
+        
         if phone is not None:
             r = re.compile(r'^1[358]\d{9}$|^147\d{8}$')
             if not r.match(phone):
@@ -359,6 +365,7 @@ class PhoneCodeView(BaseView):
                     result["status"] = "limited"
                     return JsonResponse(result) 
             phone_code = random.randrange(0, 1000001, 6)
+            #send_phone_message(phone,phone_code)
             newpc = PhoneCode(phone=phone, type="register", code=phone_code)
             newpc.save()
             result["status"] = "success"

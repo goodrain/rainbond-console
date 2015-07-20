@@ -49,6 +49,11 @@
   			swal("手机号不能为空")
   			return false;
   		}
+  		var captcha_code = $("#id_captcha_code").val()
+  		if(captcha_code==""){
+  			swal("请输入图形验证码")
+  			return false;
+  		}
   		$("#PhoneCodeBtn").attr("disabled", "true");
   		InterValObj = window.setInterval(SetRemainTime, 1000);
   		$.ajax({
@@ -66,6 +71,8 @@
     				swal("发送成功")
     			} else if(dataObj["status"] == "often"){
     				swal("请稍后发送")
+    			}else if(dataObj["status"] == "errorcaptchacode"){
+    				swal("图片验证码异常")
     			}else if(dataObj["status"] == "errorphone"){
     				swal("错误的手机号")
     			}else if(dataObj["status"] == "limited"){

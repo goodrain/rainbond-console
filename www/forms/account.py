@@ -138,9 +138,9 @@ class RegisterForm(forms.Form):
         required=True, label='',
         validators=[is_phone]
     )
-#     phone_code = forms.CharField(
-#         required=True, label='',
-#     )
+    phone_code = forms.CharField(
+        required=True, label='',
+    )
     captcha_code = forms.CharField(
         required=True, label='',
     )
@@ -200,13 +200,12 @@ class RegisterForm(forms.Form):
                 Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                 Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                 
-                Field('phone', css_class="form-control", placeholder='手机号'),
+                AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ', css_class='input-xlarge', placeholder='验证码'),
                 
-                # AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>', css_class='input-xlarge', placeholder='手机验证码'),
+                Field('phone', css_class="form-control", placeholder='手机号'),
+                AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>', css_class='input-xlarge', placeholder='手机验证码'),
                 
                 # PrependedText('prepended_text','captcha'),
-                
-                AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ', css_class='input-xlarge', placeholder='验证码'),
                 
                 # Field('phone_code', 'Serial #', '<button class=\"btn btn-primary\">获取验证码</button>', css_class="form-control", placeholder='验证码'),
                 # StrictButton('Submit', type='submit', css_class='btn-primary')
@@ -296,34 +295,39 @@ class RegisterForm(forms.Form):
                 code='phone_empty'
             )
         
-#         try:
-#             if phone is not None and phone != "":
-#                 phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
-#                 if len(phoneCodes) > 0:
-#                     phoneCode = phoneCodes[0]
-#                     last = int(phoneCode.create_time.strftime("%s"))
-#                     now = int(time.time())
-#                     if now - last > 90:
-#                         raise forms.ValidationError(
-#                             self.error_messages['phone_code_error'],
-#                             code='phone_code_error'
-#                         )
-#                     if phoneCode.code != phone_code:
-#                         raise forms.ValidationError(
-#                             self.error_messages['phone_code_error'],
-#                             code='phone_code_error'
-#                         ) 
-#         except Exception as e:
-#             raise forms.ValidationError(
-#                 self.error_messages['phone_code_error'],
-#                 code='phone_code_error'
-#             )
-#             logger.exception(e)
-            
+        try:
+            if phone is not None and phone != "":
+                phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
+                if len(phoneCodes) > 0:
+                    phoneCode = phoneCodes[0]
+                    last = int(phoneCode.create_time.strftime("%s"))
+                    now = int(time.time())
+                    if now - last > 90:
+                        raise forms.ValidationError(
+                            self.error_messages['phone_code_error'],
+                            code='phone_code_error'
+                        )
+                    if phoneCode.code != phone_code:
+                        raise forms.ValidationError(
+                            self.error_messages['phone_code_error'],
+                            code='phone_code_error'
+                        )
+            else:
+                raise forms.ValidationError(
+                    self.error_messages['phone_code_error'],
+                    code='phone_code_error'
+                ) 
+        except Exception as e:
+            raise forms.ValidationError(
+                self.error_messages['phone_code_error'],
+                code='phone_code_error'
+            )
+            logger.exception(e)
+                        
         if real_captcha_code != captcha_code:
             raise forms.ValidationError(
                 self.error_messages['captcha_code_error'],
                 code='captcha_code_error'
-            ) 
-        
+            )
+                    
         return self.cleaned_data
