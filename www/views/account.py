@@ -11,6 +11,7 @@ from www.forms.account import UserLoginForm, RegisterForm
 from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode
 from www.utils.mail import send_invite_mail_withHtml
 from www.utils.crypt import AuthCode
+from www.sms_service import send_phone_message
 from www.api import RegionApi
 from www.gitlab_http import GitlabApi
 from www.db import BaseConnection
