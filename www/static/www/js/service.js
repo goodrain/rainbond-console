@@ -151,6 +151,8 @@ function service_upgrade(tenantName, service_alias) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
 				swal("设置成功")
+			} else if (dataObj["status"] == "often") {
+				swal("上次操作正在进行中，稍后再试")
 			} else if (dataObj["status"] == "overtop") {
 				swal("免费资源已达上限，不能升级")
 			} else {
@@ -179,6 +181,8 @@ function app_upgrade(tenantName, service_alias) {
 				var dataObj = msg;
 				if (dataObj["status"] == "success") {
 					swal("设置成功")
+				} else if (dataObj["status"] == "often") {
+					swal("上次操作正在进行中，稍后再试")
 				} else if (dataObj["status"] == "overtop") {
 					swal("免费资源已达上限，不能升级")
 				} else {
@@ -224,7 +228,9 @@ function delete_service(tenantName, service_alias) {
 					if (dataObj["status"] == "success") {
 						swal("操作成功");
 						window.location.href = "/apps/" + tenantName
-					} else if (dataObj["status"] == "dependency") {
+					} else if (dataObj["status"] == "often") {
+						swal("上次操作正在进行中，稍后再试")
+					}else if (dataObj["status"] == "dependency") {
 						swal("当前服务被依赖不能删除");
 					} else {
 						swal("操作失败");
