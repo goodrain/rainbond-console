@@ -71,14 +71,19 @@
     				InterValObj = window.setInterval(SetRemainTime, 1000);
     			} else if(dataObj["status"] == "often"){
     				swal("请稍后发送")
+    				$("#PhoneCodeBtn").removeAttr("disabled");
     			}else if(dataObj["status"] == "errorcaptchacode"){
     				swal("图片验证码异常")
+    				$("#PhoneCodeBtn").removeAttr("disabled");
     			}else if(dataObj["status"] == "errorphone"){
     				swal("错误的手机号")
+    				$("#PhoneCodeBtn").removeAttr("disabled");
     			}else if(dataObj["status"] == "limited"){
     				swal("超过发送次数")
+    				$("#PhoneCodeBtn").removeAttr("disabled");
     			} else {
     				swal("发送失败")
+    				$("#PhoneCodeBtn").removeAttr("disabled");
     			}
     		},
     		error : function() {

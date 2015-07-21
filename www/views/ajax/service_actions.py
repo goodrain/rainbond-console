@@ -202,12 +202,19 @@ class ServiceManage(AuthedView):
                 task["tenant_id"] = self.tenant.tenant_id
                 beanlog.put("app_log", json.dumps(task))  
             elif action == "delete":
+                oldVerion = self.service.deploy_version
+                if oldVerion is not None and oldVerion != "":      
+                    curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                    diffsec = int(curVersion) - int(oldVerion)
+                    if diffsec <= 120:
+                        result["status"] = "often"
+                        return JsonResponse(result, status=200)
+                    
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
                     result["status"] = "dependency"
                     return JsonResponse(result)
                 data = self.service.toJSON()
-                logger.info(data)
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
                 newTenantServiceDelete.save()
                 try:
@@ -217,8 +224,7 @@ class ServiceManage(AuthedView):
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
                     gitClient.deleteProject(self.service.git_project_id)
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
-                # env/auth/relationship delete
-                
+                # env/auth/relationship delete                
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
                                 
@@ -242,6 +248,14 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
+        oldVerion = self.service.deploy_version
+        if oldVerion is not None and oldVerion != "":      
+            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            diffsec = int(curVersion) - int(oldVerion)
+            if diffsec <= 120:
+                result["status"] = "often"
+                return JsonResponse(result, status=200)
+                        
         action = request.POST["action"]        
         client = RegionServiceApi()
         if action == "vertical":
