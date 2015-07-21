@@ -108,9 +108,7 @@ class AllServiceInfo(AuthedView):
         service_ids = []
         try:
             service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).values('ID', 'service_id', 'deploy_version')
-            logger.debug(len(service_list))
             if self.has_perm('tenant.list_all_services'):
-                logger.debug("=========")
                 # service_ids = [e['service_id'] for e in service_list]
                 for s in service_list:
                     if s['deploy_version'] is None or s['deploy_version'] == "":
@@ -122,7 +120,6 @@ class AllServiceInfo(AuthedView):
                         service_ids.append(s['service_id'])                            
             else:
                 service_pk_list = PermRelService.objects.filter(user_id=self.user.pk).values_list('service_id', flat=True)
-                logger.debug(str(len(service_pk_list))+"++++++")
                 for s in service_list:
                     if s['ID'] in service_pk_list:
                             if s['deploy_version'] is None or s['deploy_version'] == "":
@@ -132,12 +129,10 @@ class AllServiceInfo(AuthedView):
                                 result[s.service_id] = child1
                             else:
                                 service_ids.append(s['service_id'])
-            logger.debug(len(service_ids))
-            if len(service_ids) > 1:
+            if len(service_ids) > 0:
                 id_string = ','.join(service_ids)
                 client = RegionServiceApi()
                 bodys = client.check_status(json.dumps({"service_ids": id_string}))
-                logger.debug(bodys)
                 for sid in service_ids:
                     service = TenantServiceInfo.objects.get(service_id=sid)
                     body = bodys[sid]
