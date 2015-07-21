@@ -137,6 +137,7 @@ class AllServiceInfo(AuthedView):
                 id_string = ','.join(service_ids)
                 client = RegionServiceApi()
                 bodys = client.check_status(json.dumps({"service_ids": id_string}))
+                logger.debug(bodys)
                 for sid in service_ids:
                     service = TenantServiceInfo.objects.get(service_id=sid)
                     body = bodys[sid]
