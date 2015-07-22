@@ -295,38 +295,36 @@ class RegisterForm(forms.Form):
                 code='phone_empty'
             )
         
-        try:
-            if phone is not None and phone != "":
-                phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
-                if len(phoneCodes) > 0:
-                    phoneCode = phoneCodes[0]
-                    last = int(phoneCode.create_time.strftime("%s"))
-                    now = int(time.time())
-                    if now - last > 1800:
-                        logger.debug(phone+"too long time")
-                        raise forms.ValidationError(
-                            self.error_messages['phone_code_error'],
-                            code='phone_code_error'
-                        )                        
-                    if phoneCode.code != phone_code:
-                        logger.debug(phone+" different")
-                        raise forms.ValidationError(
-                            self.error_messages['phone_code_error'],
-                            code='phone_code_error'
-                        )
+        if phone is not None and phone != "":
+            phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
+            if len(phoneCodes) > 0:
+                phoneCode = phoneCodes[0]
+                last = int(phoneCode.create_time.strftime("%s"))
+                now = int(time.time())
+                if now - last > 1800:
+                    logger.debug(phone + "too long time")
+                    raise forms.ValidationError(
+                        self.error_messages['phone_code_error'],
+                        code='phone_code_error'
+                    )                        
+                if phoneCode.code != phone_code:
+                    logger.debug(phone + " different")
+                    raise forms.ValidationError(
+                        self.error_messages['phone_code_error'],
+                        code='phone_code_error'
+                    )
             else:
-                logger.debug(phone+" is None")
                 raise forms.ValidationError(
                     self.error_messages['phone_code_error'],
                     code='phone_code_error'
                 ) 
-        except Exception as e:
+        else:
+            logger.debug(phone + " is None")
             raise forms.ValidationError(
                 self.error_messages['phone_code_error'],
                 code='phone_code_error'
-            )
-            logger.exception(e)
-                        
+            ) 
+            
         if real_captcha_code != captcha_code:
             raise forms.ValidationError(
                 self.error_messages['captcha_code_error'],
