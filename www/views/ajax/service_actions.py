@@ -33,7 +33,7 @@ class AppDeploy(AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
         service_alias = ""
-        if self.service.language is None or self.service.language == "":
+        if self.service.ID > 598 and (self.service.language is None or self.service.language == ""):
             data["status"] = "language"
             return JsonResponse(data, status=200)
         
