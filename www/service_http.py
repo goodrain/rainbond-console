@@ -103,3 +103,15 @@ class RegionServiceApi(BaseHttpClient):
         headers = {'Content-Type': 'application/json'}  
         res, body = self._post(url, headers, body)
         return body
+    
+    def pause(self, tenant_id):
+        url = self.url + "/v1/tenants/" + tenant_id + "/pause"
+        headers = {'Content-Type': 'application/json'}  
+        res, body = self._post(url, headers)
+        return body
+    
+    def unpause(self, tenant_id):
+        url = self.url + "/v1/tenants/" + tenant_id + "/unpause"
+        headers = {'Content-Type': 'application/json'}  
+        res, body = self._post(url, headers)
+        return body

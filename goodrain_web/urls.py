@@ -6,6 +6,7 @@ import www.views as views
 import www.views.ajax as ajax
 from www.services_view import ServiceStaticsManager, ServiceGitHub
 from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
+from www.tenants_view import TenantsVisitorView
 from www.service_delete_view import *
 from django.conf import settings
 from django.conf.urls.static import static
@@ -30,4 +31,5 @@ urlpatterns = patterns(
     url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
     url(r'^service/githubhook/$', csrf_exempt(GitHubWebHook.as_view())),
     url(r'^service/codecheck/$', csrf_exempt(GitCheckCode.as_view())),
+    url(r'^tenant/visit/$', csrf_exempt(TenantsVisitorView.as_view())),
 ) + staticfiles_urlpatterns()
