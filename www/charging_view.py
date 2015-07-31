@@ -61,7 +61,7 @@ class Recharging(AuthedView):
             tenantAccount = TenantAccount.objects.get(tenant_id=self.tenant.tenant_id)
             context["tenantAccount"] = "tenantAccount"       
         except Exception as e:
-            logger.exception(e)
+            pass
         return TemplateResponse(self.request, "www/recharge.html", context)
             
 class AccountBill(AuthedView):

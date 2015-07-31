@@ -139,6 +139,7 @@ function loadRepos(_url){
                        $(this).removeClass('create_codestore_trsed');
                        var service_code_id=$(this).attr("data");
                        $("#service_code_id").val("");
+                       $("#service_code_clone_url").val("")
                        if(!$('.duigou_icon', $('#code_store_list')).length){
                             $('#create_codestore_notice').slideDown();
                        }
@@ -148,12 +149,12 @@ function loadRepos(_url){
                        $('.create_codestore_trsed', listWrap).removeClass('create_codestore_trsed');
                        iObj.addClass('duigou_icon');
                        $(this).addClass('create_codestore_trsed');
-                       var service_code_id=$(this).attr("data");
+                       var service_code_id=$(this).attr("data");                       
+                       $("#service_code_id").val(service_code_id);
+                       var clone_url = $('#repos_'+service_code_id).val();
+                       $("#service_code_clone_url").val(clone_url);
                        var gitValue = $("#git_version_"+service_code_id).val();
                        if(gitValue == null || gitValue == ""){
-                    	   var clone_url = $('#repos_'+service_code_id).val();
-                           $("#service_code_clone_url").val(clone_url);
-                           $("#service_code_id").val(service_code_id);
                            var service_code_from = $('#service_code_from').val();
                            var isLoad = $('#git_version_notice_' + service_code_id).attr('load');
                            if(typeof BranchLocalData[service_code_id] == 'undefined'){
@@ -162,6 +163,8 @@ function loadRepos(_url){
                            }
                            // $('#create_codestore_notice').removeClass('alert-danger').addClass('alert-info').html("正在读取项目分支信息");
                             // $('#create_codestore_notice').slideUp(); 
+                       }else{
+                    	   $('#create_codestore_notice').slideUp(); 
                        }
                    }
                });           

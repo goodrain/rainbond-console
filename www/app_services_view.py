@@ -125,8 +125,9 @@ class AppCreateView(AuthedView):
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
                 code_version = request.POST.get("service_code_version", "master")
-                if code_id == "" or code_clone_url == "":
+                if code_id == "" or code_clone_url == "" or code_version =="":
                     data["status"] = "code_repos"
+                    TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
                 ts.git_project_id = code_id
@@ -145,8 +146,9 @@ class AppCreateView(AuthedView):
                 code_id = request.POST.get("service_code_id", "")
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_version = request.POST.get("service_code_version", "master")
-                if code_id == "" or code_clone_url == "":
+                if code_id == "" or code_clone_url == "" or code_version =="":
                     data["status"] = "code_repos"
+                    TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
                 ts.git_project_id = code_id
