@@ -18,7 +18,7 @@ logger = logging.getLogger('default')
 
 client = RegionServiceApi()
 
-# 计费
+# 休眠
 class TenantsVisitorView(BaseView):
     @never_cache
     def post(self, request, *args, **kwargs):
@@ -31,31 +31,37 @@ class TenantsVisitorView(BaseView):
             if action == "pause":
                 if tenants is not None and tenants != "":
                     tenantList = Tenants.objects.filter(service_status=1)
-                    arr = []
                     map = {}
+                    arr = []
                     for tenant in tenantList:
-                        arr.append(tenant.tenant_name)
                         map[tenant.tenant_name] = tenant.tenant_id
+                        arr.append(tenant.tenant_name)
                     tses = tenants.split(",")
-                    for ts in tses:
-                        if ts != "":
-                            try:
-                                pass
-                            except Exception:
-                                tenant_id = map[ts]
-                                if tenant_id is not None and tenant_id != "":
-                                    client.pause(tenant_id)
+                    needToPuaseSet = set(arr) - set(tses)
+                    # for ts in needToPuaseSet:
+                    ts = "salogs"
+                    try:
+                        tenant_id = map[ts]
+                        logger.debug(tenant_id)
+                        if tenant_id is not None and tenant_id != "":
+                            client.pause(tenant_id)
+                            oldTenant = Tenants.objects.get(tenant_id=tenant_id)
+                            oldTenant.service_status = False
+                            oldTenant.save()
+                    except Exception as e0:
+                        logger.exception(e0)                                                                    
             elif action == "unpause":
                 tenants = request.POST.get("tenants", "")
                 if tenants is not None and tenants != "":
                     tses = tenants.split(",")
                     for ts in tses:
                         try:
-                            t = Tenants.objects.get(tenant_name=ts)
-                            tenant_id = t.tenant_id
-                            client.unpause(tenant_id)
-                        except Exception:
-                            pass
+                            oldTenant = Tenants.objects.get(tenant_name=ts)
+                            client.unpause(oldTenant.tenant_id)
+                            oldTenant.service_status = True
+                            oldTenant.save()
+                        except Exception as e1:
+                            logger.exception(e1)
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)
