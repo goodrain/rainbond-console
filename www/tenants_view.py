@@ -9,6 +9,7 @@ import json
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
+from django.http import JsonResponse
 from www.views import BaseView
 from www.models import Tenants
 from www.service_http import RegionServiceApi
