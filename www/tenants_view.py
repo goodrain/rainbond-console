@@ -26,6 +26,8 @@ class TenantsVisitorView(BaseView):
         try:
             action = request.POST.get("action", "")
             tenants = request.POST.get("tenants", "")
+            logger.debug("action=" + action)
+            logger.debug("tenants=" + tenants)
             if action == "pause":
                 if tenants is not None and tenants != "":
                     tenantList = Tenants.objects.filter(service_status=1)
@@ -51,7 +53,7 @@ class TenantsVisitorView(BaseView):
                         try:
                             t = Tenants.objects.get(tenant_name=ts)
                             tenant_id = t.tenant_id
-                            client.pause(tenant_id)
+                            client.unpause(tenant_id)
                         except Exception:
                             pass
             data["status"] = "success"
