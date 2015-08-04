@@ -21,6 +21,7 @@
 				<th>类型</th>
 				<th>操作人</th>
 				<th>时间</th>
+				<th>充值状态</th>
 			</tr>
 		</thead>
 		<tbody role="alert" aria-live="polite" aria-relevant="all">
@@ -30,6 +31,17 @@
 				<td class=" ">{{tenantRecharge.recharge_type}}</td>
 				<td class=" ">{{tenantRecharge.user_name}}</td>
 				<td>{{tenantRecharge.time}}</td>
+				<td>
+					{% if tenantRecharge.status == "TRADE_UNFINISHED" %}   
+						未完成
+					{% elif tenantRecharge.status == "TRADE_SUCCESS" %}
+						已成功
+					{% elif tenantRecharge.status == "TRADE_FINISHED" %}
+						已成功
+					{% else %}
+						充值失败
+					{% endif %}
+				</td>
 			</tr>
 			{% endfor %}
 		</tbody>

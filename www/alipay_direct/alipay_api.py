@@ -9,8 +9,8 @@ from alipay_notify import *
 
 class Alipay_API:
     payment_type = "1"          # 支付类型
-    return_url = "http://user.goodrain.com/{0}/recharge/alipay-return"      # 页面跳转同步通知页面路径
-    notify_url = "http://user.goodrain.com/{0}/recharge/alipay-notiy"      # 服务器异步通知页面路径
+    return_url = "http://user.goodrain.com/apps/{0}/recharge/alipay-return"      # 页面跳转同步通知页面路径
+    notify_url = "http://user.goodrain.com/apps/{0}/recharge/alipay-notiy"      # 服务器异步通知页面路径
     seller_email = ''                                    # 卖家支付宝帐户
     anti_phishing_key = ""      # 防钓鱼时间戳
     exter_invoke_ip = ""        # 客户端的IP地址

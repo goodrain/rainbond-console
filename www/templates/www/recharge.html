@@ -2,7 +2,6 @@
 
 <section class="wrapper site-min-height">
 	<section class="panel">
-		<!-- 一级导航菜单 头部定义 开始-->
 		<header class="panel-heading tab-bg-dark-navy-blue ">
 			<ul class="nav nav-tabs">
 				<li class="active"><a data-toggle="tab" href="#recharge">账户充值</a>
@@ -11,98 +10,90 @@
 				</li>
 			</ul>
 		</header>
-		<!-- 一级导航菜单 头部定义 结束 -->
-
 		<div class="panel-body">
-			<!-- 一级导航菜单 内容定义 开始 -->
 			<div class="tab-content">
 
-				<!--  一级导航菜单 账户充值页 开始 -->
 				<div id="recharge" class="tab-pane active">
 
-					<!--  一级导航菜单 账户充值页 账户余额块 开始 -->
 					<div id="balance" class="alert alert-success alert-block active">
-						<h4>账户余额：{% if tenantAccount %}
-							{{tenantAccount.balance_money}} {% else %} 0 {% endif %}元</h4>
+						<h4>账户余额：
+							{{tenant.balance}}元</h4>
 					</div>
-					<!--  一级导航菜单 账户充值页 账户余额块 结束 -->
-
-					<!--  账户充值页 二级导航 头部定义块 开始 -->
 					<ul class="nav nav-tabs">
-						<li class="active"><a data-toggle="tab"
-							href="#onlinerecharge">在线充值</a></li>
-						<li class=""><a data-toggle="tab" href="#banktransfer">银行转账</a>
+						<li class="active"><a data-toggle="tab" href="#onlinerecharge">在线充值</a></li>
+						<!-- <li class=""><a data-toggle="tab" href="#banktransfer">银行转账</a> -->
 						</li>
 					</ul>
-					<!--  账户充值页 二级导航 头部定义块 结束 -->
-
-					<!--  账户充值 －> 在线充值 内容块 开始 -->
 					<div class="tab-content">
 						<div id="onlinerecharge" class="tab-pane active">
-							<br>
-							<form class="form-inline" role="form">
-								<div class="form-group">
-									<label class="col-xs-12 control-label">充值金额</label>
-								</div>
-								<div class="form-group">
-									<input type="text" class="form-control" id="rechargenum">
-								</div>
-							</form>
-
 							<section class="panel">
-								<div class="panel-body">
-									<form class="form-horizontal tasi-form" method="get">
+								<form id="rechargeForm" method="POST" action="/apps/{{tenantName}}/recharge/alipay">
+								  <div class="panel-body">
+									<div class="form-inline">
 										<div class="form-group">
-											<div class="col-lg-2">
-												<label class="control-label">支付方式</label>
+											<label class="col-xs-12 control-label">充值金额</label>
+										</div>
+										<div class="form-group">
+											<input type="text" class="form-control" id="recharge_money" name="recharge_money" value="100">
+										</div>
+									</div>
+								  </div>
+								  <div class="panel-body">
+									<div class="form-group">
+										<div class="col-lg-1">
+											<label class="control-label">支付方式</label>
+										</div>
+										<div class="col-lg-10">
+											<div class="row">
+												<div class="col-lg-2">
+													<label> 
+														<input type="radio" name="optionsRadios" id="optionsRadios2" value="zhifubao" checked="checked" >支付宝
+													</label>
+												</div>
 											</div>
-											<div class="col-lg-10">
-												<div class="row">
-													<div class="col-lg-2">
-														<label> <input type="radio" name="optionsRadios"
-															id="optionsRadios2" value="zhifubao" checked="checked" >支付宝
-														</label>
-													</div>
+											<div class="row">
+												<div class="col-lg-2">
+													<label> <input type="radio" name="optionsRadios"
+														id="optionsRadios2" disabled="disabled" value="option2">中国银行
+													</label>
 												</div>
-												<div class="row">
-													<div class="col-lg-2">
-														<label> <input type="radio" name="optionsRadios"
-															id="optionsRadios2" disabled="disabled" value="option2">中国银行
-														</label>
-													</div>
-													<div class="col-lg-2">
-														<label> <input type="radio" name="optionsRadios"
-															id="optionsRadios2" disabled="disabled" value="option2">中国工商银行
-														</label>
-													</div>
-													<div class="col-lg-2">
-														<label> <input type="radio" name="optionsRadios"
-															id="optionsRadios2" disabled="disabled" value="option2">招商银行
-														</label>
-													</div>
+												<div class="col-lg-2">
+													<label> <input type="radio" name="optionsRadios"
+														id="optionsRadios2" disabled="disabled" value="option2">中国工商银行
+													</label>
 												</div>
-												<div class="row">
-													<div class="col-lg-2">
-														<label> <input type="radio" name="optionsRadios"
-															id="optionsRadios2" disabled="disabled" value="option2">中国建设银行
-														</label>
-													</div>
-													<div class="col-lg-2">
-														<label> <input type="radio" name="optionsRadios"
-															id="optionsRadios2" disabled="disabled" value="option2">中国农业银行
-														</label>
-													</div>
-													<div class="col-lg-2">
-														<label> <input type="radio" name="optionsRadios"
-															id="optionsRadios2" disabled="disabled" value="option2">交通银行
-														</label>
-													</div>
+												<div class="col-lg-2">
+													<label> <input type="radio" name="optionsRadios"
+														id="optionsRadios2" disabled="disabled" value="option2">招商银行
+													</label>
+												</div>
+											</div>
+											<div class="row">
+												<div class="col-lg-2">
+													<label> <input type="radio" name="optionsRadios"
+														id="optionsRadios2" disabled="disabled" value="option2">中国建设银行
+													</label>
+												</div>
+												<div class="col-lg-2">
+													<label> <input type="radio" name="optionsRadios"
+														id="optionsRadios2" disabled="disabled" value="option2">中国农业银行
+													</label>
+												</div>
+												<div class="col-lg-2">
+													<label> <input type="radio" name="optionsRadios"
+														id="optionsRadios2" disabled="disabled" value="option2">交通银行
+													</label>
 												</div>
 											</div>
 										</div>
-										<button type="submit" class="btn btn-success">&nbsp;充值&nbsp;</button>
-									</form>
-								</div>
+									</div>
+								 </div>
+								 <div class="panel-body">
+									<div class="col-lg-1">
+										 <button type="button" onclick="verifyData();" class="btn btn-success">&nbsp;充值&nbsp;</button>
+									</div>
+								 </div>
+								</form>
 								<div class="alert alert-warning fade in">
 									<button data-dismiss="alert" class="close close-sm"
 										type="button">
@@ -114,52 +105,8 @@
 								</div>
 							</section>
 						</div>
-						<!--  账户充值 －> 在线充值 内容块 结束 -->
-
-						<!--  账户充值 －> 银行汇款 内容块 开始 -->
-						<div id="banktransfer" class="tab-pane">
-							<section class="panel">
-								<br>
-								<table class="table table-hover">
-									<thead>
-										<tr>
-											<th>开户银行</th>
-											<th>账户名称</th>
-											<th>账号</th>
-											<th>银行电汇代码</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td>招商银行北京五道口支行</td>
-											<td>北京好雨科技有限公司</td>
-											<td>0200 0011 0902 4543 164</td>
-											<td>SCBLHKHHXXX</td>
-										</tr>
-										<tr>
-											<td>招商银行北京五道口支行</td>
-											<td>北京好雨科技有限公司</td>
-											<td>0200 0011 0902 4543 164</td>
-											<td>SCBLHKHHXXX</td>
-										</tr>
-									</tbody>
-								</table>
-								<div class="alert alert-warning fade in">
-									<button data-dismiss="alert" class="close close-sm"
-										type="button">
-										<i class="fa fa-times"></i>
-									</button>
-									<strong>温馨提示：</strong><br> 请您在转账或汇款时在留言栏或备注栏注明以下信息：<br>
-									1、付款单位名称或姓名；2、付款用途；3、您在Goodrain的注册邮箱。<br>
-									建议您在完成汇款后把银行回单发送给grsales@goodrain.com。如果您需要开具发票，请在发票管理页面自助申请。感谢配合!<br>
-								</div>
-							</section>
-						</div>
 					</div>
 				</div>
-				<!--  账户充值 －> 银行汇款 内容块 结束 -->
-
-				<!--  充值记录  内容块 开始 -->
 				<div id="rechargelog" class="tab-pane">
 					<section class="panel">
 						<div class="panel-body">
@@ -179,37 +126,41 @@
 							<div class="adv-table" id="rechargeList"></div>
 						</div>
 					</section>
-			<script>
-            	function _page(page){
-            		var curdatescope= $("#datescope").val()
-            		if(typeof(curdatescope) == "undefined"){
-            			curdatescope=7
-            		}
-            		var curpagesize= $("#pageSizeScope").val()
-            		if(typeof(curpagesize) == "undefined"){
-            			curpagesize=10
-            		}
-            		$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize+'&page='+page);
-            	}
-            	$(document).ready(function(){ 
-            		_page(1);
-            		
-            		$("body").on("change","#datescope", function () { 
-            			_page(1);
-            		});
-            		
-            		$("body").on("change","#pageSizeScope", function () { 
-            			_page(1);
-            		});
-            	})
-            </script>
 				</div>
-				<!--  充值记录  内容块 结束 -->
 			</div>
-			<!-- 一级导航菜单 内容定义 结束 -->
 		</div>
 	</section>
 </section>
-
+<script>
+	function _page(page){
+		var curdatescope= $("#datescope").val()
+		if(typeof(curdatescope) == "undefined"){
+			curdatescope=7
+		}
+		var curpagesize= $("#pageSizeScope").val()
+		if(typeof(curpagesize) == "undefined"){
+			curpagesize=10
+		}
+		$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize+'&page='+page);
+	}
+	$(document).ready(function(){ 
+		_page(1);
+		
+		$("body").on("change","#datescope", function () { 
+			_page(1);
+		});
+		
+		$("body").on("change","#pageSizeScope", function () { 
+			_page(1);
+		});
+	})
+	function verifyData(){
+		if($("#recharge_money").val() <= 0){
+			swal("充值金额异常");
+		}else{
+			$("#rechargeForm").submit();
+		}
+	}
+</script>
 
 {% endblock %}

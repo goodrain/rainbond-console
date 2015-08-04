@@ -327,14 +327,6 @@ class PermRelTenant(BaseModel):
     user_id = models.IntegerField(help_text=u"关联用户")
     tenant_id = models.IntegerField(help_text=u"关联租户")
     identity = models.CharField(max_length=15, choices=tenant_identity, help_text=u"租户身份")
-    
-    
-class TenantAccount(BaseModel):
-    class Meta:
-        db_table = 'tenant_account'
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    tenant_name = models.CharField(max_length=40, unique=True, help_text=u"租户名称")
-    balance_money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"余额")
 
 class TenantRecharge(BaseModel):
     class Meta:

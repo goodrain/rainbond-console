@@ -11,7 +11,7 @@ from django.template.response import TemplateResponse
 from django.core.paginator import Paginator
 from django.http.response import HttpResponse
 from www.views import BaseView, AuthedView
-from www.models import TenantFeeBill, TenantConsume, TenantAccount
+from www.models import TenantFeeBill, TenantConsume
 from www.tenantservice.baseservice import BaseTenantService
 
 from goodrain_web.tools import JuncheePaginator
@@ -19,26 +19,8 @@ from goodrain_web.tools import JuncheePaginator
 from www.inflexdb.inflexdbservice import InflexdbService
 import logging
 logger = logging.getLogger('default')
-
-# 计费
-class Charging(BaseView):
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        try:
-            action = request.GET.get("action", "")
-            if action == "statics":
-                InflexdbService = InflexdbService()
-                InflexdbService.serviceContainerMemoryStatics()
-                InflexdbService.serviceContainerDiskStatics()
-                InflexdbService.servicePodMemoryStatics()
-                InflexdbService.serviceDiskStatics()
-            elif action == "charging":
-                pass
-        except Exception as e:
-            logger.exception(e)
         
 class Recharging(AuthedView):
-    
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -57,11 +39,8 @@ class Recharging(AuthedView):
         context["myFinanceRecharge"] = "active"
         context["myFinanceStatus"] = "active"
         
-        try:
-            tenantAccount = TenantAccount.objects.get(tenant_id=self.tenant.tenant_id)
-            context["tenantAccount"] = "tenantAccount"       
-        except Exception as e:
-            pass
+        context["tenant"] = self.tenant
+        
         return TemplateResponse(self.request, "www/recharge.html", context)
             
 class AccountBill(AuthedView):

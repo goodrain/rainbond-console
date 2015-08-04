@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth 
+from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain 
 from www.service_http import RegionServiceApi
 from www.weblog import WebLog
 from www.gitlab_http import GitlabApi
@@ -227,7 +227,8 @@ class ServiceManage(AuthedView):
                 # env/auth/relationship delete                
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
-                                
+                ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
+                               
                 tdrNumber = TenantServiceRelation.objects.filter(service_id=self.service.service_id).count()
                 if tdrNumber > 0:
                     TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()

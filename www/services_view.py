@@ -251,6 +251,7 @@ class ServiceDomainManager(AuthedView):
                     domain.domain_name = domain_name
                     domain.save()
                 data = {}
+                data["service_id"] = self.service.service_id
                 data["new_domain"] = domain_name
                 data["old_domain"] = old_domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"                   

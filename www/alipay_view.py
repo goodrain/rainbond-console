@@ -6,45 +6,59 @@ import datetime
 from django.http import HttpResponse, HttpResponseRedirect
 from www.models import TenantRecharge
 from www.alipay_direct.alipay_api import *
+from www.models import Tenants, Users
+from django.shortcuts import redirect
 
 import logging
 logger = logging.getLogger('default')
 
-def submit(request,tenantName):
+def submit(request, tenantName):
     html = ""
     if request.method == 'POST':       
         try:
             money = float(request.POST.get('recharge_money', '0'))
-            if money > 0:            
-                tenant_id = self.tenant.tenant_id
-                uid = self.user.pk
-                nick_name = self.user.nick_name
+            if money > 0:      
+                tenant = Tenants.objects.get(tenant_name=tenantName)      
+                tenant_id = tenant.tenant_id
+                uid = request.session.get("_auth_user_id")
+                user = Users.objects.get(user_id=uid)
+                nick_name = user.nick_name
+                logger.debug(uid)
+                logger.debug(nick_name)
                 tenantRecharge = TenantRecharge()
                 tenantRecharge.tenant_id = tenant_id
                 tenantRecharge.user_id = uid
                 tenantRecharge.user_name = nick_name
-                tenantRecharge.order_no = str(uid) + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                orderno = str(uid) + str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+                logger.debug(orderno)
+                tenantRecharge.order_no = orderno
                 tenantRecharge.recharge_type = "alipay"
                 tenantRecharge.money = money
                 tenantRecharge.subject = "好雨云平台充值"
                 tenantRecharge.body = "好雨云平台充值"
-                tenantRecharge.show_url = "http://user.goodrain.com/" + self.tenantName + "/recharge"
+                tenantRecharge.show_url = "http://user.goodrain.com/" + tenantName + "/recharge"
                 tenantRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                tenantRecharge.status="TRADE_UNFINISHED"
                 tenantRecharge.save()
                 html = '<p>订单已经提交，准备进入支付宝官方收银台 ...</p>'
                 submit = Alipay_API()
-                html = submit.alipay_submit(self.tenantName, tenantRecharge.order_no, tenantRecharge.subject, tenantRecharge.money, tenantRecharge.body, tenantRecharge.show_url)
+                html = submit.alipay_submit(tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
+            else:
+                return redirect('/apps/{0}/recharge/'.format(tenantName))
         except Exception as e:
             html = ("%s" % e)
             logger.exception(e)
     return HttpResponse(html)
 
-def return_url(request,tenantName): 
+def return_url(request, tenantName): 
     html = "error"
     try:
         out_trade_no = request.GET.get('out_trade_no', '')
         trade_no = request.GET.get('trade_no', '')
         trade_status = request.GET.get('trade_status', '')
+        logger.debug(out_trade_no)
+        logger.debug(trade_no)
+        logger.debug(trade_status)
         if trade_status == 'TRADE_SUCCESS' or trade_status == 'TRADE_FINISHED':
             tenantRecharge = TenantRecharge.objects.get(order_no=out_trade_no)
             tenantRecharge.status = trade_status
@@ -56,14 +70,18 @@ def return_url(request,tenantName):
     except Exception as e:
         html = ("%s" % e)
         logger.exception(e)
+        logger.exception(e)
     return HttpResponse(html)
             
-def notify_url(request,tenantName):
+def notify_url(request, tenantName):
     html = "error"
     try:
         out_trade_no = request.GET.get('out_trade_no', '')
-        trade_no = request.GET.get('trade_no', '')  # 支付宝交易号
+        trade_no = request.GET.get('trade_no', '')
         trade_status = request.GET.get('trade_status', '')
+        logger.debug(out_trade_no)
+        logger.debug(trade_no)
+        logger.debug(trade_status)
         if trade_status == 'TRADE_SUCCESS' or trade_status == 'TRADE_FINISHED':
             tenantRecharge = TenantRecharge.objects.get(order_no=out_trade_no)
             tenantRecharge.status = trade_status
@@ -74,6 +92,7 @@ def notify_url(request,tenantName):
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
     except Exception as e:
         html = ("%s" % e)
+        logger.exception(e)
         logger.exception(e)
     return HttpResponse(html)
     
