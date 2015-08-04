@@ -12,10 +12,16 @@ from django.shortcuts import redirect
 import logging
 logger = logging.getLogger('default')
 
+BANKS="zhifubao,BOCB2C,ICBCB2C,CMB,CCB,ABC,COMM"
+
 def submit(request, tenantName):
     html = ""
     if request.method == 'POST':       
         try:
+            paymethod = request.POST.get('optionsRadios', 'zhifubao')
+            if BANKS.find(paymethod) < 0:
+                return redirect('/apps/{0}/recharge/'.format(tenantName))
+            logger.debug(paymethod)
             money = float(request.POST.get('recharge_money', '0'))
             if money > 0:      
                 tenant = Tenants.objects.get(tenant_name=tenantName)      
@@ -42,7 +48,7 @@ def submit(request, tenantName):
                 tenantRecharge.save()
                 html = '<p>订单已经提交，准备进入支付宝官方收银台 ...</p>'
                 submit = Alipay_API()
-                html = submit.alipay_submit(tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
+                html = submit.alipay_submit(paymethod,tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
             else:
                 return redirect('/apps/{0}/recharge/'.format(tenantName))
         except Exception as e:

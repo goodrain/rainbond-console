@@ -32,7 +32,7 @@ class Alipay_API:
     # total_fee: 付款金额
     # body: 订单描述
     # show_url: 商品展示地址, 需以http://开头的完整路径
-    def alipay_submit(self,tenantName,out_trade_no, subject, total_fee, body, show_url):
+    def alipay_submit(self,paymethod, tenantName,out_trade_no, subject, total_fee, body, show_url):
         parameter = {
             'service': "create_direct_pay_by_user",
             'partner': self.partner,
@@ -49,6 +49,9 @@ class Alipay_API:
             'exter_invoke_ip': Alipay_API.exter_invoke_ip,
             '_input_charset': self.input_charset,
         }
+        if paymethod !="zhifubao":
+            parameter["paymethod"] = "bankPay"
+            parameter['defaultbank'] = paymethod
         submit = AlipaySubmit()
         html_text = submit.buildRequestForm(parameter, 'get', '确定')
         return html_text
