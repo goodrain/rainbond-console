@@ -51,7 +51,6 @@ def submit(request, tenantName):
     return HttpResponse(html)
 
 def return_url(request, tenantName): 
-    html = "error"
     try:
         out_trade_no = request.GET.get('out_trade_no', '')
         trade_no = request.GET.get('trade_no', '')
@@ -64,17 +63,17 @@ def return_url(request, tenantName):
             tenantRecharge.status = trade_status
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
-            html = "ok"
+            #concurrent question
+            tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+            tenant.balance = tenant.balance + tenantRecharge.money
+            tenant.save()
         else:
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
     except Exception as e:
-        html = ("%s" % e)
         logger.exception(e)
-        logger.exception(e)
-    return HttpResponse(html)
+    return redirect('/apps/{0}/recharge/'.format(tenantName))
             
 def notify_url(request, tenantName):
-    html = "error"
     try:
         out_trade_no = request.GET.get('out_trade_no', '')
         trade_no = request.GET.get('trade_no', '')
@@ -87,14 +86,11 @@ def notify_url(request, tenantName):
             tenantRecharge.status = trade_status
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
-            html = "ok"
         else:
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
     except Exception as e:
-        html = ("%s" % e)
         logger.exception(e)
-        logger.exception(e)
-    return HttpResponse(html)
+    return redirect('/apps/{0}/recharge/'.format(tenantName))
     
         
 

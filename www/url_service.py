@@ -38,7 +38,7 @@ urlpatterns = patterns(
     url(r'^consume/$', login_required(Account.as_view())),
     url(r'^bill/$', login_required(AccountBill.as_view())),
     
-    url(r'^recharge/alipay', csrf_exempt(login_required(alipay_view.submit))),
-    url(r'^recharge/alipay-return', alipay_view.return_url),
-    url(r'^recharge/alipay-notify', alipay_view.notify_url),
+    url(r'^recharge/alipay$', csrf_exempt(login_required(alipay_view.submit))),
+    url(r'^recharge/alipay-return$', alipay_view.return_url),
+    url(r'^recharge/alipay-notify$', alipay_view.notify_url),
 )
