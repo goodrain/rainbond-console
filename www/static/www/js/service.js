@@ -124,6 +124,8 @@ function domainSubmit(service_id, tenantName, service_alias) {
 			var dataObj = eval("(" + msg + ")");
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
+			}else if(dataObj["status"] == "exist"){
+				swal("域名已存在")
 			} else {
 				swal("操作失败")
 			}

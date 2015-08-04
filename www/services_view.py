@@ -235,9 +235,15 @@ class ServiceDomainManager(AuthedView):
                 tenantService = self.service
                 service_alias = self.serviceAlias
                 domain_name = request.POST["domain_name"]
+                                
+                domainNum = ServiceDomain.objects.filter(domain_name=domain_name).count()
+                if domainNum > 0:
+                    result["status"] = "exist"
+                    return HttpResponse(json.dumps(result))
+                
                 num = ServiceDomain.objects.filter(service_name=tenantService.service_alias).count()
                 old_domain_name = "goodrain"
-                if(num == 0):
+                if num == 0:
                     domain = {}
                     domain["service_id"] = self.service.service_id
                     domain["service_name"] = tenantService.service_alias
@@ -246,7 +252,7 @@ class ServiceDomainManager(AuthedView):
                     domaininfo = ServiceDomain(**domain)
                     domaininfo.save()
                 else:
-                    domain = ServiceDomain.objects.get(service_name=tenantService.service_alias)
+                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
                     old_domain_name = domain.domain_name
                     domain.domain_name = domain_name
                     domain.save()
