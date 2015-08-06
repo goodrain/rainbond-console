@@ -31,7 +31,7 @@ class TenantsVisitorView(BaseView):
             logger.debug("tenants=" + tenants)
             if action == "pause":
                 if tenants is not None and tenants != "":
-                    tenantList = Tenants.objects.filter(service_status=1)
+                    tenantList = Tenants.objects.filter(service_status=1, pay_type='free')
                     map = {}
                     arr = []
                     for tenant in tenantList:

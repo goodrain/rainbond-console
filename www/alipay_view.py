@@ -93,6 +93,10 @@ def notify_url(request, tenantName):
             tenantRecharge.status = trade_status
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
+            tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+            #tenant.balance = tenant.balance + tenantRecharge.money
+            tenant.pay_type = 'payed'
+            tenant.save()
         else:
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
     except Exception as e:
