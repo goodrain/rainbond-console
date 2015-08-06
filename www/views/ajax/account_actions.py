@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
-from www.models import TenantFeeBill, TenantPaymentNotify,TenantRecharge, TenantConsume
+from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume
 
 from goodrain_web.tools import JuncheePaginator
 
@@ -72,9 +72,9 @@ class AccountRecharging(AuthedView):
                 endTime = end.strftime("%Y-%m-%d %H:%M:%S")
                 start = datetime.date.today() - datetime.timedelta(days=int(date_scope))
                 startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
-                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, pay_status="test", time__range=(startTime, endTime))
+                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
             else:
-                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, pay_status="test")                                          
+                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id,)                                          
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantRecharges = paginator.page(int(page))
             context["tenantRecharges"] = tenantRecharges
@@ -92,7 +92,7 @@ class AccountQuery(AuthedView):
         date_scope = request.GET.get("datescope", "1")
         per_page = request.GET.get("perpage", "24")
         page = request.GET.get("page", "1")        
-        context["date_scope"] = date_scope
+        context["datescope"] = date_scope
         try:
             tenant_id = self.tenant.tenant_id
             diffDay = int(date_scope)
