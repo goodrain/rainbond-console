@@ -2,7 +2,7 @@ import logging
 logger = logging.getLogger('default')
 
 from django.conf import settings
-from www.models import TenantConsume, TenantPaymentNotify, TenantServiceStatics, TenantServiceInfo
+from www.models import TenantPaymentNotify, TenantServiceStatics, TenantServiceInfo
 from influxdb.influxdb08 import InfluxDBClient
 import datetime
 

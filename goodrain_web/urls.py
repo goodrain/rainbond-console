@@ -4,7 +4,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.decorators.csrf import csrf_exempt
 import www.views as views
 import www.views.ajax as ajax
-from www.services_view import ServiceStaticsManager, ServiceGitHub
+from www.services_view import ServiceGitHub
 from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
 from www.tenants_view import TenantsVisitorView
 from www.service_delete_view import *
@@ -23,7 +23,6 @@ urlpatterns = patterns(
     url(r'^captcha', ChekcCodeImage.as_view()),
     url(r'^invite$', views.InviteRegistation.as_view()),
     url(r'^register$', views.Registation.as_view()),
-    url(r'^statics$', ServiceStaticsManager.as_view()),
     url(r'^apps/(?P<tenantName>[\w\-]+)/', include('www.url_service')),
     url(r'^ajax/', include('www.url_ajax')),
     url(r'^service_delete/', ServiceDeleteView.as_view()),

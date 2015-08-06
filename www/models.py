@@ -366,9 +366,9 @@ class TenantServiceStatics(BaseModel):
     time_stamp = models.IntegerField(help_text=u"时间戳", default=0)
     time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     
-class TenantConsume(BaseModel):
+class TenantConsumeDetail(BaseModel):
     class Meta:
-        db_table = 'tenant_consume'
+        db_table = 'tenant_consume_detail'
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_alias = models.CharField(max_length=100, help_text=u"服务别名")
@@ -380,6 +380,16 @@ class TenantConsume(BaseModel):
     money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"消费金额", default=0)
     total_memory = models.IntegerField(help_text=u"内存使用K", default=0)
     fee_rule = models.CharField(max_length=60, help_text=u"计费规则")
+    pay_status = models.CharField(max_length=10, help_text=u"扣费状态；payed,unpayed")
+    time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    
+class TenantConsume(BaseModel):
+    class Meta:
+        db_table = 'tenant_consume_detail'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    total_memory = models.IntegerField(help_text=u"内存使用K", default=0)
+    cost_money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"消费金额", default=0)
+    payed_money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"消费金额", default=0)
     pay_status = models.CharField(max_length=10, help_text=u"扣费状态；payed,unpayed")
     time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 

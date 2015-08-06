@@ -28,9 +28,9 @@
          <tr>
              <td class=" ">{{tenantConsume.time}</td>
              <td class=" ">{{tenantConsume.total_memory}K</td>
-             <td class=" ">{{tenantConsume.money}</td>
-             <td class=" ">{{tenantConsume.money}</td>
-             <td><span class="label label-success label-mini">{% if pay_status == "payed" %} 已支付 {% else %} 未支付 {% endif %}</span></td>
+             <td class=" ">{{tenantConsume.cost_money}</td>
+             <td class=" ">{{tenantConsume.payed_money}</td>
+             <td><span class="label label-success label-mini">{% if tenantConsume.pay_status == "payed" %} 已支付 {% else %} 未支付 {% endif %}</span></td>
              <td></td>
          </tr>
          {% endfor %}

@@ -4,7 +4,7 @@ import time
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceStatics, TenantConsume, TenantRecharge
+from www.models import TenantServiceStatics, TenantConsumeDetail, TenantRecharge
 
 import logging
 logger = logging.getLogger('default')
@@ -38,40 +38,40 @@ class TenantFeeService(object):
                 if len(data) > 0:
                     time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     for statics in data:
-                        tenantConsume = TenantConsume()
-                        tenantConsume.tenant_id = tenant_id
-                        tenantConsume.service_id = statics["service_id"]
-                        tenantConsume.node_num = int(statics["node_num"])
-                        tenantConsume.cpu = int(statics["cpu"])
-                        tenantConsume.memory = self.byteToKilo(int(statics["memory"]))
-                        tenantConsume.disk = self.byteToKilo(int(statics["disk"]))
+                        tenantConsumeDetail = TenantConsumeDetail()
+                        tenantConsumeDetail.tenant_id = tenant_id
+                        tenantConsumeDetail.service_id = statics["service_id"]
+                        tenantConsumeDetail.node_num = int(statics["node_num"])
+                        tenantConsumeDetail.cpu = int(statics["cpu"])
+                        tenantConsumeDetail.memory = self.byteToKilo(int(statics["memory"]))
+                        tenantConsumeDetail.disk = self.byteToKilo(int(statics["disk"]))
                         net_in = self.byteToKilo(int(statics["net_in"]))
                         net_out = self.byteToKilo(int(statics["net_out"]))
                         if net_in > net_out:
-                            tenantConsume.net = net_in
+                            tenantConsumeDetail.net = net_in
                         else:
-                            tenantConsume.net = net_out                    
-                        self.calculateFee(tenantConsume)
-                        tenantConsume.time = time
+                            tenantConsumeDetail.net = net_out                    
+                        self.calculateFee(tenantConsumeDetail)
+                        tenantConsumeDetail.time = time
                         num = TenantRecharge.objects.filter(tenant_id=tenant_id).count()
                         if num == 1:
                             tenantRecharge = TenantRecharge.objects.get(tenant_id=tenant_id)
-                            tenantRecharge.money = tenantRecharge.money - tenantConsume.money
+                            tenantRecharge.money = tenantRecharge.money - tenantConsumeDetail.money
                             tenantRecharge.save()
-                        tenantConsume.save()
+                        tenantConsumeDetail.save()
         except Exception as e:
             logger.exception(e) 
         # return data
         
-    def calculateFee(self, tenantConsume):
+    def calculateFee(self, tenantConsumeDetail):
         try:
             rule = '{"disk":0.1,"net":10,"unit_money":1}'
             ruleJson = json.loads(rule)
-            total_memory = tenantConsume.memory + (tenantConsume.disk + tenantConsume.node_num * 200 * 1024) * float(ruleJson['disk']) + tenantConsume.net * float(ruleJson['disk'])
-            money = float(ruleJson['unit_money']) * total_memory / 1024
-            tenantConsume.total_memory = total_memory
-            tenantConsume.money = money 
-            tenantConsume.fee_rule = rule    
+            total_memory = tenantConsumeDetail.memory + (tenantConsumeDetail.disk + tenantConsumeDetail.node_num * 200) * float(ruleJson['disk']) + tenantConsumeDetail.net * float(ruleJson['disk'])
+            money = float(ruleJson['unit_money']) * (total_memory / 1024-1)
+            tenantConsumeDetail.total_memory = total_memory
+            tenantConsumeDetail.money = money 
+            tenantConsumeDetail.fee_rule = rule    
         except Exception as e:
             logger.exception(e) 
             

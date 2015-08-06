@@ -11,12 +11,11 @@ from django.template.response import TemplateResponse
 from django.core.paginator import Paginator
 from django.http.response import HttpResponse
 from www.views import BaseView, AuthedView
-from www.models import TenantFeeBill, TenantConsume
+from www.models import TenantFeeBill
 from www.tenantservice.baseservice import BaseTenantService
 
 from goodrain_web.tools import JuncheePaginator
 
-from www.inflexdb.inflexdbservice import InflexdbService
 import logging
 logger = logging.getLogger('default')
         

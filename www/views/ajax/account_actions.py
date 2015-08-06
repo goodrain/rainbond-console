@@ -72,9 +72,9 @@ class AccountRecharging(AuthedView):
                 endTime = end.strftime("%Y-%m-%d %H:%M:%S")
                 start = datetime.date.today() - datetime.timedelta(days=int(date_scope))
                 startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
-                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
+                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, pay_status="test", time__range=(startTime, endTime))
             else:
-                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id)                                          
+                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, pay_status="test")                                          
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantRecharges = paginator.page(int(page))
             context["tenantRecharges"] = tenantRecharges
@@ -101,9 +101,9 @@ class AccountQuery(AuthedView):
                 endTime = end.strftime("%Y-%m-%d %H:%M:%S")
                 start = datetime.date.today() - datetime.timedelta(days=int(date_scope))
                 startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
-                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
+                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id, pay_status="test", time__range=(startTime, endTime))
             else:
-                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id)                                          
+                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id, pay_status="test")                                          
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantConsumes = paginator.page(int(page))
             context["tenantConsumes"] = tenantConsumes
