@@ -59,6 +59,10 @@ class TenantServiceAll(AuthedView):
             totalNum = PermRelTenant.objects.filter(tenant_id=self.tenant.ID).count()
             context["totalNum"] = totalNum
             context["curTenant"] = self.tenant
+            if self.tenant.service_status == 0:
+                client.unpause(oldTenant.tenant_id)
+                self.tenant.service_status = True
+                self.tenant.save()
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_my.html", context)
