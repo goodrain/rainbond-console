@@ -60,9 +60,12 @@ class TenantsVisitorView(BaseView):
                     for ts in tses:
                         try:
                             oldTenant = Tenants.objects.get(tenant_name=ts)
-                            client.unpause(oldTenant.tenant_id)
-                            oldTenant.service_status = True
-                            oldTenant.save()
+                            if oldTenant.service_status == 0:
+                                client.unpause(oldTenant.tenant_id)
+                                oldTenant.service_status = True
+                                oldTenant.save()
+                            else:
+                                logger.debug(ts + " not paused")
                         except Exception as e1:
                             logger.exception(e1)
             data["status"] = "success"

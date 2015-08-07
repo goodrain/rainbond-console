@@ -286,7 +286,7 @@ class TenantServiceEnv(BaseModel):
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
     check_dependency = models.CharField(max_length=100, null=True, blank=True, help_text=u"服务运行环境依赖")
-    user_dependency = models.CharField(max_length=400, null=True, blank=True, help_text=u"服务运行环境依赖")
+    user_dependency = models.CharField(max_length=1000, null=True, blank=True, help_text=u"服务运行环境依赖")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     
 class TenantServiceAuth(BaseModel):
