@@ -39,18 +39,18 @@ class TenantsVisitorView(BaseView):
                         arr.append(tenant.tenant_name)
                     tses = tenants.split(",")
                     needToPuaseSet = set(arr) - set(tses)
-                    # for ts in needToPuaseSet:
                     ts = "salogs"
-                    try:
-                        tenant_id = map[ts]
-                        logger.debug(tenant_id)
-                        if tenant_id is not None and tenant_id != "":
-                            client.pause(tenant_id)
-                            oldTenant = Tenants.objects.get(tenant_id=tenant_id)
-                            oldTenant.service_status = False
-                            oldTenant.save()
-                    except Exception as e0:
-                        logger.exception(e0)                                                                    
+                    for ts in needToPuaseSet:
+                        try:
+                            tenant_id = map[ts]
+                            logger.debug(tenant_id)
+                            if tenant_id is not None and tenant_id != "":
+                                client.pause(tenant_id)
+                                oldTenant = Tenants.objects.get(tenant_id=tenant_id)
+                                oldTenant.service_status = False
+                                oldTenant.save()
+                        except Exception as e0:
+                            logger.exception(e0)                                                                    
             elif action == "unpause":
                 tenants = request.POST.get("tenants", "")
                 if tenants is not None and tenants != "":
