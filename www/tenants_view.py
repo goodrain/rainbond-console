@@ -27,8 +27,8 @@ class TenantsVisitorView(BaseView):
         try:
             action = request.POST.get("action", "")
             tenants = request.POST.get("tenants", "")
-            logger.debug("action=" + action)
-            logger.debug("tenants=" + tenants)
+            #logger.debug("action=" + action)
+            #logger.debug("tenants=" + tenants)
             if action == "pause":
                 if tenants is not None and tenants != "":
                     tenantList = Tenants.objects.filter(service_status=1, pay_type='free')
