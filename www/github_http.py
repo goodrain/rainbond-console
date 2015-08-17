@@ -104,10 +104,22 @@ class GitHubApi(object):
             logger.exception(e)
         return ""
     
+    def getProjectCommitTime(self, user, repos, token):
+        result = 0
+        try:      
+            url = "https://api.github.com/repos/" + user + "/" + repos + "/commits?access_token=" + token
+            http = httplib2.Http()
+            response, content = http.request(url, 'GET', headers=headers)
+            t1 = json.loads(content)
+            result = len(t1)
+        except Exception as e:
+            logger.exception(e)
+        return result
+    
     def createReposHook(self, user, repos, token):
         result = False
         try:
-            url = "https://api.github.com/repos/" + user + "/" + repos + "/hooks?access_token="+token
+            url = "https://api.github.com/repos/" + user + "/" + repos + "/hooks?access_token=" + token
             logger.debug(url)
             headers = {'Content-Type': 'application/json'} 
             data = {}

@@ -1,33 +1,38 @@
 var gitcodechecktimmer;
+var requestNumber = 0
 $(function() {
 	$('#service_code_waiting').attr('disabled', "true");
 	getGitCodeCheck();
 	gitcodechecktimmer = setInterval("getGitCodeCheck()", 3000);
 	$('#service_code_waiting').click(
-	 function() {
-		 var tenantName = $('#tenantName').val();
-		 var service_name = $('#service_name').val();
-		 window.location.href = "/apps/" + tenantName + "/" + service_name + "/app-language/";
+			function() {
+				var tenantName = $('#tenantName').val();
+				var service_name = $('#service_name').val();
+				window.location.href = "/apps/" + tenantName + "/"
+						+ service_name + "/app-language/";
+			});
+	$('.ctrl_viewdetailinfo').click(function() {
+		$('.ctrl_garyinfo', $(this)).remove();
+		$(this).parent().next().slideDown();
 	});
-    $('.ctrl_viewdetailinfo').click(function(){
-        $('.ctrl_garyinfo', $(this)).remove();
-        $(this).parent().next().slideDown();
-    });
 });
 
 function getGitCodeCheck() {
 	var tenantName = $('#tenantName').val();
 	var service_name = $('#service_name').val();
 	if (service_name != "" && service_name != undefined) {
+		requestNumber = requestNumber + 1
 		$.ajax({
 			type : "GET",
-			url : "/ajax/" + tenantName + "/" + service_name + "/check/",
+			url : "/ajax/" + tenantName + "/" + service_name
+					+ "/check/?requestNumber=" + requestNumber,
 			cache : false,
 			success : function(msg) {
 				var dataObj = msg;
 				if (dataObj["status"] == "checked") {
 					clearInterval(gitcodechecktimmer);
-					$("#git_code_upload").html("代码已提交，语言识别为 "+dataObj["language"]);
+					$("#git_code_upload").html(
+							"代码已提交，语言识别为 " + dataObj["language"]);
 					$("#service_code_waiting").removeAttr('disabled')
 				} else if (dataObj["status"] == "check_error") {
 					$("#git_code_upload").html("语言未识别，请重新提交代码...");
@@ -40,7 +45,7 @@ function getGitCodeCheck() {
 	}
 }
 
-function app_create_delete(){
+function app_create_delete() {
 	var tenantName = $('#tenantName').val();
 	var service_name = $('#service_name').val();
 	if (service_name != "" && service_name != undefined) {

@@ -353,6 +353,7 @@ class TenantServiceStatics(BaseModel):
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     pod_id = models.CharField(max_length=32, help_text=u"服务id")
     node_num = models.IntegerField(help_text=u"节点个数", default=0)
+    node_memory = models.IntegerField(help_text=u"节点内存k", default=0)
     container_cpu = models.IntegerField(help_text=u"cpu使用", default=0)
     container_memory = models.IntegerField(help_text=u"内存使用K", default=0)
     container_memory_working = models.IntegerField(help_text=u"正在使用内存K", default=0)

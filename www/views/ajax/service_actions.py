@@ -476,10 +476,33 @@ class ServiceLog(AuthedView):
     
     
 class ServiceCheck(AuthedView):
+    
+    def sendCodeCheckMsg(self):
+        task = {}
+        task["tenant_id"] = self.service.tenant_id
+        task["service_id"] = self.service.service_id
+        if self.service.code_from != "github":
+             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
+             task["git_url"] = gitUrl
+        else:
+            clone_url = self.service.git_url
+            code_user = clone_url.split("/")[3]
+            code_project_name = clone_url.split("/")[4].split(".")[0]
+            createUser = Users.objects.get(user_id=self.service.creater)
+            clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
+            task["git_url"] = gitUrl
+        logger.debug(json.dumps(task))
+        beanlog.put("code_check", json.dumps(task))
+    
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
         result = {}
         try:
+            requestNumber = request.GET.get("requestNumber", "0")
+            reqNum = int(requestNumber)
+            if reqNum > 0 and reqNum % 5 == 0:
+                self.sendCodeCheckMsg()
             if self.service.language is None or self.service.language == "":
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 dps = json.loads(tse.check_dependency)
@@ -490,8 +513,6 @@ class ServiceCheck(AuthedView):
             else:                
                 result["status"] = "checked"  
                 result["language"] = self.service.language                 
-            result["data"] = {}
         except Exception as e:
             result["status"] = "checking"
-            result["data"] = {}
         return JsonResponse(result)
