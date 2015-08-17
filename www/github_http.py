@@ -107,7 +107,8 @@ class GitHubApi(object):
     def createReposHook(self, user, repos, token):
         result = False
         try:
-            url = "https://api.github.com/repos/" + user + "/" + repos + "/hooks"
+            url = "https://api.github.com/repos/" + user + "/" + repos + "/hooks?access_token="+token
+            logger.debug(url)
             headers = {'Content-Type': 'application/json'} 
             data = {}
             data["name"] = "web"
