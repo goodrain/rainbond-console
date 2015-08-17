@@ -121,6 +121,7 @@ class GitHubApi(object):
             d["insecure_ssl"] = "0"
             data["config"] = d
             http = httplib2.Http()
+            logger.debug(json.dumps(data))
             response, content = http.request(url, 'POST', headers=headers, body=json.dumps(data))
             logger.debug(content)
             result = True
