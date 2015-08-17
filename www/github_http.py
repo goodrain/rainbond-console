@@ -113,7 +113,7 @@ class GitHubApi(object):
             data = {}
             data["name"] = "web"
             data["active"] = True
-            data["events"] = '["push"]'
+            data["events"] = ["push"]
             d = {}
             d["url"] = GIT_HUB_WEB_HOOK_URL
             d["content_type"] = "json"
