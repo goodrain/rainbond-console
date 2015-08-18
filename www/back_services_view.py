@@ -61,10 +61,11 @@ class ServiceMarketDeploy(AuthedView):
             if sqlobj is not None and len(sqlobj) > 0:
                 oldMemory = sqlobj[0]["totalMemory"]
                 if oldMemory is not None:                    
-                    totalMemory = int(oldMemory) + servicekeyObj.min_memory
+                    totalMemory = int(oldMemory)
                     if createService != "":
                        serviceKeys = createService.split(",")
                        totalMemory = totalMemory + len(serviceKeys) * 128
+            totalMemory = totalMemory + servicekeyObj.min_memory
         return totalMemory
     
     def get_media(self):
