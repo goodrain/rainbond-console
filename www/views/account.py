@@ -187,7 +187,7 @@ class Registation(BaseView):
             user = Users(email=email, nick_name=nick_name, phone=phone, client_ip=self.get_client_ip(request))
             user.set_password(password)
             user.save()
-            tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type='free')
+            tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type='free', creater=user.pk)
             PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
             res, body = self.init_for_region(tenant_name, tenant.tenant_id)
 
@@ -368,7 +368,7 @@ class PhoneCodeView(BaseView):
                     result["status"] = "limited"
                     return JsonResponse(result) 
             phone_code = random.randrange(0, 1000001, 6)
-            send_phone_message(phone,phone_code)
+            send_phone_message(phone, phone_code)
             newpc = PhoneCode(phone=phone, type="register", code=phone_code)
             newpc.save()
             result["status"] = "success"
