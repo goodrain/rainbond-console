@@ -387,7 +387,7 @@ class TenantConsumeDetail(BaseModel):
     
 class TenantConsume(BaseModel):
     class Meta:
-        db_table = 'tenant_consume_detail'
+        db_table = 'tenant_consume'
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     total_memory = models.IntegerField(help_text=u"内存使用K", default=0)
     cost_money = models.DecimalField(max_digits=9, decimal_places=2, help_text=u"消费金额", default=0)

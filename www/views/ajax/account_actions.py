@@ -103,7 +103,8 @@ class AccountQuery(AuthedView):
                 startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
                 recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
             else:
-                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id)                                          
+                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id)
+            logger.debug(len(recharges))                                          
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantConsumes = paginator.page(int(page))
             context["tenantConsumes"] = tenantConsumes
