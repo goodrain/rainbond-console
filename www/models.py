@@ -115,7 +115,7 @@ class Tenants(models.Model):
     pay_type = models.CharField(max_length=5, choices=tenant_type, help_text=u"付费状态")
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"账户余额")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
-    service_status = models.BooleanField(default=True, help_text=u"激活状态")
+    service_status = models.IntegerField(help_text=u"服务状态0:暂停，1:运行，2:关闭", default=1)
     creater = models.IntegerField(help_text=u"租户创建者", default=0)
 
     def __unicode__(self):

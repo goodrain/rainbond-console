@@ -49,7 +49,7 @@ class TenantsVisitorView(BaseView):
                                 data = client.pause(tenant_id)
                                 if data["data"] > 0:
                                     oldTenant = Tenants.objects.get(tenant_id=tenant_id)
-                                    oldTenant.service_status = False
+                                    oldTenant.service_status = 0
                                     oldTenant.save()
                         except Exception as e0:
                             logger.exception(e0)                                                                    
@@ -62,7 +62,7 @@ class TenantsVisitorView(BaseView):
                             oldTenant = Tenants.objects.get(tenant_name=ts)
                             if oldTenant.service_status == 0:
                                 client.unpause(oldTenant.tenant_id)
-                                oldTenant.service_status = True
+                                oldTenant.service_status = 1
                                 oldTenant.save()
                             else:
                                 logger.debug(ts + " not paused")

@@ -61,7 +61,7 @@ class TenantServiceAll(AuthedView):
             context["curTenant"] = self.tenant
             if self.tenant.service_status == 0:
                 client.unpause(self.tenant.tenant_id)
-                self.tenant.service_status = True
+                self.tenant.service_status = 1
                 self.tenant.save()
         except Exception as e:
             logger.exception(e)
