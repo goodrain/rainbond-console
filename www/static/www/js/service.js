@@ -25,7 +25,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
 			} else if (dataObj["status"] == "owed"){
-				swal("已欠费，操作不允许")
+				swal("已欠费请及时充值")
 			} else if (dataObj["status"] == "language") {
 				swal("应用语言监测未通过")
 				forurl = "/apps/" + tenantName + "/" + serviceAlias
@@ -70,7 +70,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
 			} else if (dataObj["status"] == "owed"){
-				swal("已欠费，操作不允许")
+				swal("已欠费请及时充值")
 			} else {
 				swal("操作失败")
 			}
@@ -101,7 +101,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
 			} else if (dataObj["status"] == "owed"){
-				swal("已欠费，操作不允许")
+				swal("已欠费请及时充值")
 			} else {
 				swal("操作失败")
 			}
@@ -160,7 +160,7 @@ function service_upgrade(tenantName, service_alias) {
 			if (dataObj["status"] == "success") {
 				swal("设置成功")
 			} else if (dataObj["status"] == "owed"){
-				swal("已欠费，操作不允许")
+				swal("已欠费请及时充值")
 			} else if (dataObj["status"] == "often") {
 				swal("上次操作正在进行中，稍后再试")
 			} else if (dataObj["status"] == "overtop") {
@@ -192,7 +192,7 @@ function app_upgrade(tenantName, service_alias) {
 				if (dataObj["status"] == "success") {
 					swal("设置成功")
 				} else if (dataObj["status"] == "owed"){
-					swal("已欠费，操作不允许")
+					swal("已欠费请及时充值")
 				} else if (dataObj["status"] == "often") {
 					swal("上次操作正在进行中，稍后再试")
 				} else if (dataObj["status"] == "overtop") {
