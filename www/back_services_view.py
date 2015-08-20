@@ -52,7 +52,7 @@ class ServiceMarketDeploy(AuthedView):
     
     def calculate_resource(self, createService, servicekeyObj):
         totalMemory = 0 
-        if self.tenant.tenant_name != "goodrain":                
+        if self.tenant.pay_type == "free":
             dsn = BaseConnection()
             query_sql = '''
                 select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"

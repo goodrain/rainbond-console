@@ -23,7 +23,7 @@
                       <i class=" fa fa-cny"></i>
                   </div>
                   <div class="value">
-                      <h1 class="count">{{curTenant.balance}}元
+                      <h1 class="count">{{tenant_balance}}元
                       </h1>
                       <p>账户余额</p>
                   </div>
@@ -135,8 +135,13 @@
 					    		 $("#service_status_"+o).attr("class","label label-primary label-mini")
 					    		 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).attr('disabled',"true")					    		 
-						      }else if(obj["status"]=="Closing"){
+						      }else if(obj["status"]=="Closing" || obj["status"]=="Owed"){
 					    		 $("#service_status_"+o).html("已关闭")		
+					    		 if(obj["status"]=="Closing"){
+					    			 $("#service_status_"+o).html("已关闭")
+				    		  	 }else{
+				    		  		 $("#service_status_"+o).html("欠费已关闭")
+				    		  	 }
 					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")			    		 
 					    		 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).removeAttr("disabled")

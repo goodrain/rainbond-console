@@ -32,7 +32,10 @@ class AppDeploy(AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         data = {}
-        service_alias = ""
+        if self.tenant.service_status == 2:
+            data["status"] = "owed"
+            return JsonResponse(data, status=200)
+        
         if self.service.ID > 598 and (self.service.language is None or self.service.language == ""):
             data["status"] = "language"
             return JsonResponse(data, status=200)
@@ -55,14 +58,10 @@ class AppDeploy(AuthedView):
             beanlog.put("app_log", json.dumps(task))
         except Exception as e:
             logger.exception(e)
-
         try:
             gitUrl = request.POST.get('git_url', None)
             if gitUrl is None:
                 gitUrl = self.service.git_url
-
-            service_alias = self.service.service_alias
-
             body = {}
             if self.service.deploy_version == "" or self.service.deploy_version is None:
                 body["action"] = "deploy"
@@ -89,103 +88,23 @@ class AppDeploy(AuthedView):
                 "service_id": service_id, "tenant_id": tenant_id,
                 "action": "deploy",
             }
-
             TenantServiceLog.objects.create(**log)
-
             data["status"] = "success"
             return JsonResponse(data, status=200)
         except Exception as e:
-            weblog.info(self.tenantName, service_alias, "%s" % e)
             logger.debug(e)
             data["status"] = "failure"
         return JsonResponse(data, status=500)
-
-
-class AllServiceInfo(AuthedView):
-    @perm_required('tenant.tenant_access')
-    def get(self, request, *args, **kwargs):
-        result = {}
-        service_ids = []
-        try:
-            service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).values('ID', 'service_id', 'deploy_version')
-            if self.has_perm('tenant.list_all_services'):
-                # service_ids = [e['service_id'] for e in service_list]
-                for s in service_list:
-                    if s['deploy_version'] is None or s['deploy_version'] == "":
-                        child1 = {}
-                        child1["totalMemory"] = 0
-                        child1["status"] = "Undeployed"
-                        result[s['service_id']] = child1
-                    else:
-                        service_ids.append(s['service_id'])                            
-            else:
-                service_pk_list = PermRelService.objects.filter(user_id=self.user.pk).values_list('service_id', flat=True)
-                for s in service_list:
-                    if s['ID'] in service_pk_list:
-                            if s['deploy_version'] is None or s['deploy_version'] == "":
-                                child1 = {}
-                                child1["totalMemory"] = 0
-                                child1["status"] = "Undeployed"
-                                result[s.service_id] = child1
-                            else:
-                                service_ids.append(s['service_id'])
-            if len(service_ids) > 0:
-                id_string = ','.join(service_ids)
-                client = RegionServiceApi()
-                bodys = client.check_status(json.dumps({"service_ids": id_string}))
-                for sid in service_ids:
-                    service = TenantServiceInfo.objects.get(service_id=sid)
-                    body = bodys[sid]
-                    nodeNum = 0
-                    runningNum = 0
-                    isDeploy = 0
-                    child = {}
-                    for item in body:
-                        nodeNum += 1
-                        status = body[item]['status']
-                        if status == "Undeployed":
-                            isDeploy = -1
-                            break                      
-                        elif status == 'Running':
-                            runningNum += 1
-                            isDeploy += 1
-                        else:
-                            isDeploy += 1
-                    if isDeploy > 0:
-                        if nodeNum == runningNum:
-                            if runningNum > 0:
-                                child["totalMemory"] = runningNum * service.min_memory
-                                child["status"] = "Running"
-                            else:
-                                child["totalMemory"] = 0
-                                child["status"] = "Waiting"
-                        else:
-                            child["totalMemory"] = 0
-                            child["status"] = "Waiting"
-                    elif isDeploy == -1 :
-                        child["totalMemory"] = 0
-                        child["status"] = "Undeployed"
-                    else:
-                        child["totalMemory"] = 0
-                        child["status"] = "Closing"
-                    result[sid] = child
-        except Exception, e:
-            logger.exception(e)
-            logger.info("%s" % e)
-            for sid in service_ids:
-                child = {}
-                child["totalMemory"] = 0
-                child["status"] = "failure"
-                result[sid] = child
-        return JsonResponse(result)
-
 
 class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        action = request.POST["action"]
+        if self.tenant.service_status == 2:
+            result["status"] = "owed"
+            return JsonResponse(result, status=200)
         try:
+            action = request.POST["action"]
             client = RegionServiceApi()
             if action == "stop":
                 client.stop(self.service.service_id)                
@@ -194,13 +113,13 @@ class ServiceManage(AuthedView):
                 task["service_id"] = self.service.service_id
                 task["tenant_id"] = self.tenant.tenant_id
                 beanlog.put("app_log", json.dumps(task))
-            elif action == "restart":                
+            elif action == "restart":
                 client.restart(self.service.service_id)                
                 task = {}
                 task["log_msg"] = "服务已启动"
                 task["service_id"] = self.service.service_id
                 task["tenant_id"] = self.tenant.tenant_id
-                beanlog.put("app_log", json.dumps(task))  
+                beanlog.put("app_log", json.dumps(task))   
             elif action == "delete":
                 oldVerion = self.service.deploy_version
                 if oldVerion is not None and oldVerion != "":      
@@ -249,6 +168,9 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
+        if self.tenant.service_status == 2:
+            result["status"] = "owed"
+            return JsonResponse(result, status=200)
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":      
             curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -256,7 +178,6 @@ class ServiceUpgrade(AuthedView):
             if diffsec <= 90:
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
-                        
         action = request.POST["action"]        
         client = RegionServiceApi()
         if action == "vertical":
@@ -273,7 +194,7 @@ class ServiceUpgrade(AuthedView):
                     self.service.deploy_version = deploy_version
                     self.service.save()
                     
-                    if self.tenant.tenant_name != "goodrain":
+                    if self.tenant.pay_type == "free":
                         dsn = BaseConnection()
                         query_sql = '''
                             select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
@@ -373,51 +294,138 @@ class ServiceRelation(AuthedView):
             result["status"] = "failure"
         return JsonResponse(result)
 
+class AllServiceInfo(AuthedView):
+    @perm_required('tenant.tenant_access')
+    def get(self, request, *args, **kwargs):
+        result = {}
+        service_ids = []
+        try:
+            service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).values('ID', 'service_id', 'deploy_version')
+            if self.has_perm('tenant.list_all_services'):
+                for s in service_list:
+                    if s['deploy_version'] is None or s['deploy_version'] == "":
+                        child1 = {}
+                        child1["totalMemory"] = 0
+                        child1["status"] = "Undeployed"
+                        result[s['service_id']] = child1
+                    else:
+                        service_ids.append(s['service_id'])                            
+            else:
+                service_pk_list = PermRelService.objects.filter(user_id=self.user.pk).values_list('service_id', flat=True)
+                for s in service_list:
+                    if s['ID'] in service_pk_list:
+                            if s['deploy_version'] is None or s['deploy_version'] == "":
+                                child1 = {}
+                                child1["totalMemory"] = 0
+                                child1["status"] = "Undeployed"
+                                result[s.service_id] = child1
+                            else:
+                                service_ids.append(s['service_id'])        
+            if len(service_ids) > 0:
+                if self.tenant.service_status == 2:
+                    for sid in service_ids:
+                        child = {}
+                        child["totalMemory"] = 0
+                        child["status"] = "Owed"
+                        result[sid] = child
+                else:
+                    id_string = ','.join(service_ids)
+                    client = RegionServiceApi()
+                    bodys = client.check_status(json.dumps({"service_ids": id_string}))
+                    for sid in service_ids:
+                        service = TenantServiceInfo.objects.get(service_id=sid)
+                        body = bodys[sid]
+                        nodeNum = 0
+                        runningNum = 0
+                        isDeploy = 0
+                        child = {}
+                        for item in body:
+                            nodeNum += 1
+                            status = body[item]['status']
+                            if status == "Undeployed":
+                                isDeploy = -1
+                                break                      
+                            elif status == 'Running':
+                                runningNum += 1
+                                isDeploy += 1
+                            else:
+                                isDeploy += 1
+                        if isDeploy > 0:
+                            if nodeNum == runningNum:
+                                if runningNum > 0:
+                                    child["totalMemory"] = runningNum * service.min_memory
+                                    child["status"] = "Running"
+                                else:
+                                    child["totalMemory"] = 0
+                                    child["status"] = "Waiting"
+                            else:
+                                child["totalMemory"] = 0
+                                child["status"] = "Waiting"
+                        elif isDeploy == -1 :
+                            child["totalMemory"] = 0
+                            child["status"] = "Undeployed"
+                        else:
+                            child["totalMemory"] = 0
+                            child["status"] = "Closing"
+                        result[sid] = child
+        except Exception, e:
+            logger.exception(e)
+            for sid in service_ids:
+                child = {}
+                child["totalMemory"] = 0
+                child["status"] = "failure"
+                result[sid] = child
+        return JsonResponse(result)
 
 class ServiceDetail(AuthedView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            if self.service.deploy_version is None or self.service.deploy_version == "":
+            if self.tenant.service_status == 2:
                 result["totalMemory"] = 0
-                result["status"] = "Undeployed"
-            else:                
-                client = RegionServiceApi()
-                body = client.check_service_status(self.service.service_id)
-                nodeNum = 0
-                runningNum = 0
-                isDeploy = 0
-                for item in body:
-                    nodeNum += 1
-                    status = body[item]['status']
-                    if status == "Undeployed":
-                        isDeploy = -1
-                        break
-                    elif status == "Running":
-                        runningNum += 1
-                        isDeploy += 1
-                    else:
-                        isDeploy += 1                    
-                if isDeploy > 0:                
-                    if nodeNum == runningNum :
-                        if runningNum > 0:
-                            result["totalMemory"] = runningNum * self.service.min_memory
-                            result["status"] = "Running"
-                        else:
-                            result["totalMemory"] = 0
-                            result["status"] = "Waiting"
-                    else:
-                        result["totalMemory"] = 0
-                        result["status"] = "Waiting"
-                elif isDeploy == -1 :
+                result["status"] = "Owed"
+            else:
+                if self.service.deploy_version is None or self.service.deploy_version == "":
                     result["totalMemory"] = 0
                     result["status"] = "Undeployed"
                 else:
-                    result["totalMemory"] = 0
-                    result["status"] = "Closing"
+                    client = RegionServiceApi()
+                    body = client.check_service_status(self.service.service_id)
+                    nodeNum = 0
+                    runningNum = 0
+                    isDeploy = 0
+                    for item in body:
+                        nodeNum += 1
+                        status = body[item]['status']
+                        if status == "Undeployed":
+                            isDeploy = -1
+                            break
+                        elif status == "Running":
+                            runningNum += 1
+                            isDeploy += 1
+                        else:
+                            isDeploy += 1                    
+                    if isDeploy > 0:                
+                        if nodeNum == runningNum :
+                            if runningNum > 0:
+                                result["totalMemory"] = runningNum * self.service.min_memory
+                                result["status"] = "Running"
+                            else:
+                                result["totalMemory"] = 0
+                                result["status"] = "Waiting"
+                        else:
+                            result["totalMemory"] = 0
+                            result["status"] = "Waiting"
+                    elif isDeploy == -1 :
+                        result["totalMemory"] = 0
+                        result["status"] = "Undeployed"
+                    else:
+                        result["totalMemory"] = 0
+                        result["status"] = "Closing"
         except Exception, e:
-            logger.info("%s" % e)
+            #logger.info("%s" % e)
+            logger.exception(e)
             result["totalMemory"] = 0
             result['status'] = "failure"
         return JsonResponse(result)
@@ -427,12 +435,6 @@ class ServiceNetAndDisk(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            # client = RegionServiceApi()
-            # result = client.netAndDiskStatics(self.service.service_id)
-            # if len(result)>0 and result["disk"] is not None:
-            #    result["disk"] = round(result["disk"] / 1048576, 1)
-            #   result["bytesin"] = round(result["bytesin"] / 1024, 1)
-            #   result["bytesout"] = round(result["bytesout"] / 1024, 1)
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
             

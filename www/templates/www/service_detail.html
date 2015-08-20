@@ -479,13 +479,17 @@
 				    		  	$("#service_status").html("部署中")
 				    		    $("#service_status_operate").hide();
 				    			$("#service_visitor").hide();
-				    		  }else if(obj["status"]=="Closing"){
+				    		  }else if(obj["status"]=="Closing" || obj["status"]=="Owed"){
 				    			$("#service_status_value").val("restart")
 				    		  	$("#font"+service_id).html("启动")
 				    		  	$("#service_status_operate").show()
 				    		  	$("#onekey_deploy").show()
 				    		  	$("#onekey_deploy").removeAttr("disabled")
-				    		  	$("#service_status").html("已关闭")
+				    		  	if(obj["status"]=="Closing"){
+				    		  		$("#service_status").html("已关闭")
+				    		  	}else{
+				    		  		$("#service_status").html("欠费已关闭")
+				    		  	}
 				    		  	$("#service_status_operate").show()
 				    		  	$("#service_visitor").hide();
 				    		  }else if(obj["status"]=="Undeployed"){

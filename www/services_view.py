@@ -13,7 +13,7 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
 from www.decorator import perm_required
-from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
+from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth, TenantConsume
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
@@ -21,8 +21,8 @@ from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.inflexdb.inflexdbservice import InflexdbService
 from www.tenantfee.feeservice import TenantFeeService
-from www.db import BaseConnection
 from www.utils.language import is_redirect
+from www.db import BaseConnection
 
 client = RegionServiceApi()
 
@@ -59,6 +59,16 @@ class TenantServiceAll(AuthedView):
             totalNum = PermRelTenant.objects.filter(tenant_id=self.tenant.ID).count()
             context["totalNum"] = totalNum
             context["curTenant"] = self.tenant
+            tenant_balance = self.tenant.balance
+            if self.tenant.pay_type == "payed":
+                dsn = BaseConnection()
+                query_sql = "select sum(cost_money) as cost_money from tenant_consume where tenant_id='" + self.tenant.tenant_id + "' and pay_status='unpayed'"
+                sqlobj = dsn.query(query_sql)
+                if sqlobj is not None and len(sqlobj) > 0:
+                    cost_money = sqlobj[0]["cost_money"]
+                    if cost_money > 0:
+                        tenant_balance = float(tenant_balance) - float(cost_money)
+            context["tenant_balance"] = tenant_balance
             if self.tenant.service_status == 0:
                 client.unpause(self.tenant.tenant_id)
                 self.tenant.service_status = 1

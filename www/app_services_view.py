@@ -87,7 +87,7 @@ class AppCreateView(AuthedView):
                 data["status"] = "exist"
                 return JsonResponse(data, status=200)
             
-            if self.tenant.tenant_name != "goodrain": 
+            if self.tenant.pay_type == "free": 
                 dsn = BaseConnection()
                 query_sql = '''
                     select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
@@ -125,7 +125,7 @@ class AppCreateView(AuthedView):
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
                 code_version = request.POST.get("service_code_version", "master")
-                if code_id == "" or code_clone_url == "" or code_version =="":
+                if code_id == "" or code_clone_url == "" or code_version == "":
                     data["status"] = "code_repos"
                     TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
@@ -146,7 +146,7 @@ class AppCreateView(AuthedView):
                 code_id = request.POST.get("service_code_id", "")
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_version = request.POST.get("service_code_version", "master")
-                if code_id == "" or code_clone_url == "" or code_version =="":
+                if code_id == "" or code_clone_url == "" or code_version == "":
                     data["status"] = "code_repos"
                     TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
@@ -202,7 +202,7 @@ class AppDependencyCodeView(AuthedView):
     
     def calculate_resource(self, createService):
         totalMemory = 0
-        if self.tenant.tenant_name != "goodrain":  
+        if self.tenant.pay_type == "free":  
             serviceKeys = createService.split(",")
             dsn = BaseConnection()
             query_sql = '''
@@ -310,7 +310,7 @@ class AppWaitingCodeView(AuthedView):
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         try:
-            #if self.service.language != "" and self.service.language is not None:
+            # if self.service.language != "" and self.service.language is not None:
             #    return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
             
             context = self.get_context()      
@@ -385,7 +385,7 @@ class AppLanguageCodeView(AuthedView):
             redirectme = is_redirect(self.service.language, data)
             context["redirectme"] = redirectme
             if redirectme:
-                language= "default"
+                language = "default"
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
