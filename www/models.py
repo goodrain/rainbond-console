@@ -411,7 +411,7 @@ class TenantPaymentNotify(BaseModel):
     class Meta:
         db_table = 'tenant_payment_notify'
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    notify_type = models.CharField(max_length=10, help_text=u"通知类型：余额不足，欠费") 
+    notify_type = models.CharField(max_length=10, help_text=u"通知类型：余额不足，欠费,资源已超限") 
     notify_content = models.CharField(max_length=200, help_text=u"通知类容")
     send_person = models.CharField(max_length=20, help_text=u"通知人")
     time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
