@@ -25,7 +25,13 @@
                   <div class="value">
                       <h1 class="count">{{tenant_balance}}元
                       </h1>
-                      <p>账户余额</p>
+                      <p>
+                      	{% if tenant_balance > 0 %}
+                      		账户余额
+                      	{% else %}
+                      		已欠费
+                      	{% endif %}
+                      </p>
                   </div>
               </section>
           </div>
