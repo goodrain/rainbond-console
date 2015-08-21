@@ -471,6 +471,7 @@
 			    		  		$("#service_status").html("运行中")
 			    		  		$("#service_status_operate").show()
 			    		  		$("#service_visitor").show()
+			    		  		$("#service_status").attr("class","badge badge-sm label-success")
 				    		  }else if(obj["status"]=="Waiting"){
 				    			$("#service_status_value").val("")
 				    		  	$("#font"+service_id).html("部署中")
@@ -479,6 +480,7 @@
 				    		  	$("#service_status").html("部署中")
 				    		    $("#service_status_operate").hide();
 				    			$("#service_visitor").hide();
+				    			$("#service_status").attr("class","badge badge-sm label-success")
 				    		  }else if(obj["status"]=="Closing" || obj["status"]=="Owed"){
 				    			$("#service_status_value").val("restart")
 				    		  	$("#font"+service_id).html("启动")
@@ -487,8 +489,10 @@
 				    		  	$("#onekey_deploy").removeAttr("disabled")
 				    		  	if(obj["status"]=="Closing"){
 				    		  		$("#service_status").html("已关闭")
+				    		  		$("#service_status").attr("class","badge badge-sm label-success")
 				    		  	}else{
 				    		  		$("#service_status").html("欠费已关闭")
+				    		  		$("#service_status").attr("class","label-danger label-mini")
 				    		  	}
 				    		  	$("#service_status_operate").show()
 				    		  	$("#service_visitor").hide();
@@ -501,6 +505,7 @@
 				    			$("#service_status").html("未部署")
 				    			$("#service_status_operate").hide();
 				    			$("#service_visitor").hide();
+				    			$("#service_status").attr("class","badge badge-sm label-success")
 				    		  }else{
 				    			$("#service_status_value").val("")
 					    		$("#font"+service_id).html("未知")
@@ -509,6 +514,7 @@
 					    		$("#service_status").html("未知")
 					    		$("#service_status_operate").hide()
 					    		$("#service_visitor").hide();
+					    		$("#service_status").attr("class","badge badge-sm label-success")
 				    		  }
 				    	  }
 		    		  },
