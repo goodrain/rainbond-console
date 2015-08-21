@@ -4,15 +4,16 @@ import hashlib
 import datetime
 
 from django.http import HttpResponse, HttpResponseRedirect
-from www.models import TenantRecharge
+from www.models import TenantRecharge, TenantConsume, TenantServiceInfo
 from www.alipay_direct.alipay_api import *
 from www.models import Tenants, Users
 from django.shortcuts import redirect
+from www.service_http import RegionServiceApi
 
 import logging
 logger = logging.getLogger('default')
 
-BANKS="zhifubao,BOCB2C,ICBCB2C,CMB,CCB,ABC,COMM"
+BANKS = "zhifubao,BOCB2C,ICBCB2C,CMB,CCB,ABC,COMM"
 
 def submit(request, tenantName):
     html = ""
@@ -44,11 +45,11 @@ def submit(request, tenantName):
                 tenantRecharge.body = "好雨云平台充值"
                 tenantRecharge.show_url = "http://user.goodrain.com/" + tenantName + "/recharge"
                 tenantRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                tenantRecharge.status="TRADE_UNFINISHED"
+                tenantRecharge.status = "TRADE_UNFINISHED"
                 tenantRecharge.save()
                 html = '<p>订单已经提交，准备进入支付宝官方收银台 ...</p>'
                 submit = Alipay_API()
-                html = submit.alipay_submit(paymethod,tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
+                html = submit.alipay_submit(paymethod, tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
             else:
                 return redirect('/apps/{0}/recharge/'.format(tenantName))
         except Exception as e:
@@ -69,11 +70,36 @@ def return_url(request, tenantName):
             tenantRecharge.status = trade_status
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
-            #concurrent question
+            # concurrent question
             tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
             tenant.balance = tenant.balance + tenantRecharge.money
             tenant.pay_type = 'payed'
             tenant.save()
+            # charging owed money
+            openServiceTag = True
+            recharges = TenantConsume.objects.filter(tenant_id=tenantRecharge.tenant_id, pay_status="unpayed")
+            if len(recharges) > 0:
+                for recharge in recharges:
+                    temTenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+                    if recharge.cost_money <= temTenant.balance:
+                        logger.debug(tenantRecharge.tenant_id + " charging owed money:" + str(recharge.cost_money))
+                        temTenant.balance = float(temTenant.balance) - float(recharge.cost_money)
+                        temTenant.save()
+                        recharge.payed_money = recharge.cost_money
+                        recharge.pay_status = "payed"
+                        recharge.save()
+                    else:
+                        openServiceTag = False
+            # if stop service,need to open
+            tenantNew = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+            if tenantNew.service_status == 2 and openServiceTag:
+                tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenantRecharge.tenant_id)
+                if len(tenantServices) > 0:
+                    client = RegionServiceApi()
+                    for tenantService in tenantServices:
+                        client.restart(tenantService.service_id)
+                tenantNew.service_status = 1
+                tenantNew.save()
         else:
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
     except Exception as e:
@@ -94,7 +120,7 @@ def notify_url(request, tenantName):
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
             tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
-            #tenant.balance = tenant.balance + tenantRecharge.money
+            # tenant.balance = tenant.balance + tenantRecharge.money
             tenant.pay_type = 'payed'
             tenant.save()
         else:

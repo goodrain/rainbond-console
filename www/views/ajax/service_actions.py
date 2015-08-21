@@ -10,7 +10,6 @@ from www.decorator import perm_required
 
 from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain 
 from www.service_http import RegionServiceApi
-from www.weblog import WebLog
 from www.gitlab_http import GitlabApi
 from goodrain_web.tools import BeanStalkClient
 from www.etcd_client import EtcdClient
@@ -21,8 +20,6 @@ from www.tenantservice.baseservice import BaseTenantService
 import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
-
-weblog = WebLog()
 
 gitClient = GitlabApi()
 

@@ -11,7 +11,7 @@ from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import JsonResponse
 from www.views import BaseView
-from www.models import Tenants
+from www.models import Tenants, TenantServiceInfo
 from www.service_http import RegionServiceApi
 
 import logging
@@ -27,8 +27,8 @@ class TenantsVisitorView(BaseView):
         try:
             action = request.POST.get("action", "")
             tenants = request.POST.get("tenants", "")
-            #logger.debug("action=" + action)
-            #logger.debug("tenants=" + tenants)
+            # logger.debug("action=" + action)
+            # logger.debug("tenants=" + tenants)
             if action == "pause":
                 if tenants is not None and tenants != "":
                     tenantList = Tenants.objects.filter(service_status=1, pay_type='free')
@@ -68,6 +68,36 @@ class TenantsVisitorView(BaseView):
                                 logger.debug(ts + " not paused")
                         except Exception as e1:
                             logger.exception(e1)
+            data["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            data["status"] = "failure"
+        return JsonResponse(data, status=200)
+
+# 关闭
+class TenantsServiceCloseView(BaseView):
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        data = {}
+        try:
+            action = request.GET.get("action", "")
+            tenants = request.GET.get("tenants", "")
+            logger.debug("action=" + action)
+            logger.debug("tenants=" + tenants)
+            tenant = Tenants.objects.get(tenant_name=tenants)
+            tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
+            if len(tenantServices) > 0:
+                client = RegionServiceApi()
+                if action == "close":
+                    for tenantService in tenantServices:
+                        client.stop(tenantService.service_id)
+                    tenant.service_status = 2
+                    tenant.save()
+                elif action == "open":
+                    for tenantService in tenantServices:
+                        client.restart(tenantService.service_id)
+                    tenant.service_status = 1
+                    tenant.save()
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)

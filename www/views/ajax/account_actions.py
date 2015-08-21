@@ -93,6 +93,7 @@ class AccountQuery(AuthedView):
         per_page = request.GET.get("perpage", "24")
         page = request.GET.get("page", "1")        
         context["datescope"] = date_scope
+        context["per_page"] = per_page
         try:
             tenant_id = self.tenant.tenant_id
             diffDay = int(date_scope)
@@ -101,10 +102,9 @@ class AccountQuery(AuthedView):
                 endTime = end.strftime("%Y-%m-%d %H:%M:%S")
                 start = datetime.date.today() - datetime.timedelta(days=int(date_scope))
                 startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
-                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
+                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime)).order_by("-ID")
             else:
-                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id)
-            logger.debug(len(recharges))                                          
+                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id)                                          
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantConsumes = paginator.page(int(page))
             context["tenantConsumes"] = tenantConsumes

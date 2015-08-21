@@ -15,7 +15,11 @@
        		if(typeof(curdatescope) == "undefined"){
        			curdatescope=1
        		}
-       		$("#tenantConsumeList").load('/ajax/{{tenantName}}/consumelist?datescope='+curdatescope+'&page='+page);
+       		var curpagesize= $("#pageSizeScope").val()
+    		if(typeof(curpagesize) == "undefined"){
+    			curpagesize=10
+    		}
+       		$("#tenantConsumeList").load('/ajax/{{tenantName}}/consumelist?datescope='+curdatescope+'&page='+page+'&perpage='+curpagesize);
        	}
        	
        	$(document).ready(function(){ 
@@ -23,6 +27,9 @@
        		$("body").on("change","#datescope", function () { 
        			_page(1);
        		});
+       		$("body").on("change","#pageSizeScope", function () { 
+    			_page(1);
+    		});
        	})
        </script>
     </section>
