@@ -43,7 +43,7 @@ def submit(request, tenantName):
                 tenantRecharge.money = money
                 tenantRecharge.subject = "好雨云平台充值"
                 tenantRecharge.body = "好雨云平台充值"
-                tenantRecharge.show_url = "http://user.goodrain.com/" + tenantName + "/recharge"
+                tenantRecharge.show_url = "http://user.goodrain.com/apps/" + tenantName + "/recharge"
                 tenantRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 tenantRecharge.status = "TRADE_UNFINISHED"
                 tenantRecharge.save()
