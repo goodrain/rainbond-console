@@ -230,7 +230,7 @@
 
 	    $(document).ready(function () {  
 	    	checkStatus()
-	    	checkTenantsStorage()
+	    	setTimeout("checkTenantsStorage()", 3000);
             setInterval("checkStatus()", 15000);
 	    	setInterval("checkTenantsStorage()", 30000);
         });
