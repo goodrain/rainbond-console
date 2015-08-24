@@ -125,7 +125,7 @@ class ServiceManage(AuthedView):
                     if diffsec <= 90:
                         result["status"] = "often"
                         return JsonResponse(result, status=200)
-                    
+                                        
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
                     result["status"] = "dependency"
@@ -302,7 +302,6 @@ class AllServiceInfo(AuthedView):
                 for s in service_list:
                     if s['deploy_version'] is None or s['deploy_version'] == "":
                         child1 = {}
-                        child1["totalMemory"] = 0
                         child1["status"] = "Undeployed"
                         result[s['service_id']] = child1
                     else:
@@ -313,7 +312,6 @@ class AllServiceInfo(AuthedView):
                     if s['ID'] in service_pk_list:
                             if s['deploy_version'] is None or s['deploy_version'] == "":
                                 child1 = {}
-                                child1["totalMemory"] = 0
                                 child1["status"] = "Undeployed"
                                 result[s.service_id] = child1
                             else:
@@ -322,7 +320,6 @@ class AllServiceInfo(AuthedView):
                 if self.tenant.service_status == 2:
                     for sid in service_ids:
                         child = {}
-                        child["totalMemory"] = 0
                         child["status"] = "Owed"
                         result[sid] = child
                 else:
@@ -350,29 +347,62 @@ class AllServiceInfo(AuthedView):
                         if isDeploy > 0:
                             if nodeNum == runningNum:
                                 if runningNum > 0:
-                                    child["totalMemory"] = runningNum * service.min_memory
                                     child["status"] = "Running"
                                 else:
-                                    child["totalMemory"] = 0
                                     child["status"] = "Waiting"
                             else:
-                                child["totalMemory"] = 0
                                 child["status"] = "Waiting"
                         elif isDeploy == -1 :
-                            child["totalMemory"] = 0
                             child["status"] = "Undeployed"
                         else:
-                            child["totalMemory"] = 0
                             child["status"] = "Closing"
                         result[sid] = child
         except Exception, e:
             logger.exception(e)
             for sid in service_ids:
                 child = {}
-                child["totalMemory"] = 0
                 child["status"] = "failure"
                 result[sid] = child
         return JsonResponse(result)
+
+class AllTenantsUsedResource(AuthedView):
+    @perm_required('tenant.tenant_access')
+    def get(self, request, *args, **kwargs):
+        result = {}
+        try:
+            service_ids = []
+            serviceIds = ""
+            service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).values('ID', 'service_id', 'min_node', 'min_memory')
+            if self.has_perm('tenant.list_all_services'):
+                for s in service_list:
+                    service_ids.append(s['service_id'])
+                    if len(serviceIds) > 0:
+                        serviceIds = serviceIds + ","
+                    serviceIds = serviceIds + "'" + s["service_id"] + "'"
+                    result[s['service_id'] + "_running_memory"] = s["min_node"] * s["min_memory"]
+            else:
+                service_pk_list = PermRelService.objects.filter(user_id=self.user.pk).values_list('service_id', flat=True)
+                for s in service_list:
+                    if s['ID'] in service_pk_list:
+                            service_ids.append(s['service_id'])
+                            if len(serviceIds) > 0:
+                                serviceIds = serviceIds + ","
+                            serviceIds = serviceIds + "'" + s["service_id"] + "'"
+                            result[s['service_id'] + "_running_memory"] = s["min_node"] * s["min_memory"]
+            result["service_ids"] = service_ids
+            if len(service_ids) > 0:
+                dsn = BaseConnection()
+                query_sql = "select service_id,storage_disk,node_num from tenant_service_statics where tenant_id ='" + self.tenant.tenant_id + "' and service_id in(" + serviceIds + ")  order by id desc limit " + str(len(service_ids))
+                sqlobjs = dsn.query(query_sql)
+                for sqlobj in sqlobjs:                    
+                    service_id = sqlobj["service_id"]
+                    storageDisk = int(sqlobj["storage_disk"])
+                    result[service_id + "_storage_memory"] = int((storageDisk + node_num * 200) * 0.01)
+        except Exception as e:
+            logger.exception(e)
+        return JsonResponse(result)
+            
+        
 
 class ServiceDetail(AuthedView):
     @perm_required('view_service')
@@ -421,7 +451,7 @@ class ServiceDetail(AuthedView):
                         result["totalMemory"] = 0
                         result["status"] = "Closing"
         except Exception, e:
-            #logger.info("%s" % e)
+            # logger.info("%s" % e)
             logger.exception(e)
             result["totalMemory"] = 0
             result['status'] = "failure"
@@ -437,7 +467,7 @@ class ServiceNetAndDisk(AuthedView):
             
             tenantServiceStatics = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('ID').latest()
             if tenantServiceStatics is not None:
-                result["disk"] = tenantServiceStatics.container_disk + tenantServiceStatics.storage_disk
+                result["disk"] = tenantServiceStatics.storage_disk + self.service.min_node * 200
                 result["bytesin"] = tenantServiceStatics.net_in
                 result["bytesout"] = tenantServiceStatics.net_out
             else:
