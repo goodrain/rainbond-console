@@ -1,115 +1,115 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% block main-content %}
+{% extends 'www/raster.html' %}
+{% load i18n %}
+
+{% block main-content %}
 
 <section class="wrapper site-min-height">
 
-	<div class="row state-overview state-overview-okooo">
-		<div class="col-lg-3 col-sm-6">
-			<section class="panel">
-				<div class="symbol terques">
-					<i class="fa fa-dashboard"></i>
-				</div>
-				<div class="value">
-					<h1 class="count" id="service_total_memory">0M</h1>
-					<p>总资源</p>
-				</div>
-			</section>
-		</div>
-		<div class="col-lg-3 col-sm-6 ">
-			<section class="panel">
-				<div class="symbol red">
-					<i class=" fa fa-cny"></i>
-				</div>
-				<div class="value">
-					<h1 class="count">{{tenant_balance}}元</h1>
-					<p>{% if tenant_balance > 0 %} 账户余额 {% else %} 已欠费 {% endif %}
-					</p>
-				</div>
-			</section>
-		</div>
-		<div class="col-lg-3 col-sm-6">
-			<section class="panel">
-				<div class="symbol yellow">
-					<i class="fa fa-cloud"></i>
-				</div>
-				<div class="value">
-					<h1 class=" count3">{{totalAppNumber}}个</h1>
-					<p>服务</p>
-				</div>
-			</section>
-		</div>
-		<div class="col-lg-3 col-sm-6">
-			<section class="panel">
-				<div class="symbol blue">
-					<i class="fa fa-group"></i>
-				</div>
-				<div class="value">
-					<h1 class=" count3">{{totalNum}}人</h1>
-					<p>开发者</p>
-				</div>
-			</section>
-		</div>
-	</div>
+<div class="row state-overview state-overview-okooo">
+          <div class="col-lg-3 col-sm-6">
+              <section class="panel">
+                  <div class="symbol terques">
+                      <i class="fa fa-dashboard"></i>
+                  </div>
+                  <div class="value">
+                      <h1 class="count" id="service_total_memory">0M</h1>
+                      <p>总内存</p>
+                  </div>
+              </section>
+          </div>
+          <div class="col-lg-3 col-sm-6 ">
+              <section class="panel">
+                 <div class="symbol red">
+                      <i class=" fa fa-cny"></i>
+                  </div>
+                  <div class="value">
+                      <h1 class="count">{{tenant_balance}}元
+                      </h1>
+                      <p>
+                      	{% if tenant_balance > 0 %}
+                      		账户余额
+                      	{% else %}
+                      		已欠费
+                      	{% endif %}
+                      </p>
+                  </div>
+              </section>
+          </div>
+  <div class="col-lg-3 col-sm-6">
+              <section class="panel">
+                  <div class="symbol yellow">
+                      <i class="fa fa-cloud"></i>
+                  </div>
+                  <div class="value">
+                      <h1 class=" count3">
+                          {{totalAppNumber}}个
+                      </h1>
+                      <p>服务</p>
+                  </div>
+              </section>
+          </div>
+          <div class="col-lg-3 col-sm-6">
+              <section class="panel">
+                  <div class="symbol blue">
+                      <i class="fa fa-group"></i>
+                  </div>
+                  <div class="value">
+                      <h1 class=" count3">
+                          {{totalNum}}人
+                      </h1>
+                      <p>开发者</p>
+                  </div>
+              </section>
+          </div>
+      </div>
 
-	<div class="gearboxtop text-center">
-		<a href="/apps/{{tenantName}}/app-create/" class="fa fa-plus">
-			新建应用</a>
+      <div class="gearboxtop text-center">
+             <a href="/apps/{{tenantName}}/app-create/" class="fa fa-plus"> 新建应用</a>
+             
+       </div>     
 
-	</div>
-
-	<section class="panel">
-
-		<table class="table table-striped table-advance table-hover">
-			<thead>
-				<tr>
-					<th><i class="fa "></i> 名称</th>
-					<th><i class="fa "></i> 资源</th>
-					<th><i class="fa "></i> 状态</th>
-					<th><i class=" fa "></i> 类型</th>
-					<th><i class=" fa "></i> 版本</th>
-					<th></th>
-					<th><i class=" fa fa-edit"></i> 操作</th>
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for item in tenantServiceList %}
-				<tr id="panel">
-					<td><h4>
-							<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_alias}}</a>
-						</h4></td>
-					<td id="service_memory_{{item.service_id}}">0M</td>
-					<td><span class="label label-success label-mini"
-						id="service_status_{{item.service_id}}">未知</span></td>
-					<td>{{item.service_key}}</td> {% ifequal item.category
-					"application" %}
-					<td>{{item.deploy_version}}</td>
-					<td>
-						<button type="button" class="btn btn-shadow btn-info "
-							id="button_{{item.service_id}}"
-							onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');">
-							<i class="fa fa-refresh"></i> 部署
-						</button>
-					</td> {% else %}
-					<td>{{item.version}}</td>
-					<td></td> {% endifequal %}
-					<td>
-						<button class="btn btn-danger btn-xs" data{{item.service_id}}="0"
-							onclick="service_my_onOperation('{{item.service_id}}','{{item.service_alias}}','{{tenantName}}');"
-							id="operate_{{item.service_id}}">
-							<i class="fa fa-power-off "
-								id="operate_inner_{{item.service_id}}"></i>
-						</button>
-						<button class="btn btn-primary btn-xs"
-							onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">
-							<i class="fa fa-gear"></i>
-						</button>
-					</td>
-				</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-	</section>
-	<script>
+<section class="panel">
+                    
+     <table class="table table-striped table-advance table-hover">
+         <thead>
+         <tr>
+             <th><i class="fa "></i> 名称</th>
+             <th><i class="fa "></i> 内存</th>
+             <th><i class="fa "></i> 状态</th>
+             <th><i class=" fa "></i> 类型</th>
+             <th><i class=" fa "></i> 版本</th>
+             <th></th>
+             <th><i class=" fa fa-edit"></i> 操作</th>
+             <th></th>
+         </tr>
+         </thead>
+         <tbody>
+         {% for item in tenantServiceList %}
+         <tr id="panel">
+             <td><h4><a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_alias}}</a></h4></td>
+             <td id="service_memory_{{item.service_id}}">0M</td>
+             <td><span class="label label-success label-mini" id="service_status_{{item.service_id}}">未知</span></td>
+             <td>{{item.service_key}}</td>
+             {% ifequal item.category "application" %}
+             	<td>{{item.deploy_version}}</td>
+             	<td >
+                 	<button type="button" class="btn btn-shadow btn-info " id="button_{{item.service_id}}" onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');"><i class="fa fa-refresh"></i> 部署</button>
+             	</td>
+             {% else %}
+             	<td>{{item.version}}</td>
+             	<td>
+             	</td>
+             {% endifequal  %}
+             <td>                                   
+                 <button class="btn btn-danger btn-xs"  data{{item.service_id}}="0" onclick="service_my_onOperation('{{item.service_id}}','{{item.service_alias}}','{{tenantName}}');" id="operate_{{item.service_id}}"><i class="fa fa-power-off " id="operate_inner_{{item.service_id}}"></i></button>
+                 <button class="btn btn-primary btn-xs" onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' "><i class="fa fa-gear"></i></button>
+            </td>
+        </tr>
+        {% endfor %} 
+        </tbody>
+    </table>
+</section>
+     <script>
 	    function checkStatus(){
 	    	var servcieList=$("#panel")
 	    	var curLength=servcieList.length;
@@ -169,51 +169,10 @@
 						    	 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).attr('disabled',"true")
 							  }
-			    		   }
-   		    		  },
-   		    		  error: function(){
-   		    			//swal("系统异常");
-   		      	  	}
-   		       })
-        	}
-	    }
-	    
-	    function checkTenantsStorage(){
-	    	var servcieList=$("#panel")
-	    	var curLength=servcieList.length;
-    		if(curLength >0 ){
-    			$.ajax({
-   		       	  type: "GET",  
-   		    		  url: "/ajax/{{tenantName}}/tenant-disk", 		  
-   		    		  cache: false,
-   		    		  beforeSend: function(xhr, settings){  
-   		    		      var csrftoken = $.cookie('csrftoken');  
-   		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);  
-   		    		  },  
-   		    	  	  success: function(msg) {
-   		    	  		  var dataObj=msg;
-   		    	  		  totalM =0; 
-   		    	  		  var service_ids = dataObj["service_ids"]
-		    		  	  for(var i=0;i< service_ids.length;i++){
-		    		  		  var o = service_ids[i]
-			    		  	  running_memory = 0
-			    			  if(dataObj[o+"_running_memory"] != undefined){
-			    				  running_memory = dataObj[o+"_running_memory"]
-			    			  }
-			    			  storage_memory = 0
-			    			  if(dataObj[o+"_storage_memory"] != undefined){
-			    			      storage_memory = dataObj[o+"_storage_memory"]
-			    			  }
-			    			  if($("#service_status_"+o).html=="运行中"){
-			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
-			    				 totalM = totalM + running_memory + storage_memory
-			    			  }else if($("#service_status_"+o).html=="Waiting"){
-			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
-			    				 totalM = totalM + running_memory + storage_memory
-			    			  }else{
-			    				 $("#service_memory_"+o).html(storage_memory+"M")
-			    				 totalM = totalM + storage_memory
-			    			  }
+						      if(obj["totalMemory"] != undefined){
+						    	 $("#service_memory_"+o).html(obj["totalMemory"]+"M")
+			    		  	 	 totalM=totalM+obj["totalMemory"]
+   							  }
 			    		   }
 		    		  	   $("#service_total_memory").html(totalM+"M")
    		    		  },
@@ -226,9 +185,7 @@
 
 	    $(document).ready(function () {  
 	    	checkStatus()
-	    	checkTenantsStorage()
             setInterval("checkStatus()", 15000);
-	    	setInterval("checkTenantsStorage()", 30000);
         });
     </script>
 </section>
