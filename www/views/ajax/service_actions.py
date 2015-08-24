@@ -397,6 +397,7 @@ class AllTenantsUsedResource(AuthedView):
                 for sqlobj in sqlobjs:                    
                     service_id = sqlobj["service_id"]
                     storageDisk = int(sqlobj["storage_disk"])
+                    node_num = int(sqlobj["node_num"])
                     result[service_id + "_storage_memory"] = int((storageDisk + node_num * 200) * 0.01)
         except Exception as e:
             logger.exception(e)
