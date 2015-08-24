@@ -208,10 +208,10 @@
 			    			  if(dataObj[o+"_storage_memory"] != undefined){
 			    			      storage_memory = dataObj[o+"_storage_memory"]
 			    			  }
-			    			  if($("#service_status_"+o).html=="运行中"){
+			    			  if($("#service_status_"+o).html() == "运行中"){
 			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
 			    				 totalM = totalM + running_memory + storage_memory
-			    			  }else if($("#service_status_"+o).html=="Waiting"){
+			    			  }else if($("#service_status_"+o).html() == "部署中"){
 			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
 			    				 totalM = totalM + running_memory + storage_memory
 			    			  }else{
