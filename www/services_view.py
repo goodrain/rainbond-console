@@ -70,6 +70,7 @@ class TenantServiceAll(AuthedView):
                         tenant_balance = float(tenant_balance) - float(cost_money)
             context["tenant_balance"] = tenant_balance
             if self.tenant.service_status == 0:
+                logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
                 client.unpause(self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
