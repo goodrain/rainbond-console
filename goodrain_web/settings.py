@@ -19,8 +19,8 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 REGION_TAG = os.environ.get('REGION_TAG')
 
 DEBUG = False
-if not DEBUG and (REGION_TAG is None or REGION_TAG==""):
-    REGION_TAG="www_com"
+if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
+    REGION_TAG = "www_com"
 
 conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG)
 __import__(conf_name)
