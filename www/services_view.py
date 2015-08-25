@@ -236,6 +236,12 @@ class TenantService(AuthedView):
                     context["serviceAuth"] = serviceAuth     
                 except Exception as e:
                     pass
+                
+            if self.tenant.service_status == 0:
+                logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
+                client.unpause(self.tenant.tenant_id)
+                self.tenant.service_status = 1
+                self.tenant.save()
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_detail.html", context)
