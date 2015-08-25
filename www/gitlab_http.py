@@ -4,7 +4,6 @@ from goodrain_web.base import BaseHttpClient
 
 import json
 import logging
-import httplib2
 
 logger = logging.getLogger('default')
 
@@ -19,10 +18,11 @@ class GitlabApi(BaseHttpClient):
         gitlab_service_info = settings.GITLAB_SERVICE_API
         for k, v in gitlab_service_info.items():
             setattr(self, k, v)
-        self.generic_token()
+        self._generic_token()
 
     def _generic_token(self):
         private_token = self.get_private_token()
+        print private_token
         if private_token is not None:
             self.default_headers.update({"PRIVATE-TOKEN": private_token})
 
@@ -213,3 +213,14 @@ class GitlabApi(BaseHttpClient):
         except Exception as e:
             logger.exception(e)
         return result
+
+    def getFile(self, project_id, filename):
+        try:
+            projectId = str(project_id)
+            url = self.url + PREFIX + "/projects/{0}/repository/files?file_path={1}&ref=master".format(projectId, filename)
+            headers = self.default_headers.copy()
+            print headers
+            res, body = self._get(url, headers=headers)
+            return body
+        except Exception, e:
+            raise e
