@@ -22,7 +22,6 @@ class GitlabApi(BaseHttpClient):
 
     def _generic_token(self):
         private_token = self.get_private_token()
-        print private_token
         if private_token is not None:
             self.default_headers.update({"PRIVATE-TOKEN": private_token})
 
@@ -219,7 +218,6 @@ class GitlabApi(BaseHttpClient):
             projectId = str(project_id)
             url = self.url + PREFIX + "/projects/{0}/repository/files?file_path={1}&ref=master".format(projectId, filename)
             headers = self.default_headers.copy()
-            print headers
             res, body = self._get(url, headers=headers)
             return body
         except Exception, e:

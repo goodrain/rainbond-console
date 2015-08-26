@@ -59,7 +59,10 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'crispy_forms',
+    'rest_framework',
+    'rest_framework_swagger',
     'www',
+    'api',
 )
 
 MIDDLEWARE_CLASSES = (

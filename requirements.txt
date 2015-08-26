@@ -13,3 +13,8 @@ urllib3
 influxdb
 whitenoise
 pillow
+
+djangorestframework
+markdown
+django-filter
+django-rest-swagger

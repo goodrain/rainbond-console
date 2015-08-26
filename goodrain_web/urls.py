@@ -32,4 +32,5 @@ urlpatterns = patterns(
     url(r'^service/codecheck/$', csrf_exempt(GitCheckCode.as_view())),
     url(r'^tenant/visit/$', csrf_exempt(TenantsVisitorView.as_view())),
     url(r'^tenant/close/$', TenantsServiceCloseView.as_view()),
+    url(r'^api/', include('api.urls')),
 ) + staticfiles_urlpatterns()
