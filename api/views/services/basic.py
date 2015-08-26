@@ -26,9 +26,8 @@ class SelectedServiceView(APIView):
               paramType: body
         """
         try:
-            service = TenantServiceInfo.objects.get(service_id=serviceId)
             data = request.data
-            service.update(**data)
+            TenantServiceInfo.objects.get(service_id=serviceId).update(**data)
             region = RegionServiceApi()
             region.update_service(serviceId, data)
             return Response({"ok": True}, status=201)
