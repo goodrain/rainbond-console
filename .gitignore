@@ -1,2 +1,6 @@
 *.pyc
 goodrain_web/conf/local.py
+/.settings/
+/.project
+/.pydevproject
+/.gitignore
