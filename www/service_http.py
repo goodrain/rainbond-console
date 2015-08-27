@@ -20,7 +20,6 @@ class RegionServiceApi(BaseHttpClient):
         url = self.url + "/v1/tenants/" + tenant + "/services"
         headers = {'Content-Type': 'application/json'}
         res, body = self._post(url, headers, body)
-        # logger.debug("%s:%s" % (res, body))
         return body
 
     def update_service(self, service_id, data):
@@ -33,19 +32,17 @@ class RegionServiceApi(BaseHttpClient):
         url = self.url + "/v1/services/lifecycle/" + service_id + "/build/"
         headers = {'Content-Type': 'application/json'}
         res, body = self._post(url, headers, body)
-        # logger.debug("%s:%s" % (res, body))
         return body
 
     def check_service_status(self, service_id):
         url = self.url + "/v1/services/lifecycle/" + service_id + "/status/"
-        # logger.debug(url)
         res, body = self._post(url, self.default_headers)
         return body
     
-    def restart(self, service_id):
+    def restart(self, service_id, body):
         url = self.url + "/v1/services/lifecycle/" + service_id + "/restart/"
-        res, body = self._post(url, self.default_headers)
-        # logger.debug(body)
+        headers = {'Content-Type': 'application/json'}
+        res, body = self._post(url, headers, body)
         return body
     
     def stop(self, service_id):
@@ -62,21 +59,18 @@ class RegionServiceApi(BaseHttpClient):
         url = self.url + "/v1/services/lifecycle/status/"
         headers = {'Content-Type': 'application/json'} 
         res, body = self._post(url, headers, body)
-        # logger.debug(body)
         return body
     
     def get_log(self, service_id, body):        
         url = self.url + "/v1/services/lifecycle/" + service_id + "/log/"
         headers = {'Content-Type': 'application/json'}        
         res, body = self._post(url, headers, body)
-        # logger.debug(body)
         return body
     
     def get_userlog(self, service_id, body):        
         url = self.url + "/v1/services/lifecycle/" + service_id + "/userlog/"
         headers = {'Content-Type': 'application/json'}  
         res, body = self._post(url, headers, body)
-        # logger.debug(body)
         return body
     
     def verticalUpgrade(self, service_id, body):

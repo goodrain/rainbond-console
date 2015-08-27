@@ -100,6 +100,15 @@ class ServiceManage(AuthedView):
         if self.tenant.service_status == 2:
             result["status"] = "owed"
             return JsonResponse(result, status=200)
+        
+        oldVerion = self.service.deploy_version
+        if oldVerion is not None and oldVerion != "":      
+            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            diffsec = int(curVersion) - int(oldVerion)
+            if diffsec <= 180:
+                result["status"] = "often"
+                return JsonResponse(result, status=200)
+
         try:
             action = request.POST["action"]
             client = RegionServiceApi()
@@ -111,21 +120,17 @@ class ServiceManage(AuthedView):
                 task["tenant_id"] = self.tenant.tenant_id
                 beanlog.put("app_log", json.dumps(task))
             elif action == "restart":
-                client.restart(self.service.service_id)                
+                self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                self.service.save()
+                body = {}
+                body["deploy_version"] = self.service.deploy_version                    
+                client.restart(self.service.service_id, json.dumps(body))                
                 task = {}
                 task["log_msg"] = "服务已启动"
                 task["service_id"] = self.service.service_id
                 task["tenant_id"] = self.tenant.tenant_id
                 beanlog.put("app_log", json.dumps(task))   
             elif action == "delete":
-                oldVerion = self.service.deploy_version
-                if oldVerion is not None and oldVerion != "":      
-                    curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                    diffsec = int(curVersion) - int(oldVerion)
-                    if diffsec <= 90:
-                        result["status"] = "often"
-                        return JsonResponse(result, status=200)
-                                        
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
                     result["status"] = "dependency"
