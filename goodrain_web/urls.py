@@ -7,7 +7,6 @@ import www.views.ajax as ajax
 from www.services_view import ServiceGitHub
 from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
 from www.tenants_view import TenantsVisitorView, TenantsServiceCloseView
-from www.service_delete_view import *
 from django.conf import settings
 from django.conf.urls.static import static
 from www.captcha.CodeImage import ChekcCodeImage
@@ -25,7 +24,6 @@ urlpatterns = patterns(
     url(r'^register$', views.Registation.as_view()),
     url(r'^apps/(?P<tenantName>[\w\-]+)/', include('www.url_service')),
     url(r'^ajax/', include('www.url_ajax')),
-    url(r'^service_delete/', ServiceDeleteView.as_view()),
     url(r'^oauth/githup/$', login_required(ServiceGitHub.as_view())),
     url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
     url(r'^service/githubhook/$', csrf_exempt(GitHubWebHook.as_view())),
