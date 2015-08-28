@@ -22,5 +22,6 @@ class ErrorPage(object):
             if hasattr(request, '_error_report'):
                 return http.JsonResponse(request._error_report, status=500)
             else:
+                logger.error(response)
                 return http.JsonResponse({"ok": False}, status=500)
         return response

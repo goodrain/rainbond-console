@@ -35,6 +35,8 @@ for k in dir(conf_mod):
             exec "{0} = '{1}'".format(k, v)
         elif isinstance(v, (list, dict, tuple)):
             exec "{0} = {1}".format(k, v)
+        elif isinstance(v, bool):
+            exec "{0} = {1}".format(k, v)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
