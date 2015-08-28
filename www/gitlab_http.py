@@ -1,3 +1,7 @@
+from django.conf import settings
+
+from goodrain_web.base import BaseHttpClient
+
 import logging
 import httplib2
 
