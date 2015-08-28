@@ -373,7 +373,10 @@ class AppLanguageCodeView(AuthedView):
             tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             if tenantServiceEnv.user_dependency is not None and tenantServiceEnv.user_dependency != "":
                 return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
-            
+
+            if self.service.language == 'docker':
+                return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
+
             context = self.get_context()
             context["myAppStatus"] = "active"
             context["tenantServiceList"] = self.get_service_list()                
