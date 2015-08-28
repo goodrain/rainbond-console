@@ -513,7 +513,7 @@ class GitCheckCode(BaseView):
             service_id = request.POST.get("service_id", "")
             dependency = request.POST.get("condition", "")
             logger.debug(service_id + "=" + dependency)
-            if service_id is not None and service_id != "":
+            if service_id is not None and service_id != "" and dependency !="":
                 dps = json.loads(dependency)
                 language = dps["language"]
                 if language is not None and language != "" and language != "no":
