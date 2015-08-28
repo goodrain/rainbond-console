@@ -77,7 +77,9 @@ class BaseTenantService(object):
         tenantServiceInfo["creater"] = creater
         if service.is_web_service:
             tenantServiceInfo["protocol"] = 'http'
-            
+        else:
+            tenantServiceInfo["protocol"] = ''
+                        
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
