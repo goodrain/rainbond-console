@@ -75,10 +75,12 @@ class BaseTenantService(object):
         tenantServiceInfo["git_project_id"] = 0
         tenantServiceInfo["service_type"] = service.service_type
         tenantServiceInfo["creater"] = creater
+        if service.is_web_service:
+            tenantServiceInfo["protocol"] = 'http'
+            
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
-        
         
     def create_region_service(self, newTenantService, service, domain):
         data = {}
@@ -107,6 +109,7 @@ class BaseTenantService(object):
         data["deploy_version"] = newTenantService.deploy_version
         data["domain"] = domain
         data["category"] = newTenantService.category
+        data["protocol"] = newTenantService.protocol            
         client.create_service(newTenantService.tenant_id, json.dumps(data))
         
     def record_service_log(self, user_pk, user_nike_name, service_id, tenant_id):
