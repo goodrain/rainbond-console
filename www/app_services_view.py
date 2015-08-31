@@ -374,15 +374,12 @@ class AppLanguageCodeView(AuthedView):
             if tenantServiceEnv.user_dependency is not None and tenantServiceEnv.user_dependency != "":
                 return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
-            if self.service.language == 'docker':
-                return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
-
             context = self.get_context()
             context["myAppStatus"] = "active"
-            context["tenantServiceList"] = self.get_service_list()                
+            context["tenantServiceList"] = self.get_service_list()
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
-            language = self.service.language            
+            language = self.service.language
             data = json.loads(tenantServiceEnv.check_dependency)
             context["dependencyData"] = data
             redirectme = is_redirect(self.service.language, data)
@@ -391,8 +388,10 @@ class AppLanguageCodeView(AuthedView):
                 language = "default"
         except Exception as e:
             logger.exception(e)
+        if self.service.language == 'docker':
+            return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
-    
+
     @never_cache
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
