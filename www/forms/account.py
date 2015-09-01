@@ -161,6 +161,15 @@ class RegisterForm(forms.Form):
         help_text="",
     )
     
+    machine_region = forms.ChoiceField(
+        label="",
+        choices=(
+            ('1', '机房'),
+            ('ucloud_bj_1', 'UCLOUD北京1')
+        ),
+        widget=forms.Select
+    )
+    
     error_messages = {
         'nick_name_used': u"该用户名已存在",
         'email_used': u"邮件地址已被注册",
@@ -170,6 +179,7 @@ class RegisterForm(forms.Form):
         'phone_empty': u"手机号为空",
         'phone_code_error': u"手机验证码已失效",
         'captcha_code_error':u"验证码有误",
+        'machine_region_error':u"请选择机房",
     }
 
     def __init__(self, *args, **kwargs):
@@ -180,6 +190,8 @@ class RegisterForm(forms.Form):
             init_phone = kwargs["initial"]["phone"]
             init_email = kwargs["initial"]["email"]
             init_tenant = kwargs["initial"]["tenant"]
+            init_region = kwargs["initial"]["region"]
+            
         super(RegisterForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_tag = False       
@@ -188,7 +200,10 @@ class RegisterForm(forms.Form):
         if init_email is not None and init_email != "":
             self.fields['email'].widget.attrs['readonly'] = True
         if init_tenant is not None and init_tenant != "":
-            self.fields['tenant'].widget.attrs['readonly'] = True                    
+            self.fields['tenant'].widget.attrs['readonly'] = True
+        if init_region is not None and init_region !="":
+            self.fields['machine_region'].widget.attrs['readonly'] = True
+                            
         self.helper.layout = Layout(
             Div(
                 Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
@@ -196,6 +211,8 @@ class RegisterForm(forms.Form):
                 HTML("<hr/>"),
                 # Field('tenant', css_class="form-control teamdomain", placeholder='团队域名'),
                 AppendedText('tenant', '.goodrain.net', placeholder='团队域名', css_class='teamdomain'),
+                
+                Field('machine_region'),
                 # HTML('<input type="text" name="tenant" id="tenant" value="" class="teamdomain" placeholder="团队域名"> .goodrain.net'),
                 Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                 Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
@@ -210,7 +227,7 @@ class RegisterForm(forms.Form):
                 # Field('phone_code', 'Serial #', '<button class=\"btn btn-primary\">获取验证码</button>', css_class="form-control", placeholder='验证码'),
                 # StrictButton('Submit', type='submit', css_class='btn-primary')
                 # FieldWithButtons('phone_code', StrictButton('获取验证码', type='submit', css_class='form-control')),
-                Field('checkboxes'),
+                Field('checkboxes', placeholder='机房'),
                 
                 # Field('appended_text'),
                 # PrependedText('appended_text', '我已阅读并同意<a href="" target="_blank">好雨云平台使用协议</a>',active=True),
@@ -245,6 +262,7 @@ class RegisterForm(forms.Form):
         captcha_code = self.cleaned_data.get('captcha_code')
         real_captcha_code = self.cleaned_data.get('real_captcha_code')
         invite_tag = self.cleaned_data.get('invite_tag')
+        machine_region = self.cleaned_data.get('machine_region')
         try:
             Users.objects.get(email=email)
             raise forms.ValidationError(
@@ -265,7 +283,13 @@ class RegisterForm(forms.Form):
                 )
             except Tenants.DoesNotExist:
                 pass
-            
+        
+        if machine_region is None or machine_region == "" or machine_region == "1":
+           raise forms.ValidationError(
+                self.error_messages['machine_region_error'],
+                code='machine_region_error',
+            )
+                       
         try:
             Users.objects.get(nick_name=nick_name)
             raise forms.ValidationError(

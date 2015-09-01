@@ -184,10 +184,13 @@ class Registation(BaseView):
             password = request.POST.get('password')
             tenant_name = request.POST.get('tenant')
             phone = request.POST.get('phone')
+            region = request.POST.get('machine_region')
+            if region is None or region == "" or region == "1":
+                region = "ucloud_bj_1"
             user = Users(email=email, nick_name=nick_name, phone=phone, client_ip=self.get_client_ip(request))
             user.set_password(password)
             user.save()
-            tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type='free', creater=user.pk)
+            tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
             PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
             res, body = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
 
