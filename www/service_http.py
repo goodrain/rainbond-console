@@ -119,19 +119,19 @@ class RegionServiceApi(BaseHttpClient):
         return body
     
     def createServiceDependency(self, region, service_id, body):
-        url = self.region_map[region] + "/etcd/" + service_id + "/manage"
+        url = self.region_map[region] + "/v1/etcd/" + service_id + "/manage"
         headers = {'Content-Type': 'application/json'}
         res, body = self._post(url, headers, body)
         return body
     
     def cancelServiceDependency(self, region, service_id, body):
-        url = self.region_map[region] + "/etcd/" + service_id + "/manage"
+        url = self.region_map[region] + "/v1/etcd/" + service_id + "/manage"
         headers = {'Content-Type': 'application/json'}  
         res, body = self._put(url, headers, body)
         return body
     
     def deleteEtcdService(self, region, service_id, body):
-        url = self.region_map[region] + "/etcd/" + service_id + "/manage"
+        url = self.region_map[region] + "/v1/etcd/" + service_id + "/manage"
         headers = {'Content-Type': 'application/json'}  
         res, body = self._delete(url, headers, body)
         return body
