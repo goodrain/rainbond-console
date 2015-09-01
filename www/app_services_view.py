@@ -553,7 +553,8 @@ class GitCheckCode(BaseView):
                             service.min_memory = 256
                             data = {}
                             data["language"] = "java"
-                            regionClient.changeMemory(self.tenant.region, service_id, json.dumps(data))
+                            curTenant = Tenants.objects.get(tenant_id=service.tenant_id)
+                            regionClient.changeMemory(curTenant.region, service_id, json.dumps(data))
                         service.language = language
                         service.save()
             result["status"] = "success"
