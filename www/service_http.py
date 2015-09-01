@@ -113,7 +113,7 @@ class RegionServiceApi(BaseHttpClient):
         return body
     
     def writeToRegionBeanstalk(self, region, service_id, body):
-        url = self.region_map[region] + "/v1/services/" + service_id + "/beanstalk/"
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/beanstalk/"
         headers = {'Content-Type': 'application/json'}  
         res, body = self._post(url, headers, body)
         return body
