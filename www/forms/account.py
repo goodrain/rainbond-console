@@ -186,6 +186,7 @@ class RegisterForm(forms.Form):
         init_phone = ""
         init_email = ""
         init_tenant = ""
+        init_region = ""
         if len(kwargs) > 0 and kwargs["initial"] is not None:
             init_phone = kwargs["initial"]["phone"]
             init_email = kwargs["initial"]["email"]

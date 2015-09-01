@@ -290,12 +290,14 @@ class InviteRegistation(BaseView):
             if self.email.find("@"):
                 curemail = self.email
             else:
-                curphone = self.email            
+                curphone = self.email   
+            registerTenant =  Tenants.objects.get(tenant_name=self.tenant_name)     
             self.form = RegisterForm(
                 initial={
                     "tenant":self.tenant_name,
                     "phone" : curphone,
-                    "email":curemail
+                    "email":curemail,
+                    "region":registerTenant.region
                 }
             )
             return self.get_response()

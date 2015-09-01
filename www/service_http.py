@@ -16,7 +16,6 @@ class RegionServiceApi(BaseHttpClient):
         region_service_infos = settings.REGION_SERVICE_API
         for region_service_info in region_service_infos:
             self.region_map[region_service_info["region_name"]] = region_service_info["url"]
-        logger.debug(self.region_map)
 
     def create_service(self, region, tenant, body):
         url = self.region_map[region] + "/v1/tenants/" + tenant + "/services"
