@@ -11,7 +11,8 @@ function extPushWebSocketClient() {
 
 }
 
-function extPushWebSocketConnect(client) {
+function extPushWebSocketConnect(websocket_uri) {
+	websocket_uri = websocket_uri
 	this.requestUrl = websocket_uri.split(","); // 扩充服务器
 	this.socketStore = ''; // web_socket对象存储
 	this.keeplivetime = 5; // 心跳时间

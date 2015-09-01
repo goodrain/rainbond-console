@@ -21,7 +21,11 @@ REGION_SERVICE_API = [{
     'url': 'http://192.168.7.18:8080',
     'apitype': 'region service',
     'region_name': 'ucloud_bj_1' 
-}]                    
+}]
+
+WEBSOCKET_URL={
+    'ucloud_bj_1':'ws://123.59.40.70:6060/websocket'
+}                
 
 GITLAB_SERVICE_API = {
     'url': 'http://code1.goodrain.com/',

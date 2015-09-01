@@ -21,6 +21,7 @@ from www.tenantservice.baseservice import BaseTenantService
 from www.tenantfee.feeservice import TenantFeeService
 from www.utils.language import is_redirect
 from www.db import BaseConnection
+from django.conf import settings
 
 logger = logging.getLogger('default')
 
@@ -242,6 +243,10 @@ class TenantService(AuthedView):
                 regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
+                
+            websocket_info = settings.WEBSOCKET_URL
+            context["websocket_uri"]=websocket_info[self.tenant.region]
+            
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_detail.html", context)
