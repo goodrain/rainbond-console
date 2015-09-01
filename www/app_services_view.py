@@ -464,7 +464,8 @@ class GitLabWebHook(BaseView):
                     task["service_id"] = ts.service_id
                     task["tube"] = "code_check"
                     logger.debug(json.dumps(task))
-                    regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
+                    curTenant = Tenants.objects.get(tenant_id=ts.tenant_id)
+                    regionClient.writeToRegionBeanstalk(curTenant.region, ts.service_id, json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -504,7 +505,8 @@ class GitHubWebHook(BaseView):
                     task["data"] = data
                     task["tube"] = "code_check"
                     logger.debug(json.dumps(task))
-                    regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
+                    curTenant = Tenants.objects.get(tenant_id=ts.tenant_id)
+                    regionClient.writeToRegionBeanstalk(curTenant.region, ts.service_id, json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
