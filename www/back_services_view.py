@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-import logging
 import uuid
 import hashlib
 import datetime
@@ -14,15 +13,12 @@ from www.views import BaseView, AuthedView
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceAuth
 from service_http import RegionServiceApi
-from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.db import BaseConnection
-
-client = RegionServiceApi()
-
+import logging
 logger = logging.getLogger('default')
 
-beanclient = BeanStalkClient()
+regionClient = RegionServiceApi()
 
 class ServiceMarket(AuthedView):
     def get_media(self):
@@ -157,8 +153,8 @@ class ServiceMarketDeploy(AuthedView):
                         tempUuid = str(uuid.uuid4()) + skey
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
-                        baseService.create_region_service(depTenantService, dep_service, self.tenantName)
-                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id)
+                        baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.tenant.region)
+                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.tenant.region)
                     except Exception as e:
                        logger.exception(e)
 
@@ -170,7 +166,7 @@ class ServiceMarketDeploy(AuthedView):
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
-                        baseService.create_service_dependency(tenant_id, service_id, sid) 
+                        baseService.create_service_dependency(tenant_id, service_id, sid, self.tenant.region) 
                     except Exception as e:
                        logger.exception(e)
             
@@ -178,14 +174,18 @@ class ServiceMarketDeploy(AuthedView):
             baseService = BaseTenantService()
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
             # create region tenantservice
-            baseService.create_region_service(newTenantService, service, self.tenantName)
+            baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
             # record service log
+            data = {}
+            data["log_msg"] = "服务创建成功，开始部署....."
+            data["service_id"] = newTenantService.service_id
+            data["tenant_id"] = newTenantService.tenant_id
             task = {}
-            task["log_msg"] = "服务创建成功，开始部署....."
+            task["data"] = data
+            task["tube"] = "app_log"
             task["service_id"] = newTenantService.service_id
-            task["tenant_id"] = newTenantService.tenant_id
             logger.info(task)
-            beanclient.put("app_log", json.dumps(task))
+            regionClient.writeToRegionBeanstalk(self.tenant.region, newTenantService.service_id, json.dumps(task))
             
             result["status"] = "success"
             result["service_id"] = service_id

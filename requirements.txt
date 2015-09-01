@@ -7,13 +7,9 @@ gunicorn==19.0.0
 wsgiref==0.1.2
 httplib2
 simplejson
-etcd
-beanstalkc
 urllib3
-influxdb
 whitenoise
 pillow
-
 djangorestframework
 markdown
 django-filter

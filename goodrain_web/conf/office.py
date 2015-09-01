@@ -17,21 +17,11 @@ DATABASES = {
     },
 }
 
-BEANSTALKD = {"host": "192.168.7.10", "port": 11300, "tube": "default"}
-
-INFLEXDB ={
-    "host" : "10.3.1.2",
-    "port": 8086,
-    "user": "root",
-    "password": "root",
-}
-
-ETCD= {"host": "192.168.7.16", "port": 4001}
-
-REGION_SERVICE_API = {
+REGION_SERVICE_API = [{
     'url': 'http://192.168.7.18:8080',
     'apitype': 'region service',
-}
+    'region_name': 'ucloud_bj_1' 
+}]                    
 
 GITLAB_SERVICE_API = {
     'url': 'http://code1.goodrain.com/',

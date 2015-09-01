@@ -11,8 +11,6 @@ from www.decorator import perm_required
 from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain 
 from www.service_http import RegionServiceApi
 from www.gitlab_http import GitlabApi
-from goodrain_web.tools import BeanStalkClient
-from www.etcd_client import EtcdClient
 from django.conf import settings
 from www.db import BaseConnection
 from www.tenantservice.baseservice import BaseTenantService
@@ -23,7 +21,7 @@ logger = logging.getLogger('default')
 
 gitClient = GitlabApi()
 
-beanlog = BeanStalkClient()
+regionClient = RegionServiceApi()
 
 class AppDeploy(AuthedView):
     @perm_required('code_deploy')
@@ -45,14 +43,17 @@ class AppDeploy(AuthedView):
             diffsec = int(curVersion) - int(oldVerion)
             if diffsec <= 90:
                 data["status"] = "often"
-                return JsonResponse(data, status=200)    
+                return JsonResponse(data, status=200)
         try:
+            data = {}
+            data["log_msg"] = "开始部署......"
+            data["service_id"] = service_id
+            data["tenant_id"] = tenant_id
             task = {}
-            task["log_msg"] = "开始部署......"
             task["service_id"] = service_id
-            task["tenant_id"] = tenant_id
-            logger.info(task)                
-            beanlog.put("app_log", json.dumps(task))
+            task["data"] = data
+            task["tube"] = "app_log"
+            regionClient.writeToRegionBeanstalk(self.tenant.region, service_id, json.dumps(task))
         except Exception as e:
             logger.exception(e)
         try:
@@ -77,8 +78,8 @@ class AppDeploy(AuthedView):
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             para = json.dumps(body)
-            client = RegionServiceApi()
-            client.build_service(service_id, para)
+            
+            regionClient.build_service(self.tenant.region, service_id, para)
 
             log = {
                 "user_id": self.user.pk, "user_name": self.user.nick_name,
@@ -111,25 +112,14 @@ class ServiceManage(AuthedView):
 
         try:
             action = request.POST["action"]
-            client = RegionServiceApi()
             if action == "stop":
-                client.stop(self.service.service_id)                
-                task = {}
-                task["log_msg"] = "服务已关闭"
-                task["service_id"] = self.service.service_id
-                task["tenant_id"] = self.tenant.tenant_id
-                beanlog.put("app_log", json.dumps(task))
+                regionClient.stop(self.tenant.region, self.service.service_id)
             elif action == "restart":
                 self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                 self.service.save()
                 body = {}
                 body["deploy_version"] = self.service.deploy_version                    
-                client.restart(self.service.service_id, json.dumps(body))                
-                task = {}
-                task["log_msg"] = "服务已启动"
-                task["service_id"] = self.service.service_id
-                task["tenant_id"] = self.tenant.tenant_id
-                beanlog.put("app_log", json.dumps(task))   
+                regionClient.restart(self.tenant.region, self.service.service_id, json.dumps(body))                
             elif action == "delete":
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
@@ -139,7 +129,7 @@ class ServiceManage(AuthedView):
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
                 newTenantServiceDelete.save()
                 try:
-                   client.delete(self.service.service_id)
+                   regionClient.delete(self.tenant.region, self.service.service_id)
                 except Exception as e:
                    logger.exception(e)
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
@@ -154,9 +144,10 @@ class ServiceManage(AuthedView):
                 if tdrNumber > 0:
                     TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
                     try:
-                        etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
-                        etcdPath = '/goodrain/' + self.service.tenant_id + '/services/' + self.service.service_id
-                        etcdClient.delete(etcdPath, recursive=True)
+                        data = {}
+                        data["tenant_id"] = self.service.tenant_id
+                        data["service_id"] = service_id
+                        regionClient.deleteEtcdService(self.tenant.region, service_id, json.dumps(data))
                     except Exception as e:
                         logger.exception(e)
             result["status"] = "success"
@@ -180,8 +171,7 @@ class ServiceUpgrade(AuthedView):
             if diffsec <= 90:
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
-        action = request.POST["action"]        
-        client = RegionServiceApi()
+        action = request.POST["action"]
         if action == "vertical":
             try:
                 container_memory = request.POST["memory"]
@@ -209,18 +199,11 @@ class ServiceUpgrade(AuthedView):
                             self.service.save()
                             result["status"] = "overtop"
                             return JsonResponse(result)
-                    
-                    task = {}
-                    task["log_msg"] = "服务开始垂直扩容部署"
-                    task["service_id"] = self.service.service_id
-                    task["tenant_id"] = self.tenant.tenant_id
-                    beanlog.put("app_log", json.dumps(task))
-                    
                     body = {}
                     body["container_memory"] = container_memory
                     body["deploy_version"] = deploy_version
                     body["container_cpu"] = container_cpu
-                    client.verticalUpgrade(self.service.service_id, json.dumps(body)) 
+                    regionClient.verticalUpgrade(self.tenant.region, self.service.service_id, json.dumps(body)) 
                 result["status"] = "success"                       
             except Exception, e:
                 self.service.min_cpu = old_container_cpu          
@@ -253,16 +236,10 @@ class ServiceUpgrade(AuthedView):
                         result["status"] = "overtop"
                         return JsonResponse(result)
                     
-                    task = {}
-                    task["log_msg"] = "服务开始水平扩容部署"
-                    task["service_id"] = self.service.service_id
-                    task["tenant_id"] = self.tenant.tenant_id
-                    beanlog.put("app_log", json.dumps(task)) 
-                    
                     body = {}
                     body["node_num"] = node_num   
                     body["deploy_version"] = deploy_version
-                    client.horizontalUpgrade(self.service.service_id, json.dumps(body))
+                    regionClient.horizontalUpgrade(self.tenant.region, self.service.service_id, json.dumps(body))
                 result["status"] = "success"
             except Exception, e:
                 self.service.min_node = old_min_node
@@ -284,11 +261,16 @@ class ServiceRelation(AuthedView):
             tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)            
             if action == "add":
                 baseService = BaseTenantService()
-                baseService.create_service_dependency(tenant_id, service_id, tenantS.service_id)
+                baseService.create_service_dependency(tenant_id, service_id, tenantS.service_id, self.tenant.region)
             elif action == "cancel":
-                etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
-                etcdPath = '/goodrain/' + tenant_id + '/services/' + service_id + '/dependency/' + tenantS.service_id
-                etcdClient.delete(etcdPath)
+                try:
+                    data = {}
+                    data["tenant_id"] = tenant_id
+                    data["dps_service_id"] = tenantS.service_id
+                    data["service_id"] = service_id
+                    regionClient.cancelServiceDependency(self.tenant.region, service_id, json.dumps(data))
+                except Exception as e:
+                    logger.exception(e)                
                 TenantServiceRelation.objects.get(tenant_id=tenant_id, service_id=service_id, dep_service_id=tenantS.service_id).delete()
             result["status"] = "success"    
         except Exception, e:
@@ -329,8 +311,7 @@ class AllServiceInfo(AuthedView):
                         result[sid] = child
                 else:
                     id_string = ','.join(service_ids)
-                    client = RegionServiceApi()
-                    bodys = client.check_status(json.dumps({"service_ids": id_string}))
+                    bodys = regionClient.check_status(self.tenant.region, json.dumps({"service_ids": id_string}))
                     for sid in service_ids:
                         service = TenantServiceInfo.objects.get(service_id=sid)
                         body = bodys[sid]
@@ -428,8 +409,7 @@ class ServiceDetail(AuthedView):
                     result["totalMemory"] = 0
                     result["status"] = "Undeployed"
                 else:
-                    client = RegionServiceApi()
-                    body = client.check_service_status(self.service.service_id)
+                    body = regionClient.check_service_status(self.tenant.region, self.service.service_id)
                     nodeNum = 0
                     runningNum = 0
                     isDeploy = 0
@@ -497,17 +477,16 @@ class ServiceLog(AuthedView):
             if self.service.deploy_version is None or self.service.deploy_version == "":
                 return JsonResponse({})
             else:
-                client = RegionServiceApi()
                 action = request.GET.get("action", "")
                 service_id = self.service.service_id
                 tenant_id = self.service.tenant_id
                 body = {}
                 body["tenant_id"] = tenant_id                    
                 if action == "operate":                   
-                    body = client.get_userlog(service_id, json.dumps(body))
+                    body = regionClient.get_userlog(self.tenant.region, service_id, json.dumps(body))
                     return JsonResponse(body)
                 elif action == "service":                    
-                    body = client.get_log(service_id, json.dumps(body))
+                    body = regionClient.get_log(self.tenant.region, service_id, json.dumps(body))
                     return JsonResponse(body)
                 return JsonResponse({})
         except Exception as e:
@@ -518,12 +497,12 @@ class ServiceLog(AuthedView):
 class ServiceCheck(AuthedView):
     
     def sendCodeCheckMsg(self):
-        task = {}
-        task["tenant_id"] = self.service.tenant_id
-        task["service_id"] = self.service.service_id
+        data = {}
+        data["tenant_id"] = self.service.tenant_id
+        data["service_id"] = self.service.service_id      
         if self.service.code_from != "github":
              gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
-             task["git_url"] = gitUrl
+             data["git_url"] = gitUrl
         else:
             clone_url = self.service.git_url
             code_user = clone_url.split("/")[3]
@@ -531,9 +510,13 @@ class ServiceCheck(AuthedView):
             createUser = Users.objects.get(user_id=self.service.creater)
             clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            task["git_url"] = gitUrl
+            data["git_url"] = gitUrl
         logger.debug(json.dumps(task))
-        beanlog.put("code_check", json.dumps(task))
+        task = {}
+        task["tube"] = "code_check"
+        task["data"] = data
+        task["service_id"] = self.service.service_id
+        regionClient.writeToRegionBeanstalk(self.tenant.region, self.service.service_id, json.dumps(task))
     
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):

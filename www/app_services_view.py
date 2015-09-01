@@ -17,20 +17,17 @@ from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, ServiceDo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
-from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
 from www.db import BaseConnection
 from www.utils.language import is_redirect
-
-client = RegionServiceApi()
 
 logger = logging.getLogger('default')
 
 gitClient = GitlabApi()
 
-beanclient = BeanStalkClient()
-
 gitHubClient = GitHubApi()
+
+regionClient = RegionServiceApi()
 
 class AppCreateView(AuthedView):
     
@@ -103,8 +100,7 @@ class AppCreateView(AuthedView):
             
             baseService = BaseTenantService()
             service.desc = service_desc
-            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
-            
+            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)           
             # code repos
             if service_code_from == "gitlab_new":
                 project_id = 0
@@ -136,12 +132,17 @@ class AppCreateView(AuthedView):
                 ts.code_version = code_version
                 ts.save()
                                 
+                data = {}
+                data["tenant_id"] = ts.tenant_id
+                data["service_id"] = ts.service_id
+                data["git_url"] = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
+                
                 task = {}
-                task["tenant_id"] = ts.tenant_id
+                task["tube"] = "code_check"
                 task["service_id"] = ts.service_id
-                task["git_url"] = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
+                task["data"] = data
                 logger.debug(json.dumps(task))
-                beanclient.put("code_check", json.dumps(task))     
+                regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
             elif service_code_from == "github":
                 code_id = request.POST.get("service_code_id", "")
                 code_clone_url = request.POST.get("service_code_clone_url", "")
@@ -161,23 +162,31 @@ class AppCreateView(AuthedView):
                 createUser = Users.objects.get(user_id=ts.creater)
                 gitHubClient.createReposHook(code_user, code_project_name, createUser.github_token)
                 
-                task = {}
-                task["tenant_id"] = ts.tenant_id
-                task["service_id"] = ts.service_id
+                data = {}
+                data["tenant_id"] = ts.tenant_id
+                data["service_id"] = ts.service_id
                 clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
-                task["git_url"] = "--branch " + ts.code_version + " --depth 1 " + clone_url
-                logger.debug(json.dumps(task))
-                beanclient.put("code_check", json.dumps(task))
+                data["git_url"] = "--branch " + ts.code_version + " --depth 1 " + clone_url
+                task = {}
+                task["data"] = data
+                task["tube"] = "code_check"
+                task["service_id"] = ts.service_id
+                logger.debug(json.dumps(task))                
+                regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
         
             # create region tenantservice
-            baseService.create_region_service(newTenantService, service, self.tenantName)
+            baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
             
             # record log
+            data = {}
+            data["log_msg"] = "应用创建成功"
+            data["service_id"] = newTenantService.service_id
+            data["tenant_id"] = newTenantService.tenant_id
             task = {}
-            task["log_msg"] = "应用创建成功"
+            task["data"] = data
             task["service_id"] = newTenantService.service_id
-            task["tenant_id"] = newTenantService.tenant_id
-            beanclient.put("app_log", json.dumps(task))
+            task["tube"] = "app_log"
+            regionClient.writeToRegionBeanstalk(self.tenant.region, newTenantService.service_id, json.dumps(task))
             
             data["status"] = "success"
             data["service_alias"] = service_alias
@@ -267,8 +276,8 @@ class AppDependencyCodeView(AuthedView):
                         tempUuid = str(uuid.uuid4()) + skey
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
-                        baseService.create_region_service(depTenantService, dep_service, self.tenantName)
-                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id)
+                        baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.tenant.region)
+                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.tenant.region)
                     except Exception as e:
                        logger.exception(e)
             # exist service dependency.
@@ -279,7 +288,7 @@ class AppDependencyCodeView(AuthedView):
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
-                        baseService.create_service_dependency(tenant_id, service_id, sid) 
+                        baseService.create_service_dependency(tenant_id, service_id, sid, self.tenant.region) 
                     except Exception as e:
                        logger.exception(e)
             data["status"] = "success"
@@ -445,13 +454,17 @@ class GitLabWebHook(BaseView):
             listTs = TenantServiceInfo.objects.filter(git_project_id=project_id).exclude(code_from="github")
             if len(listTs) > 0:
                 for ts in listTs:
-                    task = {}
-                    task["tenant_id"] = ts.tenant_id
-                    task["service_id"] = ts.service_id
+                    data = {}
+                    data["tenant_id"] = ts.tenant_id
+                    data["service_id"] = ts.service_id
                     gitUrl = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
-                    task["git_url"] = gitUrl
+                    data["git_url"] = gitUrl
+                    task = {}
+                    task["data"] = data
+                    taks["service_id"] = ts.service_id
+                    task["tube"] = "code_check"
                     logger.debug(json.dumps(task))
-                    beanclient.put("code_check", json.dumps(task))
+                    regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -475,18 +488,23 @@ class GitHubWebHook(BaseView):
             listTs = TenantServiceInfo.objects.filter(git_project_id=project_id, code_from="github")
             if len(listTs) > 0:
                 for ts in listTs:
-                    task = {}
-                    task["tenant_id"] = ts.tenant_id
-                    task["service_id"] = ts.service_id
+                    data = {}
+                    data["tenant_id"] = ts.tenant_id
+                    data["service_id"] = ts.service_id
                     clone_url = ts.git_url
                     code_user = clone_url.split("/")[3]
                     code_project_name = clone_url.split("/")[4].split(".")[0]
                     createUser = Users.objects.get(user_id=ts.creater)
                     clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
                     gitUrl = "--branch " + ts.code_version + " --depth 1 " + clone_url
-                    task["git_url"] = gitUrl
+                    data["git_url"] = gitUrl
+                    
+                    task = {}
+                    task["service_id"] = ts.service_id
+                    task["data"] = data
+                    task["tube"] = "code_check"
                     logger.debug(json.dumps(task))
-                    beanclient.put("code_check", json.dumps(task))
+                    regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -515,7 +533,7 @@ class GitCheckCode(BaseView):
             service_id = request.POST.get("service_id", "")
             dependency = request.POST.get("condition", "")
             logger.debug(service_id + "=" + dependency)
-            if service_id is not None and service_id != "" and dependency !="":
+            if service_id is not None and service_id != "" and dependency != "":
                 dps = json.loads(dependency)
                 language = dps["language"]
                 if language is not None and language != "" and language != "no":
@@ -532,8 +550,8 @@ class GitCheckCode(BaseView):
                         if language.find("Java") > -1:
                             service.min_memory = 256
                             data = {}
-                            data["language"] = "java" 
-                            client.changeMemory(service_id, json.dumps(data))
+                            data["language"] = "java"
+                            regionClient.changeMemory(self.tenant.region, service_id, json.dumps(data))
                         service.language = language
                         service.save()
             result["status"] = "success"

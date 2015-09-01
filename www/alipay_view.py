@@ -15,6 +15,8 @@ logger = logging.getLogger('default')
 
 BANKS = "zhifubao,BOCB2C,ICBCB2C,CMB,CCB,ABC,COMM"
 
+regionClient = RegionServiceApi()
+
 def submit(request, tenantName):
     html = ""
     if request.method == 'POST':       
@@ -95,9 +97,8 @@ def return_url(request, tenantName):
             if tenantNew.service_status == 2 and openServiceTag:
                 tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenantRecharge.tenant_id)
                 if len(tenantServices) > 0:
-                    client = RegionServiceApi()
                     for tenantService in tenantServices:
-                        client.restart(tenantService.service_id)
+                        regionClient.restart(tenantNew.region, tenantService.service_id)
                 tenantNew.service_status = 1
                 tenantNew.save()
         else:

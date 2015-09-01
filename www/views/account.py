@@ -157,9 +157,9 @@ class Registation(BaseView):
     def get_response(self):
         return TemplateResponse(self.request, 'www/register.html', self.get_context())
 
-    def init_for_region(self, tenant_name, tenant_id):
+    def init_for_region(self, region, tenant_name, tenant_id):
         api = RegionApi()
-        res, body = api.create_tenant(tenant_name, tenant_id)
+        res, body = api.create_tenant(region, tenant_name, tenant_id)
         return res, body
 
     def get(self, request, *args, **kwargs):
@@ -189,7 +189,7 @@ class Registation(BaseView):
             user.save()
             tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type='free', creater=user.pk)
             PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
-            res, body = self.init_for_region(tenant_name, tenant.tenant_id)
+            res, body = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
 
              # create gitlab user
             git_user_id = gitClient.createUser(email, password, nick_name, nick_name)

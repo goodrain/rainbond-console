@@ -5,13 +5,12 @@ import json
 from www.db import BaseConnection
 from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceStatics, TenantServiceAuth
 from www.service_http import RegionServiceApi
-from www.etcd_client import EtcdClient
 from django.conf import settings
 
 import logging
 logger = logging.getLogger('default')
 
-client = RegionServiceApi()
+regionClient = RegionServiceApi()
 
 class BaseTenantService(object):
     
@@ -84,7 +83,7 @@ class BaseTenantService(object):
         newTenantService.save()
         return newTenantService
         
-    def create_region_service(self, newTenantService, service, domain):
+    def create_region_service(self, newTenantService, service, domain, region):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
         data["service_id"] = newTenantService.service_id
@@ -111,8 +110,8 @@ class BaseTenantService(object):
         data["deploy_version"] = newTenantService.deploy_version
         data["domain"] = domain
         data["category"] = newTenantService.category
-        data["protocol"] = newTenantService.protocol            
-        client.create_service(newTenantService.tenant_id, json.dumps(data))
+        data["protocol"] = newTenantService.protocol        
+        regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         
     def record_service_log(self, user_pk, user_nike_name, service_id, tenant_id):
         log = {}
@@ -126,10 +125,8 @@ class BaseTenantService(object):
         tenantServiceLog.save()
         
         
-    def create_service_dependency(self, tenant_id, service_id, dep_service_id):
+    def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_id=dep_service_id)
-        etcdPath = '/goodrain/' + tenant_id + '/services/' + service_id + '/dependency/' + tenantS.service_id
-        etcdClient = EtcdClient(settings.ETCD.get('host'), settings.ETCD.get('port'))
         depNum = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id, dep_service_type=tenantS.service_type).count()
         attr = tenantS.service_type.upper()
         if depNum > 0 :
@@ -143,9 +140,11 @@ class BaseTenantService(object):
             data[attr + "_PASSWORD"] = ts.password
         except Exception as e:
             data[attr + "_PASSWORD"] = "admin"
-        etcdClient.write(etcdPath, json.dumps(data))
-        res = etcdClient.get(etcdPath)
-        logger.debug(res)
+        task = {}
+        task["service_id"] = service_id
+        task["dps_service_id"] = dep_service_id
+        task["data"] = data
+        regionClient.createServiceDependency(region, service_id, json.dumps(task))
         tsr = TenantServiceRelation()
         tsr.tenant_id = tenant_id
         tsr.service_id = service_id

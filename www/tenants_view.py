@@ -17,8 +17,7 @@ from www.service_http import RegionServiceApi
 import logging
 logger = logging.getLogger('default')
 
-client = RegionServiceApi()
-
+regionClient = RegionServiceApi()
 # 休眠
 class TenantsVisitorView(BaseView):
     @never_cache
@@ -34,8 +33,10 @@ class TenantsVisitorView(BaseView):
                     tenantList = Tenants.objects.filter(service_status=1, pay_type='free')
                     map = {}
                     arr = []
+                    region_map = {}
                     for tenant in tenantList:
                         map[tenant.tenant_name] = tenant.tenant_id
+                        region_map[tenant.tenant_id] = tenant.region
                         arr.append(tenant.tenant_name)
                     tses = tenants.split(",")
                     needToPuaseSet = set(arr) - set(tses)
@@ -46,7 +47,7 @@ class TenantsVisitorView(BaseView):
                             tenant_id = map[ts]
                             logger.debug(tenant_id)
                             if tenant_id is not None and tenant_id != "":
-                                data = client.pause(tenant_id)
+                                data = regionClient.pause(region_map[tenant.tenant_id], tenant_id)
                                 if data["data"] > 0:
                                     oldTenant = Tenants.objects.get(tenant_id=tenant_id)
                                     oldTenant.service_status = 0
@@ -61,7 +62,7 @@ class TenantsVisitorView(BaseView):
                         try:
                             oldTenant = Tenants.objects.get(tenant_name=ts)
                             if oldTenant.service_status == 0:
-                                client.unpause(oldTenant.tenant_id)
+                                regionClient.unpause(oldTenant.region, oldTenant.tenant_id)
                                 oldTenant.service_status = 1
                                 oldTenant.save()
                             else:
@@ -87,15 +88,14 @@ class TenantsServiceCloseView(BaseView):
             tenant = Tenants.objects.get(tenant_name=tenants)
             tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
             if len(tenantServices) > 0:
-                client = RegionServiceApi()
                 if action == "close":
                     for tenantService in tenantServices:
-                        client.stop(tenantService.service_id)
+                        regionClient.stop(tenant.region, tenantService.service_id)
                     tenant.service_status = 2
                     tenant.save()
                 elif action == "open":
                     for tenantService in tenantServices:
-                        client.restart(tenantService.service_id)
+                        regionClient.restart(tenant.region, tenantService.service_id)
                     tenant.service_status = 1
                     tenant.save()
             data["status"] = "success"

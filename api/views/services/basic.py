@@ -1,18 +1,19 @@
 # -*- coding: utf8 -*-
 from rest_framework.response import Response
 from api.views.base import APIView
-from www.models import TenantServiceInfo
+from www.models import TenantServiceInfo, Tenants
 from www.service_http import RegionServiceApi
 
 import logging
 logger = logging.getLogger('default')
 
+regionClient = RegionServiceApi()
 
 class SelectedServiceView(APIView):
     '''
     对单个服务的动作
     '''
-    allowed_methods = ('PUT', )
+    allowed_methods = ('PUT',)
 
     def put(self, request, serviceId, format=None):
         """
@@ -28,8 +29,9 @@ class SelectedServiceView(APIView):
         try:
             data = request.data
             TenantServiceInfo.objects.filter(service_id=serviceId).update(**data)
-            region = RegionServiceApi()
-            region.update_service(serviceId, data)
+            newTs = TenantServiceInfo.objects.get(service_id=serviceId)
+            tenant = Tenants.objects.get(tenant_id=newTs.tenant_id)
+            regionClient.update_service(tenant.region, serviceId, data)
             return Response({"ok": True}, status=201)
         except TenantServiceInfo.DoesNotExist, e:
             logger.error(e)

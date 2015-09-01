@@ -110,7 +110,7 @@ class Tenants(models.Model):
     ID = models.AutoField(primary_key=True, max_length=10)
     tenant_id = models.CharField(max_length=33, unique=True, default=make_tenant_id, help_text=u"租户id")
     tenant_name = models.CharField(max_length=40, unique=True, help_text=u"租户名称")
-    region = models.CharField(max_length=10, default='test', help_text=u"区域中心")
+    region = models.CharField(max_length=30, default='ucloud_bj_1', help_text=u"区域中心")
     is_active = models.BooleanField(default=True, help_text=u"激活状态")
     pay_type = models.CharField(max_length=5, choices=tenant_type, help_text=u"付费状态")
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"账户余额")

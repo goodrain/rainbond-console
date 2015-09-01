@@ -17,22 +17,18 @@ from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantSer
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
-from goodrain_web.tools import BeanStalkClient
 from www.tenantservice.baseservice import BaseTenantService
-from www.inflexdb.inflexdbservice import InflexdbService
 from www.tenantfee.feeservice import TenantFeeService
 from www.utils.language import is_redirect
 from www.db import BaseConnection
-
-client = RegionServiceApi()
 
 logger = logging.getLogger('default')
 
 gitClient = GitlabApi()
 
-beanclient = BeanStalkClient()
-
 gitHubClient = GitHubApi()
+
+regionClient = RegionServiceApi()
 
 class TenantServiceAll(AuthedView):
     def get_media(self):
@@ -71,7 +67,7 @@ class TenantServiceAll(AuthedView):
             context["tenant_balance"] = tenant_balance
             if self.tenant.service_status == 0:
                 logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
-                client.unpause(self.tenant.tenant_id)
+                regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
         except Exception as e:
@@ -142,12 +138,12 @@ class TenantService(AuthedView):
                 ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                 ts.save()
     def sendCodeCheckMsg(self):
-        task = {}
-        task["tenant_id"] = self.service.tenant_id
-        task["service_id"] = self.service.service_id
+        data = {}
+        data["tenant_id"] = self.service.tenant_id
+        data["service_id"] = self.service.service_id
         if self.service.code_from != "github":
              gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
-             task["git_url"] = gitUrl
+             data["git_url"] = gitUrl
         else:
             clone_url = self.service.git_url
             code_user = clone_url.split("/")[3]
@@ -155,9 +151,13 @@ class TenantService(AuthedView):
             createUser = Users.objects.get(user_id=self.service.creater)
             clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            task["git_url"] = gitUrl
+            data["git_url"] = gitUrl
+        task = {}
+        task["service_id"] = self.service.service_id
+        task["data"] = data
+        task["tube"] = "code_check"
         logger.debug(json.dumps(task))
-        beanclient.put("code_check", json.dumps(task))
+        regionClient.writeToRegionBeanstalk(self.tenant.region, self.service.service_id, json.dumps(task))
     
     @never_cache
     @perm_required('view_service')
@@ -239,7 +239,7 @@ class TenantService(AuthedView):
                 
             if self.tenant.service_status == 0:
                 logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
-                client.unpause(self.tenant.tenant_id)
+                regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
         except Exception as e:
@@ -282,52 +282,12 @@ class ServiceDomainManager(AuthedView):
                 data["service_id"] = self.service.service_id
                 data["new_domain"] = domain_name
                 data["old_domain"] = old_domain_name
-                data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"                   
-                client.addUserDomain(json.dumps(data))   
+                data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"              
+                regionClient.addUserDomain(self.tenant.region, json.dumps(data))   
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"
-        return HttpResponse(json.dumps(result))
-
-    
-    
-class ServiceStaticsManager(AuthedView):
-    
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        result = {}
-        try:
-            action = request.GET.get("action", "")
-            key = request.GET.get("key", "")
-            timeStamp = request.GET.get("timeStamp", "")
-            if key == "goodrain.com":
-                if action == "staticsContainer":
-                    inflexdbService = InflexdbService()
-                    inflexdbService.serviceContainerMemoryStatics(timeStamp)
-                    inflexdbService.serviceContainerDiskStatics(timeStamp)
-                    inflexdbService.servicePodMemoryStatics(timeStamp)
-                    result["status"] = "ok"
-                elif action == "staticsNetDisk":
-                    inflexdbService = InflexdbService()
-                    inflexdbService.serviceDiskStatics(timeStamp)
-                    result["status"] = "ok"
-                elif action == "staticsAll":
-                    inflexdbService = InflexdbService()
-                    inflexdbService.serviceContainerMemoryStatics(timeStamp)
-                    inflexdbService.serviceContainerDiskStatics(timeStamp)
-                    inflexdbService.servicePodMemoryStatics(timeStamp)
-                    inflexdbService.serviceDiskStatics(timeStamp)
-                    result["status"] = "ok"
-                elif action == "staticsFee":
-                    feeService = TenantFeeService()
-                    feeService.staticsFee()
-                else:
-                    result["status"] = "action error"
-            else:
-                result["status"] = "key error"
-        except Exception as e:
-            logger.exception(e)
         return HttpResponse(json.dumps(result))
 
 # d82ebe5675f2ea0d0a7b
