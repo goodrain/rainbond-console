@@ -143,6 +143,7 @@ class BaseTenantService(object):
         task = {}
         task["service_id"] = service_id
         task["dps_service_id"] = dep_service_id
+        task["tenant_id"] = tenant_id
         task["data"] = data
         regionClient.createServiceDependency(region, service_id, json.dumps(task))
         tsr = TenantServiceRelation()

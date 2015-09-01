@@ -173,8 +173,7 @@ class ServiceMarketDeploy(AuthedView):
             # create console service
             baseService = BaseTenantService()
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
-            # create region tenantservice
-            baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
+            
             # record service log
             data = {}
             data["log_msg"] = "服务创建成功，开始部署....."
@@ -189,7 +188,10 @@ class ServiceMarketDeploy(AuthedView):
                 regionClient.writeToRegionBeanstalk(self.tenant.region, newTenantService.service_id, json.dumps(task))
             except Exception as e:
                 logger.exception(e)
-                            
+                
+            # create region tenantservice
+            baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
+                        
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias
