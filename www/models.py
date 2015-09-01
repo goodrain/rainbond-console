@@ -80,6 +80,7 @@ class Users(models.Model):
     git_user_id = models.IntegerField(help_text=u"gitlab 用户id", default=0)
     github_token = models.CharField(max_length=60, help_text=u"github token")
     client_ip = models.CharField(max_length=20, help_text=u"注册ip")
+    rf = models.CharField(max_length=60, help_text=u"register from")
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)

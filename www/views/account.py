@@ -179,6 +179,7 @@ class Registation(BaseView):
         querydict.update({u'real_captcha_code':request.session.get("captcha_code")})
         self.form = RegisterForm(querydict)        
         if self.form.is_valid():
+            rf = request.GET.get("rf", "")
             email = request.POST.get('email')
             nick_name = request.POST.get('nick_name')
             password = request.POST.get('password')
@@ -187,7 +188,7 @@ class Registation(BaseView):
             region = request.POST.get('machine_region')
             if region is None or region == "" or region == "1":
                 region = "ucloud_bj_1"
-            user = Users(email=email, nick_name=nick_name, phone=phone, client_ip=self.get_client_ip(request))
+            user = Users(email=email, nick_name=nick_name, phone=phone, client_ip=self.get_client_ip(request), rf = rf)
             user.set_password(password)
             user.save()
             tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
@@ -291,7 +292,7 @@ class InviteRegistation(BaseView):
                 curemail = self.email
             else:
                 curphone = self.email   
-            registerTenant =  Tenants.objects.get(tenant_name=self.tenant_name)     
+            registerTenant = Tenants.objects.get(tenant_name=self.tenant_name)     
             self.form = RegisterForm(
                 initial={
                     "tenant":self.tenant_name,
