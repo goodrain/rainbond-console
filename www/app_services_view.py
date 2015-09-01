@@ -461,7 +461,7 @@ class GitLabWebHook(BaseView):
                     data["git_url"] = gitUrl
                     task = {}
                     task["data"] = data
-                    taks["service_id"] = ts.service_id
+                    task["service_id"] = ts.service_id
                     task["tube"] = "code_check"
                     logger.debug(json.dumps(task))
                     regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
