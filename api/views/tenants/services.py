@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from rest_framework.response import Response
 from api.views.base import APIView
-from www.models import TenantServiceStatics, Tenants
+from www.models import TenantServiceStatics, Tenants, TenantServiceInfo
 from www.service_http import RegionServiceApi
 
 import logging
@@ -74,14 +74,14 @@ class TenantHibernateView(APIView):
             tenant = Tenants.objects.get(tenant_id=tenant_id)
             if action == "pause":
                 if tenant.service_status == 1:
-                    regionClient.pause(tenant.region, tenant_id)
+                    regionClient.pause(tenant.region, tenant.tenant_id)
                     tenant.service_status = 0
                     tenant.save()
                 else:
                     logger.debug(tenant.tenant_name + " had paused")
             elif action == 'unpause':
                 if tenant.service_status == 0:
-                    regionClient.unpause(tenant.region, tenant_id)
+                    regionClient.unpause(tenant.region, tenant.tenant_id)
                     tenant.service_status = 1
                     tenant.save()
                 else:
@@ -113,14 +113,14 @@ class TenantHibernateView(APIView):
             tenant = Tenants.objects.get(tenant_name=tenant_name)
             if action == "pause":
                 if tenant.service_status == 1:
-                    regionClient.pause(tenant.region, tenant_id)
+                    regionClient.pause(tenant.region, tenant.tenant_id)
                     tenant.service_status = 0
                     tenant.save()
                 else:
                     logger.debug(tenant.tenant_name + " had paused")
             elif action == 'unpause':
                 if tenant.service_status == 0:
-                    regionClient.unpause(tenant.region, tenant_id)
+                    regionClient.unpause(tenant.region, tenant.tenant_id)
                     tenant.service_status = 1
                     tenant.save()
                 else:
