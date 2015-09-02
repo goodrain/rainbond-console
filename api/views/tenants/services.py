@@ -167,7 +167,11 @@ class TenantCloseRestartView(APIView):
                         tenant.save()
                 elif action == "restart":
                     for tenantService in tenantServices:
-                        regionClient.restart(tenant.region, tenantService.service_id)
+                        tenantService.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                        tenantService.save()
+                        body = {}
+                        body["deploy_version"] = tenantService.deploy_version
+                        regionClient.restart(tenant.region, tenantService.service_id, json.dumps(body))
                     tenant.service_status = 1
                     tenant.save()
         except Exception as e:
