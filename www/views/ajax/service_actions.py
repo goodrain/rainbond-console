@@ -146,8 +146,8 @@ class ServiceManage(AuthedView):
                     try:
                         data = {}
                         data["tenant_id"] = self.service.tenant_id
-                        data["service_id"] = service_id
-                        regionClient.deleteEtcdService(self.tenant.region, service_id, json.dumps(data))
+                        data["service_id"] = self.service.service_id
+                        regionClient.deleteEtcdService(self.tenant.region, self.service.service_id, json.dumps(data))
                     except Exception as e:
                         logger.exception(e)
             result["status"] = "success"
