@@ -6,7 +6,7 @@ import www.views as views
 import www.views.ajax as ajax
 from www.services_view import ServiceGitHub
 from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
-from www.tenants_view import TenantsVisitorView, TenantsServiceCloseView
+from www.tenants_view import TenantsVisitorView
 from django.conf import settings
 from django.conf.urls.static import static
 from www.captcha.CodeImage import ChekcCodeImage
@@ -29,6 +29,5 @@ urlpatterns = patterns(
     url(r'^service/githubhook/$', csrf_exempt(GitHubWebHook.as_view())),
     url(r'^service/codecheck/$', csrf_exempt(GitCheckCode.as_view())),
     url(r'^tenant/visit/$', csrf_exempt(TenantsVisitorView.as_view())),
-    url(r'^tenant/close/$', TenantsServiceCloseView.as_view()),
     url(r'^api/', include('api.urls')),
 ) + staticfiles_urlpatterns()

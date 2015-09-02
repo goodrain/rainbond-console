@@ -45,7 +45,6 @@ class TenantsVisitorView(BaseView):
                     for ts in needToPuaseSet:
                         try:
                             tenant_id = map[ts]
-                            logger.debug(tenant_id)
                             if tenant_id is not None and tenant_id != "":
                                 data = regionClient.pause(region_map[tenant.tenant_id], tenant_id)
                                 if data["data"] > 0:
@@ -69,35 +68,6 @@ class TenantsVisitorView(BaseView):
                                 logger.debug(ts + " not paused")
                         except Exception as e1:
                             logger.exception(e1)
-            data["status"] = "success"
-        except Exception as e:
-            logger.exception(e)
-            data["status"] = "failure"
-        return JsonResponse(data, status=200)
-
-# 关闭
-class TenantsServiceCloseView(BaseView):
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        data = {}
-        try:
-            action = request.GET.get("action", "")
-            tenants = request.GET.get("tenants", "")
-            logger.debug("action=" + action)
-            logger.debug("tenants=" + tenants)
-            tenant = Tenants.objects.get(tenant_name=tenants)
-            tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id)
-            if len(tenantServices) > 0:
-                if action == "close":
-                    for tenantService in tenantServices:
-                        regionClient.stop(tenant.region, tenantService.service_id)
-                    tenant.service_status = 2
-                    tenant.save()
-                elif action == "open":
-                    for tenantService in tenantServices:
-                        regionClient.restart(tenant.region, tenantService.service_id)
-                    tenant.service_status = 1
-                    tenant.save()
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)

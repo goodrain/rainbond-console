@@ -47,11 +47,11 @@ class TenantHibernateView(APIView):
     '''
     租户休眠
     '''
-    allowed_methods = ('put',)
+    allowed_methods = ('put', 'post')
         
     def put(self, request, format=None):
         """
-        休眠容器
+        休眠容器(pause,unpause)
         ---
         parameters:
             - name: tenant_id
@@ -67,17 +67,107 @@ class TenantHibernateView(APIView):
         """
         tenant_id = request.data.get('tenant_id', "")
         action = request.data.get('action', "")
-        logger.debug(tenant_id+"=="+action)
+        logger.debug(tenant_id + "==" + action)
         try:
             tenant = Tenants.objects.get(tenant_id=tenant_id)
             if action == "pause":
-                regionClient = regionClient.pause(tenant.region, tenant_id)
-                tenant.service_status = 0
-                tenant.save()
+                if tenant.service_status == 1:
+                    regionClient = regionClient.pause(tenant.region, tenant_id)
+                    tenant.service_status = 0
+                    tenant.save()
+                else:
+                    logger.debug(tenant.tenant_name + " had paused")
             elif action == 'unpause':
-                regionClient = regionClient.unpause(tenant.region, tenant_id)
-                tenant.service_status = 1
-                tenant.save()
+                if tenant.service_status == 0:
+                    regionClient = regionClient.unpause(tenant.region, tenant_id)
+                    tenant.service_status = 1
+                    tenant.save()
+                else:
+                    logger.debug(tenant.tenant_name + " not paused")
+        except Exception as e:
+            logger.error(e)
+        return Response({"ok": True}, status=200)
+    
+    def post(self, request, format=None):
+        """
+        休眠容器(pause,unpause)
+        ---
+        parameters:
+            - name: tenant_name
+              description: 租户名
+              required: true
+              type: string
+              paramType: form
+            - name: action
+              description: 动作
+              required: true
+              type: string
+              paramType: form
+        """
+        tenant_name = request.data.get('tenant_name', "")
+        action = request.data.get('action', "")
+        logger.debug(tenant_name + "==" + action)
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            if action == "pause":
+                if tenant.service_status == 1:
+                    regionClient = regionClient.pause(tenant.region, tenant_id)
+                    tenant.service_status = 0
+                    tenant.save()
+                else:
+                    logger.debug(tenant.tenant_name + " had paused")
+            elif action == 'unpause':
+                if tenant.service_status == 0:
+                    regionClient = regionClient.unpause(tenant.region, tenant_id)
+                    tenant.service_status = 1
+                    tenant.save()
+                else:
+                    logger.debug(tenant.tenant_name + " not paused")
+        except Exception as e:
+            logger.error(e)
+        return Response({"ok": True}, status=200)
+    
+    
+class TenantCloseRestartView(APIView):
+    '''
+    租户关闭、重启
+    '''
+    allowed_methods = ('put',)
+        
+    def put(self, request, format=None):
+        """
+        租户关闭重启(close,restart)
+        ---
+        parameters:
+            - name: tenant_id
+              description: 租户ID
+              required: true
+              type: string
+              paramType: form
+            - name: action
+              description: 动作
+              required: true
+              type: string
+              paramType: form
+        """
+        tenant_id = request.data.get('tenant_id', "")
+        action = request.data.get('action', "")
+        logger.debug(tenant_id + "==" + action)
+        try:
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
+            tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id)
+            if len(tenantServices) > 0:
+                if action == "close":
+                    for tenantService in tenantServices:
+                        regionClient.stop(tenant.region, tenantService.service_id)
+                    if tenant.pay_type == "payed":
+                        tenant.service_status = 2
+                        tenant.save()
+                elif action == "restart":
+                    for tenantService in tenantServices:
+                        regionClient.restart(tenant.region, tenantService.service_id)
+                    tenant.service_status = 1
+                    tenant.save()
         except Exception as e:
             logger.error(e)
         return Response({"ok": True}, status=200)
