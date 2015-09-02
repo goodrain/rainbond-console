@@ -74,14 +74,14 @@ class TenantHibernateView(APIView):
             tenant = Tenants.objects.get(tenant_id=tenant_id)
             if action == "pause":
                 if tenant.service_status == 1:
-                    regionClient = regionClient.pause(tenant.region, tenant_id)
+                    regionClient.pause(tenant.region, tenant_id)
                     tenant.service_status = 0
                     tenant.save()
                 else:
                     logger.debug(tenant.tenant_name + " had paused")
             elif action == 'unpause':
                 if tenant.service_status == 0:
-                    regionClient = regionClient.unpause(tenant.region, tenant_id)
+                    regionClient.unpause(tenant.region, tenant_id)
                     tenant.service_status = 1
                     tenant.save()
                 else:
@@ -113,14 +113,14 @@ class TenantHibernateView(APIView):
             tenant = Tenants.objects.get(tenant_name=tenant_name)
             if action == "pause":
                 if tenant.service_status == 1:
-                    regionClient = regionClient.pause(tenant.region, tenant_id)
+                    regionClient.pause(tenant.region, tenant_id)
                     tenant.service_status = 0
                     tenant.save()
                 else:
                     logger.debug(tenant.tenant_name + " had paused")
             elif action == 'unpause':
                 if tenant.service_status == 0:
-                    regionClient = regionClient.unpause(tenant.region, tenant_id)
+                    regionClient.unpause(tenant.region, tenant_id)
                     tenant.service_status = 1
                     tenant.save()
                 else:
