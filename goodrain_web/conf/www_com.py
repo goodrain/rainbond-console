@@ -3,10 +3,10 @@ DEBUG = False
 TEMPLATE_DEBUG = True
 
 DATABASES = {
-    #'default': {
+    # 'default': {
     #    'ENGINE': 'django.db.backends.sqlite3',
     #    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    #}
+    # }
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'goodrain',
@@ -21,10 +21,15 @@ REGION_SERVICE_API = [{
     'url': 'http://api.ucloud-bj-1.goodrain.me:8888',
     'apitype': 'region service',
     'region_name': 'ucloud_bj_1'
+}, {
+    'url': 'http://api.aws-bj-1.goodrain.com:8888',
+    'apitype': 'region service',
+    'region_name': 'aws-bj-1'
 }]
 
-WEBSOCKET_URL={
-    'ucloud_bj_1':'ws://123.59.40.70:6060/websocket'
+WEBSOCKET_URL = {
+    'ucloud_bj_1':'ws://mpush.ucloud-bj-1.goodrain.com:6060/websocket',
+    'aws-bj-1':'ws://mpush.aws-bj-1.goodrain.com:6060/websocket'
 }
 
 GITLAB_SERVICE_API = {
@@ -54,7 +59,7 @@ CACHES = {
 
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-#SESSION_CACHE_ALIAS = 'session'
+# SESSION_CACHE_ALIAS = 'session'
 SESSION_COOKIE_DOMAIN = '.goodrain.com'
 SESSION_COOKIE_AGE = 3600
 
