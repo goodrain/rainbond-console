@@ -78,11 +78,13 @@ def return_url(request, tenantName):
             tenant.pay_type = 'payed'
             tenant.save()
             # charging owed money
+            last_money = 0.0
             openServiceTag = True
             recharges = TenantConsume.objects.filter(tenant_id=tenantRecharge.tenant_id, pay_status="unpayed")
             if len(recharges) > 0:
                 for recharge in recharges:
                     temTenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+                    last_money = recharge.cost_money
                     if recharge.cost_money <= temTenant.balance:
                         logger.debug(tenantRecharge.tenant_id + " charging owed money:" + str(recharge.cost_money))
                         temTenant.balance = float(temTenant.balance) - float(recharge.cost_money)
@@ -94,7 +96,7 @@ def return_url(request, tenantName):
                         openServiceTag = False
             # if stop service,need to open
             tenantNew = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
-            if tenantNew.service_status == 2 and openServiceTag:
+            if tenantNew.service_status == 2 and openServiceTag and last_money < temTenant.balance:
                 tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenantRecharge.tenant_id)
                 if len(tenantServices) > 0:
                     for tenantService in tenantServices:

@@ -136,7 +136,7 @@ class TenantService(AuthedView):
                 gitClient.addProjectMember(project_id, 2, 20)                                        
                 ts = TenantServiceInfo.objects.get(service_id=self.service.service_id)
                 ts.git_project_id = project_id
-                ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
+                ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                 ts.save()
     def sendCodeCheckMsg(self):
         data = {}
@@ -226,11 +226,14 @@ class TenantService(AuthedView):
                     httpGitUrl = self.service.git_url
                 context["httpGitUrl"] = httpGitUrl 
                 # service domain
-                try:
-                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
-                    context["serviceDomain"] = domain     
-                except Exception as e:
-                    pass
+                if self.tenant.pay_type != "free":
+                    try:
+                        domain = ServiceDomain.objects.get(
+                            service_id=self.service.service_id)
+                        context["serviceDomain"] = domain
+                    except Exception as e:
+                        pass
+                context["pay_type"] = self.tenant.pay_type
             else:
                 try:
                     serviceAuth = TenantServiceAuth.objects.get(service_id=self.service.service_id)
@@ -245,7 +248,7 @@ class TenantService(AuthedView):
                 self.tenant.save()
                 
             websocket_info = settings.WEBSOCKET_URL
-            context["websocket_uri"]=websocket_info[self.tenant.region]
+            context["websocket_uri"] = websocket_info[self.tenant.region]
             
         except Exception as e:
             logger.exception(e)

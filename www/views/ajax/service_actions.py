@@ -13,7 +13,7 @@ from www.service_http import RegionServiceApi
 from www.gitlab_http import GitlabApi
 from django.conf import settings
 from www.db import BaseConnection
-from www.tenantservice.baseservice import BaseTenantService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 
 import logging
 from django.template.defaultfilters import length
@@ -186,19 +186,19 @@ class ServiceUpgrade(AuthedView):
                     self.service.deploy_version = deploy_version
                     self.service.save()
                     
-                    if self.tenant.pay_type == "free":
-                        dsn = BaseConnection()
-                        query_sql = '''
-                            select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                            '''.format(tenant_id=self.tenant.tenant_id)
-                        sqlobj = dsn.query(query_sql)
-                        totalMemory = int(sqlobj[0]["totalMemory"])
-                        if totalMemory > 1024:
-                            self.service.min_memory = old_container_memory
-                            self.service.deploy_version = old_deploy_version
-                            self.service.save()
-                            result["status"] = "overtop"
-                            return JsonResponse(result)
+                    # calculate resource
+                    tenantUsedResource = TenantUsedResource()
+                    flag = tenantUsedResource.predict_next_memory(self.tenant) 
+                    if not flag:
+                        self.service.min_memory = old_container_memory
+                        self.service.deploy_version = old_deploy_version
+                        self.service.save()
+                        if self.tenant.pay_type == "free":
+                            data["status"] = "over_memory"
+                        else:
+                            data["status"] = "over_money"
+                        return JsonResponse(data, status=200)
+                        
                     body = {}
                     body["container_memory"] = container_memory
                     body["deploy_version"] = deploy_version
@@ -217,25 +217,25 @@ class ServiceUpgrade(AuthedView):
             old_min_node = self.service.min_node
             old_deploy_version = self.service.deploy_version
             try:
-                if int(node_num) >= 0:          
+                if int(node_num) >= 0:
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')          
                     self.service.min_node = node_num
                     self.service.deploy_version = deploy_version
                     self.service.save()
-                                        
-                    dsn = BaseConnection()
-                    query_sql = '''
-                        select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                        '''.format(tenant_id=self.tenant.tenant_id)
-                    sqlobj = dsn.query(query_sql)
-                    totalMemory = int(sqlobj[0]["totalMemory"])                  
-                    if totalMemory > 1024:
+                    
+                    # calculate resource
+                    tenantUsedResource = TenantUsedResource()
+                    flag = tenantUsedResource.predict_next_memory(self.tenant, len(serviceKeys) * 128) 
+                    if not flag:
                         self.service.min_node = old_min_node
                         self.service.deploy_version = old_deploy_version
                         self.service.save()
-                        result["status"] = "overtop"
-                        return JsonResponse(result)
-                    
+                        if self.tenant.pay_type == "free":
+                            data["status"] = "over_memory"
+                        else:
+                            data["status"] = "over_money"
+                        return JsonResponse(data, status=200)
+                                            
                     body = {}
                     body["node_num"] = node_num   
                     body["deploy_version"] = deploy_version

@@ -17,7 +17,7 @@ from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, ServiceDo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
-from www.tenantservice.baseservice import BaseTenantService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.db import BaseConnection
 from www.utils.language import is_redirect
 
@@ -65,7 +65,12 @@ class AppCreateView(AuthedView):
             tenant_id = self.tenant.tenant_id
             if tenant_id == "" or self.user.pk == "":
                 data["status"] = "failure"
-                return JsonResponse(data, status=200)            
+                return JsonResponse(data, status=200)
+            
+            if self.tenant.service_status == 2:
+                data["status"] = "owed"
+                return JsonResponse(data, status=200)
+                  
             service_desc = ""
             service_alias = request.POST.get("create_app_name", "")
             service_code_from = request.POST.get("service_code_from", "")
@@ -84,23 +89,21 @@ class AppCreateView(AuthedView):
                 data["status"] = "exist"
                 return JsonResponse(data, status=200)
             
-            if self.tenant.pay_type == "free": 
-                dsn = BaseConnection()
-                query_sql = '''
-                    select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                    '''.format(tenant_id=tenant_id)
-                sqlobj = dsn.query(query_sql)
-                if sqlobj is not None and len(sqlobj) > 0:
-                    oldMemory = sqlobj[0]["totalMemory"]
-                    if oldMemory is not None:
-                        totalMemory = int(oldMemory) + service.min_memory
-                        if totalMemory > 1024:
-                            data["status"] = "overtop"
-                            return JsonResponse(data, status=200)
-            
+            # calculate resource
+            tenantUsedResource = TenantUsedResource()
+            flag = tenantUsedResource.predict_next_memory(self.tenant, service.min_memory) 
+            if not flag:
+                if self.tenant.pay_type == "free":
+                    data["status"] = "over_memory"
+                else:
+                    data["status"] = "over_money"
+                return JsonResponse(data, status=200)
+                                        
+            # create console service
             baseService = BaseTenantService()
             service.desc = service_desc
-            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)           
+            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
+                    
             # code repos
             if service_code_from == "gitlab_new":
                 project_id = 0
@@ -112,7 +115,7 @@ class AppCreateView(AuthedView):
                         gitClient.addProjectMember(project_id, 2, 20)                                        
                         ts = TenantServiceInfo.objects.get(service_id=service_id)
                         ts.git_project_id = project_id
-                        ts.git_url = "git@git.goodrain.me:app/" + self.tenantName + "_" + service_alias + ".git"
+                        ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + service_alias + ".git"
                         ts.code_from = service_code_from
                         ts.code_version = "master"
                         ts.save()  
@@ -209,21 +212,6 @@ class AppDependencyCodeView(AuthedView):
                 break
         return services
     
-    def calculate_resource(self, createService):
-        totalMemory = 0
-        if self.tenant.pay_type == "free":  
-            serviceKeys = createService.split(",")
-            dsn = BaseConnection()
-            query_sql = '''
-                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                '''.format(tenant_id=self.tenant.tenant_id)
-            sqlobj = dsn.query(query_sql)
-            if sqlobj is not None and len(sqlobj) > 0:
-                oldMemory = sqlobj[0]["totalMemory"]
-                if oldMemory is not None:                    
-                    totalMemory = int(oldMemory) + len(serviceKeys) * 128
-        return totalMemory
-    
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
@@ -256,6 +244,10 @@ class AppDependencyCodeView(AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
+            if self.tenant.service_status == 2:
+                data["status"] = "owed"
+                return JsonResponse(data, status=200)
+            
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
             service_id = self.service.service_id
@@ -263,13 +255,19 @@ class AppDependencyCodeView(AuthedView):
             createService = request.POST.get("createService", "")
             logger.debug(createService)            
             if createService is not None and createService != "":
-                totalMemory = self.calculate_resource(createService)
-                if totalMemory > 1024:
-                    data["status"] = "overtop"
+                serviceKeys = createService.split(",")
+                # resource check
+                tenantUsedResource = TenantUsedResource()
+                flag = tenantUsedResource.predict_next_memory(self.tenant, len(serviceKeys) * 128) 
+                if not flag:
+                    if self.tenant.pay_type == "free":
+                        data["status"] = "over_memory"
+                    else:
+                        data["status"] = "over_money"
                     return JsonResponse(data, status=200)
                 
-                baseService = BaseTenantService()
-                serviceKeys = createService.split(",")
+                # create service
+                baseService = BaseTenantService()                
                 for skey in serviceKeys:
                     try:
                         dep_service = ServiceInfo.objects.get(service_key=skey)

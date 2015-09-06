@@ -13,7 +13,7 @@ from www.views import BaseView, AuthedView
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceAuth
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.db import BaseConnection
 import logging
 logger = logging.getLogger('default')
@@ -45,24 +45,6 @@ class ServiceMarket(AuthedView):
         return TemplateResponse(self.request, "www/service_market.html", context)
     
 class ServiceMarketDeploy(AuthedView):
-    
-    def calculate_resource(self, createService, servicekeyObj):
-        totalMemory = 0 
-        if self.tenant.pay_type == "free":
-            dsn = BaseConnection()
-            query_sql = '''
-                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                '''.format(tenant_id=self.tenant.tenant_id)
-            sqlobj = dsn.query(query_sql)
-            if sqlobj is not None and len(sqlobj) > 0:
-                oldMemory = sqlobj[0]["totalMemory"]
-                if oldMemory is not None:                    
-                    totalMemory = int(oldMemory)
-                    if createService != "":
-                       serviceKeys = createService.split(",")
-                       totalMemory = totalMemory + len(serviceKeys) * 128
-            totalMemory = totalMemory + servicekeyObj.min_memory
-        return totalMemory
     
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -109,7 +91,11 @@ class ServiceMarketDeploy(AuthedView):
             if tenant_id == "" or self.user.pk == "":
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)            
-             
+            
+            if self.tenant.service_status == 2:
+                result["status"] = "owed"
+                return JsonResponse(result, status=200)
+            
             service_key = request.POST.get("service_key", "")
             if service_key == "":
                 result["status"] = "notexist"
@@ -136,17 +122,20 @@ class ServiceMarketDeploy(AuthedView):
                     service.min_memory = cm
             logger.debug(service.min_memory)       
             createService = request.POST.get("createService", "")
-            logger.debug(createService)       
+            logger.debug(createService)
+            serviceKeys = createService.split(",")                   
             # calculate resource
-            totalMemory = self.calculate_resource(createService, service)
-            if totalMemory > 1024:
-                result["status"] = "overtop"
-                return JsonResponse(result, status=200)
-                 
+            tenantUsedResource = TenantUsedResource()
+            flag = tenantUsedResource.predict_next_memory(self.tenant, len(serviceKeys) * 128 + service.min_memory) 
+            if not flag:
+                if self.tenant.pay_type == "free":
+                    data["status"] = "over_memory"
+                else:
+                    data["status"] = "over_money"
+                return JsonResponse(data, status=200)
             # create new service       
             if createService != "":
                 baseService = BaseTenantService()
-                serviceKeys = createService.split(",")
                 for skey in serviceKeys:
                     try:
                         dep_service = ServiceInfo.objects.get(service_key=skey)

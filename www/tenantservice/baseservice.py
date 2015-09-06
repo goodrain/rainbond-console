@@ -74,6 +74,7 @@ class BaseTenantService(object):
         tenantServiceInfo["git_project_id"] = 0
         tenantServiceInfo["service_type"] = service.service_type
         tenantServiceInfo["creater"] = creater
+        tenantServiceInfo["total_memory"] = service.min_node * service.min_memory
         if service.is_web_service:
             tenantServiceInfo["protocol"] = 'http'
         else:
@@ -153,4 +154,58 @@ class BaseTenantService(object):
         tsr.dep_service_type = tenantS.service_type
         tsr.dep_order = depNum + 1
         tsr.save()
-                        
+
+class TenantUsedResource(object):
+        
+    def __init__(self):
+        self.feerule = '{"ucloud_bj_1":{"unit_money":0.417},"amazon_bj_1":{"unit_money":0.417}}'
+        
+    def calculate_used_resource(self, tenant):
+        totalMemory = 0 
+        if tenant.pay_type == "free":
+            dsn = BaseConnection()
+            query_sql = '''
+                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                '''.format(tenant_id=tenant.tenant_id)
+            sqlobj = dsn.query(query_sql)
+            if sqlobj is not None and len(sqlobj) > 0:
+                oldMemory = sqlobj[0]["totalMemory"]
+                if oldMemory is not None:                    
+                    totalMemory = int(oldMemory)
+        return totalMemory
+
+    def calculate_real_used_resource(self, tenant):
+        totalMemory = 0 
+        running_data = regionClient.getTenantRunningServiceId(tenant.region, tenant.tenant_id)
+        dsn = BaseConnection()
+        query_sql = '''
+            select service_id, (s.min_node * s.min_memory) as apply_memory, total_memory  from tenant_service s where s.tenant_id = "{tenant_id}"
+            '''.format(tenant_id=tenant.tenant_id)
+        sqlobjs = dsn.query(query_sql)
+        if sqlobj is not None and len(sqlobjs) > 0:
+            for sqlobj in sqlobjs:
+                service_id = sqlobj["service_id"]
+                apply_memory = sqlobj["apply_memory"]
+                total_memory = sqlobj["total_memory"]
+                cur_service_id = running_data.get(service_id)
+                if cur_service_id is not None and cur_service_id != "" :
+                    totalMemory = totalMemory + total_memory
+                else:
+                    totalMemory = totalMemory + total_memory - int(apply_memory)
+        return totalMemory
+    
+    def predict_next_memory(self, tenant, totalMemory):
+        result = False
+        if tenant.pay_type == "free":
+            tm = self.calculate_real_used_resource(tenant) + totalMemory
+            if tm < tenant.limit_memory:
+               result = True
+        elif tenant.pay_type == "payed":
+            tm = self.calculate_real_used_resource(tenant) + totalMemory
+            ruleJsonData = json.loads(self.feerule)
+            ruleJson = ruleJsonData[tenant.region]
+            if tenant.balance >= float(ruleJson['unit_money']) * tm:
+                result = True
+        elif tenant.pay_type == "unpay":
+            result = True
+        return result

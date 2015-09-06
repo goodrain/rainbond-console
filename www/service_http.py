@@ -134,3 +134,9 @@ class RegionServiceApi(BaseHttpClient):
         headers = {'Content-Type': 'application/json'}  
         res, body = self._delete(url, headers, body)
         return body
+    
+    def getTenantRunningServiceId(self, region, tenant_id):
+        url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/running-service"
+        res, body = self._post(url, self.default_headers)
+        return body["data"]
+    

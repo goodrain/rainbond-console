@@ -25,7 +25,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
 			} else if (dataObj["status"] == "owed"){
-				swal("已欠费请及时充值")
+				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "language") {
 				swal("应用语言监测未通过")
 				forurl = "/apps/" + tenantName + "/" + serviceAlias
@@ -72,7 +72,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 			} else if (dataObj["status"] == "often") {
 				swal("上次操作正在进行中，稍后再试")
 			} else if (dataObj["status"] == "owed"){
-				swal("已欠费请及时充值")
+				swal("余额不足请及时充值")
 			} else {
 				swal("操作失败")
 			}
@@ -83,6 +83,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 	})
 }
 
+//服务重启关闭
 function service_onOperation(service_id, service_alias, tenantName) {
 	var taction = $("#service_status_value").val()
 	if (taction != "stop" && taction != "restart") {
@@ -105,7 +106,11 @@ function service_onOperation(service_id, service_alias, tenantName) {
 			} else if (dataObj["status"] == "often") {
 				swal("上次操作正在进行中，稍后再试")
 			} else if (dataObj["status"] == "owed"){
-				swal("已欠费请及时充值")
+				swal("余额不足请及时充值")
+			} else if (dataObj["status"] == "over_memory") {
+				swal("免费资源已达上限，不能升级")
+			} else if (dataObj["status"] == "over_money") {
+				swal("余额不足，不能升级")
 			} else {
 				swal("操作失败")
 			}
@@ -146,6 +151,7 @@ function domainSubmit(service_id, tenantName, service_alias) {
 	})
 }
 
+//服务垂直升级
 function service_upgrade(tenantName, service_alias) {
 	var service_min_config = $("#serviceMemorys").val();
 	memory = 128 * Math.pow(2, service_min_config - 1)
@@ -164,11 +170,13 @@ function service_upgrade(tenantName, service_alias) {
 			if (dataObj["status"] == "success") {
 				swal("设置成功")
 			} else if (dataObj["status"] == "owed"){
-				swal("已欠费请及时充值")
+				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "often") {
 				swal("上次操作正在进行中，稍后再试")
-			} else if (dataObj["status"] == "overtop") {
+			} else if (dataObj["status"] == "over_memory") {
 				swal("免费资源已达上限，不能升级")
+			} else if (dataObj["status"] == "over_money") {
+				swal("余额不足，不能升级")
 			} else {
 				swal("设置失败")
 			}
@@ -179,6 +187,7 @@ function service_upgrade(tenantName, service_alias) {
 	})
 }
 
+//服务水平升级
 function app_upgrade(tenantName, service_alias) {
 	var service_min_node = $("#serviceNods").val();
 	if (service_min_node >= 0) {
@@ -196,11 +205,13 @@ function app_upgrade(tenantName, service_alias) {
 				if (dataObj["status"] == "success") {
 					swal("设置成功")
 				} else if (dataObj["status"] == "owed"){
-					swal("已欠费请及时充值")
+					swal("余额不足请及时充值")
 				} else if (dataObj["status"] == "often") {
 					swal("上次操作正在进行中，稍后再试")
-				} else if (dataObj["status"] == "overtop") {
+				} else if (dataObj["status"] == "over_memory") {
 					swal("免费资源已达上限，不能升级")
+				} else if (dataObj["status"] == "over_money") {
+					swal("余额不足，不能升级")
 				} else {
 					swal("设置失败")
 				}

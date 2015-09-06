@@ -304,6 +304,8 @@
 
           </div>
           </section>
+          
+          {% if pay_type != "free" %}
           {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
           <section class="panel">
           <header class="panel-heading">新增域名</header>
@@ -334,6 +336,7 @@
             </div>
           </div>
           </section>
+          {% endif %}
           {% endif %}
 
           <section class="panel">
@@ -491,7 +494,7 @@
 				    		  		$("#service_status").html("已关闭")
 				    		  		$("#service_status").attr("class","badge badge-sm label-success")
 				    		  	}else{
-				    		  		$("#service_status").html("欠费已关闭")
+				    		  		$("#service_status").html("余额不足已关闭")
 				    		  		$("#service_status").attr("class","label-danger label-mini")
 				    		  	}
 				    		  	$("#service_status_operate").show()

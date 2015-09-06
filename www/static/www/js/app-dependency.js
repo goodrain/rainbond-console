@@ -47,8 +47,13 @@ $(function() {
 				if (dataObj["status"] == "success") {
 					window.location.href = "/apps/" + tenantName + "/"
 							+ service_name + "/app-waiting/"
-				}else if (dataObj["status"] == "overtop") {
+				} else if (dataObj["status"] == "owed"){
+    				swal("余额不足请及时充值")
+    			} else if (dataObj["status"] == "over_memory") {
     				swal("免费资源已达上限，不能创建");
+    				$("#service_dependency_finished").removeAttr('disabled')
+    			} else if (dataObj["status"] == "over_money") {
+    				swal("余额不足，不能创建");
     				$("#service_dependency_finished").removeAttr('disabled')
     			} else {
 					swal("创建失败")
