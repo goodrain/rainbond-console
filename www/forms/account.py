@@ -4,7 +4,7 @@ from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Div, Fieldset, ButtonHolder, HTML, Row
 from crispy_forms.bootstrap import (AppendedText, FieldWithButtons, StrictButton, InlineField,
-    PrependedText, FormActions, AccordionGroup, InlineCheckboxes)
+                                    PrependedText, FormActions, AccordionGroup, InlineCheckboxes)
 from www.models import Users, Tenants, PhoneCode
 from www.layout import Submit, Field
 from www.forms import widgets
@@ -25,12 +25,38 @@ def password_len(value):
     if len(value) < 8:
         raise forms.ValidationError(u"密码长度至少为8位")
 
+
 def is_phone(value):
     r = re.compile(r'^1[358]\d{9}$|^147\d{8}$')
     if not r.match(value):
         raise forms.ValidationError(u"请填写正确的手机号")
+    return True
+
+
+def is_email(value):
+    r = re.compile(r'^[\w\-\.]+@[\w\-]+(\.[\w\-]+)+$')
+    if not r.match(value):
+        raise forms.ValidationError(u"Email地址不合法")
+    return True
+
+
+def is_account(value):
+    valid = False
+    error = None
+
+    for validator in (is_phone, is_email):
+        try:
+            validator(value)
+            valid = True
+        except forms.ValidationError, e:
+            error = e
+
+    if valid is False:
+        raise error
+
 
 class UserLoginForm(forms.Form):
+
     '''
     用户登录表单
     '''
@@ -65,7 +91,8 @@ class UserLoginForm(forms.Form):
             Field('email', css_class="form-control", placeholder=''),
             Field('password', css_class="form-control", placeholder=''),
             FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
-            HTML(u'''<div class="registration">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
+            HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
+            HTML(u'''<div class="forgetpass" style="float: right;"><a class="" href="/account/begin_password_reset">?忘记密码</a></div>'''),
             css_class='login-wrap',
             style="background: #FFFFFF;",
         )
@@ -109,7 +136,76 @@ class UserLoginForm(forms.Form):
 
         return self.cleaned_data
 
+
+class PasswordResetBeginForm(forms.Form):
+    account = forms.CharField(
+        required=True, max_length=32,
+        label=u"邮箱或手机号",
+        validators=[is_account],
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(PasswordResetBeginForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_tag = False
+        self.helper.layout = Div(
+            Field('account', css_class="form-control"),
+            FormActions(Submit('next', u'下一步', css_class='btn btn-lg btn-primary btn-block')),
+            css_class='login-wrap',
+            style="background: #FFFFFF;",
+        )
+        self.helper.help_text_inline = True
+        self.helper.error_text_inline = True
+
+    def clean(self):
+        account = self.cleaned_data.get('account')
+        if account:
+            try:
+                if '@' in account:
+                    Users.objects.get(email=account)
+                else:
+                    Users.objects.get(phone=account)
+            except Users.DoesNotExist:
+                logger.error('account {0} does not exist'.format(account))
+                raise forms.ValidationError(
+                    u'不存在的账号',
+                    code='account not exists', params={'account': account}
+                )
+
+        return self.cleaned_data
+
+
+class PasswordResetForm(forms.Form):
+    password = forms.CharField(
+        required=True, label='',
+        widget=forms.PasswordInput,
+        validators=[password_len]
+    )
+    password_repeat = forms.CharField(
+        required=True, label='',
+        widget=forms.PasswordInput,
+        validators=[password_len]
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(PasswordResetForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_tag = False
+        self.helper.layout = Div(
+            Field('account', css_class="form-control"),
+            'password',
+            'password_repeat',
+            FormActions(Submit('commit', u'提交', css_class='btn btn-lg btn-primary btn-block')),
+            css_class='login-wrap',
+            style="background: #FFFFFF;",
+        )
+
+        self.helper.help_text_inline = True
+        self.helper.error_text_inline = True
+
+
 class RegisterForm(forms.Form):
+
     '''
     邀请注册表单
     '''
@@ -150,7 +246,7 @@ class RegisterForm(forms.Form):
     invite_tag = forms.CharField(
         required=False, label='',
     )
-    
+
     checkboxes = forms.MultipleChoiceField(
         label="",
         choices=(
@@ -160,7 +256,7 @@ class RegisterForm(forms.Form):
         widget=forms.CheckboxSelectMultiple,
         help_text="",
     )
-    
+
     machine_region = forms.ChoiceField(
         label="",
         choices=(
@@ -169,7 +265,7 @@ class RegisterForm(forms.Form):
         ),
         widget=forms.Select
     )
-    
+
     error_messages = {
         'nick_name_used': u"该用户名已存在",
         'email_used': u"邮件地址已被注册",
@@ -178,8 +274,8 @@ class RegisterForm(forms.Form):
         'phone_used': u"手机号已存在",
         'phone_empty': u"手机号为空",
         'phone_code_error': u"手机验证码已失效",
-        'captcha_code_error':u"验证码有误",
-        'machine_region_error':u"请选择机房",
+        'captcha_code_error': u"验证码有误",
+        'machine_region_error': u"请选择机房",
     }
 
     def __init__(self, *args, **kwargs):
@@ -192,19 +288,19 @@ class RegisterForm(forms.Form):
             init_email = kwargs["initial"]["email"]
             init_tenant = kwargs["initial"]["tenant"]
             init_region = kwargs["initial"]["region"]
-            
+
         super(RegisterForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
-        self.helper.form_tag = False       
+        self.helper.form_tag = False
         if init_phone is not None and init_phone != "":
             self.fields['phone'].widget.attrs['readonly'] = True
         if init_email is not None and init_email != "":
             self.fields['email'].widget.attrs['readonly'] = True
         if init_tenant is not None and init_tenant != "":
             self.fields['tenant'].widget.attrs['readonly'] = True
-        if init_region is not None and init_region !="":
+        if init_region is not None and init_region != "":
             self.fields['machine_region'].widget.attrs['readonly'] = True
-                            
+
         self.helper.layout = Layout(
             Div(
                 Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
@@ -212,38 +308,40 @@ class RegisterForm(forms.Form):
                 HTML("<hr/>"),
                 # Field('tenant', css_class="form-control teamdomain", placeholder='团队域名'),
                 AppendedText('tenant', '.goodrain.net', placeholder='团队域名', css_class='teamdomain'),
-                
+
                 Field('machine_region'),
                 # HTML('<input type="text" name="tenant" id="tenant" value="" class="teamdomain" placeholder="团队域名"> .goodrain.net'),
                 Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                 Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
-                
-                AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ', css_class='input-xlarge', placeholder='验证码'),
-                
+
+                AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
+                             css_class='input-xlarge', placeholder='验证码'),
+
                 Field('phone', css_class="form-control", placeholder='手机号'),
-                AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>', css_class='input-xlarge', placeholder='手机验证码'),
-                
+                AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>',
+                             css_class='input-xlarge', placeholder='手机验证码'),
+
                 # PrependedText('prepended_text','captcha'),
-                
+
                 # Field('phone_code', 'Serial #', '<button class=\"btn btn-primary\">获取验证码</button>', css_class="form-control", placeholder='验证码'),
                 # StrictButton('Submit', type='submit', css_class='btn-primary')
                 # FieldWithButtons('phone_code', StrictButton('获取验证码', type='submit', css_class='form-control')),
                 Field('checkboxes', placeholder='机房'),
-                
+
                 # Field('appended_text'),
                 # PrependedText('appended_text', '我已阅读并同意<a href="" target="_blank">好雨云平台使用协议</a>',active=True),
-                
+
                 # InlineCheckboxes('checkbox_inline'),
                 # Field('checkboxes', css_class="form-control"),
                 # AppendedText('checkboxes'),
                 # Field('checkboxes', style="background: #FAFAFA; padding: 10px;"),
                 # HTML('<a href="" target="_blank">好雨云平台使用协议</a>'),
                 # help_text = '<a href="" target="_blank">好雨云平台使用协议</a>',
-                
+
                 FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
-                
+
                 HTML("<hr/>"),
-                
+
                 HTML(u'''<div style="font-size: 14px">已经有帐号，请<a class="" href="/login">登录</a></div>'''),
                 css_class="login-wrap"
             )
@@ -273,8 +371,8 @@ class RegisterForm(forms.Form):
             )
         except Users.DoesNotExist:
             pass
-        
-        if invite_tag is None or invite_tag == "":        
+
+        if invite_tag is None or invite_tag == "":
             try:
                 Tenants.objects.get(tenant_name=tenant)
                 raise forms.ValidationError(
@@ -284,13 +382,13 @@ class RegisterForm(forms.Form):
                 )
             except Tenants.DoesNotExist:
                 pass
-        
+
         if machine_region is None or machine_region == "" or machine_region == "1":
-           raise forms.ValidationError(
+            raise forms.ValidationError(
                 self.error_messages['machine_region_error'],
                 code='machine_region_error',
             )
-                       
+
         try:
             Users.objects.get(nick_name=nick_name)
             raise forms.ValidationError(
@@ -305,7 +403,7 @@ class RegisterForm(forms.Form):
                 self.error_messages['password_repeat'],
                 code='password_repeat',
             )
-            
+
         if phone is not None and phone != "":
             phoneNumber = Users.objects.filter(phone=phone).count()
             logger.debug(phoneNumber)
@@ -319,7 +417,7 @@ class RegisterForm(forms.Form):
                 self.error_messages['phone_empty'],
                 code='phone_empty'
             )
-        
+
         if phone is not None and phone != "":
             phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
             if len(phoneCodes) > 0:
@@ -331,7 +429,7 @@ class RegisterForm(forms.Form):
                     raise forms.ValidationError(
                         self.error_messages['phone_code_error'],
                         code='phone_code_error'
-                    )                        
+                    )
                 if phoneCode.code != phone_code:
                     logger.debug(phone + " different")
                     raise forms.ValidationError(
@@ -342,18 +440,18 @@ class RegisterForm(forms.Form):
                 raise forms.ValidationError(
                     self.error_messages['phone_code_error'],
                     code='phone_code_error'
-                ) 
+                )
         else:
             logger.debug(phone + " is None")
             raise forms.ValidationError(
                 self.error_messages['phone_code_error'],
                 code='phone_code_error'
-            ) 
-            
+            )
+
         if real_captcha_code != captcha_code:
             raise forms.ValidationError(
                 self.error_messages['captcha_code_error'],
                 code='captcha_code_error'
             )
-                    
+
         return self.cleaned_data
