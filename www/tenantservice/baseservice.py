@@ -206,8 +206,8 @@ class TenantUsedResource(object):
             tm = self.calculate_real_used_resource(tenant) + newAddMemory
             ruleJsonData = json.loads(self.feerule)
             ruleJson = ruleJsonData[tenant.region]
-            total_money = float(ruleJson['unit_money']) * tm
-            logger.debug(tenant.tenant_id + " used money " + str(total_money))
+            total_money = float(ruleJson['unit_money']) * (tm / 1024)
+            logger.debug(tenant.tenant_id + "use memory" + str(tm) + " used money " + str(total_money))
             if tenant.balance >= total_money:
                 result = True
         elif tenant.pay_type == "unpay":

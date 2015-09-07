@@ -222,10 +222,10 @@ class ServiceUpgrade(AuthedView):
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:
                         if self.tenant.pay_type == "free":
-                            data["status"] = "over_memory"
+                            result["status"] = "over_memory"
                         else:
-                            data["status"] = "over_money"
-                        return JsonResponse(data, status=200)
+                            result["status"] = "over_money"
+                        return JsonResponse(result, status=200)
                     
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     self.service.min_cpu = container_cpu          
@@ -263,10 +263,10 @@ class ServiceUpgrade(AuthedView):
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:
                         if self.tenant.pay_type == "free":
-                            data["status"] = "over_memory"
+                            result["status"] = "over_memory"
                         else:
-                            data["status"] = "over_money"
-                        return JsonResponse(data, status=200)
+                            result["status"] = "over_money"
+                        return JsonResponse(result, status=200)
                            
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     self.service.min_node = node_num
