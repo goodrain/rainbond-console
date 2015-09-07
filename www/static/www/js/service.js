@@ -203,7 +203,7 @@ function app_upgrade(tenantName, service_alias) {
 		$.ajax({
 			type : "post",
 			url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade/",
-			data : "action=horizontal&node_num=" + (service_min_node - 1),
+			data : "action=horizontal&node_num=" + service_min_node,
 			cache : false,
 			beforeSend : function(xhr, settings) {
 				var csrftoken = $.cookie('csrftoken');
