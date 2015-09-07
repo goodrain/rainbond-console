@@ -57,10 +57,10 @@
                         {% ifequal tenantServiceInfo.category "application" %}
                         {% if 'code_deploy' in user.actions %}<button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-cloud-upload"></i> 一键部署</button>
                         {% endif %}
-                        <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.goodrain.net');"><i class="fa fa-eye"></i>访问</button>
+                        <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{tenant.region}}.goodrain.net');"><i class="fa fa-eye"></i>访问</button>
                         {% else %}
                         	{% ifequal tenantServiceInfo.category "manager" %}
-                        		<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.goodrain.net');"><i class="fa fa-eye"></i>访问</button>
+                        		<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{tenant.region}}.goodrain.net');"><i class="fa fa-eye"></i>访问</button>
                         	{% endifequal  %}
                         {% endifequal  %}
                         </div>
@@ -288,7 +288,7 @@
             </div>
             {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
             <div class="row">
-            <label class="col-xs-2 control-label">默认域名</label><label class="col-xs-10 control-label"><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.goodrain.net" target="view_window" >http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.goodrain.net</a></label>
+            <label class="col-xs-2 control-label">默认域名</label><label class="col-xs-10 control-label"><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net" target="view_window" >http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net</a></label>
             </div>
             <br>
             {% endif %}
@@ -324,7 +324,7 @@
                   <tbody>
                   <tr>
                     <td><input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com"></td>
-                    <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.goodrain.net</td>
+                    <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net</td>
                     <td>未验证</td>
                     <td class="text-center">
                 <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">添加</button>

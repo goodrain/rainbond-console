@@ -186,7 +186,8 @@ class TenantService(AuthedView):
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()   
             context["nodeList"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]         
+            context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]   
+            context["tenant"] = self.tenant   
             
             if self.service.category == "application" or  self.service.category == "manager":
                 # service relationships
