@@ -81,10 +81,10 @@ class CodeAction(AuthedView):
                 branchList = gitLabClient.getProjectBranches(code_id)
                 logger.debug(branchList)
                 arr = []
+                if type(branchList) is str:
+                    branchList = json.loads(branch)
+                                            
                 for branch in branchList:
-                    logger.debug(branch)
-                    if type(branch) is str:
-                        branch = json.loads(branch)
                     d = {}
                     d["ref"] = branch["name"]
                     d["version"] = branch["name"]
