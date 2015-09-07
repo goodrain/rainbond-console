@@ -140,9 +140,6 @@ class ServiceManage(AuthedView):
                 tenantUsedResource = TenantUsedResource()
                 flag = tenantUsedResource.predict_next_memory(self.tenant, 0) 
                 if not flag:
-                    self.service.min_memory = old_container_memory
-                    self.service.deploy_version = old_deploy_version
-                    self.service.save()
                     if self.tenant.pay_type == "free":
                         result["status"] = "over_memory"
                     else:
@@ -260,7 +257,7 @@ class ServiceUpgrade(AuthedView):
                     temData["status"] = 2
                     regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                     # calculate resource
-                    diff_memory = (old_min_node - node_num) * self.service.min_memory
+                    diff_memory = (old_min_node - int(node_num)) * self.service.min_memory
                     tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:

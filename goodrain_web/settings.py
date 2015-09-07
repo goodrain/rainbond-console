@@ -18,7 +18,7 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 REGION_TAG = os.environ.get('REGION_TAG')
 
-DEBUG = False
+DEBUG = True
 if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
     REGION_TAG = "www_com"
 
@@ -54,7 +54,7 @@ LOGIN_URL = '/login'
 # Application definition
 
 INSTALLED_APPS = (
-    #'django.contrib.admin',
+    # 'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -70,7 +70,7 @@ INSTALLED_APPS = (
 MIDDLEWARE_CLASSES = (
     'goodrain_web.middleware.ErrorPage',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    #'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # 'django.contrib.auth.middleware.AuthenticationMiddleware',
     'www.auth.middleware.AuthenticationMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -143,7 +143,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': '/tmp/goodrain.log',
-            'maxBytes': 1024*1024*5,
+            'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'standard',
         },

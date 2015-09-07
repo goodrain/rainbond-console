@@ -129,10 +129,10 @@ class ServiceMarketDeploy(AuthedView):
             flag = tenantUsedResource.predict_next_memory(self.tenant, len(serviceKeys) * 128 + service.min_memory) 
             if not flag:
                 if self.tenant.pay_type == "free":
-                    data["status"] = "over_memory"
+                    result["status"] = "over_memory"
                 else:
-                    data["status"] = "over_money"
-                return JsonResponse(data, status=200)
+                    result["status"] = "over_money"
+                return JsonResponse(result, status=200)
             # create new service       
             if createService != "":
                 baseService = BaseTenantService()
