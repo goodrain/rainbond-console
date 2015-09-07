@@ -138,6 +138,7 @@ class TenantService(AuthedView):
                 ts.git_project_id = project_id
                 ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                 ts.save()
+                
     def sendCodeCheckMsg(self):
         data = {}
         data["tenant_id"] = self.service.tenant_id

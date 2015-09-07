@@ -188,11 +188,13 @@ class TenantUsedResource(object):
                 service_id = sqlobj["service_id"]
                 apply_memory = sqlobj["apply_memory"]
                 total_memory = sqlobj["total_memory"]
-                cur_service_id = running_data.get(service_id)
-                if cur_service_id is not None and cur_service_id != "" :
-                    totalMemory = totalMemory + total_memory
+                real_memory = running_data.get(service_id)
+                if real_memory is not None and real_memory != "" :
+                    totalMemory = totalMemory + int(real_memory)
                 else:
-                    totalMemory = totalMemory + total_memory - int(apply_memory)
+                    disk_storage = total_memory - int(apply_memory)
+                    if disk_storage > 0:
+                        totalMemory = totalMemory + disk_storage
         return totalMemory
     
     def predict_next_memory(self, tenant, newAddMemory):

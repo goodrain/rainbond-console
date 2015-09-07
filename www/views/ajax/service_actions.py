@@ -260,14 +260,15 @@ class ServiceUpgrade(AuthedView):
             old_min_node = self.service.min_node
             old_deploy_version = self.service.deploy_version
             try:
-                if int(node_num) >= 0:
+                new_node_num = int(node_num)
+                if new_node_num >= 0 and new_node_num != old_min_node:
                     # temp record service status
                     temData = {}
                     temData["service_id"] = self.service.service_id
                     temData["status"] = 2
                     old_status = regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                     # calculate resource
-                    diff_memory = (int(node_num) - old_min_node) * self.service.min_memory
+                    diff_memory = (new_node_num - old_min_node) * self.service.min_memory                        
                     tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:
