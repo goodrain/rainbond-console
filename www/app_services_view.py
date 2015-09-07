@@ -258,7 +258,7 @@ class AppDependencyCodeView(AuthedView):
                 serviceKeys = createService.split(",")
                 # resource check
                 tenantUsedResource = TenantUsedResource()
-                flag = tenantUsedResource.predict_next_memory(self.tenant, len(serviceKeys) * 128) 
+                flag = tenantUsedResource.predict_next_memory(self.tenant, self.service.min_memory + len(serviceKeys) * 128) 
                 if not flag:
                     if self.tenant.pay_type == "free":
                         data["status"] = "over_memory"

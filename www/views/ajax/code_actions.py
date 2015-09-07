@@ -78,11 +78,11 @@ class CodeAction(AuthedView):
             action = request.POST["action"]
             if action == "gitlab":
                 code_id = request.POST["code_id"]
-                logger.debug(code_id)
                 branchList = gitLabClient.getProjectBranches(code_id)
                 logger.debug(branchList)
                 arr = []
                 for branch in branchList:
+                    logger.debug(type(branch))
                     d = {}
                     d["ref"] = branch["name"]
                     d["version"] = branch["name"]
