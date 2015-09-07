@@ -21,10 +21,6 @@ REGION_SERVICE_API = [{
     'url': 'http://api.ucloud-bj-1.goodrain.me:8888',
     'apitype': 'region service',
     'region_name': 'ucloud_bj_1'
-}, {
-    'url': 'http://api.aws-bj-1.goodrain.com:8888',
-    'apitype': 'region service',
-    'region_name': 'aws-bj-1'
 }]
 
 WEBSOCKET_URL = {
