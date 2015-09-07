@@ -82,7 +82,9 @@ class CodeAction(AuthedView):
                 logger.debug(branchList)
                 arr = []
                 for branch in branchList:
-                    logger.debug(type(branch))
+                    logger.debug(branch)
+                    if type(branch) is str:
+                        branch = json.loads(branch)
                     d = {}
                     d["ref"] = branch["name"]
                     d["version"] = branch["name"]
