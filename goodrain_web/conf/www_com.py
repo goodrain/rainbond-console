@@ -20,11 +20,11 @@ DATABASES = {
 REGION_SERVICE_API = [{
     'url': 'http://api.ucloud-bj-1.goodrain.me:8888',
     'apitype': 'region service',
-    'region_name': 'ucloud_bj_1'
+    'region_name': 'ucloud-bj-1'
 }]
 
 WEBSOCKET_URL = {
-    'ucloud_bj_1':'ws://mpush.ucloud-bj-1.goodrain.com:6060/websocket',
+    'ucloud-bj-1':'ws://mpush.ucloud-bj-1.goodrain.com:6060/websocket',
     'aws-bj-1':'ws://mpush.aws-bj-1.goodrain.com:6060/websocket'
 }
 
