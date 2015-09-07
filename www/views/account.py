@@ -7,15 +7,16 @@ from django.shortcuts import redirect
 from django.http import HttpResponse, Http404
 
 from www.auth import authenticate, login, logout
-from www.forms.account import UserLoginForm, RegisterForm
+from www.forms.account import UserLoginForm, RegisterForm, PasswordResetForm, PasswordResetBeginForm
 from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode
-from www.utils.mail import send_invite_mail_withHtml
 from www.utils.crypt import AuthCode
+from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
 from www.api import RegionApi
 from www.gitlab_http import GitlabApi
 from www.db import BaseConnection
-import datetime, time
+import datetime
+import time
 import random
 import re
 
@@ -30,6 +31,7 @@ gitClient = GitlabApi()
 
 
 class Login(BaseView):
+
     def get_context(self):
         context = super(Login, self).get_context()
         context.update({
@@ -38,18 +40,19 @@ class Login(BaseView):
         return context
 
     def get_media(self):
-        media = super(Login, self).get_media() + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
+        media = super(Login, self).get_media(
+        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
         return media
 
     def get_response(self):
-        return TemplateResponse(self.request, 'www/login.html', self.get_context())
+        return TemplateResponse(self.request, 'www/account/login.html', self.get_context())
 
     def redirect_view(self):
         tenants_has = PermRelTenant.objects.filter(user_id=self.user.pk)
         if tenants_has:
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)
-            tenant_name = tenant.tenant_name            
+            tenant_name = tenant.tenant_name
             return redirect('/apps/{0}'.format(tenant_name))
         else:
             return Http404
@@ -65,7 +68,8 @@ class Login(BaseView):
             if return_to is not None and return_to != "" and return_to.find("?") == -1:
                 tmp = user.email + time + "20616aea2c1136cda6701dd13d5c71"
                 d5 = hashlib.md5(tmp.encode("UTF-8")).hexdigest()
-                url = return_to + "?username=" + user.email + "&time=" + time + "&token=" + d5
+                url = return_to + "?username=" + user.email + \
+                    "&time=" + time + "&token=" + d5
                 logger.debug(d5)
                 logger.debug(url)
                 return redirect(url)
@@ -84,13 +88,14 @@ class Login(BaseView):
             return self.get_response()
         user = authenticate(username=username, password=password)
         login(request, user)
-        
+
         # create git user
-        if user.git_user_id == 0:            
-            git_user_id = gitClient.createUser(username, password, user.nick_name, user.nick_name)
+        if user.git_user_id == 0:
+            git_user_id = gitClient.createUser(
+                username, password, user.nick_name, user.nick_name)
             user.git_user_id = git_user_id
             user.save()
-        
+
         if next_url is not None:
             return redirect(next_url)
         else:
@@ -98,6 +103,7 @@ class Login(BaseView):
 
 
 class Index(Login):
+
     def get(self, request, *args, **kwargs):
         user = request.user
         if isinstance(user, AnonymousUser):
@@ -110,6 +116,7 @@ class Index(Login):
 
 
 class Logout(BaseView):
+
     def init_request(self, *args, **kwargs):
         self.template = 'www/logout.html'
 
@@ -141,8 +148,151 @@ class Logout(BaseView):
         return redirect(settings.LOGIN_URL)
 
 
+class PasswordResetBegin(BaseView):
+
+    def get_context(self):
+        context = super(PasswordResetBegin, self).get_context()
+        context.update({
+            'form': self.form,
+            'title': u'账号确认',
+        })
+        return context
+
+    def get_media(self):
+        media = super(PasswordResetBegin, self).get_media()
+        return media
+
+    def get_response(self):
+        return TemplateResponse(self.request, 'www/account/reset_password.html', self.get_context())
+
+    def get(self, request, *args, **kwargs):
+        self.form = PasswordResetBeginForm()
+        return self.get_response()
+
+    def post(self, request, *args, **kwargs):
+        self.form = PasswordResetBeginForm(request.POST)
+        if self.form.is_valid():
+            tag = '{0}:{1}'.format(int(time.time()), request.POST.get('account'))
+            return redirect('/account/select_verify_method?tag=%s' % AuthCode.encode(tag, 'reset_password'))
+        return self.get_response()
+
+
+class PasswordResetMethodSelect(BaseView):
+
+    def get_context(self):
+        context = super(PasswordResetMethodSelect, self).get_context()
+        context.update({
+            'title': u'验证方式',
+            'account': self.account,
+            'methods': [
+                {"value": "email", "desc": "密保邮箱 <%s>" % self.user.safe_email},
+                #{"value": "phone", "desc": self.user.phone},
+            ],
+        })
+        return context
+
+    def get_media(self):
+        media = super(PasswordResetMethodSelect, self).get_media()
+        return media
+
+    def get_response(self):
+        return TemplateResponse(self.request, 'www/account/select_verify_method.html', self.get_context())
+
+    def get_user_instance(self, account):
+        try:
+            if '@' in account:
+                user = Users.objects.get(email=account)
+            else:
+                user = Users.objects.get(phone=account)
+            self.user = user
+            return user
+        except user.DoesNotExist:
+            return None
+
+    def get(self, request, *args, **kwargs):
+        tag = str(request.GET.get('tag'))
+        old_timestamp, account = AuthCode.decode(tag, 'reset_password').split(':')
+        timestamp = int(time.time())
+        if (timestamp - int(old_timestamp)) > 60:
+            return HttpResponse("过期的URL, 请重新开始")
+
+        self.account = account
+        self.user = self.get_user_instance(account)
+        if self.user is None:
+            return HttpResponse(u"账号不存在")
+        return self.get_response()
+
+    def post(self, request, *args, **kwargs):
+        tag = str(request.GET.get('tag'))
+        old_timestamp, account = AuthCode.decode(tag, 'reset_password').split(':')
+        verify_method = request.POST.get('verify_method')
+        self.user = self.get_user_instance(account)
+        self.account = account
+
+        if verify_method == 'email':
+            domain = self.request.META.get('HTTP_HOST')
+            timestamp = str(int(time.time()))
+            tag = AuthCode.encode(','.join([self.user.email, timestamp]), 'password')
+            link_url = 'http://{0}/account/reset_password?tag={1}'.format(domain, tag)
+            send_reset_pass_mail(self.user.email, link_url)
+            mail_address = 'http://mail.' + self.user.email.split('@')[1]
+            return TemplateResponse(self.request, 'www/account/email_sended.html', {"safe_email": self.user.safe_email, "mail_address": mail_address})
+        return self.get_response()
+
+
+class PasswordReset(BaseView):
+
+    def get_context(self):
+        context = super(PasswordReset, self).get_context()
+        context.update({
+            'form': self.form,
+            'title': u'重置密码',
+        })
+        return context
+
+    def get_media(self):
+        media = super(PasswordReset, self).get_media()
+        return media
+
+    def get_response(self):
+        return TemplateResponse(self.request, 'www/account/reset_password.html', self.get_context())
+
+    def get_user_instance(self, account):
+        try:
+            if '@' in account:
+                user = Users.objects.get(email=account)
+            else:
+                user = Users.objects.get(phone=account)
+            self.user = user
+            return user
+        except user.DoesNotExist:
+            return None
+
+    def get(self, request, *args, **kwargs):
+        self.form = PasswordResetForm()
+        return self.get_response()
+
+    def post(self, request, *args, **kwargs):
+        tag = str(request.GET.get('tag'))
+        email, old_timestamp = AuthCode.decode(tag, 'password').split(',')
+        timestamp = int(time.time())
+        if (timestamp - int(old_timestamp)) > 3600:
+            return HttpResponse(u"处理已过期, 请重新开始")
+
+        user = self.get_user_instance(email)
+        self.form = PasswordResetForm(request.POST)
+        if self.form.is_valid():
+            raw_password = request.POST.get('password')
+            user.set_password(raw_password)
+            user.save()
+            if user.git_user_id != 0:
+                gitClient.modifyUser(user.git_user_id, password=raw_password)
+            return redirect('/login')
+        return self.get_response()
+
+
 class Registation(BaseView):
-    
+
     def get_context(self):
         context = super(Registation, self).get_context()
         context.update({
@@ -151,11 +301,12 @@ class Registation(BaseView):
         return context
 
     def get_media(self):
-        media = super(Registation, self).get_media() + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
+        media = super(Registation, self).get_media(
+        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
         return media
 
     def get_response(self):
-        return TemplateResponse(self.request, 'www/register.html', self.get_context())
+        return TemplateResponse(self.request, 'www/account/register.html', self.get_context())
 
     def init_for_region(self, region, tenant_name, tenant_id):
         api = RegionApi()
@@ -165,7 +316,7 @@ class Registation(BaseView):
     def get(self, request, *args, **kwargs):
         self.form = RegisterForm()
         return self.get_response()
-    
+
     def get_client_ip(self, request):
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
@@ -176,8 +327,9 @@ class Registation(BaseView):
 
     def post(self, request, *args, **kwargs):
         querydict = request.POST
-        querydict.update({u'real_captcha_code':request.session.get("captcha_code")})
-        self.form = RegisterForm(querydict)        
+        querydict.update(
+            {u'real_captcha_code': request.session.get("captcha_code")})
+        self.form = RegisterForm(querydict)
         if self.form.is_valid():
             rf = request.GET.get("rf", "")
             email = request.POST.get('email')
@@ -188,15 +340,20 @@ class Registation(BaseView):
             region = request.POST.get('machine_region')
             if region is None or region == "" or region == "1":
                 region = "ucloud_bj_1"
-            user = Users(email=email, nick_name=nick_name, phone=phone, client_ip=self.get_client_ip(request), rf = rf)
+            user = Users(email=email, nick_name=nick_name,
+                         phone=phone, client_ip=self.get_client_ip(request), rf=rf)
             user.set_password(password)
             user.save()
-            tenant = Tenants.objects.create(tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
-            PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
-            res, body = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
+            tenant = Tenants.objects.create(
+                tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
+            PermRelTenant.objects.create(
+                user_id=user.pk, tenant_id=tenant.pk, identity='admin')
+            res, body = self.init_for_region(
+                tenant.region, tenant_name, tenant.tenant_id)
 
-             # create gitlab user
-            git_user_id = gitClient.createUser(email, password, nick_name, nick_name)
+            # create gitlab user
+            git_user_id = gitClient.createUser(
+                email, password, nick_name, nick_name)
             user.git_user_id = git_user_id
             user.save()
 
@@ -207,8 +364,9 @@ class Registation(BaseView):
 
         return self.get_response()
 
+
 class InviteRegistation(BaseView):
-    
+
     def get_client_ip(self, request):
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
@@ -216,7 +374,7 @@ class InviteRegistation(BaseView):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
-    
+
     def get_context(self):
         context = super(InviteRegistation, self).get_context()
         context.update({
@@ -225,25 +383,30 @@ class InviteRegistation(BaseView):
         return context
 
     def get_media(self):
-        media = super(InviteRegistation, self).get_media() + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
+        media = super(InviteRegistation, self).get_media(
+        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
         return media
 
     def get_response(self):
-        return TemplateResponse(self.request, 'www/register.html', self.get_context())
+        return TemplateResponse(self.request, 'www/account/register.html', self.get_context())
 
     def register_for_tenant(self, user, password, data):
         email, tenant_name, identity = data
         tenant = Tenants.objects.get(tenant_name=tenant_name)
-        PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity=identity)
+        PermRelTenant.objects.create(
+            user_id=user.pk, tenant_id=tenant.pk, identity=identity)
         self.add_git_user(user, password)
 
     def register_for_service(self, user, password, data):
         email, tenant_name, service_alias, identity = data
         tenant = Tenants.objects.get(tenant_name=tenant_name)
-        service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_alias)
-        PermRelService.objects.create(user_id=user.pk, service_id=service.pk, identity=identity)
+        service = TenantServiceInfo.objects.get(
+            tenant_id=tenant.tenant_id, service_alias=service_alias)
+        PermRelService.objects.create(
+            user_id=user.pk, service_id=service.pk, identity=identity)
 
-        perm_t, created = PermRelTenant.objects.get_or_create(user_id=user.pk, tenant_id=tenant.pk)
+        perm_t, created = PermRelTenant.objects.get_or_create(
+            user_id=user.pk, tenant_id=tenant.pk)
         if created:
             perm_t.identity = 'access'
             perm_t.save()
@@ -261,7 +424,8 @@ class InviteRegistation(BaseView):
             gitClient.addProjectMember(git_project_id, user.git_user_id, level)
 
     def add_git_user(self, user, password):
-        git_user_id = gitClient.createUser(user.email, password, user.nick_name, user.nick_name)
+        git_user_id = gitClient.createUser(
+            user.email, password, user.nick_name, user.nick_name)
         user.git_user_id = git_user_id
         user.save()
 
@@ -272,13 +436,14 @@ class InviteRegistation(BaseView):
         data = AuthCode.decode(encoded_data, 'goodrain').split(',')
         logger.debug(data)
         # tenant member
-        if len(data) == 3: 
+        if len(data) == 3:
             self.email, self.tenant_name = data[0:2]
             self.service_name = ""
         elif len(data) == 4:
             self.email, self.tenant_name, self.service_name = data[0:3]
         else:
             redirect('/register')
+
         try:
             if self.email.find("@") > 0:
                 Users.objects.get(email=self.email)
@@ -291,37 +456,39 @@ class InviteRegistation(BaseView):
             if self.email.find("@"):
                 curemail = self.email
             else:
-                curphone = self.email   
-            registerTenant = Tenants.objects.get(tenant_name=self.tenant_name)     
+                curphone = self.email
+            registerTenant = Tenants.objects.get(tenant_name=self.tenant_name)
             self.form = RegisterForm(
                 initial={
-                    "tenant":self.tenant_name,
-                    "phone" : curphone,
-                    "email":curemail,
-                    "region":registerTenant.region
+                    "tenant": self.tenant_name,
+                    "phone": curphone,
+                    "email": curemail,
+                    "region": registerTenant.region
                 }
             )
             return self.get_response()
-        
+
     def post(self, request, *args, **kwargs):
         encoded_data = str(request.GET.get('key'))
-        data = AuthCode.decode(encoded_data, 'goodrain').split(',')        
+        data = AuthCode.decode(encoded_data, 'goodrain').split(',')
         querydict = request.POST
-        querydict.update({u'invite_tag':"invite"})
-        querydict.update({u'real_captcha_code':request.session.get("captcha_code")})
-        self.form = RegisterForm(querydict)        
+        querydict.update({u'invite_tag': "invite"})
+        querydict.update(
+            {u'real_captcha_code': request.session.get("captcha_code")})
+        self.form = RegisterForm(querydict)
         if not self.form.is_valid():
             return self.get_response()
-                
+
         email = request.POST.get('email')
         nick_name = request.POST.get('nick_name')
         password = request.POST.get('password')
         tenant_name = request.POST.get('tenant')
         phone = request.POST.get('phone')
-        user = Users(email=email, nick_name=nick_name, phone=phone, client_ip=self.get_client_ip(request))
+        user = Users(email=email, nick_name=nick_name,
+                     phone=phone, client_ip=self.get_client_ip(request))
         user.set_password(password)
         user.save()
-        
+
         if len(data) == 3:
             self.register_for_tenant(user, password, data)
         elif len(data) == 4:
@@ -332,8 +499,9 @@ class InviteRegistation(BaseView):
         login(request, user)
         return redirect('/apps/{0}'.format(tenant_name))
 
+
 class PhoneCodeView(BaseView):
-    
+
     def post(self, request, *args, **kwargs):
         result = {}
         phone = request.POST.get('phone')
@@ -343,25 +511,26 @@ class PhoneCodeView(BaseView):
         logger.debug(real_captcha_code)
         if captcha_code != real_captcha_code:
             result["status"] = "errorcaptchacode"
-            return JsonResponse(result) 
-        
+            return JsonResponse(result)
+
         if phone is not None:
             r = re.compile(r'^1[358]\d{9}$|^147\d{8}$')
             if not r.match(phone):
                 result["status"] = "errorphone"
-                return JsonResponse(result) 
+                return JsonResponse(result)
         else:
             result["status"] = "errorphone"
-            return JsonResponse(result) 
+            return JsonResponse(result)
         try:
-            phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
+            phoneCodes = PhoneCode.objects.filter(
+                phone=phone).order_by('-ID')[:1]
             if len(phoneCodes) > 0:
                 phoneCode = phoneCodes[0]
                 last = int(phoneCode.create_time.strftime("%s"))
                 now = int(time.time())
                 if now - last < 90:
                     result["status"] = "often"
-                    return JsonResponse(result) 
+                    return JsonResponse(result)
             dsn = BaseConnection()
             query_time = datetime.datetime.now().strftime('%Y-%m-%d')
             query_sql = '''
@@ -372,14 +541,14 @@ class PhoneCodeView(BaseView):
                 sendNumber = int(sqlobj[0]["sendNumber"])
                 if sendNumber > 3:
                     result["status"] = "limited"
-                    return JsonResponse(result) 
+                    return JsonResponse(result)
             phone_code = random.randrange(0, 1000001, 6)
             send_phone_message(phone, phone_code)
             newpc = PhoneCode(phone=phone, type="register", code=phone_code)
             newpc.save()
             result["status"] = "success"
-            return JsonResponse(result) 
+            return JsonResponse(result)
         except Exception as e:
             logger.exception(e)
         result["status"] = "error"
-        return JsonResponse(result) 
+        return JsonResponse(result)
