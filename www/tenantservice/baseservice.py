@@ -158,7 +158,7 @@ class BaseTenantService(object):
 class TenantUsedResource(object):
         
     def __init__(self):
-        self.feerule = '{"ucloud_bj_1":{"unit_money":0.417},"amazon_bj_1":{"unit_money":0.417}}'
+        self.feerule = settings.REGION_RULE
         
     def calculate_used_resource(self, tenant):
         totalMemory = 0 
@@ -207,8 +207,7 @@ class TenantUsedResource(object):
                result = True
         elif tenant.pay_type == "payed":
             tm = self.calculate_real_used_resource(tenant) + newAddMemory
-            ruleJsonData = json.loads(self.feerule)
-            ruleJson = ruleJsonData[tenant.region]
+            ruleJson = self.feerule[tenant.region]
             total_money = float(ruleJson['unit_money']) * (tm * 1.0 / 1024)
             logger.debug(tenant.tenant_id + "use memory " + str(tm) + " used money " + str(total_money))
             if tenant.balance >= total_money:

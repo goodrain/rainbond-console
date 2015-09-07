@@ -28,6 +28,10 @@ WEBSOCKET_URL = {
     'aws-bj-1':'ws://mpush.aws-bj-1.goodrain.com:6060/websocket'
 }
 
+REGION_RULE = {
+    'ucloud-bj-1':{'unit_money':0.417}, 'aws-bj-1':{'unit_money':0.417}        
+}
+
 GITLAB_SERVICE_API = {
     'url': 'http://code.goodrain.com/',
     'admin_user': 'app',
