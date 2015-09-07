@@ -183,7 +183,7 @@ class TenantUsedResource(object):
             select service_id, (s.min_node * s.min_memory) as apply_memory, total_memory  from tenant_service s where s.tenant_id = "{tenant_id}"
             '''.format(tenant_id=tenant.tenant_id)
         sqlobjs = dsn.query(query_sql)
-        if sqlobj is not None and len(sqlobjs) > 0:
+        if sqlobjs is not None and len(sqlobjs) > 0:
             for sqlobj in sqlobjs:
                 service_id = sqlobj["service_id"]
                 apply_memory = sqlobj["apply_memory"]
