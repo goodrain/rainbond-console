@@ -217,7 +217,7 @@ class ServiceUpgrade(AuthedView):
                     temData["status"] = 2
                     regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData)) 
                     # calculate resource
-                    diff_memory = old_container_memory - container_memory
+                    diff_memory = int(container_memory) - int(old_container_memory)
                     tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:
@@ -227,9 +227,10 @@ class ServiceUpgrade(AuthedView):
                             data["status"] = "over_money"
                         return JsonResponse(data, status=200)
                     
+                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     self.service.min_cpu = container_cpu          
                     self.service.min_memory = container_memory
-                    self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                    self.service.deploy_version = deploy_version
                     self.service.save()
                     
                     body = {}
@@ -257,7 +258,7 @@ class ServiceUpgrade(AuthedView):
                     temData["status"] = 2
                     regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                     # calculate resource
-                    diff_memory = (old_min_node - int(node_num)) * self.service.min_memory
+                    diff_memory = (int(node_num) - old_min_node) * self.service.min_memory
                     tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:
@@ -266,9 +267,10 @@ class ServiceUpgrade(AuthedView):
                         else:
                             data["status"] = "over_money"
                         return JsonResponse(data, status=200)
-                             
+                           
+                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     self.service.min_node = node_num
-                    self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                    self.service.deploy_version = deploy_version
                     self.service.save()
                                             
                     body = {}

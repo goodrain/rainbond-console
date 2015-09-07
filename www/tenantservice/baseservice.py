@@ -195,19 +195,20 @@ class TenantUsedResource(object):
                     totalMemory = totalMemory + total_memory - int(apply_memory)
         return totalMemory
     
-    def predict_next_memory(self, tenant, totalMemory):
+    def predict_next_memory(self, tenant, newAddMemory):
         result = False
         if tenant.pay_type == "free":
-            tm = self.calculate_real_used_resource(tenant) + totalMemory
-            logger.debug(tm)
-            logger.debug(tenant.limit_memory)
+            tm = self.calculate_real_used_resource(tenant) + newAddMemory
+            logger.debug(tenant.tenant_id + " used memory " + str(tm))
             if tm < tenant.limit_memory:
                result = True
         elif tenant.pay_type == "payed":
-            tm = self.calculate_real_used_resource(tenant) + totalMemory
+            tm = self.calculate_real_used_resource(tenant) + newAddMemory
             ruleJsonData = json.loads(self.feerule)
             ruleJson = ruleJsonData[tenant.region]
-            if tenant.balance >= float(ruleJson['unit_money']) * tm:
+            total_money = float(ruleJson['unit_money']) * tm
+            logger.debug(tenant.tenant_id + " used money " + str(total_money))
+            if tenant.balance >= total_money:
                 result = True
         elif tenant.pay_type == "unpay":
             result = True
