@@ -46,6 +46,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 						+ "/detail/"
 				window.open(forurl, target = "_parent")
 			}
+			$("#onekey_deploy").removeAttr("disabled")
 		},
 		error : function() {
 			$("#onekey_deploy").removeAttr("disabled")

@@ -177,6 +177,7 @@ class TenantUsedResource(object):
     def calculate_real_used_resource(self, tenant):
         totalMemory = 0 
         running_data = regionClient.getTenantRunningServiceId(tenant.region, tenant.tenant_id)
+        logger.debug(running_data)
         dsn = BaseConnection()
         query_sql = '''
             select service_id, (s.min_node * s.min_memory) as apply_memory, total_memory  from tenant_service s where s.tenant_id = "{tenant_id}"
@@ -196,9 +197,10 @@ class TenantUsedResource(object):
     
     def predict_next_memory(self, tenant, totalMemory):
         result = False
-        return result
         if tenant.pay_type == "free":
             tm = self.calculate_real_used_resource(tenant) + totalMemory
+            logger.debug(tm)
+            logger.debug(tenant.limit_memory)
             if tm < tenant.limit_memory:
                result = True
         elif tenant.pay_type == "payed":
