@@ -261,7 +261,8 @@ class RegisterForm(forms.Form):
         label="",
         choices=(
             ('1', '机房'),
-            ('ucloud_bj_1', 'UCloud北京')
+            ('ucloud_bj_1', 'UCloud北京'),
+            ('aws-bj-1', 'Amazon北京'),
         ),
         widget=forms.Select
     )
