@@ -55,10 +55,10 @@ class AppDeploy(AuthedView):
         flag = tenantUsedResource.predict_next_memory(self.tenant, 0) 
         if not flag:
             if self.tenant.pay_type == "free":
-                result["status"] = "over_memory"
+                data["status"] = "over_memory"
             else:
-                result["status"] = "over_money"
-            return JsonResponse(result, status=200)
+                data["status"] = "over_money"
+            return JsonResponse(data, status=200)
             
         try:
             data = {}
@@ -133,9 +133,9 @@ class ServiceManage(AuthedView):
             elif action == "restart":
                 # temp record service status
                 temData = {}
-                temData["service_id"] = service_id
+                temData["service_id"] = self.service.service_id
                 temData["status"] = 2
-                regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData))
+                regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                 # calculate resource 
                 tenantUsedResource = TenantUsedResource()
                 flag = tenantUsedResource.predict_next_memory(self.tenant, 0) 
@@ -216,9 +216,9 @@ class ServiceUpgrade(AuthedView):
                 if int(container_memory) > 0  and int(container_cpu) > 0:
                     # temp record service status
                     temData = {}
-                    temData["service_id"] = service_id
+                    temData["service_id"] = self.service.service_id
                     temData["status"] = 2
-                    regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData)) 
+                    regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData)) 
                     # calculate resource
                     diff_memory = old_container_memory - container_memory
                     tenantUsedResource = TenantUsedResource()
@@ -256,9 +256,9 @@ class ServiceUpgrade(AuthedView):
                 if int(node_num) >= 0:
                     # temp record service status
                     temData = {}
-                    temData["service_id"] = service_id
+                    temData["service_id"] = self.service.service_id
                     temData["status"] = 2
-                    regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData))
+                    regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = (old_min_node - node_num) * self.service.min_memory
                     tenantUsedResource = TenantUsedResource()
