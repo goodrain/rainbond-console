@@ -196,6 +196,7 @@ class TenantUsedResource(object):
     
     def predict_next_memory(self, tenant, totalMemory):
         result = False
+        return result
         if tenant.pay_type == "free":
             tm = self.calculate_real_used_resource(tenant) + totalMemory
             if tm < tenant.limit_memory:
