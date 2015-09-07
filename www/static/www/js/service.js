@@ -33,6 +33,10 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 				window.open(forurl, target = "_parent")
 			} else if (dataObj["status"] == "often") {
 				swal("上次部署正在进行中，请稍后再试")
+			} else if (dataObj["status"] == "over_memory") {
+				swal("免费资源已达上限，不能升级")
+			} else if (dataObj["status"] == "over_money") {
+				swal("余额不足，不能升级")
 			} else {
 				swal("操作失败")
 				$("#onekey_deploy").removeAttr("disabled")
@@ -73,6 +77,10 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 				swal("上次操作正在进行中，稍后再试")
 			} else if (dataObj["status"] == "owed"){
 				swal("余额不足请及时充值")
+			} else if (dataObj["status"] == "over_memory") {
+				swal("免费资源已达上限，不能升级")
+			} else if (dataObj["status"] == "over_money") {
+				swal("余额不足，不能升级")
 			} else {
 				swal("操作失败")
 			}
