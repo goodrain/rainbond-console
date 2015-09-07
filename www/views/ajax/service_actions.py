@@ -214,30 +214,27 @@ class ServiceUpgrade(AuthedView):
                 old_container_memory = self.service.min_memory
                 old_deploy_version = self.service.deploy_version
                 if int(container_memory) > 0  and int(container_cpu) > 0:
-                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S') 
-                    self.service.min_cpu = container_cpu          
-                    self.service.min_memory = container_memory
-                    self.service.deploy_version = deploy_version
-                    self.service.save()
-                    
                     # temp record service status
                     temData = {}
                     temData["service_id"] = service_id
                     temData["status"] = 2
                     regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData)) 
                     # calculate resource
+                    diff_memory = old_container_memory - container_memory
                     tenantUsedResource = TenantUsedResource()
-                    flag = tenantUsedResource.predict_next_memory(self.tenant, 0) 
+                    flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:
-                        self.service.min_memory = old_container_memory
-                        self.service.deploy_version = old_deploy_version
-                        self.service.save()
                         if self.tenant.pay_type == "free":
                             data["status"] = "over_memory"
                         else:
                             data["status"] = "over_money"
                         return JsonResponse(data, status=200)
-                        
+                    
+                    self.service.min_cpu = container_cpu          
+                    self.service.min_memory = container_memory
+                    self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                    self.service.save()
+                    
                     body = {}
                     body["container_memory"] = container_memory
                     body["deploy_version"] = deploy_version
@@ -257,28 +254,25 @@ class ServiceUpgrade(AuthedView):
             old_deploy_version = self.service.deploy_version
             try:
                 if int(node_num) >= 0:
-                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')          
-                    self.service.min_node = node_num
-                    self.service.deploy_version = deploy_version
-                    self.service.save()
-                    
                     # temp record service status
                     temData = {}
                     temData["service_id"] = service_id
                     temData["status"] = 2
                     regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData))
                     # calculate resource
+                    diff_memory = (old_min_node - node_num) * self.service.min_memory
                     tenantUsedResource = TenantUsedResource()
-                    flag = tenantUsedResource.predict_next_memory(self.tenant, 0) 
+                    flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:
-                        self.service.min_node = old_min_node
-                        self.service.deploy_version = old_deploy_version
-                        self.service.save()
                         if self.tenant.pay_type == "free":
                             data["status"] = "over_memory"
                         else:
                             data["status"] = "over_money"
                         return JsonResponse(data, status=200)
+                             
+                    self.service.min_node = node_num
+                    self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                    self.service.save()
                                             
                     body = {}
                     body["node_num"] = node_num   
