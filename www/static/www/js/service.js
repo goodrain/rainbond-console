@@ -117,9 +117,9 @@ function service_onOperation(service_id, service_alias, tenantName) {
 			} else if (dataObj["status"] == "owed"){
 				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "over_memory") {
-				swal("免费资源已达上限，不能升级")
+				swal("免费资源已达上限，不能操作")
 			} else if (dataObj["status"] == "over_money") {
-				swal("余额不足，不能升级")
+				swal("余额不足，不能操作")
 			} else {
 				swal("操作失败")
 			}

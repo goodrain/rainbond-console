@@ -144,4 +144,4 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/status-update/"
         headers = {'Content-Type': 'application/json'}  
         res, body = self._post(url, headers, body)
-        return body
+        return body["old_status"]

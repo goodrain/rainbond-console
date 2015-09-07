@@ -49,7 +49,7 @@ class AppDeploy(AuthedView):
         temData = {}
         temData["service_id"] = service_id
         temData["status"] = 2
-        regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData))
+        old_status = regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData))
         # calculate resource 
         tenantUsedResource = TenantUsedResource()
         flag = tenantUsedResource.predict_next_memory(self.tenant, 0) 
@@ -58,6 +58,9 @@ class AppDeploy(AuthedView):
                 data["status"] = "over_memory"
             else:
                 data["status"] = "over_money"
+            temData["service_id"] = service_id
+            temData["status"] = old_status
+            regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData))
             return JsonResponse(data, status=200)
             
         try:
@@ -135,7 +138,7 @@ class ServiceManage(AuthedView):
                 temData = {}
                 temData["service_id"] = self.service.service_id
                 temData["status"] = 2
-                regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
+                old_status = regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                 # calculate resource 
                 tenantUsedResource = TenantUsedResource()
                 flag = tenantUsedResource.predict_next_memory(self.tenant, 0) 
@@ -144,6 +147,9 @@ class ServiceManage(AuthedView):
                         result["status"] = "over_memory"
                     else:
                         result["status"] = "over_money"
+                    temData["service_id"] = self.service.service_id
+                    temData["status"] = old_status
+                    regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                     return JsonResponse(result, status=200)
                 
                 self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -215,7 +221,7 @@ class ServiceUpgrade(AuthedView):
                     temData = {}
                     temData["service_id"] = self.service.service_id
                     temData["status"] = 2
-                    regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData)) 
+                    old_status = regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData)) 
                     # calculate resource
                     diff_memory = int(container_memory) - int(old_container_memory)
                     tenantUsedResource = TenantUsedResource()
@@ -225,6 +231,9 @@ class ServiceUpgrade(AuthedView):
                             result["status"] = "over_memory"
                         else:
                             result["status"] = "over_money"
+                        temData["service_id"] = self.service.service_id
+                        temData["status"] = old_status
+                        regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                         return JsonResponse(result, status=200)
                     
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -256,7 +265,7 @@ class ServiceUpgrade(AuthedView):
                     temData = {}
                     temData["service_id"] = self.service.service_id
                     temData["status"] = 2
-                    regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
+                    old_status = regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = (int(node_num) - old_min_node) * self.service.min_memory
                     tenantUsedResource = TenantUsedResource()
@@ -266,6 +275,9 @@ class ServiceUpgrade(AuthedView):
                             result["status"] = "over_memory"
                         else:
                             result["status"] = "over_money"
+                        temData["service_id"] = self.service.service_id
+                        temData["status"] = old_status
+                        regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                         return JsonResponse(result, status=200)
                            
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
