@@ -560,12 +560,12 @@ class ServiceCheck(AuthedView):
             createUser = Users.objects.get(user_id=self.service.creater)
             clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            data["git_url"] = gitUrl
-        logger.debug(json.dumps(task))
+            data["git_url"] = gitUrl        
         task = {}
         task["tube"] = "code_check"
         task["data"] = data
         task["service_id"] = self.service.service_id
+        logger.debug(json.dumps(task))
         regionClient.writeToRegionBeanstalk(self.tenant.region, self.service.service_id, json.dumps(task))
     
     @perm_required('manage_service')
