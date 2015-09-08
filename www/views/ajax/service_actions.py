@@ -578,7 +578,7 @@ class ServiceCheck(AuthedView):
         try:
             requestNumber = request.GET.get("requestNumber", "0")
             reqNum = int(requestNumber)
-            if reqNum > 0 and reqNum % 5 == 0:
+            if reqNum > 0 and reqNum % 20 == 0:
                 self.sendCodeCheckMsg()
             if self.service.language is None or self.service.language == "":
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
