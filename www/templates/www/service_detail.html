@@ -462,9 +462,6 @@
 		    	  	  success: function(msg) {
 		    	  		  var obj=msg;
 			    	  	  if(obj["status"]!="failure"){
-			    		  	  if(obj["totalMemory"] != undefined ){
-			    		  	 	$("#service_memory").html(obj["totalMemory"]+"M")
-				    		  }
 			    		  	  if(obj["status"]=="Running"){
 			    		  		$("#service_status_value").val("stop")
 			    		  		$("#font"+service_id).html("关闭")
@@ -643,6 +640,7 @@
 		    	  		var dataObj = msg;
 		    	  		if(dataObj["disk"] != undefined ){
 		    	  			$("#service_disk").html(dataObj["disk"]+"M")
+		    	  			$("#service_memory").html(dataObj["memory"]+"M")
 		    	  			if(dataObj["bytesin"] > dataObj["bytesout"]){
 		    	  				$("#service_network").html(dataObj["bytesin"]+"K")
 			    	  		}else{
