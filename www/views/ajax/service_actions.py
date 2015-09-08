@@ -394,7 +394,7 @@ class AllServiceInfo(AuthedView):
                             child["status"] = "Closing"
                         result[sid] = child
         except Exception, e:
-            logger.exception(e)
+            logger.debug(self.tenant.region + "-" + tempIds + " check_service_status is error")
             for sid in service_ids:
                 child = {}
                 child["status"] = "failure"
@@ -492,8 +492,7 @@ class ServiceDetail(AuthedView):
                         result["totalMemory"] = 0
                         result["status"] = "Closing"
         except Exception, e:
-            # logger.info("%s" % e)
-            logger.exception(e)
+            logger.debug(self.tenant.region + "-" + self.service.service_id + " check_service_status is error")
             result["totalMemory"] = 0
             result['status'] = "failure"
         return JsonResponse(result)
@@ -511,7 +510,7 @@ class ServiceNetAndDisk(AuthedView):
             result["bytesout"] = 0
             result["disk_memory"] = 0
             
-            tenantServiceStatics = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('ID').latest()
+            tenantServiceStatics = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('ID')[0:1]
             if tenantServiceStatics is not None:
                 storageDisk = tenantServiceStatics.storage_disk + self.service.min_node * 200
                 result["disk"] = storageDisk
