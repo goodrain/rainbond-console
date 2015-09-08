@@ -394,6 +394,7 @@ class AllServiceInfo(AuthedView):
                             child["status"] = "Closing"
                         result[sid] = child
         except Exception, e:
+            tempIds = ','.join(service_ids)
             logger.debug(self.tenant.region + "-" + tempIds + " check_service_status is error")
             for sid in service_ids:
                 child = {}
