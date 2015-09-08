@@ -505,18 +505,22 @@ class ServiceNetAndDisk(AuthedView):
         try:
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
+            result["memory"] = self.service.min_node * self.service.min_node.min_memory
+            result["disk"] = 0
+            result["bytesin"] = 0
+            result["bytesout"] = 0
             
             tenantServiceStatics = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('ID').latest()
             if tenantServiceStatics is not None:
-                result["disk"] = tenantServiceStatics.storage_disk + self.service.min_node * 200
+                storageDisk = tenantServiceStatics.storage_disk + self.service.min_node * 200
+                result["disk"] = storageDisk
                 result["bytesin"] = tenantServiceStatics.net_in
                 result["bytesout"] = tenantServiceStatics.net_out
-            else:
-                result["disk"] = 0
-                result["bytesin"] = 0
-                result["bytesout"] = 0
+                max_net = tenantServiceStatics.net_in
+                if tenantServiceStatics.net_in < tenantServiceStatics.net_out:
+                    max_net = tenantServiceStatics.net_out
+                result["memory"] = storageDisk * 0.01 + max_net + self.service.min_node * self.service.min_node.min_memory
         except Exception, e:
-            # logger.info("%s" % e)
             pass
         return JsonResponse(result)
 
@@ -560,7 +564,7 @@ class ServiceCheck(AuthedView):
             createUser = Users.objects.get(user_id=self.service.creater)
             clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            data["git_url"] = gitUrl        
+            data["git_url"] = gitUrl
         task = {}
         task["tube"] = "code_check"
         task["data"] = data

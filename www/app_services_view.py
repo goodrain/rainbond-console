@@ -518,10 +518,11 @@ class GitCheckCode(BaseView):
         try:
             service_id = request.GET.get("service_id", "")
             logger.debug("git code request: " + service_id)
-            tse = TenantServiceEnv.objects.get(service_id=service_id)
-            result = tse.user_dependency
-            if result is not None and result != "":
-                data = json.loads(result)
+            if service_id is not None and service_id != "":
+                tse = TenantServiceEnv.objects.get(service_id=service_id)
+                result = tse.user_dependency
+                if result is not None and result != "":
+                    data = json.loads(result)
         except Exception as e:
             logger.exception(e)            
         return JsonResponse(data, status=200)

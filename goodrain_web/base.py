@@ -5,13 +5,14 @@ import httplib2
 from addict import Dict
 
 from goodrain_web.errors import CallApiError
-
+import logging
+logger = logging.getLogger('default')
 
 class BaseHttpClient(object):
     def __init__(self, *args, **kwargs):
         self.http = httplib2.Http()
         self.apitype = 'Not specified'
-        #self.report = Dict({"ok":True})
+        # self.report = Dict({"ok":True})
 
     def _jsondecode(self, string):
         try:
@@ -28,6 +29,7 @@ class BaseHttpClient(object):
         if isinstance(body, dict):
             body = Dict(body)
         if 400 <= res.status <= 600:
+            logger.debug(url)
             raise CallApiError(self.apitype, url, method, res, body)
         else:
             return res, body

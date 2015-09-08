@@ -257,11 +257,12 @@ class RegisterForm(forms.Form):
         help_text="",
     )
 
+    # ('aws-bj-1', 'Amazon北京'),
     machine_region = forms.ChoiceField(
         label="",
         choices=(
             ('1', '机房'),
-            ('ucloud-bj-1', 'UCloud北京')
+            ('ucloud-bj-1', 'UCloud北京'),
         ),
         widget=forms.Select
     )

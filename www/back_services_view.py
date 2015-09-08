@@ -169,7 +169,6 @@ class ServiceMarketDeploy(AuthedView):
             task["data"] = data
             task["tube"] = "app_log"
             task["service_id"] = newTenantService.service_id
-            logger.info(task)
             try:
                 regionClient.writeToRegionBeanstalk(self.tenant.region, newTenantService.service_id, json.dumps(task))
             except Exception as e:
