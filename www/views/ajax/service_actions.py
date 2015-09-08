@@ -519,7 +519,8 @@ class ServiceNetAndDisk(AuthedView):
                 max_net = tenantServiceStatics.net_in
                 if tenantServiceStatics.net_in < tenantServiceStatics.net_out:
                     max_net = tenantServiceStatics.net_out
-                result["memory"] = storageDisk * 0.01 + max_net + self.service.min_node * self.service.min_memory
+                if tenantServiceStatics.status > 0 :
+                    result["disk_memory"] = storageDisk * 0.01 + max_net
         except Exception, e:
             logger.exception(e)
         return JsonResponse(result)

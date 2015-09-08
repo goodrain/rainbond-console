@@ -529,7 +529,7 @@
         	checkStatus();
         	getLog('operate');
         	getLog('service');
-        	getServiceNetDisk();
+        	setTimeout("getServiceNetDisk()", 1000);
             setInterval("checkStatus()", 10000);
             //setInterval("getLog('operate')", 5000);
             //setInterval("getLog('service')", 5000);
@@ -640,7 +640,15 @@
 		    	  		var dataObj = msg;
 		    	  		if(dataObj["disk"] != undefined ){
 		    	  			$("#service_disk").html(dataObj["disk"]+"M")
-		    	  			$("#service_memory").html(dataObj["memory"]+"M")
+		    	  			var total_memory = dataObj["disk_memory"] + dataObj["memory"]
+		    	  			if($("#service_status").html() == "运行中"){
+		    	  				$("#service_memory").html(total_memory+"M")
+		    	  			}else if($("#service_status").html() == "部署中"){
+		    	  				$("#service_memory").html(total_memory+"M")
+		    	  			}else{
+		    	  				$("#service_memory").html(dataObj["disk_memory"]+"M")
+		    	  			}
+		    	  			$("#service_memory").html(total_memory+"M")
 		    	  			if(dataObj["bytesin"] > dataObj["bytesout"]){
 		    	  				$("#service_network").html(dataObj["bytesin"]+"K")
 			    	  		}else{
