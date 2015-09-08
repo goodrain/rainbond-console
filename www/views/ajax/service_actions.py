@@ -510,8 +510,9 @@ class ServiceNetAndDisk(AuthedView):
             result["bytesout"] = 0
             result["disk_memory"] = 0
             
-            tenantServiceStatics = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('ID')[0:1]
-            if tenantServiceStatics is not None:
+            tenantServiceStaticsList = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('ID')[0:1]
+            if tenantServiceStaticsList is not None and len(tenantServiceStaticsList) > 0 :
+                tenantServiceStatics = tenantServiceStaticsList[0]
                 storageDisk = tenantServiceStatics.storage_disk + self.service.min_node * 200
                 result["disk"] = storageDisk
                 result["bytesin"] = tenantServiceStatics.net_in
@@ -569,7 +570,6 @@ class ServiceCheck(AuthedView):
         task["tube"] = "code_check"
         task["data"] = data
         task["service_id"] = self.service.service_id
-        logger.debug(json.dumps(task))
         regionClient.writeToRegionBeanstalk(self.tenant.region, self.service.service_id, json.dumps(task))
     
     @perm_required('manage_service')
