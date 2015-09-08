@@ -67,7 +67,7 @@ class AppCreateView(AuthedView):
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
             
-            if self.tenant.service_status == 2:
+            if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
                   
@@ -244,7 +244,7 @@ class AppDependencyCodeView(AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
-            if self.tenant.service_status == 2:
+            if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
             

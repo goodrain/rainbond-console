@@ -27,7 +27,7 @@ class AppDeploy(AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         data = {}
-        if self.tenant.service_status == 2:
+        if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
             data["status"] = "owed"
             return JsonResponse(data, status=200)
         
@@ -62,7 +62,7 @@ class AppDeploy(AuthedView):
             temData["status"] = old_status
             regionClient.updateTenantServiceStatus(self.tenant.region, service_id, json.dumps(temData))
             return JsonResponse(data, status=200)
-            
+        
         try:
             data = {}
             data["log_msg"] = "开始部署......"
@@ -117,7 +117,7 @@ class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        if self.tenant.service_status == 2:
+        if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
             result["status"] = "owed"
             return JsonResponse(result, status=200)
         
@@ -198,7 +198,7 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        if self.tenant.service_status == 2:
+        if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
             result["status"] = "owed"
             return JsonResponse(result, status=200)
         oldVerion = self.service.deploy_version
@@ -354,7 +354,7 @@ class AllServiceInfo(AuthedView):
                             else:
                                 service_ids.append(s['service_id'])        
             if len(service_ids) > 0:
-                if self.tenant.service_status == 2:
+                if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
                     for sid in service_ids:
                         child = {}
                         child["status"] = "Owed"
@@ -451,7 +451,7 @@ class ServiceDetail(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            if self.tenant.service_status == 2:
+            if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
             else:

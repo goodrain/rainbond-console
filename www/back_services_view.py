@@ -87,14 +87,11 @@ class ServiceMarketDeploy(AuthedView):
         service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
         result = {}
         try:
-            tenant_id = self.tenant.tenant_id
-            if tenant_id == "" or self.user.pk == "":
-                result["status"] = "failure"
-                return JsonResponse(result, status=200)            
-            
-            if self.tenant.service_status == 2:
+            if self.tenant.service_status == 2  and self.tenant.pay_type == "payed":
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
+            
+            tenant_id = self.tenant.tenant_id
             
             service_key = request.POST.get("service_key", "")
             if service_key == "":
