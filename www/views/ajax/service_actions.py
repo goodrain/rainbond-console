@@ -509,6 +509,7 @@ class ServiceNetAndDisk(AuthedView):
             result["disk"] = 0
             result["bytesin"] = 0
             result["bytesout"] = 0
+            result["disk_memory"] = 0
             
             tenantServiceStatics = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('ID').latest()
             if tenantServiceStatics is not None:
@@ -519,8 +520,7 @@ class ServiceNetAndDisk(AuthedView):
                 max_net = tenantServiceStatics.net_in
                 if tenantServiceStatics.net_in < tenantServiceStatics.net_out:
                     max_net = tenantServiceStatics.net_out
-                if tenantServiceStatics.status > 0 :
-                    result["disk_memory"] = storageDisk * 0.01 + max_net
+                result["disk_memory"] = storageDisk * 0.01 + max_net
         except Exception, e:
             logger.exception(e)
         return JsonResponse(result)
