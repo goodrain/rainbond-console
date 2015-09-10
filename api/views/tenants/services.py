@@ -238,7 +238,7 @@ class TenantView(APIView):
         tenant_name = request.data.get('tenant_name', "")
         data = {}
         try:
-            if region != "":
+            if tenant_name != "":
                 tenant = Tenants.objects.get(tenant_name=tenant_name)
                 data["tenant_id"] = tenant.tenant_id
                 data["tenant_name"] = tenant.tenant_name
