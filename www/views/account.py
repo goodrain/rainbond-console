@@ -234,7 +234,10 @@ class PasswordResetMethodSelect(BaseView):
             timestamp = str(int(time.time()))
             tag = AuthCode.encode(','.join([self.user.email, timestamp]), 'password')
             link_url = 'http://{0}/account/reset_password?tag={1}'.format(domain, tag)
-            send_reset_pass_mail(self.user.email, link_url)
+            try:
+                send_reset_pass_mail(self.user.email, link_url)
+            except Exception, e:
+                logger.exception(e)
             mail_address = 'http://mail.' + self.user.email.split('@')[1]
             return TemplateResponse(self.request, 'www/account/email_sended.html', {"safe_email": self.user.safe_email, "mail_address": mail_address})
         return self.get_response()
