@@ -9,8 +9,8 @@ urlpatterns = patterns(
     url(r'^tenants/services/statics$', TenantServiceStaticsView.as_view()),
     url(r'^tenants/services/hibernate$', TenantHibernateView.as_view()),
     url(r'^tenants/services/close-restart$', TenantCloseRestartView.as_view()),
-    url(r'^tenants/member', TenantView.as_view()),
-    url(r'^tenants/members', AllTenantView.as_view()),
+    url(r'^tenants/member$', TenantView.as_view()),
+    url(r'^tenants/all-members$', AllTenantView.as_view()),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^docs/', include('rest_framework_swagger.urls')),
 )

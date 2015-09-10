@@ -250,9 +250,7 @@ class TenantView(APIView):
         try:
             print request.data
             tenant_id = request.data.get('tenant_id', "")
-            tenant_name = request.data.get('tenant_name', "")  
-            logger.debug(tenant_id)
-            logger.debug(tenant_name)
+            tenant_name = request.data.get('tenant_name', "")
             tenant = None
             if tenant_id != "":
                 tenant = Tenants.objects.get(tenant_id=tenant_id)
