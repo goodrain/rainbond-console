@@ -185,7 +185,7 @@ class TenantView(APIView):
     '''
     租户信息
     '''
-    allowed_methods = ('post',)
+    allowed_methods = ('post', 'get')
         
     def post(self, request, format=None):
         """
@@ -219,6 +219,32 @@ class TenantView(APIView):
                 if len(tenantList) > 0:
                     for tenant in tenantList:
                         data[tenant.tenant_id] = tenant.tenant_name
+        except Exception as e:
+            logger.error(e)
+        return Response(data, status=200)
+    
+    def get(self, request, format=None):
+        """
+        获取租户信息
+        ---
+        parameters:
+            - name: tenant_name
+              description: 租户名
+              required: true
+              type: string
+              paramType: form
+            
+        """
+        tenant_name = request.data.get('tenant_name', "")
+        data = {}
+        try:
+            if region != "":
+                tenant = Tenants.objects.get(tenant_name=tenant_name)
+                data["tenant_id"] = tenant.tenant_id
+                data["tenant_name"] = tenant.tenant_name
+                data["region"] = tenant.region
+                data["service_status"] = tenant.service_status
+                data["pay_type"] = tenant.pay_type
         except Exception as e:
             logger.error(e)
         return Response(data, status=200)
