@@ -223,7 +223,7 @@ class TenantView(APIView):
             logger.error(e)
         return Response(data, status=200)
     
-    def get(self, request, format=None):
+    def get(self, request, tenant_name, format=None):
         """
         获取租户信息
         ---
@@ -232,10 +232,9 @@ class TenantView(APIView):
               description: 租户名
               required: true
               type: string
-              paramType: form
+              paramType: path
             
         """
-        tenant_name = request.data.get('tenant_name', "")
         data = {}
         try:
             if tenant_name != "":
