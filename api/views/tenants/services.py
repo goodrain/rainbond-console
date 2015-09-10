@@ -181,3 +181,44 @@ class TenantCloseRestartView(APIView):
             logger.error(e)
         return Response({"ok": True}, status=200)
     
+class TenantView(APIView):
+    '''
+    租户信息
+    '''
+    allowed_methods = ('post',)
+        
+    def post(self, request, format=None):
+        """
+        获取租户信息
+        ---
+        parameters:
+            - name: service_status
+              description: 服务状态
+              required: true
+              type: string
+              paramType: form
+            - name: pay_type
+              description: 租户类型
+              required: true
+              type: string
+              paramType: form
+            - name: region
+              description: 区域中心
+              required: true
+              type: string
+              paramType: form
+            
+        """
+        service_status = request.data.get('service_status', "1")
+        pay_type = request.data.get('pay_type', "free")
+        region = request.data.get('region', "")
+        data = {}
+        try:
+            if region != "":
+                tenantList = Tenants.objects.filter(service_status=service_status, pay_type=pay_type, region=region)
+                if len(tenantList) > 0:
+                    for tenant in tenantList:
+                        data[tenant.tenant_id] = tenant.tenant_name
+        except Exception as e:
+            logger.error(e)
+        return Response(data, status=200)
