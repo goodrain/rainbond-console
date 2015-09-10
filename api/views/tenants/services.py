@@ -45,7 +45,7 @@ class TenantServiceStaticsView(APIView):
                     ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num, node_memory=node_memory, time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in, net_out=net_out, status=runing_status)
                     ts.save()
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)
         return Response({"ok": True}, status=200)
 
 class TenantHibernateView(APIView):
@@ -90,7 +90,7 @@ class TenantHibernateView(APIView):
                 else:
                     logger.debug(tenant.tenant_name + " not paused")
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
         return Response({"ok": True}, status=200)
     
     def post(self, request, format=None):
@@ -129,7 +129,7 @@ class TenantHibernateView(APIView):
                 else:
                     logger.debug(tenant.tenant_name + " not paused")
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
         return Response({"ok": True}, status=200)
     
     
@@ -178,18 +178,18 @@ class TenantCloseRestartView(APIView):
                     tenant.service_status = 1
                     tenant.save()
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
         return Response({"ok": True}, status=200)
     
-class TenantView(APIView):
+class AllTenantView(APIView):
     '''
     租户信息
     '''
-    allowed_methods = ('post', 'get')
+    allowed_methods = ('post',)
         
     def post(self, request, format=None):
         """
-        获取租户信息
+        获取所有租户信息
         ---
         parameters:
             - name: service_status
@@ -223,27 +223,48 @@ class TenantView(APIView):
             logger.error(e)
         return Response(data, status=200)
     
-    def get(self, request, tenant_name, format=None):
+    
+class TenantView(APIView):
+    '''
+    租户信息
+    '''
+    allowed_methods = ('post',)   
+    def post(self, request, format=None):
         """
-        获取租户信息
+        获取某个租户信息(tenant_id或者tenant_name)
         ---
         parameters:
+            - name: tenant_id
+              description: 租户ID
+              required: false
+              type: string
+              paramType: form
             - name: tenant_name
               description: 租户名
-              required: true
+              required: false
               type: string
-              paramType: path
+              paramType: form
             
         """
         data = {}
         try:
-            if tenant_name != "":
-                tenant = Tenants.objects.get(tenant_name=tenant_name)
+            print request.data
+            tenant_id = request.data.get('tenant_id', "")
+            tenant_name = request.data.get('tenant_name', "")  
+            logger.debug(tenant_id)
+            logger.debug(tenant_name)
+            tenant = None
+            if tenant_id != "":
+                tenant = Tenants.objects.get(tenant_id=tenant_id)
+            if tenant is None:
+                if tenant_name != "":
+                    tenant = Tenants.objects.get(tenant_name=tenant_name)
+            if tenant is not None:
                 data["tenant_id"] = tenant.tenant_id
                 data["tenant_name"] = tenant.tenant_name
                 data["region"] = tenant.region
                 data["service_status"] = tenant.service_status
                 data["pay_type"] = tenant.pay_type
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
         return Response(data, status=200)
