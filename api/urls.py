@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, url, include
 
 from api.views.services import SelectedServiceView
-from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantCloseRestartView
+from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantCloseRestartView, TenantView
 
 urlpatterns = patterns(
     '',
