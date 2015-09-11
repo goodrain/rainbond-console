@@ -514,7 +514,7 @@ class ServiceNetAndDisk(AuthedView):
             tenantServiceStaticsList = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('-ID')[0:1]
             if tenantServiceStaticsList is not None and len(tenantServiceStaticsList) > 0 :
                 tenantServiceStatics = tenantServiceStaticsList[0]
-                storageDisk = tenantServiceStatics.storage_disk + self.service.min_node * 200
+                storageDisk = tenantServiceStatics.storage_disk
                 result["disk"] = storageDisk
                 result["bytesin"] = tenantServiceStatics.net_in
                 result["bytesout"] = tenantServiceStatics.net_out
