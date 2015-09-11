@@ -2,9 +2,8 @@
 from functools import update_wrapper
 from django.forms import Media
 from django.http import Http404
-from django.utils.decorators import method_decorator, classonlymethod
+from django.utils.decorators import classonlymethod
 from django.views.generic import View
-from django.contrib.auth.decorators import login_required
 
 from django.conf import settings
 
@@ -17,9 +16,14 @@ from goodrain_web.errors import PermissionDenied
 from www.perms import check_perm
 from www.models import Tenants, TenantServiceInfo
 
+import logging
+
+logger = logging.getLogger('default')
+
 
 class BaseObject(object):
     #@filter_hook
+
     def get_context(self):
         return {'media': self.media}
 
@@ -47,6 +51,7 @@ class BaseObject(object):
 
 
 class BaseView(BaseObject, View):
+
     def __init__(self, request, *args, **kwargs):
         self.request = request
         self.request_method = request.method.lower()
@@ -82,6 +87,7 @@ class BaseView(BaseObject, View):
 
 
 class AuthedView(BaseView):
+
     def __init__(self, request, *args, **kwargs):
         self.tenantName = kwargs.get('tenantName', None)
         self.serviceAlias = kwargs.get('serviceAlias', None)
@@ -90,12 +96,14 @@ class AuthedView(BaseView):
             try:
                 self.tenant = Tenants.objects.get(tenant_name=self.tenantName)
             except Tenants.DoesNotExist:
+                logger.error("Tenant {0} is not exists".format(self.tenantName))
                 raise Http404
 
             if self.serviceAlias is not None:
                 try:
                     self.service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=self.serviceAlias)
                 except TenantServiceInfo.DoesNotExist:
+                    logger.debug("Tenant {0} ServiceAlias {1} is not exists".format(self.tenantName, self.serviceAlias))
                     raise Http404
 
         BaseView.__init__(self, request, *args, **kwargs)
