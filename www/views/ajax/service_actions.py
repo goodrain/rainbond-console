@@ -440,7 +440,7 @@ class AllTenantsUsedResource(AuthedView):
                     max_net = net_out
                     if net_in > net_out:
                         max_net = net_in
-                    result[service_id + "_storage_memory"] = int((storageDisk + node_num * 200) * 0.01 + max_net)
+                    result[service_id + "_storage_memory"] = int(storageDisk * 0.01) + max_net
         except Exception as e:
             logger.exception(e)
         return JsonResponse(result)
@@ -521,7 +521,7 @@ class ServiceNetAndDisk(AuthedView):
                 max_net = tenantServiceStatics.net_in
                 if tenantServiceStatics.net_in < tenantServiceStatics.net_out:
                     max_net = tenantServiceStatics.net_out
-                result["disk_memory"] = storageDisk * 0.01 + max_net
+                result["disk_memory"] = int(storageDisk * 0.01) + max_net
         except Exception, e:
             logger.exception(e)
         return JsonResponse(result)
