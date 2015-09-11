@@ -9,11 +9,23 @@ logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 
+
 class SelectedServiceView(APIView):
+
     '''
     对单个服务的动作
     '''
     allowed_methods = ('PUT',)
+
+    def get(self, request, serviceId, format=None):
+        """
+        查看服务属性
+        """
+        try:
+            TenantServiceInfo.objects.get(service_id=serviceId)
+            return Response({"ok": True}, status=200)
+        except TenantServiceInfo.DoesNotExist, e:
+            return Response({"ok": False, "reason": e.__str__()}, status=404)
 
     def put(self, request, serviceId, format=None):
         """
@@ -35,4 +47,4 @@ class SelectedServiceView(APIView):
             return Response({"ok": True}, status=201)
         except TenantServiceInfo.DoesNotExist, e:
             logger.error(e)
-            return Response({"ok": False, "reason": e}, status=404)
+            return Response({"ok": False, "reason": e.__str__()}, status=404)

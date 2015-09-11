@@ -47,7 +47,7 @@ SECRET_KEY = 'hd_279hu4@3^bq&8w5hm_l$+xrip$_r8vh5t%ru(q8#!rauoj1'
 # SECURITY WARNING: don't run with debug turned on in production!
 ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io']
 
-AUTHENTICATION_BACKENDS = ('www.auth.backends.ModelBackend',)
+AUTHENTICATION_BACKENDS = ('www.auth.backends.ModelBackend', 'django.contrib.auth.backends.ModelBackend')
 
 LOGIN_URL = '/login'
 
@@ -62,6 +62,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'crispy_forms',
     'rest_framework',
+    'rest_framework.authtoken',
     'rest_framework_swagger',
     'www',
     'api',
@@ -123,6 +124,16 @@ EMAIL_HOST_PASSWORD = 'Thaechee3moo'
 EMAIL_USE_SSL = True
 
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+
+REST_FRAMEWORK = {
+    #'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    'DEFAULT_PERMISSION_CLASSES': (),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    'PAGE_SIZE': 10
+}
 
 LOGGING = {
     'version': 1,
