@@ -125,7 +125,7 @@ class ServiceManage(AuthedView):
         if oldVerion is not None and oldVerion != "":      
             curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             diffsec = int(curVersion) - int(oldVerion)
-            if diffsec <= 180:
+            if diffsec <= 60:
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
 
