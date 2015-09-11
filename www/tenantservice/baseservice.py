@@ -112,7 +112,9 @@ class BaseTenantService(object):
         data["domain"] = domain
         data["category"] = newTenantService.category
         data["protocol"] = newTenantService.protocol        
+        logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
+        logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         
     def record_service_log(self, user_pk, user_nike_name, service_id, tenant_id):
         log = {}
@@ -146,7 +148,9 @@ class BaseTenantService(object):
         task["dps_service_id"] = dep_service_id
         task["tenant_id"] = tenant_id
         task["data"] = data
+        logger.debug(tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.createServiceDependency(region, service_id, json.dumps(task))
+        logger.debug(tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         tsr = TenantServiceRelation()
         tsr.tenant_id = tenant_id
         tsr.service_id = service_id
