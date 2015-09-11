@@ -282,7 +282,6 @@ class RegisterForm(forms.Form):
     machine_region = forms.ChoiceField(
         label="",
         choices=(
-            ('1', '数据中心'),
             ('ucloud-bj-1', 'Ucloud[北京]'),
             ('aws-bj-1', '亚马逊[北京]'),
             ('0', {'label':'DigitalOcean[新加坡](正在建设)', 'disabled': True}),
@@ -334,7 +333,7 @@ class RegisterForm(forms.Form):
                 # Field('tenant', css_class="form-control teamdomain", placeholder='团队域名'),
                 AppendedText('tenant', '.goodrain.net', placeholder='团队域名', css_class='teamdomain'),
 
-                Field('machine_region'),
+                AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'), Field(''),
                 # HTML('<input type="text" name="tenant" id="tenant" value="" class="teamdomain" placeholder="团队域名"> .goodrain.net'),
                 Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                 Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
