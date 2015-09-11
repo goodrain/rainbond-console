@@ -5,9 +5,10 @@ from goodrain_web.base import BaseHttpClient
 
 
 class RegionApi(BaseHttpClient):
+
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
-        self.default_headers = {'Content-Type': 'application/json'}
+        self.default_headers = {'Content-Type': 'application/json', "Authorization": "Token 5ca196801173be06c7e6ce41d5f7b3b8071e680a"}
         self.region_map = {}
         region_service_infos = settings.REGION_SERVICE_API
         for region_service_info in region_service_infos:
