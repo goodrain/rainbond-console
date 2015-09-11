@@ -1,6 +1,10 @@
 # -*- coding: utf8 -*-
 import re
 from django import forms
+from django.forms.widgets import Select
+from django.utils.encoding import force_unicode
+from django.utils.html import escape, conditional_escape
+
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Div, Fieldset, ButtonHolder, HTML, Row
 from crispy_forms.bootstrap import (AppendedText, FieldWithButtons, StrictButton, InlineField,
@@ -54,6 +58,23 @@ def is_account(value):
     if valid is False:
         raise error
 
+
+class SelectWithDisabled(Select):
+    
+    def render_option(self, selected_choices, option_value, option_label):
+        option_value = force_unicode(option_value)
+        if (option_value in selected_choices):
+            selected_html = u' selected="selected"'
+        else:
+            selected_html = ''
+        disabled_html = ''
+        if isinstance(option_label, dict):
+            if dict.get(option_label, 'disabled'):
+                disabled_html = u' disabled="disabled"'
+            option_label = option_label['label']
+        return u'<option value="%s"%s%s>%s</option>' % (
+            escape(option_value), selected_html, disabled_html,
+            conditional_escape(force_unicode(option_label)))
 
 class UserLoginForm(forms.Form):
 
@@ -261,10 +282,13 @@ class RegisterForm(forms.Form):
     machine_region = forms.ChoiceField(
         label="",
         choices=(
-            ('1', '机房'),
-            ('ucloud-bj-1', 'UCloud北京'),
+            ('1', '数据中心'),
+            ('ucloud-bj-1', 'Ucloud[北京]'),
+            ('aws-bj-1', '亚马逊[北京]'),
+            ('0', {'label':'DigitalOcean[新加坡](正在建设)', 'disabled': True}),
         ),
-        widget=forms.Select
+        initial='1',
+        widget=SelectWithDisabled
     )
 
     error_messages = {
@@ -276,7 +300,7 @@ class RegisterForm(forms.Form):
         'phone_empty': u"手机号为空",
         'phone_code_error': u"手机验证码已失效",
         'captcha_code_error': u"验证码有误",
-        'machine_region_error': u"请选择机房",
+        'machine_region_error': u"请选择数据中心",
     }
 
     def __init__(self, *args, **kwargs):
