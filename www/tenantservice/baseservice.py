@@ -207,7 +207,7 @@ class TenantUsedResource(object):
         if tenant.pay_type == "free":
             tm = self.calculate_real_used_resource(tenant) + newAddMemory
             logger.debug(tenant.tenant_id + " used memory " + str(tm))
-            if tm < tenant.limit_memory:
+            if tm <= tenant.limit_memory:
                result = True
         elif tenant.pay_type == "payed":
             tm = self.calculate_real_used_resource(tenant) + newAddMemory
