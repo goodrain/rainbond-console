@@ -96,7 +96,7 @@ def return_url(request, tenantName):
                         openServiceTag = False
             # if stop service,need to open
             tenantNew = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
-            if tenantNew.service_status == 2 and openServiceTag and last_money < temTenant.balance:
+            if tenantNew.service_status == 2 and openServiceTag and last_money < tenantNew.balance:
                 tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenantRecharge.tenant_id)
                 if len(tenantServices) > 0:
                     for tenantService in tenantServices:
