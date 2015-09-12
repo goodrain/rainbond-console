@@ -239,7 +239,7 @@ class TenantServiceInfo(BaseModel):
     is_web_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否web服务")
     version = models.CharField(max_length=20, help_text=u"版本")
-    image = models.CharField(max_length=50, help_text=u"镜像")
+    image = models.CharField(max_length=100, help_text=u"镜像")
     cmd = models.CharField(
         max_length=100, null=True, blank=True, help_text=u"启动参数")
     setting = models.CharField(
