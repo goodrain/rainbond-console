@@ -29,8 +29,9 @@ gitHubClient = GitHubApi()
 
 regionClient = RegionServiceApi()
 
+
 class AppCreateView(AuthedView):
-    
+
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
@@ -42,10 +43,10 @@ class AppCreateView(AuthedView):
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         try:
-            context = self.get_context()            
+            context = self.get_context()
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList                
+            context["tenantServiceList"] = tenantServiceList
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"
             request.session["app_tenant"] = self.tenantName
@@ -56,7 +57,7 @@ class AppCreateView(AuthedView):
     @never_cache
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
-        
+
         service_alias = ""
         uid = str(uuid.uuid4())
         service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
@@ -66,11 +67,11 @@ class AppCreateView(AuthedView):
             if tenant_id == "" or self.user.pk == "":
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
-            
+
             if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
-                  
+
             service_desc = ""
             service_alias = request.POST.get("create_app_name", "")
             service_code_from = request.POST.get("service_code_from", "")
@@ -79,7 +80,7 @@ class AppCreateView(AuthedView):
                 return JsonResponse(data, status=200)
             if service_alias is None or service_alias == "":
                 data["status"] = "empty"
-                return JsonResponse(data, status=200)   
+                return JsonResponse(data, status=200)
             service_alias = service_alias.lower()
             # get base service
             service = ServiceInfo.objects.get(service_key="application")
@@ -88,22 +89,22 @@ class AppCreateView(AuthedView):
             if num > 0:
                 data["status"] = "exist"
                 return JsonResponse(data, status=200)
-            
+
             # calculate resource
             tenantUsedResource = TenantUsedResource()
-            flag = tenantUsedResource.predict_next_memory(self.tenant, service.min_memory) 
+            flag = tenantUsedResource.predict_next_memory(self.tenant, service.min_memory)
             if not flag:
                 if self.tenant.pay_type == "free":
                     data["status"] = "over_memory"
                 else:
                     data["status"] = "over_money"
                 return JsonResponse(data, status=200)
-                                        
+
             # create console service
             baseService = BaseTenantService()
             service.desc = service_desc
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
-                    
+
             # code repos
             if service_code_from == "gitlab_new":
                 project_id = 0
@@ -112,14 +113,14 @@ class AppCreateView(AuthedView):
                     logger.debug(project_id)
                     if project_id > 0:
                         gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
-                        gitClient.addProjectMember(project_id, 2, 20)                                        
+                        gitClient.addProjectMember(project_id, 2, 20)
                         ts = TenantServiceInfo.objects.get(service_id=service_id)
                         ts.git_project_id = project_id
                         ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + service_alias + ".git"
                         ts.code_from = service_code_from
                         ts.code_version = "master"
-                        ts.save()  
-                        gitClient.createWebHook(project_id)         
+                        ts.save()
+                        gitClient.createWebHook(project_id)
             elif service_code_from == "gitlab_exit":
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
@@ -134,12 +135,12 @@ class AppCreateView(AuthedView):
                 ts.code_from = service_code_from
                 ts.code_version = code_version
                 ts.save()
-                                
+
                 data = {}
                 data["tenant_id"] = ts.tenant_id
                 data["service_id"] = ts.service_id
                 data["git_url"] = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
-                
+
                 task = {}
                 task["tube"] = "code_check"
                 task["service_id"] = ts.service_id
@@ -164,7 +165,7 @@ class AppCreateView(AuthedView):
                 code_project_name = code_clone_url.split("/")[4].split(".")[0]
                 createUser = Users.objects.get(user_id=ts.creater)
                 gitHubClient.createReposHook(code_user, code_project_name, createUser.github_token)
-                
+
                 data = {}
                 data["tenant_id"] = ts.tenant_id
                 data["service_id"] = ts.service_id
@@ -174,12 +175,12 @@ class AppCreateView(AuthedView):
                 task["data"] = data
                 task["tube"] = "code_check"
                 task["service_id"] = ts.service_id
-                logger.debug(json.dumps(task))                
+                logger.debug(json.dumps(task))
                 regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
-        
+
             # create region tenantservice
             baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
-            
+
             # record log
             data = {}
             data["log_msg"] = "应用创建成功"
@@ -190,10 +191,10 @@ class AppCreateView(AuthedView):
             task["service_id"] = newTenantService.service_id
             task["tube"] = "app_log"
             regionClient.writeToRegionBeanstalk(self.tenant.region, newTenantService.service_id, json.dumps(task))
-            
+
             data["status"] = "success"
             data["service_alias"] = service_alias
-            data["service_id"] = service_id 
+            data["service_id"] = service_id
         except Exception as e:
             logger.exception(e)
             TenantServiceInfo.objects.get(service_id=service_id).delete()
@@ -201,8 +202,9 @@ class AppCreateView(AuthedView):
             data["status"] = "failure"
         return JsonResponse(data, status=200)
 
+
 class AppDependencyCodeView(AuthedView):
-    
+
     def get_service_list(self):
         baseService = BaseTenantService()
         services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
@@ -211,34 +213,34 @@ class AppDependencyCodeView(AuthedView):
                 s.is_selected = True
                 break
         return services
-    
+
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js', 'www/js/app-dependency.js')
         return media
-    
+
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         try:
-            context = self.get_context()           
+            context = self.get_context()
             context["myAppStatus"] = "active"
-            context["tenantServiceList"] = self.get_service_list()                
+            context["tenantServiceList"] = self.get_service_list()
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
-            
+
             cacheServiceList = ServiceInfo.objects.filter(status="published", category__in=["cache", "store"])
             context["cacheServiceList"] = cacheServiceList
-            
+
             tenant_id = self.tenant.tenant_id
             deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
-            context["deployTenantServices"] = deployTenantServices 
+            context["deployTenantServices"] = deployTenantServices
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_2_dependency.html", context)
-    
+
     @never_cache
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
@@ -247,37 +249,38 @@ class AppDependencyCodeView(AuthedView):
             if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
-            
+
             tenant_id = self.tenant.tenant_id
             service_alias = self.service.service_alias
             service_id = self.service.service_id
-             # create service dependency
+            # create service dependency
             createService = request.POST.get("createService", "")
-            logger.debug(createService)            
+            logger.debug(createService)
             if createService is not None and createService != "":
                 serviceKeys = createService.split(",")
                 # resource check
                 tenantUsedResource = TenantUsedResource()
-                flag = tenantUsedResource.predict_next_memory(self.tenant, self.service.min_memory + len(serviceKeys) * 128) 
+                flag = tenantUsedResource.predict_next_memory(self.tenant, self.service.min_memory + len(serviceKeys) * 128)
                 if not flag:
                     if self.tenant.pay_type == "free":
                         data["status"] = "over_memory"
                     else:
                         data["status"] = "over_money"
                     return JsonResponse(data, status=200)
-                
+
                 # create service
-                baseService = BaseTenantService()                
+                baseService = BaseTenantService()
                 for skey in serviceKeys:
                     try:
                         dep_service = ServiceInfo.objects.get(service_key=skey)
                         tempUuid = str(uuid.uuid4()) + skey
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
-                        depTenantService = baseService.create_service(dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
+                        depTenantService = baseService.create_service(
+                            dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
                         baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.tenant.region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.tenant.region)
                     except Exception as e:
-                       logger.exception(e)
+                        logger.exception(e)
             # exist service dependency.
             hasService = request.POST.get("hasService", "")
             logger.debug(hasService)
@@ -286,17 +289,18 @@ class AppDependencyCodeView(AuthedView):
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
-                        baseService.create_service_dependency(tenant_id, service_id, sid, self.tenant.region) 
+                        baseService.create_service_dependency(tenant_id, service_id, sid, self.tenant.region)
                     except Exception as e:
-                       logger.exception(e)
+                        logger.exception(e)
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)
             data["status"] = "failure"
         return JsonResponse(data, status=200)
-      
+
+
 class AppWaitingCodeView(AuthedView):
-    
+
     def get_service_list(self):
         baseService = BaseTenantService()
         services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
@@ -305,27 +309,27 @@ class AppWaitingCodeView(AuthedView):
                 s.is_selected = True
                 break
         return services
-    
+
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js', 'www/js/app-waiting.js')
         return media
-    
+
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         try:
             # if self.service.language != "" and self.service.language is not None:
             #    return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
-            
-            context = self.get_context()      
+
+            context = self.get_context()
             context["myAppStatus"] = "active"
-            context["tenantServiceList"] = self.get_service_list()                
+            context["tenantServiceList"] = self.get_service_list()
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
-            
+
             httpGitUrl = ""
             if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
                 cur_git_url = self.service.git_url.split("/")
@@ -333,8 +337,9 @@ class AppWaitingCodeView(AuthedView):
             else:
                 httpGitUrl = self.service.git_url
             context["httpGitUrl"] = httpGitUrl
-            
-            tenantServiceRelations = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+
+            tenantServiceRelations = TenantServiceRelation.objects.filter(
+                tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
             if len(tenantServiceRelations) > 0:
                 dpsids = []
                 for tsr in tenantServiceRelations:
@@ -350,9 +355,10 @@ class AppWaitingCodeView(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_3_waiting.html", context)
-    
+
+
 class AppLanguageCodeView(AuthedView):
-    
+
     def get_service_list(self):
         baseService = BaseTenantService()
         services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
@@ -361,14 +367,14 @@ class AppLanguageCodeView(AuthedView):
                 s.is_selected = True
                 break
         return services
-    
+
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js', 'www/js/app-language.js')
         return media
-    
+
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
@@ -376,7 +382,7 @@ class AppLanguageCodeView(AuthedView):
         try:
             if self.service.language == "" or self.service.language is None:
                 return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-            
+
             tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             if tenantServiceEnv.user_dependency is not None and tenantServiceEnv.user_dependency != "":
                 return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
@@ -396,6 +402,9 @@ class AppLanguageCodeView(AuthedView):
         except Exception as e:
             logger.exception(e)
         if self.service.language == 'docker':
+            self.service.cmd = ''
+            self.service.save()
+            regionClient.update_service(self.tenant.region, self.service.service_id, {"cmd": ""})
             return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
 
@@ -426,8 +435,8 @@ class AppLanguageCodeView(AuthedView):
                         d["ext-" + dp] = "*"
                 checkJson["dependencies"] = d
             else:
-                checkJson["dependencies"] = {}            
-            
+                checkJson["dependencies"] = {}
+
             tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             tenantServiceEnv.user_dependency = json.dumps(checkJson)
             tenantServiceEnv.save()
@@ -436,12 +445,14 @@ class AppLanguageCodeView(AuthedView):
             logger.exception(e)
             data["status"] = "failure"
         return JsonResponse(data, status=200)
-    
+
+
 class GitLabWebHook(BaseView):
+
     @never_cache
     def post(self, request, *args, **kwargs):
         result = {}
-        try: 
+        try:
             payload = request.body
             payloadJson = json.loads(payload)
             project_id = payloadJson["project_id"]
@@ -470,14 +481,16 @@ class GitLabWebHook(BaseView):
             result["status"] = "failure"
         return HttpResponse(json.dumps(result))
 
+
 class GitHubWebHook(BaseView):
+
     @never_cache
     def post(self, request, *args, **kwargs):
         result = {}
         try:
             # event = request.META['HTTP_X_GITHUB_EVENT']
-            # logger.debug(event)            
-            payload = request.body            
+            # logger.debug(event)
+            payload = request.body
             payloadJson = json.loads(payload)
             repositoryJson = payloadJson["repository"]
             fullname = repositoryJson["full_name"]
@@ -497,7 +510,7 @@ class GitHubWebHook(BaseView):
                     clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
                     gitUrl = "--branch " + ts.code_version + " --depth 1 " + clone_url
                     data["git_url"] = gitUrl
-                    
+
                     task = {}
                     task["service_id"] = ts.service_id
                     task["data"] = data
@@ -511,7 +524,9 @@ class GitHubWebHook(BaseView):
             result["status"] = "failure"
         return HttpResponse(json.dumps(result))
 
+
 class GitCheckCode(BaseView):
+
     @never_cache
     def get(self, request, *args, **kwargs):
         data = {}
@@ -524,9 +539,9 @@ class GitCheckCode(BaseView):
                 if result is not None and result != "":
                     data = json.loads(result)
         except Exception as e:
-            logger.exception(e)            
+            logger.exception(e)
         return JsonResponse(data, status=200)
-        
+
     @never_cache
     def post(self, request, *args, **kwargs):
         result = {}
@@ -542,12 +557,12 @@ class GitCheckCode(BaseView):
                         tse = TenantServiceEnv.objects.get(service_id=service_id)
                         tse.language = language
                         tse.check_dependency = dependency
-                        tse.save() 
+                        tse.save()
                     except Exception:
                         tse = TenantServiceEnv(service_id=service_id, language=language, check_dependency=dependency)
                         tse.save()
                     service = TenantServiceInfo.objects.get(service_id=service_id)
-                    if language != "false" :
+                    if language != "false":
                         if language.find("Java") > -1:
                             service.min_memory = 256
                             data = {}
@@ -561,4 +576,3 @@ class GitCheckCode(BaseView):
             logger.exception(e)
             result["status"] = "failure"
         return HttpResponse(json.dumps(result))
-
