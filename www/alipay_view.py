@@ -2,6 +2,7 @@
 import logging
 import hashlib
 import datetime
+import json
 
 from django.http import HttpResponse, HttpResponseRedirect
 from www.models import TenantRecharge, TenantConsume, TenantServiceInfo
@@ -100,7 +101,11 @@ def return_url(request, tenantName):
                 tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenantRecharge.tenant_id)
                 if len(tenantServices) > 0:
                     for tenantService in tenantServices:
-                        regionClient.restart(tenantNew.region, tenantService.service_id)
+                        tenantService.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                        tenantService.save()
+                        body = {}
+                        body["deploy_version"] = tenantService.deploy_version                
+                        regionClient.restart(tenantNew.region, tenantService.service_id, json.dumps(body))
                 tenantNew.service_status = 1
                 tenantNew.save()
         else:
