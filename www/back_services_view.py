@@ -120,10 +120,13 @@ class ServiceMarketDeploy(AuthedView):
             logger.debug(service.min_memory)       
             createService = request.POST.get("createService", "")
             logger.debug(createService)
-            serviceKeys = createService.split(",")                   
+            dependencyNum = 0            
+            serviceKeys = createService.split(",") 
+            if createService != "":
+                dependencyNum = len(serviceKeys)             
             # calculate resource
             tenantUsedResource = TenantUsedResource()
-            flag = tenantUsedResource.predict_next_memory(self.tenant, len(serviceKeys) * 128 + service.min_memory) 
+            flag = tenantUsedResource.predict_next_memory(self.tenant, dependencyNum * 128 + service.min_memory) 
             if not flag:
                 if self.tenant.pay_type == "free":
                     result["status"] = "over_memory"
