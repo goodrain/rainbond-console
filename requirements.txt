@@ -14,3 +14,4 @@ djangorestframework
 markdown
 django-filter
 django-rest-swagger
+requests
