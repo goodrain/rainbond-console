@@ -158,10 +158,15 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'standard',
         },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        }
     },
     'loggers': {
         'default': {
-            'handlers': ['file_handler'],
+            'handlers': ['console', 'file_handler'],
             'level': 'DEBUG',
             'propagate': True,
         },
