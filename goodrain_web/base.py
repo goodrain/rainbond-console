@@ -6,7 +6,7 @@ import socket
 from addict import Dict
 
 import logging
-logger = logging.getLogger('default')
+logger = logging.getLogger('request_api')
 
 
 class BaseHttpClient(object):

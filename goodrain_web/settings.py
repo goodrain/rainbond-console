@@ -158,6 +158,14 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'standard',
         },
+        'request_api': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/tmp/request.log',
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -170,5 +178,10 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'request_api': {
+            'handlers': ['request_api'],
+            'level': 'DEBUG',
+            'propagate': True,
+        }
     }
 }
