@@ -46,11 +46,19 @@ function getGitCodeCheck() {
 }
 
 function app_create_delete() {
-	var tenantName = $('#tenantName').val();
-	var service_name = $('#service_name').val();
-	if (service_name != "" && service_name != undefined) {
-		var statu = confirm("确定删除当前服务吗?");
-		if (statu) {
+	swal({
+		title: "确定取消当前服务吗？",
+		type: "warning",
+	    showCancelButton: true,
+		confirmButtonColor: "#DD6B55",
+		confirmButtonText: "确定",
+		cancelButtonText: "取消",
+		closeOnConfirm: false,
+		closeOnCancel: false
+	}, function (isConfirm) {
+		if(isConfirm) {
+			var tenantName = $('#tenantName').val();
+			var service_name = $('#service_name').val();
 			$.ajax({
 				type : "POST",
 				url : "/ajax/" + tenantName + "/" + service_name + "/manage/",
@@ -59,13 +67,21 @@ function app_create_delete() {
 				beforeSend : function(xhr, settings) {
 					var csrftoken = $.cookie('csrftoken');
 					xhr.setRequestHeader("X-CSRFToken", csrftoken);
+					swal({
+						title: "正在执行删除操作，请稍候...",
+						text: "5秒后自动关闭",
+						timer: 5000,
+						showConfirmButton : false
+					});
 				},
 				success : function(msg) {
-					var dataObj = msg;
+					var dataObj = msg
 					if (dataObj["status"] == "success") {
 						swal("操作成功");
-						window.location.href = "/apps/" + tenantName;
-					} else if (dataObj["status"] == "dependency") {
+						window.location.href = "/apps/"+tenantName+"/app-create/"
+					} else if (dataObj["status"] == "often") {
+						swal("上次操作正在进行中，稍后再试")
+					}else if (dataObj["status"] == "dependency") {
 						swal("当前服务被依赖不能删除");
 					} else {
 						swal("操作失败");
@@ -74,7 +90,9 @@ function app_create_delete() {
 				error : function() {
 					swal("系统异常");
 				}
-			})
+			});
+		}else{
+			swal.close();
 		}
-	}
+	});
 }
