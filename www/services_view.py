@@ -56,17 +56,7 @@ class TenantServiceAll(AuthedView):
             totalNum = PermRelTenant.objects.filter(tenant_id=self.tenant.ID).count()
             context["totalNum"] = totalNum
             context["curTenant"] = self.tenant
-            tenant_balance = self.tenant.balance
-            if self.tenant.pay_type == "payed":
-                dsn = BaseConnection()
-                query_sql = "select sum(cost_money) as cost_money,sum(payed_money) as payed_money  from tenant_consume where tenant_id='" + self.tenant.tenant_id + "' and pay_status='unpayed'"
-                sqlobj = dsn.query(query_sql)
-                if sqlobj is not None and len(sqlobj) > 0:
-                    cost_money = sqlobj[0]["cost_money"]
-                    payed_money = sqlobj[0]["payed_money"]
-                    if cost_money > 0:
-                        tenant_balance = float(tenant_balance) - float(cost_money) + float(payed_money)
-            context["tenant_balance"] = tenant_balance
+            context["tenant_balance"] = self.tenant.balance
             if self.tenant.service_status == 0:
                 logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
                 regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
