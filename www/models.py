@@ -552,6 +552,8 @@ class TenantPaymentNotify(BaseModel):
     send_person = models.CharField(max_length=20, help_text=u"通知人")
     time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
+    status = models.CharField(
+        max_length=10, help_text=u"有效(valid),无效(unvalid)")
 
 
 class PhoneCode(BaseModel):

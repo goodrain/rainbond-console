@@ -5,7 +5,7 @@ import datetime
 import json
 
 from django.http import HttpResponse, HttpResponseRedirect
-from www.models import TenantRecharge, TenantConsume, TenantServiceInfo
+from www.models import TenantRecharge, TenantConsume, TenantServiceInfo, TenantPaymentNotify
 from www.alipay_direct.alipay_api import *
 from www.models import Tenants, Users
 from django.shortcuts import redirect
@@ -108,6 +108,9 @@ def return_url(request, tenantName):
                         regionClient.restart(tenantNew.region, tenantService.service_id, json.dumps(body))
                 tenantNew.service_status = 1
                 tenantNew.save()
+                # update notify 
+                TenantPaymentNotify.objects.filter(tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
+                
         else:
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
     except Exception as e:
