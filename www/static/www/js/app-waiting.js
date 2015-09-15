@@ -47,7 +47,7 @@ function getGitCodeCheck() {
 
 function app_create_delete() {
 	swal({
-		title: "确定取消当前创建的应用吗？",
+		title: "确定要停止创建当前的应用吗？",
 		type: "warning",
 	    showCancelButton: true,
 		confirmButtonColor: "#DD6B55",
