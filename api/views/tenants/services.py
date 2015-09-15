@@ -72,7 +72,8 @@ class TenantHibernateView(APIView):
         """
         tenant_id = request.data.get('tenant_id', "")
         action = request.data.get('action', "")
-        logger.debug(tenant_id + "==" + action)
+        logger.debug(tenant_id)
+        logger.debug(action)
         try:
             tenant = Tenants.objects.get(tenant_id=tenant_id)
             if action == "pause":
