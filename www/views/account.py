@@ -186,7 +186,7 @@ class PasswordResetMethodSelect(BaseView):
             'account': self.account,
             'methods': [
                 {"value": "email", "desc": "密保邮箱 <%s>" % self.user.safe_email},
-                #{"value": "phone", "desc": self.user.phone},
+                # {"value": "phone", "desc": self.user.phone},
             ],
         })
         return context
@@ -517,7 +517,7 @@ class PhoneCodeView(BaseView):
             return JsonResponse(result)
 
         if phone is not None:
-            r = re.compile(r'^1[358]\d{9}$|^147\d{8}$')
+            r = re.compile(r'^1[3578]\d{9}$|^147\d{8}$')
             if not r.match(phone):
                 result["status"] = "errorphone"
                 return JsonResponse(result)
