@@ -245,11 +245,11 @@ class RegisterForm(forms.Form):
     )
     tenant = forms.CharField(
         required=True, max_length=40, label="",
-        validators=[is_standard_word, is_sensitive]
+        # validators=[is_standard_word, is_sensitive]
     )
     nick_name = forms.CharField(
         required=True, max_length=24, label="",
-        validators=[is_standard_word, is_sensitive]
+        # validators=[is_standard_word, is_sensitive]
     )
     password = forms.CharField(
         required=True, label='',
