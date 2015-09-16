@@ -18,11 +18,20 @@ import time
 import logging
 logger = logging.getLogger('default')
 
+SENSITIVE_WORDS = (
+    'admin', 'root', 'goodrain', 'builder', 'app'
+)
+
 
 def is_standard_word(value):
     r = re.compile(r'^[a-z0-9_\-]+[a-z0-9]$')
     if not r.match(value):
         raise forms.ValidationError(u"允许下列字符: 小写字母 数字 _ -")
+
+
+def is_sensitive(value):
+    if value in SENSITIVE_WORDS:
+        raise forms.ValidationError(u"不允许的用户名")
 
 
 def password_len(value):
@@ -60,7 +69,7 @@ def is_account(value):
 
 
 class SelectWithDisabled(Select):
-    
+
     def render_option(self, selected_choices, option_value, option_label):
         option_value = force_unicode(option_value)
         if (option_value in selected_choices):
@@ -75,6 +84,7 @@ class SelectWithDisabled(Select):
         return u'<option value="%s"%s%s>%s</option>' % (
             escape(option_value), selected_html, disabled_html,
             conditional_escape(force_unicode(option_label)))
+
 
 class UserLoginForm(forms.Form):
 
@@ -235,11 +245,11 @@ class RegisterForm(forms.Form):
     )
     tenant = forms.CharField(
         required=True, max_length=40, label="",
-        validators=[is_standard_word]
+        validators=[is_standard_word, is_sensitive]
     )
     nick_name = forms.CharField(
         required=True, max_length=24, label="",
-        validators=[is_standard_word]
+        validators=[is_standard_word, is_sensitive]
     )
     password = forms.CharField(
         required=True, label='',
@@ -286,7 +296,7 @@ class RegisterForm(forms.Form):
         choices=(
             ('ucloud-bj-1', 'Ucloud[北京]'),
             ('aws-bj-1', '亚马逊[北京]'),
-            ('0', {'label':'DigitalOcean[新加坡](正在建设)', 'disabled': True}),
+            ('0', {'label': 'DigitalOcean[新加坡](正在建设)', 'disabled': True}),
         ),
         initial='1',
         widget=SelectWithDisabled
