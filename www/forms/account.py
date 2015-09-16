@@ -40,7 +40,7 @@ def password_len(value):
 
 
 def is_phone(value):
-    r = re.compile(r'^1[358]\d{9}$|^147\d{8}$')
+    r = re.compile(r'^1[3578]\d{9}$|^147\d{8}$')
     if not r.match(value):
         raise forms.ValidationError(u"请填写正确的手机号")
     return True
