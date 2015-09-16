@@ -164,7 +164,7 @@ function domainSubmit(service_id, tenantName, service_alias) {
 function service_upgrade(tenantName, service_alias) {
 	var service_min_config = $("#serviceMemorys").val();
 	memory = 128 * Math.pow(2, service_min_config - 1)
-	cpu = 100 * Math.pow(2, service_min_config - 1)
+	cpu = 20 * Math.pow(2, service_min_config - 1)
 	$.ajax({
 		type : "post",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade/",
