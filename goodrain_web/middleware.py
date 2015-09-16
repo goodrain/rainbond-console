@@ -6,10 +6,11 @@ logger = logging.getLogger('default')
 
 
 class ErrorPage(object):
+
     def process_exception(self, request, exception):
         logger.exception(exception)
         #content_type = request.META.get('CONTENT_TYPE', "text/plain")
-        #if 'json' in content_type:
+        # if 'json' in content_type:
         #    pass
         error_report = {"ok": False, "reason": exception.__str__(), "exceptionName": exception.__class__.__name__}
         setattr(request, '_error_report', error_report)
@@ -22,6 +23,6 @@ class ErrorPage(object):
             if hasattr(request, '_error_report'):
                 return http.JsonResponse(request._error_report, status=500)
             else:
-                logger.error(response)
+                logger.exception(response)
                 return http.JsonResponse({"ok": False}, status=500)
         return response
