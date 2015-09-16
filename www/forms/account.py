@@ -33,7 +33,6 @@ def is_sensitive(value):
     if value in SENSITIVE_WORDS:
         raise forms.ValidationError(u"不允许的用户名")
 
-
 def password_len(value):
     if len(value) < 8:
         raise forms.ValidationError(u"密码长度至少为8位")
@@ -245,11 +244,11 @@ class RegisterForm(forms.Form):
     )
     tenant = forms.CharField(
         required=True, max_length=40, label="",
-        # validators=[is_standard_word, is_sensitive]
+        validators=[is_standard_word, is_sensitive]
     )
     nick_name = forms.CharField(
         required=True, max_length=24, label="",
-        # validators=[is_standard_word, is_sensitive]
+        validators=[is_standard_word, is_sensitive]
     )
     password = forms.CharField(
         required=True, label='',
@@ -274,20 +273,11 @@ class RegisterForm(forms.Form):
     real_captcha_code = forms.CharField(
         required=True, label='',
     )
+    
     invite_tag = forms.CharField(
         required=False, label='',
     )
-
-    checkboxes = forms.MultipleChoiceField(
-        label="",
-        choices=(
-            (1, '我已阅读并同意好雨云平台使用协议'),
-        ),
-        initial='1',
-        widget=forms.CheckboxSelectMultiple,
-        help_text="",
-    )
-
+    
     # ('aws-bj-1', 'Amazon北京'),
     # ('aws-bj-1', '亚马逊[北京]'),
     # ('0', {'label':'亚马逊[北京](正在建设)', 'disabled': True})
@@ -362,7 +352,7 @@ class RegisterForm(forms.Form):
                 # Field('phone_code', 'Serial #', '<button class=\"btn btn-primary\">获取验证码</button>', css_class="form-control", placeholder='验证码'),
                 # StrictButton('Submit', type='submit', css_class='btn-primary')
                 # FieldWithButtons('phone_code', StrictButton('获取验证码', type='submit', css_class='form-control')),
-                Field('checkboxes', placeholder='机房'),
+                # Field('checkboxes', placeholder='机房'),
 
                 # Field('appended_text'),
                 # PrependedText('appended_text', '我已阅读并同意<a href="" target="_blank">好雨云平台使用协议</a>',active=True),
