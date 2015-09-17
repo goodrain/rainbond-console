@@ -299,7 +299,7 @@ class ServiceUpgrade(AuthedView):
                         logger.exception(e)
                         isResetStatus = True
                         
-                    if isResetStatus:
+                    if isResetStatus or new_node_num < old_min_node :
                         temData["service_id"] = self.service.service_id
                         temData["status"] = old_status
                         regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
