@@ -286,7 +286,7 @@ class RegisterForm(forms.Form):
         label="",
         choices=(
             ('ucloud-bj-1', 'Ucloud[北京]'),
-            #('aws-bj-1', '亚马逊[北京]'),
+            ('aws-bj-1', '亚马逊[北京]'),
             ('0', {'label': 'DigitalOcean[新加坡](正在建设)', 'disabled': True}),
         ),
         initial='1',

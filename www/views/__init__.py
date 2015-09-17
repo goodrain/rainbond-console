@@ -7,3 +7,7 @@ __all__ = ('BaseView', 'AuthedView')
 
 def monitor(request):
     return HttpResponse("ok")
+
+
+def ssl_crv(request):
+    return HttpResponse("JIYNvvgU")
