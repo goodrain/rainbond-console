@@ -305,7 +305,6 @@ class ServiceUpgrade(AuthedView):
                         temData["service_id"] = self.service.service_id
                         temData["status"] = old_status
                         regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
-                        return JsonResponse(result, status=200)
                                         
                 result["status"] = "success"
             except Exception, e:
