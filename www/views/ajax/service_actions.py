@@ -218,7 +218,7 @@ class ServiceUpgrade(AuthedView):
                 old_deploy_version = self.service.deploy_version
                 upgrade_container_memory = int(container_memory)
                 left = upgrade_container_memory % 128
-                if  upgrade_container_memory > 0  and upgrade_container_cpu > 0 and upgrade_container_memory <= 4096 and left == 0:
+                if  upgrade_container_memory > 0 and upgrade_container_memory <= 4096 and left == 0:
                     upgrade_container_cpu = upgrade_container_memory / 128 * 20
                     # temp record service status
                     temData = {}
@@ -288,11 +288,23 @@ class ServiceUpgrade(AuthedView):
                     self.service.min_node = node_num
                     self.service.deploy_version = deploy_version
                     self.service.save()
-                                            
-                    body = {}
-                    body["node_num"] = node_num   
-                    body["deploy_version"] = deploy_version
-                    regionClient.horizontalUpgrade(self.tenant.region, self.service.service_id, json.dumps(body))
+                          
+                    isResetStatus = False    
+                    try:
+                        body = {}
+                        body["node_num"] = node_num   
+                        body["deploy_version"] = deploy_version
+                        regionClient.horizontalUpgrade(self.tenant.region, self.service.service_id, json.dumps(body))
+                    except Exception, e:
+                        logger.exception(e)
+                        isResetStatus = True
+                        
+                    if isResetStatus:
+                        temData["service_id"] = self.service.service_id
+                        temData["status"] = old_status
+                        regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
+                        return JsonResponse(result, status=200)
+                    
                 result["status"] = "success"
             except Exception, e:
                 self.service.min_node = old_min_node
