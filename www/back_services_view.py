@@ -114,7 +114,7 @@ class ServiceMarketDeploy(AuthedView):
             if service_memory != "":
                 cm = int(service_memory)
                 if cm >= 128:
-                    ccpu = int(cm / 128) * 100
+                    ccpu = int(cm / 128) * 20
                     service.min_cpu = ccpu
                     service.min_memory = cm
             logger.debug(service.min_memory)       

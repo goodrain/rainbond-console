@@ -359,6 +359,21 @@
             <div class="col-xs-2 control-label">
               <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
             </div>
+            <div class="col-xs-2 control-label">内存调整</div>
+            <div class="col-xs-2 control-label">
+              <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
+                {% for cuMemory in memoryList %}
+                  {% if cuMemory == tenantServiceInfo.min_memory %}
+                  <option value={{forloop.counter}}  selected="selected">{{cuMemory}}M</option>
+                  {% else %}
+                  <option value="{{forloop.counter}}">{{cuMemory}}M</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-xs-2 control-label">
+              <button type="button"  onclick="service_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+            </div>
             {% else %}
             <div class="col-xs-2 control-label">内存调整</div>
             <div class="col-xs-2 control-label">

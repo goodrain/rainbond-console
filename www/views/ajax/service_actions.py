@@ -210,20 +210,23 @@ class ServiceUpgrade(AuthedView):
                 return JsonResponse(result, status=200)
         action = request.POST["action"]
         if action == "vertical":
-            try:
+            try:              
                 container_memory = request.POST["memory"]
                 container_cpu = request.POST["cpu"]
                 old_container_cpu = self.service.min_cpu
                 old_container_memory = self.service.min_memory
                 old_deploy_version = self.service.deploy_version
-                if int(container_memory) > 0  and int(container_cpu) > 0:
+                upgrade_container_memory = int(container_memory)
+                left = upgrade_container_memory % 128
+                if  upgrade_container_memory > 0  and upgrade_container_cpu > 0 and upgrade_container_memory <= 4096 and left == 0:
+                    upgrade_container_cpu = upgrade_container_memory / 128 * 20
                     # temp record service status
                     temData = {}
                     temData["service_id"] = self.service.service_id
                     temData["status"] = 2
                     old_status = regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData)) 
                     # calculate resource
-                    diff_memory = int(container_memory) - int(old_container_memory)
+                    diff_memory = upgrade_container_memory - int(old_container_memory)
                     tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory) 
                     if not flag:
@@ -237,15 +240,15 @@ class ServiceUpgrade(AuthedView):
                         return JsonResponse(result, status=200)
                     
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                    self.service.min_cpu = container_cpu          
-                    self.service.min_memory = container_memory
+                    self.service.min_cpu = upgrade_container_cpu          
+                    self.service.min_memory = upgrade_container_memory
                     self.service.deploy_version = deploy_version
                     self.service.save()
                     
                     body = {}
-                    body["container_memory"] = container_memory
+                    body["container_memory"] = upgrade_container_memory
                     body["deploy_version"] = deploy_version
-                    body["container_cpu"] = container_cpu
+                    body["container_cpu"] = upgrade_container_cpu
                     regionClient.verticalUpgrade(self.tenant.region, self.service.service_id, json.dumps(body)) 
                 result["status"] = "success"                       
             except Exception, e:
