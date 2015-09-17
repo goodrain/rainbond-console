@@ -285,10 +285,7 @@ class ServiceUpgrade(AuthedView):
                         return JsonResponse(result, status=200)
                            
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                    self.service.min_node = node_num
-                    self.service.deploy_version = deploy_version
-                    self.service.save()
-                          
+                                          
                     isResetStatus = False    
                     try:
                         body = {}
@@ -299,12 +296,17 @@ class ServiceUpgrade(AuthedView):
                         logger.exception(e)
                         isResetStatus = True
                         
+                    if not isResetStatus:
+                        self.service.min_node = node_num
+                        self.service.deploy_version = deploy_version
+                        self.service.save()
+                                                
                     if isResetStatus or new_node_num < old_min_node :
                         temData["service_id"] = self.service.service_id
                         temData["status"] = old_status
                         regionClient.updateTenantServiceStatus(self.tenant.region, self.service.service_id, json.dumps(temData))
                         return JsonResponse(result, status=200)
-                    
+                                        
                 result["status"] = "success"
             except Exception, e:
                 self.service.min_node = old_min_node
