@@ -2,6 +2,10 @@ DEBUG = False
 
 TEMPLATE_DEBUG = True
 
+ZMQ_LOG_ADDRESS = 'tcp://10.3.1.2:9341'
+
+DEFAULT_HANDLERS = ['zmq_handler']
+
 DATABASES = {
     # 'default': {
     #    'ENGINE': 'django.db.backends.sqlite3',
@@ -22,18 +26,18 @@ REGION_SERVICE_API = [{
     'apitype': 'region service',
     'region_name': 'ucloud-bj-1'
 }, {
-   'url': 'http://api.aws-bj-1.goodrain.com:8888',
-   'apitype': 'region service',
-   'region_name': 'aws-bj-1'
+    'url': 'http://api.aws-bj-1.goodrain.com:8888',
+    'apitype': 'region service',
+    'region_name': 'aws-bj-1'
 }]
 
 WEBSOCKET_URL = {
-    'ucloud-bj-1':'ws://mpush.ucloud-bj-1.goodrain.com:6060/websocket',
-    'aws-bj-1':'ws://mpush.aws-bj-1.goodrain.com:6060/websocket'
+    'ucloud-bj-1': 'ws://mpush.ucloud-bj-1.goodrain.com:6060/websocket',
+    'aws-bj-1': 'ws://mpush.aws-bj-1.goodrain.com:6060/websocket'
 }
 
 REGION_RULE = {
-    'ucloud-bj-1':{'unit_money':0.417}, 'aws-bj-1':{'unit_money':0.417}        
+    'ucloud-bj-1': {'unit_money': 0.417}, 'aws-bj-1': {'unit_money': 0.417}
 }
 
 GITLAB_SERVICE_API = {
@@ -66,4 +70,3 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 # SESSION_CACHE_ALIAS = 'session'
 SESSION_COOKIE_DOMAIN = '.goodrain.com'
 SESSION_COOKIE_AGE = 3600
-

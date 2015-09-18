@@ -14,6 +14,10 @@ import os
 SETTING_DIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+ZMQ_LOG_ADDRESS = 'tcp://127.0.0.1:9341'
+
+DEFAULT_HANDLERS = ['file_handler']
+
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 REGION_TAG = os.environ.get('REGION_TAG')
@@ -148,6 +152,10 @@ LOGGING = {
             'format': "%(asctime)s [%(levelname)s] localhost [%(funcName)s] %(pathname)s:%(lineno)s %(message)s",
             'datefmt': "%Y-%m-%d %H:%M:%S"
         },
+        'zmq_formatter': {
+            'format': "%(asctime)s [%(levelname)s] %(hostname)s [%(funcName)s] %(pathname)s:%(lineno)s %(message)s",
+            'datefmt': "%Y-%m-%d %H:%M:%S"
+        },
     },
     'handlers': {
         'file_handler': {
@@ -166,15 +174,17 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'standard',
         },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'standard',
+        'zmq_handler': {
+            'level': "DEBUG",
+            'class': 'goodrain_web.log.ZmqHandler',
+            'address': ZMQ_LOG_ADDRESS,
+            'root_topic': 'goodrain_web',
+            'formatter': 'zmq_formatter',
         }
     },
     'loggers': {
         'default': {
-            'handlers': ['console', 'file_handler'],
+            'handlers': DEFAULT_HANDLERS,
             'level': 'DEBUG',
             'propagate': True,
         },

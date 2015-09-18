@@ -19,7 +19,7 @@ import logging
 logger = logging.getLogger('default')
 
 SENSITIVE_WORDS = (
-    'admin', 'root', 'goodrain', 'builder', 'app'
+    'admin', 'root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services'
 )
 
 
@@ -150,14 +150,14 @@ class UserLoginForm(forms.Form):
                 else:
                     user = Users.objects.get(phone=email)
                 if not user.check_password(password):
-                    logger.error('password {0} is not correct for user {1}'.format(password, email))
+                    logger.info('form_valid.login', 'password is not correct for user {0}'.format(email))
                     raise forms.ValidationError(
                         self.error_messages['wrong_password'],
                         code='wrong_password',
                         params={'email': email}
                     )
             except Users.DoesNotExist:
-                logger.error('user {0} does not exist'.format(email))
+                logger.info('form_valid.login', 'user {0} does not exist'.format(email))
                 raise forms.ValidationError(
                     self.error_messages['wrong_email'],
                     code='wrong_email',
@@ -197,7 +197,7 @@ class PasswordResetBeginForm(forms.Form):
                 else:
                     Users.objects.get(phone=account)
             except Users.DoesNotExist:
-                logger.error('account {0} does not exist'.format(account))
+                logger.info('form_valid.password', 'account {0} does not exist'.format(account))
                 raise forms.ValidationError(
                     u'不存在的账号',
                     code='account not exists', params={'account': account}
@@ -433,7 +433,7 @@ class RegisterForm(forms.Form):
 
         if phone is not None and phone != "":
             phoneNumber = Users.objects.filter(phone=phone).count()
-            logger.debug(phoneNumber)
+            logger.debug('form_valid.register', phoneNumber)
             if phoneNumber > 0:
                 raise forms.ValidationError(
                     self.error_messages['phone_used'],
@@ -452,13 +452,13 @@ class RegisterForm(forms.Form):
                 last = int(phoneCode.create_time.strftime("%s"))
                 now = int(time.time())
                 if now - last > 1800:
-                    logger.debug(phone + "too long time")
+                    logger.info('form_valid.register', phone + "too long time")
                     raise forms.ValidationError(
                         self.error_messages['phone_code_error'],
                         code='phone_code_error'
                     )
                 if phoneCode.code != phone_code:
-                    logger.debug(phone + " different")
+                    logger.info('form_valid.register', phone + " different")
                     raise forms.ValidationError(
                         self.error_messages['phone_code_error'],
                         code='phone_code_error'
@@ -469,7 +469,7 @@ class RegisterForm(forms.Form):
                     code='phone_code_error'
                 )
         else:
-            logger.debug(phone + " is None")
+            logger.info('form_valid.register', phone + " is None")
             raise forms.ValidationError(
                 self.error_messages['phone_code_error'],
                 code='phone_code_error'

@@ -55,6 +55,8 @@ class Login(BaseView):
             tenant_name = tenant.tenant_name
             return redirect('/apps/{0}'.format(tenant_name))
         else:
+            logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
+                self.user.nick_name, self.user.pk))
             return Http404
 
     def get(self, request, *args, **kwargs):
@@ -70,8 +72,8 @@ class Login(BaseView):
                 d5 = hashlib.md5(tmp.encode("UTF-8")).hexdigest()
                 url = return_to + "?username=" + user.email + \
                     "&time=" + time + "&token=" + d5
-                logger.debug(d5)
-                logger.debug(url)
+                logger.debug('account.login', d5)
+                logger.debug('account.login', url)
                 return redirect(url)
             else:
                 return self.redirect_view()
@@ -84,17 +86,23 @@ class Login(BaseView):
         password = request.POST.get('password')
 
         if not self.form.is_valid():
-            logger.error("login form is not right: %s" % self.form.errors)
+            logger.info('account.login_error', "login form is not right: %s" % self.form.errors)
             return self.get_response()
         user = authenticate(username=username, password=password)
         login(request, user)
+        logger.info('account.login', "user {0} success login in".format(user.nick_name))
 
         # create git user
         if user.git_user_id == 0:
+            logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
             git_user_id = gitClient.createUser(
                 username, password, user.nick_name, user.nick_name)
-            user.git_user_id = git_user_id
-            user.save()
+            if git_user_id == 0:
+                logger.info("account.login", "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
+            else:
+                user.git_user_id = git_user_id
+                user.save()
+                logger.info("account.login", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
 
         if next_url is not None:
             return redirect(next_url)
@@ -140,6 +148,7 @@ class Logout(BaseView):
             return HttpResponse("未登录状态, 不需注销")
         else:
             logout(request)
+            logger.info('account.login', 'user {0} logout'.format(user.nick_name))
             return redirect(settings.LOGIN_URL)
 
     @never_cache
@@ -172,7 +181,9 @@ class PasswordResetBegin(BaseView):
     def post(self, request, *args, **kwargs):
         self.form = PasswordResetBeginForm(request.POST)
         if self.form.is_valid():
-            tag = '{0}:{1}'.format(int(time.time()), request.POST.get('account'))
+            account = request.POST.get('account')
+            logger.info('account.passwdreset', "account {0} apply for reset password".format(account))
+            tag = '{0}:{1}'.format(int(time.time()), account)
             return redirect('/account/select_verify_method?tag=%s' % AuthCode.encode(tag, 'reset_password'))
         return self.get_response()
 
@@ -237,7 +248,8 @@ class PasswordResetMethodSelect(BaseView):
             try:
                 send_reset_pass_mail(self.user.email, link_url)
             except Exception, e:
-                logger.exception(e)
+                logger.error("account.passwdreset", "send email to {0} failed".format(self.user.email))
+                logger.exception("account.passwdreset", e)
             mail_address = 'http://mail.' + self.user.email.split('@')[1]
             return TemplateResponse(self.request, 'www/account/email_sended.html', {"safe_email": self.user.safe_email, "mail_address": mail_address})
         return self.get_response()
@@ -271,6 +283,17 @@ class PasswordReset(BaseView):
         except user.DoesNotExist:
             return None
 
+    def create_git_user(self, user, password):
+        logger.info("account.passwdreset", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
+        git_user_id = gitClient.createUser(
+            user.email, password, user.nick_name, user.nick_name)
+        if git_user_id == 0:
+            logger.info("account.passwdreset", "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
+        else:
+            user.git_user_id = git_user_id
+            user.save()
+            logger.info("account.passwdreset", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
+
     def get(self, request, *args, **kwargs):
         self.form = PasswordResetForm()
         return self.get_response()
@@ -280,6 +303,7 @@ class PasswordReset(BaseView):
         email, old_timestamp = AuthCode.decode(tag, 'password').split(',')
         timestamp = int(time.time())
         if (timestamp - int(old_timestamp)) > 3600:
+            logger.info("account.passwdreset", "link expired, email: {0}, link_timestamp: {1}".format(email, old_timestamp))
             return HttpResponse(u"处理已过期, 请重新开始")
 
         user = self.get_user_instance(email)
@@ -288,9 +312,18 @@ class PasswordReset(BaseView):
             raw_password = request.POST.get('password')
             user.set_password(raw_password)
             user.save()
+            logger.info("account.passwdreset", "reset password for user {0} in my database".format(user.nick_name))
             if user.git_user_id != 0:
-                gitClient.modifyUser(user.git_user_id, password=raw_password)
+                try:
+                    gitClient.modifyUser(user.git_user_id, password=raw_password)
+                    logger.info("account.passwdreset", "reset password for user {0} in gitlab".format(user.nick_name))
+                except Exception, e:
+                    logger.error("account.passwdreset", "reset password for user {0} in gitlab failed".format(user.nick_name))
+                    logger.exception("account.passwdreset", e)
+            else:
+                self.create_git_user(user, raw_password)
             return redirect('/login')
+        logger.info("account.passwdreset", "passwdreset form error: %s" % self.form.errors)
         return self.get_response()
 
 
@@ -313,8 +346,13 @@ class Registation(BaseView):
 
     def init_for_region(self, region, tenant_name, tenant_id):
         api = RegionApi()
-        res, body = api.create_tenant(region, tenant_name, tenant_id)
-        return res, body
+        try:
+            res, body = api.create_tenant(region, tenant_name, tenant_id)
+            return res, body
+        except api.CallApiError, e:
+            logger.error("account.register", "create tenant {0} with tenant_id {1} on region {2} failed".format(
+                tenant_name, tenant_id, region))
+            logger.exception("account.register", e)
 
     def get(self, request, *args, **kwargs):
         self.form = RegisterForm()
@@ -347,12 +385,15 @@ class Registation(BaseView):
                          phone=phone, client_ip=self.get_client_ip(request), rf=rf)
             user.set_password(password)
             user.save()
+
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
             PermRelTenant.objects.create(
                 user_id=user.pk, tenant_id=tenant.pk, identity='admin')
-            res, body = self.init_for_region(
-                tenant.region, tenant_name, tenant.tenant_id)
+            logger.info(
+                "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(nick_name, tenant_name, region, tenant.tenant_id))
+
+            self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
 
             # create gitlab user
             git_user_id = gitClient.createUser(
@@ -360,11 +401,15 @@ class Registation(BaseView):
             user.git_user_id = git_user_id
             user.save()
 
+            if git_user_id == 0:
+                logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
+
             user = authenticate(username=email, password=password)
             login(request, user)
 
             return redirect('/apps/{0}'.format(tenant.tenant_name))
 
+        logger.info("account.register", "register form error: %s" % self.form.errors)
         return self.get_response()
 
 
