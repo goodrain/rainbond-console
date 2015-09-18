@@ -218,6 +218,10 @@ class PasswordResetForm(forms.Form):
         validators=[password_len]
     )
 
+    error_messages = {
+        'password_repeat': u"两次输入的密码不一致",
+    }
+
     def __init__(self, *args, **kwargs):
         super(PasswordResetForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
@@ -233,6 +237,16 @@ class PasswordResetForm(forms.Form):
 
         self.helper.help_text_inline = True
         self.helper.error_text_inline = True
+
+    def clean(self):
+        password = self.cleaned_data.get('password')
+        password_repeat = self.cleaned_data.get('password_repeat')
+
+        if password_repeat != password:
+            raise forms.ValidationError(
+                self.error_messages['password_repeat'],
+                code='password_repeat',
+            )
 
 
 class RegisterForm(forms.Form):
