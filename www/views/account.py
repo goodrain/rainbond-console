@@ -346,12 +346,12 @@ class Registation(BaseView):
 
     def init_for_region(self, region, tenant_name, tenant_id):
         api = RegionApi()
+        logger.info("account.register", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
         try:
             res, body = api.create_tenant(region, tenant_name, tenant_id)
             return res, body
         except api.CallApiError, e:
-            logger.error("account.register", "create tenant {0} with tenant_id {1} on region {2} failed".format(
-                tenant_name, tenant_id, region))
+            logger.error("account.register", "create tenant {0} failed".format(tenant_name))
             logger.exception("account.register", e)
 
     def get(self, request, *args, **kwargs):
@@ -403,6 +403,8 @@ class Registation(BaseView):
 
             if git_user_id == 0:
                 logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
+            else:
+                logger.info("account.register", "create gitlab user for register user {0}, got id {1}".format(nick_name, git_user_id))
 
             user = authenticate(username=email, password=password)
             login(request, user)
