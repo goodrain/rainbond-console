@@ -1,6 +1,7 @@
 Django==1.8
 MySQL-python
 pylibmc
+pyzmq
 django-crispy-forms
 addict
 gunicorn==19.0.0
