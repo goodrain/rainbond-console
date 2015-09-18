@@ -21,8 +21,8 @@
 <div class="container">
     <form class="form-signin form-signin-reg" enctype="multipart/form-data" action="{{ form_action }}" method="post">{% csrf_token %}
         <h2 class="form-signin-heading">{{title}}</h2>
-        <div class="login-wrap form-group">
-            <div class="controls ">
+        <div class="login-wrap">
+            <div class="controls form-group">
                 <select class="select form-control" id="id_machine_region" name="verify_method">
                     {% for method in methods %}
                     <option value="{{ method.value }}">{{method.desc}}</option>
