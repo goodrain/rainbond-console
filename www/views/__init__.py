@@ -10,4 +10,4 @@ def monitor(request):
 
 
 def ssl_crv(request):
-    return HttpResponse("JIYNvvgU")
+    return HttpResponse("Ea7e1ps5")
