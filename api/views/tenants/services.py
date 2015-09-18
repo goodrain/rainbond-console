@@ -267,3 +267,88 @@ class TenantView(APIView):
         except Exception as e:
             logger.exception(e)
         return Response(data, status=200)
+    
+class TenantSystemHibernateView(APIView):
+    '''
+    租户系统休眠
+    '''
+    allowed_methods = ('put', 'post')
+        
+    def put(self, request, format=None):
+        """
+        停止容器(pause,unpause)
+        ---
+        parameters:
+            - name: tenant_id
+              description: 租户ID
+              required: true
+              type: string
+              paramType: form
+            - name: action
+              description: 动作
+              required: true
+              type: string
+              paramType: form
+        """
+        tenant_id = request.data.get('tenant_id', "")
+        action = request.data.get('action', "")
+        logger.debug(tenant_id)
+        logger.debug(action)
+        try:
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
+            if action == "pause":
+                if tenant.service_status == 0:
+                    regionClient.systemPause(tenant.region, tenant.tenant_id)
+                    tenant.service_status = 3
+                    tenant.save()
+                else:
+                    logger.debug(tenant.tenant_name + " had paused")
+            elif action == 'unpause':
+                if tenant.service_status == 3:
+                    regionClient.systemUnpause(tenant.region, tenant.tenant_id)
+                    tenant.service_status = 1
+                    tenant.save()
+                else:
+                    logger.debug(tenant.tenant_name + " not paused")
+        except Exception as e:
+            logger.exception(e)
+        return Response({"ok": True}, status=200)
+    
+    def post(self, request, format=None):
+        """
+        休眠容器(pause,unpause)
+        ---
+        parameters:
+            - name: tenant_name
+              description: 租户名
+              required: true
+              type: string
+              paramType: form
+            - name: action
+              description: 动作
+              required: true
+              type: string
+              paramType: form
+        """
+        tenant_name = request.data.get('tenant_name', "")
+        action = request.data.get('action', "")
+        logger.debug(tenant_name + "==" + action)
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            if action == "pause":
+                if tenant.service_status == 0:
+                    regionClient.systemPause(tenant.region, tenant.tenant_id)
+                    tenant.service_status = 3
+                    tenant.save()
+                else:
+                    logger.debug(tenant.tenant_name + " had paused")
+            elif action == 'unpause':
+                if tenant.service_status == 3:
+                    regionClient.systemUnpause(tenant.region, tenant.tenant_id)
+                    tenant.service_status = 1
+                    tenant.save()
+                else:
+                    logger.debug(tenant.tenant_name + " not paused")
+        except Exception as e:
+            logger.exception(e)
+        return Response({"ok": True}, status=200)

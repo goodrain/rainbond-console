@@ -143,6 +143,7 @@ class Tenants(models.Model):
         help_text=u"服务状态0:暂停，1:运行，2:关闭", default=1)
     creater = models.IntegerField(help_text=u"租户创建者", default=0)
     limit_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=1024)
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
 
     def __unicode__(self):
         return self.tenant_name

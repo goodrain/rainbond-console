@@ -62,6 +62,11 @@ class TenantServiceAll(AuthedView):
                 regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
+            if self.tenant.service_status == 3:
+                logger.debug("system unpause tenant_id=" + self.tenant.tenant_id)
+                regionClient.systemUnpause(self.tenant.region, self.tenant.tenant_id)
+                self.tenant.service_status = 1
+                self.tenant.save()
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_my.html", context)
@@ -240,6 +245,12 @@ class TenantService(AuthedView):
                 self.tenant.service_status = 1
                 self.tenant.save()
                 
+            if self.tenant.service_status == 3:
+                logger.debug("system unpause tenant_id=" + self.tenant.tenant_id)
+                regionClient.systemUnpause(self.tenant.region, self.tenant.tenant_id)
+                self.tenant.service_status = 1
+                self.tenant.save()
+                                
             websocket_info = settings.WEBSOCKET_URL
             context["websocket_uri"] = websocket_info[self.tenant.region]
             

@@ -128,3 +128,13 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/status-update/"
         res, body = self._post(url, self.default_headers, body)
         return body["old_status"]
+    
+    def systemPause(self, region, tenant_id):
+        url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/system-pause"
+        res, body = self._post(url, self.default_headers)
+        return body
+
+    def systemUnpause(self, region, tenant_id):
+        url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/system-unpause"
+        res, body = self._post(url, self.default_headers)
+        return body
