@@ -230,18 +230,36 @@ class AllTenantView(APIView):
               required: true
               type: string
               paramType: form
+            - name: day
+              description: 相差天数
+              required: false
+              type: string
+              paramType: form
             
         """
         service_status = request.data.get('service_status', "1")
         pay_type = request.data.get('pay_type', "free")
         region = request.data.get('region', "")
+        query_day = request.data.get('day', "0")
+        diff_day = int(query_day)
+        
         data = {}
         try:
             if region != "":
-                tenantList = Tenants.objects.filter(service_status=service_status, pay_type=pay_type, region=region)
-                if len(tenantList) > 0:
-                    for tenant in tenantList:
-                        data[tenant.tenant_id] = tenant.tenant_name
+                logger.debug(query_day)
+                if diff_day != 0:
+                    end_time = datetime.datetime.now() + datetime.timedelta(days=diff_day)      
+                    tenantList = Tenants.objects.filter(service_status=service_status, pay_type=pay_type, region=region, update_time__lt=end_time)
+                    logger.debug(len(tenantList))
+                    if len(tenantList) > 0:
+                        for tenant in tenantList:
+                            data[tenant.tenant_id] = tenant.tenant_name
+                else:
+                    tenantList = Tenants.objects.filter(service_status=service_status, pay_type=pay_type, region=region)
+                    logger.debug(len(tenantList))
+                    if len(tenantList) > 0:
+                        for tenant in tenantList:
+                            data[tenant.tenant_id] = tenant.tenant_name
         except Exception as e:
             logger.error(e)
         return Response(data, status=200)
