@@ -204,7 +204,8 @@ class ServiceManage(AuthedView):
                             data["outer_service"] = outer_service
                             data["inner_service"] = self.service.is_service
                             data["inner_service_port"] = self.service.service_port
-                            data["outer_ip"] = par_outer_ip
+                            if par_outer_ip != "":
+                                data["outer_ip"] = par_outer_ip
                             logger.debug(data)
                             if protocol == "stream" :
                                 if par_outer_ip != "":
@@ -221,14 +222,16 @@ class ServiceManage(AuthedView):
                         inner_service = True
                     if inner_service != self.service.is_service:
                         baseService = BaseTenantService()
-                        service_port = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key) + 1 
+                        service_port = self.service.service_port
+                        if inner_service:
+                            service_port = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key) + 1 
                         data = {}
                         data["protocol"] = self.service.protocol
                         data["outer_service"] = self.service.is_web_service
                         data["inner_service"] = inner_service
                         data["inner_service_port"] = service_port
                         logger.debug(data)
-                        # regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
+                        regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
                         self.service.service_port = service_port
                         self.service.is_service = inner_service
                         self.service.save()

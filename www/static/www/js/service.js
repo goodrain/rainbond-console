@@ -63,7 +63,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 	}
 	$.ajax({
 		type : "POST",
-		url : "/ajax/" + tenantName + "/" + service_alias + "/manage/",
+		url : "/ajax/" + tenantName + "/" + service_alias + "/manage",
 		data : "service_id=" + service_id + "&action=" + taction,
 		cache : false,
 		beforeSend : function(xhr, settings) {
@@ -101,7 +101,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
 	}
 	$.ajax({
 		type : "POST",
-		url : "/ajax/" + tenantName + "/" + service_alias + "/manage/",
+		url : "/ajax/" + tenantName + "/" + service_alias + "/manage",
 		data : "service_id=" + service_id + "&action=" + taction,
 		cache : false,
 		beforeSend : function(xhr, settings) {
@@ -142,7 +142,7 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 	}
 	$.ajax({
 		type : "POST",
-		url : "/ajax/" + tenantName + "/" + service_alias + "/domain/",
+		url : "/ajax/" + tenantName + "/" + service_alias + "/domain",
 		data : "service_id=" + service_id + "&domain_name=" + domain_name+"&action="+action,
 		cache : false,
 		beforeSend : function(xhr, settings) {
@@ -174,7 +174,7 @@ function service_upgrade(tenantName, service_alias) {
 	cpu = 20 * Math.pow(2, service_min_config - 1)
 	$.ajax({
 		type : "post",
-		url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade/",
+		url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade",
 		data : "action=vertical&memory=" + memory + "&cpu=" + cpu,
 		cache : false,
 		beforeSend : function(xhr, settings) {
@@ -374,7 +374,11 @@ function buid_relation(action,curServiceName,depServiceName,tenantName){
 			var dataObj = msg
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
-				window.location.href = window.location.href + "?fr=relations";
+				if (window.location.href.indexOf("fr=") < 0){
+					window.location.href = window.location.href + "?fr=relations";
+				}else{
+					window.location.href = window.location.href
+				}				
 			} else {
 				swal("操作失败")
 			}

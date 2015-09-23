@@ -785,10 +785,14 @@
 	    	  	  success: function(msg) {
 	    	  		var dataObj = msg;
 	    	  		port = dataObj["port"]
+	    	  		ip = dataObj["ip"]
 	    	  		if(port > 0){
 	    	  			if(port >= 2000){
 	    	  				var html = $('#mapping-port').html()
 	    	  				$('#mapping-port').html(html +":"+port)
+	    	  			}
+	    	  			if(ip != ""){
+	    	  				$('#service_visitor_ip').val(ip)
 	    	  			}
 	    	  			clearInterval(setIntertimmer);
 	    	  		}

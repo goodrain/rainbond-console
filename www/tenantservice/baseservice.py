@@ -91,7 +91,7 @@ class BaseTenantService(object):
         if service.is_web_service:
             tenantServiceInfo["protocol"] = 'http'
         else:
-            tenantServiceInfo["protocol"] = ''
+            tenantServiceInfo["protocol"] = 'stream'
         tenantServiceInfo["is_service"] = service.is_service                        
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
