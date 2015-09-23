@@ -27,10 +27,10 @@ class BaseTenantService(object):
             services = dsn.query(query_sql)
         return services
     
-    def getMaxPort(self, tenant_id, service_key):
+    def getMaxPort(self, tenant_id, service_key, service_alias):
         cur_service_port = 1
         dsn = BaseConnection()
-        query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}";
+        query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}" and service_alias !="{service_alias}";
             '''.format(tenant_id=tenant_id, service_key=service_key)
         data = dsn.query(query_sql)
         logger.debug(data)
@@ -41,9 +41,11 @@ class BaseTenantService(object):
         return cur_service_port    
 
     def create_service(self, service_id, tenant_id, service_alias, service, creater):        
-        deployNum = 0
+        service_port = service.inner_port
         if  service.is_service:
-            deployNum = self.getMaxPort(tenant_id, service.service_key)
+            deployPort = self.getMaxPort(tenant_id, service.service_key, service_alias)
+            if deployPort > 0:
+                service_port = deployPort + 1
             
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
@@ -53,7 +55,7 @@ class BaseTenantService(object):
         tenantServiceInfo["service_region"] = 'v1'
         tenantServiceInfo["desc"] = service.desc
         tenantServiceInfo["category"] = service.category
-        tenantServiceInfo["service_port"] = service.inner_port + deployNum
+        tenantServiceInfo["service_port"] = service_port
         tenantServiceInfo["is_web_service"] = service.is_web_service
         tenantServiceInfo["image"] = service.image
         tenantServiceInfo["cmd"] = service.cmd

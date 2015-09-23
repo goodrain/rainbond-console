@@ -224,7 +224,9 @@ class ServiceManage(AuthedView):
                         baseService = BaseTenantService()
                         service_port = self.service.service_port
                         if inner_service:
-                            service_port = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key) + 1 
+                            deployPort = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key, self.service.service_alias) + 1
+                            if deployPort > 0: 
+                                service_port = deployPort + 1
                         data = {}
                         data["protocol"] = self.service.protocol
                         data["outer_service"] = self.service.is_web_service
