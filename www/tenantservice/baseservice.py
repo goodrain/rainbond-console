@@ -31,7 +31,7 @@ class BaseTenantService(object):
         cur_service_port = 1
         dsn = BaseConnection()
         query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}" and service_alias !="{service_alias}";
-            '''.format(tenant_id=tenant_id, service_key=service_key)
+            '''.format(tenant_id=tenant_id, service_key=service_key, service_alias=service_alias)
         data = dsn.query(query_sql)
         logger.debug(data)
         if data is not None:

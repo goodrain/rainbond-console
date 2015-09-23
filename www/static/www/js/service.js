@@ -333,10 +333,12 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 			var dataObj = msg
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
-				if (window.location.href.indexOf("fr=") < 0){
-					window.location.href = window.location.href + "?fr=settings";
-				}else{
-					window.location.href = window.location.href
+				if (action == "change"){
+					if (window.location.href.indexOf("fr=") < 0){
+						window.location.href = window.location.href + "?fr=settings";
+					}else{
+						window.location.href = window.location.href
+					}
 				}
 			} else if (dataObj["status"] == "often") {
 				swal("上次操作正在进行中，稍后再试")

@@ -197,46 +197,44 @@ class ServiceManage(AuthedView):
                     if protocol != "":
                         outer_service = False
                         if par_outer_service == "start" or par_outer_service == "change":
-                            outer_service = True                                
-                        if outer_service != self.service.is_web_service or protocol != self.service.protocol:
-                            data = {}
-                            data["protocol"] = protocol
-                            data["outer_service"] = outer_service
-                            data["inner_service"] = self.service.is_service
-                            data["inner_service_port"] = self.service.service_port
+                            outer_service = True
+                        data = {}
+                        data["protocol"] = protocol
+                        data["outer_service"] = outer_service
+                        data["inner_service"] = self.service.is_service
+                        data["inner_service_port"] = self.service.service_port
+                        if par_outer_ip != "":
+                            data["outer_ip"] = par_outer_ip
+                        logger.debug(data)
+                        if protocol == "stream" :
                             if par_outer_ip != "":
-                                data["outer_ip"] = par_outer_ip
-                            logger.debug(data)
-                            if protocol == "stream" :
-                                if par_outer_ip != "":
-                                    regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
-                            elif protocol == "http" :
-                                regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))                                
-                            self.service.protocol = protocol
-                            self.service.is_web_service = outer_service
-                            self.service.save()                            
+                                regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
+                        elif protocol == "http" :
+                            regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))                                
+                        self.service.protocol = protocol
+                        self.service.is_web_service = outer_service
+                        self.service.save()                            
                 elif par_opt_type == "inner":
                     par_inner_service = request.POST["inner_service"]
                     inner_service = False
                     if par_inner_service == "start" or par_inner_service == "change":
                         inner_service = True
-                    if inner_service != self.service.is_service:
+                    service_port = self.service.service_port
+                    if inner_service:
                         baseService = BaseTenantService()
-                        service_port = self.service.service_port
-                        if inner_service:
-                            deployPort = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key, self.service.service_alias) + 1
-                            if deployPort > 0: 
-                                service_port = deployPort + 1
-                        data = {}
-                        data["protocol"] = self.service.protocol
-                        data["outer_service"] = self.service.is_web_service
-                        data["inner_service"] = inner_service
-                        data["inner_service_port"] = service_port
-                        logger.debug(data)
-                        regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
-                        self.service.service_port = service_port
-                        self.service.is_service = inner_service
-                        self.service.save()
+                        deployPort = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key, self.service.service_alias) + 1
+                        if deployPort > 0: 
+                            service_port = deployPort + 1
+                    data = {}
+                    data["protocol"] = self.service.protocol
+                    data["outer_service"] = self.service.is_web_service
+                    data["inner_service"] = inner_service
+                    data["inner_service_port"] = service_port
+                    logger.debug(data)
+                    # regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
+                    self.service.service_port = service_port
+                    self.service.is_service = inner_service
+                    self.service.save()
             result["status"] = "success"
         except Exception, e:
             logger.debug(e)

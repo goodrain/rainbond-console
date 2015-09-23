@@ -347,7 +347,8 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=40, null=True, blank=True, help_text=u"代码语言")
     protocol = models.CharField(max_length=15, help_text=u"服务协议：http,stream")
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
-
+    is_service = models.BooleanField(
+        default=False, blank=True, help_text=u"是否inner服务")
 
 class TenantServiceLog(BaseModel):
 
