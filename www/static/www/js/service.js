@@ -307,6 +307,9 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 	if (opt_type == "inner") {
 		inner_service = action
 	}
+	if (service_visitor_ip == undefined){
+		service_visitor_ip == ""
+	}
 	if(protocol == "stream" && action == "start"){
 		if(service_visitor_ip == ""){
 			swal("请填写访问ip");
@@ -333,12 +336,10 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 			var dataObj = msg
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
-				if (action == "change"){
-					if (window.location.href.indexOf("fr=") < 0){
-						window.location.href = window.location.href + "?fr=settings";
-					}else{
-						window.location.href = window.location.href
-					}
+				if (window.location.href.indexOf("fr=") < 0){
+					window.location.href = window.location.href + "?fr=settings";
+				}else{
+					window.location.href = window.location.href
 				}
 			} else if (dataObj["status"] == "often") {
 				swal("上次操作正在进行中，稍后再试")
