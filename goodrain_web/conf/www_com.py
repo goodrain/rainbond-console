@@ -26,7 +26,7 @@ REGION_SERVICE_API = [{
     'apitype': 'region service',
     'region_name': 'ucloud-bj-1'
 }, {
-    'url': 'http://api.aws-bj-1.goodrain.com:8888',
+    'url': 'http://api.aws-bj-1.goodrain.com:18888',
     'apitype': 'region service',
     'region_name': 'aws-bj-1'
 }]
