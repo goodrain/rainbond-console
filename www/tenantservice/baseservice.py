@@ -28,7 +28,7 @@ class BaseTenantService(object):
         return services
     
     def getMaxPort(self, tenant_id, service_key, service_alias):
-        cur_service_port = 1
+        cur_service_port = 0
         dsn = BaseConnection()
         query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}" and service_alias !="{service_alias}";
             '''.format(tenant_id=tenant_id, service_key=service_key, service_alias=service_alias)

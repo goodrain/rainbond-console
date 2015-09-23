@@ -213,6 +213,7 @@ class ServiceManage(AuthedView):
                             regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))                                
                         self.service.protocol = protocol
                         self.service.is_web_service = outer_service
+                        self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                         self.service.save()                            
                 elif par_opt_type == "inner":
                     par_inner_service = request.POST["inner_service"]
@@ -234,6 +235,7 @@ class ServiceManage(AuthedView):
                     regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
                     self.service.service_port = service_port
                     self.service.is_service = inner_service
+                    self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     self.service.save()
             result["status"] = "success"
         except Exception, e:

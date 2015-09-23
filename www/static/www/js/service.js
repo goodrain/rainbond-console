@@ -307,7 +307,7 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 	if (opt_type == "inner") {
 		inner_service = action
 	}
-	if (service_visitor_ip == undefined){
+	if (service_visitor_ip == undefined || service_visitor_ip == ""){
 		service_visitor_ip == ""
 	}
 	if(protocol == "stream" && action == "start"){
