@@ -26,11 +26,24 @@ class BaseTenantService(object):
                 '''.format(tenant_id=tenant_id, user_id=user_pk)
             services = dsn.query(query_sql)
         return services
+    
+    def getMaxPort(self, tenant_id, service_key):
+        cur_service_port = 1
+        dsn = BaseConnection()
+        query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}";
+            '''.format(tenant_id=tenant_id, service_key=service_key)
+        data = dsn.query(query_sql)
+        logger.debug(data)
+        if data is not None:
+           temp = data[0]["service_port"]
+           if temp is not None:
+              cur_service_port = int(temp) 
+        return cur_service_port    
 
     def create_service(self, service_id, tenant_id, service_alias, service, creater):        
         deployNum = 0
         if  service.is_service:
-            deployNum = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key=service.service_key).count()
+            deployNum = self.getMaxPort(tenant_id, service.service_key)
             
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
@@ -79,7 +92,7 @@ class BaseTenantService(object):
             tenantServiceInfo["protocol"] = 'http'
         else:
             tenantServiceInfo["protocol"] = ''
-                        
+        tenantServiceInfo["is_service"] = service.is_service                        
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
@@ -106,7 +119,7 @@ class BaseTenantService(object):
         data["container_port"] = newTenantService.inner_port
         data["container_cmd"] = newTenantService.cmd
         data["node_label"] = ""
-        data["is_create_service"] = service.is_service
+        data["is_create_service"] = newTenantService.is_service
         data["is_binding_port"] = newTenantService.is_web_service
         data["deploy_version"] = newTenantService.deploy_version
         data["domain"] = domain
@@ -134,6 +147,9 @@ class BaseTenantService(object):
         attr = tenantS.service_type.upper()
         if depNum > 0 :
             attr = attr + "_" + tenantS.service_alias.upper()
+        else:
+            if tenantS.category == 'application':
+                attr = tenantS.service_alias.upper()
         data = {}
         data[attr + "_HOST"] = "127.0.0.1"
         data[attr + "_PORT"] = tenantS.service_port

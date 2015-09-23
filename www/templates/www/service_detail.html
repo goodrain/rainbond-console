@@ -11,14 +11,14 @@
 <section class="wrapper">
 <section class="panel">
         <header class="panel-heading tab-bg-dark-navy-blue ">
-         <ul class="nav nav-tabs">
-        <li  class="active"><a href="#deployed" data-toggle="tab">概览</a></li>
+         <ul class="nav nav-tabs" id ="nav-tabs">
+        <li  class="active"><a href="#deployed"  data-toggle="tab">概览</a></li>
         {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
         	<li class="" ><a href="#relations"  data-toggle="tab">相关服务</a></li>
         {% endif  %}
         <!--<li class="" ><a href="#control"  data-toggle="tab">监控</a></li> -->
-        <li class=""><a href="#log" data-toggle="tab">日志</a></li>
-        <li class=""><a href="#settings" data-toggle="tab">高级</a></li>
+        <li class=""><a href="#log"  data-toggle="tab">日志</a></li>
+        <li class=""><a href="#settings"  data-toggle="tab">高级</a></li>
         <!--{% ifequal tenantServiceInfo.category "application" %}
         <li class="nav-tabs-oklastli"><b>git</b><input type="text" value="git@code.goodrain.com:app/{{tenantName}}_{{serviceAlias}}.git" placeholder="http://code.goorain.com/username" class="form-control"><span class="fa fa-clipboard"></span></li>
         {% endifequal  %}-->
@@ -152,7 +152,7 @@
 		                            <td>{{value.service_type}}</td>
 		                            <td>{{value.service_alias}}</td>
 		                            <td class="text-center">
-		                            	<button type="button" class="btn btn-danger"  onclick="delete_relation('{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
+		                            	<button type="button" class="btn btn-danger"  onclick="buid_relation('cancel','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
 		                            	<a class="btn btn-success" data-toggle="modal" href="#linkinfo{{value.service_id}}">连接信息</a>
 	                                  	<div class="modal fade in" id="linkinfo{{value.service_id}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="false" style="display: none;">
 	                                      <div class="modal-dialog">
@@ -174,7 +174,11 @@
 			                                              {% if dep_order == 1 %}
 			                                              <tr>
 			                                                <td>连接地址</td>
-			                                                <td>{{value.service_type.upper}}_HOST</td>
+			                                                {% if value.category == "application" %}
+			                                                	<td>{{value.service_alias.upper}}_HOST</td>
+			                                                {% else %}
+			                                                	<td>{{value.service_type.upper}}_HOST</td>
+			                                                {% endif %}
 			                                                <td>127.0.0.1</td>
 			                                              </tr>
 			                                              <tr>
@@ -250,7 +254,7 @@
 			                            <td>{{value.service_type}}</td>
 			                            <td>{{value.service_alias}}</td>
 			                            <td class="text-center">
-			                            	<button type="button" class="btn btn-success"  onclick="buid_relation('{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">关联</button>
+			                            	<button type="button" class="btn btn-success"  onclick="buid_relation('add','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">关联</button>
 			                            </td>
 			                        </tr>
 	                 		   {% endif %}
@@ -281,63 +285,132 @@
         <!-- settings start -->
         <div role="tabpanel" class="tab-pane" id="settings">
           <section class="panel">
-            <header class="panel-heading">基础信息</header>
-          <div class="panel-body">
-            <div class="row">
-            <label class="col-xs-2 control-label">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_alias}}</label>
-            </div>
-            {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
-            <div class="row">
-            <label class="col-xs-2 control-label">默认域名</label><label class="col-xs-10 control-label"><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080" target="view_window" >http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080</a></label>
-            </div>
-            <br>
-            {% endif %}
-
-            {% if tenantServiceInfo.category == "application" %}
-            <div class="row">
-            <label class="col-xs-2 control-label">Git仓库</label>
-            <label class="col-xs-10 control-label">
-                <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
-            </label>
-            </div>
-            {% endif %}
-
-          </div>
+              <header class="panel-heading">基础信息</header>
+	          <div class="panel-body">
+	            <div class="row">
+	            	<label class="col-xs-2 control-label">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_alias}}</label>
+	            </div>
+	            {% if tenantServiceInfo.category == "application" %}
+	            <div class="row">
+		            <label class="col-xs-2 control-label">Git仓库</label>
+		            <label class="col-xs-10 control-label">
+		                <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
+		            </label>
+	            </div>
+	            {% endif %}
+	            <div class="row">
+		            <label class="col-xs-2 control-label">服务协议</label>
+		            <label class="col-xs-10 control-label">
+		                <select name="protocol" id="protocol">
+		                	<option {% if tenantServiceInfo.protocol == "http" %} selected="selected" {% endif %} value="http">Http协议</option>
+		                	<option {% if tenantServiceInfo.protocol == "stream" %} selected="selected" {% endif %} value="stream">非Http协议</option>
+		                </select>
+		            </label>
+	            </div>
+	          </div>
           </section>
-          
-          {% if pay_type != "free" %}
-          {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
+                   
           <section class="panel">
-          <header class="panel-heading">新增域名</header>
-          <div class="panel-body">
-            <div class="row">
-              <div class="col-xs-12">
-                <table class="table">
-                  <thead>
-                  <tr>
-                    <th>域名</th>
-                    <th>CNAME域名</th>
-                    <th>验证</th>
-                    <th>操作</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  <tr>
-                    <td><input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com"></td>
-                    <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080</td>
-                    <td>未验证</td>
-                    <td class="text-center">
-                <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">添加</button>
-                </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+           	  <header class="panel-heading">对外服务</header>
+	          <div class="panel-body">
+	           {% if tenantServiceInfo.protocol == "http" %}
+		           <div class="row">
+		              <div class="col-xs-12">
+		                <table class="table">
+		                  <thead>
+		                  <tr>
+		                    <th>域名</th>
+		                    <th>CNAME域名</th>
+		                    <th>验证</th>
+		                    <th></th>
+		                  </tr>
+		                  </thead>
+		                  <tbody>
+		                  <tr>
+		                    <td><input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com"></td>
+		                    <td><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net</a></td>
+		                    <td>未验证</td>
+		                    <td class="text-center">
+		                		<button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">绑定</button>
+		                		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">解绑</button>
+		                	</td>
+		                    </tr>
+		                  </tbody>
+		                </table>
+		              </div>
+		           </div>
+	           {% else %}
+	           		<div class="row">
+	           		    <input type="hidden" name="create_port_mapping" id='create_port_mapping' value="portMapping">
+			          	<div class="col-xs-12">
+			                 <table class="table table-hover">
+			                   <thead>
+			                     <tr>
+			                       <th>访问地址</th>
+			                       <th>运行访问的ip段</th>
+			                       <th></th>
+			                     </tr>
+			                   </thead>
+			                   <tbody>
+			                     <tr>
+			                       <td id="mapping-port">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region|cut:"-1"}}-s1.goodrain.net</td>
+			                       <td><input type="text" class="form-control" id="service_visitor_ip" value="" placeholder="请输入你要访问的ip"></td>
+			                       <td>
+			                       <button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
+	          						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+			                       </td>
+			                     </tr>
+			                   </tbody>
+			                 </table>
+			             </div>
+			         </div>
+	           {% endif %}
+	          </div>
           </section>
-          {% endif %}
-          {% endif %}
+                    
+          <section class="panel">
+           	  <header class="panel-heading">对内服务
+           	  	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
+	          	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+           	  </header>
+           	  <div class="panel-body">
+           	  {% if tenantServiceInfo.is_service %}
+		            <div class="row">
+			          	<div class="col-xs-12">
+			                 <table class="table table-hover">
+			                   <thead>
+			                     <tr>
+			                       <th>说明</th>
+			                       <th>变量名</th>
+			                       <th>值</th>
+			                     </tr>
+			                   </thead>
+			                   <tbody>
+			                     <tr>
+			                       <td>连接地址</td>
+			                       {% if tenantServiceInfo.category == "application" %}
+			                       		<td>{{tenantServiceInfo.service_alias.upper}}_HOST</td>
+			                       {% else %}
+			                       		<td>{{tenantServiceInfo.service_type.upper}}_HOST</td>
+			                       {% endif %}
+			                       <td>127.0.0.1</td>
+			                     </tr>
+			                     <tr>
+			                       <td>端口</td>
+			                       {% if tenantServiceInfo.category == "application" %}
+			                       		<td>{{tenantServiceInfo.service_alias.upper}}_PORT</td>
+			                       {% else %}
+			                       		<td>{{tenantServiceInfo.service_type.upper}}_PORT</td>
+			                       {% endif %}
+			                       <td>{{tenantServiceInfo.service_port}}</td>
+			                     </tr>
+			                   </tbody>
+			                 </table>
+			             </div>
+			        </div>
+	          </div>
+	          {% endif %}
+          </section>
 
           <section class="panel">
             <header class="panel-heading">扩容方式</header>
@@ -539,7 +612,9 @@
 		       })
 			}
 	    }
-
+		
+	    var setIntertimmer
+	    
         $(document).ready(function () {
         	checkStatus();
         	getLog('operate');
@@ -549,7 +624,28 @@
             //setInterval("getLog('operate')", 5000);
             //setInterval("getLog('service')", 5000);
             setInterval("getServiceNetDisk()", 30000);
-
+            
+            var mapping = $("#create_port_mapping").val()
+            if(mapping != undefined){
+            	getMappingPort()
+            	setIntertimmer = setInterval("getMappingPort()", 3000);
+            }
+            
+            tabObj = $('#nav-tabs a')
+            curTab= "#{{tab_index}}"
+            for(var i=0;i<tabObj.length;i++){
+            	var tabc = $('#nav-tabs a:eq('+i+')').attr("href")
+            	if (tabc == curTab){
+            		$('#nav-tabs a:eq('+i+')').tab('show')
+            		break;
+            	}
+            }
+            
+            $( "#protocol" ).change(function() {
+            	service_protocol('outer','change','{{tenantName}}','{{tenantServiceInfo.service_alias}}')
+           	});
+            
+            
         	extPushWebSocketClient.prototype = {
        			onMessage : function(msg) {
        				var msgs = msg.split(":")
@@ -594,7 +690,7 @@
 			if(service_name!="" && service_name != undefined ){
 				$.ajax({
 		       	  type: "GET",
-		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log/",
+		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
 		    		  data: "action="+action,
 		    		  cache: false,
 		    		  beforeSend: function(xhr, settings){
@@ -676,55 +772,32 @@
 		       })
 			}
 		}
-
-        function buid_relation(curServiceName,depServiceName,tenantName){
+        
+        function getMappingPort(){
         	$.ajax({
-        		type : "POST",
-        		url : "/ajax/" + tenantName + "/" + curServiceName + "/relation",
-        		data : "dep_service_alias=" + depServiceName + "&action=add",
-        		cache : false,
-        		beforeSend : function(xhr, settings) {
-        			var csrftoken = $.cookie('csrftoken');
-        			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        		},
-        		success : function(msg) {
-        			var dataObj = msg
-        			if (dataObj["status"] == "success") {
-        				swal("操作成功")
-        				window.location.href = window.location.href
-        			} else {
-        				swal("操作失败")
-        			}
-        		},
-        		error : function() {
-        			// swal("系统异常");
-        		}
-        	})
-        }
-        function delete_relation(curServiceName,depServiceName,tenantName){
-        	$.ajax({
-        		type : "POST",
-        		url : "/ajax/" + tenantName + "/" + curServiceName + "/relation",
-        		data : "dep_service_alias=" + depServiceName + "&action=cancel",
-        		cache : false,
-        		beforeSend : function(xhr, settings) {
-        			var csrftoken = $.cookie('csrftoken');
-        			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        		},
-        		success : function(msg) {
-        			var dataObj = msg
-        			if (dataObj["status"] == "success") {
-        				swal("操作成功")
-        				window.location.href = window.location.href
-        			} else {
-        				swal("操作失败")
-        			}
-        		},
-        		error : function() {
-        			// swal("系统异常");
-        		}
-        	})
-        }
+	       	  type: "GET",
+	    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/mapping-port",
+	    		  cache: false,
+	    		  beforeSend: function(xhr, settings){
+	    		      var csrftoken = $.cookie('csrftoken');
+	    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+	    		  },
+	    	  	  success: function(msg) {
+	    	  		var dataObj = msg;
+	    	  		port = dataObj["port"]
+	    	  		if(port > 0){
+	    	  			if(port >= 2000){
+	    	  				var html = $('#mapping-port').html()
+	    	  				$('#mapping-port').html(html +":"+port)
+	    	  			}
+	    	  			clearInterval(setIntertimmer);
+	    	  		}
+	    		  },
+	    		  error: function(){
+	    			//swal("系统异常");
+	      	  	}
+	       })
+		}
     </script>
 </section>
 </section>

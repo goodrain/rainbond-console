@@ -3,6 +3,7 @@ import datetime
 import json
 
 from django.db.models import Sum
+from django.db.models import Max
 from django.views.decorators.cache import never_cache
 from django.http import JsonResponse
 from www.views import AuthedView
@@ -187,6 +188,50 @@ class ServiceManage(AuthedView):
                         regionClient.deleteEtcdService(self.tenant.region, self.service.service_id, json.dumps(data))
                     except Exception as e:
                         logger.exception(e)
+            elif action == "protocol":
+                par_opt_type = request.POST["opt_type"]
+                if par_opt_type == "outer":
+                    protocol = request.POST["protocol"]
+                    par_outer_service = request.POST["outer_service"]
+                    par_outer_ip = request.POST["outer_ip"]
+                    if protocol != "":
+                        outer_service = False
+                        if par_outer_service == "start" or par_outer_service == "change":
+                            outer_service = True                                
+                        if outer_service != self.service.is_web_service or protocol != self.service.protocol:
+                            data = {}
+                            data["protocol"] = protocol
+                            data["outer_service"] = outer_service
+                            data["inner_service"] = self.service.is_service
+                            data["inner_service_port"] = self.service.service_port
+                            data["outer_ip"] = par_outer_ip
+                            logger.debug(data)
+                            if protocol == "stream" :
+                                if par_outer_ip != "":
+                                    regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
+                            elif protocol == "http" :
+                                regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))                                
+                            self.service.protocol = protocol
+                            self.service.is_web_service = outer_service
+                            self.service.save()                            
+                elif par_opt_type == "inner":
+                    par_inner_service = request.POST["inner_service"]
+                    inner_service = False
+                    if par_inner_service == "start" or par_inner_service == "change":
+                        inner_service = True
+                    if inner_service != self.service.is_service:
+                        baseService = BaseTenantService()
+                        service_port = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key) + 1 
+                        data = {}
+                        data["protocol"] = self.service.protocol
+                        data["outer_service"] = self.service.is_web_service
+                        data["inner_service"] = inner_service
+                        data["inner_service_port"] = service_port
+                        logger.debug(data)
+                        # regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
+                        self.service.service_port = service_port
+                        self.service.is_service = inner_service
+                        self.service.save()
             result["status"] = "success"
         except Exception, e:
             logger.debug(e)
@@ -609,4 +654,67 @@ class ServiceCheck(AuthedView):
                 result["language"] = self.service.language                 
         except Exception as e:
             result["status"] = "checking"
+        return JsonResponse(result)
+    
+class ServiceMappingPort(AuthedView):
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        result = {}
+        try:
+            body = regionClient.findMappingPort(self.tenant.region, self.service.service_id)
+            port = body["port"]
+            ip = body["ip"]
+            result["port"] = port
+            result["ip"] = ip
+        except Exception as e:
+            result["port"] = 0
+        return JsonResponse(result)    
+    
+class ServiceDomainManager(AuthedView):
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        try:
+            tenantService = self.service
+            domain_name = request.POST["domain_name"]
+            action = request.POST["action"]  
+            if action == "start":
+                domainNum = ServiceDomain.objects.filter(domain_name=domain_name).count()
+                if domainNum > 0:
+                    result["status"] = "exist"
+                    return JsonResponse(result)
+                
+                num = ServiceDomain.objects.filter(service_name=tenantService.service_alias).count()
+                old_domain_name = "goodrain"
+                if num == 0:
+                    domain = {}
+                    domain["service_id"] = self.service.service_id
+                    domain["service_name"] = tenantService.service_alias
+                    domain["domain_name"] = domain_name
+                    domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    domaininfo = ServiceDomain(**domain)
+                    domaininfo.save()
+                else:
+                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                    old_domain_name = domain.domain_name
+                    domain.domain_name = domain_name
+                    domain.save()
+                data = {}
+                data["service_id"] = self.service.service_id
+                data["new_domain"] = domain_name
+                data["old_domain"] = old_domain_name 
+                data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"           
+                regionClient.addUserDomain(self.tenant.region, json.dumps(data))
+            elif action == "close":
+                servicerDomain = ServiceDomain.objects.get(service_name=tenantService.service_alias)
+                data = {}
+                data["service_id"] = servicerDomain.service_id
+                data["domain"] = servicerDomain.domain_name
+                data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool" 
+                regionClient.deleteUserDomain(self.tenant.region, json.dumps(data))
+                ServiceDomain.objects.filter(service_name=tenantService.service_alias).delete()
+            result["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
         return JsonResponse(result)

@@ -20,9 +20,9 @@ urlpatterns = patterns(
     
     url(r'^(?P<serviceAlias>[\w\-]+)/app-language/$', login_required(AppLanguageCodeView.as_view())),
     
-    url(r'^(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),    
+    url(r'^(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),
     
-    #url(r'^(?P<serviceAlias>[\w\-]+)/app-deploy/$', login_required(ServiceAppDeploy.as_view())),
+    # url(r'^(?P<serviceAlias>[\w\-]+)/app-deploy/$', login_required(ServiceAppDeploy.as_view())),
 
     url(r'^service/$', login_required(ServiceMarket.as_view())),
     
@@ -32,7 +32,6 @@ urlpatterns = patterns(
     url(r'^gitlab/$', login_required(GitLabManager.as_view())),
 
     url(r'^(?P<serviceAlias>[\w\-]+)/detail/$', login_required(TenantService.as_view())),
-    url(r'^(?P<serviceAlias>[\w\-]+)/domain/$', login_required(ServiceDomainManager.as_view())),
     
     url(r'^recharge/$', login_required(Recharging.as_view())),
     url(r'^consume/$', login_required(Account.as_view())),

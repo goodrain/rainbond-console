@@ -163,6 +163,8 @@ class TenantService(AuthedView):
         context = self.get_context()
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
+        tab_index = request.GET.get("fr", "0")
+        context['tab_index'] = tab_index
         try:
             if self.service.category == "application" and self.service.ID > 598:
                 # no create gitlab repos
@@ -189,7 +191,6 @@ class TenantService(AuthedView):
             if self.service.category == "application" or  self.service.category == "manager":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
-                
                 relationsids = []
                 sidMap = {}
                 if len(tsrs) > 0:
@@ -202,7 +203,7 @@ class TenantService(AuthedView):
                 map = {}
                 sids = []
                 for tenantService in tenantServiceList:
-                    if tenantService.category != "application" and tenantService.category != "manager":
+                    if tenantService.is_service:
                         sids.append(tenantService.service_id)
                         map[tenantService.service_id] = tenantService
                 context["serviceMap"] = map
@@ -257,50 +258,6 @@ class TenantService(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_detail.html", context)
-
-
-class ServiceDomainManager(AuthedView):
-    @never_cache
-    def post(self, request, *args, **kwargs):
-        service_alias = ""
-        result = {}
-        try:
-            if(self.user.pk != ""):
-                tenantService = self.service
-                service_alias = self.serviceAlias
-                domain_name = request.POST["domain_name"]
-                                
-                domainNum = ServiceDomain.objects.filter(domain_name=domain_name).count()
-                if domainNum > 0:
-                    result["status"] = "exist"
-                    return HttpResponse(json.dumps(result))
-                
-                num = ServiceDomain.objects.filter(service_name=tenantService.service_alias).count()
-                old_domain_name = "goodrain"
-                if num == 0:
-                    domain = {}
-                    domain["service_id"] = self.service.service_id
-                    domain["service_name"] = tenantService.service_alias
-                    domain["domain_name"] = domain_name
-                    domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    domaininfo = ServiceDomain(**domain)
-                    domaininfo.save()
-                else:
-                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
-                    old_domain_name = domain.domain_name
-                    domain.domain_name = domain_name
-                    domain.save()
-                data = {}
-                data["service_id"] = self.service.service_id
-                data["new_domain"] = domain_name
-                data["old_domain"] = old_domain_name
-                data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"              
-                regionClient.addUserDomain(self.tenant.region, json.dumps(data))   
-            result["status"] = "success"
-        except Exception as e:
-            logger.exception(e)
-            result["status"] = "failure"
-        return HttpResponse(json.dumps(result))
 
 # d82ebe5675f2ea0d0a7b
 class ServiceGitHub(BaseView):        

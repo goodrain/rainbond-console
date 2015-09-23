@@ -83,6 +83,11 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/lb/user-domains"
         res, body = self._post(url, self.default_headers, body)
         return body
+    
+    def deleteUserDomain(self, region, body):
+        url = self.region_map[region] + "/v1/lb/delete-domains-rule"
+        res, body = self._post(url, self.default_headers, body)
+        return body
 
     def changeMemory(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/" + service_id + "/language"
@@ -138,3 +143,20 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/system-unpause"
         res, body = self._post(url, self.default_headers)
         return body
+    
+    def modifyServiceProtocol(self, region, service_id, body):
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
+        res, body = self._post(url, self.default_headers, body)
+        return body
+    
+    def findMappingPort(self, region, service_id):
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
+        res, body = self._get(url, self.default_headers)
+        return body
+    
+    def bindingMappingPortIp(self, region, service_id, body):
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
+        res, body = self._put(url, self.default_headers, body)
+        return body
+    
+    
