@@ -150,9 +150,10 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 			xhr.setRequestHeader("X-CSRFToken", csrftoken);
 		},
 		success : function(msg) {
-			var dataObj = eval("(" + msg + ")");
+			var dataObj = msg
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
+				$("#service_app_name").val("")
 			} else if (dataObj["status"] == "limit"){
 				swal("免费用户不允许")
 			} else if (dataObj["status"] == "exist") {

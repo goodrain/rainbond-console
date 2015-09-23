@@ -183,7 +183,11 @@
 			                                              </tr>
 			                                              <tr>
 			                                                <td>端口</td>
-			                                                <td>{{value.service_type.upper }}_PORT</td>
+			                                                {% if value.category == "application" %}
+			                                                	<td>{{value.service_alias.upper}}_HOST</td>
+			                                                {% else %}
+			                                                	<td>{{value.service_type.upper }}_PORT</td>
+			                                                {% endif %}
 			                                                <td>{{value.service_port }}</td>
 			                                              </tr>
 				                                              {% if value.service_type == "mysql" or value.service_type == "postgresql" %}
