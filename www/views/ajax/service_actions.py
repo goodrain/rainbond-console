@@ -221,11 +221,9 @@ class ServiceManage(AuthedView):
                     if par_inner_service == "start" or par_inner_service == "change":
                         inner_service = True
                     service_port = self.service.service_port
-                    logger.debug("service_port=" + str(service_port))
                     if inner_service:
                         baseService = BaseTenantService()
-                        deployPort = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key, self.service.service_alias) + 1
-                        logger.debug("deployPort=" + str(deployPort))
+                        deployPort = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key, self.service.service_alias)
                         if deployPort > 0: 
                             service_port = deployPort + 1
                     data = {}
