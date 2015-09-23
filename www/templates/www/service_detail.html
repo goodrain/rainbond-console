@@ -360,8 +360,11 @@
 			                       <td id="mapping-port">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region|cut:"-1"}}-s1.goodrain.net</td>
 			                       <td><input type="text" class="form-control" id="service_visitor_ip" value="" placeholder="请输入你要访问的ip"></td>
 			                       <td>
-			                       <button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
-	          						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+			                       	{% if tenantServiceInfo.is_web_service %}
+			                       		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+			                        {% else %}
+					           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
+					           	  	{% endif %}	          						
 			                       </td>
 			                     </tr>
 			                   </tbody>
@@ -374,8 +377,11 @@
                     
           <section class="panel">
            	  <header class="panel-heading">对内服务
-           	  	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
-	          	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+           	  	{% if tenantServiceInfo.is_service %}
+           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+           	  	{% else %}
+           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
+           	  	{% endif %}	          	
            	  </header>
            	  <div class="panel-body">
            	  {% if tenantServiceInfo.is_service %}
