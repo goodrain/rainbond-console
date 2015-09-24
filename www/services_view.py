@@ -204,9 +204,8 @@ class TenantService(AuthedView):
                 sids = []
                 for tenantService in tenantServiceList:
                     if tenantService.is_service:
-                        if tenantService.service_id != self.service.service_id:
-                            sids.append(tenantService.service_id)
-                            map[tenantService.service_id] = tenantService
+                        sids.append(tenantService.service_id)
+                        map[tenantService.service_id] = tenantService
                 context["serviceMap"] = map
                 
                 # relationships password
