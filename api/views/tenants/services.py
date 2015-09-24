@@ -242,11 +242,9 @@ class AllTenantView(APIView):
         region = request.data.get('region', "")
         query_day = request.data.get('day', "0")
         diff_day = int(query_day)
-        
         data = {}
         try:
             if region != "":
-                logger.debug(query_day)
                 if diff_day != 0:
                     end_time = datetime.datetime.now() + datetime.timedelta(days=diff_day)      
                     tenantList = Tenants.objects.filter(service_status=service_status, pay_type=pay_type, region=region, update_time__lt=end_time)
@@ -256,7 +254,6 @@ class AllTenantView(APIView):
                             data[tenant.tenant_id] = tenant.tenant_name
                 else:
                     tenantList = Tenants.objects.filter(service_status=service_status, pay_type=pay_type, region=region)
-                    logger.debug(len(tenantList))
                     if len(tenantList) > 0:
                         for tenant in tenantList:
                             data[tenant.tenant_id] = tenant.tenant_name
