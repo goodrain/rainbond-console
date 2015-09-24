@@ -422,10 +422,12 @@
 			                     {% if tenantServiceInfo.service_type == "mysql" or tenantServiceInfo.service_type == "postgresql" %}
 			                     <tr>
 			                       <td>用户名</td>
+			                       <td>{{tenantServiceInfo.service_type.upper}}_USER</td>
 			                       <td>admin</td>
 			                     </tr>
 			                     <tr>
 			                       <td>密码</td>
+			                       <td>{{tenantServiceInfo.service_type.upper}}_PASSWORD</td>
 			                       {% if serviceAuth %}
 			                       	<td>{{serviceAuth.password}}</td>
 			                       {% else %}
