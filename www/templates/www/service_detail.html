@@ -58,7 +58,9 @@
 	                        {% if 'code_deploy' in user.actions %}
 	                        	<button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-cloud-upload"></i> 一键部署</button>
 	                        {% endif %}
-	                        	<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080');"><i class="fa fa-eye"></i>访问</button>
+	                        	{% if tenantServiceInfo.protocol == "http" %}
+	                        		<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080');"><i class="fa fa-eye"></i>访问</button>
+	                        	{% endif  %}
 	                        {% else %}
 	                        	{% if tenantServiceInfo.protocol == "http" %}
 	                        		<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080');"><i class="fa fa-eye"></i>访问</button>
