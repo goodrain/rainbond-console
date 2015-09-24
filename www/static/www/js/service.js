@@ -334,9 +334,12 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 				swal("免费资源已达上限，不能升级")
 			} else if (dataObj["status"] == "over_money") {
 				swal("余额不足，不能升级")
+			} else if (dataObj["status"] == "inject_dependency") {
+				swal("服务被依赖，不能关闭")
 			} else {
 				swal("操作失败")
 			}
+			
 		},
 		error : function() {
 			swal("系统异常");

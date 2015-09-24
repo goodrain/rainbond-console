@@ -224,6 +224,11 @@ class ServiceManage(AuthedView):
                         deployPort = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key, self.service.service_alias)
                         if deployPort > 0: 
                             service_port = deployPort + 1
+                    else:
+                        depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
+                        if depNumber > 0:
+                            result["status"] = "inject_dependency"
+                            return JsonResponse(result)
                     data = {}
                     data["protocol"] = self.service.protocol
                     data["outer_service"] = self.service.is_web_service

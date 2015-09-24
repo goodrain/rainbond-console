@@ -197,19 +197,15 @@ class TenantService(AuthedView):
                     for tsr in tsrs:
                         relationsids.append(tsr.dep_service_id)
                         sidMap[tsr.dep_service_id] = tsr.dep_order
-                logger.debug(relationsids)
-                logger.debug(sidMap)
                 context["serviceIds"] = relationsids  
                 context["serviceIdsMap"] = sidMap
                     
                 map = {}
                 sids = []
                 for tenantService in tenantServiceList:
-                    logger.debug(tenantService)
                     if tenantService.is_service:
                         sids.append(tenantService.service_id)
                         map[tenantService.service_id] = tenantService
-                logger.debug(map)
                 context["serviceMap"] = map
                 
                 # relationships password
