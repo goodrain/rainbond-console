@@ -361,7 +361,7 @@
 			                   <tbody>
 			                     <tr>
 			                       <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region|cut:"-1"}}-s1.goodrain.net</td>
-			                       <td id="mapping-port"></td>
+			                       <td id="mapping-port">正在动态分配</td>
 			                       <td>
 			                       	{% if tenantServiceInfo.is_web_service %}
 			                       		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
@@ -417,6 +417,20 @@
 			                       {% endif %}
 			                       <td>{{tenantServiceInfo.service_port}}</td>
 			                     </tr>
+			                     {% if tenantServiceInfo.service_type == "mysql" or tenantServiceInfo.service_type == "postgresql" %}
+			                     <tr>
+			                       <td>用户名</td>
+			                       <td>admin</td>
+			                     </tr>
+			                     <tr>
+			                       <td>密码</td>
+			                       {% if serviceAuth %}
+			                       	<td>{{serviceAuth.password}}</td>
+			                       {% else %}
+			                       	<td>admin</td>
+			                       {% endif %}
+			                     </tr>
+			                     {% endif  %}
 			                   </tbody>
 			                 </table>
 			             </div>

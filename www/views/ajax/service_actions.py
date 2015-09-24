@@ -206,6 +206,7 @@ class ServiceManage(AuthedView):
                     data["outer_service"] = outer_service
                     data["inner_service"] = self.service.is_service
                     data["inner_service_port"] = self.service.service_port
+                    data["service_type"] = par_opt_type
                     logger.debug(data)
                     regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))                                                    
                     self.service.protocol = protocol
@@ -228,6 +229,7 @@ class ServiceManage(AuthedView):
                     data["outer_service"] = self.service.is_web_service
                     data["inner_service"] = inner_service
                     data["inner_service_port"] = service_port
+                    data["service_type"] = par_opt_type
                     logger.debug(data)
                     regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
                     self.service.service_port = service_port
