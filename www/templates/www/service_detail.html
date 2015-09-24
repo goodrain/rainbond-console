@@ -319,6 +319,7 @@
 	          </div>
           </section>
            
+          {% if tenant.pay_type !="free" %}
           <section class="panel">
            	  <header class="panel-heading">对外服务</header>
 	          <div class="panel-body">
@@ -379,7 +380,7 @@
 	           {% endif %}
 	          </div>
           </section>
-           
+          {% endif %}
           <section class="panel">
            	  <header class="panel-heading">对内服务
            	  	{% if tenantServiceInfo.is_service %}
