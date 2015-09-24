@@ -316,7 +316,6 @@
 	          </div>
           </section>
            
-          {% if tenant.pay_type != "free" %}
           <section class="panel">
            	  <header class="panel-heading">对外服务</header>
 	          <div class="panel-body">
@@ -377,14 +376,13 @@
 	           {% endif %}
 	          </div>
           </section>
-          {% endif %}
            
           <section class="panel">
            	  <header class="panel-heading">对内服务
            	  	{% if tenantServiceInfo.is_service %}
            	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
            	  	{% else %}
-           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
+           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
            	  	{% endif %}	          	
            	  </header>
            	  <div class="panel-body">
