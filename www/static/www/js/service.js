@@ -302,31 +302,16 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 	if (opt_type == "outer") {
 		protocol = $("#protocol").val();
 		outer_service = action
-		service_visitor_ip = $("#service_visitor_ip").val()
 	}
 	if (opt_type == "inner") {
 		inner_service = action
-	}
-	if (service_visitor_ip == undefined || service_visitor_ip == "" || service_visitor_ip == "undefined"){
-		service_visitor_ip == ""
-	}
-	if(protocol == "stream" && action == "start"){
-		if(service_visitor_ip == ""){
-			swal("请填写访问ip");
-			return false;
-		}
-		var re=/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/g;
-		if(!re.test(service_visitor_ip)){
-			swal("请填写正确的访问ip");
-			return false;
-		}
 	}
 	$.ajax({
 		type : "POST",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/manage/",
 		data : "opt_type=" + opt_type + "&protocol=" + protocol
 				+ "&action=protocol&inner_service=" + inner_service
-				+ "&outer_service=" + outer_service+"&outer_ip="+service_visitor_ip,
+				+ "&outer_service=" + outer_service,
 		cache : false,
 		beforeSend : function(xhr, settings) {
 			var csrftoken = $.cookie('csrftoken');

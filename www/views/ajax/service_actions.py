@@ -193,28 +193,25 @@ class ServiceManage(AuthedView):
                 if par_opt_type == "outer":
                     protocol = request.POST["protocol"]
                     par_outer_service = request.POST["outer_service"]
-                    par_outer_ip = request.POST["outer_ip"]
-                    if protocol != "":
-                        outer_service = False
-                        if par_outer_service == "start" or par_outer_service == "change":
-                            outer_service = True
-                        data = {}
-                        data["protocol"] = protocol
-                        data["outer_service"] = outer_service
-                        data["inner_service"] = self.service.is_service
-                        data["inner_service_port"] = self.service.service_port
-                        if par_outer_ip != "":
-                            data["outer_ip"] = par_outer_ip
-                        logger.debug(data)
-                        if protocol == "stream" :
-                            if par_outer_ip != "":
-                                regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
-                        elif protocol == "http" :
-                            regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))                                
-                        self.service.protocol = protocol
-                        self.service.is_web_service = outer_service
-                        self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                        self.service.save()                            
+                    if par_outer_service == "change":
+                        logger.debug("old protocol=" + self.service.protocol + ";new protocol=" + protocol)
+                        if protocol == self.service.protocol:
+                            result["status"] = "success"
+                            return JsonResponse(result)
+                    outer_service = False
+                    if par_outer_service == "start" or par_outer_service == "change":
+                        outer_service = True
+                    data = {}
+                    data["protocol"] = protocol
+                    data["outer_service"] = outer_service
+                    data["inner_service"] = self.service.is_service
+                    data["inner_service_port"] = self.service.service_port
+                    logger.debug(data)
+                    regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))                                                    
+                    self.service.protocol = protocol
+                    self.service.is_web_service = outer_service
+                    self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                    self.service.save()                            
                 elif par_opt_type == "inner":
                     par_inner_service = request.POST["inner_service"]
                     inner_service = False

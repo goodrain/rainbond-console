@@ -353,14 +353,14 @@
 			                   <thead>
 			                     <tr>
 			                       <th>访问地址</th>
-			                       <th>运行访问的ip段</th>
+			                       <th>端口</th>
 			                       <th></th>
 			                     </tr>
 			                   </thead>
 			                   <tbody>
 			                     <tr>
-			                       <td id="mapping-port">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region|cut:"-1"}}-s1.goodrain.net</td>
-			                       <td><input type="text" class="form-control" id="service_visitor_ip" value="" placeholder="请输入你要访问的ip"></td>
+			                       <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region|cut:"-1"}}-s1.goodrain.net</td>
+			                       <td id="mapping-port"></td>
 			                       <td>
 			                       	{% if tenantServiceInfo.is_web_service %}
 			                       		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
@@ -800,11 +800,7 @@
 	    	  		ip = dataObj["ip"]
 	    	  		if(port > 0){
 	    	  			if(port >= 2000){
-	    	  				var html = $('#mapping-port').html()
-	    	  				$('#mapping-port').html(html +":"+port)
-	    	  			}
-	    	  			if(ip != ""){
-	    	  				$('#service_visitor_ip').val(ip)
+	    	  				$('#mapping-port').html(port)
 	    	  			}
 	    	  			clearInterval(setIntertimmer);
 	    	  		}
