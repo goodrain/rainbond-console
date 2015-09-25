@@ -13,7 +13,7 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 from www.views import BaseView, AuthedView
 from www.decorator import perm_required
-from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth, TenantConsume
+from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth, TenantConsume, TenantServiceEnvVar
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
@@ -188,34 +188,35 @@ class TenantService(AuthedView):
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]   
             context["tenant"] = self.tenant   
             
-            if self.service.category == "application" or  self.service.category == "manager":
-                # service relationships
-                tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
-                relationsids = []
-                sidMap = {}
-                if len(tsrs) > 0:
-                    for tsr in tsrs:
-                        relationsids.append(tsr.dep_service_id)
-                        sidMap[tsr.dep_service_id] = tsr.dep_order
-                context["serviceIds"] = relationsids  
-                context["serviceIdsMap"] = sidMap
-                    
-                map = {}
-                sids = []
-                for tenantService in tenantServiceList:
-                    if tenantService.is_service:
-                        sids.append(tenantService.service_id)
-                        map[tenantService.service_id] = tenantService
-                context["serviceMap"] = map
+            # service relationships
+            tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
+            relationsids = []
+            if len(tsrs) > 0:
+                for tsr in tsrs:
+                    relationsids.append(tsr.dep_service_id)
+            context["serviceIds"] = relationsids
                 
-                # relationships password
-                authMap = {}
-                authList = TenantServiceAuth.objects.filter(service_id__in=sids)
-                if len(authList) > 0:                    
-                    for auth in authList:
-                        authMap[auth.service_id] = auth
-                context["authMap"] = authMap
-                                
+            map = {}
+            sids = [service_id]
+            for tenantService in tenantServiceList:
+                if tenantService.is_service:
+                    sids.append(tenantService.service_id)
+                    map[tenantService.service_id] = tenantService
+            context["serviceMap"] = map
+            
+            # relationships password
+            envMap = {}
+            envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
+            if len(envVarlist) > 0:
+                for evnVarObj in envVarlist:
+                    arr = envMap.get(evnVarObj.service_id)
+                    if arr is None:
+                        arr = []
+                    arr.append(evnVarObj)
+                    envMap[evnVarObj.service_id] = arr
+            context["envMap"] = envMap
+                
+            if self.service.category == "application" or  self.service.category == "manager":
                 # service git repository
                 httpGitUrl = ""
                 if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
@@ -227,19 +228,14 @@ class TenantService(AuthedView):
                 # service domain
                 if self.tenant.pay_type != "free":
                     try:
-                        domain = ServiceDomain.objects.get(
-                            service_id=self.service.service_id)
+                        domain = ServiceDomain.objects.get(service_id=self.service.service_id)
                         context["serviceDomain"] = domain
                     except Exception as e:
                         pass
-                context["pay_type"] = self.tenant.pay_type
-            else:
-                try:
-                    serviceAuth = TenantServiceAuth.objects.get(service_id=self.service.service_id)
-                    context["serviceAuth"] = serviceAuth     
-                except Exception as e:
-                    pass
-                
+            
+            websocket_info = settings.WEBSOCKET_URL
+            context["websocket_uri"] = websocket_info[self.tenant.region]
+            
             if self.tenant.service_status == 0:
                 logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
                 regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
@@ -251,10 +247,7 @@ class TenantService(AuthedView):
                 regionClient.systemUnpause(self.tenant.region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
-                                
-            websocket_info = settings.WEBSOCKET_URL
-            context["websocket_uri"] = websocket_info[self.tenant.region]
-            
+                            
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_detail.html", context)

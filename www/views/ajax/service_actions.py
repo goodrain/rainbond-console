@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain 
+from www.models import ServiceInfo, TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain, TenantServiceEnvVar 
 from www.service_http import RegionServiceApi
 from www.gitlab_http import GitlabApi
 from django.conf import settings
@@ -173,21 +173,13 @@ class ServiceManage(AuthedView):
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
                     gitClient.deleteProject(self.service.git_project_id)
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
-                # env/auth/relationship delete                
+                # env/auth/domain/relationship/envVar delete                
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
-                ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
-                               
-                tdrNumber = TenantServiceRelation.objects.filter(service_id=self.service.service_id).count()
-                if tdrNumber > 0:
-                    TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
-                    try:
-                        data = {}
-                        data["tenant_id"] = self.service.tenant_id
-                        data["service_id"] = self.service.service_id
-                        regionClient.deleteEtcdService(self.tenant.region, self.service.service_id, json.dumps(data))
-                    except Exception as e:
-                        logger.exception(e)
+                ServiceDomain.objects.filter(service_id=self.service.service_id).delete()                
+                TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()                                
+                TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
+                
             elif action == "protocol":
                 par_opt_type = request.POST["opt_type"]
                 if par_opt_type == "outer":
@@ -378,20 +370,12 @@ class ServiceRelation(AuthedView):
         try:
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
-            tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)            
+            tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)  
+            baseService = BaseTenantService()          
             if action == "add":
-                baseService = BaseTenantService()
                 baseService.create_service_dependency(tenant_id, service_id, tenantS.service_id, self.tenant.region)
             elif action == "cancel":
-                try:
-                    data = {}
-                    data["tenant_id"] = tenant_id
-                    data["dps_service_id"] = tenantS.service_id
-                    data["service_id"] = service_id
-                    regionClient.cancelServiceDependency(self.tenant.region, service_id, json.dumps(data))
-                except Exception as e:
-                    logger.exception(e)                
-                TenantServiceRelation.objects.get(tenant_id=tenant_id, service_id=service_id, dep_service_id=tenantS.service_id).delete()
+                baseService.cancel_service_dependency(tenant_id, service_id, tenantS.service_id, self.tenant.region)
             result["status"] = "success"    
         except Exception, e:
             logger.exception(e)
@@ -722,6 +706,50 @@ class ServiceDomainManager(AuthedView):
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool" 
                 regionClient.deleteUserDomain(self.tenant.region, json.dumps(data))
                 ServiceDomain.objects.filter(service_name=tenantService.service_alias).delete()
+            result["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return JsonResponse(result)
+    
+    
+class ServiceEnvVarManager(AuthedView):
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        try:
+            id = request.POST["id"]
+            nochange_name = request.POST["nochange_name"]          
+            name = request.POST["name"]
+            attr_name = request.POST["attr_name"]
+            attr_value = request.POST["attr_value"]
+            logger.debug(name)
+            logger.debug(attr_name)
+            logger.debug(attr_value)
+            name_arr = name.split(",")
+            attr_name_arr = attr_name.split(",")
+            attr_value_arr = attr_value.split(",")
+            if id != "" and nochange_name != "":
+                id_arr = id.split(',')
+                nochange_name_arr = nochange_name.split(',')
+                if len(id_arr) == len(nochange_name_arr):
+                    for index, curid in enumerate(id_arr):
+                        TenantServiceEnvVar.objects.filter(ID=curid, service_id=self.service.service_id).update(attr_name=nochange_name_arr[index])
+            
+            if name != "" and attr_name != "" and attr_value != "" and   len(name_arr) == len(attr_name_arr) and len(attr_value_arr) == len(attr_name_arr):                
+                TenantServiceEnvVar.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id, is_change=True).delete()
+                for index, cname in enumerate(name_arr):
+                    tenantServiceEnvVar = {} 
+                    tenantServiceEnvVar["tenant_id"] = self.service.tenant_id
+                    tenantServiceEnvVar["service_id"] = self.service.service_id
+                    tenantServiceEnvVar["name"] = cname
+                    tenantServiceEnvVar["attr_name"] = attr_name_arr[index]
+                    tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
+                    tenantServiceEnvVar["is_change"] = 1
+                    TenantServiceEnvVar(**tenantServiceEnvVar).save()
+                # sync data to region
+                baseTenantService = BaseTenantService()
+                baseTenantService.create_service_env(self.service.tenant_id, self.service.service_id, self.tenant.region)
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)

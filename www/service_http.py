@@ -110,18 +110,18 @@ class RegionServiceApi(BaseHttpClient):
         return body
 
     def createServiceDependency(self, region, service_id, body):
-        url = self.region_map[region] + "/v1/etcd/" + service_id + "/manage"
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/dependency/"
         res, body = self._post(url, self.default_headers, body)
         return body
 
     def cancelServiceDependency(self, region, service_id, body):
-        url = self.region_map[region] + "/v1/etcd/" + service_id + "/manage"
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/dependency/"
         res, body = self._put(url, self.default_headers, body)
         return body
-
-    def deleteEtcdService(self, region, service_id, body):
-        url = self.region_map[region] + "/v1/etcd/" + service_id + "/manage"
-        res, body = self._delete(url, self.default_headers, body)
+    
+    def createServiceEnv(self, region, service_id, body):
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/env-var/"
+        res, body = self._put(url, self.default_headers, body)
         return body
 
     def getTenantRunningServiceId(self, region, tenant_id):

@@ -143,7 +143,8 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 	$.ajax({
 		type : "POST",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/domain",
-		data : "service_id=" + service_id + "&domain_name=" + domain_name+"&action="+action,
+		data : "service_id=" + service_id + "&domain_name=" + domain_name
+				+ "&action=" + action,
 		cache : false,
 		beforeSend : function(xhr, settings) {
 			var csrftoken = $.cookie('csrftoken');
@@ -154,7 +155,7 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
 				$("#service_app_name").val("")
-			} else if (dataObj["status"] == "limit"){
+			} else if (dataObj["status"] == "limit") {
 				swal("免费用户不允许")
 			} else if (dataObj["status"] == "exist") {
 				swal("域名已存在")
@@ -298,7 +299,7 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 	var protocol = ""
 	var outer_service = "close"
 	var inner_service = "close"
-	var service_visitor_ip =""
+	var service_visitor_ip = ""
 	if (opt_type == "outer") {
 		protocol = $("#protocol").val();
 		outer_service = action
@@ -321,9 +322,10 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 			var dataObj = msg
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
-				if (window.location.href.indexOf("fr=") < 0){
-					window.location.href = window.location.href + "?fr=settings";
-				}else{
+				if (window.location.href.indexOf("fr=") < 0) {
+					window.location.href = window.location.href
+							+ "?fr=settings";
+				} else {
 					window.location.href = window.location.href
 				}
 			} else if (dataObj["status"] == "often") {
@@ -339,7 +341,7 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 			} else {
 				swal("操作失败")
 			}
-			
+
 		},
 		error : function() {
 			swal("系统异常");
@@ -347,8 +349,7 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 	})
 }
 
-
-function buid_relation(action,curServiceName,depServiceName,tenantName){
+function buid_relation(action, curServiceName, depServiceName, tenantName) {
 	if (action != "add" && action != "cancel") {
 		swal("系统异常");
 		window.location.href = window.location.href;
@@ -356,7 +357,7 @@ function buid_relation(action,curServiceName,depServiceName,tenantName){
 	$.ajax({
 		type : "POST",
 		url : "/ajax/" + tenantName + "/" + curServiceName + "/relation",
-		data : "dep_service_alias=" + depServiceName + "&action="+action,
+		data : "dep_service_alias=" + depServiceName + "&action=" + action,
 		cache : false,
 		beforeSend : function(xhr, settings) {
 			var csrftoken = $.cookie('csrftoken');
@@ -366,11 +367,12 @@ function buid_relation(action,curServiceName,depServiceName,tenantName){
 			var dataObj = msg
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
-				if (window.location.href.indexOf("fr=") < 0){
-					window.location.href = window.location.href + "?fr=relations";
-				}else{
+				if (window.location.href.indexOf("fr=") < 0) {
 					window.location.href = window.location.href
-				}				
+							+ "?fr=relations";
+				} else {
+					window.location.href = window.location.href
+				}
 			} else {
 				swal("操作失败")
 			}
@@ -379,4 +381,108 @@ function buid_relation(action,curServiceName,depServiceName,tenantName){
 			// swal("系统异常");
 		}
 	})
+}
+
+function add_new_attr(service_id,port) {
+	var msg = ''
+	msg = msg + '<tr>'
+	msg = msg + '<td><input name ="' + service_id+ '_name" value=""></td>'
+	msg = msg + '<td><input name ="' + service_id+ '_attr_name" value=""></td>'
+	msg = msg + '<td><input name ="' + service_id+ '_attr_value" value=""></td>'
+	msg = msg + '<td><button type="button" class="btn btn-success btn-xs" onclick="attr_delete(this);">删除</button></td>'
+	msg = msg + '</tr>'
+	$("#envVartable tr:last").after(msg);
+}
+
+function attr_save(service_id, tenant_name, service_name) {
+	var id_obj = $('input[name=' + service_id + '_serviceNoChange]');
+	var id =[];
+	for (var i = 0; i < id_obj.length; i++) {
+		id.push(id_obj[i].value)
+	}
+	var reg = /[\u4E00-\u9FA5\uF900-\uFA2D]/
+	var regother = /[\uFF00-\uFFEF]/
+	var nochange_name_obj = $('input[name=' + service_id + '_nochange_name]');
+	var nochange_name = [];
+	for (var i = 0; i < nochange_name_obj.length; i++) {
+		var tmp = nochange_name_obj[i].value;
+		if (reg.test(tmp) || regother.test(tmp)){
+			swal("变量名不正确");
+			return false;
+		}
+		if (tmp == "") {
+			swal("必填项不能为空");
+			return false;
+		} else {
+			nochange_name.push(tmp)
+		}
+	}
+	
+	var name_obj = $('input[name=' + service_id + '_name]');
+	var name = [];
+	for (var i = 0; i < name_obj.length; i++) {
+		if (name_obj[i].value == "") {
+			swal("必填项不能为空");
+			return false;
+		} else {
+			name.push(name_obj[i].value)
+		}
+	}
+	var attr_name_obj = $('input[name=' + service_id + '_attr_name]');
+	var attr_name = [];
+	for (var i = 0; i < attr_name_obj.length; i++) {
+		var tmp = attr_name_obj[i].value;
+		if (reg.test(tmp) || regother.test(tmp)){
+			swal("变量名不正确");
+			return false;
+		}
+		if (tmp == "") {
+			swal("必填项不能为空");
+			return false;
+		} else {
+			attr_name.push(tmp)
+		}
+	}
+	var attr_value_obj = $('input[name=' + service_id + '_attr_value]');
+	var attr_value = [];
+	for (var i = 0; i < attr_value_obj.length; i++) {
+		var tmp = attr_value_obj[i].value;
+		if (reg.test(tmp) || regother.test(tmp)){
+			swal("变量名不正确");
+			return false;
+		}
+		if (tmp == "") {
+			swal("必填项不能为空");
+			return false;
+		} else {
+			attr_value.push(tmp)
+		}
+	}
+	$.ajax({
+		type : "POST",
+		url : "/ajax/" + tenant_name + "/" + service_name + "/envvar",
+		data : "nochange_name="+nochange_name.toString()+"&id="+id.toString()+"&name=" + name.toString() + "&attr_name="
+			   + attr_name.toString() + "&attr_value=" + attr_value.toString(),
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(msg) {
+			var dataObj = msg
+			if (dataObj["status"] == "success") {
+				swal("操作成功")
+			} else {
+				swal("操作失败")
+			}
+		},
+		error : function() {
+			// swal("系统异常");
+		}
+	})
+}
+
+function attr_delete(obj){
+	var trobj = $(obj).closest('tr');
+	$(trobj).remove();
 }

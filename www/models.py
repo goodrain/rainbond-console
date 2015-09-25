@@ -569,3 +569,20 @@ class PhoneCode(BaseModel):
     code = models.CharField(max_length=10, help_text=u"类型")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
+    
+class TenantServiceEnvVar(BaseModel):
+
+    class Meta:
+        db_table = 'tenant_service_evn_var'
+
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    name = models.CharField(max_length=100, help_text=u"名称")
+    attr_name = models.CharField(max_length=100, help_text=u"属性")
+    attr_value = models.CharField(max_length=40, help_text=u"值")
+    is_change = models.BooleanField(
+        default=False, blank=True, help_text=u"是否可改变")
+    create_time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
+    
+    def __unicode__(self):
+        return self.name

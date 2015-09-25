@@ -76,7 +76,8 @@
               </section>
             </div>
           </div>
-          {% if tenantServiceInfo.category == "store" or tenantServiceInfo.category == "cache" %}
+          {% if tenantServiceInfo.is_service %}
+          {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
           <div class="row">
           	<div class="col-lg-6 text-left">
                <section class="panel">
@@ -85,37 +86,24 @@
                    <thead>
                      <tr>
                        <th>说明</th>
+                       <th>变量名</th>
                        <th>值</th>
                      </tr>
                    </thead>
                    <tbody>
+                    {% for curServiceEnvVar in curServiceEnvVarList %}
                      <tr>
-                       <td>连接地址</td>
-                       <td>127.0.0.1</td>
+                       <td>{{curServiceEnvVar.name}}</td>
+                       <td>{{curServiceEnvVar.attr_name}}</td>
+                       <td>{{curServiceEnvVar.attr_value}}</td>
                      </tr>
-                     <tr>
-                       <td>端口</td>
-                       <td>{{tenantServiceInfo.service_port }}</td>
-                     </tr>
-                     {% if tenantServiceInfo.service_type == "mysql" or tenantServiceInfo.service_type == "postgresql" %}
-                     <tr>
-                       <td>用户名</td>
-                       <td>admin</td>
-                     </tr>
-                     <tr>
-                       <td>密码</td>
-                       {% if serviceAuth %}
-                       	<td>{{serviceAuth.password}}</td>
-                       {% else %}
-                       	<td>admin</td>
-                       {% endif %}
-                     </tr>
-                     {% endif  %}
+                    {% endfor %}
                    </tbody>
                  </table>
                </section>
              </div>
           </div>
+          {% endwith %}
           {% endif %}
           <div class="row">
           	<div class="col-lg-12 text-left">
@@ -149,8 +137,7 @@
                         {% if serviceIds %}
 	                 		{% for sid in serviceIds %}
 	                 		   {% with value=serviceMap|mkey:sid %}
-	                 		   {% with dep_order=serviceIdsMap|mkey:sid %}
-	                 		   {% with auth=authMap|mkey:sid %}
+	                 		   {% with curServiceEnvVarList=envMap|mkey:sid %}
 		                        <tr>
 		                            <td>{{value.service_type}}</td>
 		                            <td>{{value.service_alias}}</td>
@@ -174,69 +161,13 @@
 			                                              </tr>
 			                                            </thead>
 			                                            <tbody>
-			                                              {% if dep_order == 1 %}
-			                                              <tr>
-			                                                <td>连接地址</td>
-			                                                {% if value.category == "application" %}
-			                                                	<td>{{value.service_alias.upper}}_HOST</td>
-			                                                {% else %}
-			                                                	<td>{{value.service_type.upper}}_HOST</td>
-			                                                {% endif %}
-			                                                <td>127.0.0.1</td>
-			                                              </tr>
-			                                              <tr>
-			                                                <td>端口</td>
-			                                                {% if value.category == "application" %}
-			                                                	<td>{{value.service_alias.upper}}_HOST</td>
-			                                                {% else %}
-			                                                	<td>{{value.service_type.upper }}_PORT</td>
-			                                                {% endif %}
-			                                                <td>{{value.service_port }}</td>
-			                                              </tr>
-				                                              {% if value.service_type == "mysql" or value.service_type == "postgresql" %}
-				                                              <tr>
-				                                                <td>用户名</td>
-				                                                <td>{{value.service_type.upper }}_USER</td>
-				                                                <td>admin</td>
-				                                              </tr>
-				                                              <tr>
-				                                                <td>密码</td>
-				                                                <td>{{value.service_type.upper }}_PASSWORD</td>
-				                                                {% if auth %}
-				                                                <td>{{auth.password}}</td>
-				                                                {% else %}
-				                                                <td>admin</td>
-				                                                {% endif %}
-				                                              </tr>
-				                                              {% endif %}
-			                                              {% else %}
-			                                               <tr>
-			                                                <td>连接地址</td>
-			                                                <td>{{value.service_type.upper}}_{{value.service_alias.upper}}_HOST</td>
-			                                                <td>127.0.0.1</td>
-			                                              </tr>
-			                                              <tr>
-			                                                <td>端口</td>
-			                                                <td>{{value.service_type.upper}}_{{value.service_alias.upper }}_PORT</td>
-			                                                <td>{{value.service_port }}</td>
-			                                              </tr>
-				                                             {% if value.service_type == "mysql" %}
-				                                              <tr>
-				                                                <td>用户名</td>
-				                                                <td>{{value.service_type.upper}}_{{value.service_alias.upper }}_USER</td>
-				                                                <td>admin</td>
-				                                              </tr>
-				                                              <tr>
-				                                                <td>密码</td>
-				                                                <td>{{value.service_type.upper}}_{{value.service_alias.upper }}_PASSWORD</td>
-				                                                {% if auth %}
-				                                                <td>{{auth.password}}</td>
-				                                                {% else %}
-				                                                <td>admin</td>
-				                                                {% endif %}
-				                                              </tr>
-				                                              {% endif %}
-			                                              {% endif %}
+			                                             {% for curServiceEnvVar in curServiceEnvVarList %}
+									                     <tr>
+									                       <td>{{curServiceEnvVar.name}}</td>
+									                       <td>{{curServiceEnvVar.attr_name}}</td>
+									                       <td>{{curServiceEnvVar.attr_value}}</td>
+									                     </tr>
+									                     {% endfor %}
 			                                            </tbody>
 			                                          </table>
 			                                        </div>
@@ -248,7 +179,6 @@
 	                                    </div>
 		                            </td>
 		                        </tr>
-		                        {% endwith %}
 		                        {% endwith %}
 		                        {% endwith %}
 	                        {% endfor %}
@@ -319,7 +249,7 @@
 	          </div>
           </section>
            
-          {% if tenant.pay_type !="free" %}
+          {% if tenant.pay_type != "free" %}
           <section class="panel">
            	  <header class="panel-heading">对外服务</header>
 	          <div class="panel-body">
@@ -389,59 +319,49 @@
            	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
            	  	{% endif %}	          	
            	  </header>
-           	  <div class="panel-body">
            	  {% if tenantServiceInfo.is_service %}
+           	  {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
+           	  <div class="panel-body">
 		            <div class="row">
 			          	<div class="col-xs-12">
-			                 <table class="table table-hover">
+			                 <table class="table table-hover" id ="envVartable">
 			                   <thead>
 			                     <tr>
 			                       <th>说明</th>
 			                       <th>变量名</th>
 			                       <th>值</th>
+			                       <th></th>
 			                     </tr>
 			                   </thead>
 			                   <tbody>
+			                    {% for curServiceEnvVar in curServiceEnvVarList %}
 			                     <tr>
-			                       <td>连接地址</td>
-			                       {% if tenantServiceInfo.category == "application" %}
-			                       		<td>{{tenantServiceInfo.service_alias.upper}}_HOST</td>
+			                       {% if curServiceEnvVar.is_change %}
+			                       	   <td><input name ="{{curServiceEnvVar.service_id}}_name" value="{{curServiceEnvVar.name}}"></td>
+				                       <td><input name ="{{curServiceEnvVar.service_id}}_attr_name" value="{{curServiceEnvVar.attr_name}}"></td>
+			                       	   <td><input name ="{{curServiceEnvVar.service_id}}_attr_value" value="{{curServiceEnvVar.attr_value}}"></td>
+			                       	   <td><button type="button" class="btn btn-success btn-xs" onclick="attr_delete(this);">删除</button></td>
 			                       {% else %}
-			                       		<td>{{tenantServiceInfo.service_type.upper}}_HOST</td>
+			                           <input type="text" name="{{curServiceEnvVar.service_id}}_serviceNoChange" value="{{curServiceEnvVar.ID}}" />
+				                       <td>{{curServiceEnvVar.name}}</td>
+				                       <td><input name ="{{curServiceEnvVar.service_id}}_nochange_name" value="{{curServiceEnvVar.attr_name}}"></td>
+				                       <td>{{curServiceEnvVar.attr_value}}</td>
+				                       <td></td>
 			                       {% endif %}
-			                       <td>127.0.0.1</td>
-			                     </tr>
-			                     <tr>
-			                       <td>端口</td>
-			                       {% if tenantServiceInfo.category == "application" %}
-			                       		<td>{{tenantServiceInfo.service_alias.upper}}_PORT</td>
-			                       {% else %}
-			                       		<td>{{tenantServiceInfo.service_type.upper}}_PORT</td>
-			                       {% endif %}
-			                       <td>{{tenantServiceInfo.service_port}}</td>
-			                     </tr>
-			                     {% if tenantServiceInfo.service_type == "mysql" or tenantServiceInfo.service_type == "postgresql" %}
-			                     <tr>
-			                       <td>用户名</td>
-			                       <td>{{tenantServiceInfo.service_type.upper}}_USER</td>
-			                       <td>admin</td>
-			                     </tr>
-			                     <tr>
-			                       <td>密码</td>
-			                       <td>{{tenantServiceInfo.service_type.upper}}_PASSWORD</td>
-			                       {% if serviceAuth %}
-			                       	<td>{{serviceAuth.password}}</td>
-			                       {% else %}
-			                       	<td>admin</td>
-			                       {% endif %}
-			                     </tr>
-			                     {% endif  %}
-			                   </tbody>
+			                      </tr>
+			                     {% endfor %}
+			                    </tbody>
 			                 </table>
+			                 <label>
+			                 	<button type="button" class="btn btn-success btn-xs" id="save_service_attr" onclick="attr_save('{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">保存</button>
+			                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			                    <button type="button" class="btn btn-success btn-xs" id="add_service_attr" onclick="add_new_attr('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_port}}');">新增环境变量</button>
+			                 </label>
 			             </div>
 			        </div>
 	          </div>
-	          {% endif %}
+	         {% endwith %}
+	         {% endif %}
           </section>
 
           <section class="panel">

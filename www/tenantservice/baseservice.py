@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceStatics, TenantServiceAuth
+from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceStatics, TenantServiceAuth, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from django.conf import settings
 
@@ -60,11 +60,15 @@ class BaseTenantService(object):
         tenantServiceInfo["image"] = service.image
         tenantServiceInfo["cmd"] = service.cmd
         tenantServiceInfo["setting"] = service.setting
+        is_auth = False
+        password = ""
         if service.is_init_accout:
+            is_auth = True
             uk = service.service_key.upper() + "_USER=" + "admin"
             up = service.service_key.upper() + "_PASS=" + service_id[:8]
             envar = service.env + "," + uk + "," + up + ","
-            ta = TenantServiceAuth(service_id=service_id, user="admin", password=service_id[:8])
+            password = service_id[:8]
+            ta = TenantServiceAuth(service_id=service_id, user="admin", password=password)
             ta.save()
         else:
             envar = service.env + ","
@@ -97,6 +101,12 @@ class BaseTenantService(object):
         tenantServiceInfo["is_service"] = service.is_service                        
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
+        
+        self.saveServiceEnvVar(tenant_id, service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
+        self.saveServiceEnvVar(tenant_id, service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
+        if service.is_init_accout:
+            self.saveServiceEnvVar(tenant_id, service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
+            self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", "admin", True)
         return newTenantService
         
     def create_region_service(self, newTenantService, service, domain, region):
@@ -144,38 +154,48 @@ class BaseTenantService(object):
         
         
     def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
-        tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_id=dep_service_id)
-        depNum = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id, dep_service_type=tenantS.service_type).count()
-        attr = tenantS.service_type.upper()
-        if depNum > 0 :
-            attr = attr + "_" + tenantS.service_alias.upper()
-        else:
-            if tenantS.category == 'application':
-                attr = tenantS.service_alias.upper()
-        data = {}
-        data[attr + "_HOST"] = "127.0.0.1"
-        data[attr + "_PORT"] = tenantS.service_port
-        data[attr + "_USER"] = "admin"
-        try:
-            ts = TenantServiceAuth.objects.get(service_id=tenantS.service_id)
-            data[attr + "_PASSWORD"] = ts.password
-        except Exception as e:
-            data[attr + "_PASSWORD"] = "admin"
+        dependS = TenantServiceInfo.objects.get(service_id=dep_service_id)
         task = {}
-        task["service_id"] = service_id
         task["dps_service_id"] = dep_service_id
         task["tenant_id"] = tenant_id
-        task["data"] = data
-        logger.debug(tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+        task["dep_service_type"] = dependS.service_type
         regionClient.createServiceDependency(region, service_id, json.dumps(task))
-        logger.debug(tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         tsr = TenantServiceRelation()
         tsr.tenant_id = tenant_id
         tsr.service_id = service_id
-        tsr.dep_service_id = tenantS.service_id
-        tsr.dep_service_type = tenantS.service_type
-        tsr.dep_order = depNum + 1
+        tsr.dep_service_id = dep_service_id
+        tsr.dep_service_type = dependS.service_type
+        tsr.dep_order = 0
         tsr.save()
+        
+    def cancel_service_dependency(self, tenant_id, service_id, dep_service_id, region):
+        task = {}
+        task["dps_service_id"] = dep_service_id
+        task["tenant_id"] = tenant_id
+        task["dep_service_type"] = "v"
+        regionClient.cancelServiceDependency(region, service_id, json.dumps(task))
+        TenantServiceRelation.objects.get(service_id=service_id, dep_service_id=dep_service_id).delete()
+        
+    def create_service_env(self, tenant_id, service_id, region):
+        tenantServiceEnvList = TenantServiceEnvVar.objects.filter(service_id=service_id)
+        data = {}
+        for tenantServiceEnv in tenantServiceEnvList:
+            data[tenantServiceEnv.attr_name] = tenantServiceEnv.attr_value
+        if len(data) > 0:
+            task = {}
+            task["tenant_id"] = tenant_id
+            task["attr"] = data
+            regionClient.createServiceEnv(region, service_id, json.dumps(task))
+    
+    def saveServiceEnvVar(self, tenant_id, service_id, name, attr_name, attr_value, isChange):
+        tenantServiceEnvVar = {} 
+        tenantServiceEnvVar["tenant_id"] = tenant_id
+        tenantServiceEnvVar["service_id"] = service_id
+        tenantServiceEnvVar["name"] = name
+        tenantServiceEnvVar["attr_name"] = attr_name
+        tenantServiceEnvVar["attr_value"] = attr_value
+        tenantServiceEnvVar["is_change"] = isChange
+        TenantServiceEnvVar(**tenantServiceEnvVar).save()
 
 class TenantUsedResource(object):
         
