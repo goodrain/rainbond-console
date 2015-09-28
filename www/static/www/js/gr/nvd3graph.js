@@ -73,6 +73,7 @@
         .y(function(d) { return d[1] })
         .color(d3.scale.category10().range())
         .useInteractiveGuideline(true)
+        .showControls(false)
         ;
     
       chart.xAxis
@@ -104,6 +105,7 @@
         .y(function(d) { return d[1] })
         .color(d3.scale.category10().range())
         .useInteractiveGuideline(false)
+        .showControls(false)
         ;
     
       chart.xAxis
