@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import sys
 import os
+from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS as TCP
+
 SETTING_DIR = os.path.dirname(__file__)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
@@ -88,7 +90,9 @@ ROOT_URLCONF = 'goodrain_web.urls'
 
 WSGI_APPLICATION = 'goodrain_web.wsgi.application'
 
-
+TEMPLATE_CONTEXT_PROCESSORS = TCP + (
+    'django.core.context_processors.request',
+)
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 

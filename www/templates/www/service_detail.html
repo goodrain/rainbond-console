@@ -16,7 +16,11 @@
         {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
         	<li class="" ><a href="#relations"  data-toggle="tab">相关服务</a></li>
         {% endif  %}
+        {% if show_graph %}
         <li class="" ><a href="#statistic"  data-toggle="tab">监控</a></li>
+        {% else %}
+        <li class="" ><a href="{{ request.path }}?show_graph=yes"  data-toggle="tab">监控</a></li>
+        {% endif %}
         <li class=""><a href="#log" data-toggle="tab">日志</a></li>
         <li class=""><a href="#settings" data-toggle="tab">高级</a></li>
         <!--{% ifequal tenantServiceInfo.category "application" %}
