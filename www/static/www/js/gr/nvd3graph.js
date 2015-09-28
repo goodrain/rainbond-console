@@ -15,7 +15,7 @@
         .tickFormat(d3.format('.02f'))
         ;
     
-      d3.select('#memory svg')
+      d3.select('#memory-stat svg')
         .datum(data())
         .transition().duration(500)
         .call(chart)
@@ -35,8 +35,6 @@
         cos.push({x: i, y: .5 * Math.cos(i/10)});
       }
     
-      console.log(sin);
-      console.log(cos);
       return [
         {
           values: sin,
@@ -75,7 +73,7 @@
     
       chart.yAxis.tickFormat(d3.format(',.1%'));
     
-      d3.select('#disk svg')
+      d3.select('#disk-stat svg')
         .datum(data2)
         .transition().duration(500)
         .call(chart)
