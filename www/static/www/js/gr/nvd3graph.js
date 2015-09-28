@@ -67,7 +67,7 @@
 
 
     nv.addGraph(function() {
-      var chart = nv.models.cumulativeLineChart()
+      var chart = nv.models.stackedAreaChart()
         .x(function(d) { return d[0] })
         //adjusting, 100% is 1.00, not 100 as it is in the data
         .y(function(d) { return d[1] })
@@ -98,7 +98,7 @@
     });
 
     nv.addGraph(function() {
-      var chart = nv.models.cumulativeLineChart()
+      var chart = nv.models.stackedAreaChart()
         .x(function(d) { return d[0] })
         //adjusting, 100% is 1.00, not 100 as it is in the data
         .y(function(d) { return d[1] })
