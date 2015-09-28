@@ -92,6 +92,31 @@
         .call(chart)
         ;
 
+      nv.utils.windowResize(chart.update);
+    
+      return chart;
+    });
+
+    nv.addGraph(function() {
+      var chart = nv.models.cumulativeLineChart()
+        .x(function(d) { return d[0] })
+        //adjusting, 100% is 1.00, not 100 as it is in the data
+        .y(function(d) { return d[1] })
+        .color(d3.scale.category10().range())
+        .useInteractiveGuideline(true)
+        ;
+    
+      chart.xAxis
+        .axisLabel('时间线')
+        .tickFormat(function(d) {
+          return d3.time.format('%X')(new Date(d))
+        });
+    
+      chart.yAxis
+        .axisLabel('unit: MB')
+        .tickFormat(d3.format(',r'))
+        ;
+
       d3.select('#disk-stat svg')
         .datum(data2)
         .transition().duration(500)

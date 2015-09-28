@@ -100,6 +100,12 @@ class TenantService(AuthedView):
             )
         return media
 
+    def get_context(self):
+        context = super(TenantService, self).get_context()
+        if self.show_graph:
+            context['show_graph'] = True
+        return context
+
     def get_service_list(self):
         baseService = BaseTenantService()
         services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
