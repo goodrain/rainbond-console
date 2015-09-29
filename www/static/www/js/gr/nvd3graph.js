@@ -72,12 +72,14 @@
         //adjusting, 100% is 1.00, not 100 as it is in the data
         .y(function(d) { return d[1] })
         .color(d3.scale.category10().range())
-        .useInteractiveGuideline(true)
+        .useInteractiveGuideline(false)
         .showControls(false)
+        //.width(270)
+        //.margin({"left":15,"right":5,"top":5,"buttom":5})
         ;
     
       chart.xAxis
-        .axisLabel('')
+        .axisLabel('timeline')
         .tickFormat(function(d) {
           return d3.time.format('%X')(new Date(d))
         });
@@ -94,7 +96,7 @@
         ;
 
       nv.utils.windowResize(chart.update);
-    
+
       return chart;
     });
 

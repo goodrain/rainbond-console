@@ -10,6 +10,7 @@ from www.tenants_view import TenantsVisitorView
 from django.conf import settings
 from django.conf.urls.static import static
 from www.captcha.CodeImage import ChekcCodeImage
+from www.tests import NVD3GraphView
 
 urlpatterns = patterns(
     '',
@@ -32,4 +33,5 @@ urlpatterns = patterns(
     url(r'^tenant/visit/$', csrf_exempt(TenantsVisitorView.as_view())),
     url(r'^api/', include('api.urls')),
     url(r'^JIYNvvgU.html$', views.ssl_crv),
+    url(r'^test$', NVD3GraphView.as_view()),
 ) + staticfiles_urlpatterns()

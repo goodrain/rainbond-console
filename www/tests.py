@@ -18,7 +18,18 @@ class RasterView(BaseView):
 
 
 class ServiceListView(RasterView):
+
     @never_cache
     def get(self, request):
         context = self.get_context()
         return TemplateResponse(self.request, "www/service_list.html", context)
+
+
+class NVD3GraphView(RasterView):
+
+    def get_media(self):
+        return super(NVD3GraphView, self).get_media() + self.vendor('www/js/gr/nvd3graph.js')
+
+    def get(self, request):
+        context = self.get_context()
+        return TemplateResponse(self.request, "www/nvd3test.html", context)
