@@ -6,7 +6,7 @@
     $('.graph').each(function() {
       var graph_id = $(this).attr('id');
         $.ajax({
-          url: '/ajax/' + 'tenantName' + '/' + 'serviceAlias' + '/graph',
+          url: '/ajax/' + tenantName + '/' + serviceAlias + '/graph',
           method: "POST",
           data: {"csrfmiddlewaretoken":csrftoken, "graph_id":graph_id},
           success: function (event) {

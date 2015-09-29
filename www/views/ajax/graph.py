@@ -4,18 +4,28 @@ from random import randint
 from django.http import JsonResponse
 from www.views import AuthedView, BaseView
 from www.decorator import perm_required
+from www.api import OpentsdbApi
 
 import logging
 logger = logging.getLogger('default')
 
 
-class ServiceGraph(BaseView):
+class ServiceGraph(AuthedView):
+
+    metric_map = {
+        'memory': None, 'disk': 'service.basic.disk_size',
+        'bandwidth': 'service.basic.net.bytesout',
+        'response-time': 'service.perf.web.response_time',
+        'throughput': 'service.perf.web.throughput',
+        'online': 'service.analysis.online',
+    }
 
     def init_request(self, *args, **kwargs):
         self.template = {
             "xAxisLabel": u"时间",
             "yAxisLabel": u"单位: MB",
         }
+        self.tsdb_client = OpentsdbApi()
 
     def random_data(self, graph_key):
         curr_time = int(time.time())
@@ -32,7 +42,21 @@ class ServiceGraph(BaseView):
             data['values'].append([increase_time(i), randint(100, 1000)])
         return [data]
 
-    #@perm_required('view_service')
+    def get_tsdb_data(self, graph_key):
+        data = {"key": graph_key, "values": []}
+        metric = self.metric_map.get(graph_key, None)
+
+        if metric is not None:
+            query_data = self.tsdb_client.query(
+                self.tenant.region, metric, tenant=self.tenant.tenant_name, service=self.service.service_alias)
+            for timestamp, value in query_data.items():
+                data['values'].append([int(timestamp) * 1000, float(value)])
+
+            return [data]
+        else:
+            return None
+
+    @perm_required('view_service')
     def post(self, request, *args, **kwargs):
         graph_id = request.POST.get('graph_id', None)
         if graph_id is None:
@@ -41,4 +65,9 @@ class ServiceGraph(BaseView):
             graph_key = graph_id.replace('-stat', '')
             result = self.template.copy()
             result['data'] = self.random_data(graph_key)
-            return JsonResponse(result, status=200)
+            data = self.get_tsdb_data(graph_key)
+            if data is not None:
+                result['data'] = data
+                return JsonResponse(result, status=200)
+            else:
+                return JsonResponse({"ok": False}, status=404)

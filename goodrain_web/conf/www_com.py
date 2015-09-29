@@ -40,6 +40,10 @@ REGION_RULE = {
     'ucloud-bj-1': {'unit_money': 0.417}, 'aws-bj-1': {'unit_money': 0.417}
 }
 
+OPENTSDB_API = {
+    'ucloud-bj-1': 'http://10.3.1.2:4242/api/query',
+}
+
 GITLAB_SERVICE_API = {
     'url': 'http://code.goodrain.com/',
     'admin_user': 'app',
