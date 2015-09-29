@@ -38,5 +38,5 @@ class OpentsdbApi(BaseHttpClient):
         if tags:
             tag = '{' + ','.join(map(lambda (x, y): '{0}={1}'.format(x, y), tags.items())) + '}'
             url += tag
-        res, body = self._get(url)
-        return body.dps
+        res, body = self._get(url, headers=None)
+        return body[0]['dps']

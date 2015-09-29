@@ -49,7 +49,7 @@ class ServiceGraph(AuthedView):
         if metric is not None:
             query_data = self.tsdb_client.query(
                 self.tenant.region, metric, tenant=self.tenant.tenant_name, service=self.service.service_alias)
-            for timestamp, value in query_data.items():
+            for timestamp, value in sorted(query_data.items()):
                 data['values'].append([int(timestamp) * 1000, float(value)])
 
             return [data]
