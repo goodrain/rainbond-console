@@ -548,6 +548,13 @@
     </div>
 
     <script>
+    {% if show_graph %}
+      $('div.tab-pane').removeClass('active');
+      $('ul.nav-tabs').removeClass('active');
+      $('#statistic').addClass('active');
+      $('ul.nav-tabs a[href="#statistic"]').parent('li').addClass('active');
+    {% endif %}
+
     String.prototype.trim = function() {
 	    return this.replace(/(^\s*)|(\s*$)/g, "");
 	}
