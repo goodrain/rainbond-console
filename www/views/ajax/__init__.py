@@ -2,5 +2,6 @@ from perms import ServiceIdentity, TenantIdentity, InviteServiceUser, InviteTena
 from service_actions import *
 from account_actions import *
 from code_actions import *
+from graph import ServiceGraph
 
 __all__ = ('ServiceIdentity', 'InviteServiceUser', 'TenantIdentity', 'InviteTenantUser')

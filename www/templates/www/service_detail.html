@@ -284,7 +284,7 @@
                   内存
                 </header>
                 <div class="panel-body">
-                  <div id="memory-stat">
+                  <div id="memory-stat" class="graph">
                     <svg></svg>
                   </div>
                 </div>
@@ -297,7 +297,7 @@
                   磁盘
                 </header>
                 <div class="panel-body">
-                  <div id="disk-stat">
+                  <div id="disk-stat" class="graph">
                     <svg></svg>
                   </div>
                 </div>
@@ -310,7 +310,7 @@
                   带宽
                 </header>
                 <div class="panel-body">
-                  <div id="bandwidth-stat">
+                  <div id="bandwidth-stat" class="graph">
                     <svg></svg>
                   </div>
                 </div>
@@ -326,7 +326,7 @@
                   响应时间
                 </header>
                 <div class="panel-body">
-                  <div id="response-stat">
+                  <div id="response-stat" class="graph">
                     <svg></svg>
                   </div>
                 </div>
@@ -339,7 +339,7 @@
                   吞吐率
                 </header>
                 <div class="panel-body">
-                  <div id="throughput-stat">
+                  <div id="throughput-stat" class="graph">
                     <svg></svg>
                   </div>
                 </div>
@@ -352,7 +352,7 @@
                   在线人数
                 </header>
                 <div class="panel-body">
-                  <div id="online-stat">
+                  <div id="online-stat" class="graph">
                     <svg></svg>
                   </div>
                 </div>
@@ -550,7 +550,7 @@
     <script>
     {% if show_graph %}
       $('div.tab-pane').removeClass('active');
-      $('ul.nav-tabs').removeClass('active');
+      $('ul.nav-tabs li').removeClass('active');
       $('#statistic').addClass('active');
       $('ul.nav-tabs a[href="#statistic"]').parent('li').addClass('active');
     {% endif %}
