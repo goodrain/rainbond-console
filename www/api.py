@@ -33,7 +33,7 @@ class OpentsdbApi(BaseHttpClient):
         self.region_map = settings.OPENTSDB_API
 
     def query(self, region, metric, start='15m-ago', aggregate='sum', **tags):
-        base_url = self.region_map['region']
+        base_url = self.region_map[region]
         url = '{0}?start={1}&m={2}:{3}'.format(base_url, start, aggregate, metric)
         if tags:
             tag = '{' + ','.join(map(lambda (x, y): '{0}={1}'.format(x, y), tags.items())) + '}'
