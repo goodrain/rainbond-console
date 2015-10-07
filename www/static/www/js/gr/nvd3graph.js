@@ -56,6 +56,8 @@
           .axisLabel(event.yAxisLabel)
           .tickFormat(d3.format(',.2f'))
           ;
+
+        chart.noData("There is no Data to display");
       
         d3.select('#' + graph_id + ' svg')
           .datum(event.data)

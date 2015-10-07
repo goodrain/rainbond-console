@@ -23,7 +23,7 @@ class ServiceGraph(AuthedView):
     def init_request(self, *args, **kwargs):
         self.template = {
             "xAxisLabel": u"时间",
-            "yAxisLabel": u"单位: MB",
+            "yAxisLabel": u"单位",
         }
         self.tsdb_client = OpentsdbApi()
 
@@ -49,6 +49,10 @@ class ServiceGraph(AuthedView):
         if metric is not None:
             query_data = self.tsdb_client.query(
                 self.tenant.region, metric, tenant=self.tenant.tenant_name, service=self.service.service_alias)
+
+            if query_data is None:
+                return None
+
             for timestamp, value in sorted(query_data.items()):
                 data['values'].append([int(timestamp) * 1000, float(value)])
 

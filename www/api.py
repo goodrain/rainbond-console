@@ -3,6 +3,9 @@ import json
 from django.conf import settings
 from goodrain_web.base import BaseHttpClient
 
+import logging
+logger = logging.getLogger('default')
+
 
 class RegionApi(BaseHttpClient):
 
@@ -30,13 +33,21 @@ class OpentsdbApi(BaseHttpClient):
 
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
+        self.default_headers = {'Connection': 'keep-alive'}
         self.region_map = settings.OPENTSDB_API
 
     def query(self, region, metric, start='15m-ago', aggregate='sum', **tags):
         base_url = self.region_map[region]
         url = '{0}?start={1}&m={2}:{3}'.format(base_url, start, aggregate, metric)
+        headers = self.default_headers.copy()
         if tags:
             tag = '{' + ','.join(map(lambda (x, y): '{0}={1}'.format(x, y), tags.items())) + '}'
             url += tag
-        res, body = self._get(url, headers=None)
-        return body[0]['dps']
+        res, body = self._get(url, headers=headers)
+        try:
+            dps = body[0]['dps']
+            return dps
+        except IndexError:
+            logger.info('tsdb_query', "request: {0}".format(url))
+            logger.info('tsdb_query', "response: {0} ====== {1}".format(res, body))
+            return None
