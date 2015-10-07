@@ -68,7 +68,7 @@ class ServiceGraph(AuthedView):
             return None
 
     def add_tags(self, result):
-        test_value = result[0]['data'][0][1]
+        test_value = result['data'][0]['values'][0][1]
         if isinstance(test_value, int):
             result['yAxisFormat'] = ',.0f'
 
