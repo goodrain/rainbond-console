@@ -34,7 +34,6 @@
     };
 
     function makeChart(graph_id, event, start) {
-      var data = event.data;
       nv.addGraph(function() {
         var chart = nv.models.stackedAreaChart()
           .x(function(d) { return d[0] })
@@ -62,13 +61,13 @@
         }
 
         d3.select('#' + graph_id + ' svg')
-          .datum(data)
+          .datum(event.data)
           .transition().duration(500)
           .call(chart)
           ;
   
-        //nv.utils.windowResize(chart.update);
-        if (start!='realtime') {
+        nv.utils.windowResize(chart.update);
+        /*if (start!='realtime') {
           setInterval(function() {
             $.post(
               post_url,
@@ -79,7 +78,7 @@
               }
             );
           }, 60000);
-        }
+        }*/
 
         return chart;
       });
