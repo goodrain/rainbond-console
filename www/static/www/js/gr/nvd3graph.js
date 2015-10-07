@@ -60,6 +60,8 @@
           chart.showXAxis(false);
         }
 
+        $('#' + graph_id + ' svg').empty();
+        
         d3.select('#' + graph_id + ' svg')
           .datum(event.data)
           .transition().duration(500)
