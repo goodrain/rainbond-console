@@ -70,6 +70,7 @@ class ServiceGraph(AuthedView):
     def add_tags(self, result):
         test_value = result['data'][0]['values'][0][1]
         if isinstance(test_value, int):
+            logger.debug('Im a int number')
             result['yAxisFormat'] = ',.0f'
 
     @perm_required('view_service')
