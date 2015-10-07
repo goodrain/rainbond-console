@@ -24,6 +24,7 @@ class ServiceGraph(AuthedView):
         self.template = {
             "xAxisLabel": u"时间",
             "yAxisLabel": u"单位",
+            "yAxisFormat": ',.2f',
         }
         self.tsdb_client = OpentsdbApi()
 
@@ -54,11 +55,22 @@ class ServiceGraph(AuthedView):
                 return None
 
             for timestamp, value in sorted(query_data.items()):
-                data['values'].append([int(timestamp) * 1000, float(value)])
+                if isinstance(value, str):
+                    if '.' in value:
+                        data['values'].append([int(timestamp) * 1000, float(value)])
+                    else:
+                        data['values'].append([int(timestamp) * 1000, int(value)])
+                else:
+                    data['values'].append([int(timestamp) * 1000, value])
 
             return [data]
         else:
             return None
+
+    def add_tags(self, result):
+        test_value = result[0]['data'][0][1]
+        if isinstance(test_value, int):
+            result['yAxisFormat'] = ',.0f'
 
     @perm_required('view_service')
     def post(self, request, *args, **kwargs):
@@ -73,6 +85,7 @@ class ServiceGraph(AuthedView):
             data = self.get_tsdb_data(graph_key, start)
             if data is not None:
                 result['data'] = data
+                self.add_tags(result)
                 return JsonResponse(result, status=200)
             else:
                 return JsonResponse({"ok": False}, status=404)

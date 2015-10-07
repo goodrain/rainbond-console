@@ -2,6 +2,7 @@
     var csrftoken = $.cookie('csrftoken');
     var tenantName = $('#mytags').attr('tenant');
     var serviceAlias = $('#mytags').attr('service');
+    post_url = '/ajax/' + tenantName + '/' + serviceAlias + '/graph';
 
     default_start = $('#graph-period').children('option:selected').val();
     getGraphs(default_start);
@@ -15,11 +16,11 @@
       $('.graph').each(function() {
         var graph_id = $(this).attr('id');
           $.ajax({
-            url: '/ajax/' + tenantName + '/' + serviceAlias + '/graph',
+            url: post_url,
             method: "POST",
             data: {"csrfmiddlewaretoken":csrftoken, "graph_id":graph_id, "start": start},
             success: function (event) {
-                makeChart(graph_id, event);
+                makeChart(graph_id, event, start);
             },
                 
             statusCode: {
@@ -32,7 +33,7 @@
       });
     };
 
-    function makeChart(graph_id, event) {
+    function makeChart(graph_id, event, start) {
       nv.addGraph(function() {
         var chart = nv.models.stackedAreaChart()
           .x(function(d) { return d[0] })
@@ -50,19 +51,32 @@
       
         chart.yAxis
           .axisLabel(event.yAxisLabel)
-          .tickFormat(d3.format(',.2f'))
+          .tickFormat(d3.format(event.yAxisFormat))
           ;
 
-        chart.noData("There is no Data to display");
-      
+        chart.noData("没有可展示的数据");
+        data = event.data;
+
         d3.select('#' + graph_id + ' svg')
-          .datum(event.data)
+          .datum(data)
           .transition().duration(500)
           .call(chart)
           ;
   
-        nv.utils.windowResize(chart.update);
-  
+        //nv.utils.windowResize(chart.update);
+        if (start!='realtime') {
+          setInterval(function() {
+            $.post(
+              post_url,
+              {"csrfmiddlewaretoken":csrftoken, "graph_id":graph_id, "start": start},
+              function (update_event) {
+                data = update_event.data;
+                chart.update();
+              }
+            );
+          }, 60000);
+        }
+
         return chart;
       });
     }
