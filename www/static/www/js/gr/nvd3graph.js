@@ -34,6 +34,7 @@
     };
 
     function makeChart(graph_id, event, start) {
+      var data = event.data;
       nv.addGraph(function() {
         var chart = nv.models.stackedAreaChart()
           .x(function(d) { return d[0] })
@@ -55,7 +56,10 @@
           ;
 
         chart.noData("没有可展示的数据");
-        data = event.data;
+
+        if (start=='15m-ago') {
+          chart.showXAxis(false);
+        }
 
         d3.select('#' + graph_id + ' svg')
           .datum(data)

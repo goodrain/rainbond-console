@@ -13,11 +13,11 @@ logger = logging.getLogger('default')
 class ServiceGraph(AuthedView):
 
     metric_map = {
-        'memory': None, 'disk': 'service.basic.disk_size',
-        'bandwidth': 'service.basic.net.bytesout',
-        'response-time': 'service.perf.web.response_time',
-        'throughput': 'service.perf.web.throughput',
-        'online': 'service.analysis.online',
+        'memory': None, 'disk': {'metric': 'service.basic.disk_size', 'unit': 'MB'},
+        'bandwidth': {"metric": 'service.basic.net.bytesout', "unit": 'bytes'},
+        'response-time': {"metric": 'service.perf.web.response_time', "unit": "ms"},
+        'throughput': {"metric": 'service.perf.web.throughput', "unit": "count"},
+        'online': {"metric": 'service.analysis.online', "unit": u"人数"},
     }
 
     def init_request(self, *args, **kwargs):
@@ -45,7 +45,7 @@ class ServiceGraph(AuthedView):
 
     def get_tsdb_data(self, graph_key, start):
         data = {"key": graph_key, "values": []}
-        metric = self.metric_map.get(graph_key, None)
+        metric = self.metric_map.get(graph_key, None).get('metric', None)
 
         if metric is not None:
             query_data = self.tsdb_client.query(
@@ -64,10 +64,12 @@ class ServiceGraph(AuthedView):
         else:
             return None
 
-    def add_tags(self, result):
+    def add_tags(self, graph_key, result):
         test_value = result['data'][0]['values'][0][1]
-        if test_value.is_integer():
+        if isinstance(test_value, int):
             result['yAxisFormat'] = ',.0f'
+
+        result['yAxisLabel'] = self.metric_map.get(graph_key, None).get('unit', '')
 
     @perm_required('view_service')
     def post(self, request, *args, **kwargs):
@@ -82,7 +84,7 @@ class ServiceGraph(AuthedView):
             data = self.get_tsdb_data(graph_key, start)
             if data is not None:
                 result['data'] = data
-                self.add_tags(result)
+                self.add_tags(graph_key, result)
                 return JsonResponse(result, status=200)
             else:
                 return JsonResponse({"ok": False}, status=404)
