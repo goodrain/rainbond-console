@@ -55,11 +55,8 @@ class ServiceGraph(AuthedView):
                 return None
 
             for timestamp, value in sorted(query_data.items()):
-                if isinstance(value, str):
-                    if '.' in value:
-                        data['values'].append([int(timestamp) * 1000, float(value)])
-                    else:
-                        data['values'].append([int(timestamp) * 1000, int(value)])
+                if value.is_integer():
+                    data['values'].append([int(timestamp) * 1000, int(value)])
                 else:
                     data['values'].append([int(timestamp) * 1000, value])
 
@@ -69,8 +66,7 @@ class ServiceGraph(AuthedView):
 
     def add_tags(self, result):
         test_value = result['data'][0]['values'][0][1]
-        if isinstance(test_value, int):
-            logger.debug('Im a int number')
+        if test_value.is_integer():
             result['yAxisFormat'] = ',.0f'
 
     @perm_required('view_service')
