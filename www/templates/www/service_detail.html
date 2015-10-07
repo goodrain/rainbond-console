@@ -332,7 +332,7 @@
 
           {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
           <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-6">
               <section class="panel">
                 <header class="panel-heading">
                   响应时间
@@ -345,7 +345,22 @@
               </section>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-6">
+              <section class="panel">
+                <header class="panel-heading">
+                  在线人数
+                </header>
+                <div class="panel-body">
+                  <div id="online-stat" class="graph">
+                    <svg></svg>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
               <section class="panel">
                 <header class="panel-heading">
                   吞吐率
@@ -358,18 +373,6 @@
               </section>
             </div>
 
-            <div class="col-md-4">
-              <section class="panel">
-                <header class="panel-heading">
-                  在线人数
-                </header>
-                <div class="panel-body">
-                  <div id="online-stat" class="graph">
-                    <svg></svg>
-                  </div>
-                </div>
-              </section>
-            </div>
           </div>
           {% endif %}
 
