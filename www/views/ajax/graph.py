@@ -20,6 +20,11 @@ class ServiceGraph(AuthedView):
         'online': {"metric": 'service.analysis.online', "unit": u"人数"},
     }
 
+    downsamples = {
+        '1h-ago': '1m-avg', '8h-ago': '2m-avg', '24h-ago': '5m-avg',
+        '7d-ago': '1h-avg',
+    }
+
     def init_request(self, *args, **kwargs):
         self.template = {
             "xAxisLabel": u"时间",
@@ -46,10 +51,11 @@ class ServiceGraph(AuthedView):
     def get_tsdb_data(self, graph_key, start):
         data = {"key": graph_key, "values": []}
         metric = self.metric_map.get(graph_key, None).get('metric', None)
+        downsample = self.downsamples.get(start)
 
         if metric is not None:
             query_data = self.tsdb_client.query(
-                self.tenant.region, metric, start=start, tenant=self.tenant.tenant_name, service=self.service.service_alias)
+                self.tenant.region, metric, start=start, downsample=downsample, tenant=self.tenant.tenant_name, service=self.service.service_alias)
 
             if query_data is None:
                 return None
@@ -77,14 +83,17 @@ class ServiceGraph(AuthedView):
         start = request.POST.get('start', None)
         if graph_id is None:
             return JsonResponse({"ok": False, "info": "need graph_id filed"}, status=500)
+
+        if start not in self.downsamples:
+            return JsonResponse({"ok": False, "info": "reject time period {0}".format(start)}, status=500)
+
+        graph_key = graph_id.replace('-stat', '')
+        result = self.template.copy()
+        result['data'] = self.random_data(graph_key)
+        data = self.get_tsdb_data(graph_key, start)
+        if data is not None:
+            result['data'] = data
+            self.add_tags(graph_key, result)
+            return JsonResponse(result, status=200)
         else:
-            graph_key = graph_id.replace('-stat', '')
-            result = self.template.copy()
-            result['data'] = self.random_data(graph_key)
-            data = self.get_tsdb_data(graph_key, start)
-            if data is not None:
-                result['data'] = data
-                self.add_tags(graph_key, result)
-                return JsonResponse(result, status=200)
-            else:
-                return JsonResponse({"ok": False}, status=404)
+            return JsonResponse({"ok": False}, status=404)
