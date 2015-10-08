@@ -67,7 +67,13 @@
           .transition().duration(500)
           .call(chart)
           ;
-  
+
+        if (start.match(/^\d+d/g)) {
+          var tsFormat = d3.time.format('%m/%d %H:%M');
+          var tooltip = chart.interactiveLayer.tooltip;
+          tooltip.headerFormatter(function (d) { return tsFormat(new Date(d)); });
+        }
+
         nv.utils.windowResize(chart.update);
         /*if (start!='realtime') {
           setInterval(function() {
