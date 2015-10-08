@@ -158,7 +158,7 @@ class BaseTenantService(object):
     def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         dependS = TenantServiceInfo.objects.get(service_id=dep_service_id)
         task = {}
-        task["dps_service_id"] = dep_service_id
+        task["dep_service_id"] = dep_service_id
         task["tenant_id"] = tenant_id
         task["dep_service_type"] = dependS.service_type
         logger.debug(json.dumps(task))
@@ -173,8 +173,8 @@ class BaseTenantService(object):
         tsr.save()
         
     def cancel_service_dependency(self, tenant_id, service_id, dep_service_id, region):
-        task = {}
-        task["dps_service_id"] = dep_service_id
+        task = {}        
+        task["dep_service_id"] = dep_service_id
         task["tenant_id"] = tenant_id
         task["dep_service_type"] = "v"
         logger.debug(json.dumps(task))
