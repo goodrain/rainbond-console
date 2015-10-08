@@ -44,7 +44,7 @@
           ;
       
         chart.xAxis
-          .axisLabel(event.xAxisLabel)
+          //.axisLabel(event.xAxisLabel)
           .tickFormat(function(d) {
             return d3.time.format('%X')(new Date(d))
           });
@@ -55,10 +55,6 @@
           ;
 
         chart.noData("没有可展示的数据");
-
-        if (start=='15m-ago') {
-          chart.showXAxis(false);
-        }
 
         $('#' + graph_id + ' svg').empty();
         

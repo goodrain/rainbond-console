@@ -19,7 +19,7 @@
         {% if show_graph %}
         <li class="" ><a href="#statistic"  data-toggle="tab">监控</a></li>
         {% else %}
-        <li class="" ><a href="{{ request.path }}?show_graph=yes">监控</a></li>
+        <!--li class="" ><a href="{{ request.path }}?show_graph=yes">监控</a></li-->
         {% endif %}
         <li class=""><a href="#log" data-toggle="tab">日志</a></li>
         <li class=""><a href="#settings" data-toggle="tab">高级</a></li>
@@ -281,11 +281,10 @@
             <div class="col-xs-9"></div>
             <div class="col-xs-3">
               <select id="graph-period" class="form-control input-sm m-bot15">
-                  <option value="15m-ago">15分钟</option>
-                  <option value="30m-ago">30分钟</option>
                   <option value="1h-ago">1小时</option>
-                  <option value="2h-ago">2小时</option>
-                  <option value="4h-ago">4小时</option>
+                  <option value="8h-ago">8小时</option>
+                  <option value="24h-ago">24小时</option>
+                  <option value="7d-ago">7天</option>
               </select>
             </div>
           </div>
@@ -360,7 +359,7 @@
           </div>
 
           <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-6">
               <section class="panel">
                 <header class="panel-heading">
                   吞吐率
