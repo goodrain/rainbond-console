@@ -224,7 +224,7 @@ class ServiceManage(AuthedView):
                             return JsonResponse(result)
                         # close inner service need to clear env                        
                         TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
-                        baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.tenant.region)
+                    baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.tenant.region)
                     data = {}
                     data["protocol"] = self.service.protocol
                     data["outer_service"] = self.service.is_web_service
