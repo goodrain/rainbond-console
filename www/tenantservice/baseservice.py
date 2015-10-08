@@ -186,11 +186,10 @@ class BaseTenantService(object):
         data = {}
         for tenantServiceEnv in tenantServiceEnvList:
             data[tenantServiceEnv.attr_name] = tenantServiceEnv.attr_value
-        if len(data) > 0:
-            task = {}
-            task["tenant_id"] = tenant_id
-            task["attr"] = data
-            regionClient.createServiceEnv(region, service_id, json.dumps(task))
+        task = {}
+        task["tenant_id"] = tenant_id
+        task["attr"] = data
+        regionClient.createServiceEnv(region, service_id, json.dumps(task))
     
     def saveServiceEnvVar(self, tenant_id, service_id, name, attr_name, attr_value, isChange):
         tenantServiceEnvVar = {} 
