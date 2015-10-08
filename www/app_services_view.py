@@ -59,6 +59,7 @@ class AppCreateView(AuthedView):
     def post(self, request, *args, **kwargs):
 
         service_alias = ""
+        service_code_from = ""
         uid = str(uuid.uuid4())
         service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
         data = {}
@@ -196,11 +197,13 @@ class AppCreateView(AuthedView):
             data["status"] = "success"
             data["service_alias"] = service_alias
             data["service_id"] = service_id
-            create_service_env
         except Exception as e:
             logger.exception(e)
-            TenantServiceInfo.objects.get(service_id=service_id).delete()
-            TenantServiceAuth.objects.get(service_id=service_id).delete()
+            tempTenantService = TenantServiceInfo.objects.get(service_id=service_id)
+            if service_code_from == "gitlab_new" and tempTenantService.git_project_id > 0:
+                gitClient.deleteProject(tempTenantService.git_project_id)            
+            TenantServiceInfo.objects.filter(service_id=service_id).delete()
+            TenantServiceAuth.objects.filter(service_id=service_id).delete()
             data["status"] = "failure"
         return JsonResponse(data, status=200)
 

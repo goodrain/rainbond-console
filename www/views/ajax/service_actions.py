@@ -199,11 +199,9 @@ class ServiceManage(AuthedView):
                     data["inner_service"] = self.service.is_service
                     data["inner_service_port"] = self.service.service_port
                     data["service_type"] = par_opt_type
-                    logger.debug(data)
                     regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))                                                    
                     self.service.protocol = protocol
                     self.service.is_web_service = outer_service
-                    # self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     self.service.save()                            
                 elif par_opt_type == "inner":
                     par_inner_service = request.POST["inner_service"]
@@ -211,27 +209,31 @@ class ServiceManage(AuthedView):
                     if par_inner_service == "start" or par_inner_service == "change":
                         inner_service = True
                     service_port = self.service.service_port
-                    if inner_service:
-                        baseService = BaseTenantService()
+                    baseService = BaseTenantService()
+                    if inner_service:                        
                         deployPort = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key, self.service.service_alias)
                         if deployPort > 0: 
                             service_port = deployPort + 1
+                        # open inner service add new env variable
+                        baseService.saveServiceEnvVar(tenant_id, service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
+                        baseService.saveServiceEnvVar(tenant_id, service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
                     else:
                         depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                         if depNumber > 0:
                             result["status"] = "inject_dependency"
                             return JsonResponse(result)
+                        # close inner service need to clear env                        
+                        TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
+                        baseTenantService.create_service_env(self.service.tenant_id, self.service.service_id, self.tenant.region)
                     data = {}
                     data["protocol"] = self.service.protocol
                     data["outer_service"] = self.service.is_web_service
                     data["inner_service"] = inner_service
                     data["inner_service_port"] = service_port
                     data["service_type"] = par_opt_type
-                    logger.debug(data)
                     regionClient.modifyServiceProtocol(self.tenant.region, self.service.service_id, json.dumps(data))
                     self.service.service_port = service_port
                     self.service.is_service = inner_service
-                    # self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                     self.service.save()
             result["status"] = "success"
         except Exception, e:
