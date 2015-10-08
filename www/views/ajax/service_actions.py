@@ -215,8 +215,11 @@ class ServiceManage(AuthedView):
                         if deployPort > 0: 
                             service_port = deployPort + 1
                         # open inner service add new env variable
-                        baseService.saveServiceEnvVar(self.tenant.tenant_id, self.service.service_id, u"连接地址", self.service.service_key.upper() + "_HOST", "127.0.0.1", False)
-                        baseService.saveServiceEnvVar(self.tenant.tenant_id, self.service.service_id, u"端口", self.service.service_key.upper() + "_PORT", service_port, False)
+                        temp_key = self.service.service_key.upper()
+                        if self.service.category == 'application':
+                            temp_key = self.service.service_alias.upper()
+                        baseService.saveServiceEnvVar(self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
+                        baseService.saveServiceEnvVar(self.tenant.tenant_id, self.service.service_id, u"端口", temp_key + "_PORT", service_port, False)
                     else:
                         depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                         if depNumber > 0:
