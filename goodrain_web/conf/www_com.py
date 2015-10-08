@@ -33,17 +33,22 @@ REGION_SERVICE_API = [{
     'url': 'http://api.aws-jp-1.goodrain.com:8888',
     'apitype': 'region service',
     'region_name': 'aws-jp-1'
+}, {
+    'url': 'http://api.ali-sh.goodrain.com:8888',
+    'apitype': 'region service',
+    'region_name': 'ali-sh'
 }]
 
 WEBSOCKET_URL = {
     'ucloud-bj-1': 'ws://mpush.ucloud-bj-1.goodrain.com:6060/websocket',
     'aws-bj-1': 'ws://mpush.aws-bj-1.goodrain.com:6060/websocket',
     'aws-jp-1': 'ws://mpush.aws-jp-1.goodrain.com:6060/websocket',
+    'ali-sh': 'ws://mpush.ali-sh.goodrain.com:6060/websocket',
 }
 
 REGION_RULE = {
     'ucloud-bj-1': {'unit_money': 0.417}, 'aws-bj-1': {'unit_money': 0.417},
-    'aws-jp-1': {'unit_money': 0.417},
+    'aws-jp-1': {'unit_money': 0.417}, 'ali-sh': {'unit_money': 0.417},
 }
 
 GITLAB_SERVICE_API = {
