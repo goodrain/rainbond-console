@@ -61,7 +61,7 @@ class BaseTenantService(object):
         tenantServiceInfo["cmd"] = service.cmd
         tenantServiceInfo["setting"] = service.setting
         is_auth = False
-        password = ""
+        password = "admin"
         if service.is_init_accout:
             is_auth = True
             uk = service.service_key.upper() + "_USER=" + "admin"
@@ -102,11 +102,13 @@ class BaseTenantService(object):
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         
-        self.saveServiceEnvVar(tenant_id, service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
-        self.saveServiceEnvVar(tenant_id, service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
-        if service.is_init_accout:
-            self.saveServiceEnvVar(tenant_id, service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
-            self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", "admin", True)
+        # if service is inner service need to save env var
+        if service.is_service:
+            self.saveServiceEnvVar(tenant_id, service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
+            self.saveServiceEnvVar(tenant_id, service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
+            if service.is_init_accout:
+                self.saveServiceEnvVar(tenant_id, service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
+                self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
         return newTenantService
         
     def create_region_service(self, newTenantService, service, domain, region):

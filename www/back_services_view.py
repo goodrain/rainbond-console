@@ -162,7 +162,8 @@ class ServiceMarketDeploy(AuthedView):
             # create console service
             baseService = BaseTenantService()
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
-            
+            # create service env
+            baseService.create_service_env(tenant_id, service_id, self.tenant.region)
             # record service log
             data = {}
             data["log_msg"] = "服务创建成功，开始部署....."

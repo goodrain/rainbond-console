@@ -180,7 +180,8 @@ class AppCreateView(AuthedView):
 
             # create region tenantservice
             baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
-
+            # create service env
+            baseService.create_service_env(tenant_id, service_id, self.tenant.region)
             # record log
             data = {}
             data["log_msg"] = "应用创建成功"
@@ -195,6 +196,7 @@ class AppCreateView(AuthedView):
             data["status"] = "success"
             data["service_alias"] = service_alias
             data["service_id"] = service_id
+            create_service_env
         except Exception as e:
             logger.exception(e)
             TenantServiceInfo.objects.get(service_id=service_id).delete()
