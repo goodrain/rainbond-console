@@ -161,8 +161,6 @@ class BaseTenantService(object):
         task["dep_service_id"] = dep_service_id
         task["tenant_id"] = tenant_id
         task["dep_service_type"] = dependS.service_type
-        logger.debug(json.dumps(task))
-        
         regionClient.createServiceDependency(region, service_id, json.dumps(task))
         tsr = TenantServiceRelation()
         tsr.tenant_id = tenant_id
@@ -177,7 +175,6 @@ class BaseTenantService(object):
         task["dep_service_id"] = dep_service_id
         task["tenant_id"] = tenant_id
         task["dep_service_type"] = "v"
-        logger.debug(json.dumps(task))
         regionClient.cancelServiceDependency(region, service_id, json.dumps(task))
         TenantServiceRelation.objects.get(service_id=service_id, dep_service_id=dep_service_id).delete()
         
