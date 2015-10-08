@@ -121,7 +121,7 @@ class RegionServiceApi(BaseHttpClient):
     
     def createServiceEnv(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/env-var/"
-        res, body = self._put(url, self.default_headers, body)
+        res, body = self._post(url, self.default_headers, body)
         return body
 
     def getTenantRunningServiceId(self, region, tenant_id):
