@@ -46,7 +46,11 @@
         chart.xAxis
           //.axisLabel(event.xAxisLabel)
           .tickFormat(function(d) {
-            return d3.time.format('%X')(new Date(d))
+            if (start.match(/^\d+h/g)) {
+              return d3.time.format('%H:%M')(new Date(d))
+            } else if (start.match(/^\d+d/g)) {
+              return d3.time.format('%m/%d')(new Date(d))
+            }
           });
       
         chart.yAxis
