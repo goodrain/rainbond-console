@@ -723,34 +723,30 @@ class ServiceEnvVarManager(AuthedView):
             name = request.POST["name"]
             attr_name = request.POST["attr_name"]
             attr_value = request.POST["attr_value"]
-            logger.debug(name)
-            logger.debug(attr_name)
-            logger.debug(attr_value)
             name_arr = name.split(",")
             attr_name_arr = attr_name.split(",")
             attr_value_arr = attr_value.split(",")
-            
-            isNeedToRsync = False
+                        
+            isNeedToRsync = True
             if id != "" and nochange_name != "":
                 id_arr = id.split(',')
                 nochange_name_arr = nochange_name.split(',')
                 if len(id_arr) == len(nochange_name_arr):
-                    isNeedToRsync = True
                     for index, curid in enumerate(id_arr):
                         TenantServiceEnvVar.objects.filter(ID=curid, service_id=self.service.service_id).update(attr_name=nochange_name_arr[index])
             
-            if name != "" and attr_name != "" and attr_value != "" and   len(name_arr) == len(attr_name_arr) and len(attr_value_arr) == len(attr_name_arr):                
-                TenantServiceEnvVar.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id, is_change=True).delete()
-                for index, cname in enumerate(name_arr):
-                    tenantServiceEnvVar = {} 
-                    tenantServiceEnvVar["tenant_id"] = self.service.tenant_id
-                    tenantServiceEnvVar["service_id"] = self.service.service_id
-                    tenantServiceEnvVar["name"] = cname
-                    tenantServiceEnvVar["attr_name"] = attr_name_arr[index]
-                    tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
-                    tenantServiceEnvVar["is_change"] = 1
-                    TenantServiceEnvVar(**tenantServiceEnvVar).save()
-                isNeedToRsync = True
+            TenantServiceEnvVar.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id, is_change=True).delete()            
+            if name != "" and attr_name != "" and attr_value != "":
+                if len(name_arr) == len(attr_name_arr) and len(attr_value_arr) == len(attr_name_arr):
+                    for index, cname in enumerate(name_arr):
+                        tenantServiceEnvVar = {} 
+                        tenantServiceEnvVar["tenant_id"] = self.service.tenant_id
+                        tenantServiceEnvVar["service_id"] = self.service.service_id
+                        tenantServiceEnvVar["name"] = cname
+                        tenantServiceEnvVar["attr_name"] = attr_name_arr[index]
+                        tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
+                        tenantServiceEnvVar["is_change"] = 1
+                        TenantServiceEnvVar(**tenantServiceEnvVar).save()
             # sync data to region
             if isNeedToRsync:
                 baseTenantService = BaseTenantService()
