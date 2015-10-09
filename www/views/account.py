@@ -409,7 +409,7 @@ class Registation(BaseView):
             user = authenticate(username=email, password=password)
             login(request, user)
 
-            return redirect('/apps/{0}'.format(tenant.tenant_name))
+            return redirect('/payed/{0}/select'.format(tenant.tenant_name))
 
         logger.info("account.register", "register form error: %s" % self.form.errors)
         return self.get_response()
@@ -547,7 +547,7 @@ class InviteRegistation(BaseView):
             self.register_for_service(user, password, data)
         user = authenticate(username=email, password=password)
         login(request, user)
-        return redirect('/apps/{0}'.format(tenant_name))
+        return redirect('/payed/{0}/select'.format(tenant_name))
 
 
 class PhoneCodeView(BaseView):
