@@ -2,7 +2,7 @@
 import time
 from random import randint
 from django.http import JsonResponse
-from www.views import AuthedView, BaseView
+from www.views import AuthedView
 from www.decorator import perm_required
 from www.api import OpentsdbApi
 
@@ -13,7 +13,8 @@ logger = logging.getLogger('default')
 class ServiceGraph(AuthedView):
 
     metric_map = {
-        'memory': None, 'disk': {'metric': 'service.basic.disk_size', 'unit': 'MB'},
+        'memory': {'metric': 'service.basic.node_memory', 'unit': 'MB'},
+        'disk': {'metric': 'service.basic.disk_size', 'unit': 'MB'},
         'bandwidth': {"metric": 'service.basic.net.bytesout', "unit": 'bytes'},
         'response-time': {"metric": 'service.perf.web.response_time', "unit": "ms"},
         'throughput': {"metric": 'service.perf.web.throughput', "unit": "count"},
@@ -54,8 +55,12 @@ class ServiceGraph(AuthedView):
         downsample = self.downsamples.get(start)
 
         if metric is not None:
-            query_data = self.tsdb_client.query(
-                self.tenant.region, metric, start=start, downsample=downsample, tenant=self.tenant.tenant_name, service=self.service.service_alias)
+            if graph_key == 'memory':
+                query_data = self.tsdb_client.query(
+                    self.tenant.region, metric, start=start, downsample=downsample, tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+            else:
+                query_data = self.tsdb_client.query(
+                    self.tenant.region, metric, start=start, downsample=downsample, tenant=self.tenant.tenant_name, service=self.service.service_alias)
 
             if query_data is None:
                 return None

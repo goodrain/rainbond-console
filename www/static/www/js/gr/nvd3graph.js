@@ -38,20 +38,24 @@
         var chart = nv.models.stackedAreaChart()
           .x(function(d) { return d[0] })
           .y(function(d) { return d[1] })
+          .xScale(d3.time.scale())
           .color(d3.scale.category10().range())
-          .useInteractiveGuideline(false)
+          .useInteractiveGuideline(true)
           .showControls(false)
           ;
+
+        var tickMultiFormat = d3.time.format.multi([
+            ["%H:%M", function(d) { return d.getMinutes(); }], // not the beginning of the hour
+            ["%H:%M", function(d) { return d.getHours(); }], // not midnight
+            ["%m/%d", function(d) { return d.getDay() && d.getDate() != 1; }],
+            ["%m/%d", function(d) { return d.getDate() != 1; }],
+            ["%Y/%m", function(d) { return d.getMonth(); }], // not Jan 1st
+            ["%Y", function() { return true; }]
+        ]);
       
         chart.xAxis
           //.axisLabel(event.xAxisLabel)
-          .tickFormat(function(d) {
-            if (start.match(/^\d+h/g)) {
-              return d3.time.format('%H:%M')(new Date(d))
-            } else if (start.match(/^\d+d/g)) {
-              return d3.time.format('%m/%d')(new Date(d))
-            }
-          });
+          .tickFormat(function (d) { return tickMultiFormat(new Date(d)); });
       
         chart.yAxis
           .axisLabel(event.yAxisLabel)
@@ -60,33 +64,21 @@
 
         chart.noData("没有可展示的数据");
 
-        if (start.match(/^\d+d/g)) {
-          var tsFormat = d3.time.format('%m/%d %H:%M');
-          var tooltip = chart.interactiveLayer.tooltip;
-          tooltip.headerFormatter(function (d) { return tsFormat(new Date(d)); });
-        }
-        
         $('#' + graph_id + ' svg').empty();
-        
-        d3.select('#' + graph_id + ' svg')
+
+        var svgElem = d3.select('#' + graph_id + ' svg');
+        svgElem
           .datum(event.data)
-          .transition().duration(500)
-          .call(chart)
-          ;
+          .transition()
+          .call(chart);
+
+        var tsFormat = d3.time.format('%m/%d %H:%M');
+        var contentGenerator = chart.interactiveLayer.tooltip.contentGenerator();
+        var tooltip = chart.interactiveLayer.tooltip;
+        tooltip.contentGenerator(function (d) { d.value = d.initial; return contentGenerator(d); });
+        tooltip.headerFormatter(function (d) { return tsFormat(new Date(d)); });
 
         nv.utils.windowResize(chart.update);
-        /*if (start!='realtime') {
-          setInterval(function() {
-            $.post(
-              post_url,
-              {"csrfmiddlewaretoken":csrftoken, "graph_id":graph_id, "start": start},
-              function (update_event) {
-                data = update_event.data;
-                chart.update();
-              }
-            );
-          }, 60000);
-        }*/
 
         return chart;
       });
