@@ -6,7 +6,7 @@ import socket
 from addict import Dict
 
 import logging
-logger = logging.getLogger('request_api')
+logger = logging.getLogger('default')
 
 
 class BaseHttpClient(object):
@@ -55,24 +55,37 @@ class BaseHttpClient(object):
             return res, body
 
     def _request(self, url, method, headers=None, body=None):
-        retry_count = 1
+        retry_count = 2
         while retry_count:
             try:
                 if body is None:
                     response, content = self.http.request(url, method, headers=headers)
                 else:
                     response, content = self.http.request(url, method, headers=headers, body=body)
-                logger.debug('''{0} "{1}" body={2} response: {3} ------- and content is {4}'''.format(method, url, body, response, content))
+
+                if len(content) > 1000:
+                    record_content = '%s  .....ignore.....' % content[:1000]
+                else:
+                    record_content = content
+
+                if body is not None and len(body) > 1000:
+                    record_body = '%s .....ignore.....' % body[:1000]
+                else:
+                    record_body = body
+
+                logger.debug(
+                    'request', '''{0} "{1}" body={2} response: {3} \nand content is {4}'''.format(method, url, record_body, response, record_content))
                 return response, content
-            except (socket.error, socket.timeout), e:
+            except socket.timeout, e:
+                logger.exception('client_error', e)
+                raise self.CallApiError(self.apitype, url, method, Dict({"status": 101}), {"type": "request time out", "error": str(e)})
+            except socket.error, e:
                 retry_count -= 1
-                logger.debug("retry request: %s" % url)
-                if retry_count == 0:
+                if retry_count:
+                    logger.error("client_error", "retry request: %s" % url)
+                else:
+                    logger.exception('client_error', e)
                     raise self.ApiSocketError(self.apitype, url, method, Dict({"status": 101}), {"type": "connect error", "error": str(e)})
-            except Exception, e:
-                logger.error("request fail, url: {0}, method: {1}, headers: {2}, body: {3}".format(url, method, headers, body))
-                logger.exception(e)
-                raise e
 
     def _get(self, url, headers):
         response, content = self._request(url, 'GET', headers=headers)

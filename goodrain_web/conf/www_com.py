@@ -57,6 +57,10 @@ OPENTSDB_API = {
     'ucloud-bj-1': 'http://10.3.1.2:4242/api/query',
 }
 
+OPENTSDB_API = {
+    'ucloud-bj-1': 'http://10.3.1.2:4242/api/query',
+}
+
 GITLAB_SERVICE_API = {
     'url': 'http://code.goodrain.com/',
     'admin_user': 'app',

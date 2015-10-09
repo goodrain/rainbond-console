@@ -15,6 +15,7 @@ else:
 from goodrain_web.errors import PermissionDenied
 from www.perms import check_perm
 from www.models import Tenants, TenantServiceInfo
+from www.version import STATIC_VERSION
 
 import logging
 
@@ -36,7 +37,7 @@ class BaseObject(object):
         return Media()
 
     def static(self, path):
-        return static(path)
+        return static(path) + '?v={0}'.format(STATIC_VERSION)
 
     def vendor(self, *tags):
         media = Media()
