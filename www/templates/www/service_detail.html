@@ -16,7 +16,13 @@
         {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
         	<li class="" ><a href="#relations"  data-toggle="tab">相关服务</a></li>
         {% endif  %}
-        <!--<li class="" ><a href="#control"  data-toggle="tab">监控</a></li> -->
+        {% if tenant.pay_type != 'free' %}
+          {% if show_graph %}
+          <li class="" ><a href="#statistic"  data-toggle="tab">监控</a></li>
+          {% else %}
+          <li class="" ><a href="{{ request.path }}?show_graph=yes">监控</a></li>
+          {% endif %}
+        {% endif %}
         <li class=""><a href="#log" data-toggle="tab">日志</a></li>
         <li class=""><a href="#settings" data-toggle="tab">高级</a></li>
         <!--{% ifequal tenantServiceInfo.category "application" %}
@@ -271,9 +277,111 @@
             {% endif  %}
         </div>
         <!-- relations end -->
-        <!-- control start -->
-        <div role="tabpanel" class="tab-pane" id="control">control</div>
-        <!-- control end-->
+        <!-- statistic start -->
+        {% if tenant.pay_type != 'free' %}
+        <div role="tabpanel" class="tab-pane" id="statistic">
+          <div>
+            <div class="col-xs-9"></div>
+            <div class="col-xs-3">
+              <select id="graph-period" class="form-control input-sm m-bot15">
+                  <option value="1h-ago">1小时</option>
+                  <option value="8h-ago">8小时</option>
+                  <option value="24h-ago">24小时</option>
+                  <option value="7d-ago">7天</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <section class="panel">
+                <header class="panel-heading">
+                  内存
+                </header>
+                <div class="panel-body">
+                  <div id="memory-stat" class="graph">
+                    <svg></svg>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="col-md-6">
+              <section class="panel">
+                <header class="panel-heading">
+                  带宽
+                </header>
+                <div class="panel-body">
+                  <div id="bandwidth-stat" class="graph">
+                    <svg></svg>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="col-md-6">
+              <section class="panel">
+                <header class="panel-heading">
+                  磁盘
+                </header>
+                <div class="panel-body">
+                  <div id="disk-stat" class="graph">
+                    <svg></svg>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+          </div>
+
+          {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
+          <div class="row">
+            <div class="col-md-6">
+              <section class="panel">
+                <header class="panel-heading">
+                  响应时间
+                </header>
+                <div class="panel-body">
+                  <div id="response-time-stat" class="graph">
+                    <svg></svg>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="col-md-6">
+              <section class="panel">
+                <header class="panel-heading">
+                  在线人数
+                </header>
+                <div class="panel-body">
+                  <div id="online-stat" class="graph">
+                    <svg></svg>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <section class="panel">
+                <header class="panel-heading">
+                  吞吐率
+                </header>
+                <div class="panel-body">
+                  <div id="throughput-stat" class="graph">
+                    <svg></svg>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+          </div>
+          {% endif %}
+
+        </div>
+        {% endif %}
+        <!-- statistic end-->
         <!-- log start -->
         <div role="tabpanel" class="tab-pane" id="log"></div>
         <!-- log end-->
@@ -339,6 +447,7 @@
           {% endif %}
           {% endif %}
 
+		  {% if tenant.pay_type == "payed" and tenant.pay_level == "company" %}
           <section class="panel">
             <header class="panel-heading">扩容方式</header>
           <div class="panel-body">
@@ -394,7 +503,8 @@
             </div>
           </div>
           </section>
-
+		  {% endif %}
+		  
           <section class="panel" id="permission">
             <header class="panel-heading">权限管理 </header>
             <div class="panel-body">
@@ -459,6 +569,13 @@
     </div>
 
     <script>
+    {% if show_graph %}
+      $('div.tab-pane').removeClass('active');
+      $('ul.nav-tabs li').removeClass('active');
+      $('#statistic').addClass('active');
+      $('ul.nav-tabs a[href="#statistic"]').parent('li').addClass('active');
+    {% endif %}
+
     String.prototype.trim = function() {
 	    return this.replace(/(^\s*)|(\s*$)/g, "");
 	}

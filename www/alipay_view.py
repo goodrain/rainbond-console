@@ -76,7 +76,7 @@ def return_url(request, tenantName):
             # concurrent question
             tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
             tenant.balance = tenant.balance + tenantRecharge.money
-            tenant.pay_type = 'payed'
+            # tenant.pay_type = 'payed'
             tenant.save()
             # charging owed money
             last_money = 0.0
