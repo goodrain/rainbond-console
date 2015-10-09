@@ -46,7 +46,7 @@
 
         var tickMultiFormat = d3.time.format.multi([
             ["%H:%M", function(d) { return d.getMinutes(); }], // not the beginning of the hour
-            ["%H", function(d) { return d.getHours(); }], // not midnight
+            ["%H:%M", function(d) { return d.getHours(); }], // not midnight
             ["%m/%d", function(d) { return d.getDay() && d.getDate() != 1; }],
             ["%m/%d", function(d) { return d.getDate() != 1; }],
             ["%Y/%m", function(d) { return d.getMonth(); }], // not Jan 1st
@@ -65,12 +65,27 @@
         chart.noData("没有可展示的数据");
 
         $('#' + graph_id + ' svg').empty();
-        
-        d3.select('#' + graph_id + ' svg')
+
+        var svgElem = d3.select('#' + graph_id + ' svg');
+        svgElem
           .datum(event.data)
-          .transition().duration(500)
-          .call(chart)
-          ;
+          .transition()
+          .call(chart);
+        // make our own x-axis tick marks because NVD3 doesn't provide any
+        var tickY2 = chart.yAxis.scale().range()[1];
+        var lineElems = svgElem
+                        .select('.nv-x.nv-axis.nvd3-svg')
+                        .select('.nvd3.nv-wrap.nv-axis')
+                        .select('g')
+                        .selectAll('.tick')
+                        .data(chart.xScale().ticks())
+                        .append('line')
+                        .attr('class', 'x-axis-tick-mark')
+                        .attr('x2', 0)
+                        .attr('y1', tickY2 + 4)
+                        .attr('y2', tickY2)
+                        .attr('stroke-width', 1)
+                ;
 
         var tsFormat = d3.time.format('%m/%d %H:%M');
         var tooltip = chart.interactiveLayer.tooltip;
