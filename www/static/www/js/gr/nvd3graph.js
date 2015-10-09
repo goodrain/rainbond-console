@@ -88,7 +88,9 @@
                 ;
 
         var tsFormat = d3.time.format('%m/%d %H:%M');
+        var contentGenerator = chart.interactiveLayer.tooltip.contentGenerator();
         var tooltip = chart.interactiveLayer.tooltip;
+        tooltip.contentGenerator(function (d) { d.value = d.series[0].data.x; return contentGenerator(d); });
         tooltip.headerFormatter(function (d) { return tsFormat(new Date(d)); });
 
         nv.utils.windowResize(chart.update);
