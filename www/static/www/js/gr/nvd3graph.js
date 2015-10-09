@@ -38,20 +38,23 @@
         var chart = nv.models.stackedAreaChart()
           .x(function(d) { return d[0] })
           .y(function(d) { return d[1] })
+          .xScale(d3.time.scale())
           .color(d3.scale.category10().range())
-          .useInteractiveGuideline(false)
+          .useInteractiveGuideline(true)
           .showControls(false)
           ;
+
+        var tickMultiFormat = d3.time.format.multi([
+            ["%H:%M", function(d) { return d.getMinutes(); }], // not the beginning of the hour
+            ["%H", function(d) { return d.getHours(); }], // not midnight
+            ["%m/%d", function(d) { return d.getDate(); }], // not the first of the month
+            ["%Y/%m", function(d) { return d.getMonth(); }], // not Jan 1st
+            ["%Y", function() { return true; }]
+        ]);
       
         chart.xAxis
           //.axisLabel(event.xAxisLabel)
-          .tickFormat(function(d) {
-            if (start.match(/^\d+h/g)) {
-              return d3.time.format('%H:%M')(new Date(d))
-            } else if (start.match(/^\d+d/g)) {
-              return d3.time.format('%m/%d')(new Date(d))
-            }
-          });
+          .tickFormat(function (d) { return tickMultiFormat(new Date(d)); });
       
         chart.yAxis
           .axisLabel(event.yAxisLabel)
