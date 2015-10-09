@@ -14,7 +14,7 @@
          <ul class="nav nav-tabs" id ="nav-tabs">
         <li  class="active"><a href="#deployed"  data-toggle="tab">概览</a></li>
         {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
-        	<li class="" ><a href="#relations"  data-toggle="tab">相关服务</a></li>
+        	<li class="" ><a href="#relations"  data-toggle="tab">依赖</a></li>
         {% endif  %}
         <!--<li class="" ><a href="#control"  data-toggle="tab">监控</a></li> -->
         <li class=""><a href="#log"  data-toggle="tab">日志</a></li>
@@ -201,7 +201,7 @@
                             <td></td>
                             <td>
                               <button type="button" class="btn btn-primary btn-lg btn-block" onclick="window.open('http://user.goodrain.com/apps/{{tenantName}}/service')">
-                              <i class="fa fa-plus"></i>   创建服务</button>
+                              <i class="fa fa-plus"></i>   创建应用</button>
                             </td>
                             <td></td>
                           </tr>
@@ -271,8 +271,11 @@
 		                    <td><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net</a></td>
 		                    <td>未验证</td>
 		                    <td class="text-center">
-		                		<button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">绑定</button>
-		                		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">解绑</button>
+		                        {{ if serviceDomain }}
+		                        <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">解绑</button>
+		                		{{ else }}
+		                		<button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">绑定</button>
+		                		{{ endif }}
 		                	</td>
 		                    </tr>
 		                  </tbody>
@@ -294,12 +297,12 @@
 			                   <tbody>
 			                     <tr>
 			                       <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region|cut:"-1"}}-s1.goodrain.net</td>
-			                       <td id="mapping-port">正在动态分配</td>
+			                       <td id="mapping-port">动态分配</td>
 			                       <td>
 			                       	{% if tenantServiceInfo.is_web_service %}
-			                       		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+			                       		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
 			                        {% else %}
-					           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
+					           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开放</button>
 					           	  	{% endif %}	          						
 			                       </td>
 			                     </tr>
@@ -314,9 +317,9 @@
           <section class="panel">
            	  <header class="panel-heading">对内服务
            	  	{% if tenantServiceInfo.is_service %}
-           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
            	  	{% else %}
-           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
+           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
            	  	{% endif %}	          	
            	  </header>
            	  {% if tenantServiceInfo.is_service %}

@@ -154,7 +154,12 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 			var dataObj = msg
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
-				$("#service_app_name").val("")
+				if (window.location.href.indexOf("fr=") < 0) {
+					window.location.href = window.location.href
+							+ "?fr=settings";
+				} else {
+					window.location.href = window.location.href
+				}
 			} else if (dataObj["status"] == "limit") {
 				swal("免费用户不允许")
 			} else if (dataObj["status"] == "exist") {
