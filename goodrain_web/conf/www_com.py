@@ -47,18 +47,14 @@ WEBSOCKET_URL = {
 }
 
 REGION_RULE = {
-    'ucloud-bj-1': {'personal_money': 0.083, 'company_money':0.208, 'personal_month_money': 60, 'company_month_money': 150},
-    'aws-bj-1': {'personal_money': 0.243, 'company_money':0.555, 'personal_month_money': 175, 'company_month_money': 400},
-    'aws-jp-1': {'personal_money': 0.173, 'company_money':0.417, 'personal_month_money': 125, 'company_month_money': 300},
-    'ali-sh': {'personal_money': 0.069, 'company_money':0.173, 'personal_month_money': 50, 'company_month_money': 125},
+    'ucloud-bj-1': {'personal_money': 0.083, 'company_money': 0.208, 'personal_month_money': 60, 'company_month_money': 150},
+    'aws-bj-1': {'personal_money': 0.243, 'company_money': 0.555, 'personal_month_money': 175, 'company_month_money': 400},
+    'aws-jp-1': {'personal_money': 0.173, 'company_money': 0.417, 'personal_month_money': 125, 'company_month_money': 300},
+    'ali-sh': {'personal_money': 0.069, 'company_money': 0.173, 'personal_month_money': 50, 'company_month_money': 125},
 }
 
 OPENTSDB_API = {
-    'ucloud-bj-1': 'http://10.3.1.2:4242/api/query',
-}
-
-OPENTSDB_API = {
-    'ucloud-bj-1': 'http://10.3.1.2:4242/api/query',
+    'ucloud-bj-1': 'http://10.3.1.3:4242/api/query',
 }
 
 GITLAB_SERVICE_API = {
