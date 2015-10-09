@@ -60,6 +60,12 @@
 
         chart.noData("没有可展示的数据");
 
+        if (start.match(/^\d+d/g)) {
+          var tsFormat = d3.time.format('%m/%d %H:%M');
+          var tooltip = chart.interactiveLayer.tooltip;
+          tooltip.headerFormatter(function (d) { return tsFormat(new Date(d)); });
+        }
+        
         $('#' + graph_id + ' svg').empty();
         
         d3.select('#' + graph_id + ' svg')
@@ -67,7 +73,7 @@
           .transition().duration(500)
           .call(chart)
           ;
-  
+
         nv.utils.windowResize(chart.update);
         /*if (start!='realtime') {
           setInterval(function() {
