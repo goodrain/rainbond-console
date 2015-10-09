@@ -131,7 +131,7 @@ EMAIL_HOST_USER = 'no-reply@goodrain.com'
 EMAIL_HOST_PASSWORD = 'Thaechee3moo'
 EMAIL_USE_SSL = True
 
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+#STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
