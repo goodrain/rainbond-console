@@ -71,26 +71,11 @@
           .datum(event.data)
           .transition()
           .call(chart);
-        // make our own x-axis tick marks because NVD3 doesn't provide any
-        var tickY2 = chart.yAxis.scale().range()[1];
-        var lineElems = svgElem
-                        .select('.nv-x.nv-axis.nvd3-svg')
-                        .select('.nvd3.nv-wrap.nv-axis')
-                        .select('g')
-                        .selectAll('.tick')
-                        .data(chart.xScale().ticks())
-                        .append('line')
-                        .attr('class', 'x-axis-tick-mark')
-                        .attr('x2', 0)
-                        .attr('y1', tickY2 + 4)
-                        .attr('y2', tickY2)
-                        .attr('stroke-width', 1)
-                ;
 
         var tsFormat = d3.time.format('%m/%d %H:%M');
         var contentGenerator = chart.interactiveLayer.tooltip.contentGenerator();
         var tooltip = chart.interactiveLayer.tooltip;
-        tooltip.contentGenerator(function (d) { d.value = d.series[0].data.x; return contentGenerator(d); });
+        tooltip.contentGenerator(function (d) { d.value = d.initial; return contentGenerator(d); });
         tooltip.headerFormatter(function (d) { return tsFormat(new Date(d)); });
 
         nv.utils.windowResize(chart.update);
