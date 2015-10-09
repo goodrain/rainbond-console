@@ -271,11 +271,11 @@
 		                    <td><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net</a></td>
 		                    <td>未验证</td>
 		                    <td class="text-center">
-		                        {{ if serviceDomain }}
+		                        {% if serviceDomain %}
 		                        <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">解绑</button>
-		                		{{ else }}
+		                		{% else %}
 		                		<button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">绑定</button>
-		                		{{ endif }}
+		                		{% endif %}
 		                	</td>
 		                    </tr>
 		                  </tbody>
