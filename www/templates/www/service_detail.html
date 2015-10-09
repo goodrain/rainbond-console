@@ -292,26 +292,13 @@
             </div>
           </div>
           <div class="row">
-            <!--div class="col-md-4">
+            <div class="col-md-6">
               <section class="panel">
                 <header class="panel-heading">
                   内存
                 </header>
                 <div class="panel-body">
                   <div id="memory-stat" class="graph">
-                    <svg></svg>
-                  </div>
-                </div>
-              </section>
-            </div-->
-
-            <div class="col-md-6">
-              <section class="panel">
-                <header class="panel-heading">
-                  磁盘
-                </header>
-                <div class="panel-body">
-                  <div id="disk-stat" class="graph">
                     <svg></svg>
                   </div>
                 </div>
@@ -330,6 +317,20 @@
                 </div>
               </section>
             </div>
+
+            <div class="col-md-6">
+              <section class="panel">
+                <header class="panel-heading">
+                  磁盘
+                </header>
+                <div class="panel-body">
+                  <div id="disk-stat" class="graph">
+                    <svg></svg>
+                  </div>
+                </div>
+              </section>
+            </div>
+
           </div>
 
           {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
