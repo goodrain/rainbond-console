@@ -207,7 +207,8 @@ class TenantService(AuthedView):
             context["perm_users"] = self.get_user_perms()
             context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]   
-            context["tenant"] = self.tenant   
+            context["tenant"] = self.tenant
+            context["totalMemory"] = self.service.min_node * self.service.min_memory
             
             # service relationships
             tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)

@@ -568,19 +568,18 @@ class ServiceNetAndDisk(AuthedView):
             result["disk"] = 0
             result["bytesin"] = 0
             result["bytesout"] = 0
-            result["disk_memory"] = 0
-            
-            tenantServiceStaticsList = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('-ID')[0:1]
-            if tenantServiceStaticsList is not None and len(tenantServiceStaticsList) > 0 :
-                tenantServiceStatics = tenantServiceStaticsList[0]
-                storageDisk = tenantServiceStatics.storage_disk
-                result["disk"] = storageDisk
-                result["bytesin"] = tenantServiceStatics.net_in
-                result["bytesout"] = tenantServiceStatics.net_out
-                max_net = tenantServiceStatics.net_in
-                if tenantServiceStatics.net_in < tenantServiceStatics.net_out:
-                    max_net = tenantServiceStatics.net_out
-                result["disk_memory"] = int(storageDisk * 0.01) + max_net
+            result["disk_memory"] = 0            
+#             tenantServiceStaticsList = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('-ID')[0:1]
+#             if tenantServiceStaticsList is not None and len(tenantServiceStaticsList) > 0 :
+#                 tenantServiceStatics = tenantServiceStaticsList[0]
+#                 storageDisk = tenantServiceStatics.storage_disk
+#                 result["disk"] = storageDisk
+#                 result["bytesin"] = tenantServiceStatics.net_in
+#                 result["bytesout"] = tenantServiceStatics.net_out
+#                 max_net = tenantServiceStatics.net_in
+#                 if tenantServiceStatics.net_in < tenantServiceStatics.net_out:
+#                     max_net = tenantServiceStatics.net_out
+#                 result["disk_memory"] = int(storageDisk * 0.01) + max_net
         except Exception, e:
             logger.exception(e)
         return JsonResponse(result)
