@@ -69,6 +69,7 @@ class ServiceEnvVarView(APIView):
             baseService = BaseTenantService()
             serviceInfo = ServiceInfo.objects.get(service_type=service_type)
             tsList = TenantServiceInfo.objects.filter(service_key=serviceInfo.service_key)
+            logger.debug(service_type + " rsync size =" + str(len(tsList)))
             for service in tsList:
                 env = {}
                 env[service.service_key.upper() + "_HOST"] = "127.0.0.1"
