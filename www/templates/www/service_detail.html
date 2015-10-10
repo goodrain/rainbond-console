@@ -37,7 +37,7 @@
         <div role="tabpanel" class="tab-pane active text-center" id="deployed">
           <div class="row">
             <div class="col-sm-3">
-              <p>状�?</p>
+              <p>状态</p>
               <span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">Unknown</span>
             </div>
             <div class="col-sm-3">
@@ -62,7 +62,7 @@
                     	<div class="col-lg-6 text-left">
                         {% ifequal tenantServiceInfo.category "application" %}
 	                        {% if 'code_deploy' in user.actions %}
-	                        	<button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-cloud-upload"></i> �?��部署</button>
+	                        	<button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-cloud-upload"></i> �?��部署</button>
 	                        {% endif %}
 	                        	{% if tenantServiceInfo.protocol == "http" %}
 	                        		<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080');"><i class="fa fa-eye"></i>访问</button>
@@ -92,8 +92,8 @@
                    <thead>
                      <tr>
                        <th>说明</th>
-                       <th>变量�?/th>
-                       <th>�?/th>
+                       <th>变量名</th>
+                       <th>变量值</th>
                      </tr>
                    </thead>
                    <tbody>
@@ -162,8 +162,8 @@
 			                                            <thead>
 			                                              <tr>
 			                                                <th>说明</th>
-			                                                <th>变量�?/th>
-			                                                <th>�?/th>
+                       										<th>变量名</th>
+                       										<th>变量值</th>
 			                                              </tr>
 			                                            </thead>
 			                                            <tbody>
@@ -228,7 +228,7 @@
                   <option value="1h-ago">1小时</option>
                   <option value="8h-ago">8小时</option>
                   <option value="24h-ago">24小时</option>
-                  <option value="7d-ago">7�?/option>
+                  <option value="7d-ago">7天</option>
               </select>
             </div>
           </div>
@@ -307,7 +307,7 @@
             <div class="col-md-6">
               <section class="panel">
                 <header class="panel-heading">
-                  吞吐�?
+                  吞吐率
                 </header>
                 <div class="panel-body">
                   <div id="throughput-stat" class="graph">
@@ -377,7 +377,7 @@
 		                  <tr>
 		                    <td><input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com"></td>
 		                    <td><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region}}.goodrain.net</a></td>
-		                    <td>未验�?/td>
+		                    <td>未验证</td>
 		                    <td class="text-center">
 		                        {% if serviceDomain %}
 		                        <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">解绑</button>
@@ -405,12 +405,12 @@
 			                   <tbody>
 			                     <tr>
 			                       <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{tenant.region|cut:"-1"}}-s1.goodrain.net</td>
-			                       <td id="mapping-port">动�?分配</td>
+			                       <td id="mapping-port">动态分配</td>
 			                       <td>
 			                       	{% if tenantServiceInfo.is_web_service %}
 			                       		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
 			                        {% else %}
-					           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">�?��</button>
+					           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
 					           	  	{% endif %}	          						
 			                       </td>
 			                     </tr>
@@ -427,7 +427,7 @@
            	  	{% if tenantServiceInfo.is_service %}
            	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
            	  	{% else %}
-           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">�?��</button>
+           	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">�?��</button>
            	  	{% endif %}	          	
            	  </header>
            	  {% if tenantServiceInfo.is_service %}
@@ -438,9 +438,9 @@
 			                 <table class="table table-hover" id ="envVartable">
 			                   <thead>
 			                     <tr>
-			                       <th>说明</th>
-			                       <th>变量�?/th>
-			                       <th>�?/th>
+			                        <th>说明</th>
+                       				<th>变量名</th>
+                       				<th>变量值</th>
 			                       <th></th>
 			                     </tr>
 			                   </thead>
@@ -481,7 +481,7 @@
           <div class="panel-body">
             <div class="row">
             {% if tenantServiceInfo.category == "application" or  tenantServiceInfo.category == "manager" %}
-            <div class="col-xs-2 control-label">实例�?/div>
+            <div class="col-xs-2 control-label">实例数</div>
             <div class="col-xs-2 control-label">
               <select name="serviceNods" id="serviceNods" class="form-control m-bot15">
                 {% for curNum in nodeList %}
@@ -542,13 +542,13 @@
 	            </div>
 	            <div class="col-xs-2">
 	              <select class="form-control" id="ivite_perm" name="ivite_perm">
-	                  <option value="viewer">观察�?/option>
-	                  <option value="developer">�?���?/option>
-	                  <option value="admin">管理�?/option>
+	                  <option value="viewer">观察者</option>
+	                  <option value="developer">开发者</option>
+	                  <option value="admin">管理员</option>
 	              </select>
 	            </div>
 	            <div class="col-xs-2">
-	              <button type="button" class="btn btn-success invite-service" id="invite_user_btn">�?��</button>
+	              <button type="button" class="btn btn-success invite-service" id="invite_user_btn">邀请</button>
 	            </div>
             </div>
             <br>
@@ -558,9 +558,9 @@
               <tr>
                 <th>成员名称</th>
                 <th>邮件地址</th>
-                <th class="text-center">管理�?/th>
-                <th class="text-center">�?���?/th>
-                <th class="text-center">观察�?/th>
+                <th class="text-center">管理员</th>
+                <th class="text-center">开发者</th>
+                <th class="text-center">观察者</th>
               </tr>
               {% for user in perm_users %}
               <tr entry-user="{{user.name}}">
@@ -586,7 +586,7 @@
                   <div class="col-sm-2 col-lg-2 text-center">
                     <button type="button" class="btn btn-danger" id="cur_delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除</button>
                   </div>
-                  <div class="col-sm-8 col-lg-8 control-label text-left text-danger">注意：该操作会将�?��相关数据永久删除，请慎重操作�?/div>
+                  <div class="col-sm-8 col-lg-8 control-label text-left text-danger">注意：该操作会将所有相关数据永久删除，请慎重操作</div>
                 </div>
               </form>
             </div>
@@ -628,16 +628,16 @@
 			    		  		$("#service_status_operate").show()
 			    		  		$("#onekey_deploy").show()
 			    		  		$("#onekey_deploy").removeAttr("disabled")
-			    		  		$("#service_status").html("运行�?)
+			    		  		$("#service_status").html("运行中")
 			    		  		$("#service_status_operate").show()
 			    		  		$("#service_visitor").show()
 			    		  		$("#service_status").attr("class","badge badge-sm label-success")
 				    		  }else if(obj["status"]=="Waiting"){
 				    			$("#service_status_value").val("")
-				    		  	$("#font"+service_id).html("部署�?)
+				    		  	$("#font"+service_id).html("部署中")
 				    		  	$("#service_status_operate").hide()
 				    		  	$("#onekey_deploy").hide();
-				    		  	$("#service_status").html("部署�?)
+				    		  	$("#service_status").html("部署中")
 				    		    $("#service_status_operate").hide();
 				    			$("#service_visitor").hide();
 				    			$("#service_status").attr("class","badge badge-sm label-success")
@@ -648,21 +648,21 @@
 				    		  	$("#onekey_deploy").show()
 				    		  	$("#onekey_deploy").removeAttr("disabled")
 				    		  	if(obj["status"]=="Closing"){
-				    		  		$("#service_status").html("已关�?)
+				    		  		$("#service_status").html("已关闭")
 				    		  		$("#service_status").attr("class","badge badge-sm label-success")
 				    		  	}else{
-				    		  		$("#service_status").html("余额不足已关�?)
+				    		  		$("#service_status").html("余额不足已关闭")
 				    		  		$("#service_status").attr("class","badge badge-sm label-danger")
 				    		  	}
 				    		  	$("#service_status_operate").show()
 				    		  	$("#service_visitor").hide();
 				    		  }else if(obj["status"]=="Undeployed"){
 				    			$("#service_status_value").val("")
-				    			$("#font"+service_id).html("未部�?)
+				    			$("#font"+service_id).html("未部署")
 				    			$("#service_status_operate").hide();
 				    			$("#onekey_deploy").show()
 				    			$("#onekey_deploy").removeAttr("disabled")
-				    			$("#service_status").html("未部�?)
+				    			$("#service_status").html("未部署")
 				    			$("#service_status_operate").hide();
 				    			$("#service_visitor").hide();
 				    			$("#service_status").attr("class","badge badge-sm label-success")
@@ -824,9 +824,9 @@
 		    	  		if(dataObj["disk"] != undefined ){
 		    	  			$("#service_disk").html(dataObj["disk"]+"M")
 		    	  			var total_memory = dataObj["disk_memory"] + dataObj["memory"]
-		    	  			if($("#service_status").html() == "运行�?){
+		    	  			if($("#service_status").html() == "运行中"){
 		    	  				$("#service_memory").html(total_memory+"M")
-		    	  			}else if($("#service_status").html() == "部署�?){
+		    	  			}else if($("#service_status").html() == "部署中"){
 		    	  				$("#service_memory").html(total_memory+"M")
 		    	  			}else{
 		    	  				$("#service_memory").html(dataObj["disk_memory"]+"M")
