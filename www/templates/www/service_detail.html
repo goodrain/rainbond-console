@@ -343,6 +343,7 @@
 		            </label>
 	            </div>
 	            {% endif %}
+	            {% if tenant.pay_type != "free" %}
 	            <div class="row">
 		            <label class="col-xs-2 control-label">服务协议</label>
 		            <label class="col-xs-10 control-label">
@@ -354,6 +355,7 @@
 		                </select>
 		            </label>
 	            </div>
+	            {% endif %}
 	          </div>
           </section>
            
