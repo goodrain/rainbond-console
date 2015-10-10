@@ -74,7 +74,7 @@ class AccountRecharging(AuthedView):
                 startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
                 recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime))
             else:
-                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id,)                                          
+                recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id)                                        
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantRecharges = paginator.page(int(page))
             context["tenantRecharges"] = tenantRecharges
@@ -88,7 +88,7 @@ class AccountQuery(AuthedView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         context["tenantName"] = self.tenantName
-        context['serviceAlias'] = self.serviceAlias        
+        context['serviceAlias'] = self.serviceAlias
         date_scope = request.GET.get("datescope", "1")
         per_page = request.GET.get("perpage", "24")
         page = request.GET.get("page", "1")        
@@ -104,7 +104,7 @@ class AccountQuery(AuthedView):
                 startTime = start.strftime('%Y-%m-%d') + " 00:00:00"
                 recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id, time__range=(startTime, endTime)).order_by("-ID")
             else:
-                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id)                                          
+                recharges = TenantConsume.objects.filter(tenant_id=self.tenant.tenant_id)
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantConsumes = paginator.page(int(page))
             context["tenantConsumes"] = tenantConsumes
