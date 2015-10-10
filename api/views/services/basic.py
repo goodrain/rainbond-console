@@ -74,7 +74,7 @@ class ServiceEnvVarView(APIView):
                 env[service.service_key.upper() + "_PORT"] = service.service_port
                 
                 baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
-                baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
+                baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"端口", service.service_key.upper() + "_PORT", service.service_port, False)
                 if serviceInfo.is_init_accout:
                     password = TenantServiceAuth.objects.get(service_id=service.service_id).password                    
                     baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
