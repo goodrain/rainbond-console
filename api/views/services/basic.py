@@ -4,6 +4,7 @@ from api.views.base import APIView
 from www.models import TenantServiceInfo, Tenants, ServiceInfo, TenantServiceAuth
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService
+import json
 
 import logging
 logger = logging.getLogger('default')
