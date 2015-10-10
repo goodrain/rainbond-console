@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from rest_framework.response import Response
 from api.views.base import APIView
-from www.models import TenantServiceInfo, Tenants, ServiceInfo
+from www.models import TenantServiceInfo, Tenants, ServiceInfo, TenantServiceAuth
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService
 
