@@ -54,7 +54,7 @@ class ServiceEnvVarView(APIView):
     
     def post(self, request, format=None):
         """
-        同步环境变量到区域中心(pause,unpause)
+        同步环境变量到区域中心
         ---
         parameters:
             - name: service_type
