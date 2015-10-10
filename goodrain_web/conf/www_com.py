@@ -29,15 +29,32 @@ REGION_SERVICE_API = [{
     'url': 'http://api.aws-bj-1.goodrain.com:18888',
     'apitype': 'region service',
     'region_name': 'aws-bj-1'
+}, {
+    'url': 'http://api.aws-jp-1.goodrain.com:8888',
+    'apitype': 'region service',
+    'region_name': 'aws-jp-1'
+}, {
+    'url': 'http://api.ali-sh.goodrain.com:8888',
+    'apitype': 'region service',
+    'region_name': 'ali-sh'
 }]
 
 WEBSOCKET_URL = {
     'ucloud-bj-1': 'ws://mpush.ucloud-bj-1.goodrain.com:6060/websocket',
-    'aws-bj-1': 'ws://mpush.aws-bj-1.goodrain.com:6060/websocket'
+    'aws-bj-1': 'ws://mpush.aws-bj-1.goodrain.com:6060/websocket',
+    'aws-jp-1': 'ws://mpush.aws-jp-1.goodrain.com:6060/websocket',
+    'ali-sh': 'ws://mpush.ali-sh.goodrain.com:6060/websocket',
 }
 
 REGION_RULE = {
-    'ucloud-bj-1': {'unit_money': 0.417}, 'aws-bj-1': {'unit_money': 0.417}
+    'ucloud-bj-1': {'personal_money': 0.083, 'company_money': 0.208, 'personal_month_money': 60, 'company_month_money': 150},
+    'aws-bj-1': {'personal_money': 0.243, 'company_money': 0.555, 'personal_month_money': 175, 'company_month_money': 400},
+    'aws-jp-1': {'personal_money': 0.173, 'company_money': 0.417, 'personal_month_money': 125, 'company_month_money': 300},
+    'ali-sh': {'personal_money': 0.069, 'company_money': 0.173, 'personal_month_money': 50, 'company_month_money': 125},
+}
+
+OPENTSDB_API = {
+    'ucloud-bj-1': 'http://10.3.1.3:4242/api/query',
 }
 
 GITLAB_SERVICE_API = {

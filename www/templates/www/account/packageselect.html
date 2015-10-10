@@ -1,0 +1,209 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}好雨云平台 套餐选择{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+<header class="header white-bg">
+    <!--logo start-->
+    <a href="/" class="logo">好雨<span>云平台</span></a>
+    <!--logo end-->
+</header>
+
+<div class="container">
+  <form class="form-signin form-plans-reg" enctype="multipart/form-data" action="" method="post">
+    <h2 class="form-signin-heading">选择套餐</h2>
+    <div class="rom">
+      <table class="boxed-group-table setup-plans">
+	    <tbody>
+	    <tr>
+	        <th>
+	            <span class="big">免费</span>
+	        </th>
+	        <th>
+	            <span class="big">个人</span>
+	        </th>
+	        <th>
+	            <span class="big">企业</span>
+	        </th>
+	    </tr>
+	    <tr>
+	        <th>
+	            <span class="small">试用、技术学习、个人blog、产品开发、产品演示</span>
+	        </th>
+	        <th>
+	            <span class="small">对服务质量有要求的个人用户，具有一定访问量的应用</span>
+	        </th>
+	        <th>
+	            <span class="small">有大量用户访问，对性能、稳定性、安全有要求的企业级应用</span>
+	        </th>
+    	</tr>
+    	<tr>
+	        <td>
+	            1G免费内存
+	        </td>
+	        <td>
+	            支持所有免费用户特性
+	        </td>
+	        <td>
+	           支持所有个人用户特性
+	        </td>
+    	</tr>
+    	<tr>
+	        <td>
+	            共享普通服务器
+	        </td>
+	        <td>
+	            多份数据备份
+	        </td>
+	        <td>
+	            专享高性能服务器
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+	            最大100访问并发
+	        </td>
+	        <td>
+	            不限制访问并发
+	        </td>
+	        <td>
+	            支持多种扩容方式
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+	            48小时无访问自动休眠
+	        </td>
+	        <td>
+	            不休眠
+	        </td>
+	        <td>
+	            高级监控
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+	            通过web管理数据库
+	        </td>
+	        <td>
+	            数据库可直连管理
+	        </td>
+	        <td>
+	            SLA 99.95%
+	        </td>
+    	</tr>
+        <tr>
+	        <td>
+	            通过在线客服支持
+	        </td>
+	        <td>
+	            可以绑定域名
+	        </td>
+	        <td>
+	            支持SSL
+	        </td>
+    	</tr>
+        <tr>
+	        <td>            
+	        </td>
+	        <td>
+	            无免费内存
+	        </td>
+	        <td>
+	            7x24服务支持
+	        </td>
+   	 	</tr>
+        <tr>
+	        <td>
+	        </td>
+	        <td>
+	        </td>
+	        <td>
+	        </td>
+    	</tr>
+        <tr>
+	        <td></td>
+	        <td></td>
+	        <td></td>
+    	</tr>
+        <tr>
+        	<input type="hidden" id="current_select" name="current_select" value="free">
+	        <td> 
+	            <button  type="button" class="active"  id="package_free" onclick="_selectme('package_free')">免费</button>
+	        </td>
+	        <td>
+	            <button  type="button" id="package_personal" onclick="_selectme('package_personal')">{{personal_money}}元/1G/月</button>           
+	        </td>
+	        <td>            
+	            <button  type="button" id="package_company" onclick="_selectme('package_company')">{{company_money}}元/1G/月</button>
+	        </td>
+    	</tr>
+    	<tr>
+    		<td></td><td></td><td></td>
+    	</tr>
+	</tbody>
+    </table>
+	<div class="form-actions" style="text-align: center;">
+		<!--input type="submit" name="register" value="注册" class="btn btn-primary btn btn-lg btn-success btn-block" id="submit-id-register"--> 
+		<button type="button" class="btn btn-lg btn-success" onclick="_selectFinished()">完成</button>
+	</div>
+	</div>
+  </form>
+<script>
+function _selectme(obj){
+	if(obj=="package_free"){
+		$("#package_free").attr("class","active")
+		$("#package_personal").attr("class","")
+		$("#package_company").attr("class","")
+		$("#current_select").val("free")
+	}else if(obj=="package_personal"){
+		$("#package_personal").attr("class","active")
+		$("#package_company").attr("class","")
+		$("#package_free").attr("class","")
+		$("#current_select").val("personal")
+	}else if(obj=="package_company"){
+		$("#package_company").attr("class","active")
+		$("#package_personal").attr("class","")
+		$("#package_free").attr("class","")
+		$("#current_select").val("company")
+	}		
+}
+function _selectFinished(){
+	var current_select = $("#current_select").val()
+	$.ajax({
+		type : "POST",
+		url : "/payed/{{tenantName}}/select",
+		data : "current_select="+current_select,
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(msg) {
+			var dataObj = msg
+			if (dataObj["status"] == "success") {
+				swal("操作成功")
+				window.location.href = "/apps/{{tenantName}}"
+			} else {
+				swal("操作失败")
+			}
+		},
+		error : function() {
+			// swal("系统异常");
+		}
+	})
+}
+</script>
+</div>
+
+{% endblock %}

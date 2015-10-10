@@ -251,7 +251,12 @@ class TenantUsedResource(object):
         elif tenant.pay_type == "payed":
             tm = self.calculate_real_used_resource(tenant) + newAddMemory
             ruleJson = self.feerule[tenant.region]
-            total_money = float(ruleJson['unit_money']) * (tm * 1.0 / 1024)
+            unit_money = 0
+            if tenant.pay_level == "personal":
+                unit_money = float(ruleJson['personal_money'])
+            elif tenant.pay_level == "company":
+                unit_money = float(ruleJson['company_money'])
+            total_money = unit_money * (tm * 1.0 / 1024)
             logger.debug(tenant.tenant_id + "use memory " + str(tm) + " used money " + str(total_money))
             if tenant.balance >= total_money:
                 result = True

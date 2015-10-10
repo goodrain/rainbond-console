@@ -12,7 +12,7 @@ user_origion = (
 )
 
 tenant_type = (
-    (u"免费租户", "free"), (u"付费租户", "paid")
+    (u"免费租户", "free"), (u"付费租户", "payed")
 )
 
 service_identity = (
@@ -144,6 +144,7 @@ class Tenants(models.Model):
     creater = models.IntegerField(help_text=u"租户创建者", default=0)
     limit_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=1024)
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
+    pay_level = models.CharField(max_length=30, default='free', help_text=u"付费级别:free,personal,company")
 
     def __unicode__(self):
         return self.tenant_name

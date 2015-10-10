@@ -73,10 +73,26 @@ def return_url(request, tenantName):
             tenantRecharge.status = trade_status
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
+            # recharge send money
+            tempMoney = int(tenantRecharge.money) / 100 * 50
+            if tempMoney > 0:            
+                sendRecharge = TenantRecharge()
+                sendRecharge.tenant_id = tenantRecharge.tenant_id
+                sendRecharge.user_id = tenantRecharge.user_id
+                sendRecharge.user_name = tenantRecharge.user_name
+                sendRecharge.order_no = tenantRecharge.order_no
+                sendRecharge.recharge_type = "100send50"
+                sendRecharge.money = tempMoney
+                sendRecharge.subject = "充100值送50"
+                sendRecharge.body = "充100值送50"
+                sendRecharge.show_url = ""
+                sendRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                sendRecharge.status = "TRADE_SUCCESS"
+                sendRecharge.save()
             # concurrent question
             tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
-            tenant.balance = tenant.balance + tenantRecharge.money
-            tenant.pay_type = 'payed'
+            tenant.balance = tenant.balance + tenantRecharge.money + tempMoney
+            # tenant.pay_type = 'payed'
             tenant.save()
             # charging owed money
             last_money = 0.0
@@ -130,10 +146,10 @@ def notify_url(request, tenantName):
             tenantRecharge.status = trade_status
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
-            tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+            # tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
             # tenant.balance = tenant.balance + tenantRecharge.money
-            tenant.pay_type = 'payed'
-            tenant.save()
+            # tenant.pay_type = 'payed'
+            # tenant.save()
         else:
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
     except Exception as e:

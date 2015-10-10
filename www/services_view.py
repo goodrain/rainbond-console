@@ -31,9 +31,12 @@ gitHubClient = GitHubApi()
 
 regionClient = RegionServiceApi()
 
+
 class TenantServiceAll(AuthedView):
+
     def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
             'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
             'www/js/jquery.scrollTo.min.js')
         return media
@@ -74,6 +77,13 @@ class TenantServiceAll(AuthedView):
 
 class TenantService(AuthedView):
 
+    def init_request(self, *args, **kwargs):
+        show_graph = self.request.GET.get('show_graph', None)
+        if show_graph is not None and show_graph == 'yes':
+            self.show_graph = True
+        else:
+            self.show_graph = False
+
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
@@ -83,7 +93,18 @@ class TenantService(AuthedView):
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/swfobject.js', 'www/js/web_socket.js', 'www/js/websoket-goodrain.js'
         )
+        if self.show_graph:
+            media = media + self.vendor(
+                'www/assets/nvd3/nv.d3.css', 'www/assets/nvd3/d3.min.js',
+                'www/assets/nvd3/nv.d3.min.js', 'www/js/gr/nvd3graph.js',
+            )
         return media
+
+    def get_context(self):
+        context = super(TenantService, self).get_context()
+        if self.show_graph:
+            context['show_graph'] = True
+        return context
 
     def get_service_list(self):
         baseService = BaseTenantService()
@@ -129,19 +150,19 @@ class TenantService(AuthedView):
             logger.debug(project_id)
             if project_id > 0:
                 gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
-                gitClient.addProjectMember(project_id, 2, 20)                                        
+                gitClient.addProjectMember(project_id, 2, 20)
                 ts = TenantServiceInfo.objects.get(service_id=self.service.service_id)
                 ts.git_project_id = project_id
                 ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
                 ts.save()
-                
+
     def sendCodeCheckMsg(self):
         data = {}
         data["tenant_id"] = self.service.tenant_id
         data["service_id"] = self.service.service_id
         if self.service.code_from != "github":
-             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
-             data["git_url"] = gitUrl
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
+            data["git_url"] = gitUrl
         else:
             clone_url = self.service.git_url
             code_user = clone_url.split("/")[3]
@@ -156,7 +177,7 @@ class TenantService(AuthedView):
         task["tube"] = "code_check"
         logger.debug(json.dumps(task))
         regionClient.writeToRegionBeanstalk(self.tenant.region, self.service.service_id, json.dumps(task))
-    
+
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
@@ -171,19 +192,19 @@ class TenantService(AuthedView):
                 self.createGitProject()
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
-                    self.sendCodeCheckMsg()                    
+                    self.sendCodeCheckMsg()
                     return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 if tse.user_dependency is None or tse.user_dependency == "":
                     return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-                        
+
             service_id = self.service.service_id
             context["tenantServiceInfo"] = self.service
             tenantServiceList = self.get_service_list()
             context["tenantServiceList"] = tenantServiceList
             context["tenantName"] = self.tenantName
             context["myAppStatus"] = "active"
-            context["perm_users"] = self.get_user_perms()   
+            context["perm_users"] = self.get_user_perms()
             context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]   
             context["tenant"] = self.tenant   
@@ -195,7 +216,7 @@ class TenantService(AuthedView):
                 for tsr in tsrs:
                     relationsids.append(tsr.dep_service_id)
             context["serviceIds"] = relationsids
-                
+
             map = {}
             sids = [service_id]
             for tenantService in tenantServiceList:
@@ -243,7 +264,7 @@ class TenantService(AuthedView):
                 self.tenant.save()
                 
             if self.tenant.service_status == 3:
-                logger.debug("system unpause tenant_id=" + self.tenant.tenant_id)
+                logger.debug("service.unpause", "system unpause tenant_id=" + self.tenant.tenant_id)
                 regionClient.systemUnpause(self.tenant.region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
@@ -253,7 +274,7 @@ class TenantService(AuthedView):
         return TemplateResponse(self.request, "www/service_detail.html", context)
 
 # d82ebe5675f2ea0d0a7b
-class ServiceGitHub(BaseView):        
+class ServiceGitHub(BaseView):
     @never_cache
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code", "")
@@ -268,8 +289,10 @@ class ServiceGitHub(BaseView):
         tenantName = request.session.get("app_tenant")
         logger.debug(tenantName)
         return HttpResponseRedirect("/apps/" + tenantName + "/app-create/?from=git")
-        
+
+
 class GitLabManager(AuthedView):
+
     @never_cache
     def get(self, request, *args, **kwargs):
         # result=gitClient.createUser("git2@goodrain.com ", "12345678", "git2", "git2")
