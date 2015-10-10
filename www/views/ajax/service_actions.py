@@ -485,21 +485,22 @@ class AllTenantsUsedResource(AuthedView):
                                 serviceIds = serviceIds + ","
                             serviceIds = serviceIds + "'" + s["service_id"] + "'"
                             result[s['service_id'] + "_running_memory"] = s["min_node"] * s["min_memory"]
+                            result[s['service_id'] + "_storage_memory"] = 0
             result["service_ids"] = service_ids
-            if len(service_ids) > 0:
-                dsn = BaseConnection()
-                query_sql = "select service_id,storage_disk,node_num,net_in,net_out from tenant_service_statics where tenant_id ='" + self.tenant.tenant_id + "' and service_id in(" + serviceIds + ")  order by id desc limit " + str(len(service_ids))
-                sqlobjs = dsn.query(query_sql)
-                for sqlobj in sqlobjs:                    
-                    service_id = sqlobj["service_id"]
-                    storageDisk = int(sqlobj["storage_disk"])
-                    node_num = int(sqlobj["node_num"])
-                    net_in = int(sqlobj["net_in"])
-                    net_out = int(sqlobj["net_out"])
-                    max_net = net_out
-                    if net_in > net_out:
-                        max_net = net_in
-                    result[service_id + "_storage_memory"] = int(storageDisk * 0.01) + max_net
+#             if len(service_ids) > 0:
+#                 dsn = BaseConnection()
+#                 query_sql = "select service_id,storage_disk,node_num,net_in,net_out from tenant_service_statics where tenant_id ='" + self.tenant.tenant_id + "' and service_id in(" + serviceIds + ")  order by id desc limit " + str(len(service_ids))
+#                 sqlobjs = dsn.query(query_sql)
+#                 for sqlobj in sqlobjs:                    
+#                     service_id = sqlobj["service_id"]
+#                     storageDisk = int(sqlobj["storage_disk"])
+#                     node_num = int(sqlobj["node_num"])
+#                     net_in = int(sqlobj["net_in"])
+#                     net_out = int(sqlobj["net_out"])
+#                     max_net = net_out
+#                     if net_in > net_out:
+#                         max_net = net_in
+#                     result[service_id + "_storage_memory"] = int(storageDisk * 0.01) + max_net
         except Exception as e:
             logger.exception(e)
         return JsonResponse(result)
