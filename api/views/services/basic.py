@@ -69,17 +69,18 @@ class ServiceEnvVarView(APIView):
             serviceInfo = ServiceInfo.objects.get(service_type=service_type)
             tsList = TenantServiceInfo.objects.filter(service_key=serviceInfo.service_key)
             for service in tsList:
-                baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
-                baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
-                if serviceInfo.is_init_accout:
-                    baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
-                    baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"密码", service.service_key.upper() + "_PASSWORD", "admin", True)
                 env = {}
                 env[service.service_key.upper() + "_HOST"] = "127.0.0.1"
                 env[service.service_key.upper() + "_PORT"] = service.service_port
+                
+                baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
+                baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
                 if serviceInfo.is_init_accout:
+                    password = TenantServiceAuth.objects.get(service_id=service.service_id).password                    
+                    baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
+                    baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
                     env[service.service_key.upper() + "_USER"] = "admin"
-                    env[service.service_key.upper() + "_PASSWORD"] = TenantServiceAuth.objects.get(service_id=service.service_id).password
+                    env[service.service_key.upper() + "_PASSWORD"] = password
                 task = {}
                 task["tenant_id"] = service.tenant_id
                 task["attr"] = env
