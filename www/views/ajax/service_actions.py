@@ -240,7 +240,7 @@ class ServiceManage(AuthedView):
                     self.service.save()
             result["status"] = "success"
         except Exception, e:
-            logger.debug(e)
+            logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
 
