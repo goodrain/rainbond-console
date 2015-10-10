@@ -68,7 +68,7 @@ class ServiceEnvVarView(APIView):
         try:
             baseService = BaseTenantService()
             serviceInfo = ServiceInfo.objects.get(service_type=service_type)
-            tsList = TenantServiceInfo.objects.filter(service_key=serviceInfo.service_key)
+            tsList = TenantServiceInfo.objects.filter(service_key=serviceInfo.service_key, ID__gte=4120)
             logger.debug(service_type + " rsync size =" + str(len(tsList)))
             for service in tsList:
                 env = {}
