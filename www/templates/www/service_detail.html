@@ -75,9 +75,9 @@
                         {% endifequal %}
                         {% ifequal tenantServiceInfo.service_key "mysql" %}
                           {% if service_manager.deployed %}
-                              <button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>添加管理服务</button>
-                          {% else %}
                               <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>
+                          {% else %}
+                              <button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>添加管理服务</button>
                           {% endif %}
                         {% endifequal %}
                         </div>
