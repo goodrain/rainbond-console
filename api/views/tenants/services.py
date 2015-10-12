@@ -39,10 +39,11 @@ class TenantServiceStaticsView(APIView):
                 storage_disk = data["storage_disk"]
                 net_in = data["net_in"]
                 net_out = data["net_out"]
+                flow = data["flow"]
                 runing_status = data["status"]
                 cnt = TenantServiceStatics.objects.filter(service_id=service_id, time_stamp=time_stamp).count()
                 if cnt < 1:
-                    ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num, node_memory=node_memory, time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in, net_out=net_out, status=runing_status)
+                    ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num, node_memory=node_memory, time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in, net_out=net_out, status=runing_status, flow=flow)
                     ts.save()
             except Exception as e:
                 logger.exception(e)

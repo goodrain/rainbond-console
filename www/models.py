@@ -485,6 +485,7 @@ class TenantServiceStatics(BaseModel):
     storage_disk = models.IntegerField(help_text=u"磁盘使用K", default=0)
     net_in = models.IntegerField(help_text=u"网络使用K", default=0)
     net_out = models.IntegerField(help_text=u"网络使用K", default=0)
+    flow = models.IntegerField(help_text=u"网络下载量", default=0)
     time_stamp = models.IntegerField(help_text=u"时间戳", default=0)
     status = models.IntegerField(default=0, help_text=u"0:无效；1:有效；2:操作中")
     time = models.DateTimeField(
