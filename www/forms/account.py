@@ -304,7 +304,7 @@ class RegisterForm(forms.Form):
             ('ali-sh', '阿里云[上海]'),
             ('aws-jp-1', '亚马逊[日本]'),
         ),
-        initial='1',
+        initial="ali-sh",
         widget=SelectWithDisabled
     )
 
@@ -325,11 +325,17 @@ class RegisterForm(forms.Form):
         init_email = ""
         init_tenant = ""
         init_region = ""
-        if len(kwargs) > 0 and kwargs["initial"] is not None:
-            init_phone = kwargs["initial"]["phone"]
-            init_email = kwargs["initial"]["email"]
-            init_tenant = kwargs["initial"]["tenant"]
-            init_region = kwargs["initial"]["region"]
+        selected_region = ""
+        if len(kwargs) > 0:
+            if kwargs.get("initial") is not None:
+                init_phone = kwargs["initial"]["phone"]
+                init_email = kwargs["initial"]["email"]
+                init_tenant = kwargs["initial"]["tenant"]
+                init_region = kwargs["initial"]["region"]
+                kwargs.pop("initial")
+            if kwargs.get("region_level") is not None:
+                selected_region = kwargs["region_level"]["region"]
+                kwargs.pop("region_level")
 
         super(RegisterForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
@@ -342,6 +348,8 @@ class RegisterForm(forms.Form):
             self.fields['tenant'].widget.attrs['readonly'] = True
         if init_region is not None and init_region != "":
             self.fields['machine_region'].widget.attrs['readonly'] = True
+        if selected_region is not None and selected_region != "":
+            self.fields['machine_region'].initial = selected_region
 
         self.helper.layout = Layout(
             Div(
@@ -351,7 +359,7 @@ class RegisterForm(forms.Form):
                 # Field('tenant', css_class="form-control teamdomain", placeholder='团队域名'),
                 AppendedText('tenant', '.goodrain.net', placeholder='团队域名', css_class='teamdomain'),
 
-                AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'), Field(''),
+                AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
                 # HTML('<input type="text" name="tenant" id="tenant" value="" class="teamdomain" placeholder="团队域名"> .goodrain.net'),
                 Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                 Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),

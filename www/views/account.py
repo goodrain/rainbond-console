@@ -355,7 +355,17 @@ class Registation(BaseView):
             logger.exception("account.register", e)
 
     def get(self, request, *args, **kwargs):
-        self.form = RegisterForm()
+        pl = request.GET.get("pl", "")
+        region_levels = pl.split(":")
+        if len(region_levels) == 2:
+            region = region_levels[0]         
+            self.form = RegisterForm(
+                    region_level={
+                        "region": region,
+                    }
+                )
+        else:
+            self.form = RegisterForm()
         return self.get_response()
 
     def get_client_ip(self, request):
@@ -408,8 +418,13 @@ class Registation(BaseView):
 
             user = authenticate(username=email, password=password)
             login(request, user)
-
-            return redirect('/payed/{0}/select'.format(tenant.tenant_name))
+            
+            selected_pay_level = ""
+            pl = request.GET.get("pl", "")
+            region_levels = pl.split(":")
+            if len(region_levels) == 2:
+                selected_pay_level = region_levels[1]
+            return redirect('/payed/{0}/select?selected={1}'.format(tenant.tenant_name, selected_pay_level))
             # return redirect('/apps/{0}'.format(tenant.tenant_name))
 
         logger.info("account.register", "register form error: %s" % self.form.errors)
@@ -548,8 +563,7 @@ class InviteRegistation(BaseView):
             self.register_for_service(user, password, data)
         user = authenticate(username=email, password=password)
         login(request, user)
-        return redirect('/payed/{0}/select'.format(tenant_name))
-        # return redirect('/apps/{0}'.format(tenant_name))
+        return redirect('/apps/{0}'.format(tenant_name))
 
 
 class PhoneCodeView(BaseView):

@@ -29,6 +29,8 @@ class PackageSelectView(AuthedView):
         feerule = settings.REGION_RULE
         context["personal_money"] = feerule[self.tenant.region]["personal_month_money"]
         context["company_money"] = feerule[self.tenant.region]["company_month_money"]
+        selected = request.GET.get("selected", "")
+        context["selected"] = selected
         return TemplateResponse(self.request, "www/account/packageselect.html", context)
         
     def post(self, request, *args, **kwargs):
