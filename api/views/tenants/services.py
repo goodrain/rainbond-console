@@ -1,22 +1,26 @@
 # -*- coding: utf8 -*-
+import time
+import datetime
+import json
+
 from rest_framework.response import Response
 from api.views.base import APIView
 from www.models import TenantServiceStatics, Tenants, TenantServiceInfo
 from www.service_http import RegionServiceApi
 
-import datetime
-import json
 import logging
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 
+
 class TenantServiceStaticsView(APIView):
+
     '''
     计费基础数据统计
     '''
     allowed_methods = ('POST',)
-        
+
     def post(self, request, format=None):
         """
         统计租户服务
@@ -29,6 +33,7 @@ class TenantServiceStaticsView(APIView):
               paramType: body
         """
         datas = request.data
+        beginTime = time.time()
         for data in datas:
             try:
                 tenant_id = data["tenant_id"]
@@ -41,20 +46,28 @@ class TenantServiceStaticsView(APIView):
                 net_out = data["net_out"]
                 flow = data["flow"]
                 runing_status = data["status"]
+                start_time = time.time()
                 cnt = TenantServiceStatics.objects.filter(service_id=service_id, time_stamp=time_stamp).count()
                 if cnt < 1:
-                    ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num, node_memory=node_memory, time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in, net_out=net_out, status=runing_status, flow=flow)
+                    ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num, node_memory=node_memory,
+                                              time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in, net_out=net_out, status=runing_status, flow=flow)
                     ts.save()
+                end_time = time.time()
+                logger.debug('statistic.perf', "sql execute time: {0}".format(end_time - start_time))
             except Exception as e:
                 logger.exception(e)
+            endTime = time.time()
+            logger.debug('statistic.perf', "total use time: {0}".format(endTime - beginTime))
         return Response({"ok": True}, status=200)
 
+
 class TenantHibernateView(APIView):
+
     '''
     租户休眠
     '''
     allowed_methods = ('put', 'post')
-        
+
     def put(self, request, format=None):
         """
         休眠容器(pause,systemPause,unpause)
@@ -90,7 +103,7 @@ class TenantHibernateView(APIView):
                     tenant.service_status = 3
                     tenant.save()
                 else:
-                    logger.debug(tenant.tenant_name + " don't been paused")                
+                    logger.debug(tenant.tenant_name + " don't been paused")
             elif action == 'unpause':
                 if tenant.service_status == 0:
                     regionClient.unpause(tenant.region, tenant.tenant_id)
@@ -105,7 +118,7 @@ class TenantHibernateView(APIView):
         except Exception as e:
             logger.exception(e)
         return Response({"ok": True}, status=200)
-    
+
     def post(self, request, format=None):
         """
         休眠容器(pause,unpause)
@@ -140,7 +153,7 @@ class TenantHibernateView(APIView):
                     tenant.service_status = 3
                     tenant.save()
                 else:
-                    logger.debug(tenant.tenant_name + " don't been paused")                
+                    logger.debug(tenant.tenant_name + " don't been paused")
             elif action == 'unpause':
                 if tenant.service_status == 0:
                     regionClient.unpause(tenant.region, tenant.tenant_id)
@@ -155,14 +168,15 @@ class TenantHibernateView(APIView):
         except Exception as e:
             logger.exception(e)
         return Response({"ok": True}, status=200)
-    
-    
+
+
 class TenantCloseRestartView(APIView):
+
     '''
     租户关闭、重启
     '''
     allowed_methods = ('put',)
-        
+
     def put(self, request, format=None):
         """
         租户关闭重启(close,restart)
@@ -204,13 +218,15 @@ class TenantCloseRestartView(APIView):
         except Exception as e:
             logger.exception(e)
         return Response({"ok": True}, status=200)
-    
+
+
 class AllTenantView(APIView):
+
     '''
     租户信息
     '''
     allowed_methods = ('post',)
-        
+
     def post(self, request, format=None):
         """
         获取所有租户信息
@@ -236,7 +252,7 @@ class AllTenantView(APIView):
               required: false
               type: string
               paramType: form
-            
+
         """
         service_status = request.data.get('service_status', "1")
         pay_type = request.data.get('pay_type', "free")
@@ -247,8 +263,9 @@ class AllTenantView(APIView):
         try:
             if region != "":
                 if diff_day != 0:
-                    end_time = datetime.datetime.now() + datetime.timedelta(days=diff_day)      
-                    tenantList = Tenants.objects.filter(service_status=service_status, pay_type=pay_type, region=region, update_time__lt=end_time)
+                    end_time = datetime.datetime.now() + datetime.timedelta(days=diff_day)
+                    tenantList = Tenants.objects.filter(
+                        service_status=service_status, pay_type=pay_type, region=region, update_time__lt=end_time)
                     logger.debug(len(tenantList))
                     if len(tenantList) > 0:
                         for tenant in tenantList:
@@ -261,13 +278,15 @@ class AllTenantView(APIView):
         except Exception as e:
             logger.error(e)
         return Response(data, status=200)
-    
-    
+
+
 class TenantView(APIView):
+
     '''
     租户信息
     '''
-    allowed_methods = ('post',)   
+    allowed_methods = ('post',)
+
     def post(self, request, format=None):
         """
         获取某个租户信息(tenant_id或者tenant_name)
@@ -283,7 +302,7 @@ class TenantView(APIView):
               required: false
               type: string
               paramType: form
-            
+
         """
         data = {}
         try:
