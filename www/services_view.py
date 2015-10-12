@@ -183,7 +183,7 @@ class TenantService(AuthedView):
     def get_manage_app(self):
         service_manager = {"deployed": False}
         if self.service.service_key == 'mysql':
-            has_managers = TenantService.objects.filter(tenant_id=self.tenant.tenant_id, service_key='phpmyadmin')
+            has_managers = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_key='phpmyadmin')
             if has_managers:
                 service_manager['deployed'] = True
                 manager = has_managers[0]
