@@ -341,10 +341,13 @@ class RegisterForm(forms.Form):
         self.helper = FormHelper(self)
         self.helper.form_tag = False
         if init_phone is not None and init_phone != "":
+            self.fields['phone'] = init_phone
             self.fields['phone'].widget.attrs['readonly'] = True
         if init_email is not None and init_email != "":
+            self.fields['email'] = init_email
             self.fields['email'].widget.attrs['readonly'] = True
         if init_tenant is not None and init_tenant != "":
+            self.fields['tenant'] = init_tenant
             self.fields['tenant'].widget.attrs['readonly'] = True
         if init_region is not None and init_region != "":
             self.fields['machine_region'].initial = init_region
