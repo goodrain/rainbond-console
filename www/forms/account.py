@@ -300,7 +300,7 @@ class RegisterForm(forms.Form):
         label="",
         choices=(
             ('ucloud-bj-1', 'Ucloud[北京]'),
-            ('aws-bj-1', '亚马逊[北京]'),
+            #('aws-bj-1', '亚马逊[北京]'),
             ('ali-sh', '阿里云[上海]'),
             ('aws-jp-1', '亚马逊[日本]'),
         ),
