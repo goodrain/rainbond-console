@@ -340,28 +340,33 @@ class RegisterForm(forms.Form):
         super(RegisterForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_tag = False
+        
+        text_phone = "手机号"
+        text_email = "请输入邮箱地址"
+        text_tenant = "团队域名"        
         if init_phone is not None and init_phone != "":
             self.fields['phone'].widget.attrs['readonly'] = True
-            self.fields['phone'] = init_phone
+            text_phone = init_phone
         if init_email is not None and init_email != "":
             self.fields['email'].widget.attrs['readonly'] = True
-            self.fields['email'] = init_email
+            text_email = init_email      
         if init_tenant is not None and init_tenant != "":
             self.fields['tenant'].widget.attrs['readonly'] = True
-            self.fields['tenant'] = init_tenant
+            text_tenant = init_tenant
         if init_region is not None and init_region != "":
-            self.fields['machine_region'].widget.attrs['readonly'] = True
             self.fields['machine_region'].initial = init_region
+            self.fields['machine_region'].widget.attrs['readonly'] = True
         if selected_region is not None and selected_region != "":
             self.fields['machine_region'].initial = selected_region
-
+        
+        
         self.helper.layout = Layout(
             Div(
                 Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
-                Field('email', css_class="form-control", placeholder='请输入邮箱地址'),
+                Field('email', css_class="form-control", placeholder=text_email),
                 HTML("<hr/>"),
                 # Field('tenant', css_class="form-control teamdomain", placeholder='团队域名'),
-                AppendedText('tenant', '.goodrain.net', placeholder='团队域名', css_class='teamdomain'),
+                AppendedText('tenant', '.goodrain.net', placeholder=text_tenant, css_class='teamdomain'),
 
                 AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
                 # HTML('<input type="text" name="tenant" id="tenant" value="" class="teamdomain" placeholder="团队域名"> .goodrain.net'),
@@ -371,7 +376,7 @@ class RegisterForm(forms.Form):
                 AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
                              css_class='input-xlarge', placeholder='验证码'),
 
-                Field('phone', css_class="form-control", placeholder='手机号'),
+                Field('phone', css_class="form-control", placeholder=text_phone),
                 AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>',
                              css_class='input-xlarge', placeholder='手机验证码'),
 
