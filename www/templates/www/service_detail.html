@@ -545,6 +545,8 @@
           </section>
 		  {% endif %}
 		  
+          <!--start permission-->
+          {% if 'perm_setting' in user.actions %}
           <section class="panel" id="permission">
             <header class="panel-heading">权限管理 </header>
             <div class="panel-body">
@@ -587,6 +589,8 @@
             </table>
             </div>
           </section>
+          {% endif %}
+          <!--end permission-->
 
           <section class="panel" id="delete">
             <header class="panel-heading">删除 </header>

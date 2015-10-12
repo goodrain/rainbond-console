@@ -6,6 +6,7 @@
 <section class="wrapper site-min-height">
     <div class="row">
         <div class="col-lg-12 m-bot15">
+            {% if 'perm_setting' in user.actions %}
             <section class="panel">
                 <header class="panel-heading">团队成员</header>
                 <div class="panel-body">
@@ -70,6 +71,7 @@
                     </div>
                 </div>
             </section>
+            {% endif %}
         </div>
     </div>
 </section>

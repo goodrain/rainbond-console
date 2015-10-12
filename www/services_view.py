@@ -136,11 +136,17 @@ class TenantService(AuthedView):
                     'adminCheck': True,
                     'developerCheck': True,
                     'developerDisable': True,
+                    'viewerCheck': True,
+                    'viewerDisable': True,
                 })
             elif i.identity == 'developer':
                 user_perm.update({
                     'developerCheck': True,
+                    'viewerCheck': True,
+                    'viewerDisable': True,
                 })
+            elif i.identity == 'viewer':
+                user_perm.update({'viewerCheck': True, 'viewerDisable': True})
 
             perm_users.append(user_perm)
 
