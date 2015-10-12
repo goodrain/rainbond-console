@@ -83,7 +83,7 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/lb/user-domains"
         res, body = self._post(url, self.default_headers, body)
         return body
-    
+
     def deleteUserDomain(self, region, body):
         url = self.region_map[region] + "/v1/lb/delete-domains-rule"
         res, body = self._post(url, self.default_headers, body)
@@ -118,7 +118,7 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/dependency/"
         res, body = self._put(url, self.default_headers, body)
         return body
-    
+
     def createServiceEnv(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/env-var/"
         res, body = self._post(url, self.default_headers, body)
@@ -133,7 +133,7 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/status-update/"
         res, body = self._post(url, self.default_headers, body)
         return body["old_status"]
-    
+
     def systemPause(self, region, tenant_id):
         url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/system-pause"
         res, body = self._post(url, self.default_headers)
@@ -143,20 +143,30 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/system-unpause"
         res, body = self._post(url, self.default_headers)
         return body
-    
+
     def modifyServiceProtocol(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
         res, body = self._post(url, self.default_headers, body)
         return body
-    
+
     def findMappingPort(self, region, service_id):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
         res, body = self._get(url, self.default_headers)
         return body
-    
+
     def bindingMappingPortIp(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
         res, body = self._put(url, self.default_headers, body)
         return body
-    
-    
+
+    def opentsdbQuery(self, region, start, queries):
+        url = self.region_map[region] + "/v1/statistic/opentsdb/query"
+        data = {"start": start, "queries": queries}
+        res, body = self._post(url, self.default_headers, json.dumps(data))
+        try:
+            dps = body[0]['dps']
+            return dps
+        except IndexError:
+            logger.info('tsdb_query', "request: {0}".format(url))
+            logger.info('tsdb_query', "response: {0} ====== {1}".format(res, body))
+            return None
