@@ -180,7 +180,7 @@ class TenantService(AuthedView):
         logger.debug(json.dumps(task))
         regionClient.writeToRegionBeanstalk(self.tenant.region, self.service.service_id, json.dumps(task))
 
-    def get_manage_app(self):
+    def get_manage_app(self, http_port_str):
         service_manager = {"deployed": False}
         if self.service.service_key == 'mysql':
             has_managers = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_key='phpmyadmin')
@@ -188,7 +188,7 @@ class TenantService(AuthedView):
                 service_manager['deployed'] = True
                 manager = has_managers[0]
                 service_manager[
-                    'url'] = 'http://{0}.{1}.{2}.goodrain.net:10080'.format(manager.service_alias, self.tenant.tenant_name, self.tenant.region)
+                    'url'] = 'http://{0}.{1}.{2}.goodrain.net{4}'.format(manager.service_alias, self.tenant.tenant_name, self.tenant.region, http_port_str)
             else:
                 service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin'.format(self.tenant.tenant_name)
         return service_manager
@@ -201,6 +201,8 @@ class TenantService(AuthedView):
         context['serviceAlias'] = self.serviceAlias
         tab_index = request.GET.get("fr", "0")
         context['tab_index'] = tab_index
+        http_port_str = '' if self.tenant.region == 'aws-jp-1' else ':10080'
+        context['http_port_str'] = http_port_str
         try:
             if self.service.category == "application" and self.service.ID > 598:
                 # no create gitlab repos
@@ -213,7 +215,7 @@ class TenantService(AuthedView):
                 if tse.user_dependency is None or tse.user_dependency == "":
                     return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
             elif self.service.category == 'store':
-                service_manager = self.get_manage_app()
+                service_manager = self.get_manage_app(http_port_str)
                 context['service_manager'] = service_manager
 
             service_id = self.service.service_id
