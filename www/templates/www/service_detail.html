@@ -72,7 +72,14 @@
 	                        	{% if tenantServiceInfo.protocol == "http" %}
 	                        		<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{tenant.region}}.goodrain.net:10080');"><i class="fa fa-eye"></i>访问</button>
 	                        	{% endif  %}
-                        {% endifequal  %}
+                        {% endifequal %}
+                        {% ifequal tenantServiceInfo.service_key "mysql" %}
+                          {% if service_manager.deployed %}
+                              <button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>添加管理服务</button>
+                          {% else %}
+                              <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>
+                          {% endif %}
+                        {% endifequal %}
                         </div>
                         <div class="col-lg-6 text-right">
                         	<input type="hidden" id="service_status_value" name="service_status_value" value="" />

@@ -122,6 +122,8 @@ class TenantService(AuthedView):
             'adminCheck': False,
             'developerCheck': False,
             'developerDisable': False,
+            'viewerCheck': False,
+            'viewerDisable': False,
         }
         identities = PermRelService.objects.filter(service_id=self.service.pk)
         for i in identities:
@@ -178,6 +180,19 @@ class TenantService(AuthedView):
         logger.debug(json.dumps(task))
         regionClient.writeToRegionBeanstalk(self.tenant.region, self.service.service_id, json.dumps(task))
 
+    def get_manage_app(self):
+        service_manager = {"deployed": False}
+        if self.service.service_key == 'mysql':
+            has_managers = TenantService.objects.filter(tenant_id=self.tenant.tenant_id, service_key='phpmyadmin')
+            if has_managers:
+                service_manager['deployed'] = True
+                manager = has_managers[0]
+                service_manager[
+                    'url'] = 'http://{0}.{1}.{2}.goodrain.net:10080'.format(manager.service_alias, self.tenant.tenant_name, self.tenant.region)
+            else:
+                service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin'.format(self.tenant.tenant_name)
+        return service_manager
+
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
@@ -197,6 +212,9 @@ class TenantService(AuthedView):
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 if tse.user_dependency is None or tse.user_dependency == "":
                     return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+            elif self.service.category == 'store':
+                service_manager = self.get_manage_app()
+                context['service_manager'] = service_manager
 
             service_id = self.service.service_id
             context["tenantServiceInfo"] = self.service
@@ -206,10 +224,10 @@ class TenantService(AuthedView):
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()
             context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]   
+            context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]
             context["tenant"] = self.tenant
             context["totalMemory"] = self.service.min_node * self.service.min_memory
-            
+
             # service relationships
             tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
             relationsids = []
@@ -225,7 +243,7 @@ class TenantService(AuthedView):
                     sids.append(tenantService.service_id)
                     map[tenantService.service_id] = tenantService
             context["serviceMap"] = map
-            
+
             # relationships password
             envMap = {}
             envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
@@ -237,8 +255,8 @@ class TenantService(AuthedView):
                     arr.append(evnVarObj)
                     envMap[evnVarObj.service_id] = arr
             context["envMap"] = envMap
-                
-            if self.service.category == "application" or  self.service.category == "manager":
+
+            if self.service.category == "application" or self.service.category == "manager":
                 # service git repository
                 httpGitUrl = ""
                 if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
@@ -246,7 +264,7 @@ class TenantService(AuthedView):
                     httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
                 else:
                     httpGitUrl = self.service.git_url
-                context["httpGitUrl"] = httpGitUrl 
+                context["httpGitUrl"] = httpGitUrl
                 # service domain
                 if self.tenant.pay_type != "free":
                     try:
@@ -254,28 +272,31 @@ class TenantService(AuthedView):
                         context["serviceDomain"] = domain
                     except Exception as e:
                         pass
-            
+
             websocket_info = settings.WEBSOCKET_URL
             context["websocket_uri"] = websocket_info[self.tenant.region]
-            
+
             if self.tenant.service_status == 0:
                 logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
                 regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
-                
+
             if self.tenant.service_status == 3:
                 logger.debug("service.unpause", "system unpause tenant_id=" + self.tenant.tenant_id)
                 regionClient.systemUnpause(self.tenant.region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
-                            
+
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_detail.html", context)
 
 # d82ebe5675f2ea0d0a7b
+
+
 class ServiceGitHub(BaseView):
+
     @never_cache
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code", "")
@@ -304,9 +325,9 @@ class GitLabManager(AuthedView):
         #    project_id = gitClient.createProject("test"+"_"+"app")
         #    logger.debug(project_id)
         #    if project_id > 0:
-                # ts = TenantServiceInfo.objects.get(service_id=service_id)
-                # ts.git_project_id = project_id
-                # ts.save()
+        # ts = TenantServiceInfo.objects.get(service_id=service_id)
+        # ts.git_project_id = project_id
+        # ts.save()
         #        gitClient.addProjectMember(project_id,self.user.git_user_id,30)
         #        gitClient.addProjectMember(project_id,2,20)
         return HttpResponse(str(project_id))
