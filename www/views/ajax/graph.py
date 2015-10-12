@@ -4,7 +4,7 @@ from random import randint
 from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
-from www.api import OpentsdbApi
+from www.service_http import RegionServiceApi
 
 import logging
 logger = logging.getLogger('default')
@@ -23,7 +23,7 @@ class ServiceGraph(AuthedView):
 
     downsamples = {
         '1h-ago': '1m-avg', '8h-ago': '2m-avg', '24h-ago': '5m-avg',
-        '7d-ago': '1h-avg',
+        '7d-ago': '30m-avg',
     }
 
     def init_request(self, *args, **kwargs):
@@ -32,7 +32,7 @@ class ServiceGraph(AuthedView):
             "yAxisLabel": u"单位",
             "yAxisFormat": ',.2f',
         }
-        self.tsdb_client = OpentsdbApi()
+        self.region_client = RegionServiceApi()
 
     def random_data(self, graph_key):
         curr_time = int(time.time())
@@ -53,19 +53,24 @@ class ServiceGraph(AuthedView):
         data = {"key": graph_key, "values": []}
         metric = self.metric_map.get(graph_key, None).get('metric', None)
         downsample = self.downsamples.get(start)
+        aggregate = 'sum'
 
         if metric is not None:
+            queries = '{0}:{1}:{2}'.format(aggregate, downsample, metric)
             if graph_key == 'memory':
-                query_data = self.tsdb_client.query(
-                    self.tenant.region, metric, start=start, downsample=downsample, tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+                queries += '{' + 'tenant_id={0}, service_id={1}'.format(self.tenant.tenant_id, self.service.service_id) + '}'
             else:
-                query_data = self.tsdb_client.query(
-                    self.tenant.region, metric, start=start, downsample=downsample, tenant=self.tenant.tenant_name, service=self.service.service_alias)
+                queries += '{' + 'tenant={0}, service={1}'.format(self.tenant.tenant_name, self.service.service_alias) + '}'
 
+            query_data = self.region_client.opentsdbQuery(self.tenant.region, start, queries)
             if query_data is None:
                 return None
 
             for timestamp, value in sorted(query_data.items()):
+                if graph_key == 'disk':
+                    value = float(value) / (1024 * 1024)
+                elif graph_key == 'online':
+                    value = float(int(value))
                 if value.is_integer():
                     data['values'].append([int(timestamp) * 1000, int(value)])
                 else:

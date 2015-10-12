@@ -128,7 +128,7 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/status-update/"
         res, body = self._post(url, self.default_headers, body)
         return body["old_status"]
-    
+
     def systemPause(self, region, tenant_id):
         url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/system-pause"
         res, body = self._post(url, self.default_headers)
@@ -138,3 +138,15 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/system-unpause"
         res, body = self._post(url, self.default_headers)
         return body
+
+    def opentsdbQuery(self, region, start, queries):
+        url = self.region_map[region] + "/v1/statistic/opentsdb/query"
+        data = {"start": start, "queries": queries}
+        res, body = self._post(url, self.default_headers, json.dumps(data))
+        try:
+            dps = body[0]['dps']
+            return dps
+        except IndexError:
+            logger.info('tsdb_query', "request: {0}".format(url))
+            logger.info('tsdb_query', "response: {0} ====== {1}".format(res, body))
+            return None
