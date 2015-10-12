@@ -300,7 +300,7 @@ class RegisterForm(forms.Form):
         label="",
         choices=(
             ('ucloud-bj-1', 'Ucloud[北京]'),
-            #('aws-bj-1', '亚马逊[北京]'),
+            # ('aws-bj-1', '亚马逊[北京]'),
             ('ali-sh', '阿里云[上海]'),
             ('aws-jp-1', '亚马逊[日本]'),
         ),
@@ -347,6 +347,7 @@ class RegisterForm(forms.Form):
         if init_tenant is not None and init_tenant != "":
             self.fields['tenant'].widget.attrs['readonly'] = True
         if init_region is not None and init_region != "":
+            self.fields['machine_region'].initial = selected_region
             self.fields['machine_region'].widget.attrs['readonly'] = True
         if selected_region is not None and selected_region != "":
             self.fields['machine_region'].initial = selected_region
