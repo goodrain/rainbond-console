@@ -121,6 +121,7 @@ class RegionServiceApi(BaseHttpClient):
 
     def createServiceEnv(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/env-var/"
+        logger.debug("api.region", "function: {0}, {1}".format('createServiceEnv', url))
         res, body = self._post(url, self.default_headers, body)
         return body
 
