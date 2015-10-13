@@ -328,15 +328,24 @@ class RegisterForm(forms.Form):
         selected_region = ""
         if len(kwargs) > 0:
             if kwargs.get("initial") is not None:
-                init_phone = kwargs["initial"]["phone"]
-                init_email = kwargs["initial"]["email"]
-                init_tenant = kwargs["initial"]["tenant"]
-                init_region = kwargs["initial"]["region"]
-                kwargs.pop("initial")
+                initalObj = kwargs.get("initial")                
+                init_phone = initalObj["phone"]
+                init_email = initalObj["email"]
+                init_tenant = initalObj["tenant"]
+                init_region = initalObj["region"]                    
             if kwargs.get("region_level") is not None:
                 selected_region = kwargs["region_level"]["region"]
                 kwargs.pop("region_level")
-
+        if len(args) > 0: 
+            if type(args) is tuple:
+                if args[0].get("initial") is not None:
+                    initalObj = args[0]["initial"]
+                    if type(initalObj) is list:
+                        initalObj = initalObj(0)
+                    init_phone = initalObj["phone"]
+                    init_email = initalObj["email"]
+                    init_tenant = initalObj["tenant"]
+                    init_region = initalObj["region"]       
         super(RegisterForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_tag = False

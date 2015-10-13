@@ -543,6 +543,9 @@ class InviteRegistation(BaseView):
             {u'real_captcha_code': request.session.get("captcha_code")})
         self.form = RegisterForm(querydict)
         if not self.form.is_valid():
+            initial = {"tenant": request.POST.get('tenant'), "phone": request.POST.get('phone'), "email": request.POST.get('email'), "region": request.POST.get('machine_region')}
+            querydict.update({"initial":initial})
+            self.form = RegisterForm(querydict)
             return self.get_response()
 
         email = request.POST.get('email')
