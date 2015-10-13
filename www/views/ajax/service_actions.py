@@ -740,7 +740,9 @@ class ServiceEnvVarManager(AuthedView):
                 nochange_name_arr = nochange_name.split(',')
                 if len(id_arr) == len(nochange_name_arr):
                     for index, curid in enumerate(id_arr):
-                        TenantServiceEnvVar.objects.get(ID=curid).update(attr_name=nochange_name_arr[index])
+                        stsev = TenantServiceEnvVar.objects.get(ID=curid)
+                        stsev.attr_name = nochange_name_arr[index]
+                        stsev.save()                        
             if name != "" and attr_name != "" and attr_value != "":
                 if len(name_arr) == len(attr_name_arr) and len(attr_value_arr) == len(attr_name_arr):
                     for index, cname in enumerate(name_arr):
