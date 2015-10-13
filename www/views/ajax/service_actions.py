@@ -219,7 +219,7 @@ class ServiceManage(AuthedView):
                                 temp_key = self.service.service_alias.upper()
                             baseService.saveServiceEnvVar(self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
                             baseService.saveServiceEnvVar(self.tenant.tenant_id, self.service.service_id, u"端口", temp_key + "_PORT", service_port, False)
-                            baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.tenant.region)
+                        baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.tenant.region)
                     else:
                         depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                         if depNumber > 0:
