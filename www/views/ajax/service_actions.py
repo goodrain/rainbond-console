@@ -735,11 +735,13 @@ class ServiceEnvVarManager(AuthedView):
             logger.debug(attr_id)
                         
             isNeedToRsync = True
+            total_ids = []
             if id != "" and nochange_name != "":
                 id_arr = id.split(',')
                 nochange_name_arr = nochange_name.split(',')
                 if len(id_arr) == len(nochange_name_arr):
                     for index, curid in enumerate(id_arr):
+                        total_ids.append(curid)
                         stsev = TenantServiceEnvVar.objects.get(ID=curid)
                         stsev.attr_name = nochange_name_arr[index]
                         stsev.save()                        
@@ -748,6 +750,7 @@ class ServiceEnvVarManager(AuthedView):
                     for index, cname in enumerate(name_arr):
                         tmpId = attr_id_arr[index]
                         if int(tmpId) > 0:
+                            total_ids.append(tmpId)
                             tsev = TenantServiceEnvVar.objects.get(ID=int(tmpId))
                             tsev.attr_name = attr_name_arr[index]
                             tsev.attr_value = attr_value_arr[index]
@@ -761,7 +764,7 @@ class ServiceEnvVarManager(AuthedView):
                             tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
                             tenantServiceEnvVar["is_change"] = 1
                             TenantServiceEnvVar(**tenantServiceEnvVar).save()
-                    TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).exclude(ID__in=attr_id_arr).delete()
+            TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).exclude(ID__in=total_ids).delete()
             # sync data to region
             if isNeedToRsync:
                 baseTenantService = BaseTenantService()
