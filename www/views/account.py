@@ -424,7 +424,9 @@ class Registation(BaseView):
             region_levels = pl.split(":")
             if len(region_levels) == 2:
                 selected_pay_level = region_levels[1]
-            return redirect('/payed/{0}/select?selected={1}'.format(tenant.tenant_name, selected_pay_level))
+            url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
+            logger.debug(url)
+            return redirect(url)
             # return redirect('/apps/{0}'.format(tenant.tenant_name))
 
         logger.info("account.register", "register form error: %s" % self.form.errors)
