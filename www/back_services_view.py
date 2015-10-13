@@ -20,7 +20,9 @@ logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 
+
 class ServiceMarket(AuthedView):
+
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
@@ -35,7 +37,7 @@ class ServiceMarket(AuthedView):
             context = self.get_context()
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList            
+            context["tenantServiceList"] = tenantServiceList
             cacheServiceList = ServiceInfo.objects.filter(status="published")
             context["cacheServiceList"] = cacheServiceList
             context["serviceMarketStatus"] = "active"
@@ -43,9 +45,10 @@ class ServiceMarket(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_market.html", context)
-    
+
+
 class ServiceMarketDeploy(AuthedView):
-    
+
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
@@ -61,18 +64,18 @@ class ServiceMarketDeploy(AuthedView):
             service_key = request.GET.get("service_key", "")
             if service_key == "":
                 return HttpResponseRedirect('/apps/{0}/service/'.format(self.tenant.tenant_name))
-            
+
             baseService = BaseTenantService()
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList            
+            context["tenantServiceList"] = tenantServiceList
             context["serviceMarketStatus"] = "active"
-            
+
             serviceObj = ServiceInfo.objects.get(service_key=service_key)
             context["service"] = serviceObj
-            if serviceObj.dependecy is not None and serviceObj.dependecy != "":          
+            if serviceObj.dependecy is not None and serviceObj.dependecy != "":
                 tenant_id = self.tenant.tenant_id
                 deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_type=serviceObj.dependecy)
-                context["deployTenantServices"] = deployTenantServices                 
+                context["deployTenantServices"] = deployTenantServices
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
         except Exception as e:
@@ -87,28 +90,28 @@ class ServiceMarketDeploy(AuthedView):
         service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
         result = {}
         try:
-            if self.tenant.service_status == 2  and self.tenant.pay_type == "payed":
+            if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
-            
+
             tenant_id = self.tenant.tenant_id
-            
+
             service_key = request.POST.get("service_key", "")
             if service_key == "":
                 result["status"] = "notexist"
                 return JsonResponse(result, status=200)
-                        
+
             service_alias = request.POST.get("create_service_name", "")
             if service_alias == "":
-               result["status"] = "empty"
-               return JsonResponse(result, status=200)
-           
-            service_alias = service_alias.lower()        
+                result["status"] = "empty"
+                return JsonResponse(result, status=200)
+
+            service_alias = service_alias.lower()
             num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
             if num > 0:
                 result["status"] = "exist"
                 return JsonResponse(result, status=200)
-            
+
             service = ServiceInfo.objects.get(service_key=service_key)
             service_memory = request.POST.get("service_memory", "")
             if service_memory != "":
@@ -117,23 +120,23 @@ class ServiceMarketDeploy(AuthedView):
                     ccpu = int(cm / 128) * 20
                     service.min_cpu = ccpu
                     service.min_memory = cm
-            logger.debug(service.min_memory)       
+            logger.debug(service.min_memory)
             createService = request.POST.get("createService", "")
             logger.debug(createService)
-            dependencyNum = 0            
-            serviceKeys = createService.split(",") 
+            dependencyNum = 0
+            serviceKeys = createService.split(",")
             if createService != "":
-                dependencyNum = len(serviceKeys)             
+                dependencyNum = len(serviceKeys)
             # calculate resource
             tenantUsedResource = TenantUsedResource()
-            flag = tenantUsedResource.predict_next_memory(self.tenant, dependencyNum * 128 + service.min_memory) 
+            flag = tenantUsedResource.predict_next_memory(self.tenant, dependencyNum * 128 + service.min_memory)
             if not flag:
                 if self.tenant.pay_type == "free":
                     result["status"] = "over_memory"
                 else:
                     result["status"] = "over_money"
                 return JsonResponse(result, status=200)
-            # create new service       
+            # create new service
             if createService != "":
                 baseService = BaseTenantService()
                 for skey in serviceKeys:
@@ -141,11 +144,13 @@ class ServiceMarketDeploy(AuthedView):
                         dep_service = ServiceInfo.objects.get(service_key=skey)
                         tempUuid = str(uuid.uuid4()) + skey
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
-                        depTenantService = baseService.create_service(dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
+                        depTenantService = baseService.create_service(
+                            dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
                         baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.tenant.region)
+                        baseService.create_service_env(tenant_id, dep_service_id, self.tenant.region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.tenant.region)
                     except Exception as e:
-                       logger.exception(e)
+                        logger.exception(e)
 
             # exist service dependency
             hasService = request.POST.get("hasService", "")
@@ -155,10 +160,10 @@ class ServiceMarketDeploy(AuthedView):
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
-                        baseService.create_service_dependency(tenant_id, service_id, sid, self.tenant.region) 
+                        baseService.create_service_dependency(tenant_id, service_id, sid, self.tenant.region)
                     except Exception as e:
-                       logger.exception(e)
-            
+                        logger.exception(e)
+
             # create console service
             baseService = BaseTenantService()
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
@@ -177,10 +182,10 @@ class ServiceMarketDeploy(AuthedView):
                 regionClient.writeToRegionBeanstalk(self.tenant.region, newTenantService.service_id, json.dumps(task))
             except Exception as e:
                 logger.exception(e)
-                
+
             # create region tenantservice
             baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
-                        
+
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias
