@@ -744,13 +744,19 @@ class ServiceEnvVarManager(AuthedView):
                         total_ids.append(curid)
                         stsev = TenantServiceEnvVar.objects.get(ID=curid)
                         stsev.attr_name = nochange_name_arr[index]
-                        stsev.save()                        
+                        stsev.save()
             if name != "" and attr_name != "" and attr_value != "":
                 if len(name_arr) == len(attr_name_arr) and len(attr_value_arr) == len(attr_name_arr):
+                    # first delete old item
+                    for item in attr_id_arr:
+                        total_ids.append(item)
+                    if len(total_ids) > 0:
+                        TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).exclude(ID__in=total_ids).delete()
+                     
+                    # update and save env      
                     for index, cname in enumerate(name_arr):
                         tmpId = attr_id_arr[index]
-                        if int(tmpId) > 0:
-                            total_ids.append(tmpId)
+                        if int(tmpId) > 0:                            
                             tsev = TenantServiceEnvVar.objects.get(ID=int(tmpId))
                             tsev.attr_name = attr_name_arr[index]
                             tsev.attr_value = attr_value_arr[index]
@@ -762,9 +768,8 @@ class ServiceEnvVarManager(AuthedView):
                             tenantServiceEnvVar["name"] = cname
                             tenantServiceEnvVar["attr_name"] = attr_name_arr[index]
                             tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
-                            tenantServiceEnvVar["is_change"] = 1
+                            tenantServiceEnvVar["is_change"] = True
                             TenantServiceEnvVar(**tenantServiceEnvVar).save()
-            TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).exclude(ID__in=total_ids).delete()
             # sync data to region
             if isNeedToRsync:
                 baseTenantService = BaseTenantService()
