@@ -463,7 +463,7 @@
 			                       	   <td><input name ="{{curServiceEnvVar.service_id}}_name" value="{{curServiceEnvVar.name}}"></td>
 				                       <td><input name ="{{curServiceEnvVar.service_id}}_attr_name" value="{{curServiceEnvVar.attr_name}}"></td>
 			                       	   <td><input name ="{{curServiceEnvVar.service_id}}_attr_value" value="{{curServiceEnvVar.attr_value}}"></td>
-			                       	   <td><input name ="{{curServiceEnvVar.service_id}}_attr_id" type="hidden" value="{{curServiceEnvVar.id}}"><button type="button" class="btn btn-success btn-xs" onclick="attr_delete(this);">删除</button></td>
+			                       	   <td><input name ="{{curServiceEnvVar.service_id}}_attr_id" type="hidden" value="{{curServiceEnvVar.ID}}"><button type="button" class="btn btn-success btn-xs" onclick="attr_delete(this);">删除</button></td>
 			                       {% else %}
 			                           <input type="hidden" name="{{curServiceEnvVar.service_id}}_serviceNoChange" value="{{curServiceEnvVar.ID}}" />
 				                       <td>{{curServiceEnvVar.name}}</td>
