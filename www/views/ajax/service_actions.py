@@ -211,7 +211,7 @@ class ServiceManage(AuthedView):
                     service_port = self.service.service_port
                     baseService = BaseTenantService()
                     if inner_service:
-                        number = TenantServiceEnvVar.objects.filter(service_id=service_id).count()
+                        number = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).count()
                         if number < 1:
                             # open inner service add new env variable
                             temp_key = self.service.service_key.upper()
