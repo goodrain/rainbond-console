@@ -761,6 +761,7 @@ class ServiceEnvVarManager(AuthedView):
                             tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
                             tenantServiceEnvVar["is_change"] = 1
                             TenantServiceEnvVar(**tenantServiceEnvVar).save()
+                    TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).exclude(ID__in=attr_id_arr).delete()
             # sync data to region
             if isNeedToRsync:
                 baseTenantService = BaseTenantService()
