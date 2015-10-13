@@ -31,7 +31,7 @@
 	        </th>
 	        <th>
 	            <span class="big">个人</span>
-	            
+
 	        </th>
 	        <th>
 	            <span class="big">企业</span>
@@ -51,7 +51,7 @@
    		</tr>
    		<tr>
 	        <td>
-	            1G免费内存
+	            最高1M带宽
 	        </td>
 	        <td>
 	            支持所有免费用户特性
@@ -62,10 +62,10 @@
 	    </tr>
 	    <tr>
 	        <td>
-	            共享普通服务器
+	            最大5G磁盘存储
 	        </td>
 	        <td>
-	            多份数据备份
+	            无任何资源限制
 	        </td>
 	        <td>
 	            专享高性能服务器
@@ -76,7 +76,7 @@
 	            最大100访问并发
 	        </td>
 	        <td>
-	            不限制访问并发
+	            多份数据备份
 	        </td>
 	        <td>
 	            支持多种扩容方式
@@ -84,7 +84,7 @@
     	</tr>
         <tr>
 	        <td>
-	            48小时无访问自动休眠
+	            共享服务器
 	        </td>
 	        <td>
 	            不休眠
@@ -95,7 +95,7 @@
     	</tr>
         <tr>
 	        <td>
-	            通过web管理数据库
+	            48小时无访问自动休眠
 	        </td>
 	        <td>
 	            数据库可直连管理
@@ -106,7 +106,7 @@
     	</tr>
         <tr>
 	        <td>
-	            通过在线客服支持
+	            通过web管理数据库
 	        </td>
 	        <td>
 	            可以绑定域名
@@ -117,9 +117,9 @@
     	</tr>
         <tr>
 	        <td>
+            通过在线客服支持
 	        </td>
 	        <td>
-	            无免费内存
 	        </td>
 	        <td>
 	            7x24服务支持
@@ -140,37 +140,37 @@
     	</tr>
         <tr>
 	        {% if tenant.pay_level == "personal" %}
-	        	<td> 
+	        	<td>
 	            	<button type="button"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 免费套餐</i></button>
 	       	 	</td>
 	       	 	 <td>
-		            <button type="button" class="active" ><i class="fa fa-check" style="font-size: 20px;"> 当前套餐</i></button>           
+		            <button type="button" class="active" ><i class="fa fa-check" style="font-size: 20px;"> 当前套餐</i></button>
 		        </td>
-		        <td>            
+		        <td>
 		            <button type="button" onclick="_upgrade('company')"><i class="fa  fa-arrow-circle-up" style="font-size: 20px;"> 升级</i></button>
 		        </td>
 		    {% elif tenant.pay_level == "company" %}
-		    	<td> 
+		    	<td>
 	            	<button type="button"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 免费套餐</i></button>
 	       	 	</td>
 	       	 	 <td>
-		            <button type="button"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 个人套餐</i></button>           
+		            <button type="button"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 个人套餐</i></button>
 		        </td>
-		        <td>            
+		        <td>
 		            <button type="button" class="active"><i class="fa fa-check" style="font-size: 20px;"> 当前套餐</i></button>
 		        </td>
 		    {% elif tenant.pay_level == "free" %}
-		    	<td> 
+		    	<td>
 	            	<button type="button" class="active"><i class="fa fa-check" style="font-size: 20px;"> 免费套餐</i></button>
 	       	 	</td>
 	       	 	 <td>
-		            <button type="button" onclick="_upgrade('personal')"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 升级</i></button>           
+		            <button type="button" onclick="_upgrade('personal')"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 升级</i></button>
 		        </td>
-		        <td>            
+		        <td>
 		            <button type="button" onclick="_upgrade('company')"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 升级</i></button>
-		        </td>		    
+		        </td>
 	        {% endif %}
-	       
+
     	</tr>
     	<tr>
     		<td></td><td></td><td></td>

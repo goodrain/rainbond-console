@@ -49,7 +49,7 @@
     	</tr>
     	<tr>
 	        <td>
-	            1G免费内存
+	            最高1M带宽
 	        </td>
 	        <td>
 	            支持所有免费用户特性
@@ -60,10 +60,10 @@
     	</tr>
     	<tr>
 	        <td>
-	            共享普通服务器
+	            最大5G磁盘存储
 	        </td>
 	        <td>
-	            多份数据备份
+              无任何资源限制
 	        </td>
 	        <td>
 	            专享高性能服务器
@@ -74,7 +74,7 @@
 	            最大100访问并发
 	        </td>
 	        <td>
-	            不限制访问并发
+	            多份数据备份
 	        </td>
 	        <td>
 	            支持多种扩容方式
@@ -82,7 +82,7 @@
     	</tr>
         <tr>
 	        <td>
-	            48小时无访问自动休眠
+	            共享服务器
 	        </td>
 	        <td>
 	            不休眠
@@ -93,7 +93,7 @@
     	</tr>
         <tr>
 	        <td>
-	            通过web管理数据库
+	            48小时无访问自动休眠
 	        </td>
 	        <td>
 	            数据库可直连管理
@@ -104,7 +104,7 @@
     	</tr>
         <tr>
 	        <td>
-	            通过在线客服支持
+	            通过web管理数据库
 	        </td>
 	        <td>
 	            可以绑定域名
@@ -114,11 +114,10 @@
 	        </td>
     	</tr>
         <tr>
-	        <td>            
-	        </td>
 	        <td>
-	            无免费内存
+            通过在线客服支持
 	        </td>
+	        <td></td>
 	        <td>
 	            7x24服务支持
 	        </td>
@@ -138,13 +137,13 @@
     	</tr>
         <tr>
         	<input type="hidden" id="current_select" name="current_select" value="free">
-	        <td> 
+	        <td>
 	            <button  type="button" class="active"  id="package_free" onclick="_selectme('package_free')">免费</button>
 	        </td>
 	        <td>
-	            <button  type="button" id="package_personal" onclick="_selectme('package_personal')">{{personal_money}}元/1G/月</button>           
+	            <button  type="button" id="package_personal" onclick="_selectme('package_personal')">{{personal_money}}元/1G/月</button>
 	        </td>
-	        <td>            
+	        <td>
 	            <button  type="button" id="package_company" onclick="_selectme('package_company')">{{company_money}}元/1G/月</button>
 	        </td>
     	</tr>
@@ -154,7 +153,7 @@
 	</tbody>
     </table>
 	<div class="form-actions" style="text-align: center;">
-		<!--input type="submit" name="register" value="注册" class="btn btn-primary btn btn-lg btn-success btn-block" id="submit-id-register"--> 
+		<!--input type="submit" name="register" value="注册" class="btn btn-primary btn btn-lg btn-success btn-block" id="submit-id-register"-->
 		<button type="button" class="btn btn-lg btn-success" onclick="_selectFinished()">完成</button>
 	</div>
 	</div>
@@ -176,7 +175,7 @@ function _selectme(obj){
 		$("#package_personal").attr("class","")
 		$("#package_free").attr("class","")
 		$("#current_select").val("company")
-	}		
+	}
 }
 function _selectFinished(){
 	var current_select = $("#current_select").val()
