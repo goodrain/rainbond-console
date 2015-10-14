@@ -681,7 +681,7 @@ class ServiceDomainManager(AuthedView):
                     result["status"] = "exist"
                     return JsonResponse(result)
                 
-                num = ServiceDomain.objects.filter(service_name=tenantService.service_alias).count()
+                num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
                 old_domain_name = "goodrain"
                 if num == 0:
                     domain = {}

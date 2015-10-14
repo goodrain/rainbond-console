@@ -274,12 +274,11 @@ class TenantService(AuthedView):
                     httpGitUrl = self.service.git_url
                 context["httpGitUrl"] = httpGitUrl
                 # service domain
-                if self.tenant.pay_type != "free":
-                    try:
-                        domain = ServiceDomain.objects.get(service_id=self.service.service_id)
-                        context["serviceDomain"] = domain
-                    except Exception as e:
-                        pass
+                try:
+                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                    context["serviceDomain"] = domain
+                except Exception as e:
+                    pass
 
             websocket_info = settings.WEBSOCKET_URL
             context["websocket_uri"] = websocket_info[self.tenant.region]
