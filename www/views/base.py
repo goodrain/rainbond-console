@@ -17,6 +17,7 @@ from www.perms import check_perm
 from www.models import Tenants, TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.version import STATIC_VERSION
+from www.region import RegionInfo
 
 import logging
 
@@ -114,6 +115,12 @@ class AuthedView(BaseView):
 
         BaseView.__init__(self, request, *args, **kwargs)
 
+    def get_context(self):
+        context = super(AuthedView, self).get_context()
+        context['tenantName'] = self.tenantName
+        context['serviceAlias'] = self.serviceAlias
+        return context
+
     def has_perm(self, perm):
         try:
             if check_perm(perm, self.user, self.tenantName, self.serviceAlias):
@@ -144,6 +151,18 @@ class LeftSideBarMixin(object):
     def get_context(self):
         context = super(LeftSideBarMixin, self).get_context()
         context['tenantServiceList'] = self.get_service_list()
+        context = self.set_region_info(context)
+        return context
+
+    def set_region_info(self, context):
+        arrival_regions = []
+        for region in RegionInfo.region_list:
+            if region['name'] == self.response_region:
+                context['current_region'] = region
+            else:
+                arrival_regions.append(region)
+
+        context['arrival_regions'] = tuple(arrival_regions)
         return context
 
     def get_service_list(self):

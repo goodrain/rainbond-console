@@ -8,11 +8,12 @@ import json
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import redirect
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import Users, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
+from www.region import RegionInfo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
@@ -41,7 +42,10 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         region = self.request.GET.get('region', None)
         if region is not None:
-            self.response_region = region
+            if region in RegionInfo.region_names():
+                self.response_region = region
+            else:
+                raise Http404
 
         context = self.get_context()
         try:
@@ -80,11 +84,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
             self.show_graph = True
         else:
             self.show_graph = False
-        # 临时兼容
-        if self.service.service_region not in settings.REGION_LIST:
-            region = self.tenant.region
-            self.service.service_region = region
-            self.service.save()
 
     def get_media(self):
         media = super(TenantService, self).get_media() + self.vendor(
