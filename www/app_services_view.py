@@ -2,7 +2,6 @@
 import logging
 import uuid
 import hashlib
-import datetime
 import json
 
 from django.views.decorators.cache import never_cache
@@ -10,15 +9,13 @@ from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import JsonResponse
 from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_exempt
-from www.views import BaseView, AuthedView
+from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, ServiceDomain, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
+from www.models import Users, ServiceInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
-from www.db import BaseConnection
 from www.utils.language import is_redirect
 
 logger = logging.getLogger('default')
@@ -30,7 +27,7 @@ gitHubClient = GitHubApi()
 regionClient = RegionServiceApi()
 
 
-class AppCreateView(AuthedView):
+class AppCreateView(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -44,9 +41,6 @@ class AppCreateView(AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            baseService = BaseTenantService()
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"
             request.session["app_tenant"] = self.tenantName
@@ -104,7 +98,8 @@ class AppCreateView(AuthedView):
             # create console service
             baseService = BaseTenantService()
             service.desc = service_desc
-            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
+            newTenantService = baseService.create_service(
+                service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
 
             # code repos
             if service_code_from == "gitlab_new":
@@ -147,7 +142,7 @@ class AppCreateView(AuthedView):
                 task["service_id"] = ts.service_id
                 task["data"] = data
                 logger.debug(json.dumps(task))
-                regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
+                regionClient.writeToRegionBeanstalk(self.response_region, ts.service_id, json.dumps(task))
             elif service_code_from == "github":
                 code_id = request.POST.get("service_code_id", "")
                 code_clone_url = request.POST.get("service_code_clone_url", "")
@@ -177,12 +172,12 @@ class AppCreateView(AuthedView):
                 task["tube"] = "code_check"
                 task["service_id"] = ts.service_id
                 logger.debug(json.dumps(task))
-                regionClient.writeToRegionBeanstalk(self.tenant.region, ts.service_id, json.dumps(task))
+                regionClient.writeToRegionBeanstalk(self.response_region, ts.service_id, json.dumps(task))
 
             # create region tenantservice
-            baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
+            baseService.create_region_service(newTenantService, service, self.tenantName, self.response_region)
             # create service env
-            baseService.create_service_env(tenant_id, service_id, self.tenant.region)
+            baseService.create_service_env(tenant_id, service_id, self.response_region)
             # record log
             data = {}
             data["log_msg"] = "应用创建成功"
@@ -192,7 +187,7 @@ class AppCreateView(AuthedView):
             task["data"] = data
             task["service_id"] = newTenantService.service_id
             task["tube"] = "app_log"
-            regionClient.writeToRegionBeanstalk(self.tenant.region, newTenantService.service_id, json.dumps(task))
+            regionClient.writeToRegionBeanstalk(self.response_region, newTenantService.service_id, json.dumps(task))
 
             data["status"] = "success"
             data["service_alias"] = service_alias
@@ -201,23 +196,14 @@ class AppCreateView(AuthedView):
             logger.exception(e)
             tempTenantService = TenantServiceInfo.objects.get(service_id=service_id)
             if service_code_from == "gitlab_new" and tempTenantService.git_project_id > 0:
-                gitClient.deleteProject(tempTenantService.git_project_id)            
+                gitClient.deleteProject(tempTenantService.git_project_id)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
             data["status"] = "failure"
         return JsonResponse(data, status=200)
 
 
-class AppDependencyCodeView(AuthedView):
-
-    def get_service_list(self):
-        baseService = BaseTenantService()
-        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-        for s in services:
-            if s.service_alias == self.serviceAlias:
-                s.is_selected = True
-                break
-        return services
+class AppDependencyCodeView(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -232,7 +218,6 @@ class AppDependencyCodeView(AuthedView):
         try:
             context = self.get_context()
             context["myAppStatus"] = "active"
-            context["tenantServiceList"] = self.get_service_list()
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
 
@@ -281,9 +266,10 @@ class AppDependencyCodeView(AuthedView):
                         tempUuid = str(uuid.uuid4()) + skey
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(
-                            dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
-                        baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.tenant.region)
-                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.tenant.region)
+                            dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                        baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.response_region)
+                        baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
+                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)
             # exist service dependency.
@@ -294,7 +280,7 @@ class AppDependencyCodeView(AuthedView):
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
-                        baseService.create_service_dependency(tenant_id, service_id, sid, self.tenant.region)
+                        baseService.create_service_dependency(tenant_id, service_id, sid, self.response_region)
                     except Exception as e:
                         logger.exception(e)
             data["status"] = "success"
@@ -304,16 +290,7 @@ class AppDependencyCodeView(AuthedView):
         return JsonResponse(data, status=200)
 
 
-class AppWaitingCodeView(AuthedView):
-
-    def get_service_list(self):
-        baseService = BaseTenantService()
-        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-        for s in services:
-            if s.service_alias == self.serviceAlias:
-                s.is_selected = True
-                break
-        return services
+class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -331,7 +308,6 @@ class AppWaitingCodeView(AuthedView):
 
             context = self.get_context()
             context["myAppStatus"] = "active"
-            context["tenantServiceList"] = self.get_service_list()
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
 
@@ -362,16 +338,7 @@ class AppWaitingCodeView(AuthedView):
         return TemplateResponse(self.request, "www/app_create_step_3_waiting.html", context)
 
 
-class AppLanguageCodeView(AuthedView):
-
-    def get_service_list(self):
-        baseService = BaseTenantService()
-        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-        for s in services:
-            if s.service_alias == self.serviceAlias:
-                s.is_selected = True
-                break
-        return services
+class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -394,7 +361,6 @@ class AppLanguageCodeView(AuthedView):
 
             context = self.get_context()
             context["myAppStatus"] = "active"
-            context["tenantServiceList"] = self.get_service_list()
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
             language = self.service.language
@@ -409,7 +375,7 @@ class AppLanguageCodeView(AuthedView):
         if self.service.language == 'docker':
             self.service.cmd = ''
             self.service.save()
-            regionClient.update_service(self.tenant.region, self.service.service_id, {"cmd": ""})
+            regionClient.update_service(self.response_region, self.service.service_id, {"cmd": ""})
             return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
 
@@ -478,8 +444,7 @@ class GitLabWebHook(BaseView):
                     task["service_id"] = ts.service_id
                     task["tube"] = "code_check"
                     logger.debug(json.dumps(task))
-                    curTenant = Tenants.objects.get(tenant_id=ts.tenant_id)
-                    regionClient.writeToRegionBeanstalk(curTenant.region, ts.service_id, json.dumps(task))
+                    regionClient.writeToRegionBeanstalk(ts.service_region, ts.service_id, json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -521,8 +486,7 @@ class GitHubWebHook(BaseView):
                     task["data"] = data
                     task["tube"] = "code_check"
                     logger.debug(json.dumps(task))
-                    curTenant = Tenants.objects.get(tenant_id=ts.tenant_id)
-                    regionClient.writeToRegionBeanstalk(curTenant.region, ts.service_id, json.dumps(task))
+                    regionClient.writeToRegionBeanstalk(ts.service_region, ts.service_id, json.dumps(task))
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -572,8 +536,7 @@ class GitCheckCode(BaseView):
                             service.min_memory = 256
                             data = {}
                             data["language"] = "java"
-                            curTenant = Tenants.objects.get(tenant_id=service.tenant_id)
-                            regionClient.changeMemory(curTenant.region, service_id, json.dumps(data))
+                            regionClient.changeMemory(service.service_region, service_id, json.dumps(data))
                         service.language = language
                         service.save()
             result["status"] = "success"

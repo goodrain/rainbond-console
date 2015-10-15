@@ -120,12 +120,19 @@ class Users(models.Model):
         return self.nick_name or self.email
 
 
-class Tenants(models.Model):
+class BaseModel(models.Model):
+
+    class Meta:
+        abstract = True
+
+    ID = models.AutoField(primary_key=True, max_length=10)
+
+
+class Tenants(BaseModel):
 
     class Meta:
         db_table = 'tenant_info'
 
-    ID = models.AutoField(primary_key=True, max_length=10)
     tenant_id = models.CharField(
         max_length=33, unique=True, default=make_tenant_id, help_text=u"租户id")
     tenant_name = models.CharField(
@@ -150,12 +157,18 @@ class Tenants(models.Model):
         return self.tenant_name
 
 
-class BaseModel(models.Model):
+class TenantRegionInfo(BaseModel):
 
     class Meta:
-        abstract = True
+        db_table = 'tenant_region'
+        unique_together = (('tenant_id', 'region_name'),)
 
-    ID = models.AutoField(primary_key=True, max_length=10)
+    tenant_id = models.CharField(max_length=33, db_index=True,  help_text=u"租户id")
+    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    is_active = models.BooleanField(default=True, help_text=u"是否已激活")
+    service_status = models.IntegerField(help_text=u"服务状态0:暂停，1:运行，2:关闭", default=1)
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
 
 service_status = (
     (u"已发布", 'published'), (u"测试中", "test"),
@@ -350,6 +363,7 @@ class TenantServiceInfoDelete(BaseModel):
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
     is_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否inner服务")
+
 
 class TenantServiceLog(BaseModel):
 
@@ -571,7 +585,8 @@ class PhoneCode(BaseModel):
     code = models.CharField(max_length=10, help_text=u"类型")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
-    
+
+
 class TenantServiceEnvVar(BaseModel):
 
     class Meta:
@@ -585,6 +600,6 @@ class TenantServiceEnvVar(BaseModel):
     is_change = models.BooleanField(
         default=False, blank=True, help_text=u"是否可改变")
     create_time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
-    
+
     def __unicode__(self):
         return self.name

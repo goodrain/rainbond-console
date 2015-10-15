@@ -1,27 +1,24 @@
 # -*- coding: utf8 -*-
 import uuid
 import hashlib
-import datetime
 import json
 
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from django.http import HttpResponseRedirect
-from django.views.decorators.csrf import csrf_exempt
-from www.views import BaseView, AuthedView
+from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceAuth
+from www.models import ServiceInfo, TenantServiceInfo, TenantServiceAuth
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
-from www.db import BaseConnection
 import logging
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 
 
-class ServiceMarket(AuthedView):
+class ServiceMarket(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -35,9 +32,6 @@ class ServiceMarket(AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            baseService = BaseTenantService()
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList
             cacheServiceList = ServiceInfo.objects.filter(status="published")
             context["cacheServiceList"] = cacheServiceList
             context["serviceMarketStatus"] = "active"
@@ -47,7 +41,7 @@ class ServiceMarket(AuthedView):
         return TemplateResponse(self.request, "www/service_market.html", context)
 
 
-class ServiceMarketDeploy(AuthedView):
+class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -65,9 +59,6 @@ class ServiceMarketDeploy(AuthedView):
             if service_key == "":
                 return HttpResponseRedirect('/apps/{0}/service/'.format(self.tenant.tenant_name))
 
-            baseService = BaseTenantService()
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList
             context["serviceMarketStatus"] = "active"
 
             serviceObj = ServiceInfo.objects.get(service_key=service_key)
@@ -145,10 +136,10 @@ class ServiceMarketDeploy(AuthedView):
                         tempUuid = str(uuid.uuid4()) + skey
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(
-                            dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk)
-                        baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.tenant.region)
-                        baseService.create_service_env(tenant_id, dep_service_id, self.tenant.region)
-                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.tenant.region)
+                            dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                        baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.response_region)
+                        baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
+                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)
 
@@ -160,15 +151,16 @@ class ServiceMarketDeploy(AuthedView):
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
-                        baseService.create_service_dependency(tenant_id, service_id, sid, self.tenant.region)
+                        baseService.create_service_dependency(tenant_id, service_id, sid, self.response_region)
                     except Exception as e:
                         logger.exception(e)
 
             # create console service
             baseService = BaseTenantService()
-            newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service, self.user.pk)
+            newTenantService = baseService.create_service(
+                service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
             # create service env
-            baseService.create_service_env(tenant_id, service_id, self.tenant.region)
+            baseService.create_service_env(tenant_id, service_id, self.response_region)
             # record service log
             data = {}
             data["log_msg"] = "服务创建成功，开始部署....."
@@ -179,12 +171,12 @@ class ServiceMarketDeploy(AuthedView):
             task["tube"] = "app_log"
             task["service_id"] = newTenantService.service_id
             try:
-                regionClient.writeToRegionBeanstalk(self.tenant.region, newTenantService.service_id, json.dumps(task))
+                regionClient.writeToRegionBeanstalk(self.response_region, newTenantService.service_id, json.dumps(task))
             except Exception as e:
                 logger.exception(e)
 
             # create region tenantservice
-            baseService.create_region_service(newTenantService, service, self.tenantName, self.tenant.region)
+            baseService.create_region_service(newTenantService, service, self.tenantName, self.response_region)
 
             result["status"] = "success"
             result["service_id"] = service_id

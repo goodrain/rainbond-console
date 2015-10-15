@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-import logging
 import hashlib
 import datetime
 import json
@@ -18,17 +17,18 @@ BANKS = "zhifubao,BOCB2C,ICBCB2C,CMB,CCB,ABC,COMM"
 
 regionClient = RegionServiceApi()
 
+
 def submit(request, tenantName):
     html = ""
-    if request.method == 'POST':       
+    if request.method == 'POST':
         try:
             paymethod = request.POST.get('optionsRadios', 'zhifubao')
             if BANKS.find(paymethod) < 0:
                 return redirect('/apps/{0}/recharge/'.format(tenantName))
             logger.debug(paymethod)
             money = float(request.POST.get('recharge_money', '0'))
-            if money > 0:      
-                tenant = Tenants.objects.get(tenant_name=tenantName)      
+            if money > 0:
+                tenant = Tenants.objects.get(tenant_name=tenantName)
                 tenant_id = tenant.tenant_id
                 uid = request.session.get("_auth_user_id")
                 user = Users.objects.get(user_id=uid)
@@ -52,7 +52,8 @@ def submit(request, tenantName):
                 tenantRecharge.save()
                 html = '<p>订单已经提交，准备进入支付宝官方收银台 ...</p>'
                 submit = Alipay_API()
-                html = submit.alipay_submit(paymethod, tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
+                html = submit.alipay_submit(paymethod, tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(
+                    tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
             else:
                 return redirect('/apps/{0}/recharge/'.format(tenantName))
         except Exception as e:
@@ -60,7 +61,8 @@ def submit(request, tenantName):
             logger.exception(e)
     return HttpResponse(html)
 
-def return_url(request, tenantName): 
+
+def return_url(request, tenantName):
     try:
         out_trade_no = request.GET.get('out_trade_no', '')
         trade_no = request.GET.get('trade_no', '')
@@ -75,7 +77,7 @@ def return_url(request, tenantName):
             tenantRecharge.save()
             # recharge send money
             tempMoney = int(tenantRecharge.money) / 100 * 50
-            if tempMoney > 0:            
+            if tempMoney > 0:
                 sendRecharge = TenantRecharge()
                 sendRecharge.tenant_id = tenantRecharge.tenant_id
                 sendRecharge.user_id = tenantRecharge.user_id
@@ -120,19 +122,20 @@ def return_url(request, tenantName):
                         tenantService.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                         tenantService.save()
                         body = {}
-                        body["deploy_version"] = tenantService.deploy_version                
-                        regionClient.restart(tenantNew.region, tenantService.service_id, json.dumps(body))
+                        body["deploy_version"] = tenantService.deploy_version
+                        regionClient.restart(tenantService.service_region, tenantService.service_id, json.dumps(body))
                 tenantNew.service_status = 1
                 tenantNew.save()
-                # update notify 
+                # update notify
                 TenantPaymentNotify.objects.filter(tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
-                
+
         else:
-            logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
+            logger.debug(out_trade_no + " recharge trade_status=" + trade_status)
     except Exception as e:
         logger.exception(e)
     return redirect('/apps/{0}/recharge/'.format(tenantName))
-            
+
+
 def notify_url(request, tenantName):
     try:
         out_trade_no = request.GET.get('out_trade_no', '')
@@ -151,10 +154,7 @@ def notify_url(request, tenantName):
             # tenant.pay_type = 'payed'
             # tenant.save()
         else:
-            logger.debug(out_trade_no + " recharge trade_status=" + trade_status)          
+            logger.debug(out_trade_no + " recharge trade_status=" + trade_status)
     except Exception as e:
         logger.exception(e)
     return redirect('/apps/{0}/recharge/'.format(tenantName))
-    
-        
-

@@ -86,35 +86,42 @@ class TenantHibernateView(APIView):
         """
         tenant_id = request.data.get('tenant_id', "")
         action = request.data.get('action', "")
-        logger.debug(tenant_id)
-        logger.debug(action)
+        region = request.data.get('region', None)
+        if region is None:
+            return Response({"ok": False, "info": "need region field"}, status=400)
+
+        logger.debug("tenant.pause", request.data)
         try:
             tenant = Tenants.objects.get(tenant_id=tenant_id)
             if action == "pause":
                 if tenant.service_status == 1:
-                    regionClient.pause(tenant.region, tenant.tenant_id)
+                    regionClient.pause(region, tenant.tenant_id)
+                    logger.info("tenant.pause", "tenant {0} paused at region {1}".format(tenant.tenant_name, region))
                     tenant.service_status = 0
                     tenant.save()
                 else:
-                    logger.debug(tenant.tenant_name + " don't been paused")
+                    logger.debug("tenant.pause", tenant.tenant_name + " don't been paused")
             elif action == "systemPause":
                 if tenant.service_status == 0:
-                    regionClient.systemPause(tenant.region, tenant.tenant_id)
+                    regionClient.systemPause(region, tenant.tenant_id)
+                    logger.info("tenant.pause", "tenant {0} systemPaused at region {1}".format(tenant.tenant_name, region))
                     tenant.service_status = 3
                     tenant.save()
                 else:
-                    logger.debug(tenant.tenant_name + " don't been paused")
+                    logger.debug("tenant.pause", tenant.tenant_name + " don't been paused")
             elif action == 'unpause':
                 if tenant.service_status == 0:
-                    regionClient.unpause(tenant.region, tenant.tenant_id)
+                    regionClient.unpause(region, tenant.tenant_id)
+                    logger.info("tenant.pause", "tenant {0} unpaused at region {1}".format(tenant.tenant_name, region))
                     tenant.service_status = 1
                     tenant.save()
                 elif tenant.service_status == 3:
-                    regionClient.systemUnpause(tenant.region, tenant.tenant_id)
+                    regionClient.systemUnpause(region, tenant.tenant_id)
+                    logger.info("tenant.pause", "tenant {0} systemunpaused at region {1}".format(tenant.tenant_name, region))
                     tenant.service_status = 1
                     tenant.save()
                 else:
-                    logger.debug(tenant.tenant_name + " don't been unpaused")
+                    logger.debug("tenant.pause", tenant.tenant_name + " don't been unpaused")
         except Exception as e:
             logger.exception(e)
         return Response({"ok": True}, status=200)
@@ -137,34 +144,42 @@ class TenantHibernateView(APIView):
         """
         tenant_name = request.data.get('tenant_name', "")
         action = request.data.get('action', "")
-        logger.debug(tenant_name + "==" + action)
+        region = request.data.get('region', None)
+        if region is None:
+            return Response({"ok": False, "info": "need region field"}, status=400)
+
+        logger.debug("tenant.pause", request.data)
         try:
             tenant = Tenants.objects.get(tenant_name=tenant_name)
             if action == "pause":
                 if tenant.service_status == 1:
-                    regionClient.pause(tenant.region, tenant.tenant_id)
+                    regionClient.pause(region, tenant.tenant_id)
+                    logger.info("tenant.pause", "tenant {0} paused at region {1}".format(tenant.tenant_name, region))
                     tenant.service_status = 0
                     tenant.save()
                 else:
-                    logger.debug(tenant.tenant_name + " don't been paused")
+                    logger.debug("tenant.pause", tenant_name + " don't been paused")
             elif action == "systemPause":
                 if tenant.service_status == 0:
-                    regionClient.systemPause(tenant.region, tenant.tenant_id)
+                    regionClient.systemPause(region, tenant.tenant_id)
+                    logger.info("tenant.pause", "tenant {0} systempaused at region {1}".format(tenant.tenant_name, region))
                     tenant.service_status = 3
                     tenant.save()
                 else:
-                    logger.debug(tenant.tenant_name + " don't been paused")
+                    logger.debug("tenant.pause", tenant_name + " don't been paused")
             elif action == 'unpause':
                 if tenant.service_status == 0:
-                    regionClient.unpause(tenant.region, tenant.tenant_id)
+                    regionClient.unpause(region, tenant.tenant_id)
+                    logger.info("tenant.pause", "tenant {0} unpaused at region {1}".format(tenant.tenant_name, region))
                     tenant.service_status = 1
                     tenant.save()
                 elif tenant.service_status == 3:
-                    regionClient.systemUnpause(tenant.region, tenant.tenant_id)
+                    regionClient.systemUnpause(region, tenant.tenant_id)
+                    logger.info("tenant.pause", "tenant {0} systemunpaused at region {1}".format(tenant.tenant_name, region))
                     tenant.service_status = 1
                     tenant.save()
                 else:
-                    logger.debug(tenant.tenant_name + " don't been unpaused")
+                    logger.debug("tenant.pause", tenant.tenant_name + " don't been unpaused")
         except Exception as e:
             logger.exception(e)
         return Response({"ok": True}, status=200)
@@ -195,6 +210,10 @@ class TenantCloseRestartView(APIView):
         """
         tenant_id = request.data.get('tenant_id', "")
         action = request.data.get('action', "")
+        region = request.data.get('region', None)
+        if region is None:
+            return Response({"ok": False, "info": "need region field"}, status=400)
+
         logger.debug(tenant_id + "==" + action)
         try:
             tenant = Tenants.objects.get(tenant_id=tenant_id)
@@ -202,7 +221,7 @@ class TenantCloseRestartView(APIView):
             if len(tenantServices) > 0:
                 if action == "close":
                     for tenantService in tenantServices:
-                        regionClient.stop(tenant.region, tenantService.service_id)
+                        regionClient.stop(region, tenantService.service_id)
                     if tenant.pay_type == "payed":
                         tenant.service_status = 2
                         tenant.save()
@@ -212,7 +231,7 @@ class TenantCloseRestartView(APIView):
                         tenantService.save()
                         body = {}
                         body["deploy_version"] = tenantService.deploy_version
-                        regionClient.restart(tenant.region, tenantService.service_id, json.dumps(body))
+                        regionClient.restart(region, tenantService.service_id, json.dumps(body))
                     tenant.service_status = 1
                     tenant.save()
         except Exception as e:

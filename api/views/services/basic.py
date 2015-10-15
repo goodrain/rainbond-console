@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from rest_framework.response import Response
 from api.views.base import APIView
-from www.models import TenantServiceInfo, Tenants, ServiceInfo, TenantServiceAuth
+from www.models import TenantServiceInfo, ServiceInfo, TenantServiceAuth
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService
 import json
@@ -43,16 +43,16 @@ class SelectedServiceView(APIView):
         try:
             data = request.data
             TenantServiceInfo.objects.filter(service_id=serviceId).update(**data)
-            newTs = TenantServiceInfo.objects.get(service_id=serviceId)
-            tenant = Tenants.objects.get(tenant_id=newTs.tenant_id)
-            regionClient.update_service(tenant.region, serviceId, data)
+            service = TenantServiceInfo.objects.get(service_id=serviceId)
+            regionClient.update_service(service.service_region, serviceId, data)
             return Response({"ok": True}, status=201)
         except TenantServiceInfo.DoesNotExist, e:
             logger.error(e)
             return Response({"ok": False, "reason": e.__str__()}, status=404)
-        
+
+
 class ServiceEnvVarView(APIView):
-    
+
     def post(self, request, format=None):
         """
         同步环境变量到区域中心
@@ -74,20 +74,23 @@ class ServiceEnvVarView(APIView):
                 env = {}
                 env[service.service_key.upper() + "_HOST"] = "127.0.0.1"
                 env[service.service_key.upper() + "_PORT"] = service.service_port
-                
-                baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
-                baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"端口", service.service_key.upper() + "_PORT", service.service_port, False)
+
+                baseService.saveServiceEnvVar(
+                    service.tenant_id, service.service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
+                baseService.saveServiceEnvVar(
+                    service.tenant_id, service.service_id, u"端口", service.service_key.upper() + "_PORT", service.service_port, False)
                 if serviceInfo.is_init_accout:
-                    password = TenantServiceAuth.objects.get(service_id=service.service_id).password                    
-                    baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
-                    baseService.saveServiceEnvVar(service.tenant_id, service.service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
+                    password = TenantServiceAuth.objects.get(service_id=service.service_id).password
+                    baseService.saveServiceEnvVar(
+                        service.tenant_id, service.service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
+                    baseService.saveServiceEnvVar(
+                        service.tenant_id, service.service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
                     env[service.service_key.upper() + "_USER"] = "admin"
                     env[service.service_key.upper() + "_PASSWORD"] = password
                 task = {}
                 task["tenant_id"] = service.tenant_id
                 task["attr"] = env
-                tenant = Tenants.objects.get(tenant_id=service.tenant_id)
-                regionClient.createServiceEnv(tenant.region, service.service_id, json.dumps(task))
+                regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(task))
         except Exception as e:
             logger.exception(e)
         return Response({"ok": True}, status=200)

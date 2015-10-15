@@ -1,23 +1,20 @@
 # -*- coding: utf8 -*-
-from django.views.decorators.cache import never_cache
+#from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 
-from www.views import AuthedView
+from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import Users, PermRelTenant
-from www.tenantservice.baseservice import BaseTenantService
 
 
-class TeamInfo(AuthedView):
+class TeamInfo(LeftSideBarMixin, AuthedView):
+
     def get_context(self):
         context = super(TeamInfo, self).get_context()
         context.update({
             'perm_users': self.get_user_perms(),
             'tenantName': self.tenantName,
         })
-        baseService = BaseTenantService()
-        tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-        context["tenantServiceList"] = tenantServiceList
         context["teamStatus"] = "active"
         return context
 

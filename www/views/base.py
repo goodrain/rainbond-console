@@ -15,6 +15,7 @@ else:
 from goodrain_web.errors import PermissionDenied
 from www.perms import check_perm
 from www.models import Tenants, TenantServiceInfo
+from www.tenantservice.baseservice import BaseTenantService
 from www.version import STATIC_VERSION
 
 import logging
@@ -75,13 +76,17 @@ class BaseView(BaseObject, View):
             else:
                 handler = self.http_method_not_allowed
 
-            return handler(request, *args, **kwargs)
+            response = handler(request, *args, **kwargs)
+            return self.update_response(response)
 
         # take name and docstring from class
         update_wrapper(view, cls, updated=())
         #view.need_site_permission = cls.need_site_permission
 
         return view
+
+    def update_response(self, response):
+        return response
 
     def init_request(self, *args, **kwargs):
         pass
@@ -117,3 +122,36 @@ class AuthedView(BaseView):
                 return False
         except PermissionDenied:
             return False
+
+
+class LeftSideBarMixin(object):
+
+    def __init__(self, *args, **kwargs):
+        super(LeftSideBarMixin, self).__init__(*args, **kwargs)
+        if hasattr(self, 'tenant') and hasattr(self, 'user'):
+            pass
+        else:
+            raise ImportWarning("LeftSideBarMixin should inherit before AuthedView")
+
+        self.cookie_region = self.request.COOKIES.get('region', None)
+        self.response_region = self.tenant.region if self.cookie_region is None else self.cookie_region
+
+    def update_response(self, response):
+        if self.response_region != self.cookie_region:
+            response.set_cookie('region', self.response_region)
+        return response
+
+    def get_context(self):
+        context = super(LeftSideBarMixin, self).get_context()
+        context['tenantServiceList'] = self.get_service_list()
+        return context
+
+    def get_service_list(self):
+        baseService = BaseTenantService()
+        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id, region=self.response_region)
+        for s in services:
+            if s.service_alias == self.serviceAlias:
+                s.is_selected = True
+                break
+
+        return services

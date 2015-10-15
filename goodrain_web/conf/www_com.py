@@ -39,6 +39,8 @@ REGION_SERVICE_API = [{
     'region_name': 'ali-sh'
 }]
 
+REGION_LIST = map(lambda x: x['region_name'], REGION_SERVICE_API)
+
 WEBSOCKET_URL = {
     'ucloud-bj-1': 'ws://mpush.ucloud-bj-1.goodrain.com:6060/websocket',
     'aws-bj-1': 'ws://mpush.aws-bj-1.goodrain.com:6060/websocket',

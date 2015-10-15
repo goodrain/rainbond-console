@@ -5,3 +5,4 @@ goodrain_web/conf/local.py
 /.pydevproject
 /.gitignore
 /doc/
+migrations/

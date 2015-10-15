@@ -1,8 +1,8 @@
 from django.http import HttpResponse
-from base import BaseView, AuthedView
+from base import BaseView, AuthedView, LeftSideBarMixin
 from account import *
 
-__all__ = ('BaseView', 'AuthedView')
+__all__ = ('BaseView', 'AuthedView', 'LeftSideBarMixin')
 
 
 def monitor(request):

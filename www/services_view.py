@@ -10,17 +10,12 @@ from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_exempt
-from www.views import BaseView, AuthedView
+from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import Users, Tenants, ServiceInfo, TenantServiceInfo, TenantServiceLog, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth, TenantConsume, TenantServiceEnvVar
+from www.models import Users, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
-from www.tenantservice.baseservice import BaseTenantService
-from www.tenantfee.feeservice import TenantFeeService
-from www.utils.language import is_redirect
-from www.db import BaseConnection
 from django.conf import settings
 
 logger = logging.getLogger('default')
@@ -32,10 +27,10 @@ gitHubClient = GitHubApi()
 regionClient = RegionServiceApi()
 
 
-class TenantServiceAll(AuthedView):
+class TenantServiceAll(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
+        media = super(TenantServiceAll, self).get_media() + self.vendor(
             'www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
             'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
             'www/js/jquery.scrollTo.min.js')
@@ -44,14 +39,16 @@ class TenantServiceAll(AuthedView):
     @never_cache
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
+        region = self.request.GET.get('region', None)
+        if region is not None:
+            self.response_region = region
+
         context = self.get_context()
         try:
-            num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).count()
+            num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
             if num < 1:
                 return HttpResponseRedirect('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
-            baseService = BaseTenantService()
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-            context["tenantServiceList"] = tenantServiceList
+            tenantServiceList = context["tenantServiceList"]
             context["totalAppStatus"] = "active"
             context["totalFlow"] = 0
             context["totalAppNumber"] = len(tenantServiceList)
@@ -61,13 +58,13 @@ class TenantServiceAll(AuthedView):
             context["curTenant"] = self.tenant
             context["tenant_balance"] = self.tenant.balance
             if self.tenant.service_status == 0:
-                logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
-                regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
+                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant.tenant_id)
+                regionClient.unpause(self.response_region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
             if self.tenant.service_status == 3:
-                logger.debug("system unpause tenant_id=" + self.tenant.tenant_id)
-                regionClient.systemUnpause(self.tenant.region, self.tenant.tenant_id)
+                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant.tenant_id)
+                regionClient.systemUnpause(self.response_region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
         except Exception as e:
@@ -75,7 +72,7 @@ class TenantServiceAll(AuthedView):
         return TemplateResponse(self.request, "www/service_my.html", context)
 
 
-class TenantService(AuthedView):
+class TenantService(LeftSideBarMixin, AuthedView):
 
     def init_request(self, *args, **kwargs):
         show_graph = self.request.GET.get('show_graph', None)
@@ -83,9 +80,14 @@ class TenantService(AuthedView):
             self.show_graph = True
         else:
             self.show_graph = False
+        # 临时兼容
+        if self.service.service_region not in settings.REGION_LIST:
+            region = self.tenant.region
+            self.service.service_region = region
+            self.service.save()
 
     def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
+        media = super(TenantService, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
             'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/style.css',
             'www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
@@ -105,15 +107,6 @@ class TenantService(AuthedView):
         if self.show_graph:
             context['show_graph'] = True
         return context
-
-    def get_service_list(self):
-        baseService = BaseTenantService()
-        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id)
-        for s in services:
-            if s.service_alias == self.serviceAlias:
-                s.is_selected = True
-
-        return services
 
     def get_user_perms(self):
         perm_users = []
@@ -184,7 +177,7 @@ class TenantService(AuthedView):
         task["data"] = data
         task["tube"] = "code_check"
         logger.debug(json.dumps(task))
-        regionClient.writeToRegionBeanstalk(self.tenant.region, self.service.service_id, json.dumps(task))
+        regionClient.writeToRegionBeanstalk(self.service.service_region, self.service.service_id, json.dumps(task))
 
     def get_manage_app(self, http_port_str):
         service_manager = {"deployed": False}
@@ -202,6 +195,7 @@ class TenantService(AuthedView):
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
+        self.response_region = self.service.service_region
         context = self.get_context()
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
@@ -226,8 +220,7 @@ class TenantService(AuthedView):
 
             service_id = self.service.service_id
             context["tenantServiceInfo"] = self.service
-            tenantServiceList = self.get_service_list()
-            context["tenantServiceList"] = tenantServiceList
+            tenantServiceList = context["tenantServiceList"]
             context["tenantName"] = self.tenantName
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()
@@ -285,14 +278,14 @@ class TenantService(AuthedView):
             context["websocket_uri"] = websocket_info[self.tenant.region]
 
             if self.tenant.service_status == 0:
-                logger.debug("unpause tenant_id=" + self.tenant.tenant_id)
-                regionClient.unpause(self.tenant.region, self.tenant.tenant_id)
+                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant.tenant_id)
+                regionClient.unpause(self.service.service_region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
 
             if self.tenant.service_status == 3:
-                logger.debug("service.unpause", "system unpause tenant_id=" + self.tenant.tenant_id)
-                regionClient.systemUnpause(self.tenant.region, self.tenant.tenant_id)
+                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant.tenant_id)
+                regionClient.systemUnpause(self.service.service_region, self.tenant.tenant_id)
                 self.tenant.service_status = 1
                 self.tenant.save()
 
