@@ -394,7 +394,7 @@ function add_new_attr(service_id,port) {
 	msg = msg + '<td><input name ="' + service_id+ '_name" value=""></td>'
 	msg = msg + '<td><input name ="' + service_id+ '_attr_name" value=""></td>'
 	msg = msg + '<td><input name ="' + service_id+ '_attr_value" value=""></td>'
-	msg = msg + '<td><button type="button" class="btn btn-success btn-xs" onclick="attr_delete(this);">删除</button></td>'
+	msg = msg + '<td><input type="hidden" name ="' + service_id+ '_attr_id" value="0"><button type="button" class="btn btn-success btn-xs" onclick="attr_delete(this);">删除</button></td>'
 	msg = msg + '</tr>'
 	$("#envVartable tr:last").after(msg);
 }
@@ -463,11 +463,17 @@ function attr_save(service_id, tenant_name, service_name) {
 			attr_value.push(tmp)
 		}
 	}
+	var attr_id_obj = $('input[name=' + service_id + '_attr_id]');
+	var attr_id = [];
+	for (var i = 0; i < attr_id_obj.length; i++) {
+		var tmp = attr_id_obj[i].value;
+		attr_id.push(tmp)
+	}
 	$.ajax({
 		type : "POST",
 		url : "/ajax/" + tenant_name + "/" + service_name + "/envvar",
 		data : "nochange_name="+nochange_name.toString()+"&id="+id.toString()+"&name=" + name.toString() + "&attr_name="
-			   + attr_name.toString() + "&attr_value=" + attr_value.toString(),
+			   + attr_name.toString() + "&attr_value=" + attr_value.toString()+"&attr_id="+attr_id.toString(),
 		cache : false,
 		beforeSend : function(xhr, settings) {
 			var csrftoken = $.cookie('csrftoken');

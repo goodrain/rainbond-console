@@ -216,25 +216,26 @@ class ServiceManage(AuthedView):
                     service_port = self.service.service_port
                     baseService = BaseTenantService()
                     if inner_service:
-                        deployPort = baseService.getMaxPort(self.tenant.tenant_id, self.service.service_key, self.service.service_alias)
-                        if deployPort > 0:
-                            service_port = deployPort + 1
-                        # open inner service add new env variable
-                        temp_key = self.service.service_key.upper()
-                        if self.service.category == 'application':
-                            temp_key = self.service.service_alias.upper()
-                        baseService.saveServiceEnvVar(
-                            self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
-                        baseService.saveServiceEnvVar(
-                            self.tenant.tenant_id, self.service.service_id, u"端口", temp_key + "_PORT", service_port, False)
+                        number = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).count()
+                        if number < 1:
+                            # open inner service add new env variable
+                            temp_key = self.service.service_key.upper()
+                            if self.service.category == 'application':
+                                temp_key = self.service.service_alias.upper()
+                            baseService.saveServiceEnvVar(
+                                self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
+                            baseService.saveServiceEnvVar(
+                                self.tenant.tenant_id, self.service.service_id, u"端口", temp_key + "_PORT", service_port, False)
+                        baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
                     else:
                         depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                         if depNumber > 0:
                             result["status"] = "inject_dependency"
                             return JsonResponse(result)
+
                         # close inner service need to clear env
-                        TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
-                    baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
+                        baseService.cancel_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
+
                     data = {}
                     data["protocol"] = self.service.protocol
                     data["outer_service"] = self.service.is_web_service
@@ -709,7 +710,7 @@ class ServiceDomainManager(AuthedView):
                     result["status"] = "exist"
                     return JsonResponse(result)
 
-                num = ServiceDomain.objects.filter(service_name=tenantService.service_alias).count()
+                num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
                 old_domain_name = "goodrain"
                 if num == 0:
                     domain = {}
@@ -756,32 +757,50 @@ class ServiceEnvVarManager(AuthedView):
             name = request.POST["name"]
             attr_name = request.POST["attr_name"]
             attr_value = request.POST["attr_value"]
+            attr_id = request.POST["attr_id"]
             name_arr = name.split(",")
             attr_name_arr = attr_name.split(",")
             attr_value_arr = attr_value.split(",")
+            attr_id_arr = attr_id.split(",")
+            logger.debug(attr_id)
 
             isNeedToRsync = True
+            total_ids = []
             if id != "" and nochange_name != "":
                 id_arr = id.split(',')
                 nochange_name_arr = nochange_name.split(',')
                 if len(id_arr) == len(nochange_name_arr):
                     for index, curid in enumerate(id_arr):
-                        TenantServiceEnvVar.objects.filter(ID=curid, service_id=self.service.service_id).update(
-                            attr_name=nochange_name_arr[index])
 
-            TenantServiceEnvVar.objects.filter(
-                tenant_id=self.service.tenant_id, service_id=self.service.service_id, is_change=True).delete()
+                        total_ids.append(curid)
+                        stsev = TenantServiceEnvVar.objects.get(ID=curid)
+                        stsev.attr_name = nochange_name_arr[index]
+                        stsev.save()
             if name != "" and attr_name != "" and attr_value != "":
                 if len(name_arr) == len(attr_name_arr) and len(attr_value_arr) == len(attr_name_arr):
+                    # first delete old item
+                    for item in attr_id_arr:
+                        total_ids.append(item)
+                    if len(total_ids) > 0:
+                        TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).exclude(ID__in=total_ids).delete()
+
+                    # update and save env
                     for index, cname in enumerate(name_arr):
-                        tenantServiceEnvVar = {}
-                        tenantServiceEnvVar["tenant_id"] = self.service.tenant_id
-                        tenantServiceEnvVar["service_id"] = self.service.service_id
-                        tenantServiceEnvVar["name"] = cname
-                        tenantServiceEnvVar["attr_name"] = attr_name_arr[index]
-                        tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
-                        tenantServiceEnvVar["is_change"] = 1
-                        TenantServiceEnvVar(**tenantServiceEnvVar).save()
+                        tmpId = attr_id_arr[index]
+                        if int(tmpId) > 0:
+                            tsev = TenantServiceEnvVar.objects.get(ID=int(tmpId))
+                            tsev.attr_name = attr_name_arr[index]
+                            tsev.attr_value = attr_value_arr[index]
+                            tsev.save()
+                        else:
+                            tenantServiceEnvVar = {}
+                            tenantServiceEnvVar["tenant_id"] = self.service.tenant_id
+                            tenantServiceEnvVar["service_id"] = self.service.service_id
+                            tenantServiceEnvVar["name"] = cname
+                            tenantServiceEnvVar["attr_name"] = attr_name_arr[index]
+                            tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
+                            tenantServiceEnvVar["is_change"] = True
+                            TenantServiceEnvVar(**tenantServiceEnvVar).save()
             # sync data to region
             if isNeedToRsync:
                 baseTenantService = BaseTenantService()

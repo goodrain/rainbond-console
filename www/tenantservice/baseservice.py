@@ -186,6 +186,12 @@ class BaseTenantService(object):
         task["attr"] = data
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
 
+    def cancel_service_env(self, tenant_id, service_id, region):
+        task = {}
+        task["tenant_id"] = tenant_id
+        task["attr"] = {}
+        regionClient.createServiceEnv(region, service_id, json.dumps(task))
+
     def saveServiceEnvVar(self, tenant_id, service_id, name, attr_name, attr_value, isChange):
         tenantServiceEnvVar = {}
         tenantServiceEnvVar["tenant_id"] = tenant_id
