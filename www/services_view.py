@@ -10,9 +10,9 @@ from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import redirect
-from www.views import BaseView, AuthedView, LeftSideBarMixin
+from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin
 from www.decorator import perm_required
-from www.models import Users, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
+from www.models import Users, TenantRegionInfo, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
@@ -28,7 +28,7 @@ gitHubClient = GitHubApi()
 regionClient = RegionServiceApi()
 
 
-class TenantServiceAll(LeftSideBarMixin, AuthedView):
+class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
 
     def get_media(self):
         media = super(TenantServiceAll, self).get_media() + self.vendor(
@@ -37,15 +37,28 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             'www/js/jquery.scrollTo.min.js')
         return media
 
-    @never_cache
-    @perm_required('tenant.tenant_access')
-    def get(self, request, *args, **kwargs):
+    def check_region(self):
         region = self.request.GET.get('region', None)
         if region is not None:
             if region in RegionInfo.region_names():
                 self.response_region = region
             else:
                 raise Http404
+
+        try:
+            t_region, created = TenantRegionInfo.objects.get_or_create(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+            if created or not t_region.is_active:
+                logger.info("tenant.region_init", "init region {0} for tenant {1}".format(self.response_region, self.tenant.tenant_name))
+                success = self.init_for_region(self.response_region, self.tenant.tenant_name, self.tenant.tenant_id)
+                t_region.is_active = True if success else False
+                t_region.save()
+        except Exception, e:
+            logger.error(e)
+
+    @never_cache
+    @perm_required('tenant.tenant_access')
+    def get(self, request, *args, **kwargs):
+        self.check_region()
 
         context = self.get_context()
         try:
