@@ -4,9 +4,8 @@ import datetime
 import json
 
 from django.http import HttpResponse, HttpResponseRedirect
-from www.models import TenantRecharge, TenantConsume, TenantServiceInfo, TenantPaymentNotify
+from www.models import Tenants, Users, TenantRegionInfo, TenantRecharge, TenantConsume, TenantServiceInfo, TenantPaymentNotify
 from www.alipay_direct.alipay_api import *
-from www.models import Tenants, Users
 from django.shortcuts import redirect
 from www.service_http import RegionServiceApi
 
@@ -114,19 +113,21 @@ def return_url(request, tenantName):
                     else:
                         openServiceTag = False
             # if stop service,need to open
+            tenant_regions = TenantRegionInfo.objects.filter(tenant_id=tenantRecharge.tenant_id)
             tenantNew = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
-            if tenantNew.service_status == 2 and openServiceTag and last_money < tenantNew.balance:
-                tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenantRecharge.tenant_id)
-                if len(tenantServices) > 0:
-                    for tenantService in tenantServices:
-                        tenantService.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                        tenantService.save()
-                        body = {}
-                        body["deploy_version"] = tenantService.deploy_version
-                        regionClient.restart(tenantService.service_region, tenantService.service_id, json.dumps(body))
-                tenantNew.service_status = 1
-                tenantNew.save()
-                # update notify
+            if openServiceTag and last_money < tenantNew.balance:
+                for tenant_region in tenant_regions:
+                    if tenant_region.service_status == 2:
+                        tenantServices = TenantServiceInfo.objects.filter(
+                            tenant_id=tenantRecharge.tenant_id, service_region=tenant_region.region_name)
+                        for tenantService in tenantServices:
+                            tenantService.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                            tenantService.save()
+                            body = {"deploy_version": tenantService.deploy_version}
+                            regionClient.restart(tenantService.service_region, tenantService.service_id, json.dumps(body))
+                        tenant_region.service_status = 1
+                        tenant_region.save()
+                        # update notify
                 TenantPaymentNotify.objects.filter(tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
 
         else:

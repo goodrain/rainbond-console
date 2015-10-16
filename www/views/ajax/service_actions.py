@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import ServiceInfo, TenantServiceInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain, TenantServiceEnvVar
+from www.models import ServiceInfo, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.gitlab_http import GitlabApi
 from django.conf import settings
@@ -30,7 +30,8 @@ class AppDeploy(AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         data = {}
-        if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
+        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+        if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
             data["status"] = "owed"
             return JsonResponse(data, status=200)
 
@@ -122,7 +123,8 @@ class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
+        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+        if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
             result["status"] = "owed"
             return JsonResponse(result, status=200)
 
@@ -258,7 +260,8 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
+        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+        if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
             result["status"] = "owed"
             return JsonResponse(result, status=200)
         oldVerion = self.service.deploy_version
@@ -403,12 +406,17 @@ class ServiceRelation(AuthedView):
 
 class AllServiceInfo(AuthedView):
 
+    def init_request(self, *args, **kwargs):
+        self.cookie_region = self.request.COOKIES.get('region')
+        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id, region_name=self.cookie_region)
+
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         result = {}
         service_ids = []
         try:
-            service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).values('ID', 'service_id', 'deploy_version')
+            service_list = TenantServiceInfo.objects.filter(
+                tenant_id=self.tenant.tenant_id, service_region=self.cookie_region).values('ID', 'service_id', 'deploy_version')
             if self.has_perm('tenant.list_all_services'):
                 for s in service_list:
                     if s['deploy_version'] is None or s['deploy_version'] == "":
@@ -428,7 +436,7 @@ class AllServiceInfo(AuthedView):
                         else:
                             service_ids.append(s['service_id'])
             if len(service_ids) > 0:
-                if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
+                if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                     for sid in service_ids:
                         child = {}
                         child["status"] = "Owed"
@@ -467,7 +475,7 @@ class AllServiceInfo(AuthedView):
                         else:
                             child["status"] = "Closing"
                         result[sid] = child
-        except Exception, e:
+        except Exception:
             tempIds = ','.join(service_ids)
             logger.debug(self.tenant.region + "-" + tempIds + " check_service_status is error")
             for sid in service_ids:
@@ -479,13 +487,17 @@ class AllServiceInfo(AuthedView):
 
 class AllTenantsUsedResource(AuthedView):
 
+    def init_request(self, *args, **kwargs):
+        self.cookie_region = self.request.COOKIES.get('region')
+        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id, region_name=self.cookie_region)
+
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         result = {}
         try:
             service_ids = []
             serviceIds = ""
-            service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id).values(
+            service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.cookie_region).values(
                 'ID', 'service_id', 'min_node', 'min_memory')
             if self.has_perm('tenant.list_all_services'):
                 for s in service_list:
@@ -530,7 +542,8 @@ class ServiceDetail(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
+            self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+            if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
             else:

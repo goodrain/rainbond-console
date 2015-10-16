@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-import logging
 import uuid
 import hashlib
 import datetime
@@ -11,7 +10,7 @@ from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import JsonResponse
 from www.views import BaseView
-from www.models import Tenants, TenantServiceInfo
+from www.models import Tenants, TenantServiceInfo, TenantRegionInfo
 from www.service_http import RegionServiceApi
 
 import logging
@@ -19,7 +18,10 @@ logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 # 休眠
+
+
 class TenantsVisitorView(BaseView):
+
     @never_cache
     def post(self, request, *args, **kwargs):
         data = {}
@@ -52,7 +54,7 @@ class TenantsVisitorView(BaseView):
                                     oldTenant.service_status = 0
                                     oldTenant.save()
                         except Exception as e0:
-                            logger.exception(e0)                                                                    
+                            logger.exception(e0)
             elif action == "unpause":
                 tenants = request.POST.get("tenants", "")
                 if tenants is not None and tenants != "":
