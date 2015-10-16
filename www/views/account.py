@@ -8,7 +8,7 @@ from django.http import HttpResponse, Http404
 
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, RegisterForm, PasswordResetForm, PasswordResetBeginForm
-from www.models import Users, Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode
+from www.models import Users, Tenants, TenantRegionInfo, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
@@ -358,12 +358,12 @@ class Registation(BaseView):
         pl = request.GET.get("pl", "")
         region_levels = pl.split(":")
         if len(region_levels) == 2:
-            region = region_levels[0]         
+            region = region_levels[0]
             self.form = RegisterForm(
-                    region_level={
-                        "region": region,
-                    }
-                )
+                region_level={
+                    "region": region,
+                }
+            )
         else:
             self.form = RegisterForm()
         return self.get_response()
@@ -403,6 +403,7 @@ class Registation(BaseView):
             logger.info(
                 "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(nick_name, tenant_name, region, tenant.tenant_id))
 
+            TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
             self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
 
             # create gitlab user
@@ -418,7 +419,7 @@ class Registation(BaseView):
 
             user = authenticate(username=email, password=password)
             login(request, user)
-            
+
             selected_pay_level = ""
             pl = request.GET.get("pl", "")
             region_levels = pl.split(":")
@@ -545,8 +546,9 @@ class InviteRegistation(BaseView):
             {u'real_captcha_code': request.session.get("captcha_code")})
         self.form = RegisterForm(querydict)
         if not self.form.is_valid():
-            initial = {"tenant": request.POST.get('tenant'), "phone": request.POST.get('phone'), "email": request.POST.get('email'), "region": request.POST.get('machine_region')}
-            querydict.update({"initial":initial})
+            initial = {"tenant": request.POST.get('tenant'), "phone": request.POST.get(
+                'phone'), "email": request.POST.get('email'), "region": request.POST.get('machine_region')}
+            querydict.update({"initial": initial})
             self.form = RegisterForm(querydict)
             return self.get_response()
 
@@ -623,4 +625,3 @@ class PhoneCodeView(BaseView):
             logger.exception(e)
         result["status"] = "error"
         return JsonResponse(result)
-        
