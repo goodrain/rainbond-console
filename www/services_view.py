@@ -201,7 +201,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 service_manager['deployed'] = True
                 manager = has_managers[0]
                 service_manager[
-                    'url'] = 'http://{0}.{1}.{2}.goodrain.net{3}'.format(manager.service_alias, self.tenant.tenant_name, self.tenant.region, http_port_str)
+                    'url'] = 'http://{0}.{1}.{2}.goodrain.net{3}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, http_port_str)
             else:
                 service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin'.format(self.tenant.tenant_name)
         return service_manager
@@ -243,6 +243,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]
             context["tenant"] = self.tenant
+            context["region_name"] = self.service.service_region
             context["totalMemory"] = self.service.min_node * self.service.min_memory
 
             # service relationships
