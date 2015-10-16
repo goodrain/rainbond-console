@@ -42,10 +42,10 @@ REGION_SERVICE_API = [{
 REGION_LIST = map(lambda x: x['region_name'], REGION_SERVICE_API)
 
 WEBSOCKET_URL = {
-    'ucloud-bj-1': 'ws://mpush-ucloud-bj-1.goodrain.com:6060/websocket',
-    'aws-bj-1': 'ws://mpush-aws-bj-1.goodrain.com:6060/websocket',
-    'aws-jp-1': 'ws://mpush-aws-jp-1.goodrain.com:6060/websocket',
-    'ali-sh': 'ws://mpush-ali-sh.goodrain.com:6060/websocket',
+    'ucloud-bj-1': 'wss://mpush-ucloud-bj-1.goodrain.com:6060/websocket',
+    'aws-bj-1': 'wss://mpush-aws-bj-1.goodrain.com:6060/websocket',
+    'aws-jp-1': 'wss://mpush-aws-jp-1.goodrain.com:6060/websocket',
+    'ali-sh': 'wss://mpush-ali-sh.goodrain.com:6060/websocket',
 }
 
 REGION_RULE = {
