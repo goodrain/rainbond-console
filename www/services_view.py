@@ -41,6 +41,8 @@ class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
         region = self.request.GET.get('region', None)
         if region is not None:
             if region in RegionInfo.region_names():
+                if region == 'aws-bj-1' and self.tenant.region != 'aws-bj-1':
+                    raise Http404
                 self.response_region = region
             else:
                 raise Http404
