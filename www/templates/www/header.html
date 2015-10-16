@@ -9,7 +9,7 @@
     <div class="btn-group">
         <button class="btn btn-white" type="button">{{current_region.label}}</button>
         <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
-        <ul role="menu" class="dropdown-menu">
+        <ul id="region_select" role="menu" class="dropdown-menu">
             {% for region in arrival_regions %}
             <li><a href="/apps/{{tenantName}}/?region={{region.name}}">{{region.label}}</a></li>
             {% endfor %}

@@ -443,7 +443,7 @@ class AllServiceInfo(AuthedView):
                         result[sid] = child
                 else:
                     id_string = ','.join(service_ids)
-                    bodys = regionClient.check_status(self.tenant.region, json.dumps({"service_ids": id_string}))
+                    bodys = regionClient.check_status(self.cookie_region, json.dumps({"service_ids": id_string}))
                     for sid in service_ids:
                         service = TenantServiceInfo.objects.get(service_id=sid)
                         body = bodys[sid]
