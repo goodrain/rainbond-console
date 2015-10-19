@@ -245,12 +245,12 @@ class AllTenantView(APIView):
                         '''.format(service_status=service_status, pay_type=pay_type, region=region)
                 logger.debug("query_sql=" + query_sql)
                 if query_sql != "":
-                    data = dsn.query(query_sql)
-                    if data is not None and len(data) > 0:
-                        for sqlObj in data:
+                    dataObj = dsn.query(query_sql)
+                    if dataObj is not None and len(dataObj) > 0:
+                        for sqlObj in dataObj:
                              data[sqlObj['sqlObj']] = sqlObj['tenant_name']
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
         return Response(data, status=200)
 
 
