@@ -230,8 +230,8 @@ class TenantUsedResource(object):
             logger.debug(tenant_region.region_name)
             temp_data = regionClient.getTenantRunningServiceId(tenant_region.region_name, tenant_region.tenant_id)
             logger.debug(temp_data)
-            if len(temp_data) > 0:
-                running_data.update(temp_data)            
+            if len(temp_data["data"]) > 0:
+                running_data.update(temp_data["data"])            
         logger.debug(running_data)
         dsn = BaseConnection()
         query_sql = '''
