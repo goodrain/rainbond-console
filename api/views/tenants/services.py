@@ -244,7 +244,6 @@ class AllTenantView(APIView):
                 else:
                     query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}"
                         '''.format(service_status=service_status, pay_type=pay_type, region=region)
-                logger.debug("query_sql=" + query_sql)
                 if query_sql != "":
                     sqlobjs = dsn.query(query_sql)
                     if sqlobjs is not None and len(sqlobjs) > 0:
