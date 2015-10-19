@@ -61,6 +61,7 @@ class BaseTenantService(object):
         tenantServiceInfo["image"] = service.image
         tenantServiceInfo["cmd"] = service.cmd
         tenantServiceInfo["setting"] = service.setting
+        tenantServiceInfo["extend_method"] = service.extend_method
         password = "admin"
         if service.is_init_accout:
             uk = service.service_key.upper() + "_USER=" + "admin"
@@ -110,7 +111,7 @@ class BaseTenantService(object):
                 self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
         return newTenantService
 
-    def create_region_service(self, newTenantService, service, domain, region):
+    def create_region_service(self, newTenantService, domain, region):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
         data["service_id"] = newTenantService.service_id
@@ -122,9 +123,9 @@ class BaseTenantService(object):
         data["volume_path"] = "vol" + newTenantService.service_id[0:10]
         data["volume_mount_path"] = newTenantService.volume_mount_path
         data["host_path"] = newTenantService.host_path
-        data["extend_method"] = service.extend_method
+        data["extend_method"] = newTenantService.extend_method
         data["status"] = 0
-        data["replicas"] = newTenantService. min_node
+        data["replicas"] = newTenantService.min_node
         data["service_alias"] = newTenantService.service_alias
         data["service_port"] = newTenantService.service_port
         data["service_version"] = newTenantService.version
@@ -231,7 +232,7 @@ class TenantUsedResource(object):
             temp_data = regionClient.getTenantRunningServiceId(tenant_region.region_name, tenant_region.tenant_id)
             logger.debug(temp_data)
             if len(temp_data["data"]) > 0:
-                running_data.update(temp_data["data"])            
+                running_data.update(temp_data["data"])
         logger.debug(running_data)
         dsn = BaseConnection()
         query_sql = '''

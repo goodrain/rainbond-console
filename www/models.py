@@ -257,6 +257,8 @@ class TenantServiceInfo(BaseModel):
         max_length=100, null=True, blank=True, help_text=u"启动参数")
     setting = models.CharField(
         max_length=100, null=True, blank=True, help_text=u"设置项")
+    extend_method = models.CharField(
+        max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     env = models.CharField(
         max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
@@ -328,6 +330,8 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=100, null=True, blank=True, help_text=u"启动参数")
     setting = models.CharField(
         max_length=100, null=True, blank=True, help_text=u"设置项")
+    extend_method = models.CharField(
+        max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     env = models.CharField(
         max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
