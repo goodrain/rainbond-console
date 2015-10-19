@@ -18,11 +18,22 @@ class RegionServiceApi(BaseHttpClient):
         region_service_infos = settings.REGION_SERVICE_API
         for region_service_info in region_service_infos:
             client_info = {"url": region_service_info["url"]}
-            if 'proxy' in region_service_info:
+            if 'proxy' in region_service_info and region_service_info.get('proxy_priority', False) is True:
                 client_info['client'] = self.make_proxy_http(region_service_info)
             else:
                 client_info['client'] = httplib2.Http(timeout=25)
             self.region_map[region_service_info["region_name"]] = client_info
+
+    def make_proxy_http(self, region_service_info):
+        proxy_info = region_service_info['proxy']
+        if proxy_info['type'] == 'http':
+            proxy_type = httplib2.socks.PROXY_TYPE_HTTP
+        else:
+            raise TypeError("unsupport type: %s" % proxy_info['type'])
+
+        proxy = httplib2.ProxyInfo(proxy_type, proxy_info['host'], proxy_info['port'])
+        client = httplib2.Http(proxy_info=proxy, timeout=25)
+        return client
 
     def _request(self, *args, **kwargs):
         region = kwargs.get('region')

@@ -21,6 +21,10 @@ DATABASES = {
     },
 }
 
+HTTP_PROXY = {
+    'hk1': {'type': 'http', 'host': '106.75.193.120', 'port': 12354}
+}
+
 REGION_SERVICE_API = [{
     'url': 'http://api.ucloud-bj-1.goodrain.com:8888',
     'apitype': 'region service',
@@ -32,7 +36,9 @@ REGION_SERVICE_API = [{
 }, {
     'url': 'http://api.aws-jp-1.goodrain.com:8888',
     'apitype': 'region service',
-    'region_name': 'aws-jp-1'
+    'region_name': 'aws-jp-1',
+    'proxy': HTTP_PROXY['hk1'],
+    'proxy_priority': True,
 }, {
     'url': 'http://api.ali-sh.goodrain.com:8888',
     'apitype': 'region service',
