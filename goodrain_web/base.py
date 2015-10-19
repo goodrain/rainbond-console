@@ -45,18 +45,13 @@ class BaseHttpClient(object):
     def _check_status(self, url, method, response, content):
         res = Dict(response)
         res.status = int(res.status)
-        logger.debug(content)
         body = self._jsondecode(content)
-        logger.debug(body)
-        if type(body) is dict:
+        if isinstance(body, dict):
             body = Dict(body)
-            logger.debug(body)
         if 400 <= res.status <= 600:
             logger.debug(url)
             raise self.CallApiError(self.apitype, url, method, res, body)
         else:
-            logger.debug(res)
-            logger.debug(body)
             return res, body
 
     def _request(self, url, method, headers=None, body=None):
@@ -102,10 +97,7 @@ class BaseHttpClient(object):
             response, content = self._request(url, 'POST', headers=headers, body=body)
         else:
             response, content = self._request(url, 'POST', headers=headers)
-        logger.debug(content)
         res, body = self._check_status(url, 'POST', response, content)
-        logger.debug(res)
-        logger.debug(body)
         return res, body
 
     def _put(self, url, headers, body=None):
