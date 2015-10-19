@@ -46,7 +46,6 @@ class BaseHttpClient(object):
         res = Dict(response)
         res.status = int(res.status)
         body = self._jsondecode(content)
-        logger.debug(body)
         if isinstance(body, dict):
             body = Dict(body)
         if 400 <= res.status <= 600:
@@ -98,9 +97,10 @@ class BaseHttpClient(object):
             response, content = self._request(url, 'POST', headers=headers, body=body)
         else:
             response, content = self._request(url, 'POST', headers=headers)
-        logger.debug("****************")
         logger.debug(content)
         res, body = self._check_status(url, 'POST', response, content)
+        logger.debug(res)
+        logger.debug(body)
         return res, body
 
     def _put(self, url, headers, body=None):
