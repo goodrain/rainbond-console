@@ -227,9 +227,11 @@ class TenantUsedResource(object):
         tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
         running_data = {}
         for tenant_region in tenant_region_list:
+            logger.debug(tenant_region)
             temp_data = regionClient.getTenantRunningServiceId(tenant_region.region_name, tenant_region.tenant_id)
-            if len(temp_data['data']) > 0:
-                running_data.update(temp_data['data'])            
+            logger.debug(temp_data)
+            if len(temp_data) > 0:
+                running_data.update(temp_data)            
         logger.debug(running_data)
         dsn = BaseConnection()
         query_sql = '''
