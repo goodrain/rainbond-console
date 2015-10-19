@@ -8,11 +8,12 @@ import json
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import redirect
-from www.views import BaseView, AuthedView, LeftSideBarMixin
+from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin
 from www.decorator import perm_required
-from www.models import Users, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
+from www.models import Users, TenantRegionInfo, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
+from www.region import RegionInfo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
@@ -27,7 +28,7 @@ gitHubClient = GitHubApi()
 regionClient = RegionServiceApi()
 
 
-class TenantServiceAll(LeftSideBarMixin, AuthedView):
+class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
 
     def get_media(self):
         media = super(TenantServiceAll, self).get_media() + self.vendor(
@@ -36,12 +37,31 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             'www/js/jquery.scrollTo.min.js')
         return media
 
+    def check_region(self):
+        region = self.request.GET.get('region', None)
+        if region is not None:
+            if region in RegionInfo.region_names():
+                if region == 'aws-bj-1' and self.tenant.region != 'aws-bj-1':
+                    raise Http404
+                self.response_region = region
+            else:
+                raise Http404
+
+        try:
+            t_region, created = TenantRegionInfo.objects.get_or_create(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+            self.tenant_region = t_region
+            if created or not t_region.is_active:
+                logger.info("tenant.region_init", "init region {0} for tenant {1}".format(self.response_region, self.tenant.tenant_name))
+                success = self.init_for_region(self.response_region, self.tenant.tenant_name, self.tenant.tenant_id)
+                t_region.is_active = True if success else False
+                t_region.save()
+        except Exception, e:
+            logger.error(e)
+
     @never_cache
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
-        region = self.request.GET.get('region', None)
-        if region is not None:
-            self.response_region = region
+        self.check_region()
 
         context = self.get_context()
         try:
@@ -57,16 +77,16 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             context["totalNum"] = totalNum
             context["curTenant"] = self.tenant
             context["tenant_balance"] = self.tenant.balance
-            if self.tenant.service_status == 0:
-                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant.tenant_id)
-                regionClient.unpause(self.response_region, self.tenant.tenant_id)
-                self.tenant.service_status = 1
-                self.tenant.save()
-            if self.tenant.service_status == 3:
-                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant.tenant_id)
-                regionClient.systemUnpause(self.response_region, self.tenant.tenant_id)
-                self.tenant.service_status = 1
-                self.tenant.save()
+            if self.tenant_region.service_status == 0:
+                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
+                regionClient.unpause(self.response_region, self.tenant_region.tenant_id)
+                self.tenant_region.service_status = 1
+                self.tenant_region.save()
+            elif self.tenant_region.service_status == 3:
+                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
+                regionClient.systemUnpause(self.response_region, self.tenant_region.tenant_id)
+                self.tenant_region.service_status = 1
+                self.tenant_region.save()
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_my.html", context)
@@ -80,11 +100,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
             self.show_graph = True
         else:
             self.show_graph = False
-        # 临时兼容
-        if self.service.service_region not in settings.REGION_LIST:
-            region = self.tenant.region
-            self.service.service_region = region
-            self.service.save()
 
     def get_media(self):
         media = super(TenantService, self).get_media() + self.vendor(
@@ -182,12 +197,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
     def get_manage_app(self, http_port_str):
         service_manager = {"deployed": False}
         if self.service.service_key == 'mysql':
-            has_managers = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_key='phpmyadmin')
+            has_managers = TenantServiceInfo.objects.filter(
+                tenant_id=self.tenant.tenant_id, service_region=self.service.service_region, service_key='phpmyadmin')
             if has_managers:
                 service_manager['deployed'] = True
                 manager = has_managers[0]
                 service_manager[
-                    'url'] = 'http://{0}.{1}.{2}.goodrain.net{3}'.format(manager.service_alias, self.tenant.tenant_name, self.tenant.region, http_port_str)
+                    'url'] = 'http://{0}.{1}.{2}.goodrain.net{3}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, http_port_str)
             else:
                 service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin'.format(self.tenant.tenant_name)
         return service_manager
@@ -196,6 +212,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         self.response_region = self.service.service_region
+        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+
         context = self.get_context()
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
@@ -227,6 +245,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             context["memoryList"] = [128, 256, 512, 1024, 2048, 4096]
             context["tenant"] = self.tenant
+            context["region_name"] = self.service.service_region
             context["totalMemory"] = self.service.min_node * self.service.min_memory
 
             # service relationships
@@ -276,17 +295,17 @@ class TenantService(LeftSideBarMixin, AuthedView):
             websocket_info = settings.WEBSOCKET_URL
             context["websocket_uri"] = websocket_info[self.tenant.region]
 
-            if self.tenant.service_status == 0:
-                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant.tenant_id)
-                regionClient.unpause(self.service.service_region, self.tenant.tenant_id)
-                self.tenant.service_status = 1
-                self.tenant.save()
+            if self.tenant_region.service_status == 0:
+                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
+                regionClient.unpause(self.service.service_region, self.tenant_region.tenant_id)
+                self.tenant_region.service_status = 1
+                self.tenant_region.save()
 
-            if self.tenant.service_status == 3:
-                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant.tenant_id)
-                regionClient.systemUnpause(self.service.service_region, self.tenant.tenant_id)
-                self.tenant.service_status = 1
-                self.tenant.save()
+            elif self.tenant_region.service_status == 3:
+                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
+                regionClient.systemUnpause(self.service.service_region, self.tenant_region.tenant_id)
+                self.tenant_region.service_status = 1
+                self.tenant_region.save()
 
         except Exception as e:
             logger.exception(e)

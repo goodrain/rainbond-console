@@ -12,7 +12,6 @@ from www.models import Users, Tenants, TenantRegionInfo, TenantServiceInfo, Anon
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
-from www.api import RegionApi
 from www.gitlab_http import GitlabApi
 from www.db import BaseConnection
 import datetime
@@ -20,7 +19,7 @@ import time
 import random
 import re
 
-from base import BaseView
+from www.views import BaseView, RegionOperateMixin
 
 import hashlib
 
@@ -327,7 +326,7 @@ class PasswordReset(BaseView):
         return self.get_response()
 
 
-class Registation(BaseView):
+class Registation(BaseView, RegionOperateMixin):
 
     def get_context(self):
         context = super(Registation, self).get_context()
@@ -343,16 +342,6 @@ class Registation(BaseView):
 
     def get_response(self):
         return TemplateResponse(self.request, 'www/account/register.html', self.get_context())
-
-    def init_for_region(self, region, tenant_name, tenant_id):
-        api = RegionApi()
-        logger.info("account.register", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
-        try:
-            res, body = api.create_tenant(region, tenant_name, tenant_id)
-            return res, body
-        except api.CallApiError, e:
-            logger.error("account.register", "create tenant {0} failed".format(tenant_name))
-            logger.exception("account.register", e)
 
     def get(self, request, *args, **kwargs):
         pl = request.GET.get("pl", "")

@@ -12,6 +12,7 @@ from crispy_forms.bootstrap import (AppendedText, FieldWithButtons, StrictButton
 from www.models import Users, Tenants, PhoneCode
 from www.layout import Submit, Field
 from www.forms import widgets
+from www.region import RegionInfo
 from django.http.request import HttpRequest
 import time
 
@@ -298,12 +299,7 @@ class RegisterForm(forms.Form):
     # ('0', {'label':'亚马逊[北京](正在建设)', 'disabled': True})
     machine_region = forms.ChoiceField(
         label="",
-        choices=(
-            ('ucloud-bj-1', 'Ucloud[北京]'),
-            # ('aws-bj-1', '亚马逊[北京]'),
-            ('ali-sh', '阿里云[上海]'),
-            ('aws-jp-1', '亚马逊[日本]'),
-        ),
+        choices=RegionInfo.register_choices(),
         initial="ali-sh",
         widget=SelectWithDisabled
     )
@@ -328,15 +324,15 @@ class RegisterForm(forms.Form):
         selected_region = ""
         if len(kwargs) > 0:
             if kwargs.get("initial") is not None:
-                initalObj = kwargs.get("initial")                
+                initalObj = kwargs.get("initial")
                 init_phone = initalObj["phone"]
                 init_email = initalObj["email"]
                 init_tenant = initalObj["tenant"]
-                init_region = initalObj["region"]                    
+                init_region = initalObj["region"]
             if kwargs.get("region_level") is not None:
                 selected_region = kwargs["region_level"]["region"]
                 kwargs.pop("region_level")
-        if len(args) > 0: 
+        if len(args) > 0:
             if type(args) is tuple:
                 if args[0].get("initial") is not None:
                     initalObj = args[0]["initial"]
@@ -345,20 +341,20 @@ class RegisterForm(forms.Form):
                     init_phone = initalObj["phone"]
                     init_email = initalObj["email"]
                     init_tenant = initalObj["tenant"]
-                    init_region = initalObj["region"]       
+                    init_region = initalObj["region"]
         super(RegisterForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_tag = False
-        
+
         text_phone = "手机号"
         text_email = "请输入邮箱地址"
-        text_tenant = "团队域名"        
+        text_tenant = "团队域名"
         if init_phone is not None and init_phone != "":
             self.fields['phone'].widget.attrs['readonly'] = True
             text_phone = init_phone
         if init_email is not None and init_email != "":
             self.fields['email'].widget.attrs['readonly'] = True
-            text_email = init_email      
+            text_email = init_email
         if init_tenant is not None and init_tenant != "":
             self.fields['tenant'].widget.attrs['readonly'] = True
             text_tenant = init_tenant
@@ -367,8 +363,7 @@ class RegisterForm(forms.Form):
             self.fields['machine_region'].widget.attrs['readonly'] = True
         if selected_region is not None and selected_region != "":
             self.fields['machine_region'].initial = selected_region
-        
-        
+
         self.helper.layout = Layout(
             Div(
                 Field('nick_name', css_class="form-control", placeholder='请输入用户名'),

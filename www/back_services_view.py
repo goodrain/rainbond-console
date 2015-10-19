@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from django.http import HttpResponseRedirect
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantServiceInfo, TenantServiceAuth
+from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 import logging
@@ -65,7 +65,8 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             context["service"] = serviceObj
             if serviceObj.dependecy is not None and serviceObj.dependecy != "":
                 tenant_id = self.tenant.tenant_id
-                deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_type=serviceObj.dependecy)
+                deployTenantServices = TenantServiceInfo.objects.filter(
+                    tenant_id=tenant_id, service_type=serviceObj.dependecy, service_region=self.response_region)
                 context["deployTenantServices"] = deployTenantServices
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
@@ -81,7 +82,8 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
         service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
         result = {}
         try:
-            if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
+            self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+            if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
 

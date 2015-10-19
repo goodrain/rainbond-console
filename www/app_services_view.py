@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import Users, ServiceInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
+from www.models import Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
@@ -63,7 +63,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
 
-            if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
+            self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+            if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
 
@@ -225,7 +226,8 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView):
             context["cacheServiceList"] = cacheServiceList
 
             tenant_id = self.tenant.tenant_id
-            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, category__in=["cache", "store"])
+            deployTenantServices = TenantServiceInfo.objects.filter(
+                tenant_id=tenant_id, service_region=self.response_region, category__in=["cache", "store"])
             context["deployTenantServices"] = deployTenantServices
         except Exception as e:
             logger.exception(e)
@@ -236,7 +238,8 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
-            if self.tenant.service_status == 2 and self.tenant.pay_type == "payed":
+            self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+            if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
 
