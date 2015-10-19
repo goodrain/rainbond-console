@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from api.views.base import APIView
 from www.models import TenantServiceStatics, Tenants, TenantRegionInfo, TenantServiceInfo
 from www.service_http import RegionServiceApi
+from www.db import BaseConnection
 
 import logging
 logger = logging.getLogger('default')
@@ -96,7 +97,7 @@ class TenantHibernateView(APIView):
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region)
             if action == "pause":
                 if tenant_region.service_status == 1:
-                    regionClient.pause(region, tenant.tenant_id)
+                    regionClient.pause(region, tenant_region.tenant_id)
                     logger.info("tenant.pause", "tenant {0} paused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 0
                     tenant_region.save()
@@ -104,7 +105,7 @@ class TenantHibernateView(APIView):
                     logger.debug("tenant.pause", tenant.tenant_name + " don't been paused")
             elif action == "systemPause":
                 if tenant_region.service_status == 0:
-                    regionClient.systemPause(region, tenant.tenant_id)
+                    regionClient.systemPause(region, tenant_region.tenant_id)
                     logger.info("tenant.pause", "tenant {0} systemPaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 3
                     tenant_region.save()
@@ -112,12 +113,12 @@ class TenantHibernateView(APIView):
                     logger.debug("tenant.pause", tenant.tenant_name + " don't been paused")
             elif action == 'unpause':
                 if tenant_region.service_status == 0:
-                    regionClient.unpause(region, tenant.tenant_id)
+                    regionClient.unpause(region, tenant_region.tenant_id)
                     logger.info("tenant.pause", "tenant {0} unpaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 1
                     tenant_region.save()
                 elif tenant_region.service_status == 3:
-                    regionClient.systemUnpause(region, tenant.tenant_id)
+                    regionClient.systemUnpause(region, tenant_region.tenant_id)
                     logger.info("tenant.pause", "tenant {0} systemunpaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 1
                     tenant_region.save()
@@ -159,7 +160,7 @@ class TenantHibernateView(APIView):
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=region)
             if action == "pause":
                 if tenant_region.service_status == 1:
-                    regionClient.pause(region, tenant.tenant_id)
+                    regionClient.pause(region, tenant_region.tenant_id)
                     logger.info("tenant.pause", "tenant {0} paused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 0
                     tenant_region.save()
@@ -167,7 +168,7 @@ class TenantHibernateView(APIView):
                     logger.debug("tenant.pause", tenant_name + " don't been paused")
             elif action == "systemPause":
                 if tenant_region.service_status == 0:
-                    regionClient.systemPause(region, tenant.tenant_id)
+                    regionClient.systemPause(region, tenant_region.tenant_id)
                     logger.info("tenant.pause", "tenant {0} systempaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 3
                     tenant_region.save()
@@ -175,12 +176,12 @@ class TenantHibernateView(APIView):
                     logger.debug("tenant.pause", tenant_name + " don't been paused")
             elif action == 'unpause':
                 if tenant_region.service_status == 0:
-                    regionClient.unpause(region, tenant.tenant_id)
+                    regionClient.unpause(region, tenant_region.tenant_id)
                     logger.info("tenant.pause", "tenant {0} unpaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 1
                     tenant_region.save()
                 elif tenant_region.service_status == 3:
-                    regionClient.systemUnpause(region, tenant.tenant_id)
+                    regionClient.systemUnpause(region, tenant_region.tenant_id)
                     logger.info("tenant.pause", "tenant {0} systemunpaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 1
                     tenant_region.save()
@@ -189,62 +190,6 @@ class TenantHibernateView(APIView):
         except Exception as e:
             logger.exception(e)
         return Response({"ok": True}, status=200)
-
-
-class TenantCloseRestartView(APIView):
-
-    '''
-    租户关闭、重启
-    '''
-    allowed_methods = ('put',)
-
-    def put(self, request, format=None):
-        """
-        租户关闭重启(close,restart)
-        ---
-        parameters:
-            - name: tenant_id
-              description: 租户ID
-              required: true
-              type: string
-              paramType: form
-            - name: action
-              description: 动作
-              required: true
-              type: string
-              paramType: form
-        """
-        tenant_id = request.data.get('tenant_id', "")
-        action = request.data.get('action', "")
-        region = request.data.get('region', None)
-        if region is None:
-            return Response({"ok": False, "info": "need region field"}, status=400)
-
-        logger.debug(tenant_id + "==" + action)
-        try:
-            tenant = Tenants.objects.get(tenant_id=tenant_id)
-            tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region)
-            tenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
-            if tenantServices:
-                if action == "close":
-                    for tenantService in tenantServices:
-                        regionClient.stop(region, tenantService.service_id)
-                    if tenant.pay_type == "payed":
-                        tenant_region.service_status = 2
-                        tenant_region.save()
-                elif action == "restart":
-                    for tenantService in tenantServices:
-                        tenantService.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                        tenantService.save()
-                        body = {}
-                        body["deploy_version"] = tenantService.deploy_version
-                        regionClient.restart(region, tenantService.service_id, json.dumps(body))
-                    tenant_region.service_status = 1
-                    tenant_region.save()
-        except Exception as e:
-            logger.exception(e)
-        return Response({"ok": True}, status=200)
-
 
 class AllTenantView(APIView):
 
@@ -288,26 +233,27 @@ class AllTenantView(APIView):
         data = {}
         try:
             if region != "":
+                dsn = BaseConnection()
+                query_sql = ""
                 if diff_day != 0:
-                    end_time = datetime.datetime.now() + datetime.timedelta(days=diff_day)
-                    tenantList = Tenants.objects.filter(
-                        service_status=service_status, pay_type=pay_type, region=region, update_time__lt=end_time)
-                    logger.debug(len(tenantList))
-                    if len(tenantList) > 0:
-                        for tenant in tenantList:
-                            data[tenant.tenant_id] = tenant.tenant_name
+                    end_time = datetime.datetime.now() + datetime.timedelta(days=-1 * diff_day)
+                    str_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
+                    query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}" and tr.update_time <= "{end_time}"
+                        '''.format(service_status=service_status, pay_type=pay_type, region=region, end_time=str_time)
                 else:
-                    tenantList = Tenants.objects.filter(service_status=service_status, pay_type=pay_type, region=region)
-                    if len(tenantList) > 0:
-                        for tenant in tenantList:
-                            data[tenant.tenant_id] = tenant.tenant_name
+                    query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}"
+                        '''.format(service_status=service_status, pay_type=pay_type, region=region)
+                if query_sql != "":
+                    data = dsn.query(query_sql)
+                    if data is not None and len(data) > 0:
+                        for sqlObj in data:
+                             data[sqlObj['sqlObj']] = sqlObj['tenant_name']
         except Exception as e:
             logger.error(e)
         return Response(data, status=200)
 
 
 class TenantView(APIView):
-
     '''
     租户信息
     '''
@@ -344,8 +290,14 @@ class TenantView(APIView):
             if tenant is not None:
                 data["tenant_id"] = tenant.tenant_id
                 data["tenant_name"] = tenant.tenant_name
-                data["region"] = tenant.region
-                data["service_status"] = tenant.service_status
+                tenantRegionList = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
+                regions = []
+                for tenantRegion in tenantRegionList:
+                    region_data = {}
+                    region_data["region_name"] = tenantRegion.region_name
+                    region_data["service_status"] = tenantRegion.service_status
+                    regions.append(region_data)
+                data["regions"] = region
                 data["pay_type"] = tenant.pay_type
         except Exception as e:
             logger.exception(e)

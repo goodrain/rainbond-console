@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar
+from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo
 from www.service_http import RegionServiceApi
 from django.conf import settings
 
@@ -224,7 +224,11 @@ class TenantUsedResource(object):
 
     def calculate_real_used_resource(self, tenant):
         totalMemory = 0
-        running_data = regionClient.getTenantRunningServiceId(tenant.region, tenant.tenant_id)
+        tenant_region_list = TenantRegionInfo.object.filter(tenant_id=tenant.tenant_id)
+        running_data = {}
+        for tenant_region in tenant_region_list:
+            temp_data = regionClient.getTenantRunningServiceId(tenant.region, tenant.tenant_id)
+            running_data.update(temp_data)            
         logger.debug(running_data)
         dsn = BaseConnection()
         query_sql = '''
@@ -236,10 +240,10 @@ class TenantUsedResource(object):
                 service_id = sqlobj["service_id"]
                 apply_memory = sqlobj["apply_memory"]
                 total_memory = sqlobj["total_memory"]
-                real_memory = running_data.get(service_id)
                 disk_storage = total_memory - int(apply_memory)
                 if disk_storage < 0:
                     disk_storage = 0
+                real_memory = running_data.get(service_id)
                 if real_memory is not None and real_memory != "":
                     totalMemory = totalMemory + int(apply_memory) + disk_storage
                 else:
