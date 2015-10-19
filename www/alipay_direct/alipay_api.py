@@ -1,4 +1,4 @@
-#coding=utf-8
+# coding=utf-8
 
 # Note:
 #     支付宝 API
@@ -7,10 +7,11 @@ from alipay_config import *
 from alipay_submit import *
 from alipay_notify import *
 
-class Alipay_API:
+
+class Alipay_API(object):
     payment_type = "1"          # 支付类型
-    return_url = "http://user.goodrain.com/apps/{0}/recharge/alipay-return"      # 页面跳转同步通知页面路径
-    notify_url = "http://user.goodrain.com/apps/{0}/recharge/alipay-notiy"      # 服务器异步通知页面路径
+    return_url = "https://user.goodrain.com/apps/{0}/recharge/alipay-return"      # 页面跳转同步通知页面路径
+    notify_url = "https://user.goodrain.com/apps/{0}/recharge/alipay-notiy"      # 服务器异步通知页面路径
     seller_email = ''                                    # 卖家支付宝帐户
     anti_phishing_key = ""      # 防钓鱼时间戳
     exter_invoke_ip = ""        # 客户端的IP地址
@@ -32,7 +33,7 @@ class Alipay_API:
     # total_fee: 付款金额
     # body: 订单描述
     # show_url: 商品展示地址, 需以http://开头的完整路径
-    def alipay_submit(self,paymethod, tenantName,out_trade_no, subject, total_fee, body, show_url):
+    def alipay_submit(self, paymethod, tenantName, out_trade_no, subject, total_fee, body, show_url):
         parameter = {
             'service': "create_direct_pay_by_user",
             'partner': self.partner,
@@ -49,13 +50,13 @@ class Alipay_API:
             'exter_invoke_ip': Alipay_API.exter_invoke_ip,
             '_input_charset': self.input_charset,
         }
-        if paymethod !="zhifubao":
+        if paymethod != "zhifubao":
             parameter["paymethod"] = "bankPay"
             parameter['defaultbank'] = paymethod
         submit = AlipaySubmit()
         html_text = submit.buildRequestForm(parameter, 'get', '确定')
         return html_text
-    
+
     def get_notify(self):
         notify = AlipayNotify()
         return notify.verifyReturn()   # True/False

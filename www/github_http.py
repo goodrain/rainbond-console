@@ -5,19 +5,21 @@ from goodrain_web.base import BaseHttpClient
 import json
 import logging
 import httplib2
- 
+
 logger = logging.getLogger('default')
 
-GIT_HUB_WEB_HOOK_URL = "http://user.goodrain.com/service/githubhook/"
+GIT_HUB_WEB_HOOK_URL = "https://user.goodrain.com/service/githubhook/"
 GIT_HUB_SECRET = "goodrain"
 
+
 class GitHubApi(object):
+
     def __init__(self, *args, **kwargs):
-        self.default_headers = {'Connection':'keep-alive'}
+        self.default_headers = {'Connection': 'keep-alive'}
         github_service_info = settings.GITHUB_SERVICE_API
         for k, v in github_service_info.items():
             setattr(self, k, v)
-    
+
     def _encode_params(self, kw):
         args = []
         for k, v in kw.items():
@@ -27,8 +29,8 @@ class GitHubApi(object):
                 qv = v
             args.append('%s=%s' % (k, qv))
         return '&'.join(args)
-    
-    def authorize_url(self, state):        
+
+    def authorize_url(self, state):
         try:
             kw = {}
             kw["client_id"] = self.client_id
@@ -39,7 +41,7 @@ class GitHubApi(object):
         except Exception as e:
             logger.exception(e)
         return ""
-    
+
     def get_access_token(self, code, state=None):
         try:
             kw = {}
@@ -49,64 +51,64 @@ class GitHubApi(object):
             kw["code"] = code
             url = 'https://github.com/login/oauth/access_token'
             http = httplib2.Http()
-            headers = {'Content-Type': 'application/json', 'Accept': 'application/json'} 
-            response, content = http.request(url, 'POST' , headers=headers, body=json.dumps(kw))
+            headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+            response, content = http.request(url, 'POST', headers=headers, body=json.dumps(kw))
             return content
         except Exception as e:
             logger.exception(e)
         return ""
-    
+
     def getAllRepos(self, token):
         try:
             url = "https://api.github.com/user/repos?access_token=" + token
             http = httplib2.Http()
-            headers = {'Content-Type': 'application/json'} 
+            headers = {'Content-Type': 'application/json'}
             response, content = http.request(url, 'GET', headers=headers)
             return content
         except Exception as e:
             logger.exception(e)
         return ""
-    
-    def getReposRefs(self, user, repos, token):        
+
+    def getReposRefs(self, user, repos, token):
         try:
             url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token
             http = httplib2.Http()
-            headers = {'Content-Type': 'application/json'} 
+            headers = {'Content-Type': 'application/json'}
             response, content = http.request(url, 'GET', headers=headers)
             return content
         except Exception as e:
             logger.exception(e)
         return ""
-        
+
     def cloneReposUrl(self, user, repos, token, version):
         cmd = "git clone --branch " + version + " --depth 1 https://" + token + "@github.com/" + user + "/" + repos + ".git"
         return cmd
-    
+
     def getUser(self, token):
         try:
             url = "https://api.github.com/user?access_token=" + token
             http = httplib2.Http()
-            headers = {'Accept': 'application/json'} 
+            headers = {'Accept': 'application/json'}
             response, content = http.request(url, 'GET', headers=headers)
             return content
         except Exception as e:
             logger.exception(e)
         return ""
-    
+
     def getRepos(self, username):
         try:
             url = "https://api.github.com/users/" + username + "/repos"
             http = httplib2.Http()
-            headers = {'Content-Type': 'application/json'} 
+            headers = {'Content-Type': 'application/json'}
             response, content = http.request(url, 'GET', headers=headers)
             return content
         except Exception as e:
             logger.exception(e)
         return ""
-    
+
     def getProjectCommitTime(self, user, repos, token):
         result = 0
-        try:      
+        try:
             url = "https://api.github.com/repos/" + user + "/" + repos + "/commits?access_token=" + token
             http = httplib2.Http()
             response, content = http.request(url, 'GET', headers=headers)
@@ -115,13 +117,13 @@ class GitHubApi(object):
         except Exception as e:
             logger.exception(e)
         return result
-    
+
     def createReposHook(self, user, repos, token):
         result = False
         try:
             url = "https://api.github.com/repos/" + user + "/" + repos + "/hooks?access_token=" + token
             logger.debug(url)
-            headers = {'Content-Type': 'application/json'} 
+            headers = {'Content-Type': 'application/json'}
             data = {}
             data["name"] = "web"
             data["active"] = True
@@ -140,4 +142,3 @@ class GitHubApi(object):
         except Exception as e:
             logger.exception(e)
         return result
-    
