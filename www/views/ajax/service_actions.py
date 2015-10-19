@@ -687,6 +687,7 @@ class ServiceCheck(AuthedView):
                 result["language"] = self.service.language
         except Exception as e:
             result["status"] = "checking"
+            logger.debug(self.service.service_id + " not upload code")
         return JsonResponse(result)
 
 
