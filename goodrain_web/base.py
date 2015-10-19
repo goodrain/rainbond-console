@@ -48,8 +48,9 @@ class BaseHttpClient(object):
         logger.debug(content)
         body = self._jsondecode(content)
         logger.debug(body)
-        if isinstance(body, dict):
+        if type(body) is dict:
             body = Dict(body)
+            logger.debug(body)
         if 400 <= res.status <= 600:
             logger.debug(url)
             raise self.CallApiError(self.apitype, url, method, res, body)
