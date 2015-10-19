@@ -227,7 +227,7 @@ class TenantUsedResource(object):
         tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
         running_data = {}
         for tenant_region in tenant_region_list:
-            logger.debug(tenant_region)
+            logger.debug(tenant_region.region_name)
             temp_data = regionClient.getTenantRunningServiceId(tenant_region.region_name, tenant_region.tenant_id)
             logger.debug(temp_data)
             if len(temp_data) > 0:

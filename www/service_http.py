@@ -128,6 +128,8 @@ class RegionServiceApi(BaseHttpClient):
     def getTenantRunningServiceId(self, region, tenant_id):
         url = self.region_map[region] + "/v1/tenants/" + tenant_id + "/running-service"
         res, body = self._post(url, self.default_headers)
+        logger.debug(url)
+        logger.debug(body)
         return body["data"]
 
     def updateTenantServiceStatus(self, region, service_id, body):
