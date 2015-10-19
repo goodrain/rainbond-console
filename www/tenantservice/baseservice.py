@@ -228,6 +228,7 @@ class TenantUsedResource(object):
         running_data = {}
         for tenant_region in tenant_region_list:
             temp_data = regionClient.getTenantRunningServiceId(tenant_region.region_name, tenant_region.tenant_id)
+            logger.debug(temp_data)
             running_data.update(temp_data)            
         logger.debug(running_data)
         dsn = BaseConnection()

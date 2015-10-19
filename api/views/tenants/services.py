@@ -298,7 +298,7 @@ class TenantView(APIView):
                     region_data["region_name"] = tenantRegion.region_name
                     region_data["service_status"] = tenantRegion.service_status
                     regions.append(region_data)
-                data["regions"] = region
+                data["regions"] = regions
                 data["pay_type"] = tenant.pay_type
         except Exception as e:
             logger.exception(e)
