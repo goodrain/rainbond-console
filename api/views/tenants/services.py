@@ -46,12 +46,13 @@ class TenantServiceStaticsView(APIView):
                 net_in = data["net_in"]
                 net_out = data["net_out"]
                 flow = data["flow"]
+                region = data["region"]
                 runing_status = data["status"]
                 start_time = time.time()
                 cnt = TenantServiceStatics.objects.filter(service_id=service_id, time_stamp=time_stamp).count()
                 if cnt < 1:
                     ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num, node_memory=node_memory,
-                                              time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in, net_out=net_out, status=runing_status, flow=flow)
+                                              time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in, net_out=net_out, status=runing_status, flow=flow, region=region)
                     ts.save()
                 end_time = time.time()
                 logger.debug('statistic.perf', "sql execute time: {0}".format(end_time - start_time))
