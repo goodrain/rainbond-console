@@ -5,7 +5,7 @@ import json
 
 from rest_framework.response import Response
 from api.views.base import APIView
-from www.models import TenantServiceStatics, Tenants, TenantRegionInfo, TenantServiceInfo
+from www.models import TenantServiceStatics, Tenants, TenantRegionInfo, TenantServiceInfo, TenantServiceEnv
 from www.service_http import RegionServiceApi
 from www.db import BaseConnection
 
