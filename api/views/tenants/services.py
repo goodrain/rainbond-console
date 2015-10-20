@@ -303,3 +303,53 @@ class TenantView(APIView):
         except Exception as e:
             logger.exception(e)
         return Response(data, status=200)
+    
+class GitCheckCodeView(APIView):
+    def post(self, request, format=None):
+        """
+    代码检测
+        ---
+        parameters:
+            - name: tenant_id
+              description: 租户ID
+              required: false
+              type: string
+              paramType: form
+            - name: condition
+              description: 检测条件
+              required: false
+              type: string
+              paramType: form
+
+    """
+        result = {}
+        try:
+            service_id = request.data.get('service_id', "")
+            dependency = request.data.get("condition", "")
+            logger.debug(service_id + "=" + dependency)
+            if service_id != "" and dependency != "":
+                dps = json.loads(dependency)
+                language = dps["language"]
+                if language is not None and language != "" and language != "no":
+                    try:
+                        tse = TenantServiceEnv.objects.get(service_id=service_id)
+                        tse.language = language
+                        tse.check_dependency = dependency
+                        tse.save()
+                    except Exception:
+                        tse = TenantServiceEnv(service_id=service_id, language=language, check_dependency=dependency)
+                        tse.save()
+                    service = TenantServiceInfo.objects.get(service_id=service_id)
+                    if language != "false":
+                        if language.find("Java") > -1:
+                            service.min_memory = 256
+                            data = {}
+                            data["language"] = "java"
+                            regionClient.changeMemory(service.service_region, service_id, json.dumps(data))
+                        service.language = language
+                        service.save()
+            result["status"] = "success"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return HttpResponse(json.dumps(result))
