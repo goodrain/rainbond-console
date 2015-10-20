@@ -84,7 +84,7 @@ class TenantStopView(APIView, RegionOperateMixin):
 
             # 在目标机房生成服务以及环境变量
             for service in moving_services:
-                baseService.create_region_service(service, tenant.tenant_name, dest_region)
+                baseService.create_region_service(service, tenant.tenant_name, dest_region, do_deploy=False)
                 logger.info("tenant.move", "copy service {0} to region {1}".format(service.service_id, dest_region))
                 baseService.create_service_env(tenant.tenant_id, service.service_id, dest_region)
                 logger.info("tenant.move", "copy service env of {0} to region {1}".format(service.service_id, dest_region))
@@ -148,7 +148,7 @@ class TenantStartView(APIView):
 
         if tenant_dest_region.is_active:
             report = self.start_services(tenant, dest_region)
-            if report.ok:
+            if report['ok']:
                 return Response(report, status=204)
             else:
                 return Response(report, status=500)
@@ -196,7 +196,7 @@ class TenantStartView(APIView):
             service.deploy_version = make_deploy_version()
             service.save()
             body = {"deploy_version": service.deploy_version}
-            regionClient.restart(region, service_id, json.dumps(body))
+            regionClient.deploy(region, service_id, json.dumps(body))
             logger.info("tenant.move", "call regionapi for restart_service {0}".format(service_id))
         logger.info("tenant.move", "region {0}, started service {1}".format(region, service_id))
 
@@ -238,7 +238,7 @@ class TenantFollowUpView(APIView):
 
         if tenant_dest_region.is_active:
             report = self.do_follow_up_works(tenant, tenant_dest_region)
-            if report.ok:
+            if report['ok']:
                 return Response(report, status=204)
             else:
                 return Response(report, status=500)
