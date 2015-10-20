@@ -1,3 +1,3 @@
-from basic import SelectedServiceView, ServiceEnvVarView
+from basic import SelectedServiceView, ServiceEnvVarView, GitCheckCodeView
 
-__all__ = ('SelectedServiceView', 'ServiceEnvVarView')
+__all__ = ('SelectedServiceView', 'ServiceEnvVarView', 'GitCheckCodeView')
