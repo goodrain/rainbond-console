@@ -322,7 +322,7 @@ class GitCheckCodeView(APIView):
               paramType: form
 
     """
-        result = {}
+        data = {}
         try:
             service_id = request.data.get('service_id', "")
             dependency = request.data.get("condition", "")
@@ -348,8 +348,8 @@ class GitCheckCodeView(APIView):
                             regionClient.changeMemory(service.service_region, service_id, json.dumps(data))
                         service.language = language
                         service.save()
-            result["status"] = "success"
+            data["status"] = "success"
         except Exception as e:
             logger.exception(e)
-            result["status"] = "failure"
-        return HttpResponse(json.dumps(result))
+            data["status"] = "failure"
+        return Response(data, status=200)
