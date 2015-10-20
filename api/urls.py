@@ -11,7 +11,7 @@ urlpatterns = patterns(
     url(r'^tenants/services/hibernate$', TenantHibernateView.as_view()),
     url(r'^tenants/member$', TenantView.as_view()),
     url(r'^tenants/all-members$', AllTenantView.as_view()),
-    url(r'^services/rsync/env$', ServiceEnvVarView.as_view()),
+    url(r'^tenants/services/codecheck', GitCheckCodeView.as_view()),
     url(r'^tenants/(?P<tenantId>[a-z0-9\-]+)/move/stop_prepare$', move.TenantStopView.as_view()),
     url(r'^tenants/(?P<tenantId>[a-z0-9\-]+)/move/start$', move.TenantStartView.as_view()),
     url(r'^tenants/(?P<tenantId>[a-z0-9\-]+)/move/follow_up$', move.TenantFollowUpView.as_view()),
