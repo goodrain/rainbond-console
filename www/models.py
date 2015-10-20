@@ -305,6 +305,7 @@ class TenantServiceInfo(BaseModel):
                 data[f.name] = obj
         return data
 
+    @property
     def clone_url(self):
         if self.code_from == "github":
             code_user = self.git_url.split("/")[3]
