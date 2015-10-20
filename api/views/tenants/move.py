@@ -149,7 +149,7 @@ class TenantStartView(APIView):
         if tenant_dest_region.is_active:
             report = self.start_services(tenant, source_region, dest_region)
             if report['ok']:
-                return Response(report, status=204)
+                return Response(report, status=200)
             else:
                 return Response(report, status=500)
         else:
@@ -239,9 +239,9 @@ class TenantFollowUpView(APIView):
             return Response({"ok": False, "info": e.__str__()}, status=500)
 
         if tenant_dest_region.is_active:
-            report = self.do_follow_up_works(tenant, source_region, dest_region)
+            report = self.do_follow_up_works(tenant, source_region, tenant_dest_region)
             if report['ok']:
-                return Response(report, status=204)
+                return Response(report, status=200)
             else:
                 return Response(report, status=500)
         else:
