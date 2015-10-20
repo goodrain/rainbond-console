@@ -310,7 +310,7 @@ class GitCheckCodeView(APIView):
     代码检测
         ---
         parameters:
-            - name: tenant_id
+            - name: service_id
               description: 租户ID
               required: false
               type: string
