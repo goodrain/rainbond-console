@@ -305,6 +305,16 @@ class TenantServiceInfo(BaseModel):
                 data[f.name] = obj
         return data
 
+    def clone_url(self):
+        if self.code_from == "github":
+            code_user = self.git_url.split("/")[3]
+            code_project_name = self.git_url.split("/")[4].split(".")[0]
+            createUser = Users.objects.get(user_id=self.creater)
+            git_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+            return git_url
+        else:
+            return self.git_url
+
 
 class TenantServiceInfoDelete(BaseModel):
 
