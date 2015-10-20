@@ -18,7 +18,7 @@ regionClient = RegionServiceApi()
 baseService = BaseTenantService()
 
 
-def make_deploy_version(self):
+def make_deploy_version():
     return datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 
 
