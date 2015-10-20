@@ -185,7 +185,7 @@ class TenantStartView(APIView):
             service.deploy_version = make_deploy_version()
             service.save()
             body = {
-                "action": "upgrade",
+                "action": "deploy",
                 "deploy_version": service.deploy_version,
                 "gitUrl": "--branch " + service.code_version + " --depth 1 " + service.clone_url
             }
@@ -253,7 +253,10 @@ class TenantFollowUpView(APIView):
 
         try:
             for service in moving_services:
-                regionClient.delete(source_region, service.service_id)
+                try:
+                    regionClient.delete(source_region, service.service_id)
+                except regionClient.CallApiError, e:
+                    pass
                 logger.info("tenant.move", "delete service {0} from source region {1}".format(service.service_id, source_region))
 
                 service.service_region = tenant_dest_region.region_name
