@@ -18,7 +18,7 @@ regionClient = RegionServiceApi()
 baseService = BaseTenantService()
 
 
-def make_deploy_version(self):
+def make_deploy_version():
     return datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 
 
@@ -66,14 +66,14 @@ class TenantStopView(APIView, RegionOperateMixin):
         if tenant_dest_region.is_active:
             report = self.stop_and_recreate_services(tenant, source_region, dest_region)
             if report['ok']:
-                return Response(report, status=204)
+                return Response(report, status=200)
             else:
                 return Response(report, status=500)
         else:
             return Response({"ok": False, "info": "dest_region init is not ready"}, status=500)
 
     def stop_and_recreate_services(self, tenant, source_region, dest_region):
-        report = {"ok": True}
+        report = {"ok": True, "moving_services": []}
         moving_services = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id, service_region=source_region)
 
         try:
@@ -88,8 +88,7 @@ class TenantStopView(APIView, RegionOperateMixin):
                 logger.info("tenant.move", "copy service {0} to region {1}".format(service.service_id, dest_region))
                 baseService.create_service_env(tenant.tenant_id, service.service_id, dest_region)
                 logger.info("tenant.move", "copy service env of {0} to region {1}".format(service.service_id, dest_region))
-                service.service_region = dest_region
-                service.save()
+                report['moving_services'].append(service.service_id)
 
             # 在目标机房生成服务依赖关系
             ids = map(lambda s: s.service_id, moving_services)
@@ -127,6 +126,7 @@ class TenantStartView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        source_region = serializer.data.get('source_region')
         dest_region = serializer.data.get('dest_region')
 
         logger.info("tenant.move", "start all services on region {0} for tenant {1}".format(dest_region, tenantId))
@@ -147,7 +147,7 @@ class TenantStartView(APIView):
             return Response({"ok": False, "info": e.__str__()}, status=500)
 
         if tenant_dest_region.is_active:
-            report = self.start_services(tenant, dest_region)
+            report = self.start_services(tenant, source_region, dest_region)
             if report['ok']:
                 return Response(report, status=204)
             else:
@@ -155,9 +155,9 @@ class TenantStartView(APIView):
         else:
             return Response({"ok": False, "info": "dest_region init is not ready"}, status=500)
 
-    def start_services(self, tenant, dest_region):
+    def start_services(self, tenant, source_region, dest_region):
         report = {"ok": True}
-        moving_services = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id, service_region=dest_region)
+        moving_services = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id, service_region=source_region)
 
         try:
             ids = map(lambda s: s.service_id, moving_services)
@@ -165,6 +165,7 @@ class TenantStartView(APIView):
             dep_service_ids = set([s.dep_service_id for s in service_relations])
             start_at_end_ids = set(ids).difference(dep_service_ids)
 
+            report.update({"dep_services": dep_service_ids, "starts_services": start_at_end_ids})
             for service_id in dep_service_ids:
                 self.start(service_id, dest_region)
 
@@ -204,7 +205,7 @@ class TenantStartView(APIView):
 class TenantFollowUpView(APIView):
 
     '''
-    后续处理: 复制域名,休眠
+    后续处理: 复制域名,休眠,删除源区域的服务,更新服务region
     '''
 
     def post(self, request, tenantId, format=None):
@@ -217,6 +218,7 @@ class TenantFollowUpView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        source_region = serializer.data.get('source_region')
         dest_region = serializer.data.get('dest_region')
 
         logger.info("tenant.move", "do follow-up works on region {0} for tenant {1}".format(dest_region, tenantId))
@@ -237,7 +239,7 @@ class TenantFollowUpView(APIView):
             return Response({"ok": False, "info": e.__str__()}, status=500)
 
         if tenant_dest_region.is_active:
-            report = self.do_follow_up_works(tenant, tenant_dest_region)
+            report = self.do_follow_up_works(tenant, source_region, dest_region)
             if report['ok']:
                 return Response(report, status=204)
             else:
@@ -245,12 +247,20 @@ class TenantFollowUpView(APIView):
         else:
             return Response({"ok": False, "info": "dest_region init is not ready"}, status=500)
 
-    def do_follow_up_works(self, tenant, tenant_dest_region):
-        report = {"ok": True}
-        moving_services = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id, service_region=tenant_dest_region.region_name)
+    def do_follow_up_works(self, tenant, source_region, tenant_dest_region):
+        report = {"ok": True, "moved_services": []}
+        moving_services = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id, service_region=source_region)
 
         try:
             for service in moving_services:
+                regionClient.delete(source_region, service.service_id)
+                logger.info("tenant.move", "delete service {0} from source region {1}".format(service.service_id, source_region))
+
+                service.service_region = tenant_dest_region.region_name
+                service.save()
+                report['moved_services'].append(service.service_id)
+                logger.info("tenant.move", "set service {0} region = {1}".format(service.service_id, tenant_dest_region.region_name))
+
                 service_domains = ServiceDomain.objects.filter(service_id=service.service_id)
                 for domain in service_domains:
                     task = {
@@ -262,11 +272,11 @@ class TenantFollowUpView(APIView):
                     regionClient.addUserDomain(tenant_dest_region.region_name, json.dumps(task))
 
             if tenant_dest_region.service_status != 1:
-                regionClient.pause(tenant_dest_region.region_name, tenant_dest_region.tenant_id)
+                regionClient.pause(tenant_dest_region.region_name, tenant.tenant_id)
                 logger.info("tenant.move", "pause tenant {0} == {1} on region {2}".format(
                     tenant.tenant_name, tenant.tenant_id, tenant_dest_region.region_name))
             if tenant_dest_region.service_status == 3:
-                regionClient.systemPause(tenant_dest_region.region_name, tenant_dest_region.tenant_id)
+                regionClient.systemPause(tenant_dest_region.region_name, tenant.tenant_id)
                 logger.info("tenant.move", "systempause tenant {0} == {1} on region {2}".format(
                     tenant.tenant_name, tenant.tenant_id, tenant_dest_region.region_name))
         except Exception, e:
