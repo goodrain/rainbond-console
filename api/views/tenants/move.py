@@ -181,7 +181,7 @@ class TenantStartView(APIView):
         logger.info("tenant.move", "region {0}, try to start service {1}".format(region, service_id))
         service = TenantServiceInfo.objects.get(service_id=service_id)
         logger.info("tenant.move", "service category is {0}".format(service.category))
-        if service.category == 'applacation':
+        if service.category == 'application':
             service.deploy_version = make_deploy_version()
             service.save()
             body = {
