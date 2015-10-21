@@ -198,7 +198,7 @@ class TenantStartView(APIView):
             service.save()
             body = {"deploy_version": service.deploy_version}
             regionClient.deploy(region, service_id, json.dumps(body))
-            logger.info("tenant.move", "call regionapi for restart_service {0}".format(service_id))
+            logger.info("tenant.move", "call regionapi for deploy_service {0}".format(service_id))
         logger.info("tenant.move", "region {0}, started service {1}".format(region, service_id))
 
 

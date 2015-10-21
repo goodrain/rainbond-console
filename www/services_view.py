@@ -47,6 +47,9 @@ class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
             else:
                 raise Http404
 
+        if self.cookie_region == 'aws-bj-1':
+            self.response_region == 'ali-sh'
+
         try:
             t_region, created = TenantRegionInfo.objects.get_or_create(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             self.tenant_region = t_region
@@ -219,7 +222,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         context['serviceAlias'] = self.serviceAlias
         tab_index = request.GET.get("fr", "0")
         context['tab_index'] = tab_index
-        http_port_str = '' if self.tenant.region == 'aws-jp-1' else ':10080'
+        http_port_str = '' if self.response_region == 'aws-jp-1' else ':10080'
         context['http_port_str'] = http_port_str
         try:
             if self.service.category == "application" and self.service.ID > 598:
