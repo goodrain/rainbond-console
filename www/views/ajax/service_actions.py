@@ -745,13 +745,13 @@ class ServiceDomainManager(AuthedView):
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 regionClient.addUserDomain(self.service.service_region, json.dumps(data))
             elif action == "close":
-                servicerDomain = ServiceDomain.objects.get(service_name=tenantService.service_alias)
+                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id)
                 data = {}
                 data["service_id"] = servicerDomain.service_id
                 data["domain"] = servicerDomain.domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 regionClient.deleteUserDomain(self.service.service_region, json.dumps(data))
-                ServiceDomain.objects.filter(service_name=tenantService.service_alias).delete()
+                ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
