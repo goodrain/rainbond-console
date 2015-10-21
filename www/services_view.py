@@ -296,7 +296,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     pass
 
             websocket_info = settings.WEBSOCKET_URL
-            context["websocket_uri"] = websocket_info[self.tenant.region]
+            context["websocket_uri"] = websocket_info[self.service.service_region]
 
             if self.tenant_region.service_status == 0:
                 logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
