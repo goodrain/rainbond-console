@@ -367,7 +367,7 @@
 	          </div>
           </section>
            
-          {% if tenant.pay_type != "free" or tenant.region == 'aws-jp-1' %}
+          {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
           <section class="panel">
            	  <header class="panel-heading">对外服务</header>
 	          <div class="panel-body">
