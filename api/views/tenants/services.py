@@ -291,7 +291,7 @@ class TenantView(APIView):
             if tenant is not None:
                 data["tenant_id"] = tenant.tenant_id
                 data["tenant_name"] = tenant.tenant_name
-                tenantRegionList = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
+                tenantRegionList = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True)
                 regions = []
                 for tenantRegion in tenantRegionList:
                     region_data = {}

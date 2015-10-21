@@ -225,7 +225,7 @@ class TenantUsedResource(object):
 
     def calculate_real_used_resource(self, tenant):
         totalMemory = 0
-        tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id)
+        tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True)
         running_data = {}
         for tenant_region in tenant_region_list:
             logger.debug(tenant_region.region_name)
