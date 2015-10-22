@@ -6,7 +6,6 @@ import json
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
-from django.http import HttpResponseRedirect
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth
@@ -57,7 +56,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
         try:
             service_key = request.GET.get("service_key", "")
             if service_key == "":
-                return HttpResponseRedirect('/apps/{0}/service/'.format(self.tenant.tenant_name))
+                return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
 
             context["serviceMarketStatus"] = "active"
 

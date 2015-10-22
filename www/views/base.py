@@ -4,6 +4,7 @@ from django.forms import Media
 from django.http import Http404
 from django.utils.decorators import classonlymethod
 from django.views.generic import View
+from django.shortcuts import redirect
 
 from django.conf import settings
 
@@ -91,6 +92,10 @@ class BaseView(BaseObject, View):
 
     def init_request(self, *args, **kwargs):
         pass
+
+    def redirect_to(self, path, *args, **kwargs):
+        full_url = '{0}://{1}{2}'.format(self.request.scheme, self.request.get_host(), path)
+        return redirect(full_url, *args, **kwargs)
 
 
 class AuthedView(BaseView):

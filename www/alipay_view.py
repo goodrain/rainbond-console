@@ -1,9 +1,8 @@
 # -*- coding: utf8 -*-
-import hashlib
 import datetime
 import json
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from www.models import Tenants, Users, TenantRegionInfo, TenantRecharge, TenantConsume, TenantServiceInfo, TenantPaymentNotify
 from www.alipay_direct.alipay_api import *
 from django.shortcuts import redirect
@@ -23,7 +22,7 @@ def submit(request, tenantName):
         try:
             paymethod = request.POST.get('optionsRadios', 'zhifubao')
             if BANKS.find(paymethod) < 0:
-                return redirect('/apps/{0}/recharge/'.format(tenantName))
+                return redirect('{1}://{2}/apps/{0}/recharge/'.format(tenantName, request.scheme, request.get_host()))
             logger.debug(paymethod)
             money = float(request.POST.get('recharge_money', '0'))
             if money > 0:
@@ -54,7 +53,7 @@ def submit(request, tenantName):
                 html = submit.alipay_submit(paymethod, tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(
                     tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
             else:
-                return redirect('/apps/{0}/recharge/'.format(tenantName))
+                return redirect('{1}://{2}/apps/{0}/recharge/'.format(tenantName, request.scheme, request.get_host()))
         except Exception as e:
             html = ("%s" % e)
             logger.exception(e)
@@ -134,7 +133,7 @@ def return_url(request, tenantName):
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)
     except Exception as e:
         logger.exception(e)
-    return redirect('/apps/{0}/recharge/'.format(tenantName))
+    return redirect('{1}://{2}/apps/{0}/recharge/'.format(tenantName, request.scheme, request.get_host()))
 
 
 def notify_url(request, tenantName):
@@ -158,4 +157,4 @@ def notify_url(request, tenantName):
             logger.debug(out_trade_no + " recharge trade_status=" + trade_status)
     except Exception as e:
         logger.exception(e)
-    return redirect('/apps/{0}/recharge/'.format(tenantName))
+    return redirect('{1}://{2}/apps/{0}/recharge/'.format(tenantName, request.scheme, request.get_host()))
