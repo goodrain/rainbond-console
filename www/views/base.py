@@ -19,6 +19,7 @@ from www.models import Tenants, TenantServiceInfo
 from www.tenantservice.baseservice import BaseTenantService
 from www.version import STATIC_VERSION
 from www.region import RegionInfo
+from www.utils.url import get_redirect_url
 
 import logging
 
@@ -94,7 +95,7 @@ class BaseView(BaseObject, View):
         pass
 
     def redirect_to(self, path, *args, **kwargs):
-        full_url = '{0}://{1}{2}'.format(self.request.scheme, self.request.get_host(), path)
+        full_url = get_redirect_url(path, request=self.request)
         return redirect(full_url, *args, **kwargs)
 
 
@@ -108,14 +109,17 @@ class AuthedView(BaseView):
             try:
                 self.tenant = Tenants.objects.get(tenant_name=self.tenantName)
             except Tenants.DoesNotExist:
-                logger.error("Tenant {0} is not exists".format(self.tenantName))
+                logger.error(
+                    "Tenant {0} is not exists".format(self.tenantName))
                 raise Http404
 
             if self.serviceAlias is not None:
                 try:
-                    self.service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=self.serviceAlias)
+                    self.service = TenantServiceInfo.objects.get(
+                        tenant_id=self.tenant.tenant_id, service_alias=self.serviceAlias)
                 except TenantServiceInfo.DoesNotExist:
-                    logger.debug("Tenant {0} ServiceAlias {1} is not exists".format(self.tenantName, self.serviceAlias))
+                    logger.debug("Tenant {0} ServiceAlias {1} is not exists".format(
+                        self.tenantName, self.serviceAlias))
                     raise Http404
 
         BaseView.__init__(self, request, *args, **kwargs)
@@ -143,7 +147,8 @@ class LeftSideBarMixin(object):
         if hasattr(self, 'tenant') and hasattr(self, 'user'):
             pass
         else:
-            raise ImportWarning("LeftSideBarMixin should inherit before AuthedView")
+            raise ImportWarning(
+                "LeftSideBarMixin should inherit before AuthedView")
 
         self.cookie_region = self.request.COOKIES.get('region', None)
         self.response_region = self.tenant.region if self.cookie_region is None else self.cookie_region
@@ -175,7 +180,8 @@ class LeftSideBarMixin(object):
 
     def get_service_list(self):
         baseService = BaseTenantService()
-        services = baseService.get_service_list(self.tenant.pk, self.user.pk, self.tenant.tenant_id, region=self.response_region)
+        services = baseService.get_service_list(
+            self.tenant.pk, self.user.pk, self.tenant.tenant_id, region=self.response_region)
         for s in services:
             if s.service_alias == self.serviceAlias:
                 s.is_selected = True
