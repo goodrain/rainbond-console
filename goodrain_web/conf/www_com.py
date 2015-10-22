@@ -2,7 +2,7 @@ DEBUG = False
 
 TEMPLATE_DEBUG = True
 
-ZMQ_LOG_ADDRESS = 'tcp://10.3.1.2:9341'
+ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
 DEFAULT_HANDLERS = ['zmq_handler']
 
@@ -52,10 +52,6 @@ REGION_RULE = {
     'aws-bj-1': {'personal_money': 0.243, 'company_money': 0.555, 'personal_month_money': 175, 'company_month_money': 400},
     'aws-jp-1': {'personal_money': 0.173, 'company_money': 0.417, 'personal_month_money': 125, 'company_month_money': 300},
     'ali-sh': {'personal_money': 0.069, 'company_money': 0.173, 'personal_month_money': 50, 'company_month_money': 125},
-}
-
-OPENTSDB_API = {
-    'ucloud-bj-1': 'http://10.3.1.3:4242/api/query',
 }
 
 GITLAB_SERVICE_API = {
