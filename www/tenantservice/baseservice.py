@@ -202,81 +202,7 @@ class BaseTenantService(object):
         tenantServiceEnvVar["attr_value"] = attr_value
         tenantServiceEnvVar["is_change"] = isChange
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
-
-
-class TenantUsedResource(object):
-
-    def __init__(self):
-        self.feerule = settings.REGION_RULE
-
-    def calculate_used_resource(self, tenant):
-        totalMemory = 0
-        if tenant.pay_type == "free":
-            dsn = BaseConnection()
-            query_sql = '''
-                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                '''.format(tenant_id=tenant.tenant_id)
-            sqlobj = dsn.query(query_sql)
-            if sqlobj is not None and len(sqlobj) > 0:
-                oldMemory = sqlobj[0]["totalMemory"]
-                if oldMemory is not None:
-                    totalMemory = int(oldMemory)
-        return totalMemory
-
-    def calculate_real_used_resource(self, tenant):
-        totalMemory = 0
-        tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True)
-        running_data = {}
-        for tenant_region in tenant_region_list:
-            logger.debug(tenant_region.region_name)
-            temp_data = regionClient.getTenantRunningServiceId(tenant_region.region_name, tenant_region.tenant_id)
-            logger.debug(temp_data)
-            if len(temp_data["data"]) > 0:
-                running_data.update(temp_data["data"])
-        logger.debug(running_data)
-        dsn = BaseConnection()
-        query_sql = '''
-            select service_id, (s.min_node * s.min_memory) as apply_memory, total_memory  from tenant_service s where s.tenant_id = "{tenant_id}"
-            '''.format(tenant_id=tenant.tenant_id)
-        sqlobjs = dsn.query(query_sql)
-        if sqlobjs is not None and len(sqlobjs) > 0:
-            for sqlobj in sqlobjs:
-                service_id = sqlobj["service_id"]
-                apply_memory = sqlobj["apply_memory"]
-                total_memory = sqlobj["total_memory"]
-                disk_storage = total_memory - int(apply_memory)
-                if disk_storage < 0:
-                    disk_storage = 0
-                real_memory = running_data.get(service_id)
-                if real_memory is not None and real_memory != "":
-                    totalMemory = totalMemory + int(apply_memory) + disk_storage
-                else:
-                    totalMemory = totalMemory + disk_storage
-        return totalMemory
-
-    def predict_next_memory(self, tenant, newAddMemory):
-        result = False
-        if tenant.pay_type == "free":
-            tm = self.calculate_real_used_resource(tenant) + newAddMemory
-            logger.debug(tenant.tenant_id + " used memory " + str(tm))
-            if tm <= tenant.limit_memory:
-                result = True
-        elif tenant.pay_type == "payed":
-            tm = self.calculate_real_used_resource(tenant) + newAddMemory
-            ruleJson = self.feerule[tenant.region]
-            unit_money = 0
-            if tenant.pay_level == "personal":
-                unit_money = float(ruleJson['personal_money'])
-            elif tenant.pay_level == "company":
-                unit_money = float(ruleJson['company_money'])
-            total_money = unit_money * (tm * 1.0 / 1024)
-            logger.debug(tenant.tenant_id + "use memory " + str(tm) + " used money " + str(total_money))
-            if tenant.balance >= total_money:
-                result = True
-        elif tenant.pay_type == "unpay":
-            result = True
-        return result
-    
+        
     def is_user_click(self, region, service_id):
         is_ok = True
         data = regionClient.getLatestServiceEvent(region, service_id)
@@ -402,5 +328,77 @@ class TenantUsedResource(object):
             regionClient.writeToRegionBeanstalk(region, service_id, json.dumps(task))
         except Exception as e:
             logger.exception(e)
-    
-    
+
+
+class TenantUsedResource(object):
+
+    def __init__(self):
+        self.feerule = settings.REGION_RULE
+
+    def calculate_used_resource(self, tenant):
+        totalMemory = 0
+        if tenant.pay_type == "free":
+            dsn = BaseConnection()
+            query_sql = '''
+                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
+                '''.format(tenant_id=tenant.tenant_id)
+            sqlobj = dsn.query(query_sql)
+            if sqlobj is not None and len(sqlobj) > 0:
+                oldMemory = sqlobj[0]["totalMemory"]
+                if oldMemory is not None:
+                    totalMemory = int(oldMemory)
+        return totalMemory
+
+    def calculate_real_used_resource(self, tenant):
+        totalMemory = 0
+        tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True)
+        running_data = {}
+        for tenant_region in tenant_region_list:
+            logger.debug(tenant_region.region_name)
+            temp_data = regionClient.getTenantRunningServiceId(tenant_region.region_name, tenant_region.tenant_id)
+            logger.debug(temp_data)
+            if len(temp_data["data"]) > 0:
+                running_data.update(temp_data["data"])
+        logger.debug(running_data)
+        dsn = BaseConnection()
+        query_sql = '''
+            select service_id, (s.min_node * s.min_memory) as apply_memory, total_memory  from tenant_service s where s.tenant_id = "{tenant_id}"
+            '''.format(tenant_id=tenant.tenant_id)
+        sqlobjs = dsn.query(query_sql)
+        if sqlobjs is not None and len(sqlobjs) > 0:
+            for sqlobj in sqlobjs:
+                service_id = sqlobj["service_id"]
+                apply_memory = sqlobj["apply_memory"]
+                total_memory = sqlobj["total_memory"]
+                disk_storage = total_memory - int(apply_memory)
+                if disk_storage < 0:
+                    disk_storage = 0
+                real_memory = running_data.get(service_id)
+                if real_memory is not None and real_memory != "":
+                    totalMemory = totalMemory + int(apply_memory) + disk_storage
+                else:
+                    totalMemory = totalMemory + disk_storage
+        return totalMemory
+
+    def predict_next_memory(self, tenant, newAddMemory):
+        result = False
+        if tenant.pay_type == "free":
+            tm = self.calculate_real_used_resource(tenant) + newAddMemory
+            logger.debug(tenant.tenant_id + " used memory " + str(tm))
+            if tm <= tenant.limit_memory:
+                result = True
+        elif tenant.pay_type == "payed":
+            tm = self.calculate_real_used_resource(tenant) + newAddMemory
+            ruleJson = self.feerule[tenant.region]
+            unit_money = 0
+            if tenant.pay_level == "personal":
+                unit_money = float(ruleJson['personal_money'])
+            elif tenant.pay_level == "company":
+                unit_money = float(ruleJson['company_money'])
+            total_money = unit_money * (tm * 1.0 / 1024)
+            logger.debug(tenant.tenant_id + "use memory " + str(tm) + " used money " + str(total_money))
+            if tenant.balance >= total_money:
+                result = True
+        elif tenant.pay_type == "unpay":
+            result = True
+        return result

@@ -16,7 +16,8 @@ import logging
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
-
+baseService = BaseTenantService()
+tenantUsedResource = TenantUsedResource()
 
 class ServiceMarket(LeftSideBarMixin, AuthedView):
 
@@ -121,7 +122,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             if createService != "":
                 dependencyNum = len(serviceKeys)
             # calculate resource
-            tenantUsedResource = TenantUsedResource()
             flag = tenantUsedResource.predict_next_memory(self.tenant, dependencyNum * 128 + service.min_memory)
             if not flag:
                 if self.tenant.pay_type == "free":
@@ -131,7 +131,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                 return JsonResponse(result, status=200)
             # create new service
             if createService != "":
-                baseService = BaseTenantService()
                 for skey in serviceKeys:
                     try:
                         dep_service = ServiceInfo.objects.get(service_key=skey)
@@ -150,7 +149,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             hasService = request.POST.get("hasService", "")
             logger.debug(hasService)
             if hasService != "":
-                baseService = BaseTenantService()
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
@@ -159,7 +157,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         logger.exception(e)
 
             # create console service
-            baseService = BaseTenantService()
+
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
             # create service env
