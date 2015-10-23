@@ -638,7 +638,7 @@
 		    	  	  success: function(msg) {
 		    	  		  var obj=msg;
 			    	  	  if(obj["status"]!="failure"){
-			    		  	  if(obj["status"]=="Running"){
+			    		  	  if(obj["status"]=="running"){
 			    		  		$("#service_status_value").val("stop")
 			    		  		$("#font"+service_id).html("关闭")
 			    		  		$("#service_status_operate").show()
@@ -648,16 +648,16 @@
 			    		  		$("#service_status_operate").show()
 			    		  		$("#service_visitor").show()
 			    		  		$("#service_status").attr("class","badge badge-sm label-success")
-				    		  }else if(obj["status"]=="Waiting"){
+				    		  }else if(obj["status"]=="unusual"){
 				    			$("#service_status_value").val("")
-				    		  	$("#font"+service_id).html("部署中")
-				    		  	$("#service_status_operate").hide()
-				    		  	$("#onekey_deploy").hide();
-				    		  	$("#service_status").html("部署中")
-				    		    $("#service_status_operate").hide();
-				    			$("#service_visitor").hide();
-				    			$("#service_status").attr("class","badge badge-sm label-success")
-				    		  }else if(obj["status"]=="Closing" || obj["status"]=="Owed"){
+				    		  	$("#font"+service_id).html("启动")
+				    		  	$("#service_status_operate").show()
+				    		  	$("#onekey_deploy").show();
+				    		  	$("#service_status").html("运行异常")
+				    		    $("#service_status_operate").show()
+				    			$("#service_visitor").show()
+				    			$("#service_status").attr("class","badge badge-sm label-danger")
+				    		  }else if(obj["status"]=="closed" || obj["status"]=="owed"){
 				    			$("#service_status_value").val("restart")
 				    		  	$("#font"+service_id).html("启动")
 				    		  	$("#service_status_operate").show()
@@ -672,7 +672,7 @@
 				    		  	}
 				    		  	$("#service_status_operate").show()
 				    		  	$("#service_visitor").hide();
-				    		  }else if(obj["status"]=="Undeployed"){
+				    		  }else if(obj["status"]=="undeploy"){
 				    			$("#service_status_value").val("")
 				    			$("#font"+service_id).html("未部署")
 				    			$("#service_status_operate").hide();

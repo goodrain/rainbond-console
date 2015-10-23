@@ -401,7 +401,7 @@ class AllServiceInfo(AuthedView):
                 for s in service_list:
                     if s['deploy_version'] is None or s['deploy_version'] == "":
                         child1 = {}
-                        child1["status"] = "Undeployed"
+                        child1["status"] = "undeploy"
                         result[s['service_id']] = child1
                     else:
                         service_ids.append(s['service_id'])
@@ -411,7 +411,7 @@ class AllServiceInfo(AuthedView):
                     if s['ID'] in service_pk_list:
                         if s['deploy_version'] is None or s['deploy_version'] == "":
                             child1 = {}
-                            child1["status"] = "Undeployed"
+                            child1["status"] = "undeploy"
                             result[s.service_id] = child1
                         else:
                             service_ids.append(s['service_id'])
@@ -419,42 +419,16 @@ class AllServiceInfo(AuthedView):
                 if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                     for sid in service_ids:
                         child = {}
-                        child["status"] = "Owed"
+                        child["status"] = "owed"
                         result[sid] = child
                 else:
                     id_string = ','.join(service_ids)
                     bodys = regionClient.check_status(self.cookie_region, json.dumps({"service_ids": id_string}))
-                    for sid in service_ids:
-                        service = TenantServiceInfo.objects.get(service_id=sid)
-                        body = bodys[sid]
-                        nodeNum = 0
-                        runningNum = 0
-                        isDeploy = 0
+                    logger.debug(bodys)
+                    for key, value in bodys.items():
                         child = {}
-                        for item in body:
-                            nodeNum += 1
-                            status = body[item]['status']
-                            if status == "Undeployed":
-                                isDeploy = -1
-                                break
-                            elif status == 'Running':
-                                runningNum += 1
-                                isDeploy += 1
-                            else:
-                                isDeploy += 1
-                        if isDeploy > 0:
-                            if nodeNum == runningNum:
-                                if runningNum > 0:
-                                    child["status"] = "Running"
-                                else:
-                                    child["status"] = "Waiting"
-                            else:
-                                child["status"] = "Waiting"
-                        elif isDeploy == -1:
-                            child["status"] = "Undeployed"
-                        else:
-                            child["status"] = "Closing"
-                        result[sid] = child
+                        child["status"] = value
+                        result[key] = child                        
         except Exception:
             tempIds = ','.join(service_ids)
             logger.debug(self.tenant.region + "-" + tempIds + " check_service_status is error")
@@ -497,20 +471,6 @@ class AllTenantsUsedResource(AuthedView):
                         result[s['service_id'] + "_running_memory"] = s["min_node"] * s["min_memory"]
                         result[s['service_id'] + "_storage_memory"] = 0
             result["service_ids"] = service_ids
-#             if len(service_ids) > 0:
-#                 dsn = BaseConnection()
-#                 query_sql = "select service_id,storage_disk,node_num,net_in,net_out from tenant_service_statics where tenant_id ='" + self.tenant.tenant_id + "' and service_id in(" + serviceIds + ")  order by id desc limit " + str(len(service_ids))
-#                 sqlobjs = dsn.query(query_sql)
-#                 for sqlobj in sqlobjs:
-#                     service_id = sqlobj["service_id"]
-#                     storageDisk = int(sqlobj["storage_disk"])
-#                     node_num = int(sqlobj["node_num"])
-#                     net_in = int(sqlobj["net_in"])
-#                     net_out = int(sqlobj["net_out"])
-#                     max_net = net_out
-#                     if net_in > net_out:
-#                         max_net = net_in
-#                     result[service_id + "_storage_memory"] = int(storageDisk * 0.01) + max_net
         except Exception as e:
             logger.exception(e)
         return JsonResponse(result)
@@ -532,37 +492,13 @@ class ServiceDetail(AuthedView):
                     result["status"] = "Undeployed"
                 else:
                     body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
-                    nodeNum = 0
-                    runningNum = 0
-                    isDeploy = 0
-                    for item in body:
-                        nodeNum += 1
-                        status = body[item]['status']
-                        if status == "Undeployed":
-                            isDeploy = -1
-                            break
-                        elif status == "Running":
-                            runningNum += 1
-                            isDeploy += 1
-                        else:
-                            isDeploy += 1
-                    if isDeploy > 0:
-                        if nodeNum == runningNum:
-                            if runningNum > 0:
-                                result["totalMemory"] = runningNum * self.service.min_memory
-                                result["status"] = "Running"
-                            else:
-                                result["totalMemory"] = 0
-                                result["status"] = "Waiting"
-                        else:
-                            result["totalMemory"] = 0
-                            result["status"] = "Waiting"
-                    elif isDeploy == -1:
-                        result["totalMemory"] = 0
-                        result["status"] = "Undeployed"
+                    logger.debug(body)
+                    status = body[self.service.service_id]
+                    if status == "running":
+                        result["totalMemory"] = runningNum * self.service.min_memory
                     else:
                         result["totalMemory"] = 0
-                        result["status"] = "Closing"
+                    result["status"] = status                        
         except Exception, e:
             logger.debug(self.service.service_region + "-" + self.service.service_id + " check_service_status is error")
             result["totalMemory"] = 0
@@ -583,17 +519,6 @@ class ServiceNetAndDisk(AuthedView):
             result["bytesin"] = 0
             result["bytesout"] = 0
             result["disk_memory"] = 0
-#             tenantServiceStaticsList = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('-ID')[0:1]
-#             if tenantServiceStaticsList is not None and len(tenantServiceStaticsList) > 0 :
-#                 tenantServiceStatics = tenantServiceStaticsList[0]
-#                 storageDisk = tenantServiceStatics.storage_disk
-#                 result["disk"] = storageDisk
-#                 result["bytesin"] = tenantServiceStatics.net_in
-#                 result["bytesout"] = tenantServiceStatics.net_out
-#                 max_net = tenantServiceStatics.net_in
-#                 if tenantServiceStatics.net_in < tenantServiceStatics.net_out:
-#                     max_net = tenantServiceStatics.net_out
-#                 result["disk_memory"] = int(storageDisk * 0.01) + max_net
         except Exception, e:
             logger.exception(e)
         return JsonResponse(result)
