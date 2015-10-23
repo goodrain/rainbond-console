@@ -537,6 +537,15 @@ class ServiceLog(AuthedView):
                 tenant_id = self.service.tenant_id
                 if action == "operate":
                     body = regionClient.get_userlog(self.service.service_region, service_id)
+                    eventDataList = body.get("event_data")
+                    result = {}
+                    log = ""
+                    if eventDataList is not None:
+                        eventDataList.reverse()
+                        for eventData in eventDataList:
+                            log = log + eventData["create_time"] + " " + eventData["desc"] + "</br>"
+                    result["log"] = log
+                    result["num"] = len(eventDataList)
                     return JsonResponse(body)
                 elif action == "service":
                     body = {}
