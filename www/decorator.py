@@ -32,7 +32,7 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
             path = request.get_full_path()
         from django.contrib.auth.views import redirect_to_login
         return redirect_to_login(
-            get_redirect_url(path), resolved_login_url, redirect_field_name)
+            get_redirect_url(path, request), resolved_login_url, redirect_field_name)
 
     def decorator(view_func):
         @wraps(view_func, assigned=available_attrs(view_func))
