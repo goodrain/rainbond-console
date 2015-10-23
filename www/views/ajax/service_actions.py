@@ -88,6 +88,7 @@ class AppDeploy(AuthedView):
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             para = json.dumps(body)
 
+            baseService.createStartEvent(self.service.service_region, self.user.pk, tenant_id, service_id)
             regionClient.build_service(self.service.service_region, service_id, para)
 
             data["status"] = "success"
