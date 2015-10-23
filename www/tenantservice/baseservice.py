@@ -213,9 +213,28 @@ class BaseTenantService(object):
                 lastTime = event.get("time")
                 curTime = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                 diffsec = int(curTime) - int(lastTime)
-                if event.status == "start" and diffsec <= 90:
+                if (event.status == "start" or event.status == "compile") and diffsec <= 90:
                     is_ok = False
         return is_ok
+    
+    def createDeployEvent(self, region, user_id, tenant_id, service_id):
+        try:
+            data = {}
+            data["event_id"] = ""
+            data["user_id"] = str(user_id)
+            data["tenant_id"] = tenant_id
+            data["service_id"] = service_id
+            data["type"] = "deploy"
+            data["desc"] = u"正在部署代码.."
+            data["show"] = True
+            data["status"] = "start"
+            data["store"] = "mysql"        
+            task = {}
+            task["tube"] = "app_event"
+            task["data"] = data
+            regionClient.writeToRegionBeanstalk(region, service_id, json.dumps(task))
+        except Exception as e:
+            logger.exception(e)
     
     def createStartEvent(self, region, user_id, tenant_id, service_id):
         try:
