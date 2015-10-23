@@ -546,7 +546,7 @@ class ServiceLog(AuthedView):
                             log = log + eventData["create_time"] + " " + eventData["desc"] + "</br>"
                     result["log"] = log
                     result["num"] = len(eventDataList)
-                    return JsonResponse(body)
+                    return JsonResponse(result)
                 elif action == "service":
                     body = {}
                     body["tenant_id"] = tenant_id
