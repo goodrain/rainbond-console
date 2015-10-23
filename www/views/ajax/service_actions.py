@@ -93,7 +93,7 @@ class AppDeploy(AuthedView):
             data["status"] = "success"
             return JsonResponse(data, status=200)
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             data["status"] = "failure"
         return JsonResponse(data, status=500)
 
@@ -495,7 +495,7 @@ class ServiceDetail(AuthedView):
                     logger.debug(body)
                     status = body[self.service.service_id]
                     if status == "running":
-                        result["totalMemory"] = runningNum * self.service.min_memory
+                        result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
                         result["totalMemory"] = 0
                     result["status"] = status                        
