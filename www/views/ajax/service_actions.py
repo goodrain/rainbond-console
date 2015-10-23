@@ -245,11 +245,10 @@ class ServiceUpgrade(AuthedView):
             return JsonResponse(result, status=200)
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
-            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            diffsec = int(curVersion) - int(oldVerion)
-            if diffsec <= 90:
+            if not baseService.is_user_click(self.service.service_region, self.service.service_id):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
+            
         action = request.POST["action"]
         if action == "vertical":
             try:

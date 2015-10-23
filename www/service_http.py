@@ -190,5 +190,5 @@ class RegionServiceApi(BaseHttpClient):
     
     def getLatestServiceEvent(self, region, service_id):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/latest-event/"
-        res, body = self._get(url, self.default_headers)
+        res, body = self._post(url, self.default_headers)
         return body
