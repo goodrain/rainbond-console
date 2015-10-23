@@ -4,7 +4,7 @@
 class RegionInfo(object):
     region_list = (
         {"name": "ucloud-bj-1", "label": u"ucloud[北京]", "enable": True},
-        {"name": "aws-bj-1", "label": u"亚马逊[北京]", "enable": False},
+        {"name": "aws-bj-1", "label": u"亚马逊[北京]", "enable": True},
         {"name": "aws-jp-1", "label": u"亚马逊[日本]", "enable": True},
         {"name": "ali-sh", "label": u"阿里云[上海]", "enable": True},
     )

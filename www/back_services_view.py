@@ -140,6 +140,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region)
+                        baseService.createInstallEvent(self.response_region, self.user.pk, tenant_id, dep_service_id)
                         baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
@@ -163,23 +164,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
             # create service env
             baseService.create_service_env(tenant_id, service_id, self.response_region)
-            # record service log
-            data = {}
-            data["log_msg"] = "服务创建成功，开始部署....."
-            data["service_id"] = newTenantService.service_id
-            data["tenant_id"] = newTenantService.tenant_id
-            task = {}
-            task["data"] = data
-            task["tube"] = "app_log"
-            task["service_id"] = newTenantService.service_id
-            try:
-                regionClient.writeToRegionBeanstalk(self.response_region, newTenantService.service_id, json.dumps(task))
-            except Exception as e:
-                logger.exception(e)
-
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region)
-
+            baseService.createInstallEvent(self.response_region, self.user.pk, tenant_id, service_id)
+                        
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias

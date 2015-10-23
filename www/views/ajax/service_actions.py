@@ -23,6 +23,7 @@ logger = logging.getLogger('default')
 gitClient = GitlabApi()
 
 regionClient = RegionServiceApi()
+baseService = BaseTenantService()
 
 
 class AppDeploy(AuthedView):
@@ -43,9 +44,7 @@ class AppDeploy(AuthedView):
         service_id = self.service.service_id
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
-            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            diffsec = int(curVersion) - int(oldVerion)
-            if diffsec <= 90:
+            if not baseService.is_user_click(self.service.service_region, service_id):
                 data["status"] = "often"
                 return JsonResponse(data, status=200)
 
@@ -66,19 +65,6 @@ class AppDeploy(AuthedView):
             temData["status"] = old_status
             regionClient.updateTenantServiceStatus(self.service.service_region, service_id, json.dumps(temData))
             return JsonResponse(data, status=200)
-
-        try:
-            data = {}
-            data["log_msg"] = "开始部署......"
-            data["service_id"] = service_id
-            data["tenant_id"] = tenant_id
-            task = {}
-            task["service_id"] = service_id
-            task["data"] = data
-            task["tube"] = "app_log"
-            regionClient.writeToRegionBeanstalk(self.service.service_region, service_id, json.dumps(task))
-        except Exception as e:
-            logger.exception(e)
         try:
             gitUrl = request.POST.get('git_url', None)
             if gitUrl is None:
@@ -104,12 +90,6 @@ class AppDeploy(AuthedView):
 
             regionClient.build_service(self.service.service_region, service_id, para)
 
-            log = {
-                "user_id": self.user.pk, "user_name": self.user.nick_name,
-                "service_id": service_id, "tenant_id": tenant_id,
-                "action": "deploy",
-            }
-            TenantServiceLog.objects.create(**log)
             data["status"] = "success"
             return JsonResponse(data, status=200)
         except Exception as e:
@@ -130,15 +110,14 @@ class ServiceManage(AuthedView):
 
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
-            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            diffsec = int(curVersion) - int(oldVerion)
-            if diffsec <= 60:
+            if not baseService.is_user_click(self.service.service_region, self.service.service_id):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
 
         try:
             action = request.POST["action"]
             if action == "stop":
+                baseService.createCloseEvent(self.service.service_region, self.user.pk, self.service.tenant_id, self.service.service_id)
                 regionClient.stop(self.service.service_region, self.service.service_id)
             elif action == "restart":
                 # temp record service status
@@ -164,7 +143,8 @@ class ServiceManage(AuthedView):
                 self.service.save()
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
-                regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
+                baseService.createStartEvent(self.service.service_region, self.user.pk, self.service.tenant_id, self.service.service_id)
+                regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))                
             elif action == "delete":
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
@@ -216,7 +196,6 @@ class ServiceManage(AuthedView):
                     if par_inner_service == "start" or par_inner_service == "change":
                         inner_service = True
                     service_port = self.service.service_port
-                    baseService = BaseTenantService()
                     if inner_service:
                         number = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).count()
                         if number < 1:
@@ -313,6 +292,7 @@ class ServiceUpgrade(AuthedView):
                     body["container_memory"] = upgrade_container_memory
                     body["deploy_version"] = deploy_version
                     body["container_cpu"] = upgrade_container_cpu
+                    baseService.createVerticalEvent(self.service.service_region, self.user.pk, self.service.tenant_id, self.service.service_id, upgrade_container_memory)
                     regionClient.verticalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
                 result["status"] = "success"
             except Exception, e:
@@ -356,7 +336,8 @@ class ServiceUpgrade(AuthedView):
                         body = {}
                         body["node_num"] = node_num
                         body["deploy_version"] = deploy_version
-                        regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                        baseService.createVerticalEvent(self.service.service_region, self.user.pk, self.service.tenant_id, self.service.service_id, node_num)
+                        regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))                        
                     except Exception, e:
                         logger.exception(e)
                         isResetStatus = True
@@ -392,7 +373,6 @@ class ServiceRelation(AuthedView):
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
             tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
-            baseService = BaseTenantService()
             if action == "add":
                 baseService.create_service_dependency(tenant_id, service_id, tenantS.service_id, self.service.service_region)
             elif action == "cancel":
@@ -630,12 +610,12 @@ class ServiceLog(AuthedView):
                 action = request.GET.get("action", "")
                 service_id = self.service.service_id
                 tenant_id = self.service.tenant_id
-                body = {}
-                body["tenant_id"] = tenant_id
                 if action == "operate":
-                    body = regionClient.get_userlog(self.service.service_region, service_id, json.dumps(body))
+                    body = regionClient.get_userlog(self.service.service_region, service_id)
                     return JsonResponse(body)
                 elif action == "service":
+                    body = {}
+                    body["tenant_id"] = tenant_id
                     body = regionClient.get_log(self.service.service_region, service_id, json.dumps(body))
                     return JsonResponse(body)
                 return JsonResponse({})
@@ -816,7 +796,6 @@ class ServiceEnvVarManager(AuthedView):
                             TenantServiceEnvVar(**tenantServiceEnvVar).save()
             # sync data to region
             if isNeedToRsync:
-                baseTenantService = BaseTenantService()
                 baseTenantService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
             result["status"] = "success"
         except Exception as e:

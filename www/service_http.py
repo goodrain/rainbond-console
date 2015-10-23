@@ -69,9 +69,9 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body)
         return body
 
-    def get_userlog(self, region, service_id, body):
+    def get_userlog(self, region, service_id):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/userlog/"
-        res, body = self._post(url, self.default_headers, body)
+        res, body = self._post(url, self.default_headers)
         return body
 
     def verticalUpgrade(self, region, service_id, body):
@@ -187,3 +187,8 @@ class RegionServiceApi(BaseHttpClient):
         data = {"tenant_id": tenant_id, "tenant_name": tenant_name}
         res, body = self._post(url, self.default_headers, json.dumps(data))
         return res, body
+    
+    def getLatestServiceEvent(self, region, service_id):
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/latest-event/"
+        res, body = self._get(url, self.default_headers)
+        return body

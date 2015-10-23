@@ -276,3 +276,131 @@ class TenantUsedResource(object):
         elif tenant.pay_type == "unpay":
             result = True
         return result
+    
+    def is_user_click(self, region, service_id):
+        is_ok = True
+        data = regionClient.getLatestServiceEvent(region, service_id)
+        if data.get("event") is None:
+            event = data.get("event")
+            lastTime = data.get("time")
+            curTime = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            diffsec = int(curTime) - int(lastTime)
+            if event.status == "start" or diffsec == 120:
+                is_ok = False
+        return is_ok
+    
+    def createStartEvent(self, region, user_id, tenant_id, service_id):
+        try:
+            data = {}
+            data["event_id"] = ""
+            data["user_id"] = str(user_id)
+            data["tenant_id"] = tenant_id
+            data["service_id"] = service_id
+            data["type"] = "start"
+            data["desc"] = u"正在启动.."
+            data["show"] = True
+            data["status"] = "start"
+            data["store"] = "mysql"        
+            task = {}
+            task["tube"] = "app_event"
+            task["data"] = data
+            regionClient.writeToRegionBeanstalk(region, service_id, json.dumps(task))
+        except Exception as e:
+            logger.exception(e)
+        
+    def createCloseEvent(self, region, user_id, tenant_id, service_id):
+        try:
+            data = {}
+            data["event_id"] = ""
+            data["user_id"] = str(user_id)
+            data["tenant_id"] = tenant_id
+            data["service_id"] = service_id
+            data["type"] = "close"
+            data["desc"] = u"正在关闭..."
+            data["show"] = True
+            data["status"] = "start"
+            data["store"] = "mysql"
+            task = {}
+            task["tube"] = "app_event"
+            task["data"] = data
+            regionClient.writeToRegionBeanstalk(region, service_id, json.dumps(task))
+        except Exception as e:
+            logger.exception(e)
+    
+    def createHorizontalEvent(self, region, user_id, tenant_id, service_id, replicas):
+        try:
+            data = {}
+            data["event_id"] = ""
+            data["user_id"] = str(user_id)
+            data["tenant_id"] = tenant_id
+            data["service_id"] = service_id
+            data["type"] = "expand"
+            data["desc"] = u"扩容到" + replicas + "个节点..."
+            data["show"] = True
+            data["status"] = "start"
+            data["store"] = "mysql"
+            task = {}
+            task["tube"] = "app_event"
+            task["data"] = data
+            regionClient.writeToRegionBeanstalk(region, service_id, json.dumps(task))
+        except Exception as e:
+            logger.exception(e)
+    
+    def createVerticalEvent(self, region, user_id, tenant_id, service_id, memory):
+        try:
+            data = {}
+            data["event_id"] = ""
+            data["user_id"] = str(user_id)
+            data["tenant_id"] = tenant_id
+            data["service_id"] = service_id
+            data["type"] = "expand"
+            data["desc"] = u"扩容到" + memory + "M内存..."
+            data["show"] = True
+            data["status"] = "start"
+            data["store"] = "mysql"
+            task = {}
+            task["tube"] = "app_event"
+            task["data"] = data
+            regionClient.writeToRegionBeanstalk(region, service_id, json.dumps(task))
+        except Exception as e:
+            logger.exception(e)
+    
+    def createInstallEvent(self, region, user_id, tenant_id, service_id):
+        try:
+            data = {}
+            data["event_id"] = ""
+            data["user_id"] = str(user_id)
+            data["tenant_id"] = tenant_id
+            data["service_id"] = service_id
+            data["type"] = "install"
+            data["desc"] = u"正在安装..."
+            data["show"] = True
+            data["status"] = "start"
+            data["store"] = "mysql"
+            task = {}
+            task["tube"] = "app_event"
+            task["data"] = data
+            regionClient.writeToRegionBeanstalk(region, service_id, json.dumps(task))
+        except Exception as e:
+            logger.exception(e)
+    
+    def createUpgradeEvent(self, region, user_id, tenant_id, service_id, version):
+        try:
+            data = {}
+            data["event_id"] = ""
+            data["user_id"] = str(user_id)
+            data["tenant_id"] = tenant_id
+            data["service_id"] = service_id
+            data["type"] = "upgrade"
+            data["desc"] = u"升级到：" + version + "..."
+            data["show"] = True
+            data["status"] = "start"
+            data["store"] = "mysql"
+            task = {}
+            task["tube"] = "app_event"
+            task["data"] = data
+            regionClient.writeToRegionBeanstalk(region, service_id, json.dumps(task))
+        except Exception as e:
+            logger.exception(e)
+    
+    
