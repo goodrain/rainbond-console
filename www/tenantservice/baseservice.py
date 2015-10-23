@@ -261,7 +261,7 @@ class BaseTenantService(object):
             data["tenant_id"] = tenant_id
             data["service_id"] = service_id
             data["type"] = "expand"
-            data["desc"] = u"扩容到" + replicas + "个节点..."
+            data["desc"] = u"扩容到" + str(replicas) + "个节点..."
             data["show"] = True
             data["status"] = "start"
             data["store"] = "mysql"
