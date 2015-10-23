@@ -213,7 +213,7 @@ class BaseTenantService(object):
                 lastTime = event.get("time")
                 curTime = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                 diffsec = int(curTime) - int(lastTime)
-                if event.status == "start" or diffsec == 120:
+                if event.status == "start" and diffsec <= 90:
                     is_ok = False
         return is_ok
     
