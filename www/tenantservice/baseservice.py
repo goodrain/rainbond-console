@@ -205,14 +205,18 @@ class BaseTenantService(object):
         
     def is_user_click(self, region, service_id):
         is_ok = True
-        data = regionClient.getLatestServiceEvent(region, service_id)
-        if data.get("event") is None:
-            event = data.get("event")
-            lastTime = data.get("time")
-            curTime = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            diffsec = int(curTime) - int(lastTime)
-            if event.status == "start" or diffsec == 120:
-                is_ok = False
+        try:
+            data = regionClient.getLatestServiceEvent(region, service_id)
+            logger.debug(data)
+            if data.get("event") is not None:
+                event = data.get("event")
+                lastTime = event.get("time")
+                curTime = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                diffsec = int(curTime) - int(lastTime)
+                if event.status == "start" or diffsec == 120:
+                    is_ok = False
+        except Exception as e:
+            logger.exception(e)
         return is_ok
     
     def createStartEvent(self, region, user_id, tenant_id, service_id):
