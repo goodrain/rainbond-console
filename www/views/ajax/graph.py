@@ -62,7 +62,7 @@ class ServiceGraph(AuthedView):
             else:
                 queries += '{' + 'tenant={0},service={1}'.format(self.tenant.tenant_name, self.service.service_alias) + '}'
 
-            query_data = self.region_client.opentsdbQuery(self.tenant.region, start, queries)
+            query_data = self.region_client.opentsdbQuery(self.service.service_region, start, queries)
             if query_data is None:
                 return None
 
