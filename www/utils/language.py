@@ -2,7 +2,7 @@ def is_redirect(language, data):
     redirectme = False
     if language == "PHP":
         if data["runtimes"] == "true" and data["dependencies"] == "true" and data["procfile"] == "true":
-            redirectme = True   
+            redirectme = True
     elif language == "Ruby":
         redirectme = True
     elif language == "Python":

@@ -31,6 +31,7 @@ urlpatterns = patterns(
     url(r'^service/codecheck/$', csrf_exempt(GitCheckCode.as_view())),
     url(r'^tenant/visit/$', csrf_exempt(TenantsVisitorView.as_view())),
     url(r'^api/', include('api.urls')),
+    url(r'^partners/', include('www.partners.urls')),
     url(r'^Ea7e1ps5.html$', views.ssl_crv),
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.url_payedpackage')),
 ) + staticfiles_urlpatterns()

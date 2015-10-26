@@ -78,6 +78,14 @@ GITHUB_SERVICE_API = {
     'client_secret': '25b99d1d03323dd540eb72bfceb0e033062ccbe5',
 }
 
+QING_CLOUD_APP = {
+    "app_id": "app-9x7m7zht", "secret_app_key": "XEmWiKVbXGSIu7c3LW5mkHBXdnpkKoUC2aTh8Gwl"
+}
+
+UCLOUD_APP = {
+    "secret_key": "abc"
+}
+
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
