@@ -1,13 +1,13 @@
 # -*- coding: utf8 -*-
-import hashlib
 import datetime
 import json
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from www.models import Tenants, Users, TenantRegionInfo, TenantRecharge, TenantConsume, TenantServiceInfo, TenantPaymentNotify
 from www.alipay_direct.alipay_api import *
 from django.shortcuts import redirect
 from www.service_http import RegionServiceApi
+from www.utils.url import get_redirect_url
 
 import logging
 logger = logging.getLogger('default')
@@ -23,7 +23,8 @@ def submit(request, tenantName):
         try:
             paymethod = request.POST.get('optionsRadios', 'zhifubao')
             if BANKS.find(paymethod) < 0:
-                return redirect('/apps/{0}/recharge/'.format(tenantName))
+                path = '/apps/{0}/recharge/'.format(tenantName)
+                return redirect(get_redirect_url(path, request))
             logger.debug(paymethod)
             money = float(request.POST.get('recharge_money', '0'))
             if money > 0:
@@ -38,15 +39,18 @@ def submit(request, tenantName):
                 tenantRecharge.tenant_id = tenant_id
                 tenantRecharge.user_id = uid
                 tenantRecharge.user_name = nick_name
-                orderno = str(uid) + str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+                orderno = str(
+                    uid) + str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
                 logger.debug(orderno)
                 tenantRecharge.order_no = orderno
                 tenantRecharge.recharge_type = "alipay"
                 tenantRecharge.money = money
                 tenantRecharge.subject = "好雨云平台充值"
                 tenantRecharge.body = "好雨云平台充值"
-                tenantRecharge.show_url = "https://user.goodrain.com/apps/" + tenantName + "/recharge"
-                tenantRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                tenantRecharge.show_url = "https://user.goodrain.com/apps/" + \
+                    tenantName + "/recharge"
+                tenantRecharge.time = datetime.datetime.now().strftime(
+                    '%Y-%m-%d %H:%M:%S')
                 tenantRecharge.status = "TRADE_UNFINISHED"
                 tenantRecharge.save()
                 html = '<p>订单已经提交，准备进入支付宝官方收银台 ...</p>'
@@ -54,7 +58,8 @@ def submit(request, tenantName):
                 html = submit.alipay_submit(paymethod, tenantName, tenantRecharge.order_no, tenantRecharge.subject, str(
                     tenantRecharge.money), tenantRecharge.body, tenantRecharge.show_url)
             else:
-                return redirect('/apps/{0}/recharge/'.format(tenantName))
+                path = '/apps/{0}/recharge/'.format(tenantName)
+                return redirect(get_redirect_url(path, request))
         except Exception as e:
             html = ("%s" % e)
             logger.exception(e)
@@ -87,7 +92,8 @@ def return_url(request, tenantName):
                 sendRecharge.subject = "充100值送50"
                 sendRecharge.body = "充100值送50"
                 sendRecharge.show_url = ""
-                sendRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                sendRecharge.time = datetime.datetime.now().strftime(
+                    '%Y-%m-%d %H:%M:%S')
                 sendRecharge.status = "TRADE_SUCCESS"
                 sendRecharge.save()
             # concurrent question
@@ -98,14 +104,18 @@ def return_url(request, tenantName):
             # charging owed money
             last_money = 0.0
             openServiceTag = True
-            recharges = TenantConsume.objects.filter(tenant_id=tenantRecharge.tenant_id, pay_status="unpayed")
+            recharges = TenantConsume.objects.filter(
+                tenant_id=tenantRecharge.tenant_id, pay_status="unpayed")
             if len(recharges) > 0:
                 for recharge in recharges:
-                    temTenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+                    temTenant = Tenants.objects.get(
+                        tenant_id=tenantRecharge.tenant_id)
                     last_money = recharge.cost_money
                     if recharge.cost_money <= temTenant.balance:
-                        logger.debug(tenantRecharge.tenant_id + " charging owed money:" + str(recharge.cost_money))
-                        temTenant.balance = float(temTenant.balance) - float(recharge.cost_money)
+                        logger.debug(
+                            tenantRecharge.tenant_id + " charging owed money:" + str(recharge.cost_money))
+                        temTenant.balance = float(
+                            temTenant.balance) - float(recharge.cost_money)
                         temTenant.save()
                         recharge.payed_money = recharge.cost_money
                         recharge.pay_status = "payed"
@@ -115,26 +125,33 @@ def return_url(request, tenantName):
             # if stop service,need to open
             tenantNew = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
             if openServiceTag and last_money < tenantNew.balance:
-                tenant_regions = TenantRegionInfo.objects.filter(tenant_id=tenantRecharge.tenant_id, is_active=True)
+                tenant_regions = TenantRegionInfo.objects.filter(
+                    tenant_id=tenantRecharge.tenant_id, is_active=True)
                 for tenant_region in tenant_regions:
                     if tenant_region.service_status == 2:
                         tenantServices = TenantServiceInfo.objects.filter(
                             tenant_id=tenantRecharge.tenant_id, service_region=tenant_region.region_name)
                         for tenantService in tenantServices:
-                            tenantService.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                            tenantService.deploy_version = datetime.datetime.now().strftime(
+                                '%Y%m%d%H%M%S')
                             tenantService.save()
-                            body = {"deploy_version": tenantService.deploy_version}
-                            regionClient.restart(tenantService.service_region, tenantService.service_id, json.dumps(body))
+                            body = {
+                                "deploy_version": tenantService.deploy_version}
+                            regionClient.restart(
+                                tenantService.service_region, tenantService.service_id, json.dumps(body))
                         tenant_region.service_status = 1
                         tenant_region.save()
                         # update notify
-                TenantPaymentNotify.objects.filter(tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
+                TenantPaymentNotify.objects.filter(
+                    tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
 
         else:
-            logger.debug(out_trade_no + " recharge trade_status=" + trade_status)
+            logger.debug(
+                out_trade_no + " recharge trade_status=" + trade_status)
     except Exception as e:
         logger.exception(e)
-    return redirect('/apps/{0}/recharge/'.format(tenantName))
+    path = '/apps/{0}/recharge/'.format(tenantName)
+    return redirect(get_redirect_url(path, request))
 
 
 def notify_url(request, tenantName):
@@ -155,7 +172,9 @@ def notify_url(request, tenantName):
             # tenant.pay_type = 'payed'
             # tenant.save()
         else:
-            logger.debug(out_trade_no + " recharge trade_status=" + trade_status)
+            logger.debug(
+                out_trade_no + " recharge trade_status=" + trade_status)
     except Exception as e:
         logger.exception(e)
-    return redirect('/apps/{0}/recharge/'.format(tenantName))
+    path = '/apps/{0}/recharge/'.format(tenantName)
+    return redirect(get_redirect_url(path, request))
