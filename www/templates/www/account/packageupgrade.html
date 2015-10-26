@@ -120,6 +120,7 @@
             通过web管理数据库
 	        </td>
 	        <td>
+	        支持非HTTP协议
 	        </td>
 	        <td>
 	            7x24服务支持
@@ -134,15 +135,16 @@
 	        <td>
 	        </td>
     	</tr>
+    	
         <tr>
-	        <td style="text-align: center;font-size: 25px;">免费</td>
-	        <td style="text-align: center;font-size: 25px;">{{personal_money}}元/1G/月</td>
-	        <td style="text-align: center;font-size: 25px;">{{company_money}}元/1G/月</td>
+	        <td style="text-align: center;font-size: 25px;"></td>
+	        <td style="text-align: center;font-size: 16px;text-decoration:underline;"><a href="https://www.goodrain.com/pricing.html" target="_black">详细价格</a></td>
+	        <td style="text-align: center;font-size: 16px;text-decoration:underline;"><a href="https://www.goodrain.com/pricing.html" target="_black">详细价格</a></td>
     	</tr>
         <tr>
 	        {% if tenant.pay_level == "personal" %}
 	        	<td>
-	            	<button type="button"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 免费套餐</i></button>
+	            	
 	       	 	</td>
 	       	 	 <td>
 		            <button type="button" class="active" ><i class="fa fa-check" style="font-size: 20px;"> 当前套餐</i></button>
@@ -152,10 +154,10 @@
 		        </td>
 		    {% elif tenant.pay_level == "company" %}
 		    	<td>
-	            	<button type="button"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 免费套餐</i></button>
+	            	
 	       	 	</td>
 	       	 	 <td>
-		            <button type="button"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 个人套餐</i></button>
+		            
 		        </td>
 		        <td>
 		            <button type="button" class="active"><i class="fa fa-check" style="font-size: 20px;"> 当前套餐</i></button>
