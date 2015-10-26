@@ -225,7 +225,7 @@ class BaseTenantService(object):
             data["tenant_id"] = tenant_id
             data["service_id"] = service_id
             data["type"] = "deploy"
-            data["desc"] = u"正在部署代码.."
+            data["desc"] = u"正在部署代码..."
             data["show"] = True
             data["status"] = "start"
             data["store"] = "mysql"        
@@ -244,7 +244,7 @@ class BaseTenantService(object):
             data["tenant_id"] = tenant_id
             data["service_id"] = service_id
             data["type"] = "start"
-            data["desc"] = u"正在启动.."
+            data["desc"] = u"正在启动..."
             data["show"] = True
             data["status"] = "start"
             data["store"] = "mysql"        
