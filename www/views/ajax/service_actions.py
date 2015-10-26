@@ -541,7 +541,6 @@ class ServiceLog(AuthedView):
                     result = {}
                     log = ""
                     if eventDataList is not None:
-                        eventDataList.reverse()
                         for eventData in eventDataList:
                             log = log + eventData["create_time"] + " " + eventData["desc"] + "</br>"
                     result["log"] = log
