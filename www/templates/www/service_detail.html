@@ -788,34 +788,17 @@
 		    	  	  success: function(msg) {
 		    	  		var dataObj = msg;
 		    	  		if(action=="operate"){
-		    	  			$("#keylog").html(dataObj["log"])
+		    	  			var showlog=""
+		    	  			var logList = dataObj["log"]
+		    	  			for(var i=0;i<logList.length;i++){
+		    	  				var log = logList[i]
+		    	  				showlog= log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"+"<br/>"
+		    	  			}
+		    	  			$("#keylog").html(showlog)
 			    	  	}
 			    	  	if(action=="service"){
 			    	  		$("#log").html(dataObj["log"])
 				    	}
-		    		  },
-		    		  error: function(){
-		    			//swal("系统异常");
-		      	  	}
-		       })
-			}
-		}
-
-		function getServiceLog(){
-			var service_name=$("#service_name").val()
-			if(service_name!="" && service_name != undefined ){
-				$.ajax({
-		       	  type: "GET",
-		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
-		    		  data: "action=service",
-		    		  cache: false,
-		    		  beforeSend: function(xhr, settings){
-		    		      var csrftoken = $.cookie('csrftoken');
-		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		    		  },
-		    	  	  success: function(msg) {
-		    	  		var dataObj = msg;
-		    	  		$("#keylog").html(dataObj["log"])
 		    		  },
 		    		  error: function(){
 		    			//swal("系统异常");
