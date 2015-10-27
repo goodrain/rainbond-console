@@ -111,7 +111,7 @@ class BaseTenantService(object):
                 self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
         return newTenantService
 
-    def create_region_service(self, newTenantService, domain, region, do_deploy=True):
+    def create_region_service(self, newTenantService, domain, region, do_deploy=True, nick_name):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
         data["service_id"] = newTenantService.service_id
@@ -139,7 +139,7 @@ class BaseTenantService(object):
         data["domain"] = domain
         data["category"] = newTenantService.category
         data["protocol"] = newTenantService.protocol
-        data["operator"] = newTenantService.creater
+        data["operator"] = nick_name
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
