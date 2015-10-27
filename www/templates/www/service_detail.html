@@ -792,7 +792,8 @@
 		    	  			var logList = dataObj["log"]
 		    	  			for(var i=0;i<logList.length;i++){
 		    	  				var log = logList[i]
-		    	  				showlog= log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"+"<br/>"
+		    	  				console.log(log)
+		    	  				showlog = showlog + log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"+"<br/>"
 		    	  			}
 		    	  			$("#keylog").html(showlog)
 			    	  	}
