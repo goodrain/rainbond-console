@@ -83,7 +83,8 @@ QING_CLOUD_APP = {
 }
 
 UCLOUD_APP = {
-    "secret_key": "abc"
+    "secret_key": "abc",
+    "api": "https://api.ucloud.cn"
 }
 
 CACHES = {

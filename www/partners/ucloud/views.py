@@ -5,6 +5,8 @@ from django.conf import settings
 
 from www.views.base import BaseView
 from www.utils.encode import decode_base64, encode_base64
+from www.apis.ucloud import UCloudApi
+from www.models import Users, Tenants
 
 import logging
 logger = logging.getLogger('default')
@@ -31,3 +33,31 @@ class UcloudView(BaseView):
 
         if self.check_sig(sig, token):
             logger.debug("partners.auth_ucloud", "AccessToken check ok")
+
+        u_api = UCloudApi(token)
+        u_response = u_api.get_user_info()
+        if u_response.RetCode != 0:
+            info = "get_user_info got retcode: {0}".format(u_response.RetCode)
+            logger.error("partners.auth_ucloud", info)
+            return JsonResponse({"ok": False, "info": info}, status=400)
+
+        user = u_response.DataSet[0]
+        try:
+            Users.objects.get(email=user.UserEmail)
+        except Users.DoesNotExist:
+            info = "user from ucloud confict by email %s" % user.UserEmail
+            logger.info("partners.auth_ucloud", info)
+            return JsonResponse({"ok": False, "info": info}, status=409)
+
+        user_exist = Users.objects.filter(nick_name=user.UserName)
+        if user_exist:
+            nick_name = user.UserName + '_' + 'ucloud'
+        else:
+            nick_name = user.UserName
+
+        try:
+            Users.objects.create(nick_name=nick_name, email=user.UserEmail, phone=user.UserPhone, rf='ucloud')
+            return JsonResponse({"ok": True, "info": "created"}, status=200)
+        except Exception, e:
+            logger.error("partners.auth_ucloud", e)
+            return JsonResponse({"ok": False, "info": "server error"}, status=500)

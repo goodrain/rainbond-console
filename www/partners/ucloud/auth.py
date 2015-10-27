@@ -1,19 +1,21 @@
 import hashlib
-import urlparse
 import urllib
 
 
-def _verfy_ac(secret_key, params):
-    items = params.items()
+def verfy_ac(secret_key, params):
+    keys = params.keys()
     # 请求参数串
-    items.sort()
+    keys.sort()
     # 将参数串排序
     params_data = ""
-    for key, value in items:
-        params_data = params_data + str(key) + str(value)
+    pairs = []
+    for key in keys:
+        value = str(params[key])
+        params_data = params_data + str(key) + value
+        pairs.append(urllib.quote(key) + '=' + urllib.quote(value))
     params_data = params_data + secret_key
     sign = hashlib.sha1()
     sign.update(params_data)
     signature = sign.hexdigest()
-    return signature
-    # 生成的Signature值
+    qs = '&'.join(pairs)
+    return qs, signature
