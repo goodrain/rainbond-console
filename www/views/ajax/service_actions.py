@@ -24,6 +24,7 @@ gitClient = GitlabApi()
 
 regionClient = RegionServiceApi()
 baseService = BaseTenantService()
+tenantUsedResource = TenantUsedResource()
 
 
 class AppDeploy(AuthedView):
@@ -54,7 +55,6 @@ class AppDeploy(AuthedView):
         temData["status"] = 2
         old_status = regionClient.updateTenantServiceStatus(self.service.service_region, service_id, json.dumps(temData))
         # calculate resource
-        tenantUsedResource = TenantUsedResource()
         flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
         if not flag:
             if self.tenant.pay_type == "free":
@@ -128,7 +128,6 @@ class ServiceManage(AuthedView):
                 old_status = regionClient.updateTenantServiceStatus(
                     self.service.service_region, self.service.service_id, json.dumps(temData))
                 # calculate resource
-                tenantUsedResource = TenantUsedResource()
                 flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
                 if not flag:
                     if self.tenant.pay_type == "free":
@@ -228,6 +227,29 @@ class ServiceManage(AuthedView):
                     self.service.service_port = service_port
                     self.service.is_service = inner_service
                     self.service.save()
+            elif action == "rollback":
+                event_id = request.POST["event_id"]
+                if event_id != "":
+                    temData = {}
+                    temData["service_id"] = self.service.service_id
+                    temData["status"] = 2
+                    old_status = regionClient.updateTenantServiceStatus(
+                        self.service.service_region, self.service.service_id, json.dumps(temData))
+                    # calculate resource
+                    flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
+                    if not flag:
+                        if self.tenant.pay_type == "free":
+                            result["status"] = "over_memory"
+                        else:
+                            result["status"] = "over_money"
+                        temData["service_id"] = self.service.service_id
+                        temData["status"] = old_status
+                        regionClient.updateTenantServiceStatus(self.service.service_region, self.service.service_id, json.dumps(temData))
+                        return JsonResponse(result, status=200)             
+                    body = {}
+                    body["event_id"] = event_id
+                    body["operator"] = str(self.user.nick_name)
+                    regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))
             result["status"] = "success"
         except Exception, e:
             logger.exception(e)
@@ -270,7 +292,6 @@ class ServiceUpgrade(AuthedView):
                         self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = upgrade_container_memory - int(old_container_memory)
-                    tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory)
                     if not flag:
                         if self.tenant.pay_type == "free":
@@ -317,7 +338,6 @@ class ServiceUpgrade(AuthedView):
                         self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = (new_node_num - old_min_node) * self.service.min_memory
-                    tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory)
                     if not flag:
                         if self.tenant.pay_type == "free":
