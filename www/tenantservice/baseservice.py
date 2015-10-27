@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar
+from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo
 from www.service_http import RegionServiceApi
 from django.conf import settings
 
@@ -42,7 +42,10 @@ class BaseTenantService(object):
         return cur_service_port
 
     def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
-        service_port = service.inner_port
+        if service.service_key == "application":
+            service_port = service.inner_port + 1000
+        else:
+            service_port = service.inner_port
         if service.is_service:
             deployPort = self.getMaxPort(tenant_id, service.service_key, service_alias)
             if deployPort > 0:
@@ -61,6 +64,7 @@ class BaseTenantService(object):
         tenantServiceInfo["image"] = service.image
         tenantServiceInfo["cmd"] = service.cmd
         tenantServiceInfo["setting"] = service.setting
+        tenantServiceInfo["extend_method"] = service.extend_method
         password = "admin"
         if service.is_init_accout:
             uk = service.service_key.upper() + "_USER=" + "admin"
@@ -110,7 +114,7 @@ class BaseTenantService(object):
                 self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
         return newTenantService
 
-    def create_region_service(self, newTenantService, service, domain, region):
+    def create_region_service(self, newTenantService, domain, region, do_deploy=True):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
         data["service_id"] = newTenantService.service_id
@@ -122,9 +126,9 @@ class BaseTenantService(object):
         data["volume_path"] = "vol" + newTenantService.service_id[0:10]
         data["volume_mount_path"] = newTenantService.volume_mount_path
         data["host_path"] = newTenantService.host_path
-        data["extend_method"] = service.extend_method
+        data["extend_method"] = newTenantService.extend_method
         data["status"] = 0
-        data["replicas"] = newTenantService. min_node
+        data["replicas"] = newTenantService.min_node
         data["service_alias"] = newTenantService.service_alias
         data["service_port"] = newTenantService.service_port
         data["service_version"] = newTenantService.version
@@ -134,7 +138,7 @@ class BaseTenantService(object):
         data["node_label"] = ""
         data["is_create_service"] = newTenantService.is_service
         data["is_binding_port"] = newTenantService.is_web_service
-        data["deploy_version"] = newTenantService.deploy_version
+        data["deploy_version"] = newTenantService.deploy_version if do_deploy else None
         data["domain"] = domain
         data["category"] = newTenantService.category
         data["protocol"] = newTenantService.protocol
@@ -224,7 +228,14 @@ class TenantUsedResource(object):
 
     def calculate_real_used_resource(self, tenant):
         totalMemory = 0
-        running_data = regionClient.getTenantRunningServiceId(tenant.region, tenant.tenant_id)
+        tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True)
+        running_data = {}
+        for tenant_region in tenant_region_list:
+            logger.debug(tenant_region.region_name)
+            temp_data = regionClient.getTenantRunningServiceId(tenant_region.region_name, tenant_region.tenant_id)
+            logger.debug(temp_data)
+            if len(temp_data["data"]) > 0:
+                running_data.update(temp_data["data"])
         logger.debug(running_data)
         dsn = BaseConnection()
         query_sql = '''
@@ -236,10 +247,10 @@ class TenantUsedResource(object):
                 service_id = sqlobj["service_id"]
                 apply_memory = sqlobj["apply_memory"]
                 total_memory = sqlobj["total_memory"]
-                real_memory = running_data.get(service_id)
                 disk_storage = total_memory - int(apply_memory)
                 if disk_storage < 0:
                     disk_storage = 0
+                real_memory = running_data.get(service_id)
                 if real_memory is not None and real_memory != "":
                     totalMemory = totalMemory + int(apply_memory) + disk_storage
                 else:

@@ -2,7 +2,7 @@ DEBUG = False
 
 TEMPLATE_DEBUG = True
 
-ZMQ_LOG_ADDRESS = 'tcp://10.3.1.2:9341'
+ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
 DEFAULT_HANDLERS = ['zmq_handler']
 
@@ -17,7 +17,7 @@ DATABASES = {
         'USER': 'writer',
         'PASSWORD': 'a5bzkEP3bjc',
         'HOST': '127.0.0.1',
-        'PORT': '3306',
+        'PORT': '3307',
     },
 }
 
@@ -60,10 +60,6 @@ REGION_RULE = {
     'ali-sh': {'personal_money': 0.069, 'company_money': 0.173, 'personal_month_money': 50, 'company_month_money': 125},
 }
 
-OPENTSDB_API = {
-    'ucloud-bj-1': 'http://10.3.1.3:4242/api/query',
-}
-
 GITLAB_SERVICE_API = {
     'url': 'http://code.goodrain.com/',
     'admin_user': 'app',
@@ -74,7 +70,7 @@ GITLAB_SERVICE_API = {
 
 GITHUB_SERVICE_API = {
     'client_id': 'c2cc316a9e6741e7b74a',
-    'redirect_uri': 'http://user.goodrain.com/oauth/githup',
+    'redirect_uri': 'https://user.goodrain.com/oauth/githup',
     'client_secret': '25b99d1d03323dd540eb72bfceb0e033062ccbe5',
 }
 
@@ -90,11 +86,11 @@ UCLOUD_APP = {
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-        'LOCATION': '127.0.0.1:11211',
+        'LOCATION': '127.0.0.1:11212',
     },
     'session': {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-        'LOCATION': '127.0.0.1:11211',
+        'LOCATION': '127.0.0.1:11212',
     }
 }
 

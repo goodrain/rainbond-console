@@ -1,17 +1,9 @@
 # -*- coding: utf8 -*-
 import logging
-import uuid
-import hashlib
-import datetime
-import json
 
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
-from django.http.response import HttpResponse
-from django.http import HttpResponseRedirect
 from django.http import JsonResponse
-from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_exempt
 from www.views import AuthedView
 from django.conf import settings
 logger = logging.getLogger('default')

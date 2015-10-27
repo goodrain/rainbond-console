@@ -3,7 +3,6 @@ from django.conf import settings
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
-from django.shortcuts import redirect
 from django.http import HttpResponse, Http404
 
 from www.auth import authenticate, login, logout
@@ -52,7 +51,7 @@ class Login(BaseView):
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)
             tenant_name = tenant.tenant_name
-            return redirect('/apps/{0}'.format(tenant_name))
+            return self.redirect_to('/apps/{0}'.format(tenant_name))
         else:
             logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
                 self.user.nick_name, self.user.pk))
@@ -73,7 +72,7 @@ class Login(BaseView):
                     "&time=" + time + "&token=" + d5
                 logger.debug('account.login', d5)
                 logger.debug('account.login', url)
-                return redirect(url)
+                return self.redirect_to(url)
             else:
                 return self.redirect_view()
 
@@ -104,7 +103,7 @@ class Login(BaseView):
                 logger.info("account.login", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
 
         if next_url is not None:
-            return redirect(next_url)
+            return self.redirect_to(next_url)
         else:
             return self.redirect_view()
 
@@ -114,7 +113,7 @@ class Index(Login):
     def get(self, request, *args, **kwargs):
         user = request.user
         if isinstance(user, AnonymousUser):
-            return redirect('/login')
+            return self.redirect_to('/login')
         else:
             return self.redirect_view()
 
@@ -148,12 +147,12 @@ class Logout(BaseView):
         else:
             logout(request)
             logger.info('account.login', 'user {0} logout'.format(user.nick_name))
-            return redirect(settings.LOGIN_URL)
+            return self.redirect_to(settings.LOGIN_URL)
 
     @never_cache
     def post(self, request, *args, **kwargs):
         logout(request)
-        return redirect(settings.LOGIN_URL)
+        return self.redirect_to(settings.LOGIN_URL)
 
 
 class PasswordResetBegin(BaseView):
@@ -183,7 +182,7 @@ class PasswordResetBegin(BaseView):
             account = request.POST.get('account')
             logger.info('account.passwdreset', "account {0} apply for reset password".format(account))
             tag = '{0}:{1}'.format(int(time.time()), account)
-            return redirect('/account/select_verify_method?tag=%s' % AuthCode.encode(tag, 'reset_password'))
+            return self.redirect_to('/account/select_verify_method?tag=%s' % AuthCode.encode(tag, 'reset_password'))
         return self.get_response()
 
 
@@ -321,7 +320,7 @@ class PasswordReset(BaseView):
                     logger.exception("account.passwdreset", e)
             else:
                 self.create_git_user(user, raw_password)
-            return redirect('/login')
+            return self.redirect_to('/login')
         logger.info("account.passwdreset", "passwdreset form error: %s" % self.form.errors)
         return self.get_response()
 
@@ -416,8 +415,7 @@ class Registation(BaseView, RegionOperateMixin):
                 selected_pay_level = region_levels[1]
             url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
             logger.debug(url)
-            return redirect(url)
-            # return redirect('/apps/{0}'.format(tenant.tenant_name))
+            return self.redirect_to(url)
 
         logger.info("account.register", "register form error: %s" % self.form.errors)
         return self.get_response()
@@ -500,14 +498,14 @@ class InviteRegistation(BaseView):
         elif len(data) == 4:
             self.email, self.tenant_name, self.service_name = data[0:3]
         else:
-            redirect('/register')
+            self.redirect_to('/register')
 
         try:
             if self.email.find("@") > 0:
                 Users.objects.get(email=self.email)
             else:
                 Users.objects.get(phone=self.email)
-            return redirect('/login')
+            return self.redirect_to('/login')
         except Users.DoesNotExist:
             curemail = ""
             curphone = ""
@@ -559,7 +557,7 @@ class InviteRegistation(BaseView):
             self.register_for_service(user, password, data)
         user = authenticate(username=email, password=password)
         login(request, user)
-        return redirect('/apps/{0}'.format(tenant_name))
+        return self.redirect_to('/apps/{0}'.format(tenant_name))
 
 
 class PhoneCodeView(BaseView):

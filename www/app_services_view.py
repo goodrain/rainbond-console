@@ -8,7 +8,6 @@ from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import JsonResponse
-from django.shortcuts import redirect
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -176,7 +175,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 regionClient.writeToRegionBeanstalk(self.response_region, ts.service_id, json.dumps(task))
 
             # create region tenantservice
-            baseService.create_region_service(newTenantService, service, self.tenantName, self.response_region)
+            baseService.create_region_service(newTenantService, self.tenantName, self.response_region)
             # create service env
             baseService.create_service_env(tenant_id, service_id, self.response_region)
             # record log
@@ -270,7 +269,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView):
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
-                        baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.response_region)
+                        baseService.create_region_service(depTenantService, self.tenantName, self.response_region)
                         baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
@@ -307,7 +306,7 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             # if self.service.language != "" and self.service.language is not None:
-            #    return redirect('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
+            #    return self.redirect_to('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context = self.get_context()
             context["myAppStatus"] = "active"
@@ -356,11 +355,11 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
         language = "none"
         try:
             if self.service.language == "" or self.service.language is None:
-                return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             if tenantServiceEnv.user_dependency is not None and tenantServiceEnv.user_dependency != "":
-                return redirect('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
+                return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context = self.get_context()
             context["myAppStatus"] = "active"

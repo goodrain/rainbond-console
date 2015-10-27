@@ -6,7 +6,6 @@ import json
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
-from django.http import HttpResponseRedirect
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth
@@ -57,7 +56,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
         try:
             service_key = request.GET.get("service_key", "")
             if service_key == "":
-                return HttpResponseRedirect('/apps/{0}/service/'.format(self.tenant.tenant_name))
+                return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
 
             context["serviceMarketStatus"] = "active"
 
@@ -139,7 +138,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
-                        baseService.create_region_service(depTenantService, dep_service, self.tenantName, self.response_region)
+                        baseService.create_region_service(depTenantService, self.tenantName, self.response_region)
                         baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
@@ -178,7 +177,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                 logger.exception(e)
 
             # create region tenantservice
-            baseService.create_region_service(newTenantService, service, self.tenantName, self.response_region)
+            baseService.create_region_service(newTenantService, self.tenantName, self.response_region)
 
             result["status"] = "success"
             result["service_id"] = service_id

@@ -8,8 +8,7 @@ import json
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
-from django.http import Http404, HttpResponseRedirect
-from django.shortcuts import redirect
+from django.http import Http404
 from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin
 from www.decorator import perm_required
 from www.models import Users, TenantRegionInfo, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
@@ -47,6 +46,9 @@ class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
             else:
                 raise Http404
 
+        if self.cookie_region == 'aws-bj-1':
+            self.response_region == 'ali-sh'
+
         try:
             t_region, created = TenantRegionInfo.objects.get_or_create(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             self.tenant_region = t_region
@@ -67,7 +69,7 @@ class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
         try:
             num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
             if num < 1:
-                return HttpResponseRedirect('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
+                return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
             tenantServiceList = context["tenantServiceList"]
             context["totalAppStatus"] = "active"
             context["totalFlow"] = 0
@@ -219,7 +221,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         context['serviceAlias'] = self.serviceAlias
         tab_index = request.GET.get("fr", "0")
         context['tab_index'] = tab_index
-        http_port_str = '' if self.tenant.region == 'aws-jp-1' else ':10080'
+        http_port_str = '' if self.response_region == 'aws-jp-1' else ':10080'
         context['http_port_str'] = http_port_str
         try:
             if self.service.category == "application" and self.service.ID > 598:
@@ -228,10 +230,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
                     self.sendCodeCheckMsg()
-                    return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                    return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 if tse.user_dependency is None or tse.user_dependency == "":
-                    return redirect('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                    return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
             elif self.service.category == 'store':
                 service_manager = self.get_manage_app(http_port_str)
                 context['service_manager'] = service_manager
@@ -293,7 +295,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     pass
 
             websocket_info = settings.WEBSOCKET_URL
-            context["websocket_uri"] = websocket_info[self.tenant.region]
+            context["websocket_uri"] = websocket_info[self.service.service_region]
 
             if self.tenant_region.service_status == 0:
                 logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
@@ -329,7 +331,7 @@ class ServiceGitHub(BaseView):
             user.save()
         tenantName = request.session.get("app_tenant")
         logger.debug(tenantName)
-        return HttpResponseRedirect("/apps/" + tenantName + "/app-create/?from=git")
+        return self.redirect_to("/apps/" + tenantName + "/app-create/?from=git")
 
 
 class GitLabManager(AuthedView):

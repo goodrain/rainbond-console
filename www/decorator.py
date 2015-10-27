@@ -10,6 +10,7 @@ from django.utils.six.moves.urllib.parse import urlparse
 
 from goodrain_web.errors import UrlParseError, PermissionDenied
 from www.perms import check_perm
+from www.utils.url import get_redirect_url
 
 import logging
 logger = logging.getLogger('default')
@@ -31,7 +32,7 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
             path = request.get_full_path()
         from django.contrib.auth.views import redirect_to_login
         return redirect_to_login(
-            path, resolved_login_url, redirect_field_name)
+            get_redirect_url(path, request), resolved_login_url, redirect_field_name)
 
     def decorator(view_func):
         @wraps(view_func, assigned=available_attrs(view_func))
@@ -40,7 +41,7 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
                 if test_func(view_object.user, *args, **kwargs):
                     return view_func(view_object, *args, **kwargs)
                 else:
-                    return redirect('/error')
+                    return redirect(get_redirect_url('/error', request=view_object.request))
             except PermissionDenied, e:
                 if e.redirect_url is not None:
                     request = view_object.request

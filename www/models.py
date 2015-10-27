@@ -146,8 +146,6 @@ class Tenants(BaseModel):
         max_digits=10, decimal_places=2, default=0.00, help_text=u"账户余额")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
-    service_status = models.IntegerField(
-        help_text=u"服务状态0:暂停，1:运行，2:关闭", default=1)
     creater = models.IntegerField(help_text=u"租户创建者", default=0)
     limit_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=1024)
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
@@ -163,7 +161,7 @@ class TenantRegionInfo(BaseModel):
         db_table = 'tenant_region'
         unique_together = (('tenant_id', 'region_name'),)
 
-    tenant_id = models.CharField(max_length=33, db_index=True,  help_text=u"租户id")
+    tenant_id = models.CharField(max_length=33, db_index=True, help_text=u"租户id")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
     is_active = models.BooleanField(default=True, help_text=u"是否已激活")
     service_status = models.IntegerField(help_text=u"服务状态0:暂停，1:运行，2:关闭", default=1)
@@ -259,6 +257,8 @@ class TenantServiceInfo(BaseModel):
         max_length=100, null=True, blank=True, help_text=u"启动参数")
     setting = models.CharField(
         max_length=100, null=True, blank=True, help_text=u"设置项")
+    extend_method = models.CharField(
+        max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     env = models.CharField(
         max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
@@ -305,6 +305,17 @@ class TenantServiceInfo(BaseModel):
                 data[f.name] = obj
         return data
 
+    @property
+    def clone_url(self):
+        if self.code_from == "github":
+            code_user = self.git_url.split("/")[3]
+            code_project_name = self.git_url.split("/")[4].split(".")[0]
+            createUser = Users.objects.get(user_id=self.creater)
+            git_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+            return git_url
+        else:
+            return self.git_url
+
 
 class TenantServiceInfoDelete(BaseModel):
 
@@ -330,6 +341,8 @@ class TenantServiceInfoDelete(BaseModel):
         max_length=100, null=True, blank=True, help_text=u"启动参数")
     setting = models.CharField(
         max_length=100, null=True, blank=True, help_text=u"设置项")
+    extend_method = models.CharField(
+        max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     env = models.CharField(
         max_length=200, null=True, blank=True, help_text=u"环境变量")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
@@ -502,6 +515,7 @@ class TenantServiceStatics(BaseModel):
     flow = models.IntegerField(help_text=u"网络下载量", default=0)
     time_stamp = models.IntegerField(help_text=u"时间戳", default=0)
     status = models.IntegerField(default=0, help_text=u"0:无效；1:有效；2:操作中")
+    region = models.CharField(max_length=15, help_text=u"服务所属区")
     time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
 
@@ -524,6 +538,7 @@ class TenantConsumeDetail(BaseModel):
     fee_rule = models.CharField(max_length=60, help_text=u"计费规则")
     pay_status = models.CharField(
         max_length=10, help_text=u"扣费状态；payed,unpayed")
+    region = models.CharField(max_length=15, help_text=u"服务所属区")
     time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
 
