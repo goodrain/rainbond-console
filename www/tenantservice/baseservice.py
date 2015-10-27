@@ -139,6 +139,7 @@ class BaseTenantService(object):
         data["domain"] = domain
         data["category"] = newTenantService.category
         data["protocol"] = newTenantService.protocol
+        data["operator"] = newTenantService.creater
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))

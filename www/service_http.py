@@ -49,9 +49,9 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body)
         return body
 
-    def stop(self, region, service_id):
+    def stop(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/stop/"
-        res, body = self._post(url, self.default_headers)
+        res, body = self._post(url, self.default_headers, body)
         return body
 
     def delete(self, region, service_id):

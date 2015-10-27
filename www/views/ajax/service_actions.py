@@ -86,9 +86,9 @@ class AppDeploy(AuthedView):
                 clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            para = json.dumps(body)
+            body["operator"] = str(self.user.pk)
             
-            regionClient.build_service(self.service.service_region, service_id, para)
+            regionClient.build_service(self.service.service_region, service_id, json.dumps(body))
 
             data["status"] = "success"
             return JsonResponse(data, status=200)
@@ -117,7 +117,9 @@ class ServiceManage(AuthedView):
         try:
             action = request.POST["action"]
             if action == "stop":
-                regionClient.stop(self.service.service_region, self.service.service_id)
+                body = {}
+                body["operator"] = str(self.user.pk)
+                regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
             elif action == "restart":
                 # temp record service status
                 temData = {}
@@ -142,6 +144,7 @@ class ServiceManage(AuthedView):
                 self.service.save()
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
+                body["operator"] = str(self.user.pk)
                 regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))                
             elif action == "delete":
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
@@ -289,6 +292,7 @@ class ServiceUpgrade(AuthedView):
                     body["container_memory"] = upgrade_container_memory
                     body["deploy_version"] = deploy_version
                     body["container_cpu"] = upgrade_container_cpu
+                    body["operator"] = str(self.user.pk)
                     regionClient.verticalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
                 result["status"] = "success"
             except Exception, e:
@@ -332,6 +336,7 @@ class ServiceUpgrade(AuthedView):
                         body = {}
                         body["node_num"] = node_num
                         body["deploy_version"] = deploy_version
+                        body["operator"] = str(self.user.pk)
                         regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))                        
                     except Exception, e:
                         logger.exception(e)
