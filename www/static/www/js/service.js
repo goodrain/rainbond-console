@@ -50,12 +50,13 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 		},
 		error : function() {
 			$("#onekey_deploy").removeAttr("disabled")
-			// swal("系统异常");
+			swal("系统异常");
 		}
 	})
 }
 
 function service_my_onOperation(service_id, service_alias, tenantName) {
+	$("#operate_"+service_id).attr('disabled', "true")
 	var taction = $("#operate_" + service_id).attr("data" + service_id)
 	if (taction != "stop" && taction != "restart") {
 		swal("系统异常");
@@ -85,9 +86,11 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 			} else {
 				swal("操作失败")
 			}
+			$("#operate_"+service_id).removeAttr("disabled")
 		},
 		error : function() {
 			swal("系统异常");
+			$("#operate_"+service_id).removeAttr("disabled")
 		}
 	})
 }
@@ -99,6 +102,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
 		swal("参数异常");
 		window.location.href = window.location.href;
 	}
+	$("#service_status_operate").attr('disabled', "true")
 	$.ajax({
 		type : "POST",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/manage",
@@ -123,9 +127,11 @@ function service_onOperation(service_id, service_alias, tenantName) {
 			} else {
 				swal("操作失败")
 			}
+			$("#service_status_operate").removeAttr("disabled")
 		},
 		error : function() {
 			swal("系统异常");
+			$("#service_status_operate").removeAttr("disabled");
 		}
 	})
 }
