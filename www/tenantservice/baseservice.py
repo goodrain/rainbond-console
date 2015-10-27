@@ -111,7 +111,7 @@ class BaseTenantService(object):
                 self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
         return newTenantService
 
-    def create_region_service(self, newTenantService, domain, region, do_deploy=True, nick_name):
+    def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
         data["service_id"] = newTenantService.service_id

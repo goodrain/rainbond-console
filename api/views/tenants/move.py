@@ -84,7 +84,7 @@ class TenantStopView(APIView, RegionOperateMixin):
 
             # 在目标机房生成服务以及环境变量
             for service in moving_services:
-                baseService.create_region_service(service, tenant.tenant_name, dest_region, do_deploy=False, 'system')
+                baseService.create_region_service(service, tenant.tenant_name, dest_region, 'system', do_deploy=False)
                 logger.info("tenant.move", "copy service {0} to region {1}".format(service.service_id, dest_region))
                 baseService.create_service_env(tenant.tenant_id, service.service_id, dest_region)
                 logger.info("tenant.move", "copy service env of {0} to region {1}".format(service.service_id, dest_region))
