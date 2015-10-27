@@ -138,7 +138,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region)
-                        baseService.createInstallEvent(self.response_region, self.user.pk, tenant_id, dep_service_id)
                         baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
@@ -163,7 +162,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             baseService.create_service_env(tenant_id, service_id, self.response_region)
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region)
-            baseService.createInstallEvent(self.response_region, self.user.pk, tenant_id, service_id)
                         
             result["status"] = "success"
             result["service_id"] = service_id
