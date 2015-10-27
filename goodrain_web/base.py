@@ -4,6 +4,7 @@ import httplib2
 import socket
 
 from addict import Dict
+from goodrain_web.decorator import method_perf_time
 
 import logging
 logger = logging.getLogger('default')
@@ -54,6 +55,7 @@ class BaseHttpClient(object):
         else:
             return res, body
 
+    @method_perf_time
     def _request(self, url, method, headers=None, body=None):
         retry_count = 2
         while retry_count:

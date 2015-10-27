@@ -15,6 +15,7 @@ from www.gitlab_http import GitlabApi
 from django.conf import settings
 from www.db import BaseConnection
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from goodrain_web.decorator import method_perf_time
 
 import logging
 from django.template.defaultfilters import length
@@ -27,10 +28,12 @@ regionClient = RegionServiceApi()
 
 class AppDeploy(AuthedView):
 
+    @method_perf_time
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         data = {}
-        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+        self.tenant_region = TenantRegionInfo.objects.get(
+            tenant_id=self.service.tenant_id, region_name=self.service.service_region)
         if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
             data["status"] = "owed"
             return JsonResponse(data, status=200)
@@ -123,7 +126,8 @@ class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+        self.tenant_region = TenantRegionInfo.objects.get(
+            tenant_id=self.service.tenant_id, region_name=self.service.service_region)
         if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
             result["status"] = "owed"
             return JsonResponse(result, status=200)
@@ -157,7 +161,8 @@ class ServiceManage(AuthedView):
                         result["status"] = "over_money"
                     temData["service_id"] = self.service.service_id
                     temData["status"] = old_status
-                    regionClient.updateTenantServiceStatus(self.service.service_region, self.service.service_id, json.dumps(temData))
+                    regionClient.updateTenantServiceStatus(self.service.service_region,
+                                                           self.service.service_id, json.dumps(temData))
                     return JsonResponse(result, status=200)
 
                 self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -228,7 +233,8 @@ class ServiceManage(AuthedView):
                                 self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
                             baseService.saveServiceEnvVar(
                                 self.tenant.tenant_id, self.service.service_id, u"端口", temp_key + "_PORT", service_port, False)
-                        baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
+                        baseService.create_service_env(
+                            self.service.tenant_id, self.service.service_id, self.service.service_region)
                     else:
                         depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                         if depNumber > 0:
@@ -236,7 +242,8 @@ class ServiceManage(AuthedView):
                             return JsonResponse(result)
 
                         # close inner service need to clear env
-                        baseService.cancel_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
+                        baseService.cancel_service_env(
+                            self.service.tenant_id, self.service.service_id, self.service.service_region)
 
                     data = {}
                     data["protocol"] = self.service.protocol
@@ -260,7 +267,8 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+        self.tenant_region = TenantRegionInfo.objects.get(
+            tenant_id=self.service.tenant_id, region_name=self.service.service_region)
         if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
             result["status"] = "owed"
             return JsonResponse(result, status=200)
@@ -300,7 +308,8 @@ class ServiceUpgrade(AuthedView):
                             result["status"] = "over_money"
                         temData["service_id"] = self.service.service_id
                         temData["status"] = old_status
-                        regionClient.updateTenantServiceStatus(self.service.service_region, self.service.service_id, json.dumps(temData))
+                        regionClient.updateTenantServiceStatus(self.service.service_region,
+                                                               self.service.service_id, json.dumps(temData))
                         return JsonResponse(result, status=200)
 
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -346,7 +355,8 @@ class ServiceUpgrade(AuthedView):
                             result["status"] = "over_money"
                         temData["service_id"] = self.service.service_id
                         temData["status"] = old_status
-                        regionClient.updateTenantServiceStatus(self.service.service_region, self.service.service_id, json.dumps(temData))
+                        regionClient.updateTenantServiceStatus(self.service.service_region,
+                                                               self.service.service_id, json.dumps(temData))
                         return JsonResponse(result, status=200)
 
                     deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -369,7 +379,8 @@ class ServiceUpgrade(AuthedView):
                     if isResetStatus or new_node_num < old_min_node:
                         temData["service_id"] = self.service.service_id
                         temData["status"] = old_status
-                        regionClient.updateTenantServiceStatus(self.service.service_region, self.service.service_id, json.dumps(temData))
+                        regionClient.updateTenantServiceStatus(self.service.service_region,
+                                                               self.service.service_id, json.dumps(temData))
 
                 result["status"] = "success"
             except Exception, e:
@@ -410,6 +421,7 @@ class AllServiceInfo(AuthedView):
         self.cookie_region = self.request.COOKIES.get('region')
         self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id, region_name=self.cookie_region)
 
+    @method_perf_time
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         result = {}
@@ -491,6 +503,7 @@ class AllTenantsUsedResource(AuthedView):
         self.cookie_region = self.request.COOKIES.get('region')
         self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id, region_name=self.cookie_region)
 
+    @method_perf_time
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         result = {}
@@ -538,11 +551,13 @@ class AllTenantsUsedResource(AuthedView):
 
 class ServiceDetail(AuthedView):
 
+    @method_perf_time
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+            self.tenant_region = TenantRegionInfo.objects.get(
+                tenant_id=self.service.tenant_id, region_name=self.service.service_region)
             if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
@@ -592,6 +607,7 @@ class ServiceDetail(AuthedView):
 
 class ServiceNetAndDisk(AuthedView):
 
+    @method_perf_time
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         result = {}
@@ -621,6 +637,7 @@ class ServiceNetAndDisk(AuthedView):
 
 class ServiceLog(AuthedView):
 
+    @method_perf_time
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         try:
@@ -667,6 +684,7 @@ class ServiceCheck(AuthedView):
         task["service_id"] = self.service.service_id
         regionClient.writeToRegionBeanstalk(self.service.service_region, self.service.service_id, json.dumps(task))
 
+    @method_perf_time
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
         result = {}
