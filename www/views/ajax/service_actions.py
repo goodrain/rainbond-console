@@ -575,6 +575,7 @@ class ServiceLog(AuthedView):
                     if event_id != "":
                         body["tenant_id"] = tenant_id
                         body["event_id"] = event_id
+                        logger.debug(body)
                         body = regionClient.get_compile_log(self.service.service_region, service_id, json.dumps(body))
                     return JsonResponse(body)
         except Exception as e:
