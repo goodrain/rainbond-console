@@ -73,6 +73,11 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/userlog/"
         res, body = self._post(url, self.default_headers)
         return body
+    
+    def get_compile_log(self, region, service_id):
+        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/compile-log/"
+        res, body = self._post(url, self.default_headers)
+        return body
 
     def verticalUpgrade(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/vertical/"

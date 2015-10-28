@@ -42,7 +42,7 @@
             </div>
             <div class="col-sm-3">
               <p>内存使用</p>
-              <p style="font-size:18pt" id="service_memory" name="service_memory">0M</p>
+              <p style="font-size:18pt" id="service_memory" name="service_memory">{{totalMemory}}M</p>
             </div>
             <!--<div class="col-sm-3">
               <p>磁盘占用</p>
@@ -708,9 +708,9 @@
         	getLog('operate');
         	getLog('service');
         	
-        	setTimeout("getServiceNetDisk()", 1000);
-        	setInterval("checkStatus()", 10000);
-            setInterval("getServiceNetDisk()", 30000);
+        	//setTimeout("getServiceNetDisk()", 1000);
+        	setInterval("checkStatus()", 5000);
+            //setInterval("getServiceNetDisk()", 30000);
             
             var mapping = $("#create_port_mapping").val()
             if(mapping != undefined){
@@ -795,47 +795,9 @@
 		    	  				showlog = showlog + log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"+"<br/>"
 		    	  			}
 		    	  			$("#keylog").html(showlog)
-			    	  	}
-			    	  	if(action=="service"){
+			    	  	}else if(action=="service"){
 			    	  		$("#log").html(dataObj["log"])
 				    	}
-		    		  },
-		    		  error: function(){
-		    			//swal("系统异常");
-		      	  	}
-		       })
-			}
-		}
-
-		function getServiceNetDisk(){
-			var service_name=$("#service_name").val()
-			if(service_name!="" && service_name != undefined ){
-				$.ajax({
-		       	  type: "GET",
-		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/net-disk",
-		    		  cache: false,
-		    		  beforeSend: function(xhr, settings){
-		    		      var csrftoken = $.cookie('csrftoken');
-		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		    		  },
-		    	  	  success: function(msg) {
-		    	  		var dataObj = msg;
-		    	  		if(dataObj["disk"] != undefined ){
-		    	  			$("#service_disk").html(dataObj["disk"]+"M")
-		    	  			var total_memory = dataObj["disk_memory"] + dataObj["memory"]
-		    	  			if($("#service_status").html() == "运行中"){
-		    	  				$("#service_memory").html(total_memory+"M")
-		    	  			}else if($("#service_status").html() == "部署中"){
-		    	  				$("#service_memory").html(total_memory+"M")
-		    	  			}else{
-		    	  				$("#service_memory").html(dataObj["disk_memory"]+"M")
-		    	  			}
-		    	  			if(dataObj["bytesin"] > dataObj["bytesout"]){
-		    	  				$("#service_network").html(dataObj["bytesin"]+"K")
-			    	  		}else{
-			    	  			$("#service_network").html(dataObj["bytesout"]+"K")
-				    	  	}
-			    	  	}
 		    		  },
 		    		  error: function(){
 		    			//swal("系统异常");
@@ -871,7 +833,24 @@
 		}
         
         function do_logshow(event_id,deploy_version){
-        	swal(event_id);
+        	$.ajax({
+	       	  type: "GET",
+	    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
+	    		  data: "action=compile&event_id="+event_id,
+	    		  cache: false,
+	    		  beforeSend: function(xhr, settings){
+	    		      var csrftoken = $.cookie('csrftoken');
+	    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+	    		  },
+	    	  	  success: function(msg) {
+	    	  		var dataObj = msg;
+	    	  		var log = dataObj["log"];
+	    	  		swal(log);
+	    		  },
+	    		  error: function(){
+	    			//swal("系统异常");
+	      	      }
+	         })
         }
         
         function do_rollback(event_id,deploy_version){

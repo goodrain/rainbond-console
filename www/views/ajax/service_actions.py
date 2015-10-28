@@ -569,7 +569,14 @@ class ServiceLog(AuthedView):
                     body["tenant_id"] = tenant_id
                     body = regionClient.get_log(self.service.service_region, service_id, json.dumps(body))
                     return JsonResponse(body)
-                return JsonResponse({})
+                elif action == "compile":
+                    event_id = request.GET.get("event_id", "")
+                    body = {}
+                    if event_id != "":
+                        body["tenant_id"] = tenant_id
+                        body["event_id"] = event_id
+                        body = regionClient.get_compile_log(self.service.service_region, service_id, json.dumps(body))
+                    return JsonResponse(body)
         except Exception as e:
             logger.info("%s" % e)
         return JsonResponse({})
