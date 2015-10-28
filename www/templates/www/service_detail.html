@@ -38,7 +38,7 @@
           <div class="row">
             <div class="col-sm-3">
               <p>状态</p>
-              <span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">Unknown</span>
+              <span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">未知</span>
             </div>
             <div class="col-sm-3">
               <p>内存使用</p>
@@ -870,11 +870,11 @@
 	       })
 		}
         
-        function do_logshow(event_id){
+        function do_logshow(event_id,deploy_version){
         	swal(event_id);
         }
         
-        function do_rollback(event_id){
+        function do_rollback(event_id,deploy_version){
         	swal({
         		title : "确定恢复当前版本吗？",
         		type : "warning",
@@ -889,7 +889,7 @@
         			$.ajax({
                 		type : "POST",
                 		url : "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/manage",
-                		data : "event_id=" + event_id + "&action=rollback",
+                		data : "event_id=" + event_id + "&action=rollback&deploy_version="+deploy_version,
                 		cache : false,
                 		beforeSend : function(xhr, settings) {
                 			var csrftoken = $.cookie('csrftoken');

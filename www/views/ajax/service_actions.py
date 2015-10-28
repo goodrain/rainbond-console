@@ -229,6 +229,7 @@ class ServiceManage(AuthedView):
                     self.service.save()
             elif action == "rollback":
                 event_id = request.POST["event_id"]
+                deploy_version = request.POST["deploy_version"]
                 if event_id != "":
                     temData = {}
                     temData["service_id"] = self.service.service_id
@@ -249,6 +250,7 @@ class ServiceManage(AuthedView):
                     body = {}
                     body["event_id"] = event_id
                     body["operator"] = str(self.user.nick_name)
+                    body["deploy_version"] = deploy_version
                     regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))
             result["status"] = "success"
         except Exception, e:
