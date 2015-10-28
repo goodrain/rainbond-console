@@ -63,7 +63,7 @@ class RegionServiceApi(BaseHttpClient):
 
     def deploy(self, region, service_id, body):
         url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/deploy/"
-        res, body = self._post(url, self.default_headers, body)
+        res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
     def restart(self, region, service_id, body):
