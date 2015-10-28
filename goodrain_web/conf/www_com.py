@@ -21,6 +21,10 @@ DATABASES = {
     },
 }
 
+HTTP_PROXY = {
+    'hk1': {'type': 'http', 'host': '106.75.193.120', 'port': 12354}
+}
+
 REGION_SERVICE_API = [{
     'url': 'http://api.ucloud-bj-1.goodrain.com:8888',
     'apitype': 'region service',
@@ -32,7 +36,9 @@ REGION_SERVICE_API = [{
 }, {
     'url': 'http://api.aws-jp-1.goodrain.com:8888',
     'apitype': 'region service',
-    'region_name': 'aws-jp-1'
+    'region_name': 'aws-jp-1',
+    #'proxy': HTTP_PROXY['hk1'],
+    #'proxy_priority': True,
 }, {
     'url': 'http://api.ali-sh.goodrain.com:8888',
     'apitype': 'region service',
@@ -66,6 +72,15 @@ GITHUB_SERVICE_API = {
     'client_id': 'c2cc316a9e6741e7b74a',
     'redirect_uri': 'https://user.goodrain.com/oauth/githup',
     'client_secret': '25b99d1d03323dd540eb72bfceb0e033062ccbe5',
+}
+
+QING_CLOUD_APP = {
+    "app_id": "app-9x7m7zht", "secret_app_key": "XEmWiKVbXGSIu7c3LW5mkHBXdnpkKoUC2aTh8Gwl"
+}
+
+UCLOUD_APP = {
+    "secret_key": "abc",
+    "api": "https://api.ucloud.cn"
 }
 
 CACHES = {

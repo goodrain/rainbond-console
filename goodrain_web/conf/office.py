@@ -20,12 +20,12 @@ DATABASES = {
 REGION_SERVICE_API = [{
     'url': 'http://192.168.7.18:8080',
     'apitype': 'region service',
-    'region_name': 'ucloud_bj_1' 
+    'region_name': 'ucloud_bj_1'
 }]
 
-WEBSOCKET_URL={
-    'ucloud_bj_1':'ws://123.59.40.70:6060/websocket'
-}                
+WEBSOCKET_URL = {
+    'ucloud_bj_1': 'ws://123.59.40.70:6060/websocket'
+}
 
 GITLAB_SERVICE_API = {
     'url': 'http://code1.goodrain.com/',
@@ -37,11 +37,11 @@ GITLAB_SERVICE_API = {
 
 GITHUB_SERVICE_API = {
     'client_id': 'c2cc316a9e6741e7b74a',
-    'redirect_uri': 'http://user.goodrain.com/oauth/githup',
-    'client_secret':'25b99d1d03323dd540eb72bfceb0e033062ccbe5',
+    'redirect_uri': 'https://user.goodrain.com/oauth/githup',
+    'client_secret': '25b99d1d03323dd540eb72bfceb0e033062ccbe5',
 }
 
-#CACHES = {
+# CACHES = {
 #    'default': {
 #        'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
 #        'LOCATION': '192.168.7.11:11211',

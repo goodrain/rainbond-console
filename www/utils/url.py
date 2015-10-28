@@ -6,10 +6,10 @@ REDIRECT_SSL_HOST = ('user.goodrain.com',)
 
 def get_redirect_url(path, request=None, scheme=None, host=None):
     parsed_url = urlparse(path)
-    if parsed_url.scheme != '' and parsed_url.host != '':
+    if parsed_url.scheme != '' and parsed_url.netloc != '':
         scheme = parsed_url.scheme
-        host = parsed_url.host
-        path = parsed_url.path
+        host = parsed_url.netloc
+        path = parsed_url.path + '?' + parsed_url.query
     elif request is not None:
         scheme = request.scheme
         host = request.get_host()

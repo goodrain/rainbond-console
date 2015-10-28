@@ -42,7 +42,10 @@ class BaseTenantService(object):
         return cur_service_port
 
     def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
-        service_port = service.inner_port
+        if service.service_key == "application":
+            service_port = service.inner_port + 1000
+        else:
+            service_port = service.inner_port
         if service.is_service:
             deployPort = self.getMaxPort(tenant_id, service.service_key, service_alias)
             if deployPort > 0:

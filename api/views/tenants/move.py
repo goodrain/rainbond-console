@@ -93,6 +93,7 @@ class TenantStopView(APIView, RegionOperateMixin):
             # 在目标机房生成服务依赖关系
             ids = map(lambda s: s.service_id, moving_services)
             service_relations = TenantServiceRelation.objects.filter(service_id__in=ids)
+
             for relation in service_relations:
                 task = {
                     "dep_service_id": relation.dep_service_id,
@@ -100,6 +101,7 @@ class TenantStopView(APIView, RegionOperateMixin):
                     "dep_service_type": relation.dep_service_type
                 }
                 service_id = relation.service_id
+
                 regionClient.createServiceDependency(dest_region, service_id, json.dumps(task))
                 logger.info("tenant.move", "copy relation {0} to region {1}".format(task, dest_region))
         except Exception, e:
@@ -262,7 +264,8 @@ class TenantFollowUpView(APIView):
                 service.service_region = tenant_dest_region.region_name
                 service.save()
                 report['moved_services'].append(service.service_id)
-                logger.info("tenant.move", "set service {0} region = {1}".format(service.service_id, tenant_dest_region.region_name))
+                logger.info("tenant.move", "set service {0} region = {1}".format(
+                    service.service_id, tenant_dest_region.region_name))
 
                 service_domains = ServiceDomain.objects.filter(service_id=service.service_id)
                 for domain in service_domains:
