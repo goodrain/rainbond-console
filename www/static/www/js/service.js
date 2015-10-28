@@ -503,39 +503,3 @@ function attr_delete(obj){
 	var trobj = $(obj).closest('tr');
 	$(trobj).remove();
 }
-
-function do_rollback(event_id){
-	swal(event_id);
-	
-	$.ajax({
-		type : "POST",
-		url : "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/manage",
-		data : "event_id=" + event_id + "&action=rollback",
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(msg) {
-			var dataObj = msg
-			if (dataObj["status"] == "success") {
-				swal("操作成功")
-			} else if (dataObj["status"] == "often") {
-				swal("操作正在进行中，请稍后")
-			} else if (dataObj["status"] == "owed") {
-				swal("余额不足请及时充值")
-			} else if (dataObj["status"] == "over_memory") {
-				swal("免费资源已达上限，不能升级")
-			} else if (dataObj["status"] == "over_money") {
-				swal("余额不足，不能升级")
-			} else {
-				swal("操作失败")
-			}
-			$("#operate_"+service_id).removeAttr("disabled")
-		},
-		error : function() {
-			swal("系统异常");
-			$("#operate_"+service_id).removeAttr("disabled")
-		}
-	})
-}

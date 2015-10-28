@@ -707,10 +707,9 @@
         	checkStatus();
         	getLog('operate');
         	getLog('service');
-        	setInterval("checkStatus()", 10000);
+        	
         	setTimeout("getServiceNetDisk()", 1000);
-            //setInterval("getLog('operate')", 5000);
-            //setInterval("getLog('service')", 5000);
+        	setInterval("checkStatus()", 10000);
             setInterval("getServiceNetDisk()", 30000);
             
             var mapping = $("#create_port_mapping").val()
@@ -873,6 +872,54 @@
         
         function do_logshow(event_id){
         	swal(event_id);
+        }
+        
+        function do_rollback(event_id){
+        	swal({
+        		title : "确定恢复当前版本吗？",
+        		type : "warning",
+        		showCancelButton : true,
+        		confirmButtonColor : "#DD6B55",
+        		confirmButtonText : "确定",
+        		cancelButtonText : "取消",
+        		closeOnConfirm : false,
+        		closeOnCancel : false
+        	}, function(isConfirm) {
+        		if (isConfirm) {
+        			$.ajax({
+                		type : "POST",
+                		url : "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/manage",
+                		data : "event_id=" + event_id + "&action=rollback",
+                		cache : false,
+                		beforeSend : function(xhr, settings) {
+                			var csrftoken = $.cookie('csrftoken');
+                			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                		},
+                		success : function(msg) {
+                			var dataObj = msg
+                			if (dataObj["status"] == "success") {
+                				swal("操作成功")
+                			} else if (dataObj["status"] == "often") {
+                				swal("操作正在进行中，请稍后")
+                			} else if (dataObj["status"] == "owed") {
+                				swal("余额不足请及时充值")
+                			} else if (dataObj["status"] == "over_memory") {
+                				swal("免费资源已达上限，不能升级")
+                			} else if (dataObj["status"] == "over_money") {
+                				swal("余额不足，不能升级")
+                			} else {
+                				swal("操作失败")
+                			}
+                		},
+                		error : function() {
+                			swal("系统异常");
+                			$("#operate_"+service_id).removeAttr("disabled")
+                		}
+                	});
+        		} else {
+        			swal.close();
+        		}
+        	});
         }
     </script>
 </section>
