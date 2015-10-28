@@ -209,6 +209,8 @@ class BaseTenantService(object):
         
     def is_user_click(self, region, service_id):
         is_ok = True
+        logger.debug(region)
+        logger.debug(service_id)
         data = regionClient.getLatestServiceEvent(region, service_id)
         logger.debug(data)
         if data.get("event") is not None:
