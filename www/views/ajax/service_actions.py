@@ -48,8 +48,6 @@ class AppDeploy(AuthedView):
         service_id = self.service.service_id
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
-            logger.debug(self.service.service_region)
-            logger.debug(service_id)
             if not baseService.is_user_click(self.service.service_region, service_id):
                 data["status"] = "often"
                 return JsonResponse(data, status=200)
