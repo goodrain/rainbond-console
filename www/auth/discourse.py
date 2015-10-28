@@ -37,5 +37,5 @@ class SSO_AuthHandle(object):
         unsign_payload = '&'.join(pairs)
         encoded_payload = base64.standard_b64encode(unsign_payload)
         url_encoded_payload = urllib.quote(encoded_payload)
-        sig = self.sig(url_encoded_payload)
+        sig = self.sig(encoded_payload)
         return url_encoded_payload, sig

@@ -37,5 +37,5 @@ class DiscourseAuthView(BaseView):
                 "nonce": payload['nonce']
             }
             url_encoded_sso, sig = s.create_auth(user_info)
-            redirect_url = '{0}?sso={1}&sig={2}'.format(payload['return_sso_url'], urllib.quote(url_encoded_sso), urllib.quote(sig))
+            redirect_url = '{0}?sso={1}&sig={2}'.format(payload['return_sso_url'], url_encoded_sso, sig)
             return self.redirect_to(redirect_url)
