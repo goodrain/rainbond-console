@@ -740,7 +740,10 @@
        				if(msgs[0].trim()=="deploy"){
        					var newMsg = msg.substr(7)
        					log = eval("(" + newMsg + ")");  
-						var showlog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s";
+       					var showlog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]
+       					if(log["status"] !="start"){
+       						showlog = showlog+" 用时"+log["cost_time"]+"s";
+       					}
 						showlog = "<label>"+showlog+"</label><p id='compile_"+log["event_id"]+"'></p>"
 						if($("#event_"+log["event_id"]).length>0){
 							$("#event_"+log["event_id"]).html(showlog)
@@ -799,7 +802,8 @@
 		    	  			var logList = dataObj["log"]
 		    	  			for(var i=0;i<logList.length;i++){
 		    	  				var log = logList[i]
-		    	  				var tmpLog= log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"
+		    	  				var tmpLog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"
+		    	  				tmpLog = "<label>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"'></p>"
 		    	  				tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
 		    	  				showlog =showlog + tmpLog + "<br/>"
 		    	  			}
@@ -842,24 +846,29 @@
 		}
         
         function do_logshow(event_id,deploy_version){
-        	$.ajax({
-	       	  type: "GET",
-	    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
-	    		  data: "action=compile&event_id="+event_id,
-	    		  cache: false,
-	    		  beforeSend: function(xhr, settings){
-	    		      var csrftoken = $.cookie('csrftoken');
-	    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-	    		  },
-	    	  	  success: function(msg) {
-	    	  		var dataObj = msg;
-	    	  		var log = dataObj["log"];
-	    	  		$("#compile_"+event_id+"").html(log)
-	    		  },
-	    		  error: function(){
-	    			//swal("系统异常");
-	      	      }
-	         })
+        	if($("#showlog_"+event_id+"").html() == "显示构建日志"){
+        		$.ajax({
+      	       	  type: "GET",
+      	    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
+      	    		  data: "action=compile&event_id="+event_id,
+      	    		  cache: false,
+      	    		  beforeSend: function(xhr, settings){
+      	    		      var csrftoken = $.cookie('csrftoken');
+      	    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+      	    		  },
+      	    	  	  success: function(msg) {
+      	    	  		var dataObj = msg;
+      	    	  		var log = dataObj["log"];
+      	    	  		$("#compile_"+event_id+"").html(log)
+      	    	  		$("#showlog_"+event_id+"").html("隐藏构建日志")
+      	    		  },
+      	    		  error: function(){
+      	    			//swal("系统异常");
+      	      	      }
+      	         })
+    		}else{
+    			$("#compile_"+event_id+"").html("")
+    		}        	
         }
         
         function do_rollback(event_id,deploy_version){
