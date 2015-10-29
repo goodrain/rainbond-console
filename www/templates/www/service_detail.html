@@ -756,7 +756,7 @@
 						}
        				}else if(msgs[0].trim()=="compile"){
        					var event_id= msgs[1]
-       					var newMsg = msg.substr(24)
+       					var newMsg = msg.substr(25)
        					var arr=$("#compile_"+event_id+"").html().split('<br>');
    						if(arr[0].trim() != newMsg.trim()){
    							var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
