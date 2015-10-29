@@ -739,33 +739,40 @@
        				var msgs = msg.split(":")
        				if(msgs[0].trim()=="deploy"){
        					var newMsg = msg.substr(7)
-       					var arr=$("#keylog").html().split('<br>');
-       					if(arr[0].trim() != newMsg.trim()){
-       						var finalMsg = newMsg +"<br/>"+ $("#keylog").html()
-           					$("#keylog").html(finalMsg)
-       					}
+       					log = eval("(" + newMsg + ")");  
+						var showlog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s";
+						showlog = "<label>"+showlog+"</label><p id='compile_"+log["event_id"]+"'></p>"
+						if($("#event_"+log["event_id"]).length>0){
+							$("#event_"+log["event_id"]).html(showlog)
+						}else{
+							showlog = "<div id='event_"+log["event_id"]+"'>"+showlog+"</div>"
+							var arr=$("#keylog").html().split('<br>');
+	       					if(arr[0].trim() != newMsg.trim()){
+	       						var finalMsg = showlog +"<br/>"+ $("#keylog").html()
+	           					$("#keylog").html(finalMsg)
+	       					}
+						}
+       				}else if(msgs[0].trim()=="compile"){
+       					var event_id= msgs[1]
+       					var newMsg = msg.substr(24)
+       					var arr=$("#compile_"+event_id+"").html().split('<br>');
+   						if(arr[0].trim() != newMsg.trim()){
+   							var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
+           					$("#compile_"+event_id+"").html(finalMsg)
+   						}
        				}else{
-       					if(msgs[1].trim()=="builder"){
-       						var newMsg = msg.substr(22)
-       						var arr=$("#keylog").html().split('<br>');
-       						if(arr[0].trim() != newMsg.trim()){
-       							var finalMsg = newMsg +"<br/>"+ $("#keylog").html()
-               					$("#keylog").html(finalMsg)
+       					var finalMsg=""
+       					var arr=$("#log").html().split('<br>');
+       					var totalSize=150;
+       					if(arr.length > totalSize){
+       						for(var i = 0; i < totalSize; i++){
+       							finalMsg += arr[totalSize-1-i]+"<br/>"
        						}
        					}else{
-     						var finalMsg=""
-  	       					var arr=$("#log").html().split('<br>');
-  	       					var totalSize=150;
-  	       					if(arr.length > totalSize){
-  	       						for(var i = 0; i < totalSize; i++){
-  	       							finalMsg += arr[totalSize-1-i]+"<br/>"
-  	       						}
-  	       					}else{
-  	       						finalMsg = $("#log").html()
-  	       					}
-  	       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
-  	       					$("#log").html(finalMsg)
+       						finalMsg = $("#log").html()
        					}
+       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
+       					$("#log").html(finalMsg)
        				}
        			}
         	}
@@ -792,7 +799,9 @@
 		    	  			var logList = dataObj["log"]
 		    	  			for(var i=0;i<logList.length;i++){
 		    	  				var log = logList[i]
-		    	  				showlog = showlog + log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"+"<br/>"
+		    	  				var tmpLog= log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"
+		    	  				tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
+		    	  				showlog =showlog + tmpLog + "<br/>"
 		    	  			}
 		    	  			$("#keylog").html(showlog)
 			    	  	}else if(action=="service"){
@@ -845,7 +854,7 @@
 	    	  	  success: function(msg) {
 	    	  		var dataObj = msg;
 	    	  		var log = dataObj["log"];
-	    	  		swal(log);
+	    	  		$("#compile_"+event_id+"").html(log)
 	    		  },
 	    		  error: function(){
 	    			//swal("系统异常");
