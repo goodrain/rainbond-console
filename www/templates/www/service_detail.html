@@ -846,26 +846,26 @@
         
         function do_logshow(event_id,deploy_version){
         	if($("#showlog_"+event_id+"").html() == "显示构建日志"){
-        		if($("#compile_"+event_id+"").html()=""){
+        		if($("#compile_"+event_id+"").html() == ""){
         			$.ajax({
-         	       	  type: "GET",
-         	    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
-         	    		  data: "action=compile&event_id="+event_id,
-         	    		  cache: false,
-         	    		  beforeSend: function(xhr, settings){
-         	    		      var csrftoken = $.cookie('csrftoken');
-         	    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-         	    		  },
-         	    	  	  success: function(msg) {
-         	    	  		var dataObj = msg;
-         	    	  		var log = dataObj["log"];
-         	    	  		$("#compile_"+event_id+"").html(log)
-         	    	  		$("#showlog_"+event_id+"").html("隐藏构建日志")
-         	    		  },
-         	    		  error: function(){
-         	    			//swal("系统异常");
-         	      	      }
-            	    })
+           	       	  type: "GET",
+           	    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
+           	    		  data: "action=compile&event_id="+event_id,
+           	    		  cache: false,
+           	    		  beforeSend: function(xhr, settings){
+           	    		      var csrftoken = $.cookie('csrftoken');
+           	    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+           	    		  },
+           	    	  	  success: function(msg) {
+           	    	  		var dataObj = msg;
+           	    	  		var log = dataObj["log"];
+           	    	  		$("#compile_"+event_id+"").html(log)
+           	    	  		$("#showlog_"+event_id+"").html("隐藏构建日志")
+           	    		  },
+           	    		  error: function(){
+           	    			//swal("系统异常");
+           	      	      }
+              	    })
         		}else{
         			$("#compile_"+event_id+"").show();
         		}        		
