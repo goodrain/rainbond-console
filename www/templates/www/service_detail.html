@@ -739,7 +739,7 @@
        				if(msgs[0].trim()=="deploy"){
        					var newMsg = msg.substr(7)
        					log = eval("(" + newMsg + ")");  
-       					var showlog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]
+       					var showlog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
        					if(log["status"] == "end"){
        						showlog = showlog+" 用时"+log["cost_time"]+"s";
        					}
@@ -801,7 +801,7 @@
 		    	  			var logList = dataObj["log"]
 		    	  			for(var i=0;i<logList.length;i++){
 		    	  				var log = logList[i]
-		    	  				var tmpLog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]
+		    	  				var tmpLog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
 		       					if(log["status"] == "end"){
 		       						tmpLog = tmpLog+" 用时"+log["cost_time"]+"s";
 		       					}
