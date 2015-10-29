@@ -199,6 +199,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 gitClient.deleteProject(tempTenantService.git_project_id)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
+            TenantServiceRelation.objects.get(service_id=service_id).delete()
             data["status"] = "failure"
         return JsonResponse(data, status=200)
 

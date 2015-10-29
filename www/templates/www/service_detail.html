@@ -740,7 +740,7 @@
        					var newMsg = msg.substr(7)
        					log = eval("(" + newMsg + ")");  
        					var showlog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]
-       					if(log["status"] !="start"){
+       					if(log["status"] == "end"){
        						showlog = showlog+" 用时"+log["cost_time"]+"s";
        					}
 						showlog = "<label>"+showlog+"</label><p id='compile_"+log["event_id"]+"'></p>"
@@ -801,7 +801,10 @@
 		    	  			var logList = dataObj["log"]
 		    	  			for(var i=0;i<logList.length;i++){
 		    	  				var log = logList[i]
-		    	  				var tmpLog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]+" 用时"+log["cost_time"]+"s"
+		    	  				var tmpLog = log["create_time"]+" "+log["user_id"] +" "+log["desc"]
+		       					if(log["status"] == "end"){
+		       						tmpLog = tmpLog+" 用时"+log["cost_time"]+"s";
+		       					}
 		    	  				tmpLog = "<label>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"'></p>"
 		    	  				tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
 		    	  				showlog =showlog + tmpLog + "<br/>"

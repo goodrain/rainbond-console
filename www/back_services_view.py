@@ -8,7 +8,7 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth
+from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 import logging
@@ -170,5 +170,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             logger.exception(e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
+            TenantServiceRelation.objects.get(service_id=service_id).delete()
             result["status"] = "failure"
         return JsonResponse(result, status=200)
