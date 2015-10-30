@@ -150,6 +150,7 @@ class ServicePublishView(AuthedView):
         try:
             app = self._update_app(post_data, self.service)
             self.create_new_version(app, post_data, self.service)
+            app.save()
             return True
         except Exception, e:
             logger.exception('service.publish', e)
@@ -169,14 +170,14 @@ class ServicePublishView(AuthedView):
         app = ServiceInfo.objects.get(service_key=d['app_key'])
         app.info = d['app_info']
         app.version = d['app_version']
-        #app.service_name = d['app_name']
-        app.save()
+        app.service_name = d['app_name']
         return app
 
     def create_new_version(self, app, d, pub_service):
         new_version = AppServiceInfo(service_key=app.service_key, service_id=pub_service.service_id, pay_type=d['pay_type'], price=d['price'],
                                      deploy_version=pub_service.deploy_version, app_version=d['app_version'], change_log=d['change_log'])
         new_version = self.copy_public_properties(pub_service, new_version)
+        new_version.env = self.extend_env(new_version, pub_service)
         new_version.save()
 
     def copy_public_properties(self, copy_from, to):
@@ -186,3 +187,10 @@ class ServicePublishView(AuthedView):
             if hasattr(to, field) and hasattr(copy_from, field):
                 setattr(to, field, getattr(copy_from, field))
         return to
+
+    def extend_env(self, app_version, pub_service):
+        if pub_service.image.startswith('goodrain.me/runner'):
+            SLUG_PATH = '/{0}/slug/{1}/{2}.tgz'.format(pub_service.tenant_id, pub_service.service_id, pub_service.deploy_version)
+            return app_version.env.rstrip(',') + ',SLUG_PATH=' + SLUG_PATH + ','
+        else:
+            return app_version.env
