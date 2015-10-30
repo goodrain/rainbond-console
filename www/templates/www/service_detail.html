@@ -735,6 +735,7 @@
             
         	extPushWebSocketClient.prototype = {
        			onMessage : function(msg) {
+       				console.log(msg)
        				var msgs = msg.split(":")
        				if(msgs[0].trim()=="deploy"){
        					var newMsg = msg.substr(7)
