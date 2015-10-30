@@ -750,7 +750,7 @@
 							showlog = "<div id='event_"+log["event_id"]+"'>"+showlog+"</div>"
 							var arr=$("#keylog").html().split('<br>');
 	       					if(arr[0].trim() != newMsg.trim()){
-	       						var finalMsg = showlog +"<br/>"+ $("#keylog").html()
+	       						var finalMsg = showlog + $("#keylog").html()
 	           					$("#keylog").html(finalMsg)
 	       					}
 						}
@@ -807,7 +807,7 @@
 		       					}
 		    	  				tmpLog = "<label>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"'></p>"
 		    	  				tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
-		    	  				showlog =showlog + tmpLog + "<br/>"
+		    	  				showlog =showlog + tmpLog
 		    	  			}
 		    	  			$("#keylog").html(showlog)
 			    	  	}else if(action=="service"){
