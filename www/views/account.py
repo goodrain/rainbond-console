@@ -336,7 +336,7 @@ class Registation(BaseView, RegionOperateMixin):
 
     def get_media(self):
         media = super(Registation, self).get_media(
-        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
+        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/validator.min.js')
         return media
 
     def get_response(self):

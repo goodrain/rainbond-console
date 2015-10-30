@@ -24,6 +24,10 @@ tenant_identity = (
                                                "viewer"), (u"访问", "access")
 )
 
+app_pay_choices = (
+    (u'免费', "free"), (u'付费', "pay")
+)
+
 
 class AnonymousUser(object):
     id = None
@@ -232,6 +236,32 @@ class ServiceInfo(BaseModel):
         return self.service_key
 
 
+class AppServiceInfo(BaseModel):
+
+    class Meta:
+        db_table = 'app_service'
+        unique_together = (('service_key', 'app_version'), ('service_id', 'deploy_version'))
+
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    pay_type = models.CharField(max_length=12, default='free', choices=app_pay_choices, help_text=u"付费类型")
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"单价")
+    deploy_num = models.IntegerField(default=0, help_text=u"当前部署数量")
+    view_num = models.IntegerField(default=0, help_text=u"被部署次数")
+    deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
+    app_version = models.CharField(max_length=12, help_text=u"用户发布版本")
+    change_log = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新日志")
+    create_time = models.DateTimeField(help_text=u"创建时间", auto_now=True)
+
+    cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
+    setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
+    env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
+    dependecy = models.CharField(max_length=100, null=True, blank=True, help_text=u"依赖服务")
+
+    def __unicode__(self):
+        return u"{0}({1})".format(self.service_key, self.app_version)
+
+
 class TenantServiceInfo(BaseModel):
 
     class Meta:
@@ -321,6 +351,7 @@ class TenantServiceInfoDelete(BaseModel):
 
     class Meta:
         db_table = 'tenant_service_delete'
+        unique_together = ('tenant_id', 'service_alias')
 
     service_id = models.CharField(
         max_length=32, unique=True, help_text=u"服务id")
@@ -336,7 +367,7 @@ class TenantServiceInfoDelete(BaseModel):
     is_web_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否web服务")
     version = models.CharField(max_length=20, help_text=u"版本")
-    image = models.CharField(max_length=50, help_text=u"镜像")
+    image = models.CharField(max_length=100, help_text=u"镜像")
     cmd = models.CharField(
         max_length=100, null=True, blank=True, help_text=u"启动参数")
     setting = models.CharField(
@@ -358,12 +389,12 @@ class TenantServiceInfoDelete(BaseModel):
     code_from = models.CharField(
         max_length=20, null=True, blank=True, help_text=u"代码来源:gitlab,github")
     git_url = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"git代码仓库")
+        max_length=100, null=True, blank=True, help_text=u"code代码仓库")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
     git_project_id = models.IntegerField(help_text=u"gitlab 中项目id", default=0)
     is_code_upload = models.BooleanField(
-        default=False, blank=True, help_text=u"是否web服务")
+        default=False, blank=True, help_text=u"是否上传代码")
     code_version = models.CharField(
         max_length=100, null=True, blank=True, help_text=u"代码版本")
     service_type = models.CharField(

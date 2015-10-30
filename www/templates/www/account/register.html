@@ -20,7 +20,7 @@
 </header>
 
 <div class="container">
-  <form class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
+  <form id="reg_form" class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
     <h2 class="form-signin-heading">用户注册</h2>
 
     {% if errors %}
@@ -115,4 +115,10 @@
   	
   </script>
 </div>
+{% endblock %}
+
+{% block extrajs %}
+  <script type="text/javascript">
+    $('#reg_form').validator();
+  </script>
 {% endblock %}

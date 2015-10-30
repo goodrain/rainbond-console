@@ -11,9 +11,9 @@ from crispy_forms.bootstrap import (AppendedText, FieldWithButtons, StrictButton
                                     PrependedText, FormActions, AccordionGroup, InlineCheckboxes)
 from www.models import Users, Tenants, PhoneCode
 from www.layout import Submit, Field
-from www.forms import widgets
+import widgets
+import fields
 from www.region import RegionInfo
-from django.http.request import HttpRequest
 import time
 
 import logging
@@ -23,9 +23,11 @@ SENSITIVE_WORDS = (
     'admin', 'root', 'goodrain', 'builder', 'app', 'tenant', 'tenants', 'service', 'services'
 )
 
+standard_regex_string = "^[a-z0-9][a-z0-9_\-]+[a-z0-9]$"
+
 
 def is_standard_word(value):
-    r = re.compile(r'^[a-z0-9_\-]+[a-z0-9]$')
+    r = re.compile(standard_regex_string)
     if not r.match(value):
         raise forms.ValidationError(u"允许下列字符: 小写字母 数字 _ -")
 
@@ -124,7 +126,7 @@ class UserLoginForm(forms.Form):
             Field('password', css_class="form-control", placeholder=''),
             FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
             HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
-            HTML(u'''<div class="forgetpass" style="float: right;"><a class="" href="/account/begin_password_reset">?忘记密码</a></div>'''),
+            HTML(u'''<div class="forgetpass" style="float: right;"><a class="" href="/account/begin_password_reset">忘记密码?</a></div>'''),
             css_class='login-wrap',
             style="background: #FFFFFF;",
         )
@@ -257,14 +259,20 @@ class RegisterForm(forms.Form):
     '''
     email = forms.EmailField(
         required=True, max_length=32, label="",
+        # ajax_check=True,
+        #widget=widgets.EmailInput(attrs={"data-remote-error": u"邮件地址已存在"})
     )
-    tenant = forms.CharField(
+    tenant = fields.CharField(
         required=True, max_length=40, label="",
-        validators=[is_standard_word, is_sensitive]
+        validators=[is_standard_word, is_sensitive],
+        min_length=3, ajax_check=True, pattern=standard_regex_string,
+        widget=widgets.TextInput(attrs={"data-remote-error": u"已存在"})
     )
-    nick_name = forms.CharField(
+    nick_name = fields.CharField(
         required=True, max_length=24, label="",
-        validators=[is_standard_word, is_sensitive]
+        validators=[is_standard_word, is_sensitive],
+        pattern=standard_regex_string, ajax_check=True,
+        widget=widgets.TextInput(attrs={"data-remote-error": u"昵称已存在"})
     )
     password = forms.CharField(
         required=True, label='',

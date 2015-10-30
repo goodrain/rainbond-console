@@ -8,6 +8,7 @@ from www.views.service import TeamInfo
 from django.contrib.auth.decorators import login_required
 from www import alipay_view
 from django.views.decorators.csrf import csrf_exempt
+from www.views.service import ServicePublishView
 
 
 urlpatterns = patterns(
@@ -21,6 +22,7 @@ urlpatterns = patterns(
     url(r'^(?P<serviceAlias>[\w\-]+)/app-language/$', login_required(AppLanguageCodeView.as_view())),
 
     url(r'^(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),
+    url(r'^(?P<serviceAlias>[\w\-]+)/publish/$', ServicePublishView.as_view()),
 
     # url(r'^(?P<serviceAlias>[\w\-]+)/app-deploy/$', login_required(ServiceAppDeploy.as_view())),
 
