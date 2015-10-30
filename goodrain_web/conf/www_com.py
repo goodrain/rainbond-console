@@ -22,7 +22,7 @@ DATABASES = {
 }
 
 HTTP_PROXY = {
-    'hk1': {'type': 'http', 'host': '106.75.193.120', 'port': 12354}
+    'ali_hk_proxy': {'type': 'http', 'host': '203.88.170.137', 'port': 18888}
 }
 
 REGION_SERVICE_API = [{
@@ -37,8 +37,8 @@ REGION_SERVICE_API = [{
     'url': 'http://api.aws-jp-1.goodrain.com:8888',
     'apitype': 'region service',
     'region_name': 'aws-jp-1',
-    #'proxy': HTTP_PROXY['hk1'],
-    #'proxy_priority': True,
+    'proxy': HTTP_PROXY['ali_hk_proxy'],
+    'proxy_priority': True,
 }, {
     'url': 'http://api.ali-sh.goodrain.com:8888',
     'apitype': 'region service',

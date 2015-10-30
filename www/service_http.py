@@ -27,7 +27,7 @@ class RegionServiceApi(BaseHttpClient):
     def make_proxy_http(self, region_service_info):
         proxy_info = region_service_info['proxy']
         if proxy_info['type'] == 'http':
-            proxy_type = httplib2.socks.PROXY_TYPE_HTTP
+            proxy_type = httplib2.socks.PROXY_TYPE_HTTP_NO_TUNNEL
         else:
             raise TypeError("unsupport type: %s" % proxy_info['type'])
 
