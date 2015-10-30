@@ -735,47 +735,49 @@
             
         	extPushWebSocketClient.prototype = {
        			onMessage : function(msg) {
-       				var msgs = msg.split(":")
-       				if(msgs[0].trim()=="deploy"){
-       					var newMsg = msg.substr(7)
-       					log = eval("(" + newMsg + ")");  
-       					var showlog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
-       					if(log["status"] == "end"){
-       						showlog = showlog+" 用时"+log["cost_time"]+"s";
-       					}
-						showlog = "<label>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
-						if($("#event_"+log["event_id"]).length>0){
-							$("#event_"+log["event_id"]).html(showlog)
-						}else{
-							showlog = "<div id='event_"+log["event_id"]+"'>"+showlog+"</div>"
-							var arr=$("#keylog").html().split('<br>');
-	       					if(arr[0].trim() != newMsg.trim()){
-	       						var finalMsg = showlog + $("#keylog").html()
-	           					$("#keylog").html(finalMsg)
+       				if(typeof(msg) !="undefined"){
+	       				var msgs = msg.split(":")
+	       				if(msgs[0].trim()=="deploy"){
+	       					var newMsg = msg.substr(7)
+	       					log = eval("(" + newMsg + ")");  
+	       					var showlog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
+	       					if(log["status"] == "end"){
+	       						showlog = showlog+" 用时"+log["cost_time"]+"s";
 	       					}
-						}
-       				}else if(msgs[0].trim()=="compile"){
-       					var event_id= msgs[1]
-       					var newMsg = msg.substr(25)
-       					var arr=$("#compile_"+event_id+"").html().split('<br>');
-   						if(arr[0].trim() != newMsg.trim()){
-   							var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
-           					$("#compile_"+event_id+"").html(finalMsg)
-           					$("#compile_"+event_id+"").show();
-   						}
-       				}else{
-       					var finalMsg=""
-       					var arr=$("#log").html().split('<br>');
-       					var totalSize=150;
-       					if(arr.length > totalSize){
-       						for(var i = 0; i < totalSize; i++){
-       							finalMsg += arr[totalSize-1-i]+"<br/>"
-       						}
-       					}else{
-       						finalMsg = $("#log").html()
-       					}
-       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
-       					$("#log").html(finalMsg)
+							showlog = "<label>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
+							if($("#event_"+log["event_id"]).length>0){
+								$("#event_"+log["event_id"]).html(showlog)
+							}else{
+								showlog = "<div id='event_"+log["event_id"]+"'>"+showlog+"</div>"
+								var arr=$("#keylog").html().split('<br>');
+		       					if(arr[0].trim() != newMsg.trim()){
+		       						var finalMsg = showlog + $("#keylog").html()
+		           					$("#keylog").html(finalMsg)
+		       					}
+							}
+	       				}else if(msgs[0].trim()=="compile"){
+	       					var event_id= msgs[1]
+	       					var newMsg = msg.substr(25)
+	       					var arr=$("#compile_"+event_id+"").html().split('<br>');
+	   						if(arr[0].trim() != newMsg.trim()){
+	   							var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
+	           					$("#compile_"+event_id+"").html(finalMsg)
+	           					$("#compile_"+event_id+"").show();
+	   						}
+	       				}else{
+	       					var finalMsg=""
+	       					var arr=$("#log").html().split('<br>');
+	       					var totalSize=150;
+	       					if(arr.length > totalSize){
+	       						for(var i = 0; i < totalSize; i++){
+	       							finalMsg += arr[totalSize-1-i]+"<br/>"
+	       						}
+	       					}else{
+	       						finalMsg = $("#log").html()
+	       					}
+	       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
+	       					$("#log").html(finalMsg)
+	       				}
        				}
        			}
         	}
