@@ -5,7 +5,7 @@ from django.http.response import HttpResponse
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo
+from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation
 from www.forms.services import ServicePublishForm
 from www.utils import increase_version
 
@@ -162,6 +162,7 @@ class ServicePublishView(AuthedView):
             app = ServiceInfo(service_key=d['app_key'], publisher=self.user.nick_name, service_name=d['app_name'], info=d['app_info'],
                               status="test", category="app_publish", version=d['app_version'])
             app = self.copy_public_properties(pub_service, app)
+            app.dependecy = self.get_pub_srv_deps(pub_service)
             return app
         except Exception, e:
             raise e
@@ -171,6 +172,7 @@ class ServicePublishView(AuthedView):
         app.info = d['app_info']
         app.version = d['app_version']
         app.service_name = d['app_name']
+        app.dependecy = self.get_pub_srv_deps(pub_service)
         return app
 
     def create_new_version(self, app, d, pub_service):
@@ -184,8 +186,7 @@ class ServicePublishView(AuthedView):
 
     def copy_public_properties(self, copy_from, to):
         for field in ('is_service', 'is_web_service', 'image', 'extend_method', 'cmd', 'setting', 'env',
-                      'dependecy', 'min_node', 'min_cpu', 'min_memory', 'inner_port', 'volume_mount_path',
-                      'service_type'):
+                      'min_node', 'min_cpu', 'min_memory', 'inner_port', 'volume_mount_path', 'service_type'):
             if hasattr(to, field) and hasattr(copy_from, field):
                 setattr(to, field, getattr(copy_from, field))
         return to
@@ -196,3 +197,11 @@ class ServicePublishView(AuthedView):
             return app_version.env.rstrip(',') + ',SLUG_PATH=' + SLUG_PATH + ','
         else:
             return app_version.env
+
+    def get_pub_srv_deps(self, pub_service):
+        deps = TenantServiceRelation.objects.filter(service_id=pub_service.service_id)
+        if deps:
+            dep_service_keys = list(set([e.dep_service_type for e in deps]))
+            return ','.join(dep_service_keys)
+        else:
+            return ""
