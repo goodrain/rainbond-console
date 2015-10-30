@@ -141,6 +141,7 @@ class ServicePublishView(AuthedView):
         try:
             app = self._add_new_app(post_data, self.service)
             self.create_new_version(app, post_data, self.service)
+            app.save()
             return True
         except Exception, e:
             logger.exception('service.publish', e)
@@ -161,7 +162,6 @@ class ServicePublishView(AuthedView):
             app = ServiceInfo(service_key=d['app_key'], publisher=self.user.nick_name, service_name=d['app_name'], info=d['app_info'],
                               status="test", category="app_publish", version=d['app_version'])
             app = self.copy_public_properties(pub_service, app)
-            app.save()
             return app
         except Exception, e:
             raise e
@@ -177,8 +177,10 @@ class ServicePublishView(AuthedView):
         new_version = AppServiceInfo(service_key=app.service_key, service_id=pub_service.service_id, pay_type=d['pay_type'], price=d['price'],
                                      deploy_version=pub_service.deploy_version, app_version=d['app_version'], change_log=d['change_log'])
         new_version = self.copy_public_properties(pub_service, new_version)
-        new_version.env = self.extend_env(new_version, pub_service)
+        new_env = self.extend_env(new_version, pub_service)
+        new_version.env = new_env
         new_version.save()
+        app.env = new_env
 
     def copy_public_properties(self, copy_from, to):
         for field in ('is_service', 'is_web_service', 'image', 'extend_method', 'cmd', 'setting', 'env',
