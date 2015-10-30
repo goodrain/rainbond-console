@@ -32,7 +32,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 						+ "/detail/"
 				window.open(forurl, target = "_parent")
 			} else if (dataObj["status"] == "often") {
-				swal("上次部署正在进行中，请稍后再试")
+				swal("部署正在进行中，请稍后")
 			} else if (dataObj["status"] == "over_memory") {
 				swal("免费资源已达上限，不能升级")
 			} else if (dataObj["status"] == "over_money") {
@@ -50,12 +50,13 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 		},
 		error : function() {
 			$("#onekey_deploy").removeAttr("disabled")
-			// swal("系统异常");
+			swal("系统异常");
 		}
 	})
 }
 
 function service_my_onOperation(service_id, service_alias, tenantName) {
+	$("#operate_"+service_id).attr('disabled', "true")
 	var taction = $("#operate_" + service_id).attr("data" + service_id)
 	if (taction != "stop" && taction != "restart") {
 		swal("系统异常");
@@ -75,7 +76,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
 			} else if (dataObj["status"] == "often") {
-				swal("上次操作正在进行中，稍后再试")
+				swal("操作正在进行中，请稍后")
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "over_memory") {
@@ -85,9 +86,11 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 			} else {
 				swal("操作失败")
 			}
+			$("#operate_"+service_id).removeAttr("disabled")
 		},
 		error : function() {
 			swal("系统异常");
+			$("#operate_"+service_id).removeAttr("disabled")
 		}
 	})
 }
@@ -99,6 +102,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
 		swal("参数异常");
 		window.location.href = window.location.href;
 	}
+	$("#service_status_operate").attr('disabled', "true")
 	$.ajax({
 		type : "POST",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/manage",
@@ -113,7 +117,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
 			} else if (dataObj["status"] == "often") {
-				swal("上次操作正在进行中，稍后再试")
+				swal("操作正在进行中，请稍后")
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "over_memory") {
@@ -123,9 +127,11 @@ function service_onOperation(service_id, service_alias, tenantName) {
 			} else {
 				swal("操作失败")
 			}
+			$("#service_status_operate").removeAttr("disabled")
 		},
 		error : function() {
 			swal("系统异常");
+			$("#service_status_operate").removeAttr("disabled");
 		}
 	})
 }
@@ -195,7 +201,7 @@ function service_upgrade(tenantName, service_alias) {
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "often") {
-				swal("上次操作正在进行中，稍后再试")
+				swal("操作正在进行中，请稍后")
 			} else if (dataObj["status"] == "over_memory") {
 				swal("免费资源已达上限，不能升级")
 			} else if (dataObj["status"] == "over_money") {
@@ -230,7 +236,7 @@ function app_upgrade(tenantName, service_alias) {
 				} else if (dataObj["status"] == "owed") {
 					swal("余额不足请及时充值")
 				} else if (dataObj["status"] == "often") {
-					swal("上次操作正在进行中，稍后再试")
+					swal("操作正在进行中，请稍后")
 				} else if (dataObj["status"] == "over_memory") {
 					swal("免费资源已达上限，不能升级")
 				} else if (dataObj["status"] == "over_money") {
@@ -334,7 +340,7 @@ function service_protocol(opt_type, action, tenantName, service_alias) {
 					window.location.href = window.location.href
 				}
 			} else if (dataObj["status"] == "often") {
-				swal("上次操作正在进行中，稍后再试")
+				swal("操作正在进行中，请稍后")
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "over_memory") {

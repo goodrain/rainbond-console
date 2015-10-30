@@ -114,7 +114,7 @@ class BaseTenantService(object):
                 self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
         return newTenantService
 
-    def create_region_service(self, newTenantService, domain, region, do_deploy=True):
+    def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
         data["service_id"] = newTenantService.service_id
@@ -142,6 +142,7 @@ class BaseTenantService(object):
         data["domain"] = domain
         data["category"] = newTenantService.category
         data["protocol"] = newTenantService.protocol
+        data["operator"] = nick_name
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
@@ -205,6 +206,19 @@ class BaseTenantService(object):
         tenantServiceEnvVar["attr_value"] = attr_value
         tenantServiceEnvVar["is_change"] = isChange
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
+        
+    def is_user_click(self, region, service_id):
+        is_ok = True
+        data = regionClient.getLatestServiceEvent(region, service_id)
+        if data.get("event") is not None:
+            event = data.get("event")
+            if len(event) > 0:
+                lastTime = event.get("time")
+                curTime = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                diffsec = int(curTime) - int(lastTime)
+                if event.status == "start" and diffsec <= 120:
+                    is_ok = False
+        return is_ok
 
 
 class TenantUsedResource(object):

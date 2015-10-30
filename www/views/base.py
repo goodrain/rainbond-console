@@ -27,7 +27,7 @@ logger = logging.getLogger('default')
 
 
 class BaseObject(object):
-    #@filter_hook
+    # @filter_hook
 
     def get_context(self):
         return {'media': self.media}
@@ -36,7 +36,7 @@ class BaseObject(object):
     def media(self):
         return self.get_media()
 
-    #@filter_hook
+    # @filter_hook
     def get_media(self):
         return Media()
 
@@ -84,7 +84,7 @@ class BaseView(BaseObject, View):
 
         # take name and docstring from class
         update_wrapper(view, cls, updated=())
-        #view.need_site_permission = cls.need_site_permission
+        # view.need_site_permission = cls.need_site_permission
 
         return view
 

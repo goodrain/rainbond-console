@@ -8,14 +8,15 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth
+from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 import logging
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
-
+baseService = BaseTenantService()
+tenantUsedResource = TenantUsedResource()
 
 class ServiceMarket(LeftSideBarMixin, AuthedView):
 
@@ -123,7 +124,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             if createService != "":
                 dependencyNum = len(serviceKeys)
             # calculate resource
-            tenantUsedResource = TenantUsedResource()
             flag = tenantUsedResource.predict_next_memory(self.tenant, dependencyNum * 128 + service.min_memory)
             if not flag:
                 if self.tenant.pay_type == "free":
@@ -133,7 +133,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                 return JsonResponse(result, status=200)
             # create new service
             if createService != "":
-                baseService = BaseTenantService()
                 for skey in serviceKeys:
                     try:
                         dep_service = ServiceInfo.objects.get(service_key=skey)
@@ -141,7 +140,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
-                        baseService.create_region_service(depTenantService, self.tenantName, self.response_region)
+                        baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
                         baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
@@ -151,7 +150,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             hasService = request.POST.get("hasService", "")
             logger.debug(hasService)
             if hasService != "":
-                baseService = BaseTenantService()
                 serviceIds = hasService.split(",")
                 for sid in serviceIds:
                     try:
@@ -160,28 +158,14 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         logger.exception(e)
 
             # create console service
-            baseService = BaseTenantService()
+
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
             # create service env
             baseService.create_service_env(tenant_id, service_id, self.response_region)
-            # record service log
-            data = {}
-            data["log_msg"] = "服务创建成功，开始部署....."
-            data["service_id"] = newTenantService.service_id
-            data["tenant_id"] = newTenantService.tenant_id
-            task = {}
-            task["data"] = data
-            task["tube"] = "app_log"
-            task["service_id"] = newTenantService.service_id
-            try:
-                regionClient.writeToRegionBeanstalk(self.response_region, newTenantService.service_id, json.dumps(task))
-            except Exception as e:
-                logger.exception(e)
-
             # create region tenantservice
-            baseService.create_region_service(newTenantService, self.tenantName, self.response_region)
-
+            baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
+                        
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias
@@ -189,5 +173,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             logger.exception(e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
+            TenantServiceRelation.objects.get(service_id=service_id).delete()
             result["status"] = "failure"
         return JsonResponse(result, status=200)

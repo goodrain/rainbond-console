@@ -131,7 +131,7 @@
    		    	  		  totalM =0; 
 		    		  	  for(var o in dataObj){
 			    		  	  var obj=dataObj[o]
-			    		  	  if(obj["status"]=="Running"){
+			    		  	  if(obj["status"]=="running"){
 			    		  		 $("#service_status_"+o).html("运行中")
 			    		  		 $("#service_status_"+o).attr("class","label label-success label-mini")
 			    		  		 $("#button_"+o).attr("class","btn btn-shadow btn-info")
@@ -140,14 +140,16 @@
 			    		  		 $("#operate_"+o).attr("class","btn btn-danger btn-xs")
 								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
 								 $("#operate_"+o).attr("data"+o,"stop")		  		
-					    	  }else if(obj["status"]=="Waiting"){
-					    		 $("#service_status_"+o).html("部署中")
-					    		 $("#service_status_"+o).attr("class","label label-primary label-mini")
-					    		 $("#button_"+o).attr('disabled',"true")
-						    	 $("#operate_"+o).attr('disabled',"true")					    		 
-						      }else if(obj["status"]=="Closing" || obj["status"]=="Owed"){
+					    	  }else if(obj["status"]=="unusual"){
+					    		 $("#service_status_"+o).html("运行异常")
+					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")
+					    		 $("#button_"+o).removeAttr("disabled")
+			    		  		 $("#operate_"+o).removeAttr("disabled")
+			    		  		 $("#operate_"+o).attr("class","btn btn-danger btn-xs")
+								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+						      }else if(obj["status"]=="closed" || obj["status"]=="owed"){
 					    		 $("#service_status_"+o).html("已关闭")		
-					    		 if(obj["status"]=="Closing"){
+					    		 if(obj["status"]=="closed"){
 					    			 $("#service_status_"+o).html("已关闭")
 				    		  	 }else{
 				    		  		 $("#service_status_"+o).html("余额不足已关闭")
@@ -160,7 +162,7 @@
 								 $("#operate_"+o).attr("class","btn btn-success btn-xs")
 								 $("#operate_inner_"+o).attr("class","fa fa-play")
 								 $("#operate_"+o).attr("data"+o,"restart")
-						      }else if(obj["status"]=="Undeployed"){
+						      }else if(obj["status"]=="undeploy"){
 						    	 $("#service_status_"+o).html("未部署")	
 						    	 $("#service_status_"+o).attr("class","label label-info label-mini")				    		 
 						    	 $("#button_"+o).removeAttr("disabled")

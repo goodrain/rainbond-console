@@ -38,11 +38,11 @@
           <div class="row">
             <div class="col-sm-3">
               <p>状态</p>
-              <span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">Unknown</span>
+              <span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">未知</span>
             </div>
             <div class="col-sm-3">
               <p>内存使用</p>
-              <p style="font-size:18pt" id="service_memory" name="service_memory">0M</p>
+              <p style="font-size:18pt" id="service_memory" name="service_memory">{{totalMemory}}M</p>
             </div>
             <!--<div class="col-sm-3">
               <p>磁盘占用</p>
@@ -640,7 +640,7 @@
 		    	  	  success: function(msg) {
 		    	  		  var obj=msg;
 			    	  	  if(obj["status"]!="failure"){
-			    		  	  if(obj["status"]=="Running"){
+			    		  	  if(obj["status"]=="running"){
 			    		  		$("#service_status_value").val("stop")
 			    		  		$("#font"+service_id).html("关闭")
 			    		  		$("#service_status_operate").show()
@@ -650,22 +650,22 @@
 			    		  		$("#service_status_operate").show()
 			    		  		$("#service_visitor").show()
 			    		  		$("#service_status").attr("class","badge badge-sm label-success")
-				    		  }else if(obj["status"]=="Waiting"){
+				    		  }else if(obj["status"]=="unusual"){
 				    			$("#service_status_value").val("")
-				    		  	$("#font"+service_id).html("部署中")
-				    		  	$("#service_status_operate").hide()
-				    		  	$("#onekey_deploy").hide();
-				    		  	$("#service_status").html("部署中")
-				    		    $("#service_status_operate").hide();
-				    			$("#service_visitor").hide();
-				    			$("#service_status").attr("class","badge badge-sm label-success")
-				    		  }else if(obj["status"]=="Closing" || obj["status"]=="Owed"){
+				    		  	$("#font"+service_id).html("启动")
+				    		  	$("#service_status_operate").show()
+				    		  	$("#onekey_deploy").show();
+				    		  	$("#service_status").html("运行异常")
+				    		    $("#service_status_operate").show()
+				    			$("#service_visitor").show()
+				    			$("#service_status").attr("class","badge badge-sm label-danger")
+				    		  }else if(obj["status"]=="closed" || obj["status"]=="owed"){
 				    			$("#service_status_value").val("restart")
 				    		  	$("#font"+service_id).html("启动")
 				    		  	$("#service_status_operate").show()
 				    		  	$("#onekey_deploy").show()
 				    		  	$("#onekey_deploy").removeAttr("disabled")
-				    		  	if(obj["status"]=="Closing"){
+				    		  	if(obj["status"]=="closed"){
 				    		  		$("#service_status").html("已关闭")
 				    		  		$("#service_status").attr("class","badge badge-sm label-success")
 				    		  	}else{
@@ -674,7 +674,7 @@
 				    		  	}
 				    		  	$("#service_status_operate").show()
 				    		  	$("#service_visitor").hide();
-				    		  }else if(obj["status"]=="Undeployed"){
+				    		  }else if(obj["status"]=="undeploy"){
 				    			$("#service_status_value").val("")
 				    			$("#font"+service_id).html("未部署")
 				    			$("#service_status_operate").hide();
@@ -709,11 +709,10 @@
         	checkStatus();
         	getLog('operate');
         	getLog('service');
-        	setInterval("checkStatus()", 10000);
-        	setTimeout("getServiceNetDisk()", 1000);
-            //setInterval("getLog('operate')", 5000);
-            //setInterval("getLog('service')", 5000);
-            setInterval("getServiceNetDisk()", 30000);
+        	
+        	//setTimeout("getServiceNetDisk()", 1000);
+        	setInterval("checkStatus()", 5000);
+            //setInterval("getServiceNetDisk()", 30000);
             
             var mapping = $("#create_port_mapping").val()
             if(mapping != undefined){
@@ -738,36 +737,49 @@
             
         	extPushWebSocketClient.prototype = {
        			onMessage : function(msg) {
-       				var msgs = msg.split(":")
-       				if(msgs[0].trim()=="deploy"){
-       					var newMsg = msg.substr(7)
-       					var arr=$("#keylog").html().split('<br>');
-       					if(arr[0].trim() != newMsg.trim()){
-       						var finalMsg = newMsg +"<br/>"+ $("#keylog").html()
-           					$("#keylog").html(finalMsg)
-       					}
-       				}else{
-       					if(msgs[1].trim()=="builder"){
-       						var newMsg = msg.substr(22)
-       						var arr=$("#keylog").html().split('<br>');
-       						if(arr[0].trim() != newMsg.trim()){
-       							var finalMsg = newMsg +"<br/>"+ $("#keylog").html()
-               					$("#keylog").html(finalMsg)
-       						}
-       					}else{
-     						var finalMsg=""
-  	       					var arr=$("#log").html().split('<br>');
-  	       					var totalSize=150;
-  	       					if(arr.length > totalSize){
-  	       						for(var i = 0; i < totalSize; i++){
-  	       							finalMsg += arr[totalSize-1-i]+"<br/>"
-  	       						}
-  	       					}else{
-  	       						finalMsg = $("#log").html()
-  	       					}
-  	       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
-  	       					$("#log").html(finalMsg)
-       					}
+       				if(typeof(msg) !="undefined"){
+	       				var msgs = msg.split(":")
+	       				if(msgs[0].trim()=="deploy"){
+	       					var newMsg = msg.substr(7)
+	       					log = eval("(" + newMsg + ")");  
+	       					var showlog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
+	       					if(log["status"] == "end"){
+	       						showlog = showlog+" 用时"+log["cost_time"]+"s";
+	       					}
+							showlog = "<label>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
+							if($("#event_"+log["event_id"]).length>0){
+								$("#event_"+log["event_id"]).html(showlog)
+							}else{
+								showlog = "<div id='event_"+log["event_id"]+"'>"+showlog+"</div>"
+								var arr=$("#keylog").html().split('<br>');
+		       					if(arr[0].trim() != newMsg.trim()){
+		       						var finalMsg = showlog + $("#keylog").html()
+		           					$("#keylog").html(finalMsg)
+		       					}
+							}
+	       				}else if(msgs[0].trim()=="compile"){
+	       					var event_id= msgs[1]
+	       					var newMsg = msg.substr(25)
+	       					var arr=$("#compile_"+event_id+"").html().split('<br>');
+	   						if(arr[0].trim() != newMsg.trim()){
+	   							var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
+	           					$("#compile_"+event_id+"").html(finalMsg)
+	           					$("#compile_"+event_id+"").show();
+	   						}
+	       				}else{
+	       					var finalMsg=""
+	       					var arr=$("#log").html().split('<br>');
+	       					var totalSize=150;
+	       					if(arr.length > totalSize){
+	       						for(var i = 0; i < totalSize; i++){
+	       							finalMsg += arr[totalSize-1-i]+"<br/>"
+	       						}
+	       					}else{
+	       						finalMsg = $("#log").html()
+	       					}
+	       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
+	       					$("#log").html(finalMsg)
+	       				}
        				}
        			}
         	}
@@ -790,71 +802,24 @@
 		    	  	  success: function(msg) {
 		    	  		var dataObj = msg;
 		    	  		if(action=="operate"){
-		    	  			$("#keylog").html(dataObj["log"])
-			    	  	}
-			    	  	if(action=="service"){
+		    	  			var showlog=""
+		    	  			var logList = dataObj["log"]
+		    	  			if(typeof(logList) !="undefined"){
+		    	  				for(var i=0;i<logList.length;i++){
+			    	  				var log = logList[i]
+			    	  				var tmpLog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
+			       					if(log["status"] == "end"){
+			       						tmpLog = tmpLog+" 用时"+log["cost_time"]+"s";
+			       					}
+			    	  				tmpLog = "<label>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
+			    	  				tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
+			    	  				showlog =showlog + tmpLog
+			    	  			}
+			    	  			$("#keylog").html(showlog)
+		    	  			}		    	  			
+			    	  	}else if(action=="service"){
 			    	  		$("#log").html(dataObj["log"])
 				    	}
-		    		  },
-		    		  error: function(){
-		    			//swal("系统异常");
-		      	  	}
-		       })
-			}
-		}
-
-		function getServiceLog(){
-			var service_name=$("#service_name").val()
-			if(service_name!="" && service_name != undefined ){
-				$.ajax({
-		       	  type: "GET",
-		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
-		    		  data: "action=service",
-		    		  cache: false,
-		    		  beforeSend: function(xhr, settings){
-		    		      var csrftoken = $.cookie('csrftoken');
-		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		    		  },
-		    	  	  success: function(msg) {
-		    	  		var dataObj = msg;
-		    	  		$("#keylog").html(dataObj["log"])
-		    		  },
-		    		  error: function(){
-		    			//swal("系统异常");
-		      	  	}
-		       })
-			}
-		}
-
-		function getServiceNetDisk(){
-			var service_name=$("#service_name").val()
-			if(service_name!="" && service_name != undefined ){
-				$.ajax({
-		       	  type: "GET",
-		    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/net-disk",
-		    		  cache: false,
-		    		  beforeSend: function(xhr, settings){
-		    		      var csrftoken = $.cookie('csrftoken');
-		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		    		  },
-		    	  	  success: function(msg) {
-		    	  		var dataObj = msg;
-		    	  		if(dataObj["disk"] != undefined ){
-		    	  			$("#service_disk").html(dataObj["disk"]+"M")
-		    	  			var total_memory = dataObj["disk_memory"] + dataObj["memory"]
-		    	  			if($("#service_status").html() == "运行中"){
-		    	  				$("#service_memory").html(total_memory+"M")
-		    	  			}else if($("#service_status").html() == "部署中"){
-		    	  				$("#service_memory").html(total_memory+"M")
-		    	  			}else{
-		    	  				$("#service_memory").html(dataObj["disk_memory"]+"M")
-		    	  			}
-		    	  			if(dataObj["bytesin"] > dataObj["bytesout"]){
-		    	  				$("#service_network").html(dataObj["bytesin"]+"K")
-			    	  		}else{
-			    	  			$("#service_network").html(dataObj["bytesout"]+"K")
-				    	  	}
-			    	  	}
 		    		  },
 		    		  error: function(){
 		    			//swal("系统异常");
@@ -888,6 +853,87 @@
 	      	  	}
 	       })
 		}
+        
+        function do_logshow(event_id,deploy_version){
+        	if($("#showlog_"+event_id+"").html() == "显示构建日志"){
+        		if($("#compile_"+event_id+"").html() == ""){
+        			$("#compile_"+event_id+"").show();
+        			$.ajax({
+           	       	  type: "GET",
+           	    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
+           	    		  data: "action=compile&event_id="+event_id,
+           	    		  cache: false,
+           	    		  beforeSend: function(xhr, settings){
+           	    		      var csrftoken = $.cookie('csrftoken');
+           	    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+           	    		  },
+           	    	  	  success: function(msg) {
+           	    	  		var dataObj = msg;
+           	    	  		var log = dataObj["log"];
+           	    	  		$("#compile_"+event_id+"").html(log)
+           	    	  		$("#showlog_"+event_id+"").html("隐藏构建日志")
+           	    		  },
+           	    		  error: function(){
+           	    			//swal("系统异常");
+           	      	      }
+              	    })
+        		}else{
+        			$("#compile_"+event_id+"").show();
+        			$("#showlog_"+event_id+"").html("隐藏构建日志")
+        		}        		
+    		}else{
+    			$("#compile_"+event_id+"").hide();
+    			$("#showlog_"+event_id+"").html("显示构建日志")
+    		}        	
+        }
+        
+        function do_rollback(event_id,deploy_version){
+        	swal({
+        		title : "确定恢复当前版本吗？",
+        		type : "warning",
+        		showCancelButton : true,
+        		confirmButtonColor : "#DD6B55",
+        		confirmButtonText : "确定",
+        		cancelButtonText : "取消",
+        		closeOnConfirm : false,
+        		closeOnCancel : false
+        	}, function(isConfirm) {
+        		if (isConfirm) {
+        			$.ajax({
+                		type : "POST",
+                		url : "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/manage",
+                		data : "event_id=" + event_id + "&action=rollback&deploy_version="+deploy_version,
+                		cache : false,
+                		beforeSend : function(xhr, settings) {
+                			var csrftoken = $.cookie('csrftoken');
+                			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                		},
+                		success : function(msg) {
+                			var dataObj = msg
+                			if (dataObj["status"] == "success") {
+                				swal("操作成功")
+                			} else if (dataObj["status"] == "often") {
+                				swal("操作正在进行中，请稍后")
+                			} else if (dataObj["status"] == "owed") {
+                				swal("余额不足请及时充值")
+                			} else if (dataObj["status"] == "over_memory") {
+                				swal("免费资源已达上限，不能升级")
+                			} else if (dataObj["status"] == "over_money") {
+                				swal("余额不足，不能升级")
+                			} else {
+                				swal("操作失败")
+                			}
+                		},
+                		error : function() {
+                			swal("系统异常");
+                			$("#operate_"+service_id).removeAttr("disabled")
+                		}
+                	});
+        		} else {
+        			swal.close();
+        		}
+        	});
+        }
     </script>
 </section>
 </section>

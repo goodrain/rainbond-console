@@ -24,6 +24,8 @@ logger = logging.getLogger('default')
 gitClient = GitlabApi()
 
 regionClient = RegionServiceApi()
+baseService = BaseTenantService()
+tenantUsedResource = TenantUsedResource()
 
 
 class AppDeploy(AuthedView):
@@ -46,9 +48,7 @@ class AppDeploy(AuthedView):
         service_id = self.service.service_id
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
-            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            diffsec = int(curVersion) - int(oldVerion)
-            if diffsec <= 90:
+            if not baseService.is_user_click(self.service.service_region, service_id):
                 data["status"] = "often"
                 return JsonResponse(data, status=200)
 
@@ -58,7 +58,6 @@ class AppDeploy(AuthedView):
         temData["status"] = 2
         old_status = regionClient.updateTenantServiceStatus(self.service.service_region, service_id, json.dumps(temData))
         # calculate resource
-        tenantUsedResource = TenantUsedResource()
         flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
         if not flag:
             if self.tenant.pay_type == "free":
@@ -69,19 +68,6 @@ class AppDeploy(AuthedView):
             temData["status"] = old_status
             regionClient.updateTenantServiceStatus(self.service.service_region, service_id, json.dumps(temData))
             return JsonResponse(data, status=200)
-
-        try:
-            data = {}
-            data["log_msg"] = "开始部署......"
-            data["service_id"] = service_id
-            data["tenant_id"] = tenant_id
-            task = {}
-            task["service_id"] = service_id
-            task["data"] = data
-            task["tube"] = "app_log"
-            regionClient.writeToRegionBeanstalk(self.service.service_region, service_id, json.dumps(task))
-        except Exception as e:
-            logger.exception(e)
         try:
             gitUrl = request.POST.get('git_url', None)
             if gitUrl is None:
@@ -103,20 +89,14 @@ class AppDeploy(AuthedView):
                 clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            para = json.dumps(body)
+            body["operator"] = str(self.user.nick_name)
+            
+            regionClient.build_service(self.service.service_region, service_id, json.dumps(body))
 
-            regionClient.build_service(self.service.service_region, service_id, para)
-
-            log = {
-                "user_id": self.user.pk, "user_name": self.user.nick_name,
-                "service_id": service_id, "tenant_id": tenant_id,
-                "action": "deploy",
-            }
-            TenantServiceLog.objects.create(**log)
             data["status"] = "success"
             return JsonResponse(data, status=200)
         except Exception as e:
-            logger.debug(e)
+            logger.exception(e)
             data["status"] = "failure"
         return JsonResponse(data, status=500)
 
@@ -134,16 +114,16 @@ class ServiceManage(AuthedView):
 
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
-            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            diffsec = int(curVersion) - int(oldVerion)
-            if diffsec <= 60:
+            if not baseService.is_user_click(self.service.service_region, self.service.service_id):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
 
         try:
             action = request.POST["action"]
             if action == "stop":
-                regionClient.stop(self.service.service_region, self.service.service_id)
+                body = {}
+                body["operator"] = str(self.user.nick_name)
+                regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
             elif action == "restart":
                 # temp record service status
                 temData = {}
@@ -152,7 +132,6 @@ class ServiceManage(AuthedView):
                 old_status = regionClient.updateTenantServiceStatus(
                     self.service.service_region, self.service.service_id, json.dumps(temData))
                 # calculate resource
-                tenantUsedResource = TenantUsedResource()
                 flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
                 if not flag:
                     if self.tenant.pay_type == "free":
@@ -169,7 +148,8 @@ class ServiceManage(AuthedView):
                 self.service.save()
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
-                regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
+                body["operator"] = str(self.user.nick_name)
+                regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))                
             elif action == "delete":
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
@@ -221,7 +201,6 @@ class ServiceManage(AuthedView):
                     if par_inner_service == "start" or par_inner_service == "change":
                         inner_service = True
                     service_port = self.service.service_port
-                    baseService = BaseTenantService()
                     if inner_service:
                         number = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).count()
                         if number < 1:
@@ -255,6 +234,31 @@ class ServiceManage(AuthedView):
                     self.service.service_port = service_port
                     self.service.is_service = inner_service
                     self.service.save()
+            elif action == "rollback":
+                event_id = request.POST["event_id"]
+                deploy_version = request.POST["deploy_version"]
+                if event_id != "":
+                    temData = {}
+                    temData["service_id"] = self.service.service_id
+                    temData["status"] = 2
+                    old_status = regionClient.updateTenantServiceStatus(
+                        self.service.service_region, self.service.service_id, json.dumps(temData))
+                    # calculate resource
+                    flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
+                    if not flag:
+                        if self.tenant.pay_type == "free":
+                            result["status"] = "over_memory"
+                        else:
+                            result["status"] = "over_money"
+                        temData["service_id"] = self.service.service_id
+                        temData["status"] = old_status
+                        regionClient.updateTenantServiceStatus(self.service.service_region, self.service.service_id, json.dumps(temData))
+                        return JsonResponse(result, status=200)             
+                    body = {}
+                    body["event_id"] = event_id
+                    body["operator"] = str(self.user.nick_name)
+                    body["deploy_version"] = deploy_version
+                    regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))
             result["status"] = "success"
         except Exception, e:
             logger.exception(e)
@@ -274,11 +278,10 @@ class ServiceUpgrade(AuthedView):
             return JsonResponse(result, status=200)
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
-            curVersion = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            diffsec = int(curVersion) - int(oldVerion)
-            if diffsec <= 90:
+            if not baseService.is_user_click(self.service.service_region, self.service.service_id):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
+            
         action = request.POST["action"]
         if action == "vertical":
             try:
@@ -299,7 +302,6 @@ class ServiceUpgrade(AuthedView):
                         self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = upgrade_container_memory - int(old_container_memory)
-                    tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory)
                     if not flag:
                         if self.tenant.pay_type == "free":
@@ -322,6 +324,7 @@ class ServiceUpgrade(AuthedView):
                     body["container_memory"] = upgrade_container_memory
                     body["deploy_version"] = deploy_version
                     body["container_cpu"] = upgrade_container_cpu
+                    body["operator"] = str(self.user.nick_name)
                     regionClient.verticalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
                 result["status"] = "success"
             except Exception, e:
@@ -346,7 +349,6 @@ class ServiceUpgrade(AuthedView):
                         self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = (new_node_num - old_min_node) * self.service.min_memory
-                    tenantUsedResource = TenantUsedResource()
                     flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory)
                     if not flag:
                         if self.tenant.pay_type == "free":
@@ -366,7 +368,8 @@ class ServiceUpgrade(AuthedView):
                         body = {}
                         body["node_num"] = node_num
                         body["deploy_version"] = deploy_version
-                        regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                        body["operator"] = str(self.user.nick_name)
+                        regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))                        
                     except Exception, e:
                         logger.exception(e)
                         isResetStatus = True
@@ -403,7 +406,6 @@ class ServiceRelation(AuthedView):
             tenant_id = self.tenant.tenant_id
             service_id = self.service.service_id
             tenantS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
-            baseService = BaseTenantService()
             if action == "add":
                 baseService.create_service_dependency(tenant_id, service_id, tenantS.service_id, self.service.service_region)
             elif action == "cancel":
@@ -433,7 +435,7 @@ class AllServiceInfo(AuthedView):
                 for s in service_list:
                     if s['deploy_version'] is None or s['deploy_version'] == "":
                         child1 = {}
-                        child1["status"] = "Undeployed"
+                        child1["status"] = "undeploy"
                         result[s['service_id']] = child1
                     else:
                         service_ids.append(s['service_id'])
@@ -443,7 +445,7 @@ class AllServiceInfo(AuthedView):
                     if s['ID'] in service_pk_list:
                         if s['deploy_version'] is None or s['deploy_version'] == "":
                             child1 = {}
-                            child1["status"] = "Undeployed"
+                            child1["status"] = "undeploy"
                             result[s.service_id] = child1
                         else:
                             service_ids.append(s['service_id'])
@@ -451,42 +453,16 @@ class AllServiceInfo(AuthedView):
                 if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                     for sid in service_ids:
                         child = {}
-                        child["status"] = "Owed"
+                        child["status"] = "owed"
                         result[sid] = child
                 else:
                     id_string = ','.join(service_ids)
                     bodys = regionClient.check_status(self.cookie_region, json.dumps({"service_ids": id_string}))
-                    for sid in service_ids:
-                        service = TenantServiceInfo.objects.get(service_id=sid)
-                        body = bodys[sid]
-                        nodeNum = 0
-                        runningNum = 0
-                        isDeploy = 0
+                    logger.debug(bodys)
+                    for key, value in bodys.items():
                         child = {}
-                        for item in body:
-                            nodeNum += 1
-                            status = body[item]['status']
-                            if status == "Undeployed":
-                                isDeploy = -1
-                                break
-                            elif status == 'Running':
-                                runningNum += 1
-                                isDeploy += 1
-                            else:
-                                isDeploy += 1
-                        if isDeploy > 0:
-                            if nodeNum == runningNum:
-                                if runningNum > 0:
-                                    child["status"] = "Running"
-                                else:
-                                    child["status"] = "Waiting"
-                            else:
-                                child["status"] = "Waiting"
-                        elif isDeploy == -1:
-                            child["status"] = "Undeployed"
-                        else:
-                            child["status"] = "Closing"
-                        result[sid] = child
+                        child["status"] = value
+                        result[key] = child                        
         except Exception:
             tempIds = ','.join(service_ids)
             logger.debug(self.tenant.region + "-" + tempIds + " check_service_status is error")
@@ -530,20 +506,6 @@ class AllTenantsUsedResource(AuthedView):
                         result[s['service_id'] + "_running_memory"] = s["min_node"] * s["min_memory"]
                         result[s['service_id'] + "_storage_memory"] = 0
             result["service_ids"] = service_ids
-#             if len(service_ids) > 0:
-#                 dsn = BaseConnection()
-#                 query_sql = "select service_id,storage_disk,node_num,net_in,net_out from tenant_service_statics where tenant_id ='" + self.tenant.tenant_id + "' and service_id in(" + serviceIds + ")  order by id desc limit " + str(len(service_ids))
-#                 sqlobjs = dsn.query(query_sql)
-#                 for sqlobj in sqlobjs:
-#                     service_id = sqlobj["service_id"]
-#                     storageDisk = int(sqlobj["storage_disk"])
-#                     node_num = int(sqlobj["node_num"])
-#                     net_in = int(sqlobj["net_in"])
-#                     net_out = int(sqlobj["net_out"])
-#                     max_net = net_out
-#                     if net_in > net_out:
-#                         max_net = net_in
-#                     result[service_id + "_storage_memory"] = int(storageDisk * 0.01) + max_net
         except Exception as e:
             logger.exception(e)
         return JsonResponse(result)
@@ -567,37 +529,12 @@ class ServiceDetail(AuthedView):
                     result["status"] = "Undeployed"
                 else:
                     body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
-                    nodeNum = 0
-                    runningNum = 0
-                    isDeploy = 0
-                    for item in body:
-                        nodeNum += 1
-                        status = body[item]['status']
-                        if status == "Undeployed":
-                            isDeploy = -1
-                            break
-                        elif status == "Running":
-                            runningNum += 1
-                            isDeploy += 1
-                        else:
-                            isDeploy += 1
-                    if isDeploy > 0:
-                        if nodeNum == runningNum:
-                            if runningNum > 0:
-                                result["totalMemory"] = runningNum * self.service.min_memory
-                                result["status"] = "Running"
-                            else:
-                                result["totalMemory"] = 0
-                                result["status"] = "Waiting"
-                        else:
-                            result["totalMemory"] = 0
-                            result["status"] = "Waiting"
-                    elif isDeploy == -1:
-                        result["totalMemory"] = 0
-                        result["status"] = "Undeployed"
+                    status = body[self.service.service_id]
+                    if status == "running":
+                        result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
                         result["totalMemory"] = 0
-                        result["status"] = "Closing"
+                    result["status"] = status                        
         except Exception, e:
             logger.debug(self.service.service_region + "-" + self.service.service_id + " check_service_status is error")
             result["totalMemory"] = 0
@@ -619,17 +556,6 @@ class ServiceNetAndDisk(AuthedView):
             result["bytesin"] = 0
             result["bytesout"] = 0
             result["disk_memory"] = 0
-#             tenantServiceStaticsList = TenantServiceStatics.objects.filter(tenant_id=tenant_id, service_id=service_id).order_by('-ID')[0:1]
-#             if tenantServiceStaticsList is not None and len(tenantServiceStaticsList) > 0 :
-#                 tenantServiceStatics = tenantServiceStaticsList[0]
-#                 storageDisk = tenantServiceStatics.storage_disk
-#                 result["disk"] = storageDisk
-#                 result["bytesin"] = tenantServiceStatics.net_in
-#                 result["bytesout"] = tenantServiceStatics.net_out
-#                 max_net = tenantServiceStatics.net_in
-#                 if tenantServiceStatics.net_in < tenantServiceStatics.net_out:
-#                     max_net = tenantServiceStatics.net_out
-#                 result["disk_memory"] = int(storageDisk * 0.01) + max_net
         except Exception, e:
             logger.exception(e)
         return JsonResponse(result)
@@ -647,15 +573,26 @@ class ServiceLog(AuthedView):
                 action = request.GET.get("action", "")
                 service_id = self.service.service_id
                 tenant_id = self.service.tenant_id
-                body = {}
-                body["tenant_id"] = tenant_id
                 if action == "operate":
-                    body = regionClient.get_userlog(self.service.service_region, service_id, json.dumps(body))
-                    return JsonResponse(body)
+                    body = regionClient.get_userlog(self.service.service_region, service_id)
+                    eventDataList = body.get("event_data")
+                    result = {}
+                    result["log"] = eventDataList
+                    result["num"] = len(eventDataList)
+                    return JsonResponse(result)
                 elif action == "service":
+                    body = {}
+                    body["tenant_id"] = tenant_id
                     body = regionClient.get_log(self.service.service_region, service_id, json.dumps(body))
                     return JsonResponse(body)
-                return JsonResponse({})
+                elif action == "compile":
+                    event_id = request.GET.get("event_id", "")
+                    body = {}
+                    if event_id != "":
+                        body["tenant_id"] = tenant_id
+                        body["event_id"] = event_id
+                        body = regionClient.get_compile_log(self.service.service_region, service_id, json.dumps(body))
+                    return JsonResponse(body)
         except Exception as e:
             logger.info("%s" % e)
         return JsonResponse({})
@@ -834,7 +771,6 @@ class ServiceEnvVarManager(AuthedView):
                             TenantServiceEnvVar(**tenantServiceEnvVar).save()
             # sync data to region
             if isNeedToRsync:
-                baseTenantService = BaseTenantService()
                 baseTenantService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
             result["status"] = "success"
         except Exception as e:

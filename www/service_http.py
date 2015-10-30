@@ -62,7 +62,7 @@ class RegionServiceApi(BaseHttpClient):
         return body
 
     def deploy(self, region, service_id, body):
-        url = self.region_map[region] + "/v1/services/lifecycle/" + service_id + "/deploy/"
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/deploy/"
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
@@ -71,9 +71,9 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
-    def stop(self, region, service_id):
+    def stop(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/stop/"
-        res, body = self._post(url, self.default_headers, region=region)
+        res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
     def delete(self, region, service_id):
@@ -91,8 +91,13 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
-    def get_userlog(self, region, service_id, body):
+    def get_userlog(self, region, service_id):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/userlog/"
+        res, body = self._post(url, self.default_headers, region=region)
+        return body
+    
+    def get_compile_log(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/compile-log/"
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
@@ -209,3 +214,13 @@ class RegionServiceApi(BaseHttpClient):
         data = {"tenant_id": tenant_id, "tenant_name": tenant_name}
         res, body = self._post(url, self.default_headers, json.dumps(data), region=region)
         return res, body
+    
+    def getLatestServiceEvent(self, region, service_id):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/latest-event/"
+        res, body = self._post(url, self.default_headers, region=region)
+        return body
+    
+    def rollback(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/roll-back/"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return body
