@@ -16,6 +16,7 @@ from django.conf import settings
 from www.db import BaseConnection
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from goodrain_web.decorator import method_perf_time
+from www.monitorservice.monitorhook import MonitorHook
 
 import logging
 from django.template.defaultfilters import length
@@ -26,7 +27,7 @@ gitClient = GitlabApi()
 regionClient = RegionServiceApi()
 baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
-
+monitorhook = MonitorHook()
 
 class AppDeploy(AuthedView):
 
@@ -92,12 +93,14 @@ class AppDeploy(AuthedView):
             body["operator"] = str(self.user.nick_name)
             
             regionClient.build_service(self.service.service_region, service_id, json.dumps(body))
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_deploy', True)
 
             data["status"] = "success"
             return JsonResponse(data, status=200)
         except Exception as e:
             logger.exception(e)
             data["status"] = "failure"
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_deploy', False)
         return JsonResponse(data, status=500)
 
 
@@ -124,6 +127,7 @@ class ServiceManage(AuthedView):
                 body = {}
                 body["operator"] = str(self.user.nick_name)
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
             elif action == "restart":
                 # temp record service status
                 temData = {}
@@ -149,7 +153,8 @@ class ServiceManage(AuthedView):
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
-                regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))                
+                regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)              
             elif action == "delete":
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
@@ -171,7 +176,7 @@ class ServiceManage(AuthedView):
                 ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
-
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
             elif action == "protocol":
                 par_opt_type = request.POST["opt_type"]
                 if par_opt_type == "outer":
@@ -195,6 +200,7 @@ class ServiceManage(AuthedView):
                     self.service.protocol = protocol
                     self.service.is_web_service = outer_service
                     self.service.save()
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
                 elif par_opt_type == "inner":
                     par_inner_service = request.POST["inner_service"]
                     inner_service = False
@@ -234,6 +240,7 @@ class ServiceManage(AuthedView):
                     self.service.service_port = service_port
                     self.service.is_service = inner_service
                     self.service.save()
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_inner', True)
             elif action == "rollback":
                 event_id = request.POST["event_id"]
                 deploy_version = request.POST["deploy_version"]
@@ -259,10 +266,12 @@ class ServiceManage(AuthedView):
                     body["operator"] = str(self.user.nick_name)
                     body["deploy_version"] = deploy_version
                     regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', True)
             result["status"] = "success"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_manage', False)
         return JsonResponse(result)
 
 
@@ -326,6 +335,7 @@ class ServiceUpgrade(AuthedView):
                     body["container_cpu"] = upgrade_container_cpu
                     body["operator"] = str(self.user.nick_name)
                     regionClient.verticalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
                 result["status"] = "success"
             except Exception, e:
                 self.service.min_cpu = old_container_cpu
@@ -333,6 +343,7 @@ class ServiceUpgrade(AuthedView):
                 self.service.deploy_version = old_deploy_version
                 self.service.save()
                 logger.exception(e)
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', False)
                 result["status"] = "failure"
         elif action == "horizontal":
             node_num = request.POST["node_num"]
@@ -384,7 +395,7 @@ class ServiceUpgrade(AuthedView):
                         temData["status"] = old_status
                         regionClient.updateTenantServiceStatus(self.service.service_region,
                                                                self.service.service_id, json.dumps(temData))
-
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', True)
                 result["status"] = "success"
             except Exception, e:
                 self.service.min_node = old_min_node
@@ -392,6 +403,7 @@ class ServiceUpgrade(AuthedView):
                 self.service.save()
                 logger.exception(e)
                 result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', False)
         return JsonResponse(result)
 
 
@@ -699,6 +711,7 @@ class ServiceDomainManager(AuthedView):
                 data["old_domain"] = old_domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 regionClient.addUserDomain(self.service.service_region, json.dumps(data))
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_add', True)
             elif action == "close":
                 servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id)
                 data = {}
@@ -707,10 +720,12 @@ class ServiceDomainManager(AuthedView):
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 regionClient.deleteUserDomain(self.service.service_region, json.dumps(data))
                 ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_delete', True)
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_manage', False)
         return JsonResponse(result)
 
 

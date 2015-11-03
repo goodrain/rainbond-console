@@ -19,6 +19,7 @@ import random
 import re
 
 from www.views import BaseView, RegionOperateMixin
+from www.monitorservice.monitorhook import MonitorHook
 
 import hashlib
 
@@ -27,6 +28,7 @@ logger = logging.getLogger('default')
 
 gitClient = GitlabApi()
 
+monitorhook = MonitorHook()
 
 class Login(BaseView):
 
@@ -242,7 +244,7 @@ class PasswordResetMethodSelect(BaseView):
             domain = self.request.META.get('HTTP_HOST')
             timestamp = str(int(time.time()))
             tag = AuthCode.encode(','.join([self.user.email, timestamp]), 'password')
-            link_url = 'http://{0}/account/reset_password?tag={1}'.format(domain, tag)
+            link_url = 'https://{0}/account/reset_password?tag={1}'.format(domain, tag)
             try:
                 send_reset_pass_mail(self.user.email, link_url)
             except Exception, e:
@@ -310,6 +312,7 @@ class PasswordReset(BaseView):
             raw_password = request.POST.get('password')
             user.set_password(raw_password)
             user.save()
+            flag = True
             logger.info("account.passwdreset", "reset password for user {0} in my database".format(user.nick_name))
             if user.git_user_id != 0:
                 try:
@@ -318,8 +321,10 @@ class PasswordReset(BaseView):
                 except Exception, e:
                     logger.error("account.passwdreset", "reset password for user {0} in gitlab failed".format(user.nick_name))
                     logger.exception("account.passwdreset", e)
+                    flag = False
             else:
-                self.create_git_user(user, raw_password)
+                self.create_git_user(user, raw_password)            
+            monitorhook.passwdResetMonitor(user, flag)            
             return self.redirect_to('/login')
         logger.info("account.passwdreset", "passwdreset form error: %s" % self.form.errors)
         return self.get_response()
@@ -383,23 +388,27 @@ class Registation(BaseView, RegionOperateMixin):
                          phone=phone, client_ip=self.get_client_ip(request), rf=rf)
             user.set_password(password)
             user.save()
+            monitorhook.registerMonitor(user, 'register')
 
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
+            
+            monitorhook.tenantMonitor(tenant, user, "create_tenant")
+            
             PermRelTenant.objects.create(
                 user_id=user.pk, tenant_id=tenant.pk, identity='admin')
             logger.info(
                 "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(nick_name, tenant_name, region, tenant.tenant_id))
 
             TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
-            self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
-
+            init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
+            monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
             # create gitlab user
             git_user_id = gitClient.createUser(
                 email, password, nick_name, nick_name)
             user.git_user_id = git_user_id
             user.save()
-
+            monitorhook.gitUserMonitor(user, git_user_id)   
             if git_user_id == 0:
                 logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
             else:
@@ -548,6 +557,7 @@ class InviteRegistation(BaseView):
                      phone=phone, client_ip=self.get_client_ip(request))
         user.set_password(password)
         user.save()
+        monitorhook.registerMonitor(user, "invite_register")
 
         if len(data) == 3:
             self.register_for_tenant(user, password, data)
@@ -603,9 +613,10 @@ class PhoneCodeView(BaseView):
                     result["status"] = "limited"
                     return JsonResponse(result)
             phone_code = random.randrange(0, 1000001, 6)
-            send_phone_message(phone, phone_code)
+            send_result = send_phone_message(phone, phone_code)
             newpc = PhoneCode(phone=phone, type="register", code=phone_code)
             newpc.save()
+            monitorhook.phoneCodeMonitor(phone, phone_code, send_result)
             result["status"] = "success"
             return JsonResponse(result)
         except Exception as e:
