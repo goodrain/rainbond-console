@@ -107,7 +107,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 if self.user.git_user_id > 0:
                     project_id = gitClient.createProject(self.tenantName + "_" + service_alias)
                     logger.debug(project_id)
-                    monitorhook.getProjectMonitor(self.user.nick_name, newTenantService, 'create_git_project', project_id)
+                    monitorhook.gitProjectMonitor(self.user.nick_name, newTenantService, 'create_git_project', project_id)
                     if project_id > 0:
                         gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
                         gitClient.addProjectMember(project_id, 2, 20)
