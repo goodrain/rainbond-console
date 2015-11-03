@@ -393,7 +393,7 @@ class Registation(BaseView, RegionOperateMixin):
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
             
-            monitorhook.tenantMonitor(tenant, user, "create_tenant")
+            monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
             
             PermRelTenant.objects.create(
                 user_id=user.pk, tenant_id=tenant.pk, identity='admin')
