@@ -3,12 +3,13 @@ import uuid
 import hashlib
 import json
 
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation
+from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServiceInfo
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 import logging
@@ -17,6 +18,7 @@ logger = logging.getLogger('default')
 regionClient = RegionServiceApi()
 baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
+
 
 class ServiceMarket(LeftSideBarMixin, AuthedView):
 
@@ -161,11 +163,12 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
 
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
+            if service.category == 'app_publish':
+                newTenantService = self.update_app_service(service, newTenantService)
             # create service env
             baseService.create_service_env(tenant_id, service_id, self.response_region)
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
-                        
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias
@@ -176,3 +179,25 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             TenantServiceRelation.objects.get(service_id=service_id).delete()
             result["status"] = "failure"
         return JsonResponse(result, status=200)
+
+    def update_app_service(self, service, newTenantService):
+        with transaction.atomic():
+            appversion = AppServiceInfo.objects.defer('change_log').get(service_key=service.service_key, app_version=service.version)
+            appversion.deploy_num += 1
+            appversion.view_num += 1
+            appversion.save(update_fields=['deploy_num', 'view_num'])
+
+        newTenantService, update_fields = self.copy_properties(appversion, newTenantService)
+        newTenantService.save(update_fields=update_fields)
+        return newTenantService
+
+    def copy_properties(self, copy_from, to):
+        update_fields = []
+        for field in ('deploy_version', 'cmd', 'setting', 'image', 'dependecy', 'env'):
+            if hasattr(to, field) and hasattr(copy_from, field):
+                to_value = getattr(to, field)
+                from_value = getattr(copy_from, field)
+                if to_value != from_value:
+                    setattr(to, field, from_value)
+                    update_fields.append(field)
+        return to, update_fields

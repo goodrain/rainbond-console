@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+import json
 #from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
@@ -8,6 +9,7 @@ from www.decorator import perm_required
 from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation
 from www.forms.services import ServicePublishForm
 from www.utils import increase_version
+from www.service_http import RegionServiceApi
 
 import logging
 logger = logging.getLogger('default')
@@ -140,8 +142,9 @@ class ServicePublishView(AuthedView):
     def app_publish(self, post_data):
         try:
             app = self._add_new_app(post_data, self.service)
-            self.create_new_version(app, post_data, self.service)
+            new_version = self.create_new_version(app, post_data, self.service)
             app.save()
+            self.upload_slug(new_version)
             return True
         except Exception, e:
             logger.exception('service.publish', e)
@@ -150,8 +153,9 @@ class ServicePublishView(AuthedView):
     def app_update(self, post_data):
         try:
             app = self._update_app(post_data, self.service)
-            self.create_new_version(app, post_data, self.service)
+            new_version = self.create_new_version(app, post_data, self.service)
             app.save()
+            self.upload_slug(new_version)
             return True
         except Exception, e:
             logger.exception('service.publish', e)
@@ -183,6 +187,7 @@ class ServicePublishView(AuthedView):
         new_version.env = new_env
         new_version.save()
         app.env = new_env
+        return new_version
 
     def copy_public_properties(self, copy_from, to):
         for field in ('is_service', 'is_web_service', 'image', 'extend_method', 'cmd', 'setting', 'env',
@@ -193,7 +198,7 @@ class ServicePublishView(AuthedView):
 
     def extend_env(self, app_version, pub_service):
         if pub_service.image.startswith('goodrain.me/runner'):
-            SLUG_PATH = '/{0}/slug/{1}/{2}.tgz'.format(pub_service.tenant_id, pub_service.service_id, pub_service.deploy_version)
+            SLUG_PATH = '/app_publish/{0}/{1}.tgz'.format(app_version.service_key, pub_service.deploy_version)
             return app_version.env.rstrip(',') + ',SLUG_PATH=' + SLUG_PATH + ','
         else:
             return app_version.env
@@ -205,3 +210,20 @@ class ServicePublishView(AuthedView):
             return ','.join(dep_service_keys)
         else:
             return ""
+
+    def upload_slug(self, new):
+        oss_upload_task = {
+            "app_key": new.service_key, "service_id": new.service_id,
+            "deploy_version": new.deploy_version, "tenant_id": self.service.tenant_id,
+            "action": "create_new_version"
+        }
+        try:
+            delete_models = AppServiceInfo.objects.only('deploy_version').filter(service_key=new.service_key, deploy_num=0).exclude(app_version=new.app_version)
+            if delete_models:
+                oss_upload_task['delete_versions'] = [e.deploy_version for e in delete_models]
+            r = RegionServiceApi()
+            r.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
+            delete_models.delete()
+        except Exception, e:
+            logger.error("service.publish", "upload_slug for {0}({1}), but an error occurred".format(new.service_key, new.app_version))
+            logger.exception("service.publish", e)

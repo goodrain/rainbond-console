@@ -95,7 +95,7 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/userlog/"
         res, body = self._post(url, self.default_headers, region=region)
         return body
-    
+
     def get_compile_log(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/compile-log/"
         res, body = self._post(url, self.default_headers, body, region=region)
@@ -214,13 +214,18 @@ class RegionServiceApi(BaseHttpClient):
         data = {"tenant_id": tenant_id, "tenant_name": tenant_name}
         res, body = self._post(url, self.default_headers, json.dumps(data), region=region)
         return res, body
-    
+
     def getLatestServiceEvent(self, region, service_id):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/latest-event/"
         res, body = self._post(url, self.default_headers, region=region)
         return body
-    
+
     def rollback(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/roll-back/"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return body
+
+    def send_task(self, region, topic, body):
+        url = self.region_map[region]['url'] + "/v1/queue?topic=" + topic
         res, body = self._post(url, self.default_headers, body, region=region)
         return body

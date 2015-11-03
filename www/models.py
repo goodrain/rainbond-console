@@ -253,11 +253,12 @@ class AppServiceInfo(BaseModel):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"单价")
     deploy_num = models.IntegerField(default=0, help_text=u"当前部署数量")
     view_num = models.IntegerField(default=0, help_text=u"被部署次数")
-    deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
     app_version = models.CharField(max_length=12, help_text=u"用户发布版本")
     change_log = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新日志")
     create_time = models.DateTimeField(help_text=u"创建时间", auto_now=True)
 
+    deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
+    image = models.CharField(max_length=100, help_text=u"镜像")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
     setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
