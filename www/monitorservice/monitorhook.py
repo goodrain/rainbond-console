@@ -46,9 +46,9 @@ class MonitorHook(object):
         data["action"] = "create_git_user"
         data["info"] = ""
         if git_user_id > 0:
-            data["result"] = "failure"
-        else:
             data["result"] = "success"
+        else:
+            data["result"] = "failure"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
         
