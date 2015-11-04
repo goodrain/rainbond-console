@@ -17,6 +17,7 @@ class MonitorHook(object):
         data["action"] = action
         data["info"] = ""
         data["result"] = "success"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
     
     def tenantMonitor(self, tenant, user, action, init_result):
@@ -25,13 +26,14 @@ class MonitorHook(object):
         data["origin"] = "goodrain_web"
         data["target_id"] = tenant.tenant_id
         data["target_name"] = tenant.tenant_name
-        data["category"] = "user"
+        data["category"] = "tenant"
         data["action"] = action
         data["info"] = ""
         if init_result:
             data["result"] = "success"
         else:
             data["result"] = "failure"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
     
     def gitUserMonitor(self, user, git_user_id):
@@ -47,6 +49,7 @@ class MonitorHook(object):
             data["result"] = "failure"
         else:
             data["result"] = "success"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
         
     def phoneCodeMonitor(self, phone, phone_code, send_result):
@@ -62,6 +65,7 @@ class MonitorHook(object):
             data["result"] = "success"
         else:
             data["result"] = "failure"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
         
     def loginMonitor(self, user):
@@ -74,6 +78,7 @@ class MonitorHook(object):
         data["action"] = "login"
         data["info"] = ""
         data["result"] = "success"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
         
     def logoutMonitor(self, user):
@@ -86,6 +91,7 @@ class MonitorHook(object):
         data["action"] = "logout"
         data["info"] = ""
         data["result"] = "success"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
         
     def passwdResetMonitor(self, user, flag):
@@ -101,6 +107,7 @@ class MonitorHook(object):
             data["result"] = "success"
         else:
             data["result"] = "failure"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
         
     def serviceMonitor(self, nick_name, tenantService, action, result):
@@ -116,6 +123,7 @@ class MonitorHook(object):
             data["result"] = "success"
         else:
             data["result"] = "failure"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
         
     def gitProjectMonitor(self, nick_name, tenantService, action, project_id):
@@ -131,4 +139,5 @@ class MonitorHook(object):
             data["result"] = "success"
         else:
             data["result"] = "failure"
+        data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
