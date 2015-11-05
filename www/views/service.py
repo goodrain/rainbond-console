@@ -225,7 +225,7 @@ class ServicePublishView(AuthedView):
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
             "type": "publish",
-            "desc": "应用发布",
+            "desc": u"应用发布中...",
             "show": True,
         }
         try:
