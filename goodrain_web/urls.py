@@ -3,16 +3,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.decorators.csrf import csrf_exempt
 import www.views as views
-import www.views.ajax as ajax
 from www.services_view import ServiceGitHub
 from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
-from django.conf import settings
-from django.conf.urls.static import static
+from django.views.generic.base import RedirectView
 from www.captcha.CodeImage import ChekcCodeImage
 
 urlpatterns = patterns(
     '',
     url(r'^$', views.Index.as_view()),
+    url(r'^favicon\.ico$', RedirectView.as_view(url='/static/www/favicon.ico')),
     url(r'^monitor$', views.monitor),
     url(r'^login$', views.Login.as_view()),
     url(r'^logout$', views.Logout.as_view()),
