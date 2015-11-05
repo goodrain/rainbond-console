@@ -230,7 +230,7 @@ class ServicePublishView(AuthedView):
         }
         try:
             r = RegionServiceApi()
-            body = r.create_event(json.dumps(template))
+            body = r.create_event(self.service.service_region, json.dumps(template))
             return body.event_id
         except Exception, e:
             logger.exception("service.publish", e)
