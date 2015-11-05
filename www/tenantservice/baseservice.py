@@ -42,7 +42,7 @@ class BaseTenantService(object):
         return cur_service_port
 
     def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
-        if service.service_key in ("application", "app_publish"):
+        if service.category in ("application", "app_publish"):
             service_port = service.inner_port + 1000
         else:
             service_port = service.inner_port

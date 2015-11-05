@@ -264,6 +264,12 @@ class AppServiceInfo(BaseModel):
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
     dependecy = models.CharField(max_length=100, null=True, blank=True, help_text=u"依赖服务")
 
+    def is_slug(self):
+        return bool(self.image.startswith('goodrain.me/runner'))
+
+    def is_image(self):
+        return not bool(self.image.startswith('goodrain.me/runner'))
+
     def __unicode__(self):
         return u"{0}({1})".format(self.service_key, self.app_version)
 

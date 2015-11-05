@@ -144,7 +144,11 @@ class ServicePublishView(AuthedView):
             app = self._add_new_app(post_data, self.service)
             new_version = self.create_new_version(app, post_data, self.service)
             app.save()
-            self.upload_slug(new_version)
+            event_id = self.create_publish_event()
+            if new_version.is_slug():
+                self.upload_slug(new_version, event_id)
+            elif new_version.is_image():
+                self.upload_image(new_version, event_id)
             return True
         except Exception, e:
             logger.exception('service.publish', e)
@@ -155,7 +159,11 @@ class ServicePublishView(AuthedView):
             app = self._update_app(post_data, self.service)
             new_version = self.create_new_version(app, post_data, self.service)
             app.save()
-            self.upload_slug(new_version)
+            event_id = self.create_publish_event()
+            if new_version.is_slug():
+                self.upload_slug(new_version, event_id)
+            elif new_version.is_image():
+                self.upload_image(new_version, event_id)
             return True
         except Exception, e:
             logger.exception('service.publish', e)
@@ -211,11 +219,28 @@ class ServicePublishView(AuthedView):
         else:
             return ""
 
-    def upload_slug(self, new):
+    def create_publish_event(self):
+        template = {
+            "user_id": self.user.nick_name,
+            "tenant_id": self.service.tenant_id,
+            "service_id": self.service.service_id,
+            "type": "publish",
+            "desc": "应用发布",
+            "show": True,
+        }
+        try:
+            r = RegionServiceApi()
+            body = r.create_event(json.dumps(template))
+            return body.event_id
+        except Exception, e:
+            logger.exception("service.publish", e)
+            return None
+
+    def upload_slug(self, new, event_id):
         oss_upload_task = {
             "app_key": new.service_key, "service_id": new.service_id,
             "deploy_version": new.deploy_version, "tenant_id": self.service.tenant_id,
-            "action": "create_new_version"
+            "action": "create_new_version", "event_id": event_id
         }
         try:
             delete_models = AppServiceInfo.objects.only('deploy_version').filter(service_key=new.service_key, deploy_num=0).exclude(app_version=new.app_version)
@@ -226,4 +251,20 @@ class ServicePublishView(AuthedView):
             delete_models.delete()
         except Exception, e:
             logger.error("service.publish", "upload_slug for {0}({1}), but an error occurred".format(new.service_key, new.app_version))
+            logger.exception("service.publish", e)
+
+    def upload_image(self, new, event_id):
+        image_upload_task = {
+            "action": "create_new_version", "image": new.image, "event_id": event_id
+        }
+
+        try:
+            delete_models = AppServiceInfo.objects.only('deploy_version').filter(service_key=new.service_key, deploy_num=0).exclude(app_version=new.app_version)
+            if delete_models:
+                image_upload_task['delete_versions'] = [e.deploy_version for e in delete_models]
+            r = RegionServiceApi()
+            r.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            delete_models.delete()
+        except Exception, e:
+            logger.error("service.publish", "upload_image for {0}({1}), but an error occurred".format(new.service_key, new.app_version))
             logger.exception("service.publish", e)

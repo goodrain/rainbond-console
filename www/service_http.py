@@ -229,3 +229,8 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/queue?topic=" + topic
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
+
+    def create_event(self, region, body):
+        url = self.region_map[region]['url'] + "/v1/events"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return body
