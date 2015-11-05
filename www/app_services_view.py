@@ -16,15 +16,14 @@ from gitlab_http import GitlabApi
 from github_http import GitHubApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.utils.language import is_redirect
+from www.monitorservice.monitorhook import MonitorHook
 
 logger = logging.getLogger('default')
 
 gitClient = GitlabApi()
-
 gitHubClient = GitHubApi()
-
 regionClient = RegionServiceApi()
-
+monitorhook = MonitorHook()
 
 class AppCreateView(LeftSideBarMixin, AuthedView):
 
@@ -100,13 +99,15 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             service.desc = service_desc
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
-
+            monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
+            
             # code repos
             if service_code_from == "gitlab_new":
                 project_id = 0
                 if self.user.git_user_id > 0:
                     project_id = gitClient.createProject(self.tenantName + "_" + service_alias)
                     logger.debug(project_id)
+                    monitorhook.gitProjectMonitor(self.user.nick_name, newTenantService, 'create_git_project', project_id)
                     if project_id > 0:
                         gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
                         gitClient.addProjectMember(project_id, 2, 20)
@@ -116,7 +117,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                         ts.code_from = service_code_from
                         ts.code_version = "master"
                         ts.save()
-                        gitClient.createWebHook(project_id)
+                        gitClient.createWebHook(project_id)                    
             elif service_code_from == "gitlab_exit":
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
@@ -176,19 +177,10 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
 
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
+            monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
             # create service env
             baseService.create_service_env(tenant_id, service_id, self.response_region)
             # record log
-            data = {}
-            data["log_msg"] = "应用创建成功"
-            data["service_id"] = newTenantService.service_id
-            data["tenant_id"] = newTenantService.tenant_id
-            task = {}
-            task["data"] = data
-            task["service_id"] = newTenantService.service_id
-            task["tube"] = "app_log"
-            regionClient.writeToRegionBeanstalk(self.response_region, newTenantService.service_id, json.dumps(task))
-
             data["status"] = "success"
             data["service_alias"] = service_alias
             data["service_id"] = service_id
@@ -200,6 +192,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
             TenantServiceRelation.objects.get(service_id=service_id).delete()
+            monitorhook.serviceMonitor(self.user.nick_name, tempTenantService, 'create_service_error', False)
             data["status"] = "failure"
         return JsonResponse(data, status=200)
 
@@ -270,7 +263,9 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView):
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
+                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
                         baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:

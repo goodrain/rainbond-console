@@ -3,12 +3,14 @@ from django.middleware.csrf import rotate_token
 from django.contrib.auth import load_backend, get_backends, authenticate
 from django.utils.translation import LANGUAGE_SESSION_KEY
 from django.utils.crypto import constant_time_compare
+from www.monitorservice.monitorhook import MonitorHook
 
 SESSION_KEY = '_auth_user_id'
 BACKEND_SESSION_KEY = '_auth_user_backend'
 HASH_SESSION_KEY = '_auth_user_hash'
 REDIRECT_FIELD_NAME = 'next'
 
+monitorHook = MonitorHook()
 
 def login(request, user):
     """
@@ -37,8 +39,9 @@ def login(request, user):
     request.session[HASH_SESSION_KEY] = session_auth_hash
     if hasattr(request, 'user'):
         request.user = user
+    monitorHook.loginMonitor(user)
     rotate_token(request)
-    #user_logged_in.send(sender=user.__class__, request=request, user=user)
+    # user_logged_in.send(sender=user.__class__, request=request, user=user)
 
 
 def logout(request):
@@ -51,7 +54,7 @@ def logout(request):
     user = getattr(request, 'user', None)
     if hasattr(user, 'is_authenticated') and not user.is_authenticated():
         user = None
-    #user_logged_out.send(sender=user.__class__, request=request, user=user)
+    # user_logged_out.send(sender=user.__class__, request=request, user=user)
 
     # remember language choice saved to session
     # for backwards compatibility django_language is also checked (remove in 1.8)
@@ -64,7 +67,8 @@ def logout(request):
 
     if hasattr(request, 'user'):
         from www.models import AnonymousUser
-        request.user = AnonymousUser()
+        request.user = AnonymousUser()    
+    monitorHook.logoutMonitor(user)
 
 
 def get_user(request):

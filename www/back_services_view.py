@@ -12,12 +12,15 @@ from www.decorator import perm_required
 from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServiceInfo
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from www.monitorservice.monitorhook import MonitorHook
+
 import logging
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
+monitorhook = MonitorHook()
 
 
 class ServiceMarket(LeftSideBarMixin, AuthedView):
@@ -142,7 +145,9 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
+                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
                         baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
@@ -163,12 +168,19 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
 
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
+
             if service.category == 'app_publish':
                 newTenantService = self.update_app_service(service, newTenantService)
-            # create service env
-            baseService.create_service_env(tenant_id, service_id, self.response_region)
+
+            monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
+
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
+            monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
+
+            # create service env
+            baseService.create_service_env(tenant_id, service_id, self.response_region)
+
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias
