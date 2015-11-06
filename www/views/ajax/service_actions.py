@@ -29,6 +29,7 @@ baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
 monitorhook = MonitorHook()
 
+
 class AppDeploy(AuthedView):
 
     @method_perf_time
@@ -91,7 +92,7 @@ class AppDeploy(AuthedView):
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             body["operator"] = str(self.user.nick_name)
-            
+
             regionClient.build_service(self.service.service_region, service_id, json.dumps(body))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_deploy', True)
 
@@ -154,7 +155,7 @@ class ServiceManage(AuthedView):
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
                 regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
-                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)              
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
             elif action == "delete":
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
@@ -168,7 +169,10 @@ class ServiceManage(AuthedView):
                 except Exception as e:
                     logger.exception(e)
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
-                    gitClient.deleteProject(self.service.git_project_id)
+                    same_repo_services = TenantServiceInfo.objects.only('ID').filter(
+                        tenant_id=self.service.tenant_id, git_url=self.service.git_url).exclude(service_id=self.service.service_id)
+                    if not same_repo_services:
+                        gitClient.deleteProject(self.service.git_project_id)
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
                 # env/auth/domain/relationship/envVar delete
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
@@ -260,7 +264,7 @@ class ServiceManage(AuthedView):
                         temData["service_id"] = self.service.service_id
                         temData["status"] = old_status
                         regionClient.updateTenantServiceStatus(self.service.service_region, self.service.service_id, json.dumps(temData))
-                        return JsonResponse(result, status=200)             
+                        return JsonResponse(result, status=200)
                     body = {}
                     body["event_id"] = event_id
                     body["operator"] = str(self.user.nick_name)
@@ -290,7 +294,7 @@ class ServiceUpgrade(AuthedView):
             if not baseService.is_user_click(self.service.service_region, self.service.service_id):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
-            
+
         action = request.POST["action"]
         if action == "vertical":
             try:
@@ -380,7 +384,7 @@ class ServiceUpgrade(AuthedView):
                         body["node_num"] = node_num
                         body["deploy_version"] = deploy_version
                         body["operator"] = str(self.user.nick_name)
-                        regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))                        
+                        regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
                     except Exception, e:
                         logger.exception(e)
                         isResetStatus = True
@@ -474,7 +478,7 @@ class AllServiceInfo(AuthedView):
                     for key, value in bodys.items():
                         child = {}
                         child["status"] = value
-                        result[key] = child                        
+                        result[key] = child
         except Exception:
             tempIds = ','.join(service_ids)
             logger.debug(self.tenant.region + "-" + tempIds + " check_service_status is error")
@@ -546,7 +550,7 @@ class ServiceDetail(AuthedView):
                         result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
                         result["totalMemory"] = 0
-                    result["status"] = status                        
+                    result["status"] = status
         except Exception, e:
             logger.debug(self.service.service_region + "-" + self.service.service_id + " check_service_status is error")
             result["totalMemory"] = 0
