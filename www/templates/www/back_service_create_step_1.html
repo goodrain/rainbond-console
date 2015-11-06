@@ -37,39 +37,45 @@
 							class="control-label col-lg-2 app_name">内存大小</label>
 						<div class="col-lg-8">
 							<select class="form-control" style="width: 150px" id="service_memory" name="service_memory"> 
-								{% if service.min_memory = 128 %}
+								{% if service.min_memory == 128 %}
 								<option value="128" selected="selected">128M</option>
 								<option value="256">256M</option>
 								<option value="512">512M</option>
-								<option value="1024">1024M</option>
-								<option value="2048">2048M</option>
-								<option value="4096">4096M</option>	
+								<option value="1024">1G</option>
+								<option value="2048">2G</option>
+								<option value="4096">4G</option>	
 								{% endif %}
-								{% if service.min_memory = 256 %}
+								{% if service.min_memory == 256 %}
 								<option value="256" selected="selected">256M</option>
 								<option value="512">512M</option>
-								<option value="1024">1024M</option>
-								<option value="2048">2048M</option>
-								<option value="4096">4096M</option>	
+								<option value="1024">1G</option>
+								<option value="2048">2G</option>
+								<option value="4096">4G</option>	
 								{% endif %}
-								{% if service.min_memory = 512 %}
+								{% if service.min_memory == 512 %}
 								<option value="512" selected="selected">512M</option>
-								<option value="1024">1024M</option>
-								<option value="2048">2048M</option>
-								<option value="4096">4096M</option>	
+								<option value="1024">1G</option>
+								<option value="2048">2G</option>
+								<option value="4096">4G</option>	
 								{% endif %}
-								{% if service.min_memory = 1024 %}
-								<option value="1024" selected="selected">1024M</option>
-								<option value="2048">2048M</option>
-								<option value="4096">4096M</option>	
+								{% if service.min_memory == 1024 %}
+								<option value="1024" selected="selected">1G</option>
+								<option value="2048">2G</option>
+								<option value="4096">4G</option>	
 								{% endif %}
-								{% if service.min_memory = 2048 %}
-								<option value="2048" selected="selected">2048M</option>
-								<option value="4096">4096M</option>	
+								{% if service.min_memory == 2048 %}
+								<option value="2048" selected="selected">2G</option>
+								<option value="4096">4G</option>	
 								{% endif %}
-								{% if service.min_memory = 4096 %}
-								<option value="4096" selected="selected">4096M</option>	
-								{% endif %}				
+								{% if service.min_memory == 4096 %}
+								<option value="4096" selected="selected">4G</option>	
+								{% endif %}
+								{% if service.service_key == "mysql" %}
+								<option value="8192">8G</option>
+								<option value="16384">16G</option>>
+								<option value="32768">32G</option>>
+								<option value="65536">64G</option>>
+								{% endif %}		
 							</select>
 						</div>
 					</div>					
