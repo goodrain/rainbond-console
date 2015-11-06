@@ -530,10 +530,10 @@
             <div class="col-xs-2 control-label">
               <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
                 {% for cuMemory in memoryList %}
-                  {% if cuMemory == tenantServiceInfo.min_memory %}
-                  <option value={{forloop.counter}}  selected="selected">{{cuMemory}}M</option>
+                  {% if cuMemory.value == tenantServiceInfo.min_memory %}
+                  <option value="{{cuMemory.value}}"  selected="selected">{{cuMemory.label}}</option>
                   {% else %}
-                  <option value="{{forloop.counter}}">{{cuMemory}}M</option>
+                  <option value="{{cuMemory.value}}">{{cuMemory.label}}</option>
                   {% endif %}
                 {% endfor %}
               </select>
