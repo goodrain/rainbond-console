@@ -7,7 +7,7 @@ function service_create(tenantName, service_key) {
 $(function(){
     $('#create_service_name').blur(function(){
         var appName = $(this).val(),
-            checkReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/,
+            checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
             
         if(!checkReg.test(appName)){
@@ -20,7 +20,7 @@ $(function(){
     //第一步
     $('#back_service_finished').click(function(){
         var appName = $('#create_service_name').val(),
-            checkReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/,
+            checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
             
         if(!checkReg.test(appName)){
