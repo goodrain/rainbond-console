@@ -24,7 +24,6 @@ class ServicePublishForm(forms.Form):
         required=True, max_length=32,
         validators=[is_standard_word, is_sensitive],
         min_length=3, ajax_check=True, pattern=standard_regex_string,
-        widget=widgets.TextInput(attrs={"data-remote-error": u"应用名已存在"})
     )
     app_name = fields.CharField(
         required=True, max_length=40,
