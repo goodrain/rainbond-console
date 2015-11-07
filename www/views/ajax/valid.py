@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from django.http import HttpResponse
+from django.http import JsonResponse
 from www.views import BaseView
 
 import logging
@@ -16,43 +16,43 @@ class FormValidView(BaseView):
             if hasattr(self, name + '_check'):
                 check_method = getattr(self, name + '_check')
             else:
-                return HttpResponse("unsupport field %s" % name, status=404)
+                return JsonResponse({"feedback": "unsupport field %s" % name}, status=400)
             try:
                 result, code = check_method(value)
-                return HttpResponse(result, status=code)
+                return JsonResponse(result, status=code)
             except Exception:
-                return HttpResponse("server error", status=500)
+                return JsonResponse({"feedback": "server error"}, status=500)
         else:
-            return HttpResponse("400 request error", status=400)
+            return JsonResponse({"feedback": "400 request error"}, status=400)
 
     def tenant_check(self, value):
         from www.models import Tenants
         try:
             Tenants.objects.get(tenant_name=value)
-            return u"团队名已存在", 409
+            return {"feedback": u"团队名已存在"}, 409
         except Tenants.DoesNotExist:
-            return "ok", 200
+            return {"feedback": "ok"}, 200
 
     def nick_name_check(self, value):
         from www.models import Users
         try:
             Users.objects.get(nick_name=value)
-            return u"昵称已存在", 409
+            return {"feedback": u"昵称已存在"}, 409
         except Users.DoesNotExist:
-            return "ok", 200
+            return {"feedback": "ok"}, 200
 
     def email_check(self, value):
         from www.models import Users
         try:
             Users.objects.get(email=value)
-            return u"邮件地址已存在", 409
+            return {"feedback": u"邮件地址已存在"}, 409
         except Users.DoesNotExist:
-            return "ok", 200
+            return {"feedback": "ok"}, 200
 
     def app_key_check(self, value):
         from www.models import ServiceInfo
         try:
             ServiceInfo.objects.get(service_key=value)
-            return u"要发布的应用名已存在", 409
+            return {"feedback": u"要发布的应用名已存在"}, 409
         except ServiceInfo.DoesNotExist:
-            return "ok", 200
+            return {"feedback": "ok"}, 200
