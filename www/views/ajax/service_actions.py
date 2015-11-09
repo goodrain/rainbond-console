@@ -790,9 +790,28 @@ class ServiceEnvVarManager(AuthedView):
                             TenantServiceEnvVar(**tenantServiceEnvVar).save()
             # sync data to region
             if isNeedToRsync:
-                baseTenantService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
+                baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
+
+
+class ServiceBranch(AuthedView):
+
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        project_id = self.service.git_project_id
+        if project_id > 0:
+            branchlist = gitClient.getProjectBranches(project_id)
+            branchs = [e['name'] for e in branchlist]
+        result = {"current": self.service.code_version, "branchs": branchs}
+        return JsonResponse(result, status=200)
+
+    @perm_required('deploy_service')
+    def post(self, request, *args, **kwargs):
+        branch = request.POST.get('branch')
+        self.service.code_version = branch
+        self.service.save(update_fields=['code_version'])
+        return JsonResponse({"ok": True}, status=200)

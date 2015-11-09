@@ -34,27 +34,30 @@
                             <thead>
                                 <tr>
                                     <th>成员</th>
-                                    <th>管理员</th>
-                                    <th>开发者</th>
-                                    <th>观察者</th>
+                                    <th class="text-center">管理员</th>
+                                    <th class="text-center">开发者</th>
+                                    <th class="text-center">观察者</th>
+                                    <th class="text-center">访问</th>
+                                    <th class="text-center">移除权限</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for user in perm_users %}
                                 <tr entry-user="{{user.name}}">
                                     <th>{{user.name}}</th>
-                                    <th class="perm-modify-enable">
+                                    <th class="perm-modify-enable text-center">
                                         <input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}>
                                     </th>
-                                    <th class="perm-modify-enable">
+                                    <th class="perm-modify-enable text-center">
                                         <input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}>
                                     </th>
-                                    <th class="perm-modify-enable">
+                                    <th class="perm-modify-enable text-center">
                                         <input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}>
                                     </th>
-                                    <th>
+                                    <th class="text-center">
                                         <input type="checkbox" identity="access" checked="" disabled="">
                                     </th>
+                                    <th class="text-center"><a class="member-remove"><i class="fa fa-times fa-danger"></i></a></th>
                                 </tr>
                                 {% endfor %}
                             </tbody>
