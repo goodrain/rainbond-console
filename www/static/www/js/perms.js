@@ -8,7 +8,8 @@
         function() {
           user = $(this).closest('tr').attr('entry-user');
           perm_type = $(this).closest('table').attr('perm-type');
-          
+          tr = $(this).closest('tr')
+
           var url;
           if (perm_type=='service') {
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/perms';
@@ -20,7 +21,7 @@
             url: url, method: "POST",
             data: {"csrfmiddlewaretoken":csrftoken,"user":user,"identity": "remove"},
             success: function (event) {
-              $(this).closest('tr').remove();
+              tr.remove();
               $.action_report(event);
             },
 
