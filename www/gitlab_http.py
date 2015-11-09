@@ -225,8 +225,7 @@ class GitlabApi(BaseHttpClient):
             projectId = str(project_id)
             url = self.url + PREFIX + "/projects/" + projectId + "/repository/branches"
             headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': self.get_private_token()}
-            http = httplib2.Http()
-            response, content = http.request(url, 'GET', headers=headers)
+            response, content = self._get(url, headers=headers)
             return content
         except Exception as e:
             logger.exception(e)
