@@ -4,7 +4,7 @@
     var serviceAlias = $('#mytags').attr('service');
 
     $(document).ready(function() {  
-      $('#permission a.member-delete').click(
+      $('#permission a.member-remove').click(
         function() {
           user = $(this).closest('tr').attr('entry-user');
           perm_type = $(this).closest('table').attr('perm-type');
