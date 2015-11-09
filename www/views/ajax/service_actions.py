@@ -823,8 +823,8 @@ class ServiceBranch(AuthedView):
         return JsonResponse(result, status=200)
 
     @perm_required('deploy_service')
-    def put(self, request, *args, **kwargs):
-        branch = request.PUT.get('branch')
+    def post(self, request, *args, **kwargs):
+        branch = request.POST.get('branch')
         self.service.code_version = branch
         self.service.save(update_fields=['code_version'])
         return JsonResponse({"ok": True}, status=200)

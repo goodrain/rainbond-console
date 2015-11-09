@@ -161,7 +161,7 @@ $(document).ready(
 function service_branch_change(tenantName, service_alias) {
 	var branch = $("#git_branch").val();
 	$.ajax({
-		type : "put",
+		type : "post",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/branch",
 		data : "branch=" + branch,
 		cache : false,
