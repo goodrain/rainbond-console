@@ -346,9 +346,20 @@
 	            {% if tenantServiceInfo.category == "application" %}
 	            <div class="row">
 		            <label class="col-xs-2 control-label">Git仓库</label>
-		            <label class="col-xs-10 control-label">
+		            <label class="col-xs-4 control-label">
 		                <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
 		            </label>
+                <div class="col-xs-6" id="git-branch-change">
+                  <div class="col-xs-4 control-label">
+                    <select name="branch" id="git_branch" class="form-control m-bot15">
+                        <option value="{{forloop.counter}}"  selected="selected">{{cuMemory.label}}</option>
+                        <option value="{{forloop.counter}}">{{cuMemory.label}}</option>
+                    </select>
+                  </div>
+                  <div class="col-xs-4 control-label">
+                    <button type="button"  onclick="service_branch_change('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success btn-xs">切换分支</button>
+                  </div>
+                </div>
 	            </div>
 	            {% endif %}
 	            {% if tenant.pay_type != "free" %}

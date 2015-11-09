@@ -136,6 +136,48 @@ function service_onOperation(service_id, service_alias, tenantName) {
 	})
 }
 
+var csrftoken = $.cookie('csrftoken');
+var tenantName = $('#mytags').attr('tenant');
+var serviceAlias = $('#mytags').attr('service');
+
+$(document).ready(
+	function() {
+		$.ajax({
+			type: "get",
+			url: "/ajax/" + tenantName + "/" + service_alias + "/branch",
+			cache: false,
+			success: function (data) {
+				for (var i in data.branchs) {
+					el = '<option value="'+ data.branchs[i] + '">' + data.branchs[i] + '</option>'
+					$('#git_branch').prepend(el)
+				}
+
+				$('#git_branch option[value='+ data.current +']').prop('selected', true)
+			}
+		})
+	}
+)
+
+function service_branch_change(tenantName, service_alias) {
+	var branch = $("#git_branch").val();
+	$.ajax({
+		type : "put",
+		url : "/ajax/" + tenantName + "/" + service_alias + "/branch",
+		data : "branch=" + branch,
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(msg) {
+			swal("切换完毕, 下次部署后生效");
+		},
+		error : function() {
+			swal("系统异常,请重试");
+		}
+	})
+}
+
 function domainSubmit(action, service_id, tenantName, service_alias) {
 	if (action != "start" && action != "close") {
 		swal("参数异常");
