@@ -15,17 +15,21 @@ regionClient = RegionServiceApi()
 
 class BaseTenantService(object):
 
-    def get_service_list(self, tenant_pk, user_pk, tenant_id, region):
-        my_tenant_identity = PermRelTenant.objects.get(tenant_id=tenant_pk, user_id=user_pk).identity
-        if my_tenant_identity in ('admin', 'developer', 'viewer'):
+    def get_service_list(self, tenant_pk, user, tenant_id, region):
+        user_pk = user.pk
+        if user.is_sys_admin:
             services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
         else:
-            dsn = BaseConnection()
-            query_sql = '''
-                select s.* from tenant_service s, service_perms sp where s.tenant_id = "{tenant_id}"
-                and sp.user_id = {user_id} and sp.service_id = s.ID and s.service_region = "{region}";
-                '''.format(tenant_id=tenant_id, user_id=user_pk, region=region)
-            services = dsn.query(query_sql)
+            my_tenant_identity = PermRelTenant.objects.get(tenant_id=tenant_pk, user_id=user_pk).identity
+            if my_tenant_identity in ('admin', 'developer', 'viewer'):
+                services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
+            else:
+                dsn = BaseConnection()
+                query_sql = '''
+                    select s.* from tenant_service s, service_perms sp where s.tenant_id = "{tenant_id}"
+                    and sp.user_id = {user_id} and sp.service_id = s.ID and s.service_region = "{region}";
+                    '''.format(tenant_id=tenant_id, user_id=user_pk, region=region)
+                services = dsn.query(query_sql)
         return services
 
     def getMaxPort(self, tenant_id, service_key, service_alias):
@@ -206,7 +210,7 @@ class BaseTenantService(object):
         tenantServiceEnvVar["attr_value"] = attr_value
         tenantServiceEnvVar["is_change"] = isChange
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
-        
+
     def is_user_click(self, region, service_id):
         is_ok = True
         data = regionClient.getLatestServiceEvent(region, service_id)
