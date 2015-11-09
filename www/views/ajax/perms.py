@@ -50,14 +50,14 @@ class ServiceIdentity(AuthedView):
                 if identity in ('admin', 'developer'):
                     if is_member:
                         logger.info("perm.gitlab", "modify user {0} identity for project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
-                        gitClient.editMemberIdentity(project_id, user.user_id, "master")
+                        gitClient.editMemberIdentity(project_id, user.git_user_id, "master")
                     else:
                         logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
-                        gitClient.addProjectMember(project_id, user.user_id, "master")
+                        gitClient.addProjectMember(project_id, user.git_user_id, "master")
                 else:
                     if is_member:
                         logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
-                        gitClient.deleteProjectMember(project_id, user.user_id)
+                        gitClient.deleteProjectMember(project_id, user.git_user_id)
             except Exception, e:
                 logger.exception('perm.gitlab', e)
 
@@ -108,14 +108,14 @@ class TenantIdentity(AuthedView):
                 if identity in ('admin', 'developer'):
                     if is_member:
                         logger.info("perm.gitlab", "modify user {0} identity for project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                        gitClient.editMemberIdentity(project_id, user.user_id, "master")
+                        gitClient.editMemberIdentity(project_id, user.git_user_id, "master")
                     else:
                         logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                        gitClient.addProjectMember(project_id, user.user_id, "master")
+                        gitClient.addProjectMember(project_id, user.git_user_id, "master")
                 else:
                     if is_member:
                         logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                        gitClient.deleteProjectMember(project_id, user.user_id)
+                        gitClient.deleteProjectMember(project_id, user.git_user_id)
                 added_pids.append(project_id)
             except Exception, e:
                 logger.exception("perm.gitlab", e)
@@ -252,7 +252,7 @@ class InviteTenantUser(AuthedView):
                     if project_id in added_pids:
                         break
                     logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                    gitClient.addProjectMember(project_id, user.user_id, "master")
+                    gitClient.addProjectMember(project_id, user.git_user_id, "master")
                     added_pids.append(project_id)
             except Exception, e:
                 logger.exception("perm.gitlab", e)
