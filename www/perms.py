@@ -54,6 +54,7 @@ class PermActions(object):
 
 
 class UserActions(dict):
+
     def __init__(self):
         self.tenant_actions = []
         self.service_actions = []
@@ -98,6 +99,9 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
 
     if tenantName is None:
         raise UrlParseError(500, 'tenantName is None')
+
+    if user.is_sys_admin:
+        return True
 
     if not hasattr(user, 'actions'):
         user.actions = UserActions()
