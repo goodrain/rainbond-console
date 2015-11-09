@@ -4,7 +4,36 @@
     var serviceAlias = $('#mytags').attr('service');
 
     $(document).ready(function() {  
-    
+      $('#permission a.member-delete').click(
+        function() {
+          user = $(this).closest('tr').attr('entry-user');
+          perm_type = $(this).closest('table').attr('perm-type');
+          
+          var url;
+          if (perm_type=='service') {
+            url = '/ajax/' + tenantName + '/' + serviceAlias + '/perms';
+          } else if (perm_type=='tenant') {
+            url = '/ajax/' + tenantName + '/perms';
+          }
+
+          $.ajax({
+            url: url, method: "POST",
+            data: {"csrfmiddlewaretoken":csrftoken,"user":user,"identity": "remove"},
+            success: function (event) {
+              $(this).closest('tr').remove();
+              $.action_report(event);
+            },
+
+            statusCode: {
+                403: function(event) {
+                  swal("你没有此权限！");
+                }
+            },
+
+          })
+        }
+      )
+
       $('#permission tbody th input').click(
         function() {
           checked = $(this).prop('checked');
