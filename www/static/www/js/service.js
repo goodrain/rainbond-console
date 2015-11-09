@@ -144,7 +144,7 @@ $(document).ready(
 	function() {
 		$.ajax({
 			type: "get",
-			url: "/ajax/" + tenantName + "/" + service_alias + "/branch",
+			url: "/ajax/" + tenantName + "/" + serviceAlias + "/branch",
 			cache: false,
 			success: function (data) {
 				for (var i in data.branchs) {
