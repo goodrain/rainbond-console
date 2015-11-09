@@ -142,19 +142,22 @@ var serviceAlias = $('#mytags').attr('service');
 
 $(document).ready(
 	function() {
-		$.ajax({
-			type: "get",
-			url: "/ajax/" + tenantName + "/" + serviceAlias + "/branch",
-			cache: false,
-			success: function (data) {
-				for (var i in data.branchs) {
-					el = '<option value="'+ data.branchs[i] + '">' + data.branchs[i] + '</option>'
-					$('#git_branch').prepend(el)
-				}
+		if ($('#git_branch').length) {
+			$.ajax({
+				type: "get",
+				url: "/ajax/" + tenantName + "/" + serviceAlias + "/branch",
+				cache: false,
+				success: function (data) {
+					for (var i in data.branchs) {
+						el = '<option value="'+ data.branchs[i] + '">' + data.branchs[i] + '</option>'
+						$('#git_branch').prepend(el)
+					}
 
-				$('#git_branch option[value='+ data.current +']').prop('selected', true)
-			}
-		})
+					$('#git_branch option[value='+ data.current +']').prop('selected', true)
+				}
+			})
+		}
+		
 	}
 )
 
