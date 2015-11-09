@@ -13,6 +13,13 @@ GIT_LAB_WEB_HOOK_URL = "https://user.goodrain.com/service/gitlabhook/"
 
 
 class GitlabApi(BaseHttpClient):
+    ACCESS_LEVEL = {
+        "GUEST": 10,
+        "REPORTER": 20,
+        "DEVELOPER": 30,
+        "MASTER": 40,
+        "OWNER": 50,
+    }
 
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
@@ -146,7 +153,13 @@ class GitlabApi(BaseHttpClient):
             logger.exception(e)
             return ""
 
-    def addProjectMember(self, project_id, user_id, level):
+    def listProjectMembers(self, project_id):
+        url = "{0}{1}/projects/{2}/members".format(self.url, PREFIX, project_id)
+        headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': self.get_private_token()}
+        res, body = self._get(url, headers=headers)
+        return body
+
+    def addProjectMember(self, project_id, user_id, identity):
         result = False
         try:
             private_token = self.get_private_token()
@@ -156,7 +169,7 @@ class GitlabApi(BaseHttpClient):
             project_user = {}
             # project_user["id"] = projectId
             project_user["user_id"] = userId
-            project_user["access_level"] = level
+            project_user["access_level"] = self.ACCESS_LEVEL.get(identity.upper())
             url = self.url + PREFIX + "/projects/" + projectId + "/members"
             headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}
             res, body = self._post(url, headers, json.dumps(project_user))
@@ -165,6 +178,19 @@ class GitlabApi(BaseHttpClient):
         except Exception as e:
             logger.exception(e)
         return result
+
+    def editMemberIdentity(self, project_id, user_id, identity):
+        level = self.ACCESS_LEVEL.get(identity.upper())
+        url = "{0}{1}/projects/{2}/members/{3}".format(self.url, PREFIX, project_id, user_id)
+
+        try:
+            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': self.get_private_token()}
+            data = {"access_level": level}
+            res, body = self._put(url, headers, json.dumps(data))
+            return True
+        except Exception, e:
+            logger.exception("gitlab.members", e)
+            return False
 
     def deleteProjectMember(self, project_id, user_id):
         result = False

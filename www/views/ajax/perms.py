@@ -29,52 +29,122 @@ def get_identity_name(name, identity):
 
 
 class ServiceIdentity(AuthedView):
+
     def init_request(self, *args, **kwargs):
-        tenant_id = Tenants.objects.get(tenant_name=self.tenantName).tenant_id
-        self.service_pk = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=self.serviceAlias).pk
+        pass
+
+    def user_exists_in_gitlab(self, user, member_list):
+        for member in member_list:
+            if user.git_user_id == member['id']:
+                return member
+
+        return False
+
+    def do_gitlab_perm_works(self, user, identity):
+        project_id = self.service.git_project_id
+        if project_id > 0:
+            try:
+                current_members = gitClient.listProjectMembers(project_id)
+                is_member = self.user_exists_in_gitlab(user, current_members)
+
+                if identity in ('admin', 'developer'):
+                    if is_member:
+                        logger.info("perm.gitlab", "modify user {0} identity for project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
+                        gitClient.editMemberIdentity(project_id, user.user_id, "master")
+                    else:
+                        logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
+                        gitClient.addProjectMember(project_id, user.user_id, "master")
+                else:
+                    if is_member:
+                        logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
+                        gitClient.deleteProjectMember(project_id, user.user_id)
+            except Exception, e:
+                logger.exception('perm.gitlab', e)
 
     @perm_required('perm_setting')
     def post(self, request, *args, **kwargs):
         nick_name = request.POST.get('user')
         identity = request.POST.get('identity')
-        user_id = Users.objects.get(nick_name=nick_name).pk
-        service_perm = PermRelService.objects.get(user_id=user_id, service_id=self.service_pk)
+        user = Users.objects.get(nick_name=nick_name)
+        if self.user.pk == user.user_id:
+            desc = u"不能调整自己的权限"
+            result = {"ok": True, "user": nick_name, "desc": desc}
+            return JsonResponse(result, status=200)
+        service_perm = PermRelService.objects.get(user_id=user.user_id, service_id=self.service.pk)
         service_perm.identity = identity
         service_perm.save()
 
         my_alias = get_identity_name('service', identity)
         desc = u"调整用户{0}的身份为{1}".format(nick_name, my_alias)
+        self.do_gitlab_perm_works(user, identity)
         result = {"ok": True, "user": nick_name, "desc": desc}
         return JsonResponse(result, status=200)
 
 
 class TenantIdentity(AuthedView):
+
     def init_request(self, *args, **kwargs):
-        self.tenant_pk = Tenants.objects.get(tenant_name=self.tenantName).pk
+        pass
+
+    def user_exists_in_gitlab(self, user, member_list):
+        for member in member_list:
+            if user.git_user_id == member['id']:
+                return member
+
+        return False
+
+    def do_gitlab_perm_works(self, user, identity):
+        gitlab_services = TenantServiceInfo.objects.only('git_project_id', 'git_url').filter(tenant_id=self.tenant.tenant_id, git_project_id__gt=0)
+
+        added_pids = []
+        for s in gitlab_services:
+            project_id = s.git_project_id
+            if project_id in added_pids:
+                break
+
+            current_members = gitClient.listProjectMembers(project_id)
+            is_member = self.user_exists_in_gitlab(user, current_members)
+            try:
+                if identity in ('admin', 'developer'):
+                    if is_member:
+                        logger.info("perm.gitlab", "modify user {0} identity for project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        gitClient.editMemberIdentity(project_id, user.user_id, "master")
+                    else:
+                        logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        gitClient.addProjectMember(project_id, user.user_id, "master")
+                else:
+                    if is_member:
+                        logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        gitClient.deleteProjectMember(project_id, user.user_id)
+                added_pids.append(project_id)
+            except Exception, e:
+                logger.exception("perm.gitlab", e)
+                continue
 
     @perm_required('tenant.perm_setting')
     def post(self, request, *args, **kwargs):
         nick_name = request.POST.get('user')
         identity = request.POST.get('identity')
-        user_id = Users.objects.get(nick_name=nick_name).pk
+        user = Users.objects.get(nick_name=nick_name)
+        user_id = user.pk
         if self.user.pk == user_id:
-            desc = u"自己不能设置自己"
+            desc = u"不能调整自己的权限"
             result = {"ok": True, "user": nick_name, "desc": desc}
             return JsonResponse(result, status=200)
-        tenant_perm = PermRelTenant.objects.get(user_id=user_id, tenant_id=self.tenant_pk)
+        tenant_perm = PermRelTenant.objects.get(user_id=user_id, tenant_id=self.tenant.pk)
         tenant_perm.identity = identity
         tenant_perm.save()
         my_alias = get_identity_name('tenant', identity)
         desc = u"调整用户{0}的团队身份为{1}".format(nick_name, my_alias)
+        self.do_gitlab_perm_works(user, identity)
         result = {"ok": True, "user": nick_name, "desc": desc}
         return JsonResponse(result, status=200)
 
+
 class InviteServiceUser(AuthedView):
+
     def init_request(self, *args, **kwargs):
-        tenant = Tenants.objects.get(tenant_name=self.tenantName)
-        self.service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=self.serviceAlias)
-        self.service_pk = self.service.pk
-        self.tenant_pk = tenant.pk
+        pass
 
     def invite_content(self, email, tenant_name, service_alias, identity):
         domain = self.request.META.get('HTTP_HOST')
@@ -115,40 +185,33 @@ class InviteServiceUser(AuthedView):
         try:
             user = Users.objects.get(email=email)
             try:
-                PermRelService.objects.get(user_id=user.pk, service_id=self.service_pk)
+                PermRelService.objects.get(user_id=user.pk, service_id=self.service.pk)
                 result['desc'] = u"{0}已经有应用权限了".format(user.nick_name)
             except PermRelService.DoesNotExist:
-                PermRelService.objects.create(user_id=user.pk, service_id=self.service_pk, identity=identity)
+                PermRelService.objects.create(user_id=user.pk, service_id=self.service.pk, identity=identity)
                 try:
-                    PermRelTenant.objects.get(user_id=user.pk, tenant_id=self.tenant_pk)
+                    PermRelTenant.objects.get(user_id=user.pk, tenant_id=self.tenant.pk)
                 except PermRelTenant.DoesNotExist:
-                    PermRelTenant.objects.create(user_id=user.pk, tenant_id=self.tenant_pk, identity='access')
+                    PermRelTenant.objects.create(user_id=user.pk, tenant_id=self.tenant.pk, identity='access')
                 result['desc'] = u"已向{0}授权".format(user.nick_name)
-                
+
                 # add gitlab project member
                 git_project_id = self.service.git_project_id
                 if git_project_id > 0 and user.git_user_id > 0:
-                    level = 10
-                    if identity == "viewer":
-                        level = 20
-                    elif identity == "developer":
-                        level = 30
-                    elif identity == "admin":
-                        level = 40
-                    gitClient.addProjectMember(git_project_id, user.git_user_id, level)
+                    if identity in ("developer", "admin"):
+                        gitClient.addProjectMember(git_project_id, user.git_user_id, "master")
 
         except Users.DoesNotExist:
-            send_invite_mail_withHtml(email, self.invite_content(email, self.tenantName, self.serviceAlias, identity))
+            send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, self.service.service_alias, identity))
             result['desc'] = u'已向{0}发送邀请邮件'.format(email)
 
         return JsonResponse(result, status=200)
 
 
 class InviteTenantUser(AuthedView):
-    def init_request(self, *args, **kwargs):
-        self.tenant_pk = Tenants.objects.get(tenant_name=self.tenantName).pk
-        pass
 
+    def init_request(self, *args, **kwargs):
+        pass
 
     def invite_content(self, email, tenant_name, identity):
         domain = self.request.META.get('HTTP_HOST')
@@ -179,6 +242,21 @@ class InviteTenantUser(AuthedView):
         content = content + u"好雨科技 (Goodrain Inc.) CEO 刘凡"
         return content
 
+    def add_member_to_gitlab(self, user, identity):
+        gitlab_services = TenantServiceInfo.objects.only('git_project_id', 'git_url').filter(tenant_id=self.tenant.tenant_id, git_project_id__gt=0)
+        if identity in ('admin', 'developer'):
+            try:
+                added_pids = []
+                for s in gitlab_services:
+                    project_id = s.git_project_id
+                    if project_id in added_pids:
+                        break
+                    logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                    gitClient.addProjectMember(project_id, user.user_id, "master")
+                    added_pids.append(project_id)
+            except Exception, e:
+                logger.exception("perm.gitlab", e)
+
     @perm_required('tenant.perm_setting')
     def post(self, request, *args, **kwargs):
         email = request.POST.get('email')
@@ -189,15 +267,16 @@ class InviteTenantUser(AuthedView):
         try:
             user = Users.objects.get(email=email)
             try:
-                PermRelTenant.objects.get(user_id=user.user_id, tenant_id=self.tenant_pk)
+                PermRelTenant.objects.get(user_id=user.user_id, tenant_id=self.tenant.pk)
                 result['desc'] = u"{0}已经是项目成员了".format(user.nick_name)
             except PermRelTenant.DoesNotExist:
-                PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant_pk, identity=identity)
+                PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant.pk, identity=identity)
                 result['desc'] = u"已向{0}授权".format(user.nick_name)
+                self.add_member_to_gitlab(user, identity)
         except Users.DoesNotExist:
             # user = Users.objects.create(email=email, password='unset', is_active=False)
             # PermRelTenant.objects.create(user_id=user.user_id, tenant_id=self.tenant_pk, identity=identity)
-            send_invite_mail_withHtml(email, self.invite_content(email, self.tenantName, identity))
+            send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, identity))
             result['desc'] = u'已向{0}发送邀请邮件'.format(email)
 
         return JsonResponse(result, status=200)

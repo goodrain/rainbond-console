@@ -3,7 +3,7 @@ var BranchLocalData = {};
 $(function(){
     $('#create_app_name').blur(function(){
         var appName = $(this).val(),
-            checkReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/,
+            checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
             
         if(!checkReg.test(appName)){
@@ -16,7 +16,7 @@ $(function(){
     //第一步
     $('#first_step').click(function(){
         var appName = $('#create_app_name').val(),
-            checkReg = /^[a-zA-Z][a-zA-Z0-9_-]*$/,
+            checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
             
         if(!checkReg.test(appName)){

@@ -170,9 +170,14 @@ class ServiceManage(AuthedView):
                 except Exception as e:
                     logger.exception(e)
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
+                    same_repo_services = TenantServiceInfo.objects.only('ID').filter(
+                        tenant_id=self.service.tenant_id, git_url=self.service.git_url).exclude(service_id=self.service.service_id)
+                    if not same_repo_services:
+                        gitClient.deleteProject(self.service.git_project_id)
                     gitClient.deleteProject(self.service.git_project_id)
                 if self.service.category == 'app_publish':
                     self.update_app_service(self.service)
+
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
                 # env/auth/domain/relationship/envVar delete
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
@@ -798,9 +803,28 @@ class ServiceEnvVarManager(AuthedView):
                             TenantServiceEnvVar(**tenantServiceEnvVar).save()
             # sync data to region
             if isNeedToRsync:
-                baseTenantService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
+                baseService.create_service_env(self.service.tenant_id, self.service.service_id, self.service.service_region)
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
+
+
+class ServiceBranch(AuthedView):
+
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        project_id = self.service.git_project_id
+        if project_id > 0:
+            branchlist = gitClient.getProjectBranches(project_id)
+            branchs = [e['name'] for e in branchlist]
+        result = {"current": self.service.code_version, "branchs": branchs}
+        return JsonResponse(result, status=200)
+
+    @perm_required('deploy_service')
+    def put(self, request, *args, **kwargs):
+        branch = request.PUT.get('branch')
+        self.service.code_version = branch
+        self.service.save(update_fields=['code_version'])
+        return JsonResponse({"ok": True}, status=200)
