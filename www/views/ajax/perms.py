@@ -122,7 +122,7 @@ class TenantIdentity(AuthedView):
                         gitClient.addProjectMember(project_id, user.git_user_id, "master")
                 elif identity == 'remove':
                     if is_member:
-                        logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
+                        logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
                         gitClient.deleteProjectMember(project_id, user.git_user_id)
                 else:
                     if is_member:
