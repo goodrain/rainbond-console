@@ -119,6 +119,11 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                         ts.code_version = "master"
                         ts.save()
                         gitClient.createWebHook(project_id)
+                    else:
+                        ts = TenantServiceInfo.objects.get(service_id=service_id)
+                        ts.code_from = service_code_from
+                        ts.code_version = "master"
+                        ts.save()
             elif service_code_from == "gitlab_exit":
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
