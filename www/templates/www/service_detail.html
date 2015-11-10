@@ -469,11 +469,13 @@
           {% endif %}
           <section class="panel">
            	  <header class="panel-heading">对内服务
+                {% if 'manage_service' in user.actions %}
            	  	{% if tenantServiceInfo.is_service %}
            	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
            	  	{% else %}
            	  		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
-           	  	{% endif %}	          	
+           	  	{% endif %}
+                {% endif %}        	
            	  </header>
            	  {% if tenantServiceInfo.is_service %}
            	  {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
