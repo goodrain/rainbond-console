@@ -12,13 +12,16 @@ GIT_HUB_WEB_HOOK_URL = "https://user.goodrain.com/service/githubhook/"
 GIT_HUB_SECRET = "goodrain"
 
 
-class GitHubApi(object):
+class GitHubApi(BaseHttpClient):
 
     def __init__(self, *args, **kwargs):
+        BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive'}
         github_service_info = settings.GITHUB_SERVICE_API
         for k, v in github_service_info.items():
             setattr(self, k, v)
+
+        self.base_url = 'https://api.github.com'
 
     def _encode_params(self, kw):
         args = []
@@ -142,3 +145,8 @@ class GitHubApi(object):
         except Exception as e:
             logger.exception(e)
         return result
+
+    def get_branchs(self, user, repo, token):
+        url = self.base_url + '/repos/{0}/{1}/branches'.format(user, repo) + '?access_token=' + token
+        res, body = self._get(url, self.default_headers)
+        return body

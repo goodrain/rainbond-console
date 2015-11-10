@@ -12,17 +12,20 @@ from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.gitlab_http import GitlabApi
+from www.github_http import GitHubApi
 from django.conf import settings
 from www.db import BaseConnection
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from goodrain_web.decorator import method_perf_time
 from www.monitorservice.monitorhook import MonitorHook
+from www.utils.giturlparse import parse as git_url_parse
 
 import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 
 gitClient = GitlabApi()
+githubClient = GitHubApi()
 
 regionClient = RegionServiceApi()
 baseService = BaseTenantService()
@@ -800,12 +803,38 @@ class ServiceEnvVarManager(AuthedView):
 
 class ServiceBranch(AuthedView):
 
-    @perm_required('view_service')
-    def get(self, request, *args, **kwargs):
+    def get_gitlab_branchs(self, parsed_git_url):
         project_id = self.service.git_project_id
         if project_id > 0:
             branchlist = gitClient.getProjectBranches(project_id)
             branchs = [e['name'] for e in branchlist]
+            return branchs
+        else:
+            return [self.service.code_version]
+
+    def get_github_branchs(self, parsed_git_url):
+        user = Users.objects.only('github_token').get(pk=self.service.creater)
+        token = user.github_token
+        owner = parsed_git_url.owner
+        repo = parsed_git_url.repo
+        try:
+            branch_list = githubClient.get_branchs(owner, repo, token)
+            branchs = [e['name'] for e in branch_list]
+            return branchs
+        except githubClient.CallApiError, e:
+            logger.error('client_error', e)
+            return []
+
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        parsed_git_url = git_url_parse(self.service.git_url)
+        if parsed_git_url.host == 'code.goodrain.com':
+            branchs = self.get_gitlab_branchs(parsed_git_url)
+        elif parsed_git_url.host.endswith('github.com'):
+            branchs = self.get_github_branchs(parsed_git_url)
+        else:
+            branchs = [self.service.code_version]
+
         result = {"current": self.service.code_version, "branchs": branchs}
         return JsonResponse(result, status=200)
 
