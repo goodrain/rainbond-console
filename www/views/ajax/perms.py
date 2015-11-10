@@ -7,6 +7,7 @@ from www.utils.mail import send_invite_mail_withHtml
 
 from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity
 from www.gitlab_http import GitlabApi
+from www.utils.giturlparse import parse as git_url_parse
 
 import logging
 logger = logging.getLogger('default')
@@ -43,6 +44,9 @@ class ServiceIdentity(AuthedView):
     def do_gitlab_perm_works(self, user, identity):
         project_id = self.service.git_project_id
         if project_id > 0:
+            parsed_git_url = git_url_parse(self.service.git_url)
+            if parsed_git_url.host != 'code.goodrain.com':
+                return
             try:
                 current_members = gitClient.listProjectMembers(project_id)
                 is_member = self.user_exists_in_gitlab(user, current_members)
@@ -109,6 +113,10 @@ class TenantIdentity(AuthedView):
             project_id = s.git_project_id
             if project_id in added_pids:
                 break
+
+            parsed_git_url = git_url_parse(s.git_url)
+            if parsed_git_url.host != 'code.goodrain.com':
+                return
 
             current_members = gitClient.listProjectMembers(project_id)
             is_member = self.user_exists_in_gitlab(user, current_members)
@@ -213,6 +221,10 @@ class InviteServiceUser(AuthedView):
                 result['show'] = True
 
                 # add gitlab project member
+                parsed_git_url = git_url_parse(self.service.git_url)
+                if parsed_git_url.host == 'code.goodrain.com':
+                    return
+
                 git_project_id = self.service.git_project_id
                 if git_project_id > 0 and user.git_user_id > 0:
                     if identity in ("developer", "admin"):
@@ -269,9 +281,11 @@ class InviteTenantUser(AuthedView):
                     project_id = s.git_project_id
                     if project_id in added_pids:
                         break
-                    logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                    gitClient.addProjectMember(project_id, user.git_user_id, "master")
-                    added_pids.append(project_id)
+                    parsed_git_url = git_url_parse(s.git_url)
+                    if parsed_git_url.host == 'code.goodrain.com':
+                        logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
+                        gitClient.addProjectMember(project_id, user.git_user_id, "master")
+                        added_pids.append(project_id)
             except Exception, e:
                 logger.exception("perm.gitlab", e)
 
