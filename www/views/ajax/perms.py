@@ -42,6 +42,9 @@ class ServiceIdentity(AuthedView):
         return False
 
     def do_gitlab_perm_works(self, user, identity):
+        if self.service.git_url is None:
+            return
+
         project_id = self.service.git_project_id
         if project_id > 0:
             parsed_git_url = git_url_parse(self.service.git_url)
@@ -111,6 +114,9 @@ class TenantIdentity(AuthedView):
         added_pids = []
         for s in gitlab_services:
             project_id = s.git_project_id
+            if s.git_url is None:
+                break
+
             if project_id in added_pids:
                 break
 
@@ -221,15 +227,15 @@ class InviteServiceUser(AuthedView):
                 result['show'] = True
 
                 # add gitlab project member
-                parsed_git_url = git_url_parse(self.service.git_url)
-                if parsed_git_url.host == 'code.goodrain.com':
-                    return
+                if self.service.git_url is not None:
+                    parsed_git_url = git_url_parse(self.service.git_url)
+                    if parsed_git_url.host == 'code.goodrain.com':
 
-                git_project_id = self.service.git_project_id
-                if git_project_id > 0 and user.git_user_id > 0:
-                    if identity in ("developer", "admin"):
-                        gitClient.addProjectMember(git_project_id, user.git_user_id, "master")
-                        logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, git_project_id, self.service.git_url))
+                        git_project_id = self.service.git_project_id
+                        if git_project_id > 0 and user.git_user_id > 0:
+                            if identity in ("developer", "admin"):
+                                gitClient.addProjectMember(git_project_id, user.git_user_id, "master")
+                                logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, git_project_id, self.service.git_url))
 
         except Users.DoesNotExist:
             send_invite_mail_withHtml(email, self.invite_content(email, self.tenant.tenant_name, self.service.service_alias, identity))
@@ -274,10 +280,14 @@ class InviteTenantUser(AuthedView):
 
     def add_member_to_gitlab(self, user, identity):
         gitlab_services = TenantServiceInfo.objects.only('git_project_id', 'git_url').filter(tenant_id=self.tenant.tenant_id, git_project_id__gt=0)
+
         if identity in ('admin', 'developer'):
             try:
                 added_pids = []
                 for s in gitlab_services:
+                    if s.git_url is None:
+                        break
+
                     project_id = s.git_project_id
                     if project_id in added_pids:
                         break
