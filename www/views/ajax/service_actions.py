@@ -122,14 +122,20 @@ class ServiceManage(AuthedView):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
 
-        try:
-            action = request.POST["action"]
-            if action == "stop":
+        action = request.POST["action"]
+        if action == "stop":
+            try:
                 body = {}
                 body["operator"] = str(self.user.nick_name)
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
-            elif action == "restart":
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', False)
+        elif action == "restart":
+            try:
                 # temp record service status
                 temData = {}
                 temData["service_id"] = self.service.service_id
@@ -156,7 +162,13 @@ class ServiceManage(AuthedView):
                 body["operator"] = str(self.user.nick_name)
                 regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
-            elif action == "delete":
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', False)
+        elif action == "delete":
+            try:
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
                     result["status"] = "dependency"
@@ -181,9 +193,15 @@ class ServiceManage(AuthedView):
                 TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
-            elif action == "protocol":
-                par_opt_type = request.POST["opt_type"]
-                if par_opt_type == "outer":
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', False)
+        elif action == "protocol":
+            par_opt_type = request.POST["opt_type"]
+            if par_opt_type == "outer":
+                try:
                     protocol = request.POST["protocol"]
                     par_outer_service = request.POST["outer_service"]
                     if par_outer_service == "change":
@@ -205,7 +223,13 @@ class ServiceManage(AuthedView):
                     self.service.is_web_service = outer_service
                     self.service.save()
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
-                elif par_opt_type == "inner":
+                    result["status"] = "success"
+                except Exception, e:
+                    logger.exception(e)
+                    result["status"] = "failure"
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', False)
+            elif par_opt_type == "inner":
+                try:
                     par_inner_service = request.POST["inner_service"]
                     inner_service = False
                     if par_inner_service == "start" or par_inner_service == "change":
@@ -245,7 +269,13 @@ class ServiceManage(AuthedView):
                     self.service.is_service = inner_service
                     self.service.save()
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_inner', True)
-            elif action == "rollback":
+                    result["status"] = "success"
+                except Exception, e:
+                    logger.exception(e)
+                    result["status"] = "failure"
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_inner', False)
+        elif action == "rollback":
+            try:
                 event_id = request.POST["event_id"]
                 deploy_version = request.POST["deploy_version"]
                 if event_id != "":
@@ -271,11 +301,11 @@ class ServiceManage(AuthedView):
                     body["deploy_version"] = deploy_version
                     regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', True)
-            result["status"] = "success"
-        except Exception, e:
-            logger.exception(e)
-            result["status"] = "failure"
-            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_manage', False)
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)        
         return JsonResponse(result)
 
 
