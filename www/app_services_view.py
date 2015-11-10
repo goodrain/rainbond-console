@@ -25,6 +25,7 @@ gitHubClient = GitHubApi()
 regionClient = RegionServiceApi()
 monitorhook = MonitorHook()
 
+
 class AppCreateView(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
@@ -100,7 +101,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
-            
+
             # code repos
             if service_code_from == "gitlab_new":
                 project_id = 0
@@ -109,15 +110,15 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     logger.debug(project_id)
                     monitorhook.gitProjectMonitor(self.user.nick_name, newTenantService, 'create_git_project', project_id)
                     if project_id > 0:
-                        gitClient.addProjectMember(project_id, self.user.git_user_id, 40)
-                        gitClient.addProjectMember(project_id, 2, 20)
+                        gitClient.addProjectMember(project_id, self.user.git_user_id, 'master')
+                        gitClient.addProjectMember(project_id, 2, 'reporter')
                         ts = TenantServiceInfo.objects.get(service_id=service_id)
                         ts.git_project_id = project_id
                         ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + service_alias + ".git"
                         ts.code_from = service_code_from
                         ts.code_version = "master"
                         ts.save()
-                        gitClient.createWebHook(project_id)                    
+                        gitClient.createWebHook(project_id)
             elif service_code_from == "gitlab_exit":
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
