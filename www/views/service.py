@@ -103,6 +103,7 @@ class ServicePublishView(AuthedView):
         }
         return form_init_data
 
+    @perm_required('sys_admin')
     def get(self, request, *args, **kwargs):
         published_versions = AppServiceInfo.objects.filter(service_id=self.service.service_id).order_by('-create_time')
         if published_versions:
@@ -113,6 +114,7 @@ class ServicePublishView(AuthedView):
             self.form = ServicePublishForm()
         return self.get_response()
 
+    @perm_required('sys_admin')
     def post(self, request, *args, **kwargs):
         self.form = ServicePublishForm(request.POST)
         if not self.form.is_valid():
