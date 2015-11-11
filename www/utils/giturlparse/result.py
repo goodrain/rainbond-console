@@ -10,6 +10,7 @@ REQUIRED_ATTRIBUTES = (
 
 
 class GitUrlParsed(object):
+
     def __init__(self, parsed_info):
         self._parsed = parsed_info
 
@@ -74,6 +75,14 @@ class GitUrlParsed(object):
     @property
     def url2https(self):
         return self.format('https')
+
+    def url2http_token(self, token):
+        url = self.url2http
+        return url[:7] + token + '@' + url[7:]
+
+    def url2https_token(self, token):
+        url = self.url2https
+        return url[:8] + token + '@' + url[8:]
 
     @property
     def url2git(self):

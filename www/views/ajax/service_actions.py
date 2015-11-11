@@ -308,7 +308,7 @@ class ServiceManage(AuthedView):
             except Exception, e:
                 logger.exception(e)
                 result["status"] = "failure"
-                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)        
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)
         return JsonResponse(result)
 
 
@@ -653,17 +653,17 @@ class ServiceCheck(AuthedView):
         data = {}
         data["tenant_id"] = self.service.tenant_id
         data["service_id"] = self.service.service_id
-        if self.service.code_from != "github":
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
-            data["git_url"] = gitUrl
-        else:
-            clone_url = self.service.git_url
-            code_user = clone_url.split("/")[3]
-            code_project_name = clone_url.split("/")[4].split(".")[0]
+        clone_url = self.service.git_url
+        parsed_git_url = git_url_parse(clone_url)
+        if parsed_git_url == "code.goodrain.com":
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2ssh
+        elif parsed_git_url == 'github.com':
             createUser = Users.objects.get(user_id=self.service.creater)
-            clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            data["git_url"] = gitUrl
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.token)
+        else:
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https
+
+        data["git_url"] = gitUrl
         task = {}
         task["tube"] = "code_check"
         task["data"] = data
