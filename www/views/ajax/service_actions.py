@@ -338,7 +338,7 @@ class ServiceUpgrade(AuthedView):
                 old_deploy_version = self.service.deploy_version
                 upgrade_container_memory = int(container_memory)
                 left = upgrade_container_memory % 128
-                if upgrade_container_memory > 0 and upgrade_container_memory <= 4096 and left == 0:
+                if upgrade_container_memory > 0 and upgrade_container_memory <= 65536 and left == 0:
                     upgrade_container_cpu = upgrade_container_memory / 128 * 20
                     # temp record service status
                     temData = {}
