@@ -54,6 +54,7 @@ class PermActions(object):
 
 
 class UserActions(dict):
+
     def __init__(self):
         self.tenant_actions = []
         self.service_actions = []
@@ -119,9 +120,13 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
         except TenantServiceInfo.DoesNotExist:
             raise UrlParseError(404, 'no matching serviceAlias for {0}'.format(serviceAlias))
         except PermRelTenant.DoesNotExist:
-            raise UrlParseError(403, 'no permissions for user {0} on tenant {1}'.format(user.nick_name, tenant.tenant_name))
+            if not user.is_sys_admin:
+                raise UrlParseError(403, 'no permissions for user {0} on tenant {1}'.format(user.nick_name, tenant.tenant_name))
         except PermRelService.DoesNotExist:
             pass
+
+    if user.is_sys_admin:
+        return True
 
     if perm in user.actions:
         return True

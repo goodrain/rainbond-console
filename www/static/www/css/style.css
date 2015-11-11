@@ -389,7 +389,7 @@ a.logo span {
 
 ul.top-menu > li > a {
     color: #666666;
-    font-size: 16px;
+    font-size: 14px;
     border-radius: 4px;
     -webkit-border-radius: 4px;
     border:1px solid #f0f0f8 !important;
@@ -524,7 +524,7 @@ ul.top-menu > li > a:hover, ul.top-menu > li > a:focus {
 }
 
 .top-nav  {
-    margin-top: 7px;
+    margin-top: 12px;
 }
 
 .top-nav ul.top-menu > li .dropdown-menu.logout {
@@ -589,7 +589,7 @@ ul.top-menu > li > a:hover, ul.top-menu > li > a:focus {
 }
 
 .top-nav .username {
-    font-size: 13px;
+    font-size: 14px;
     color: #555555;
 }
 

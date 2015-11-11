@@ -181,7 +181,7 @@ class LeftSideBarMixin(object):
     def get_service_list(self):
         baseService = BaseTenantService()
         services = baseService.get_service_list(
-            self.tenant.pk, self.user.pk, self.tenant.tenant_id, region=self.response_region)
+            self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
         for s in services:
             if s.service_alias == self.serviceAlias:
                 s.is_selected = True

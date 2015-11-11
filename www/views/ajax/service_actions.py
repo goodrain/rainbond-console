@@ -12,17 +12,20 @@ from www.decorator import perm_required
 from www.models import ServiceInfo, AppServiceInfo, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.gitlab_http import GitlabApi
+from www.github_http import GitHubApi
 from django.conf import settings
 from www.db import BaseConnection
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from goodrain_web.decorator import method_perf_time
 from www.monitorservice.monitorhook import MonitorHook
+from www.utils.giturlparse import parse as git_url_parse
 
 import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 
 gitClient = GitlabApi()
+githubClient = GitHubApi()
 
 regionClient = RegionServiceApi()
 baseService = BaseTenantService()
@@ -122,14 +125,20 @@ class ServiceManage(AuthedView):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
 
-        try:
-            action = request.POST["action"]
-            if action == "stop":
+        action = request.POST["action"]
+        if action == "stop":
+            try:
                 body = {}
                 body["operator"] = str(self.user.nick_name)
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
-            elif action == "restart":
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', False)
+        elif action == "restart":
+            try:
                 # temp record service status
                 temData = {}
                 temData["service_id"] = self.service.service_id
@@ -156,8 +165,13 @@ class ServiceManage(AuthedView):
                 body["operator"] = str(self.user.nick_name)
                 regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
-
-            elif action == "delete":
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', False)
+        elif action == "delete":
+            try:
                 depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
                 if depNumber > 0:
                     result["status"] = "dependency"
@@ -186,9 +200,15 @@ class ServiceManage(AuthedView):
                 TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
-            elif action == "protocol":
-                par_opt_type = request.POST["opt_type"]
-                if par_opt_type == "outer":
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', False)
+        elif action == "protocol":
+            par_opt_type = request.POST["opt_type"]
+            if par_opt_type == "outer":
+                try:
                     protocol = request.POST["protocol"]
                     par_outer_service = request.POST["outer_service"]
                     if par_outer_service == "change":
@@ -210,7 +230,13 @@ class ServiceManage(AuthedView):
                     self.service.is_web_service = outer_service
                     self.service.save()
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
-                elif par_opt_type == "inner":
+                    result["status"] = "success"
+                except Exception, e:
+                    logger.exception(e)
+                    result["status"] = "failure"
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', False)
+            elif par_opt_type == "inner":
+                try:
                     par_inner_service = request.POST["inner_service"]
                     inner_service = False
                     if par_inner_service == "start" or par_inner_service == "change":
@@ -250,7 +276,13 @@ class ServiceManage(AuthedView):
                     self.service.is_service = inner_service
                     self.service.save()
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_inner', True)
-            elif action == "rollback":
+                    result["status"] = "success"
+                except Exception, e:
+                    logger.exception(e)
+                    result["status"] = "failure"
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_inner', False)
+        elif action == "rollback":
+            try:
                 event_id = request.POST["event_id"]
                 deploy_version = request.POST["deploy_version"]
                 if event_id != "":
@@ -276,11 +308,11 @@ class ServiceManage(AuthedView):
                     body["deploy_version"] = deploy_version
                     regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', True)
-            result["status"] = "success"
-        except Exception, e:
-            logger.exception(e)
-            result["status"] = "failure"
-            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_manage', False)
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)
         return JsonResponse(result)
 
     def update_app_service(self, tservice):
@@ -318,7 +350,7 @@ class ServiceUpgrade(AuthedView):
                 old_deploy_version = self.service.deploy_version
                 upgrade_container_memory = int(container_memory)
                 left = upgrade_container_memory % 128
-                if upgrade_container_memory > 0 and upgrade_container_memory <= 4096 and left == 0:
+                if upgrade_container_memory > 0 and upgrade_container_memory <= 65536 and left == 0:
                     upgrade_container_cpu = upgrade_container_memory / 128 * 20
                     # temp record service status
                     temData = {}
@@ -633,17 +665,17 @@ class ServiceCheck(AuthedView):
         data = {}
         data["tenant_id"] = self.service.tenant_id
         data["service_id"] = self.service.service_id
-        if self.service.code_from != "github":
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
-            data["git_url"] = gitUrl
-        else:
-            clone_url = self.service.git_url
-            code_user = clone_url.split("/")[3]
-            code_project_name = clone_url.split("/")[4].split(".")[0]
+        clone_url = self.service.git_url
+        parsed_git_url = git_url_parse(clone_url)
+        if parsed_git_url == "code.goodrain.com":
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2ssh
+        elif parsed_git_url == 'github.com':
             createUser = Users.objects.get(user_id=self.service.creater)
-            clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            data["git_url"] = gitUrl
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.token)
+        else:
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https
+
+        data["git_url"] = gitUrl
         task = {}
         task["tube"] = "code_check"
         task["data"] = data
@@ -813,12 +845,38 @@ class ServiceEnvVarManager(AuthedView):
 
 class ServiceBranch(AuthedView):
 
-    @perm_required('view_service')
-    def get(self, request, *args, **kwargs):
+    def get_gitlab_branchs(self, parsed_git_url):
         project_id = self.service.git_project_id
         if project_id > 0:
             branchlist = gitClient.getProjectBranches(project_id)
             branchs = [e['name'] for e in branchlist]
+            return branchs
+        else:
+            return [self.service.code_version]
+
+    def get_github_branchs(self, parsed_git_url):
+        user = Users.objects.only('github_token').get(pk=self.service.creater)
+        token = user.github_token
+        owner = parsed_git_url.owner
+        repo = parsed_git_url.repo
+        try:
+            branch_list = githubClient.get_branchs(owner, repo, token)
+            branchs = [e['name'] for e in branch_list]
+            return branchs
+        except githubClient.CallApiError, e:
+            logger.error('client_error', e)
+            return []
+
+    @perm_required('view_service')
+    def get(self, request, *args, **kwargs):
+        parsed_git_url = git_url_parse(self.service.git_url)
+        if parsed_git_url.host == 'code.goodrain.com':
+            branchs = self.get_gitlab_branchs(parsed_git_url)
+        elif parsed_git_url.host.endswith('github.com'):
+            branchs = self.get_github_branchs(parsed_git_url)
+        else:
+            branchs = [self.service.code_version]
+
         result = {"current": self.service.code_version, "branchs": branchs}
         return JsonResponse(result, status=200)
 
