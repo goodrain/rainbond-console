@@ -19,5 +19,5 @@ def send_phone_message(phone, phonecode):
         logger.debug(result)
         return True
     except Exception, e:
-        pass
+        logger.exception(e)
         return False
