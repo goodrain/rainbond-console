@@ -141,7 +141,7 @@
 		if(typeof(curpagesize) == "undefined"){
 			curpagesize=10
 		}
-		$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize+'&page='+page);
+		$("#rechargeList").load('/ajax/{{tenantName}}/rechargelist?datescope='+curdatescope+'&perpage='+curpagesize+'&page='+page+'&r='+Math.random());
 	}
 	$(document).ready(function(){ 
 		_page(1);
