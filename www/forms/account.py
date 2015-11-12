@@ -262,17 +262,17 @@ class RegisterForm(forms.Form):
         # ajax_check=True,
         #widget=widgets.EmailInput(attrs={"data-remote-error": u"邮件地址已存在"})
     )
-    tenant = fields.CharField(
+    tenant = forms.CharField(
         required=True, max_length=40, label="",
         validators=[is_standard_word, is_sensitive],
-        min_length=3, ajax_check=True, pattern=standard_regex_string,
-        widget=widgets.TextInput(attrs={"data-remote-error": u"已存在"})
+        # min_length=3, ajax_check=True, pattern=standard_regex_string,
+        #widget=widgets.TextInput(attrs={"data-remote-error": u"已存在"})
     )
-    nick_name = fields.CharField(
+    nick_name = forms.CharField(
         required=True, max_length=24, label="",
         validators=[is_standard_word, is_sensitive],
-        pattern=standard_regex_string, ajax_check=True,
-        widget=widgets.TextInput(attrs={"data-remote-error": u"昵称已存在"})
+        #pattern=standard_regex_string, ajax_check=True,
+        #widget=widgets.TextInput(attrs={"data-remote-error": u"昵称已存在"})
     )
     password = forms.CharField(
         required=True, label='',
