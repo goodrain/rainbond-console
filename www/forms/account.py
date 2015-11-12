@@ -260,19 +260,19 @@ class RegisterForm(forms.Form):
     email = forms.EmailField(
         required=True, max_length=32, label="",
         # ajax_check=True,
-        #widget=widgets.EmailInput(attrs={"data-remote-error": u"邮件地址已存在"})
+        # widget=widgets.EmailInput(attrs={"data-remote-error": u"邮件地址已存在"})
     )
     tenant = forms.CharField(
         required=True, max_length=40, label="",
         validators=[is_standard_word, is_sensitive],
         # min_length=3, ajax_check=True, pattern=standard_regex_string,
-        #widget=widgets.TextInput(attrs={"data-remote-error": u"已存在"})
+        # widget=widgets.TextInput(attrs={"data-remote-error": u"已存在"})
     )
     nick_name = forms.CharField(
         required=True, max_length=24, label="",
         validators=[is_standard_word, is_sensitive],
-        #pattern=standard_regex_string, ajax_check=True,
-        #widget=widgets.TextInput(attrs={"data-remote-error": u"昵称已存在"})
+        # pattern=standard_regex_string, ajax_check=True,
+        # widget=widgets.TextInput(attrs={"data-remote-error": u"昵称已存在"})
     )
     password = forms.CharField(
         required=True, label='',
@@ -519,7 +519,7 @@ class RegisterForm(forms.Form):
                 code='phone_code_error'
             )
 
-        if real_captcha_code != captcha_code:
+        if real_captcha_code.lower() != captcha_code.lower():
             raise forms.ValidationError(
                 self.error_messages['captcha_code_error'],
                 code='captcha_code_error'
