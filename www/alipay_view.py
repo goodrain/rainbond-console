@@ -87,7 +87,7 @@ def return_url(request, tenantName):
                 sendRecharge.user_id = tenantRecharge.user_id
                 sendRecharge.user_name = tenantRecharge.user_name
                 sendRecharge.order_no = tenantRecharge.order_no
-                sendRecharge.recharge_type = "充值送"
+                sendRecharge.recharge_type = "100send50"
                 sendRecharge.money = tempMoney
                 sendRecharge.subject = "充100值送50"
                 sendRecharge.body = "充100值送50"

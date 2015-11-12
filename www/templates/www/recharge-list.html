@@ -28,7 +28,7 @@
 			{% for tenantRecharge in tenantRecharges %}
 			<tr>
 				<td class=" ">{{tenantRecharge.money}}</td>
-				<td class=" ">{{tenantRecharge.recharge_type}}</td>
+				<td class=" ">{{rechargeTypeMap|mkey:tenantRecharge.recharge_type}}</td>
 				<td class=" ">{{tenantRecharge.user_name}}</td>
 				<td>{{tenantRecharge.time}}</td>
 				<td>

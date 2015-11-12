@@ -15,6 +15,8 @@ import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 
+RechargeTypeMap = {"alipay":u"支付宝", "100send50":u"充100送10", "weixin100":u"微信注册送100"}
+
 class AccountBill(AuthedView):    
     @perm_required('tenant_account')
     def post(self, request, *args, **kwargs):
@@ -77,6 +79,7 @@ class AccountRecharging(AuthedView):
                 recharges = TenantRecharge.objects.filter(tenant_id=self.tenant.tenant_id)                                        
             paginator = JuncheePaginator(recharges, int(per_page))
             tenantRecharges = paginator.page(int(page))
+            context["rechargeTypeMap"] = RechargeTypeMap
             context["tenantRecharges"] = tenantRecharges
         except Exception as e:
             logger.exception(e)

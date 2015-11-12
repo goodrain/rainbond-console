@@ -7,7 +7,7 @@ from django.http import HttpResponse, Http404
 
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, RegisterForm, PasswordResetForm, PasswordResetBeginForm
-from www.models import Users, Tenants, TenantRegionInfo, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode
+from www.models import Users, Tenants, TenantRegionInfo, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode, TenantRecharge
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
@@ -368,6 +368,28 @@ class Registation(BaseView, RegionOperateMixin):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+    
+    def weixinRegister(self, tenant_id, user_id, user_name, rf):
+        try:
+            sendRecharge = TenantRecharge()
+            sendRecharge.tenant_id = tenant_id
+            sendRecharge.user_id = user_id
+            sendRecharge.user_name = user_name
+            sendRecharge.order_no = str(user_id)
+            sendRecharge.recharge_type = "weixin100"
+            sendRecharge.money = 100
+            sendRecharge.subject = "免费送"
+            sendRecharge.body = "注册送100"
+            sendRecharge.show_url = ""
+            sendRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            sendRecharge.status = "TRADE_SUCCESS"
+            sendRecharge.save()
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
+            tenant.balance = tenant.balance + 100
+            tenant.save()
+        except Exception as e:
+            logger.exception(e) 
+        
 
     def post(self, request, *args, **kwargs):
         querydict = request.POST
@@ -413,7 +435,11 @@ class Registation(BaseView, RegionOperateMixin):
                 logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
             else:
                 logger.info("account.register", "create gitlab user for register user {0}, got id {1}".format(nick_name, git_user_id))
-
+            
+            # wei xin user need to add 100
+            if rf == "wx":
+                self.weixinRegister(tenant.tenant_id, user.pk, user.nick_name, rf)
+            
             user = authenticate(username=email, password=password)
             login(request, user)
 
