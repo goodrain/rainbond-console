@@ -172,20 +172,20 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', False)
         elif action == "delete":
             try:
-                
-                dependSids = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).values("dep_service_id")
+                dependSids = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).values("service_id")
                 if len(dependSids) > 0:
                     sids = []
                     for ds in dependSids:
-                        sids.append(ds["dep_service_id"])
-                    aliasList = TenantServiceInfo.objects.filter(service_id__in=sids).values('service_alias')
-                    depalias = ""
-                    for alias in aliasList:
-                        if depalias != "":
-                            depalias = depalias + ","
-                        depalias = depalias + alias["service_alias"]
-                    result["status"] = "dependency"
-                    result["dep_service"] = depalias
+                        sids.append(ds["service_id"])
+                    if len(sids) > 0:
+                        aliasList = TenantServiceInfo.objects.filter(service_id__in=sids).values('service_alias')
+                        depalias = ""
+                        for alias in aliasList:
+                            if depalias != "":
+                                depalias = depalias + ","
+                            depalias = depalias + alias["service_alias"]
+                        result["dep_service"] = depalias
+                    result["status"] = "dependency"                    
                     return JsonResponse(result)
                 data = self.service.toJSON()
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
