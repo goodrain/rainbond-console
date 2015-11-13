@@ -8,6 +8,7 @@ $(function(){
             
         if(!checkReg.test(appName)){
         	$("#create_app_name").focus()
+        	scrollOffset($("#create_app_name").offset()); 
             $('#create_appname_notice').slideDown();
             return;
         }else{
@@ -22,6 +23,7 @@ $(function(){
             
         if(!checkReg.test(appName)){
         	$("#create_app_name").focus()
+        	scrollOffset($("#create_app_name").offset()); 
             $('#create_appname_notice').slideDown();
             return;
         }else{
@@ -241,4 +243,7 @@ function projectVersion(code_from,code_id,clone_url){
 	}
 }
 
+function scrollOffset(scroll_offset) { 
+	$("body,html").animate({scrollTop: scroll_offset.top - 70}, 0); 
+} 
 
