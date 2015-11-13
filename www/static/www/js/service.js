@@ -332,7 +332,12 @@ function delete_service(tenantName, service_alias) {
 					} else if (dataObj["status"] == "often") {
 						swal("上次操作正在进行中，稍后再试")
 					} else if (dataObj["status"] == "dependency") {
-						swal("当前服务被依赖不能删除");
+						var dep_service = dataObj["dep_service"]
+						if (typeof(dep_service) == "undefined"){
+							swal("当前服务被依赖不能删除");
+						}else{
+							swal("当前服务被("+dep_service+")依赖不能删除");
+						}
 					} else {
 						swal("操作失败");
 					}
