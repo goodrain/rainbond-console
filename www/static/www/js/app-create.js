@@ -7,6 +7,7 @@ $(function(){
             result = true;
             
         if(!checkReg.test(appName)){
+        	$("#create_app_name").focus()
             $('#create_appname_notice').slideDown();
             return;
         }else{
@@ -20,6 +21,7 @@ $(function(){
             result = true;
             
         if(!checkReg.test(appName)){
+        	$("#create_app_name").focus()
             $('#create_appname_notice').slideDown();
             return;
         }else{
