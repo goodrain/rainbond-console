@@ -1,10 +1,11 @@
 # -*- coding: utf8 -*-
 from functools import update_wrapper
 from django.forms import Media
-from django.http import Http404
+from django import http
 from django.utils.decorators import classonlymethod
 from django.views.generic import View
 from django.shortcuts import redirect
+from django.views.generic.base import RedirectView
 
 from django.conf import settings
 
@@ -24,6 +25,31 @@ from www.utils.url import get_redirect_url
 import logging
 
 logger = logging.getLogger('default')
+
+
+class GrRedirectView(RedirectView):
+
+    @classmethod
+    def as_view(cls, **initkwargs):
+        if 'permanent' not in initkwargs:
+            initkwargs['permanent'] = True
+
+        return super(GrRedirectView, cls).as_view(**initkwargs)
+
+    def get(self, request, *args, **kwargs):
+        url = self.get_redirect_url(self.url, request)
+        if url:
+            if self.permanent:
+                return http.HttpResponsePermanentRedirect(url)
+            else:
+                return http.HttpResponseRedirect(url)
+        else:
+            logger.warning('Gone: %s', request.path,
+                           extra={
+                               'status_code': 410,
+                               'request': request
+                           })
+            return http.HttpResponseGone()
 
 
 class BaseObject(object):
@@ -111,7 +137,7 @@ class AuthedView(BaseView):
             except Tenants.DoesNotExist:
                 logger.error(
                     "Tenant {0} is not exists".format(self.tenantName))
-                raise Http404
+                raise http.Http404
 
             if self.serviceAlias is not None:
                 try:
@@ -120,7 +146,7 @@ class AuthedView(BaseView):
                 except TenantServiceInfo.DoesNotExist:
                     logger.debug("Tenant {0} ServiceAlias {1} is not exists".format(
                         self.tenantName, self.serviceAlias))
-                    raise Http404
+                    raise http.Http404
 
         BaseView.__init__(self, request, *args, **kwargs)
 
