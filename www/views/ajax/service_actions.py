@@ -183,7 +183,7 @@ class ServiceManage(AuthedView):
                     for alias in aliasList:
                         if depalias != "":
                             depalias = depalias + ","
-                        depalias = depalias + alias
+                        depalias = depalias + alias["service_alias"]
                     result["status"] = "dependency"
                     result["dep_service"] = depalias
                     return JsonResponse(result)
