@@ -145,7 +145,7 @@
 		    		  	$("#onekey_deploy").show();
 		    		  	$("#service_status").html("运行异常")
 		    		    $("#service_status_operate").show()
-		    			$("#service_visitor").show()
+		    			$("#service_visitor").hide();
 		    			$("#service_status").attr("class","badge badge-sm label-danger")
 		    		  }else if(obj["status"]=="closed" || obj["status"]=="owed"){
 		    			$("#service_status_value").val("restart")
