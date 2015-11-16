@@ -1,105 +1,105 @@
-        <!-- statistic start -->
-        {% if tenant.pay_type != 'free' %}
-        <div role="tabpanel" class="tab-pane" id="statistic">
-          <div>
-            <div class="col-xs-9"></div>
-            <div class="col-xs-3">
-              <select id="graph-period" class="form-control input-sm m-bot15">
-                  <option value="1h-ago">1小时</option>
-                  <option value="8h-ago">8小时</option>
-                  <option value="24h-ago">24小时</option>
-                  <option value="7d-ago">7天</option>
-              </select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              <section class="panel">
-                <header class="panel-heading">
-                  内存
-                </header>
-                <div class="panel-body">
-                  <div id="memory-stat" class="graph">
-                    <svg></svg>
-                  </div>
-                </div>
-              </section>
-            </div>
+ <!-- statistic start -->
+ {% if tenant.pay_type != 'free' %}
+ <div role="tabpanel" class="tab-pane" id="statistic">
+   <div>
+     <div class="col-xs-9"></div>
+     <div class="col-xs-3">
+       <select id="graph-period" class="form-control input-sm m-bot15">
+           <option value="1h-ago">1小时</option>
+           <option value="8h-ago">8小时</option>
+           <option value="24h-ago">24小时</option>
+           <option value="7d-ago">7天</option>
+       </select>
+     </div>
+   </div>
+   <div class="row">
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           内存
+         </header>
+         <div class="panel-body">
+           <div id="memory-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
 
-            <div class="col-md-6">
-              <section class="panel">
-                <header class="panel-heading">
-                  带宽
-                </header>
-                <div class="panel-body">
-                  <div id="bandwidth-stat" class="graph">
-                    <svg></svg>
-                  </div>
-                </div>
-              </section>
-            </div>
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           带宽
+         </header>
+         <div class="panel-body">
+           <div id="bandwidth-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
 
-            <div class="col-md-6">
-              <section class="panel">
-                <header class="panel-heading">
-                  磁盘
-                </header>
-                <div class="panel-body">
-                  <div id="disk-stat" class="graph">
-                    <svg></svg>
-                  </div>
-                </div>
-              </section>
-            </div>
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           磁盘
+         </header>
+         <div class="panel-body">
+           <div id="disk-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
 
-          </div>
+   </div>
 
-          {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
-          <div class="row">
-            <div class="col-md-6">
-              <section class="panel">
-                <header class="panel-heading">
-                  响应时间
-                </header>
-                <div class="panel-body">
-                  <div id="response-time-stat" class="graph">
-                    <svg></svg>
-                  </div>
-                </div>
-              </section>
-            </div>
+   {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+   <div class="row">
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           响应时间
+         </header>
+         <div class="panel-body">
+           <div id="response-time-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
 
-            <div class="col-md-6">
-              <section class="panel">
-                <header class="panel-heading">
-                  在线人数
-                </header>
-                <div class="panel-body">
-                  <div id="online-stat" class="graph">
-                    <svg></svg>
-                  </div>
-                </div>
-              </section>
-            </div>
-          </div>
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           在线人数
+         </header>
+         <div class="panel-body">
+           <div id="online-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+   </div>
 
-          <div class="row">
-            <div class="col-md-6">
-              <section class="panel">
-                <header class="panel-heading">
-                  吞吐率
-                </header>
-                <div class="panel-body">
-                  <div id="throughput-stat" class="graph">
-                    <svg></svg>
-                  </div>
-                </div>
-              </section>
-            </div>
+   <div class="row">
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           吞吐率
+         </header>
+         <div class="panel-body">
+           <div id="throughput-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
 
-          </div>
-          {% endif %}
+   </div>
+   {% endif %}
 
-        </div>
-        {% endif %}
-        <!-- statistic end-->
+ </div>
+ {% endif %}
+ <!-- statistic end-->

@@ -1,3 +1,51 @@
-        <!-- log start -->
-        <div role="tabpanel" class="tab-pane" id="log"></div>
-        <!-- log end-->
+<!-- log start -->
+<div role="tabpanel" class="tab-pane" id="log"></div>
+<!-- log end-->
+<script>
+	String.prototype.trim = function() {
+	    return this.replace(/(^\s*)|(\s*$)/g, "");
+	}
+	function getLog(){
+		$.ajax({
+       	  type: "GET",
+    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
+    		  data: "action=service",
+    		  cache: false,
+    		  beforeSend: function(xhr, settings){
+    		      var csrftoken = $.cookie('csrftoken');
+    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    		  },
+    	  	  success: function(msg) {
+    	  		var dataObj = msg;
+    	  		$("#log").html(dataObj["log"])
+    		  },
+    		  error: function(){
+    			//swal("ϵͳ�쳣");
+      	  	}
+       })
+	}
+	extPushWebSocketClient.prototype = {
+   			onMessage : function(msg) {
+   				if(typeof(msg) !="undefined"){
+       				var msgs = msg.split(":")
+       				if(msgs[0].trim() != "deploy" && msgs[0].trim() != "compile"){
+       					var finalMsg=""
+       					var arr=$("#log").html().split('<br>');
+       					var totalSize=150;
+       					if(arr.length > totalSize){
+       						for(var i = 0; i < totalSize; i++){
+       							finalMsg += arr[totalSize-1-i]+"<br/>"
+       						}
+       					}else{
+       						finalMsg = $("#log").html()
+       					}
+       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
+       					$("#log").html(finalMsg)       					
+       				}
+   				}
+   			}
+    	}
+   		var connect = new extPushWebSocketConnect('{{websocket_uri}}');
+   		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
+    });
+</script>

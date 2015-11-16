@@ -97,11 +97,11 @@ class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
 class TenantService(LeftSideBarMixin, AuthedView):
 
     def init_request(self, *args, **kwargs):
-        show_graph = self.request.GET.get('show_graph', None)
-        if show_graph is not None and show_graph == 'yes':
-            self.show_graph = True
+        rf = self.request.GET.get('rf', None)
+        if rf is not None and rf == 'statistic':
+            self.statistic = True
         else:
-            self.show_graph = False
+            self.statistic = False
 
     def get_media(self):
         media = super(TenantService, self).get_media() + self.vendor(
@@ -112,7 +112,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/swfobject.js', 'www/js/web_socket.js', 'www/js/websoket-goodrain.js'
         )
-        if self.show_graph:
+        if self.statistic:
             media = media + self.vendor(
                 'www/assets/nvd3/nv.d3.css', 'www/assets/nvd3/d3.min.js',
                 'www/assets/nvd3/nv.d3.min.js', 'www/js/gr/nvd3graph.js',
@@ -121,8 +121,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
     def get_context(self):
         context = super(TenantService, self).get_context()
-        if self.show_graph:
-            context['show_graph'] = True
         return context
 
     def get_user_perms(self):
@@ -226,14 +224,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         self.response_region = self.service.service_region
         self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
-
         context = self.get_context()
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
-        tab_index = request.GET.get("fr", "0")
-        context['tab_index'] = tab_index
-        http_port_str = '' if self.response_region == 'aws-jp-1' else ':10080'
-        context['http_port_str'] = http_port_str
+        fr = request.GET.get("fr", "deployed")
+        context["fr"] = fr     
         try:
             if self.service.category == "application" and self.service.ID > 598:
                 # no create gitlab repos
@@ -245,69 +240,87 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 if tse.user_dependency is None or tse.user_dependency == "":
                     return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-            elif self.service.category == 'store':
-                service_manager = self.get_manage_app(http_port_str)
-                context['service_manager'] = service_manager
-
-            service_id = self.service.service_id
+            
             context["tenantServiceInfo"] = self.service
             tenantServiceList = context["tenantServiceList"]
-            context["tenantName"] = self.tenantName
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()
-            context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-            context["memoryList"] = self.memory_choices()
+            context["totalMemory"] = self.service.min_node * self.service.min_memory
             context["tenant"] = self.tenant
             context["region_name"] = self.service.service_region
-            context["totalMemory"] = self.service.min_node * self.service.min_memory
-
-            # service relationships
-            tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=service_id)
-            relationsids = []
-            if len(tsrs) > 0:
-                for tsr in tsrs:
-                    relationsids.append(tsr.dep_service_id)
-            context["serviceIds"] = relationsids
-
-            map = {}
-            sids = [service_id]
-            for tenantService in tenantServiceList:
-                if tenantService.is_service:
-                    sids.append(tenantService.service_id)
-                    map[tenantService.service_id] = tenantService
-            context["serviceMap"] = map
-
-            # relationships password
-            envMap = {}
-            envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
-            if len(envVarlist) > 0:
-                for evnVarObj in envVarlist:
-                    arr = envMap.get(evnVarObj.service_id)
-                    if arr is None:
-                        arr = []
-                    arr.append(evnVarObj)
-                    envMap[evnVarObj.service_id] = arr
-            context["envMap"] = envMap
-
-            if self.service.category == "application" or self.service.category == "manager":
-                # service git repository
-                httpGitUrl = ""
-                if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
-                    cur_git_url = self.service.git_url.split("/")
-                    httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
-                else:
-                    httpGitUrl = self.service.git_url
-                context["httpGitUrl"] = httpGitUrl
-                # service domain
-                try:
-                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
-                    context["serviceDomain"] = domain
-                except Exception as e:
-                    pass
-
-            websocket_info = settings.WEBSOCKET_URL
-            context["websocket_uri"] = websocket_info[self.service.service_region]
-
+            context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
+                            
+            if fr == "deployed":
+                http_port_str = '' if self.response_region == 'aws-jp-1' else ':10080'
+                context['http_port_str'] = http_port_str        
+                if self.service.category == 'store':
+                    service_manager = self.get_manage_app(http_port_str)
+                    context['service_manager'] = service_manager
+                # relationships password
+                if self.service.is_service:
+                    sids = [service_id]
+                    envMap = {}                    
+                    envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
+                    if len(envVarlist) > 0:
+                        for evnVarObj in envVarlist:
+                            arr = envMap.get(evnVarObj.service_id)
+                            if arr is None:
+                                arr = []
+                            arr.append(evnVarObj)
+                            envMap[evnVarObj.service_id] = arr
+                    context["envMap"] = envMap                            
+            elif fr == "relations":
+                # service relationships
+                tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+                relationsids = []
+                if len(tsrs) > 0:
+                    for tsr in tsrs:
+                        relationsids.append(tsr.dep_service_id)
+                context["serviceIds"] = relationsids
+                # service map
+                map = {}
+                sids = [service_id]
+                for tenantService in tenantServiceList:
+                    if tenantService.is_service:
+                        sids.append(tenantService.service_id)
+                        map[tenantService.service_id] = tenantService
+                context["serviceMap"] = map
+                # env map
+                envMap = {}
+                envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
+                if len(envVarlist) > 0:
+                    for evnVarObj in envVarlist:
+                        arr = envMap.get(evnVarObj.service_id)
+                        if arr is None:
+                            arr = []
+                        arr.append(evnVarObj)
+                        envMap[evnVarObj.service_id] = arr
+                context["envMap"] = envMap                         
+            elif fr == "statistic":
+                pass
+            elif fr == "log":
+                pass
+            elif fr == "settings":
+                context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+                context["memoryList"] = self.memory_choices()
+                if self.service.category == "application" or self.service.category == "manager":
+                    # service git repository
+                    httpGitUrl = ""
+                    if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
+                        cur_git_url = self.service.git_url.split("/")
+                        httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+                    else:
+                        httpGitUrl = self.service.git_url
+                    context["httpGitUrl"] = httpGitUrl
+                    # service domain
+                    try:
+                        domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                        context["serviceDomain"] = domain
+                    except Exception as e:
+                        pass
+            else:
+                return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
+            
             if self.tenant_region.service_status == 0:
                 logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
                 regionClient.unpause(self.service.service_region, self.tenant_region.tenant_id)
@@ -318,14 +331,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
                 regionClient.systemUnpause(self.service.service_region, self.tenant_region.tenant_id)
                 self.tenant_region.service_status = 1
-                self.tenant_region.save()
-
+                self.tenant_region.save()                 
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_detail.html", context)
-
-# d82ebe5675f2ea0d0a7b
-
 
 class ServiceGitHub(BaseView):
 
