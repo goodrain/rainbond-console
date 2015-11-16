@@ -15,7 +15,7 @@
 
 <div class="container">
 	{% for line in log_paths %}
-		<li> <a href="{{line}}" target="_blank">line</a> </li>
+		<li> <a href="http://{{tenantService.service_region}}.download.goodrain.com{{line}}" target="_blank">{{line|slice:"22:40"}}</a> </li>
 	{% endfor %}
 </div>
 {% endblock %}

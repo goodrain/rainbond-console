@@ -398,6 +398,7 @@ class ServiceHistoryLog(AuthedView):
             context = self.get_context()
             body = regionClient.history_log(self.service.service_region, self.service.service_id)
             context["log_paths"] = body["log_path"]
+            context["tenantService"] = self.service
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)
