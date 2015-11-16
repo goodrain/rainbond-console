@@ -1,0 +1,113 @@
+        <!-- deployed start -->
+        <div role="tabpanel" class="tab-pane active text-center" id="deployed">
+          <div class="row">
+            <div class="col-sm-3">
+              <p>状态</p>
+              <span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">未知</span>
+            </div>
+            <div class="col-sm-3">
+              <p>内存使用</p>
+              <p style="font-size:18pt" id="service_memory" name="service_memory">{{totalMemory}}M</p>
+            </div>
+            <!--<div class="col-sm-3">
+              <p>磁盘占用</p>
+              <p style="font-size:18pt" id="service_disk" name="service_disk">0M</p>
+            </div>
+            <div class="col-sm-3">
+              <p>流量</p>
+              <p style="font-size:18pt" id="service_network" name="service_network">0K</p>
+            </div>
+             -->
+          </div>
+          <div class="row">
+            <div class="col-lg-12">
+              <section class="panel text-left">
+                <header class="panel-heading">控制</header>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-lg-6 text-left">
+                        {% ifequal tenantServiceInfo.category "application" %}
+                        {% if user.is_sys_admin %}
+                        <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
+                        {% endif %}
+                            {% if 'code_deploy' in user.actions %}
+                                <button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-cloud-upload"></i> 一键部署</button>
+                            {% endif %}
+                                {% if tenantServiceInfo.protocol == "http" %}
+                                    <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{region_name}}.goodrain.net{{http_port_str}}');"><i class="fa fa-eye"></i>访问</button>
+                                {% endif  %}
+                            {% else %}
+                                {% if tenantServiceInfo.protocol == "http" %}
+                                    <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}.{{region_name}}.goodrain.net{{http_port_str}}');"><i class="fa fa-eye"></i>访问</button>
+                                {% endif  %}
+
+                        {% endifequal %}
+                        {% ifequal tenantServiceInfo.service_key "mysql" %}
+                          {% if service_manager.deployed %}
+                            {% if 'manage_service' in user.actions %}
+                              <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>
+                            {% endif %}
+                          {% else %}
+                            {% if 'manage_service' in user.actions %}
+                              <button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>添加管理服务</button>
+                            {% endif %}
+                          {% endif %}
+                        {% endifequal %}
+                        </div>
+                        {% if 'manage_service' in user.actions %}
+                        <div class="col-lg-6 text-right">
+                            <input type="hidden" id="service_status_value" name="service_status_value" value="" />
+                            <button type="button" class="btn btn-danger" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
+                        </div>
+                        {% endif %}
+                    </div>
+                  </div>
+              </section>
+            </div>
+          </div>
+          {% if tenantServiceInfo.is_service %}
+          {% if 'manage_service' in user.actions %}
+          {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
+          <div class="row">
+            <div class="col-lg-6 text-left">
+               <section class="panel">
+                 <header class="panel-heading">连接信息</header>
+                 <table class="table table-hover">
+                   <thead>
+                     <tr>
+                       <th>说明</th>
+                       <th>变量名</th>
+                       <th>变量值</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                    {% for curServiceEnvVar in curServiceEnvVarList %}
+                     <tr>
+                       <td>{{curServiceEnvVar.name}}</td>
+                       <td>{{curServiceEnvVar.attr_name}}</td>
+                       <td>{{curServiceEnvVar.attr_value}}</td>
+                     </tr>
+                    {% endfor %}
+                   </tbody>
+                 </table>
+               </section>
+             </div>
+          </div>
+          {% endwith %}
+          {% endif %}
+          {% endif %}
+          <div class="row">
+            <div class="col-lg-12 text-left">
+                <section class="panel">
+                   <header class="panel-heading">关键日志</header>
+                    <div class="panel-body">
+                      <div class="text-left  logtxtbox">
+                        <input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
+                        <p id="keylog"></p>
+                      </div>
+                    </div>
+                </section>
+            </div>
+          </div>
+        </div>
+        <!-- deployed end-->

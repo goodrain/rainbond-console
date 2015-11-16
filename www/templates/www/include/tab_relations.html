@@ -1,0 +1,100 @@
+<!-- relations start -->
+        <div role="tabpanel" class="tab-pane" id="relations">
+           {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+           <div class="col-sm-16 text-left">
+                <section class="panel">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th width="33%">服务类型</th>
+                            <th width="33%">服务名称</th>
+                            <th width="33%" class="text-center">操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% if serviceIds %}
+                            {% for sid in serviceIds %}
+                               {% with value=serviceMap|mkey:sid %}
+                               {% with curServiceEnvVarList=envMap|mkey:sid %}
+                                <tr>
+                                    <td>{{value.service_type}}</td>
+                                    <td>{{value.service_alias}}</td>
+                                    <td class="text-center">
+                                  {% if 'manage_service' in user.actions %}
+                                        <button type="button" class="btn btn-danger"  onclick="buid_relation('cancel','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
+                                  {% endif %}
+                                  {% if 'git_pull' in user.actions %}
+                                        <a class="btn btn-success" data-toggle="modal" href="#linkinfo{{value.service_id}}">连接信息</a>
+                                        <div class="modal fade in" id="linkinfo{{value.service_id}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="false" style="display: none;">
+                                          <div class="modal-dialog">
+                                              <div class="modal-content">
+                                                    <div class="modal-header">
+                                                      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                                                      <h4 class="modal-title">连接信息</h4>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                      <table class="table text-left">
+                                                        <thead>
+                                                          <tr>
+                                                            <th>说明</th>
+                                                            <th>变量名</th>
+                                                            <th>变量值</th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                         {% for curServiceEnvVar in curServiceEnvVarList %}
+                                                         <tr>
+                                                           <td>{{curServiceEnvVar.name}}</td>
+                                                           <td>{{curServiceEnvVar.attr_name}}</td>
+                                                           <td>{{curServiceEnvVar.attr_value}}</td>
+                                                         </tr>
+                                                         {% endfor %}
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                  <button data-dismiss="modal" class="btn btn-block btn-info" type="button">关闭</button>
+                                                </div>
+                                              </div>
+                                          </div>
+                                        </div>
+                                  {% endif %}
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% endwith %}
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if serviceMap %}
+                        {% if 'manage_service' in user.actions %}
+                                {% for k,value in serviceMap.items %}
+                                {% if k not in serviceIds %}
+                                   <tr>
+                                        <td>{{value.service_type}}</td>
+                                        <td>{{value.service_alias}}</td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-success"  onclick="buid_relation('add','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">关联</button>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                            {% endif %}
+                        {% if 'create_service' in user.actions %}
+                          <tr>
+                            <td></td>
+                            <td>
+                              <button type="button" class="btn btn-primary btn-lg btn-block" onclick="window.open('/apps/{{tenantName}}/service')">
+                              <i class="fa fa-plus"></i>   创建应用</button>
+                            </td>
+                            <td></td>
+                          </tr>
+                        {% endif %}
+                       </tbody>
+                    </table>
+                </section>
+            </div>
+            {% endif  %}
+        </div>
+        <!-- relations end -->

@@ -1,0 +1,287 @@
+<!-- settings start -->
+        <div role="tabpanel" class="tab-pane" id="settings">
+          <section class="panel">
+              <header class="panel-heading">基础信息</header>
+              <div class="panel-body">
+                <div class="row">
+                    <label class="col-xs-2 control-label">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_alias}}</label>
+                </div>
+                {% if tenantServiceInfo.category == "application" %}
+                <div class="row">
+                    <label class="col-xs-2 control-label">Git仓库</label>
+                    <label class="col-xs-4 control-label">
+                        <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
+                    </label>
+                {% if 'manage_service' in user.actions %}
+                <div class="col-xs-6">
+                  <div class="col-xs-4 control-label">
+                    <select name="branch" id="git_branch" class="form-control m-bot15 git-branch-change">
+                    </select>
+                  </div>
+                  <div class="col-xs-4 control-label">
+                    <button type="button"  onclick="service_branch_change('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success btn-xs">切换分支</button>
+                  </div>
+                </div>
+                {% endif %}
+                </div>
+                {% endif %}
+                {% if tenant.pay_type != "free" %}
+              {% if 'manage_service' in user.actions %}
+                <div class="row">
+                    <label class="col-xs-2 control-label">服务协议</label>
+                    <label class="col-xs-10 control-label">
+                        <select name="protocol" id="protocol">
+                            {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+                            <option {% if tenantServiceInfo.protocol == "http" %} selected="selected" {% endif %} value="http">Http协议</option>
+                            {% endif %}
+                            <option {% if tenantServiceInfo.protocol == "stream" %} selected="selected" {% endif %} value="stream">非Http协议</option>
+                        </select>
+                    </label>
+                </div>
+                {% endif %}
+              {% endif %}
+              </div>
+          </section>
+           
+          {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
+          <section class="panel">
+              <header class="panel-heading">对外服务</header>
+              <div class="panel-body">
+               {% if tenantServiceInfo.protocol == "http" %}
+                   <div class="row">
+                      <div class="col-xs-12">
+                        <table class="table">
+                          <thead>
+                          <tr>
+                            <th>域名</th>
+                            <th>CNAME域名</th>
+                            <th>验证</th>
+                            <th></th>
+                          </tr>
+                          </thead>
+                          <tbody>
+                          <tr>
+                            <td><input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com"></td>
+                            <td><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{region_name}}.goodrain.net{{http_port_str}}" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{region_name}}.goodrain.net</a></td>
+                            <td>未验证</td>
+                        {% if 'manage_service' in user.actions %}
+                            <td class="text-center">
+                                {% if serviceDomain %}
+                                <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">解绑</button>
+                                {% else %}
+                                <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">绑定</button>
+                                {% endif %}
+                              </td>
+                        {% endif %}
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                   </div>
+               {% else %}
+                {% if tenant.pay_type != "free" %}
+                    <div class="row">
+                        <input type="hidden" name="create_port_mapping" id='create_port_mapping' value="portMapping">
+                        <div class="col-xs-12">
+                             <table class="table table-hover">
+                               <thead>
+                                 <tr>
+                                   <th>访问地址</th>
+                                   <th>端口</th>
+                                   <th></th>
+                                 </tr>
+                               </thead>
+                               <tbody>
+                                 <tr>
+                                   <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{region_name|cut:"-1"}}-s1.goodrain.net</td>
+                                   <td id="mapping-port">动态分配</td>
+                                   <td>
+                                    {% if tenantServiceInfo.is_web_service %}
+                              {% if 'manage_service' in user.actions %}
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+                                    {% else %}
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
+                                       {% endif %}
+                             {% endif %}                                
+                                   </td>
+                                 </tr>
+                               </tbody>
+                             </table>
+                         </div>
+                       </div>
+                 {% endif %}
+               {% endif %}
+              </div>
+          </section>
+          {% endif %}
+          <section class="panel">
+              <header class="panel-heading">对内服务
+                {% if 'manage_service' in user.actions %}
+                {% if tenantServiceInfo.is_service %}
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_inner_service_close" onclick="service_protocol('inner','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
+                {% else %}
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_inner_service_open" onclick="service_protocol('inner','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
+                {% endif %}
+                {% endif %}         
+              </header>
+              {% if tenantServiceInfo.is_service %}
+              {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
+              {% if 'manage_service' in user.actions %}
+              <div class="panel-body">
+                    <div class="row">
+                        <div class="col-xs-12">
+                             <table class="table table-hover" id ="envVartable">
+                               <thead>
+                                 <tr>
+                                    <th>说明</th>
+                                    <th>变量名</th>
+                                    <th>变量值</th>
+                                   <th></th>
+                                 </tr>
+                               </thead>
+                               <tbody>
+                                {% for curServiceEnvVar in curServiceEnvVarList %}
+                                 <tr>
+                                   {% if curServiceEnvVar.is_change %}
+                                       <td><input name ="{{curServiceEnvVar.service_id}}_name" value="{{curServiceEnvVar.name}}"></td>
+                                       <td><input name ="{{curServiceEnvVar.service_id}}_attr_name" value="{{curServiceEnvVar.attr_name}}"></td>
+                                       <td><input name ="{{curServiceEnvVar.service_id}}_attr_value" value="{{curServiceEnvVar.attr_value}}"></td>
+                                       <td><input name ="{{curServiceEnvVar.service_id}}_attr_id" type="hidden" value="{{curServiceEnvVar.ID}}"><button type="button" class="btn btn-success btn-xs" onclick="attr_delete(this);">删除</button></td>
+                                   {% else %}
+                                       <input type="hidden" name="{{curServiceEnvVar.service_id}}_serviceNoChange" value="{{curServiceEnvVar.ID}}" />
+                                       <td>{{curServiceEnvVar.name}}</td>
+                                       <td><input name ="{{curServiceEnvVar.service_id}}_nochange_name" value="{{curServiceEnvVar.attr_name}}"></td>
+                                       <td>{{curServiceEnvVar.attr_value}}</td>
+                                       <td></td>
+                                   {% endif %}
+                                  </tr>
+                                 {% endfor %}
+                                </tbody>
+                             </table>
+                             <label>
+                                <button type="button" class="btn btn-success btn-xs" id="save_service_attr" onclick="attr_save('{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">保存</button>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                <button type="button" class="btn btn-success btn-xs" id="add_service_attr" onclick="add_new_attr('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_port}}');">新增环境变量</button>
+                             </label>
+                         </div>
+                    </div>
+              </div>
+            {% endif %}
+             {% endwith %}
+             {% endif %}
+          </section>
+
+          {% if tenant.pay_level == "company" %}
+          <section class="panel">
+            <header class="panel-heading">扩容方式</header>
+          <div class="panel-body">
+            <div class="row">
+            {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+            <div class="col-xs-2 control-label">实例数</div>
+            <div class="col-xs-2 control-label">
+              <select name="serviceNods" id="serviceNods" class="form-control m-bot15">
+                {% for curNum in nodeList %}
+                  {% if curNum == tenantServiceInfo.min_node %}
+                  <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                  {% else %}
+                  <option value="{{forloop.counter}}">{{curNum}}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            {% if 'manage_service' in user.actions %}
+            <div class="col-xs-2 control-label">
+              <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+            </div>
+            {% endif %}
+            {% endif %}
+            <div class="col-xs-2 control-label">内存调整</div>
+            <div class="col-xs-2 control-label">
+              <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
+                {% for cuMemory in memoryList %}
+                  {% if cuMemory.value == tenantServiceInfo.min_memory %}
+                  <option value="{{forloop.counter}}"  selected="selected">{{cuMemory.label}}</option>
+                  {% else %}
+                  <option value="{{forloop.counter}}">{{cuMemory.label}}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            {% if 'manage_service' in user.actions %}
+            <div class="col-xs-2 control-label">
+              <button type="button"  onclick="service_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+            </div>
+            {% endif %}
+            </div>
+          </div>
+          </section>
+          {% endif %}
+          
+          <!--start permission-->
+          {% if 'perm_setting' in user.actions %}
+          <section class="panel" id="permission">
+            <header class="panel-heading">权限管理 </header>
+            <div class="panel-body">
+            <div class="row">
+                <div class="col-xs-4">
+                  <input type="text" class="email-invite form-control" id="invite_email" name="invite_email" placeholder="邮件地址">
+                </div>
+                <div class="col-xs-2">
+                  <select class="form-control" id="ivite_perm" name="ivite_perm">
+                      <option value="viewer">观察者</option>
+                      <option value="developer">开发者</option>
+                      <option value="admin">管理员</option>
+                  </select>
+                </div>
+                <div class="col-xs-2">
+                  <button type="button" class="btn btn-success invite-service" id="invite_user_btn">邀请</button>
+                </div>
+            </div>
+            <br>
+            <div id="action_report" class="width-3"></div>
+            <table class="table" perm-type="service">
+              <tbody>
+              <tr>
+                <th>成员名称</th>
+                <th>邮件地址</th>
+                <th class="text-center">管理员</th>
+                <th class="text-center">开发者</th>
+                <th class="text-center">观察者</th>
+                <th class="text-center">移除权限</th>
+              </tr>
+              {% for user in perm_users %}
+              <tr entry-user="{{user.name}}">
+                <th><a href="/apps/goodrain/perms?user={{user.name}}">{{user.name}}</a></th>
+                <th>{{user.email}}</th>
+                <th class="perm-modify-enable text-center"><input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}></th>
+                <th class="perm-modify-enable text-center"><input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}></th>
+                <th class="perm-modify-enable text-center"><input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}></th>
+                <th class="text-center"><a class="member-remove"><i class="fa fa-times fa-danger"></i></a></th>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            </div>
+          </section>
+          {% endif %}
+          <!--end permission-->
+          {% if 'delete_service' in user.actions %}
+          <section class="panel" id="delete">
+            <header class="panel-heading">删除 </header>
+            <div class="panel-body">
+              <form class="form-horizontal" role="form">
+
+                <div class="form-group">
+                  <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_alias}}</label>
+                  <div class="col-sm-2 col-lg-2 text-center">
+                    <button type="button" class="btn btn-danger" id="cur_delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除</button>
+                  </div>
+                  <div class="col-sm-8 col-lg-8 control-label text-left text-danger">注意：该操作会将所有相关数据永久删除，请慎重操作！</div>
+                </div>
+              </form>
+            </div>
+          </section>
+          {% endif %}
+
+        </div>
+        <!-- settings end-->
