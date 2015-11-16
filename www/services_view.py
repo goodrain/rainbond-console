@@ -279,7 +279,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["serviceIds"] = relationsids
                 # service map
                 map = {}
-                sids = [service_id]
+                sids = [self.service.service_id]
                 for tenantService in tenantServiceList:
                     if tenantService.is_service:
                         sids.append(tenantService.service_id)

@@ -20,11 +20,12 @@
     	  		$("#log").html(dataObj["log"])
     		  },
     		  error: function(){
-    			//swal("ϵͳ�쳣");
+    			//swal("系统异常");
       	  	}
        })
 	}
-	extPushWebSocketClient.prototype = {
+	$(document).ready(function () {
+		extPushWebSocketClient.prototype = {
    			onMessage : function(msg) {
    				if(typeof(msg) !="undefined"){
        				var msgs = msg.split(":")
