@@ -96,13 +96,13 @@
                            <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{region_name|cut:"-1"}}-s1.goodrain.net</td>
                            <td id="mapping-port">动态分配</td>
                            <td>
+                         {% if 'manage_service' in user.actions %}
                             {% if tenantServiceInfo.is_web_service %}
-                      {% if 'manage_service' in user.actions %}
                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
                             {% else %}
                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
-                               {% endif %}
-                     {% endif %}                                
+                            {% endif %}
+                     	{% endif %}                                
                            </td>
                          </tr>
                        </tbody>
