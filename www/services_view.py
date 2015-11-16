@@ -97,8 +97,8 @@ class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
 class TenantService(LeftSideBarMixin, AuthedView):
 
     def init_request(self, *args, **kwargs):
-        rf = self.request.GET.get('rf', None)
-        if rf is not None and rf == 'statistic':
+        fr = self.request.GET.get('fr', None)
+        if fr is not None and fr == 'statistic':
             self.statistic = True
         else:
             self.statistic = False
