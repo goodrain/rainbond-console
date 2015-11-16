@@ -92,8 +92,11 @@ class BaseHttpClient(object):
                     logger.exception('client_error', e)
                     raise self.ApiSocketError(self.apitype, url, method, Dict({"status": 101}), {"type": "connect error", "error": str(e)})
 
-    def _get(self, url, headers, *args, **kwargs):
-        response, content = self._request(url, 'GET', headers=headers, *args, **kwargs)
+    def _get(self, url, headers, body=None, *args, **kwargs):
+        if body is not None:
+            response, content = self._request(url, 'GET', headers=headers, body=body, *args, **kwargs)
+        else:
+            response, content = self._request(url, 'GET', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 
