@@ -1,7 +1,8 @@
 <!-- log start -->
-<div role="tabpanel" class="tab-pane" id="log"></div>
+<div role="tabpanel" class="tab-pane active" id="log"></div>
 <!-- log end-->
 <script>
+	var service_id='{{tenantServiceInfo.service_id}}'
 	String.prototype.trim = function() {
 	    return this.replace(/(^\s*)|(\s*$)/g, "");
 	}
