@@ -1,11 +1,22 @@
 <!-- log start -->
-<div role="tabpanel" class="tab-pane active" id="log"></div>
+<div role="tabpanel" class="tab-pane active">
+  <div>
+  	<button type="button" class="btn btn-success btn-xs" onclick="_pause()" id="logbtn">暂停</button>
+  	&nbsp;&nbsp;&nbsp;&nbsp;
+  	<button type="button" class="btn btn-success btn-xs" onclick="_down()" id="logdown">日志下载</button>
+  </div>
+  <div id="docker_log" role="tabpanel" class="tab-pane active">
+  </div>
+</div>
 <!-- log end-->
 <script>
 	var service_id='{{tenantServiceInfo.service_id}}'
 	String.prototype.trim = function() {
 	    return this.replace(/(^\s*)|(\s*$)/g, "");
 	}
+	
+	var pauseFlag = "start";
+	
 	function getLog(){
 		$.ajax({
        	  type: "GET",
@@ -18,7 +29,7 @@
     		  },
     	  	  success: function(msg) {
     	  		var dataObj = msg;
-    	  		$("#log").html(dataObj["log"])
+    	  		$("#docker_log").html(dataObj["log"])
     		  },
     		  error: function(){
     			//swal("系统异常");
@@ -26,23 +37,24 @@
        })
 	}
 	$(document).ready(function () {
+		getLog();
 		extPushWebSocketClient.prototype = {
    			onMessage : function(msg) {
-   				if(typeof(msg) !="undefined"){
+   				if(typeof(msg) !="undefined" && pauseFlag == "start"){
        				var msgs = msg.split(":")
        				if(msgs[0].trim() != "deploy" && msgs[0].trim() != "compile"){
        					var finalMsg=""
-       					var arr=$("#log").html().split('<br>');
+       					var arr=$("#docker_log").html().split('<br>');
        					var totalSize=150;
        					if(arr.length > totalSize){
        						for(var i = 0; i < totalSize; i++){
        							finalMsg += arr[totalSize-1-i]+"<br/>"
        						}
        					}else{
-       						finalMsg = $("#log").html()
+       						finalMsg = $("#docker_log").html()
        					}
        					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
-       					$("#log").html(finalMsg)       					
+       					$("#docker_log").html(finalMsg)       					
        				}
    				}
    			}
@@ -50,4 +62,16 @@
    		var connect = new extPushWebSocketConnect('{{websocket_uri}}');
    		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
     });
+	
+	
+	function _pause(){
+		if(pauseFlag=="stop"){
+			pauseFlag="start";
+			$('#logbtn').html("暂停");
+		}else if(pauseFlag=="start"){
+			pauseFlag="stop";
+			$('#logbtn').html("开始");
+		}
+	}
+	
 </script>

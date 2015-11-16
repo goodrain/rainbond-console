@@ -258,9 +258,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context['service_manager'] = service_manager
                 # relationships password
                 if self.service.is_service:
-                    sids = [service_id]
+                    sids = [self.service.service_id]
                     envMap = {}                    
                     envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
+                    logger.debug(len(envVarlist))
                     if len(envVarlist) > 0:
                         for evnVarObj in envVarlist:
                             arr = envMap.get(evnVarObj.service_id)
@@ -268,7 +269,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                                 arr = []
                             arr.append(evnVarObj)
                             envMap[evnVarObj.service_id] = arr
-                    context["envMap"] = envMap                            
+                    context["envMap"] = envMap
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
@@ -288,14 +289,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # env map
                 envMap = {}
                 envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
-                if len(envVarlist) > 0:
-                    for evnVarObj in envVarlist:
-                        arr = envMap.get(evnVarObj.service_id)
-                        if arr is None:
-                            arr = []
-                        arr.append(evnVarObj)
-                        envMap[evnVarObj.service_id] = arr
-                context["envMap"] = envMap                         
+                for evnVarObj in envVarlist:
+                    arr = envMap.get(evnVarObj.service_id)
+                    if arr is None:
+                        arr = []
+                    arr.append(evnVarObj)
+                    envMap[evnVarObj.service_id] = arr
+                context["envMap"] = envMap                    
             elif fr == "statistic":
                 pass
             elif fr == "log":
@@ -318,6 +318,17 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         context["serviceDomain"] = domain
                     except Exception as e:
                         pass
+                if self.service.is_service:
+                    sids = [self.service.service_id]
+                    envMap = {}                    
+                    envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
+                    for evnVarObj in envVarlist:
+                        arr = envMap.get(evnVarObj.service_id)
+                        if arr is None:
+                            arr = []
+                        arr.append(evnVarObj)
+                        envMap[evnVarObj.service_id] = arr
+                    context["envMap"] = envMap
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
             
