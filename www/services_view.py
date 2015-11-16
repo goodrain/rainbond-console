@@ -364,6 +364,44 @@ class ServiceGitHub(BaseView):
         logger.debug(tenantName)
         return self.redirect_to("/apps/" + tenantName + "/app-create/?from=git")
 
+class ServiceLatestLog(AuthedView):
+    
+    def get_media(self):
+        media = super(ServiceLatestLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/jquery-ui.css',
+            'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+            'www/js/jquery.scrollTo.min.js')
+        return media
+    
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        try:
+            context = self.get_context()            
+            data = {}
+            data['number'] = 1000
+            body = regionClient.latest_log(self.service.service_region, self.service.service_id, json.dumps(data))
+            context["lines"] = body["lines"]
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/service_docker_log.html", context)
+    
+class ServiceHistoryLog(AuthedView):
+    
+    def get_media(self):
+        media = super(ServiceHistoryLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/jquery-ui.css',
+            'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+            'www/js/jquery.scrollTo.min.js')
+        return media
+    
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        try:
+            context = self.get_context()
+            body = regionClient.history_log(self.service.service_region, self.service.service_id)
+            context["log_paths"] = body["log_path"]
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/service_history_log.html", context)
+
 
 class GitLabManager(AuthedView):
 

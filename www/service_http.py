@@ -234,3 +234,13 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/events"
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
+    
+    def history_log(self, region, service_id):     
+        url = self.region_map[region]['url'] + "/v1/statistic/log/" + service_id + "/list"
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+    
+    def latest_log(self, region, service_id, body):        
+        url = self.region_map[region]['url'] + "/v1/statistic/log/" + service_id + "/last"
+        res, body = self._get(url, self.default_headers, body, region=region)
+        return body
