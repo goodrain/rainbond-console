@@ -115,7 +115,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         if self.statistic:
             media = media + self.vendor(
                 'www/assets/nvd3/nv.d3.css', 'www/assets/nvd3/d3.min.js',
-                'www/assets/nvd3/nv.d3.min.js', 'www/js/gr/nvd3graph.js',
+                'www/assets/nvd3/nv.d3.min.js', 'www/js/gr/nvd3graph.js', 'www/js/gr/ws_top.js'
             )
         return media
 
@@ -240,7 +240,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 if tse.user_dependency is None or tse.user_dependency == "":
                     return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-            
+
             context["tenantServiceInfo"] = self.service
             tenantServiceList = context["tenantServiceList"]
             context["myAppStatus"] = "active"
@@ -249,17 +249,17 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["tenant"] = self.tenant
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
-                            
+
             if fr == "deployed":
                 http_port_str = '' if self.response_region == 'aws-jp-1' else ':10080'
-                context['http_port_str'] = http_port_str        
+                context['http_port_str'] = http_port_str
                 if self.service.category == 'store':
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager
                 # relationships password
                 if self.service.is_service:
                     sids = [self.service.service_id]
-                    envMap = {}                    
+                    envMap = {}
                     envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
                     logger.debug(len(envVarlist))
                     if len(envVarlist) > 0:
@@ -295,7 +295,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         arr = []
                     arr.append(evnVarObj)
                     envMap[evnVarObj.service_id] = arr
-                context["envMap"] = envMap                    
+                context["envMap"] = envMap
             elif fr == "statistic":
                 pass
             elif fr == "log":
@@ -320,7 +320,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         pass
                 if self.service.is_service:
                     sids = [self.service.service_id]
-                    envMap = {}                    
+                    envMap = {}
                     envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
                     for evnVarObj in envVarlist:
                         arr = envMap.get(evnVarObj.service_id)
@@ -331,7 +331,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["envMap"] = envMap
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
-            
+
             if self.tenant_region.service_status == 0:
                 logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
                 regionClient.unpause(self.service.service_region, self.tenant_region.tenant_id)
@@ -342,10 +342,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
                 regionClient.systemUnpause(self.service.service_region, self.tenant_region.tenant_id)
                 self.tenant_region.service_status = 1
-                self.tenant_region.save()                 
+                self.tenant_region.save()
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_detail.html", context)
+
 
 class ServiceGitHub(BaseView):
 
@@ -364,18 +365,19 @@ class ServiceGitHub(BaseView):
         logger.debug(tenantName)
         return self.redirect_to("/apps/" + tenantName + "/app-create/?from=git")
 
+
 class ServiceLatestLog(AuthedView):
-    
+
     def get_media(self):
         media = super(ServiceLatestLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/jquery-ui.css',
-            'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
-            'www/js/jquery.scrollTo.min.js')
+                                                                        'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+                                                                        'www/js/jquery.scrollTo.min.js')
         return media
-    
+
     @never_cache
     def get(self, request, *args, **kwargs):
         try:
-            context = self.get_context()            
+            context = self.get_context()
             data = {}
             data['number'] = 1000
             body = regionClient.latest_log(self.service.service_region, self.service.service_id, json.dumps(data))
@@ -383,15 +385,16 @@ class ServiceLatestLog(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_docker_log.html", context)
-    
+
+
 class ServiceHistoryLog(AuthedView):
-    
+
     def get_media(self):
         media = super(ServiceHistoryLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/jquery-ui.css',
-            'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
-            'www/js/jquery.scrollTo.min.js')
+                                                                         'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+                                                                         'www/js/jquery.scrollTo.min.js')
         return media
-    
+
     @never_cache
     def get(self, request, *args, **kwargs):
         try:
