@@ -20,7 +20,9 @@
           var columns = [];
           $('#rtm-' + event.name + ' thead th').each(function() {
                 var name = $(this).attr("name");
-                columns.push(name);
+                var align = $(this).attr("align");
+                var item = {"name": name, "align": align};
+                columns.push(item);
             }
           )
           
@@ -28,8 +30,8 @@
           for (var o in event.data) {
             table_body.push('<tr>');
             for (var n in columns) {
-              value = event.data[o][columns[n]];
-              table_body.push('<td>' + value + '</td>')
+              value = event.data[o][columns[n].name];
+              table_body.push('<td align="' + columns[n].align + '">' + value + '</td>')
             }    
             table_body.push('</tr>');
           }
