@@ -3,7 +3,7 @@
         var region = $.cookie('region');
         var tenantName = $('#mytags').attr('tenant');
         var serviceAlias = $('#mytags').attr('service');
-        var topic = tenantName + "." + serviceAlias
+        var topic = tenantName + "." + serviceAlias + '.statistic';
 
         extPushWebSocketClient.prototype = {
             onMessage : function(msg) {
