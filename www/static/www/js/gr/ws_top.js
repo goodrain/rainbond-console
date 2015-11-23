@@ -37,6 +37,7 @@
           
           var tbody = table_body.join("");
           $('#rtm-' + event.name + ' tbody').html(tbody);
+          $('#rtm-' + event.name).closest('section').find('span.rtm-update-time').html("更新时间: " + event.update_time);
         }
     });
 })(jQuery);
