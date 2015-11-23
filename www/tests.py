@@ -33,3 +33,13 @@ class NVD3GraphView(RasterView):
     def get(self, request):
         context = self.get_context()
         return TemplateResponse(self.request, "www/nvd3test.html", context)
+
+
+class TestView(BaseView):
+
+    @never_cache
+    def get(self, request, templateName, *args, **kwargs):
+        template = "www/tests/{0}.html".format(templateName)
+        context = self.get_context()
+        response = TemplateResponse(request, template, context)
+        return response
