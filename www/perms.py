@@ -19,10 +19,10 @@ class PermActions(object):
 
     tenant_developer_actions = (
         ('git_pull', u"拉取git代码"), ('git_push', u"推送git代码"),
-        ('code_deploy', u"部署代码"),
     ) + tenant_viewer_actions
 
     tenant_admin_actions = (
+        ('code_deploy', u"部署代码"),
         ('create_service', u"创建服务"), ('delete_service', u"删除服务"),
         ('deploy_service', u"部署服务"), ('manage_service', u"维护服务"),
         ('setting', u"租户设置"), ('perm_setting', u"权限管理")
@@ -38,10 +38,10 @@ class PermActions(object):
 
     service_developer_actions = (
         ('git_pull', u"拉取git代码"), ('git_push', u"推送git代码"),
-        ('code_deploy', u"部署代码"),
     ) + service_viewer_actions
 
     service_admin_actions = (
+        ('code_deploy', u"部署代码"),
         ('manage_service', u"维护服务"),
         ('setting', u"服务设置"), ('perm_setting', u"权限管理")
     ) + service_developer_actions
