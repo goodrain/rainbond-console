@@ -100,6 +100,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         fr = self.request.GET.get('fr', None)
         if fr is not None and fr == 'statistic':
             self.statistic = True
+            self.statistic_type = self.request.GET.get('type', 'history')
         else:
             self.statistic = False
 
@@ -113,10 +114,14 @@ class TenantService(LeftSideBarMixin, AuthedView):
             'www/js/swfobject.js', 'www/js/web_socket.js', 'www/js/websoket-goodrain.js'
         )
         if self.statistic:
-            media = media + self.vendor(
-                'www/assets/nvd3/nv.d3.css', 'www/assets/nvd3/d3.min.js',
-                'www/assets/nvd3/nv.d3.min.js', 'www/js/gr/nvd3graph.js', 'www/js/gr/ws_top.js'
-            )
+            if self.statistic_type == 'history':
+                append_media = (
+                    'www/assets/nvd3/nv.d3.css', 'www/assets/nvd3/d3.min.js',
+                    'www/assets/nvd3/nv.d3.min.js', 'www/js/gr/nvd3graph.js',
+                )
+            elif self.statistic_type == 'realtime':
+                append_media = ('www/js/gr/ws_top.js',)
+            media = media + self.vendor(append_media)
         return media
 
     def get_context(self):
@@ -228,7 +233,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
         fr = request.GET.get("fr", "deployed")
-        context["fr"] = fr     
+        context["fr"] = fr
         try:
             if self.service.category == "application" and self.service.ID > 598:
                 # no create gitlab repos
@@ -297,7 +302,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
             elif fr == "statistic":
-                pass
+                context['statistic_type'] = self.statistic_type
             elif fr == "log":
                 pass
             elif fr == "settings":

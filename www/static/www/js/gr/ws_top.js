@@ -8,7 +8,6 @@
         extPushWebSocketClient.prototype = {
             onMessage : function(msg) {
                 event = $.parseJSON(msg);
-                console.log(event);
                 update_table(event);
             }
         }
@@ -20,7 +19,7 @@
           var columns = [];
           $('#rtm-' + event.name + ' thead th').each(function() {
                 var name = $(this).attr("name");
-                var align = $(this).attr("align");
+                var align = $(this).attr("class");
                 var item = {"name": name, "align": align};
                 columns.push(item);
             }
@@ -31,7 +30,7 @@
             table_body.push('<tr>');
             for (var n in columns) {
               value = event.data[o][columns[n].name];
-              table_body.push('<td align="' + columns[n].align + '">' + value + '</td>')
+              table_body.push('<td class="' + columns[n].align + '">' + value + '</td>')
             }    
             table_body.push('</tr>');
           }

@@ -1,6 +1,7 @@
  <!-- statistic start -->
  {% if tenant.pay_type != 'free' %}
  <div role="tabpanel" class="tab-pane active" id="statistic">
+  {% if statistic_type == 'history' %}
    <div>
      <div class="col-xs-9"></div>
      <div class="col-xs-3">
@@ -12,69 +13,6 @@
        </select>
      </div>
    </div>
-   <div class="row">
-    <div class="col-sm-12">
-      <section class="panel">
-          <header class="panel-heading">
-              过去5分钟耗时最多的URl排行
-          </header>
-          <table id="rtm-SumTimeByUrl" class="table table-striped table-advance table-hover">
-              <thead>
-              <tr>
-                  <th name="url" align="left">Url</th>
-                  <th name="sumtime" align="right">累计时间(ms)</th>
-                  <th name="avgtime" align="right">平均时间(ms)</th>
-                  <th name="counts" align="right">个数</th>
-              </tr>
-              </thead>
-              <tbody>
-              </tbody>
-          </table>
-      </section>
-    </div>
-   </div>
-   <div class="row">
-     <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
-           内存
-         </header>
-         <div class="panel-body">
-           <div id="memory-stat" class="graph">
-             <svg></svg>
-           </div>
-         </div>
-       </section>
-     </div>
-
-     <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
-           带宽
-         </header>
-         <div class="panel-body">
-           <div id="bandwidth-stat" class="graph">
-             <svg></svg>
-           </div>
-         </div>
-       </section>
-     </div>
-
-     <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
-           磁盘
-         </header>
-         <div class="panel-body">
-           <div id="disk-stat" class="graph">
-             <svg></svg>
-           </div>
-         </div>
-       </section>
-     </div>
-
-   </div>
-
    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
    <div class="row">
      <div class="col-md-6">
@@ -119,8 +57,77 @@
      </div>
 
    </div>
-   {% endif %}
+   {% endif %}<!--end http_history-->
 
+   <div class="row">
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           内存
+         </header>
+         <div class="panel-body">
+           <div id="memory-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           带宽
+         </header>
+         <div class="panel-body">
+           <div id="bandwidth-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           磁盘
+         </header>
+         <div class="panel-body">
+           <div id="disk-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+
+   </div>
+
+  {% endif %}<!--end statistic_history-->
+  {% if statistic_type == 'realtime' %}
+    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+    <div class="row">
+      <div class="col-sm-12">
+        <section class="panel">
+            <header class="panel-heading">
+                过去5分钟耗时最多的URl排行
+            </header>
+            <table id="rtm-SumTimeByUrl" class="table table-striped table-advance table-hover">
+                <thead>
+                <tr>
+                    <th name="url" class="text-left">Url</th>
+                    <th name="sumtime" class="text-right">累计时间(ms)</th>
+                    <th name="avgtime" align="right">平均时间(ms)</th>
+                    <th name="counts" align="right">个数</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </section>
+      </div>
+    </div>
+    {% endif %}<!--finish http_realtime-->
+
+  {% endif %}<!--finish realtime-->
  </div>
  {% endif %}
  <!-- statistic end-->
