@@ -121,7 +121,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 )
             elif self.statistic_type == 'realtime':
                 append_media = ('www/js/gr/ws_top.js',)
-            media = media + self.vendor(append_media)
+            media = media + self.vendor(*append_media)
         return media
 
     def get_context(self):

@@ -17,7 +17,7 @@
 	     	<li {% if fr == "relations" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=relations">依赖</a></li>
 	     {% endif  %}
 	     {% if tenant.pay_type != 'free' %}
-         <li class="dropdown {% if fr == "statistic" %} active {% fi %}">
+         <li class="dropdown {% if fr == "statistic" %} active {% endif %}">
             <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic" class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b></a>
               <ul class="dropdown-menu">
                   <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime">实时分析</a></li>
