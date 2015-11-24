@@ -32,12 +32,12 @@ class GrRedirectView(RedirectView):
     @classmethod
     def as_view(cls, **initkwargs):
         if 'permanent' not in initkwargs:
-            initkwargs['permanent'] = False
+            initkwargs['permanent'] = True
 
         return super(GrRedirectView, cls).as_view(**initkwargs)
 
     def get(self, request, *args, **kwargs):
-        url = self.get_redirect_url(self.url, request)
+        url = get_redirect_url(self.url, request)
         if url:
             if self.permanent:
                 return http.HttpResponsePermanentRedirect(url)
