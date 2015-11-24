@@ -22,7 +22,7 @@ urlpatterns = patterns(
     url(r'^invite$', views.InviteRegistation.as_view()),
     url(r'^register$', views.Registation.as_view()),
     url(r'^account/', include('www.url_account')),
-    url(r'^apps/(?P<tenantName>[\w\-]+)/', include('www.url_service')),
+    url(r'^apps/(?P<tenantName>[\w\-]+)', include('www.url_service')),
     url(r'^ajax/', include('www.url_ajax')),
     url(r'^oauth/githup/$', login_required(ServiceGitHub.as_view())),
     url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
