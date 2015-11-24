@@ -32,7 +32,7 @@ class GrRedirectView(RedirectView):
     @classmethod
     def as_view(cls, **initkwargs):
         if 'permanent' not in initkwargs:
-            initkwargs['permanent'] = True
+            initkwargs['permanent'] = False
 
         return super(GrRedirectView, cls).as_view(**initkwargs)
 
