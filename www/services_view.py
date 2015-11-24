@@ -303,6 +303,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["envMap"] = envMap
             elif fr == "statistic":
                 context['statistic_type'] = self.statistic_type
+                if self.service.service_key in ('mysql',):
+                    context['ws_topic'] = '{0}.{1}.statistic'.format(''.join(list(self.tenant.tenant_id)[1::2]), ''.join(list(self.service.service_id)[::2]))
+                else:
+                    context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
             elif fr == "log":
                 pass
             elif fr == "settings":
