@@ -104,7 +104,12 @@ class Login(BaseView):
                 user.git_user_id = git_user_id
                 user.save()
                 logger.info("account.login", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
-
+        
+        # to judge from www create servcie
+        app_ty = request.COOKIES.get('app_ty')
+        if app_ty != "":
+            return self.redirect_to("/autodeploy?fr=www_app")
+                
         if next_url is not None:
             return self.redirect_to(next_url)
         else:
@@ -442,6 +447,11 @@ class Registation(BaseView, RegionOperateMixin):
 
             user = authenticate(username=email, password=password)
             login(request, user)
+                        
+            # to judge from www create servcie
+            app_ty = request.COOKIES.get('app_ty')
+            if app_ty != "":
+                return self.redirect_to("/autodeploy?fr=www_app")
 
             selected_pay_level = ""
             pl = request.GET.get("pl", "")
