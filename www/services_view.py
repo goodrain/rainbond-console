@@ -524,9 +524,15 @@ class ServiceAutoDeploy(BaseView):
         app_sd = request.GET.get("sd", "")
         fr = request.GET.get("fr", "")
         if fr != "" and fr == "www_app":
-            app_ty = request.session.get("app_ty", "")
-            app_an = request.session.get("app_an", "")
-            app_sd = request.session.get("app_sd", "")
+            app_ty = request.session.get("app_ty")
+            if app_ty is None:
+                app_ty = ""
+            app_an = request.session.get("app_an")
+            if app_an is None:
+                app_an = ""
+            app_sd = request.session.get("app_sd")
+            if app_sd is None:
+                app_sd = ""
         logger.debug("app_ty=" + app_ty)
         logger.debug("app_an=" + app_an)
         logger.debug("app_sd=" + app_sd)
@@ -540,10 +546,10 @@ class ServiceAutoDeploy(BaseView):
             if app_ty != "" and app_an != "":            
                 if app_ty == "1":
                     if app_sd == "":
-                        return self.redirect_to("/apps/{{0}}/app-create/".format(tenant.tenant_name))
+                        return self.redirect_to("/apps/{0}/app-create/".format(tenant.tenant_name))
                     else:
                         # status = self.app_create(app_an, app_sd, "gitlab_exit")                        
-                        return self.redirect_to("/apps/{{0}}/app-dependency/".format(tenant.tenant_name))
+                        return self.redirect_to("/apps/{0}/app-dependency/".format(tenant.tenant_name))
                 elif app_ty == "2":
                     if app_sd == "":
                         pass
@@ -551,15 +557,16 @@ class ServiceAutoDeploy(BaseView):
                     else:
                         # status = self.app_create(app_an, app_sd, "gitlab_exit")
                         pass                        
-                    return self.redirect_to("/apps/{{0}}/app-dependency/".format(tenant.tenant_name))
+                    return self.redirect_to("/apps/{0}/app-dependency/".format(tenant.tenant_name))
                 elif app_ty == "3":                    
-                    return self.redirect_to("/apps/{{0}}/service-deploy/?service_key={{1}}".format(tenant.tenant_name, app_sd))
+                    return self.redirect_to("/apps/{0}/service-deploy/?service_key={1}".format(tenant.tenant_name, app_sd))
             else:
-                return self.redirect_to("/apps/{{0}}".format(tenant.tenant_name))
+                return self.redirect_to("/apps/{0}".format(tenant.tenant_name))
         else:
             request.session["app_ty"] = app_ty
             request.session["app_an"] = app_an
             request.session["app_sd"] = app_sd
+            logger.debug(request.session.get["app_an"])
             return self.redirect_to("/login")
             
         
