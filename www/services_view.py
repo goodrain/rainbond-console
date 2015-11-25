@@ -566,7 +566,7 @@ class ServiceAutoDeploy(BaseView):
             request.session["app_ty"] = app_ty
             request.session["app_an"] = app_an
             request.session["app_sd"] = app_sd
-            logger.debug(request.session.get["app_an"])
+            logger.debug(request.session.get("app_an"))
             return self.redirect_to("/login")
             
         
