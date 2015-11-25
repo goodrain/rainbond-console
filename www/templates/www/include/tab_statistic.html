@@ -114,10 +114,10 @@
             <table id="rtm-SumTimeByUrl" class="table table-striped table-advance table-hover">
                 <thead>
                 <tr>
-                    <th name="url" class="text-left">Url</th>
-                    <th name="sumtime" class="text-right">累计时间(ms)</th>
-                    <th name="avgtime" class="text-right">平均时间(ms)</th>
-                    <th name="counts" class="text-right">个数</th>
+                    <th name="url" class="text-left col-md-8">Url</th>
+                    <th name="sumtime" class="text-right col-md-2">累计时间(ms)</th>
+                    <th name="avgtime" class="text-right col-md-1">平均时间(ms)</th>
+                    <th name="counts" class="text-right col-md-1">个数</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -127,6 +127,31 @@
       </div>
     </div>
     {% endif %}<!--finish http_realtime-->
+
+    {% if tenantServiceInfo.service_key == 'mysql' %}
+    <div class="row">
+      <div class="col-sm-12">
+        <section class="panel">
+            <header class="panel-heading">
+                过去5分钟耗时最多的SQL排行
+                <span class="pull-right rtm-update-time"></span>
+            </header>
+            <table id="rtm-SumTimeBySql" class="table table-striped table-advance table-hover">
+                <thead>
+                <tr>
+                    <th name="sql" class="text-left col-md-8">SQL</th>
+                    <th name="sumtime" class="text-right col-md-2">累计时间(ms)</th>
+                    <th name="avgtime" class="text-right col-md-1">平均时间(ms)</th>
+                    <th name="counts" class="text-right col-md-1">个数</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </section>
+      </div>
+    </div>
+    {% endif %}<!--finish mysql_realtime-->
 
   {% endif %}<!--finish realtime-->
  </div>

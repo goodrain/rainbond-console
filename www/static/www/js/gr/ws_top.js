@@ -1,9 +1,7 @@
 (function ($) {
     $(document).ready(function () {
         var region = $.cookie('region');
-        var tenantName = $('#mytags').attr('tenant');
-        var serviceAlias = $('#mytags').attr('service');
-        var topic = tenantName + "." + serviceAlias + '.statistic';
+        var topic = $('#mytags').attr('ws-topic');
 
         extPushWebSocketClient.prototype = {
             onMessage : function(msg) {
@@ -27,7 +25,7 @@
           
           var table_body = []
           for (var o in event.data) {
-            table_body.push('<tr>');
+            table_body.push('<tr style="word-break: break-all;">');
             for (var n in columns) {
               value = event.data[o][columns[n].name];
               table_body.push('<td class="' + columns[n].align + '">' + value + '</td>')
