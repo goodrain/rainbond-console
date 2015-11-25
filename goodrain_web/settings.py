@@ -132,11 +132,11 @@ EMAIL_HOST_PASSWORD = 'Thaechee3moo'
 EMAIL_USE_SSL = True
 
 DISCOURSE_SECRET_KEY = 'c2GZHIg8pcF2Pg5M'
-#STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
-    #'DEFAULT_PERMISSION_CLASSES': (),
+    # 'DEFAULT_PERMISSION_CLASSES': (),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',

@@ -4,7 +4,7 @@ TEMPLATE_DEBUG = True
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
-DEFAULT_HANDLERS = ['zmq_handler']
+DEFAULT_HANDLERS = ['file_handler']
 
 DATABASES = {
     # 'default': {
@@ -37,8 +37,8 @@ REGION_SERVICE_API = [{
     'url': 'http://api.aws-jp-1.goodrain.com:8888',
     'apitype': 'region service',
     'region_name': 'aws-jp-1',
-    #'proxy': HTTP_PROXY['ali_hk_proxy'],
-    #'proxy_priority': True,
+    # 'proxy': HTTP_PROXY['ali_hk_proxy'],
+    # 'proxy_priority': True,
 }, {
     'url': 'http://api.ali-sh.goodrain.com:8888',
     'apitype': 'region service',

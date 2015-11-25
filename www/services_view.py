@@ -11,7 +11,7 @@ from django.http.response import HttpResponse
 from django.http import Http404
 from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin
 from www.decorator import perm_required
-from www.models import Users, TenantRegionInfo, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
+from www.models import Users, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
@@ -410,7 +410,155 @@ class ServiceHistoryLog(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)
+    
+    
+class ServiceAutoDeploy(BaseView):
+    
+    def getTenants(self, user_id):
+        tenants_has = PermRelTenant.objects.filter(user_id=user_id)
+        if tenants_has:
+            tenant_pk = tenants_has[0].tenant_id
+            tenant = Tenants.objects.get(pk=tenant_pk)
+            return tenant
+        else:
+            return None
 
+    def app_create(self, user, tenant, app_name, git_url, service_code_from):
+        status = ""
+        uid = str(uuid.uuid4())
+        service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
+        try:
+            tenant_id = tenant.tenant_id
+            
+            if tenant.pay_type == "payed":
+                tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=tenant.region)
+                if tenant_region.service_status == 2:
+                    status = "owed"
+            
+            service_alias = app_name.lower()
+            # get base service
+            service = ServiceInfo.objects.get(service_key="application")
+            # create console tenant service
+            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
+            if num > 0:
+                status = "exist"                
+            # calculate resource
+            tenantUsedResource = TenantUsedResource()
+            flag = tenantUsedResource.predict_next_memory(tenant, service.min_memory)
+            if not flag:
+                if tenant.pay_type == "free":
+                    status = "over_memory"
+                else:
+                    status = "over_money"
+            # create console service
+            baseService = BaseTenantService()
+            service.desc = ""
+            newTenantService = baseService.create_service(
+                service_id, tenant_id, service_alias, service, user.pk, region=tenant.region)
+            monitorhook.serviceMonitor(user.nick_name, newTenantService, 'create_service', True)
+            # code repos
+            if service_code_from == "gitlab_new":
+                project_id = 0
+                if user.git_user_id > 0:
+                    project_id = gitClient.createProject(tenant.tenant_name + "_" + service_alias)
+                    logger.debug(project_id)
+                    monitorhook.gitProjectMonitor(user.nick_name, newTenantService, 'create_git_project', project_id)
+                    if project_id > 0:
+                        gitClient.addProjectMember(project_id, user.git_user_id, 'master')
+                        gitClient.addProjectMember(project_id, 2, 'reporter')
+                        ts = TenantServiceInfo.objects.get(service_id=service_id)
+                        ts.git_project_id = project_id
+                        ts.git_url = "git@code.goodrain.com:app/" + tenant.tenant_name + "_" + service_alias + ".git"
+                        ts.code_from = service_code_from
+                        ts.code_version = "master"
+                        ts.save()
+                        gitClient.createWebHook(project_id)
+                    else:
+                        ts = TenantServiceInfo.objects.get(service_id=service_id)
+                        ts.code_from = service_code_from
+                        ts.code_version = "master"
+                        ts.save()
+            elif service_code_from == "gitlab_exit":
+                ts = TenantServiceInfo.objects.get(service_id=service_id)
+                ts.git_project_id = "0"
+                ts.git_url = git_url
+                ts.code_from = service_code_from
+                ts.code_version = "master"
+                ts.save()
+
+                data = {}
+                data["tenant_id"] = ts.tenant_id
+                data["service_id"] = ts.service_id
+                data["git_url"] = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
+                task = {}
+                task["tube"] = "code_check"
+                task["service_id"] = ts.service_id
+                task["data"] = data
+                logger.debug(json.dumps(task))
+                regionClient.writeToRegionBeanstalk(tenant.region, ts.service_id, json.dumps(task))
+            # create region tenantservice
+            baseService.create_region_service(newTenantService, tenant.tenant_name, tenant.region, user.nick_name)
+            monitorhook.serviceMonitor(user.nick_name, newTenantService, 'init_region_service', True)
+            # create service env
+            baseService.create_service_env(tenant_id, service_id, tenant.region)
+            # record log
+            status = "success"
+        except Exception as e:
+            logger.exception(e)
+            TenantServiceInfo.objects.filter(service_id=service_id).delete()
+            TenantServiceAuth.objects.filter(service_id=service_id).delete()
+            TenantServiceRelation.objects.get(service_id=service_id).delete()
+            tempTenantService = TenantServiceInfo.objects.get(service_id=service_id)
+            monitorhook.serviceMonitor(user.nick_name, tempTenantService, 'create_service_error', False)
+            status = "failure"
+        return status
+
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        app_ty = request.GET.get("ty", "")
+        app_an = request.GET.get("an", "")
+        app_sd = request.GET.get("sd", "")
+        fr = request.GET.get("fr", "")
+        if fr != "" and fr == "www_app":
+            app_ty = request.session.get("app_ty", "")
+            app_an = request.session.get("app_an", "")
+            app_sd = request.session.get("app_sd", "")
+        logger.debug("app_ty=" + app_ty)
+        logger.debug("app_an=" + app_an)
+        logger.debug("app_sd=" + app_sd)
+                        
+        status = ""
+        if self.user is not None and self.user.pk is not None:
+            tenant = self.getTenants(self.user.pk)
+            if tenant is None:
+                return self.redirect_to("/login")
+                                    
+            if app_ty != "" and app_an != "":            
+                if app_ty == "1":
+                    if app_sd == "":
+                        return self.redirect_to("/apps/{{0}}/app-create/".format(tenant.tenant_name))
+                    else:
+                        # status = self.app_create(app_an, app_sd, "gitlab_exit")                        
+                        return self.redirect_to("/apps/{{0}}/app-dependency/".format(tenant.tenant_name))
+                elif app_ty == "2":
+                    if app_sd == "":
+                        pass
+                        # status = self.app_create(app_an, app_sd, "gitlab_new")
+                    else:
+                        # status = self.app_create(app_an, app_sd, "gitlab_exit")
+                        pass                        
+                    return self.redirect_to("/apps/{{0}}/app-dependency/".format(tenant.tenant_name))
+                elif app_ty == "3":                    
+                    return self.redirect_to("/apps/{{0}}/service-deploy/?service_key={{1}}".format(tenant.tenant_name, app_sd))
+            else:
+                return self.redirect_to("/apps/{{0}}".format(tenant.tenant_name))
+        else:
+            request.session["app_ty"] = app_ty
+            request.session["app_an"] = app_an
+            request.session["app_sd"] = app_sd
+            return self.redirect_to("/login")
+            
+        
 
 class GitLabManager(AuthedView):
 

@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.decorators.csrf import csrf_exempt
 import www.views as views
-from www.services_view import ServiceGitHub
+from www.services_view import ServiceGitHub, ServiceAutoDeploy
 from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
 from www.views import GrRedirectView
 from www.captcha.CodeImage import ChekcCodeImage
@@ -27,6 +27,7 @@ urlpatterns = patterns(
     url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
     url(r'^service/githubhook/$', csrf_exempt(GitHubWebHook.as_view())),
     url(r'^service/codecheck/$', csrf_exempt(GitCheckCode.as_view())),
+    url(r'^autodeploy$', ServiceAutoDeploy.as_view()),
     url(r'^api/', include('api.urls')),
     url(r'^auth/', include('www.url_auth')),
     url(r'^huodong', include('www.url_activity')),
