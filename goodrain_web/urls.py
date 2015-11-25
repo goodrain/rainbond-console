@@ -28,7 +28,7 @@ urlpatterns = patterns(
     url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
     url(r'^service/githubhook/$', csrf_exempt(GitHubWebHook.as_view())),
     url(r'^service/codecheck/$', csrf_exempt(GitCheckCode.as_view())),
-    url(r'^autodeploy$', ServiceAutoDeploy.as_view()),
+    url(r'^autodeploy$', csrf_exempt(ServiceAutoDeploy.as_view())),
     url(r'^api/', include('api.urls')),
     url(r'^auth/', include('www.url_auth')),
     url(r'^huodong', include('www.url_activity')),

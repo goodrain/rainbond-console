@@ -517,12 +517,12 @@ class ServiceAutoDeploy(BaseView):
             monitorhook.serviceMonitor(user.nick_name, tempTenantService, 'create_service_error', False)
             status = "failure"
         return status
-
+            
     @never_cache
-    def get(self, request, *args, **kwargs):
-        app_ty = request.GET.get("ty", "")
-        app_an = request.GET.get("an", "")
-        app_sd = request.GET.get("sd", "")
+    def post(self, request, *args, **kwargs):
+        app_ty = request.POST.get("ty", "")
+        app_an = request.POST.get("an", "")
+        app_sd = request.POST.get("sd", "")
         fr = request.GET.get("fr", "")
         if fr != "" and fr == "www_app":
             app_ty = request.COOKIES.get('app_ty', '')            
@@ -577,8 +577,6 @@ class ServiceAutoDeploy(BaseView):
                 response.set_cookie('app_an', app_an)
                 response.set_cookie('app_sd', app_sd)
         return response
-            
-        
 
 class GitLabManager(AuthedView):
 
