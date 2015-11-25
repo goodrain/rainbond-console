@@ -535,7 +535,12 @@ class ServiceAutoDeploy(BaseView):
         if self.user is not None and self.user.pk is not None:
             tenant = self.getTenants(self.user.pk)
             if tenant is None:
-                return self.redirect_to("/login")    
+                return self.redirect_to("/login")
+            
+            response.delete_cookie('app_ty')
+            response.delete_cookie('app_an')
+            response.delete_cookie('app_sd')
+            
             if app_ty == "1":
                 if app_an != "" and app_sd != "":
                     status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_exit")
@@ -544,6 +549,7 @@ class ServiceAutoDeploy(BaseView):
                     else:
                         response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
                         response.set_cookie('app_status', status)
+                        response.set_cookie('app_an', app_an)
                 else:
                     response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
             elif app_ty == "2":
@@ -557,15 +563,14 @@ class ServiceAutoDeploy(BaseView):
                     else:
                         response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
                         response.set_cookie('app_status', status)
+                        response.set_cookie('app_an', app_an)
                 else:
                     response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
             elif app_ty == "3":                    
                 response = redirect("/apps/{0}/service-deploy/?service_key={1}".format(tenant.tenant_name, app_sd))
             else:
                 response = redirect("/apps/{0}".format(tenant.tenant_name))
-            response.delete_cookie('app_ty')
-            response.delete_cookie('app_an')
-            response.delete_cookie('app_sd')
+           
             return response
         else:
             response = redirect("/login")

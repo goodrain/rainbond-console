@@ -44,7 +44,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             context["createApp"] = "active"
             request.session["app_tenant"] = self.tenantName
             app_status = request.COOKIES.get('app_status')
+            app_an = request.COOKIES.get('app_an')
             context["app_status"] = app_status
+            context["app_an"] = app_an
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_1.html", context)
