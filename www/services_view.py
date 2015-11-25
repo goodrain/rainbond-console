@@ -12,21 +12,20 @@ from django.shortcuts import redirect
 from django.http import Http404
 from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin
 from www.decorator import perm_required
-from www.models import Users, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
+from www.models import Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceAuth, TenantServiceEnv, TenantServiceEnvVar
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
 from django.conf import settings
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from www.monitorservice.monitorhook import MonitorHook
 
 logger = logging.getLogger('default')
-
 gitClient = GitlabApi()
-
 gitHubClient = GitHubApi()
-
 regionClient = RegionServiceApi()
-
+monitorhook = MonitorHook()
 
 class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
 
@@ -439,6 +438,7 @@ class ServiceAutoDeploy(BaseView):
                 tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=tenant.region)
                 if tenant_region.service_status == 2:
                     status = "owed"
+                    return  status
             
             service_alias = app_name.lower()
             # get base service
@@ -446,7 +446,8 @@ class ServiceAutoDeploy(BaseView):
             # create console tenant service
             num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
             if num > 0:
-                status = "exist"                
+                status = "exist"
+                return  status             
             # calculate resource
             tenantUsedResource = TenantUsedResource()
             flag = tenantUsedResource.predict_next_memory(tenant, service.min_memory)
@@ -455,6 +456,7 @@ class ServiceAutoDeploy(BaseView):
                     status = "over_memory"
                 else:
                     status = "over_money"
+                return  status
             # create console service
             baseService = BaseTenantService()
             service.desc = ""
@@ -511,8 +513,6 @@ class ServiceAutoDeploy(BaseView):
         except Exception as e:
             logger.exception(e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
-            TenantServiceAuth.objects.filter(service_id=service_id).delete()
-            TenantServiceRelation.objects.get(service_id=service_id).delete()
             tempTenantService = TenantServiceInfo.objects.get(service_id=service_id)
             monitorhook.serviceMonitor(user.nick_name, tempTenantService, 'create_service_error', False)
             status = "failure"
@@ -525,45 +525,54 @@ class ServiceAutoDeploy(BaseView):
         app_sd = request.GET.get("sd", "")
         fr = request.GET.get("fr", "")
         if fr != "" and fr == "www_app":
-            app_ty = request.COOKIES.get('app_ty', '')            
-            app_an = request.COOKIES.get('app_an', '')            
-            app_sd = request.COOKIES.get('app_sd', '') 
+            app_ty = request.COOKIES.get('app_ty')            
+            app_an = request.COOKIES.get('app_an')            
+            app_sd = request.COOKIES.get('app_sd') 
         logger.debug("app_ty=" + app_ty)
         logger.debug("app_an=" + app_an)
-        logger.debug("app_sd=" + app_sd)
-                                
+        logger.debug("app_sd=" + app_sd)                                
         status = ""
         if self.user is not None and self.user.pk is not None:
             tenant = self.getTenants(self.user.pk)
             if tenant is None:
-                return self.redirect_to("/login")
-            
+                return self.redirect_to("/login")    
             if app_ty == "1":
                 if app_an != "" and app_sd != "":
-                    # status = self.app_create(app_an, app_sd, "gitlab_exit")                        
-                    return self.redirect_to("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
+                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_exit")
+                    if status == "success":
+                        response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
+                    else:
+                        response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
+                        response.set_cookie('app_status', status)
                 else:
-                    return self.redirect_to("/apps/{0}/app-create/".format(tenant.tenant_name))
+                    response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
             elif app_ty == "2":
                 if app_an != "":
                     if app_sd == "":
-                        pass
-                        # status = self.app_create(app_an, app_sd, "gitlab_new")
+                        status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_new")
                     else:
-                        # status = self.app_create(app_an, app_sd, "gitlab_exit")
-                        pass                        
-                    return self.redirect_to("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
+                        status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_exit")
+                    if status == "success":
+                        response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
+                    else:
+                        response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
+                        response.set_cookie('app_status', status)
                 else:
-                    return self.redirect_to("/apps/{0}/app-create/".format(tenant.tenant_name))
+                    response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
             elif app_ty == "3":                    
-                return self.redirect_to("/apps/{0}/service-deploy/?service_key={1}".format(tenant.tenant_name, app_sd))
+                response = redirect("/apps/{0}/service-deploy/?service_key={1}".format(tenant.tenant_name, app_sd))
             else:
-                return self.redirect_to("/apps/{0}".format(tenant.tenant_name))  
+                response = redirect("/apps/{0}".format(tenant.tenant_name))
+            response.delete_cookie('app_ty')
+            response.delete_cookie('app_an')
+            response.delete_cookie('app_sd')
+            return response
         else:
             response = redirect("/login")
-            response.set_cookie('app_ty', app_ty)
-            response.set_cookie('app_an', app_an)
-            response.set_cookie('app_sd', app_sd)
+            if app_ty != "":
+                response.set_cookie('app_ty', app_ty)
+                response.set_cookie('app_an', app_an)
+                response.set_cookie('app_sd', app_sd)
             return response
             
         
