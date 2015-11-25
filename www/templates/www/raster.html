@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block body %}
-    <div id="mytags" tenant="{% if tenantName %}{{ tenantName }}{% endif %}" service="{% if serviceAlias %}{{ serviceAlias }}{% endif %}"></div>
+    <div id="mytags" tenant="{% if tenantName %}{{ tenantName }}{% endif %}" service="{% if serviceAlias %}{{ serviceAlias }}{% endif %}" ws-topic="{% if ws_topic %}{{ ws_topic }}{% endif %}"></div>
     <section id="container">
         <header class="header white-bg">
             {% block header %}

@@ -30,6 +30,7 @@ gitClient = GitlabApi()
 
 monitorhook = MonitorHook()
 
+
 class Login(BaseView):
 
     def get_context(self):
@@ -53,7 +54,7 @@ class Login(BaseView):
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)
             tenant_name = tenant.tenant_name
-            return self.redirect_to('/apps/{0}'.format(tenant_name))
+            return self.redirect_to('/apps/{0}/'.format(tenant_name))
         else:
             logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
                 self.user.nick_name, self.user.pk))
@@ -323,8 +324,8 @@ class PasswordReset(BaseView):
                     logger.exception("account.passwdreset", e)
                     flag = False
             else:
-                self.create_git_user(user, raw_password)            
-            monitorhook.passwdResetMonitor(user, flag)            
+                self.create_git_user(user, raw_password)
+            monitorhook.passwdResetMonitor(user, flag)
             return self.redirect_to('/login')
         logger.info("account.passwdreset", "passwdreset form error: %s" % self.form.errors)
         return self.get_response()
@@ -368,7 +369,7 @@ class Registation(BaseView, RegionOperateMixin):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
-    
+
     def weixinRegister(self, tenant_id, user_id, user_name, rf):
         try:
             sendRecharge = TenantRecharge()
@@ -388,8 +389,7 @@ class Registation(BaseView, RegionOperateMixin):
             tenant.balance = tenant.balance + 100
             tenant.save()
         except Exception as e:
-            logger.exception(e) 
-        
+            logger.exception(e)
 
     def post(self, request, *args, **kwargs):
         querydict = request.POST
@@ -414,9 +414,9 @@ class Registation(BaseView, RegionOperateMixin):
 
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
-            
+
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
-            
+
             PermRelTenant.objects.create(
                 user_id=user.pk, tenant_id=tenant.pk, identity='admin')
             logger.info(
@@ -430,16 +430,16 @@ class Registation(BaseView, RegionOperateMixin):
                 email, password, nick_name, nick_name)
             user.git_user_id = git_user_id
             user.save()
-            monitorhook.gitUserMonitor(user, git_user_id)   
+            monitorhook.gitUserMonitor(user, git_user_id)
             if git_user_id == 0:
                 logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
             else:
                 logger.info("account.register", "create gitlab user for register user {0}, got id {1}".format(nick_name, git_user_id))
-            
+
             # wei xin user need to add 100
             if rf == "wx":
                 self.weixinRegister(tenant.tenant_id, user.pk, user.nick_name, rf)
-            
+
             user = authenticate(username=email, password=password)
             login(request, user)
 

@@ -7,6 +7,7 @@ from www.services_view import ServiceGitHub, ServiceAutoDeploy
 from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
 from www.views import GrRedirectView
 from www.captcha.CodeImage import ChekcCodeImage
+from www.tests import TestView
 
 urlpatterns = patterns(
     '',
@@ -21,7 +22,7 @@ urlpatterns = patterns(
     url(r'^invite$', views.InviteRegistation.as_view()),
     url(r'^register$', views.Registation.as_view()),
     url(r'^account/', include('www.url_account')),
-    url(r'^apps/(?P<tenantName>[\w\-]+)/', include('www.url_service')),
+    url(r'^apps/(?P<tenantName>[\w\-]+)', include('www.url_service')),
     url(r'^ajax/', include('www.url_ajax')),
     url(r'^oauth/githup/$', login_required(ServiceGitHub.as_view())),
     url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
@@ -34,4 +35,5 @@ urlpatterns = patterns(
     url(r'^partners/', include('www.partners.urls')),
     url(r'^Ea7e1ps5.html$', views.ssl_crv),
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.url_payedpackage')),
+    url(r'^tests/(?P<templateName>[\w\-]+)/', TestView.as_view()),
 ) + staticfiles_urlpatterns()
