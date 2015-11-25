@@ -1,5 +1,4 @@
 import hashlib
-from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.conf import settings
 
@@ -19,7 +18,6 @@ class UcloudView(BaseView):
         expected_sig = hashlib.sha1(token + '.' + secret_key)
         return bool(expected_sig.lower() == sig.lower())
 
-    @csrf_exempt
     def post(self, request, *args, **kwargs):
         AccessToken = request.POST.get('AccessToken', None)
         if AccessToken is None:
@@ -40,6 +38,9 @@ class UcloudView(BaseView):
             info = "get_user_info got retcode: {0}".format(u_response.RetCode)
             logger.error("partners.auth_ucloud", info)
             return JsonResponse({"ok": False, "info": info}, status=400)
+
+        logger.debug("partners.auth_ucloud", u_response)
+        return JsonResponse({"ok": True}, status=200)
 
         user = u_response.DataSet[0]
         try:
