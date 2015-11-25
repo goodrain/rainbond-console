@@ -40,6 +40,7 @@ class UcloudView(BaseView):
             return JsonResponse({"ok": False, "info": info}, status=400)
 
         logger.debug("partners.auth_ucloud", u_response)
+        self.redirect_to('/login')
         return JsonResponse({"ok": True}, status=200)
 
         user = u_response.DataSet[0]

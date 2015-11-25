@@ -80,7 +80,7 @@ QING_CLOUD_APP = {
 
 UCLOUD_APP = {
     "secret_key": "81b5615a617cb990b4c87bc9e1e91871ae070068",
-    "api": "https://114.119.38.96/api"
+    "api_url": "http://114.119.38.96/api"
 }
 
 CACHES = {
