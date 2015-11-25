@@ -38,18 +38,21 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
-        try:
-            context = self.get_context()
+        context = self.get_context()
+        response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
+        try:            
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"
             request.session["app_tenant"] = self.tenantName
-            app_status = request.COOKIES.get('app_status')
-            app_an = request.COOKIES.get('app_an')
+            app_status = request.COOKIES.get('app_status', '')
+            app_an = request.COOKIES.get('app_an', '')
             context["app_status"] = app_status
             context["app_an"] = app_an
+            response.delete_cookie('app_status')
+            response.delete_cookie('app_an')
         except Exception as e:
             logger.exception(e)
-        return TemplateResponse(self.request, "www/app_create_step_1.html", context)
+        return response
 
     @never_cache
     @perm_required('create_service')
