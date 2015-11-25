@@ -25,7 +25,7 @@ class UCloudApi(BaseHttpClient):
         path = self.api_url + '/?' + path + '&Signature=' + sig
         return path
 
-    def get_user_info(self, region, tenant, body):
+    def get_user_info(self):
         params = {"Action": "GetUserInfo"}
         url = self.parse_url(params)
         res, body = self._get(url, self.default_headers)

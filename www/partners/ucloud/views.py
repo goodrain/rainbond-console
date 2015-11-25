@@ -15,7 +15,7 @@ class UcloudView(BaseView):
 
     def check_sig(self, sig, token):
         secret_key = settings.UCLOUD_APP.get('secret_key')
-        expected_sig = hashlib.sha1(token + '.' + secret_key)
+        expected_sig = hashlib.sha1(token + secret_key).hexdigest()
         return bool(expected_sig.lower() == sig.lower())
 
     def post(self, request, *args, **kwargs):
