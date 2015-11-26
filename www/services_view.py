@@ -318,6 +318,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
                         cur_git_url = self.service.git_url.split("/")
                         httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+                    elif self.service.code_from == "gitlab_pub":
+                        cur_git_url = self.service.git_url.split("/")
+                        httpGitUrl = "http://code.goodrain.com/demo/" + cur_git_url[1]
                     else:
                         httpGitUrl = self.service.git_url
                     context["httpGitUrl"] = httpGitUrl
@@ -539,7 +542,7 @@ class ServiceAutoDeploy(BaseView):
             isSetAppName = False
             if app_ty == "1":
                 if app_an != "" and app_sd != "":
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_exit")
+                    status = self.app_create(self.user, tenant, app_an, app_sd, "github_pub")
                     if status == "success":
                         response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
                     else:
@@ -554,7 +557,7 @@ class ServiceAutoDeploy(BaseView):
                 if app_sd == "":
                     status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_new")
                 else:
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_exit")
+                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_pub")
                 if status == "success":
                     response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
                 else:
@@ -599,7 +602,7 @@ class ServiceAutoDeploy(BaseView):
             isSetAppName = False
             if app_ty == "1":
                 if app_an != "" and app_sd != "":
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_exit")
+                    status = self.app_create(self.user, tenant, app_an, app_sd, "github_pub")
                     if status == "success":
                         response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
                     else:
@@ -614,7 +617,7 @@ class ServiceAutoDeploy(BaseView):
                 if app_sd == "":
                     status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_new")
                 else:
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_exit")
+                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_pub")
                 if status == "success":
                     response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
                 else:
