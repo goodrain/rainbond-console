@@ -20,6 +20,7 @@ from github_http import GitHubApi
 from django.conf import settings
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.monitorservice.monitorhook import MonitorHook
+from www.utils.url import get_redirect_url
 
 logger = logging.getLogger('default')
 gitClient = GitlabApi()
@@ -521,6 +522,36 @@ class ServiceAutoDeploy(BaseView):
             status = "failure"
         return status
     
+    def dealAppRequest(self, request, tenant, app_ty, app_an, app_sd):
+        status = ""
+        tmpUrl = ""
+        if app_ty == "1":
+            if app_an != "" and app_sd != "":
+                status = self.app_create(self.user, tenant, app_an, app_sd, "github_pub")
+                if status == "success":
+                    tmpUrl = "/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an)                        
+                else:
+                    tmpUrl = "/apps/{0}/app-create/".format(tenant.tenant_name)
+            else:
+                tmpUrl = "/apps/{0}/app-create/".format(tenant.tenant_name)
+        elif app_ty == "2":
+            if app_an == "":
+                app_an = "demo"
+            if app_sd == "":
+                status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_new")
+            else:
+                status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_pub")
+            if status == "success":
+                tmpUrl = "/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an)
+            else:
+                tmpUrl = "/apps/{0}/app-create/".format(tenant.tenant_name)
+        elif app_ty == "3":
+            tmpUrl = "/apps/{0}/service-deploy/?service_key={1}".format(tenant.tenant_name, app_sd)
+        else:
+            tmpUrl = "/apps/{0}".format(tenant.tenant_name)
+        return status, tmpUrl
+        
+    
     @never_cache
     def get(self, request, *args, **kwargs):
         app_ty = request.GET.get("ty", "")
@@ -534,47 +565,20 @@ class ServiceAutoDeploy(BaseView):
         logger.debug("app_ty=" + app_ty)
         logger.debug("app_an=" + app_an)
         logger.debug("app_sd=" + app_sd)                                
-        status = ""
         if self.user is not None and self.user.pk is not None:
             tenant = self.getTenants(self.user.pk)
             if tenant is None:
                 return self.redirect_to("/login")            
-            isSetAppName = False
-            if app_ty == "1":
-                if app_an != "" and app_sd != "":
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "github_pub")
-                    if status == "success":
-                        response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
-                    else:
-                        response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
-                        response.set_cookie('app_status', status)
-                        isSetAppName = True
-                else:
-                    response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
-            elif app_ty == "2":
-                if app_an == "":
-                    app_an = "demo"
-                if app_sd == "":
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_new")
-                else:
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_pub")
-                if status == "success":
-                    response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
-                else:
-                    response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
-                    response.set_cookie('app_status', status)
-                    isSetAppName = True
-            elif app_ty == "3":                    
-                response = redirect("/apps/{0}/service-deploy/?service_key={1}".format(tenant.tenant_name, app_sd))
-            else:
-                response = redirect("/apps/{0}".format(tenant.tenant_name))
-            
+            status, temUrl = self.dealAppRequest(request, tenant, app_ty, app_an, app_sd)
+            response = redirect(get_redirect_url(temUrl, request))            
             response.delete_cookie('app_ty')            
             response.delete_cookie('app_sd')
-            if not isSetAppName:
+            if status == "success":
                 response.delete_cookie('app_an')
+            else:
+                response.set_cookie('app_status', status)            
         else:
-            response = redirect("/login")
+            response = redirect(get_redirect_url("/login", request))
             if app_ty != "":
                 response.set_cookie('app_ty', app_ty)
                 response.set_cookie('app_an', app_an)
@@ -593,48 +597,21 @@ class ServiceAutoDeploy(BaseView):
             app_sd = request.COOKIES.get('app_sd', '') 
         logger.debug("app_ty=" + app_ty)
         logger.debug("app_an=" + app_an)
-        logger.debug("app_sd=" + app_sd)                                
-        status = ""
+        logger.debug("app_sd=" + app_sd)
         if self.user is not None and self.user.pk is not None:
             tenant = self.getTenants(self.user.pk)
             if tenant is None:
                 return self.redirect_to("/login")            
-            isSetAppName = False
-            if app_ty == "1":
-                if app_an != "" and app_sd != "":
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "github_pub")
-                    if status == "success":
-                        response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
-                    else:
-                        response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
-                        response.set_cookie('app_status', status)
-                        isSetAppName = True
-                else:
-                    response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
-            elif app_ty == "2":
-                if app_an == "":
-                    app_an = "demo"
-                if app_sd == "":
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_new")
-                else:
-                    status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_pub")
-                if status == "success":
-                    response = redirect("/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an))
-                else:
-                    response = redirect("/apps/{0}/app-create/".format(tenant.tenant_name))
-                    response.set_cookie('app_status', status)
-                    isSetAppName = True
-            elif app_ty == "3":                    
-                response = redirect("/apps/{0}/service-deploy/?service_key={1}".format(tenant.tenant_name, app_sd))
-            else:
-                response = redirect("/apps/{0}".format(tenant.tenant_name))
-            
+            status, temUrl = self.dealAppRequest(request, tenant, app_ty, app_an, app_sd)
+            response = redirect(get_redirect_url(temUrl, request))           
             response.delete_cookie('app_ty')            
             response.delete_cookie('app_sd')
-            if not isSetAppName:
+            if status == "success":
                 response.delete_cookie('app_an')
+            else:
+                response.set_cookie('app_status', status)         
         else:
-            response = redirect("/login")
+            response = redirect(get_redirect_url("/login", request))
             if app_ty != "":
                 response.set_cookie('app_ty', app_ty)
                 response.set_cookie('app_an', app_an)
