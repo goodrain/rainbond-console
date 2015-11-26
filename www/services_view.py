@@ -488,7 +488,7 @@ class ServiceAutoDeploy(BaseView):
                         ts.code_from = service_code_from
                         ts.code_version = "master"
                         ts.save()
-            elif service_code_from == "gitlab_exit":
+            else:
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
                 ts.git_project_id = "0"
                 ts.git_url = git_url
