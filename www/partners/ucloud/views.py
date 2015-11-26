@@ -127,6 +127,8 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
             user = request.user
             if isinstance(user, AnonymousUser):
                 return JsonResponse({"info": "anonymoususer"}, status=403)
+
+            self.response_region = 'ucloud-bj-1'
             nick_name = post_data.get('nick_name')
             tenant_name = post_data.get('tenant')
             user.nick_name = nick_name
