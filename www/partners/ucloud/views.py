@@ -108,6 +108,8 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
         return TemplateResponse(self.request, 'www/account/ucloud_init.html', self.get_context())
 
     def get(self, request, *args, **kwargs):
+        if isinstance(request.user, AnonymousUser):
+            return JsonResponse({"info": "anonymoususer"}, status=403)
         self.form = AppendInfoForm()
         return self.get_response()
 
@@ -120,6 +122,8 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
 
         try:
             user = request.user
+            if isinstance(user, AnonymousUser):
+                return JsonResponse({"info": "anonymoususer"}, status=403)
             nick_name = post_data.get('nick_name')
             tenant_name = post_data.get('tenant')
             user.nick_name = nick_name
