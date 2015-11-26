@@ -25,7 +25,6 @@
         {% endif %}
         </div>
         {% endif %}
-        {% if tenant.pay_type != "free" %}
       {% if 'manage_service' in user.actions %}
         <div class="row">
             <label class="col-xs-2 control-label">服务协议</label>
@@ -39,7 +38,6 @@
             </label>
         </div>
         {% endif %}
-      {% endif %}
       </div>
   </section>
    
@@ -79,7 +77,6 @@
               </div>
            </div>
        {% else %}
-        {% if tenant.pay_type != "free" %}
             <div class="row">
                 <input type="hidden" name="create_port_mapping" id='create_port_mapping' value="portMapping">
                 <div class="col-xs-12">
@@ -96,20 +93,19 @@
                            <td>{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{region_name|cut:"-1"}}-s1.goodrain.net</td>
                            <td id="mapping-port">动态分配</td>
                            <td>
-                         {% if 'manage_service' in user.actions %}
+                          {% if 'manage_service' in user.actions %}
                             {% if tenantServiceInfo.is_web_service %}
                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-danger btn-xs" id="cur_outer_service_close" onclick="service_protocol('outer','close','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">关闭</button>
                             {% else %}
                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" class="btn btn-success btn-xs" id="cur_outer_service_open" onclick="service_protocol('outer','start','{{tenantName}}','{{tenantServiceInfo.service_alias}}');">开启</button>
                             {% endif %}
-                     	{% endif %}                                
+                     	    {% endif %}                                
                            </td>
                          </tr>
                        </tbody>
                      </table>
                  </div>
                </div>
-         {% endif %}
        {% endif %}
       </div>
   </section>
@@ -146,7 +142,7 @@
                                <td><input name ="{{curServiceEnvVar.service_id}}_name" value="{{curServiceEnvVar.name}}"></td>
                                <td><input name ="{{curServiceEnvVar.service_id}}_attr_name" value="{{curServiceEnvVar.attr_name}}"></td>
                                <td><input name ="{{curServiceEnvVar.service_id}}_attr_value" value="{{curServiceEnvVar.attr_value}}"></td>
-                               <td><input name ="{{curServiceEnvVar.service_id}}_attr_id" type="hidden" value="{{curServiceEnvVar.ID}}"><button type="button" class="btn btn-success btn-xs" onclick="attr_delete(this);">删除</button></td>
+                               <td><input name ="{{curServiceEnvVar.service_id}}_attr_id" type="hidden" value="{{curServiceEnvVar.ID}}"><button type="button" class="btn btn-danger btn-xs" onclick="attr_delete(this);">删除</button></td>
                            {% else %}
                                <input type="hidden" name="{{curServiceEnvVar.service_id}}_serviceNoChange" value="{{curServiceEnvVar.ID}}" />
                                <td>{{curServiceEnvVar.name}}</td>
@@ -171,7 +167,6 @@
      {% endif %}
   </section>
 
-  {% if tenant.pay_level == "company" %}
   <section class="panel">
     <header class="panel-heading">扩容方式</header>
   <div class="panel-body">
@@ -215,7 +210,6 @@
     </div>
   </div>
   </section>
-  {% endif %}
   
   <!--start permission-->
   {% if 'perm_setting' in user.actions %}
