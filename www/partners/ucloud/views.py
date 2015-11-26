@@ -3,26 +3,23 @@ from django.http import JsonResponse
 from django.conf import settings
 
 from www.views.base import BaseView
-from www.utils.encode import decode_base64, encode_base64
+from www.utils.encode import decode_base64
 from www.apis.ucloud import UCloudApi
-from www.models import Users, Tenants
+from www.models import AnonymousUser, Users, Tenants
+from www.auth import authenticate, login, logout
 
 import logging
 logger = logging.getLogger('default')
 
 
-class UcloudView(BaseView):
+class EntranceView(BaseView):
 
     def check_sig(self, sig, token):
         secret_key = settings.UCLOUD_APP.get('secret_key')
         expected_sig = hashlib.sha1(token + secret_key).hexdigest()
         return bool(expected_sig.lower() == sig.lower())
 
-    def post(self, request, *args, **kwargs):
-        AccessToken = request.POST.get('AccessToken', None)
-        if AccessToken is None:
-            return JsonResponse({"ok": False, "info": "need AccessToken field"}, status=400)
-
+    def get_remote_user(self, AccessToken):
         logger.debug('partners.auth_ucloud', "AccessToken is %s" % AccessToken)
         encoded_sig, encoded_token = AccessToken.split('.', 1)
         sig = decode_base64(encoded_sig)
@@ -37,29 +34,61 @@ class UcloudView(BaseView):
         if u_response.RetCode != 0:
             info = "get_user_info got retcode: {0}".format(u_response.RetCode)
             logger.error("partners.auth_ucloud", info)
-            return JsonResponse({"ok": False, "info": info}, status=400)
+            return JsonResponse({"ok": False, "info": info}, status=403)
 
         logger.debug("partners.auth_ucloud", u_response)
-        self.redirect_to('/login')
-        return JsonResponse({"ok": True}, status=200)
 
-        user = u_response.DataSet[0]
-        try:
-            Users.objects.get(email=user.UserEmail)
-        except Users.DoesNotExist:
-            info = "user from ucloud confict by email %s" % user.UserEmail
-            logger.info("partners.auth_ucloud", info)
-            return JsonResponse({"ok": False, "info": info}, status=409)
+        return u_response.DataSet[0]
 
-        user_exist = Users.objects.filter(nick_name=user.UserName)
-        if user_exist:
-            nick_name = user.UserName + '_' + 'ucloud'
+    def post(self, request, *args, **kwargs):
+        AccessToken = request.POST.get('AccessToken', None)
+        if AccessToken is None:
+            return JsonResponse({"ok": False, "info": "need AccessToken field"}, status=400)
+
+        remote_user = self.get_remote_user(AccessToken)
+        if isinstance(request.user, AnonymousUser):
+            pass
         else:
-            nick_name = user.UserName
+            user = request.user
+            if user.email == remote_user.UserEmail:
+                if user.is_active:
+                    return self.redirect_to('/login')
+                else:
+                    return self.redirect_to('/partners/ucloud/update_userinfo/')
+            else:
+                logout(request)
 
         try:
-            Users.objects.create(nick_name=nick_name, email=user.UserEmail, phone=user.UserPhone, rf='ucloud')
-            return JsonResponse({"ok": True, "info": "created"}, status=200)
-        except Exception, e:
-            logger.error("partners.auth_ucloud", e)
-            return JsonResponse({"ok": False, "info": "server error"}, status=500)
+            local_user = Users.objects.get(email=remote_user.UserEmail)
+            if local_user.origion == 'ucloud':
+                user = authenticate(username=local_user.email, source='ucloud')
+                login(request, user)
+                if local_user.is_active:
+                    return self.redirect_to('/login')
+                else:
+                    return self.redirect_to('/partners/ucloud/update_userinfo/')
+            else:
+                info = "user from ucloud confict by email %s" % remote_user.UserEmail
+                logger.info("partners.auth_ucloud", info)
+                return JsonResponse({"ok": False, "info": info}, status=409)
+        except Users.DoesNotExist:
+            default_nick_name = u'ucloud_{0}'.format(remote_user.UserId * 3 + 1152)
+
+            try:
+                new_user = Users.objects.create(nick_name=default_nick_name, email=remote_user.UserEmail, phone=remote_user.UserPhone, origion='ucloud',
+                                                is_active=False, password='nopass')
+                user = authenticate(username=new_user.email, source='ucloud')
+                login(request, user)
+                return self.redirect_to('/partners/ucloud/update_userinfo/')
+            except Exception, e:
+                logger.error("partners.auth_ucloud", e)
+                return JsonResponse({"ok": False, "info": "server error"}, status=500)
+
+
+class UserInfoView(BaseView):
+
+    def get(self, request):
+        return JsonResponse({"ok": True})
+
+    def post(self, request):
+        return JsonResponse({"ok": True})
