@@ -1,3 +1,3 @@
-from views import UcloudView
+from views import EntranceView, UserInfoView
 
-__all__ = ('UcloudView', )
+__all__ = ('EntranceView', 'UserInfoView')
