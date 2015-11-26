@@ -77,6 +77,7 @@
               </div>
            </div>
        {% else %}
+          {% if tenant.pay_type != "free" %}
             <div class="row">
                 <input type="hidden" name="create_port_mapping" id='create_port_mapping' value="portMapping">
                 <div class="col-xs-12">
@@ -106,6 +107,7 @@
                      </table>
                  </div>
                </div>
+            {% endif %}
        {% endif %}
       </div>
   </section>
