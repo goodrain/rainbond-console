@@ -199,6 +199,8 @@ class LeftSideBarMixin(object):
                 if region['name'] == 'aws-bj-1':
                     if self.tenant.region != 'aws-bj-1':
                         continue
+                if self.user.origion in ('ucloud',):
+                    continue
                 arrival_regions.append(region)
 
         context['arrival_regions'] = tuple(arrival_regions)

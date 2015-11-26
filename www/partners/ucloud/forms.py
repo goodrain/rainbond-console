@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
-import re
 from django import forms
 
 from crispy_forms.helper import FormHelper
@@ -13,8 +12,6 @@ from www.forms.account import is_standard_word, is_sensitive, standard_regex_str
 
 class AppendInfoForm(forms.Form):
 
-    nick_name = 1
-    tenant_name = 2
     nick_name = fields.CharField(
         required=True, max_length=24, label="昵称",
         validators=[is_standard_word, is_sensitive],

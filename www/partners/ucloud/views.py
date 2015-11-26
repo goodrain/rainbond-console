@@ -1,18 +1,23 @@
 import hashlib
 from django.http import JsonResponse
 from django.conf import settings
+from django.template.response import TemplateResponse
 
-from www.views.base import BaseView
+from www.views import BaseView, RegionOperateMixin, LoginRedirectMixin
 from www.utils.encode import decode_base64
 from www.apis.ucloud import UCloudApi
-from www.models import AnonymousUser, Users, Tenants
+from www.models import AnonymousUser, Users, Tenants, PermRelTenant, TenantRegionInfo
 from www.auth import authenticate, login, logout
+from www.monitorservice.monitorhook import MonitorHook
+from forms import AppendInfoForm
 
 import logging
 logger = logging.getLogger('default')
 
+monitorhook = MonitorHook()
 
-class EntranceView(BaseView):
+
+class EntranceView(BaseView, LoginRedirectMixin):
 
     def check_sig(self, sig, token):
         secret_key = settings.UCLOUD_APP.get('secret_key')
@@ -52,7 +57,7 @@ class EntranceView(BaseView):
             user = request.user
             if user.email == remote_user.UserEmail:
                 if user.is_active:
-                    return self.redirect_to('/login')
+                    return self.redirect_view()
                 else:
                     return self.redirect_to('/partners/ucloud/update_userinfo/')
             else:
@@ -64,7 +69,7 @@ class EntranceView(BaseView):
                 user = authenticate(username=local_user.email, source='ucloud')
                 login(request, user)
                 if local_user.is_active:
-                    return self.redirect_to('/login')
+                    return self.redirect_view()
                 else:
                     return self.redirect_to('/partners/ucloud/update_userinfo/')
             else:
@@ -85,10 +90,68 @@ class EntranceView(BaseView):
                 return JsonResponse({"ok": False, "info": "server error"}, status=500)
 
 
-class UserInfoView(BaseView):
+class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
 
-    def get(self, request):
-        return JsonResponse({"ok": True})
+    def get_context(self):
+        context = super(UserInfoView, self).get_context()
+        context.update({
+            'form': self.form,
+        })
+        return context
 
-    def post(self, request):
-        return JsonResponse({"ok": True})
+    def get_media(self):
+        media = super(UserInfoView, self).get_media(
+        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/validator.min.js')
+        return media
+
+    def get_response(self):
+        return TemplateResponse(self.request, 'www/account/ucloud_init.html', self.get_context())
+
+    def get(self, request, *args, **kwargs):
+        self.form = AppendInfoForm()
+        return self.get_response()
+
+    def post(self, request, *args, **kwargs):
+        self.form = AppendInfoForm(request.POST)
+        if not self.form.is_valid():
+            return self.get_response()
+
+        post_data = request.POST.dict()
+
+        try:
+            user = request.user
+            nick_name = post_data.get('nick_name')
+            tenant_name = post_data.get('tenant')
+            user.nick_name = nick_name
+            user.is_active = True
+            user.save(update_fields=['nick_name', 'is_active'])
+            monitorhook.registerMonitor(user, 'register')
+
+            tenant = Tenants.objects.create(
+                tenant_name=tenant_name, pay_type='free', creater=user.pk, region='ucloud-bj-1')
+            monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
+
+            PermRelTenant.objects.create(
+                user_id=user.pk, tenant_id=tenant.pk, identity='admin')
+            logger.info(
+                "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(nick_name, tenant_name, 'ucloud-bj-1', tenant.tenant_id))
+
+            TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
+            init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
+            monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
+            # create gitlab user
+            '''
+            git_user_id = gitClient.createUser(
+                user.email, user.password, nick_name, nick_name)
+            user.git_user_id = git_user_id
+            user.save(update_fields=['git_user_id'])
+            monitorhook.gitUserMonitor(user, git_user_id)
+            if git_user_id == 0:
+                logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
+            else:
+                logger.info("account.register", "create gitlab user for register user {0}, got id {1}".format(nick_name, git_user_id))
+            '''
+            return self.redirect_view()
+        except Exception, e:
+            logger.exception(e)
+            return JsonResponse({"info": "server error"}, status=500)

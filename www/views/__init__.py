@@ -1,9 +1,10 @@
 from django.http import HttpResponse
 from base import BaseView, AuthedView, LeftSideBarMixin, GrRedirectView
-from mixin import RegionOperateMixin
+from mixin import RegionOperateMixin, LoginRedirectMixin
 from account import *
 
-__all__ = ('BaseView', 'AuthedView', 'LeftSideBarMixin', 'RegionOperateMixin', 'GrRedirectView')
+__all__ = ('BaseView', 'AuthedView', 'LeftSideBarMixin', 'RegionOperateMixin', 'GrRedirectView',
+           'LoginRedirectMixin')
 
 
 def monitor(request):
