@@ -110,6 +110,9 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
     def get(self, request, *args, **kwargs):
         if isinstance(request.user, AnonymousUser):
             return JsonResponse({"info": "anonymoususer"}, status=403)
+
+        if request.user.origion != 'ucloud':
+            return JsonResponse({"info": "you are not from ucloud"}, status=403)
         self.form = AppendInfoForm()
         return self.get_response()
 
