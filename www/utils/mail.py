@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 from django.core.mail import send_mail
 
 
@@ -11,4 +12,4 @@ def send_invite_mail_withHtml(to, html_content):
 
 
 def send_reset_pass_mail(to, content):
-    send_mail("reset password", content, 'no-reply@goodrain.com', [to])
+    send_mail(u"重新设置您的密码", content, 'no-reply@goodrain.com', [to])
