@@ -25,8 +25,10 @@ class RegionOperateMixin(object):
 
 class LoginRedirectMixin(object):
 
-    def redirect_view(self):
-        tenants_has = PermRelTenant.objects.filter(user_id=self.user.pk)
+    def redirect_view(self, request=None):
+        user_id = request.user.pk if request is not None else self.user.pk
+        tenants_has = PermRelTenant.objects.filter(user_id=user_id)
+
         if tenants_has:
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)

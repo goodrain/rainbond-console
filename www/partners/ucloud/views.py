@@ -70,7 +70,7 @@ class EntranceView(BaseView, LoginRedirectMixin):
                 user = authenticate(username=local_user.email, source='ucloud')
                 login(request, user)
                 if local_user.is_active:
-                    return self.redirect_view()
+                    return self.redirect_view(request)
                 else:
                     return self.redirect_to('/partners/ucloud/update_userinfo/')
             else:
