@@ -53,7 +53,7 @@ SECRET_KEY = 'hd_279hu4@3^bq&8w5hm_l$+xrip$_r8vh5t%ru(q8#!rauoj1'
 # SECURITY WARNING: don't run with debug turned on in production!
 ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io']
 
-AUTHENTICATION_BACKENDS = ('www.auth.backends.ModelBackend', 'django.contrib.auth.backends.ModelBackend')
+AUTHENTICATION_BACKENDS = ('www.auth.backends.ModelBackend', 'www.auth.backends.PartnerModelBackend', 'django.contrib.auth.backends.ModelBackend')
 
 LOGIN_URL = '/login'
 

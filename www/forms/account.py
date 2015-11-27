@@ -196,9 +196,14 @@ class PasswordResetBeginForm(forms.Form):
         if account:
             try:
                 if '@' in account:
-                    Users.objects.get(email=account)
+                    u = Users.objects.get(email=account)
                 else:
-                    Users.objects.get(phone=account)
+                    u = Users.objects.get(phone=account)
+                if u.origion in ('ucloud',):
+                    raise forms.ValidationError(
+                        u'第三方账号不支持密码找回', code='reset passwd deny',
+                        params={"account": account}
+                    )
             except Users.DoesNotExist:
                 logger.info('form_valid.password', 'account {0} does not exist'.format(account))
                 raise forms.ValidationError(
