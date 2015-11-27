@@ -26,6 +26,18 @@ class AppendInfoForm(forms.Form):
         widget=widgets.TextInput(attrs={"data-remote-error": u"已存在"})
     )
 
+    password = fields.CharField(
+        required=True, label='git仓库密码',
+        min_length=8, max_length=30,
+        widget=widgets.PasswordInput(attrs={"id": "git-passwd", "data-toggle": "validator"}),
+    )
+
+    password_repeat = fields.CharField(
+        required=True, label='确认密码',
+        min_length=8, max_length=30,
+        widget=widgets.PasswordInput(attrs={"id": "git-passwd-repeat", "data-match": "#git-passwd", "data-match-error": u"两次输入的密码不一致"}),
+    )
+
     def __init__(self, *args, **kwargs):
         super(AppendInfoForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
@@ -33,6 +45,8 @@ class AppendInfoForm(forms.Form):
         self.helper.layout = Div(
             'nick_name',
             'tenant',
+            'password',
+            'password_repeat',
             FormActions(Submit('commit', u'提交', css_class='btn btn-lg btn-primary btn-block')),
             css_class='login-wrap',
             style="background: #FFFFFF;",

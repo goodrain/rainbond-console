@@ -9,6 +9,7 @@ from www.apis.ucloud import UCloudApi
 from www.models import AnonymousUser, Users, Tenants, PermRelTenant, TenantRegionInfo
 from www.auth import authenticate, login, logout
 from www.monitorservice.monitorhook import MonitorHook
+from www.gitlab_http import GitlabApi
 from forms import AppendInfoForm
 
 import logging
@@ -107,14 +108,24 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
     def get_response(self):
         return TemplateResponse(self.request, 'www/account/ucloud_init.html', self.get_context())
 
+    def update_response(self, response):
+        cookie_region = self.request.COOKIES.get('region', None)
+        if cookie_region is None or cookie_region != 'ucloud-bj-1':
+            response.set_cookie('region', 'ucloud-bj-1')
+        return response
+
     def get(self, request, *args, **kwargs):
-        if isinstance(request.user, AnonymousUser):
+        user = request.user
+        if isinstance(user, AnonymousUser):
             return JsonResponse({"info": "anonymoususer"}, status=403)
 
-        if request.user.origion != 'ucloud':
-            return JsonResponse({"info": "you are not from ucloud"}, status=403)
-        self.form = AppendInfoForm()
-        return self.get_response()
+        if user.is_active:
+            return self.redirect_view()
+        else:
+            if user.origion != 'ucloud':
+                return JsonResponse({"info": "you are not from ucloud"}, status=403)
+            self.form = AppendInfoForm()
+            return self.get_response()
 
     def post(self, request, *args, **kwargs):
         self.form = AppendInfoForm(request.POST)
@@ -128,13 +139,13 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
             if isinstance(user, AnonymousUser):
                 return JsonResponse({"info": "anonymoususer"}, status=403)
 
-            self.response_region = 'ucloud-bj-1'
             nick_name = post_data.get('nick_name')
             tenant_name = post_data.get('tenant')
+            git_pass = post_data.get('password')
             user.nick_name = nick_name
             user.is_active = True
             user.save(update_fields=['nick_name', 'is_active'])
-            monitorhook.registerMonitor(user, 'register')
+            monitorhook.registerMonitor(user, 'register from ucloud')
 
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name, pay_type='free', creater=user.pk, region='ucloud-bj-1')
@@ -149,9 +160,9 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
             init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
             monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
             # create gitlab user
-            '''
+            gitClient = GitlabApi()
             git_user_id = gitClient.createUser(
-                user.email, user.password, nick_name, nick_name)
+                user.email, git_pass, nick_name, nick_name)
             user.git_user_id = git_user_id
             user.save(update_fields=['git_user_id'])
             monitorhook.gitUserMonitor(user, git_user_id)
@@ -159,7 +170,6 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
                 logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
             else:
                 logger.info("account.register", "create gitlab user for register user {0}, got id {1}".format(nick_name, git_user_id))
-            '''
             return self.redirect_view()
         except Exception, e:
             logger.exception(e)
