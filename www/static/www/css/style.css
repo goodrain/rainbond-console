@@ -5513,14 +5513,15 @@ a.guest-on i {
     height: 24px;
 }
 
-.rtm-category-2 {
+.rtm-category {
     margin-top: 10px;
     margin-bottom: 5px;
+}
+
+.rtm-category-2 li {
     width: 50%;
 }
 
-.rtm-category-3 {
-    margin-top: 10px;
-    margin-bottom: 5px;
+.rtm-category-3 li {
     width: 33%;
 }

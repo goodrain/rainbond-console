@@ -78,8 +78,12 @@ class ServiceGraph(AuthedView):
                     value = float(value) / (1024 * 1024)
                 elif graph_key == 'online':
                     value = float(int(value))
-                if value.is_integer():
-                    data['values'].append([int(timestamp) * 1000, int(value)])
+
+                if isinstance(value, float):
+                    if value.is_integer():
+                        data['values'].append([int(timestamp) * 1000, int(value)])
+                    else:
+                        data['values'].append([int(timestamp) * 1000, '%.2f' % value])
                 else:
                     data['values'].append([int(timestamp) * 1000, value])
 
