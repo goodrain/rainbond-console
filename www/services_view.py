@@ -491,10 +491,20 @@ class ServiceAutoDeploy(BaseView):
                         ts.save()
             else:
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
+                
+                new_git_url = git_url
+                new_git_version = "master"                
+                if service_code_from == "github_pub":
+                    if git_url.find(".git") < 0:
+                        gits = git_url.split("/")
+                        size = len(gits)
+                        new_git_version = gits[size - 1]
+                        bra = "/" + gits[size - 2] + "/" + gits[size - 1]
+                        new_git_url = git_url.replace(bra, ".git")                    
                 ts.git_project_id = "0"
-                ts.git_url = git_url
+                ts.git_url = new_git_url
                 ts.code_from = service_code_from
-                ts.code_version = "master"
+                ts.code_version = new_git_version
                 ts.save()
 
                 data = {}
