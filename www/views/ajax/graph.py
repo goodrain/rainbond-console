@@ -59,7 +59,7 @@ class ServiceGraph(AuthedView):
 
         if metric is not None:
             queries = '{0}:{1}:{2}'.format(aggregate, downsample, metric)
-            if graph_key == 'memory':
+            if graph_key in ('memory', 'sqltime', 'sql-throughput'):
                 queries += '{' + 'tenant_id={0},service_id={1}'.format(self.tenant.tenant_id, self.service.service_id) + '}'
             else:
                 queries += '{' + 'tenant={0},service={1}'.format(self.tenant.tenant_name, self.service.service_alias) + '}'
