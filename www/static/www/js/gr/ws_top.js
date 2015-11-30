@@ -1,5 +1,8 @@
 (function ($) {
     $(document).ready(function () {
+        var csrftoken = $.cookie('csrftoken');
+        var tenantName = $('#mytags').attr('tenant');
+        var serviceAlias = $('#mytags').attr('service');
         var region = $.cookie('region');
         var topic = $('#mytags').attr('ws-topic');
 
@@ -54,6 +57,7 @@
        */
         setTimeout(function() {update_stat();}, 200);
         setInterval(function() {update_stat();}, 30000);
+        post_url = '/ajax/' + tenantName + '/' + serviceAlias + '/graph';
 
         function update_stat() {
           $('#realtime-stat h5').each(function() {
