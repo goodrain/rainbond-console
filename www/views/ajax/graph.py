@@ -19,9 +19,12 @@ class ServiceGraph(AuthedView):
         'response-time': {"metric": 'service.perf.web.response_time', "unit": "ms"},
         'throughput': {"metric": 'service.perf.web.throughput', "unit": "count"},
         'online': {"metric": 'service.analysis.online', "unit": u"人数"},
+        'sqltime': {"metric": 'service.perf.mysql.sql_time', "unit": 'ms'},
+        'sql-throughput': {"metric": 'service.perf.mysql.throughput', "unit": "count"},
     }
 
     downsamples = {
+        '3m-ago': None,
         '1h-ago': '1m-avg', '8h-ago': '2m-avg', '24h-ago': '5m-avg',
         '7d-ago': '30m-avg',
     }
@@ -56,8 +59,12 @@ class ServiceGraph(AuthedView):
         aggregate = 'sum'
 
         if metric is not None:
-            queries = '{0}:{1}:{2}'.format(aggregate, downsample, metric)
-            if graph_key == 'memory':
+            if downsample is None:
+                queries = '{0}:{1}'.format(aggregate, metric)
+            else:
+                queries = '{0}:{1}:{2}'.format(aggregate, downsample, metric)
+
+            if graph_key in ('memory', 'sqltime', 'sql-throughput'):
                 queries += '{' + 'tenant_id={0},service_id={1}'.format(self.tenant.tenant_id, self.service.service_id) + '}'
             else:
                 queries += '{' + 'tenant={0},service={1}'.format(self.tenant.tenant_name, self.service.service_alias) + '}'
@@ -71,8 +78,12 @@ class ServiceGraph(AuthedView):
                     value = float(value) / (1024 * 1024)
                 elif graph_key == 'online':
                     value = float(int(value))
-                if value.is_integer():
-                    data['values'].append([int(timestamp) * 1000, int(value)])
+
+                if isinstance(value, float):
+                    if value.is_integer():
+                        data['values'].append([int(timestamp) * 1000, int(value)])
+                    else:
+                        data['values'].append([int(timestamp) * 1000, '%.3f' % value])
                 else:
                     data['values'].append([int(timestamp) * 1000, value])
 
@@ -91,6 +102,8 @@ class ServiceGraph(AuthedView):
     def post(self, request, *args, **kwargs):
         graph_id = request.POST.get('graph_id', None)
         start = request.POST.get('start', None)
+        get_last = request.POST.get('last', False)
+
         if graph_id is None:
             return JsonResponse({"ok": False, "info": "need graph_id filed"}, status=500)
 
@@ -102,8 +115,11 @@ class ServiceGraph(AuthedView):
         result['data'] = self.random_data(graph_key)
         data = self.get_tsdb_data(graph_key, start)
         if data is not None:
-            result['data'] = data
-            self.add_tags(graph_key, result)
+            if get_last:
+                result['value'] = data[0]['values'][-1][1]
+            else:
+                result['data'] = data
+                self.add_tags(graph_key, result)
             return JsonResponse(result, status=200)
         else:
             return JsonResponse({"ok": False}, status=404)

@@ -17,7 +17,7 @@
      <div class="col-md-6">
        <section class="panel">
          <header class="panel-heading">
-           响应时间
+           响应时间 (5分钟平均值)
          </header>
          <div class="panel-body">
            <div id="response-time-stat" class="graph">
@@ -30,7 +30,7 @@
      <div class="col-md-6">
        <section class="panel">
          <header class="panel-heading">
-           在线人数
+           在线人数 (10分钟)
          </header>
          <div class="panel-body">
            <div id="online-stat" class="graph">
@@ -45,7 +45,7 @@
      <div class="col-md-6">
        <section class="panel">
          <header class="panel-heading">
-           吞吐率
+           吞吐率 (1分钟总数)
          </header>
          <div class="panel-body">
            <div id="throughput-stat" class="graph">
@@ -57,6 +57,35 @@
 
    </div>
    {% endif %}<!--end http_history-->
+   {% if tenantServiceInfo.service_key == "mysql" %}
+   <div class="row">
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           sql响应时间 (5分钟平均值)
+         </header>
+         <div class="panel-body">
+           <div id="sqltime-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+
+     <div class="col-md-6">
+       <section class="panel">
+         <header class="panel-heading">
+           sql执行次数 (1分钟总数)
+         </header>
+         <div class="panel-body">
+           <div id="sql-throughput-stat" class="graph">
+             <svg></svg>
+           </div>
+         </div>
+       </section>
+     </div>
+   </div>
+   {% endif %}
 
    <div class="row">
      <div class="col-md-6">
@@ -103,6 +132,22 @@
   {% endif %}<!--end statistic_history-->
   {% if statistic_type == 'realtime' %}
     {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+    <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-3">
+      <ul>
+        <li>
+          <h5 id="response-time-stat">loading</h5>
+          平均响应时间
+        </li>
+        <li>
+          <h5 id="throughput-stat">loading</h5>
+          吞吐率
+        </li>
+        <li>
+          <h5 id="online-stat">loading</h5>
+          在线人数
+        </li>
+      </ul>
+    </div>
     <div class="row">
       <div class="col-sm-12">
         <section class="panel">
@@ -128,6 +173,18 @@
     {% endif %}<!--finish http_realtime-->
 
     {% if tenantServiceInfo.service_key == 'mysql' %}
+    <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-2">
+      <ul>
+        <li>
+          <h5 id="sqltime-stat">loading</h5>
+          sql平均响应时间
+        </li>
+        <li>
+          <h5 id="sql-throughput-stat">loading</h5>
+          sql吞吐率
+        </li>
+      </ul>
+    </div>
     <div class="row">
       <div class="col-sm-12">
         <section class="panel">

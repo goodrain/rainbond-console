@@ -5512,3 +5512,16 @@ a.guest-on i {
 .git-branch-change {
     height: 24px;
 }
+
+.rtm-category {
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.rtm-category-2 ul li {
+    width: 49%;
+}
+
+.rtm-category-3 ul li {
+    width: 33%;
+}
