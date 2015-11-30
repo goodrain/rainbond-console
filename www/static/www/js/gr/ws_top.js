@@ -37,5 +37,43 @@
           $('#rtm-' + event.name + ' tbody').html(tbody);
           $('#rtm-' + event.name).closest('section').find('span.rtm-update-time').html("更新时间: " + event.update_time);
         }
+
+        /*
+            <div id="realtime-stat" class="weather-category twt-category rtm-category">
+      <ul>
+        <li>
+          <h5 id="sqltime-current">loading</h5>
+          sql平均响应时间
+        </li>
+        <li>
+          <h5 id="sql-throughput-current">loading</h5>
+          sql吞吐率
+        </li>
+      </ul>
+    </div>
+       */
+        setTimeout(function() {update_stat();}, 200);
+        setInterval(function() {update_stat();}, 30000);
+
+        function update_stat() {
+          $('#realtime-stat h5').each(function() {
+            var graph_id = $(this).attr('id');
+              $.ajax({
+                url: post_url,
+                method: "POST",
+                data: {"csrfmiddlewaretoken":csrftoken, "graph_id":graph_id, "start": "3m-ago", "last": true},
+                success: function (event) {
+                    $('#' + graph_id).html(event.value);
+                },
+                    
+                statusCode: {
+                  403: function(event) {
+                    swal("你没有此权限！");
+                  }
+                },
+                    
+              });
+          });
+        }
     });
 })(jQuery);

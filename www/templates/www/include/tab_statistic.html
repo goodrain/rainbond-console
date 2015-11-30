@@ -133,6 +133,22 @@
   {% endif %}<!--end statistic_history-->
   {% if statistic_type == 'realtime' %}
     {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+    <div id="realtime-stat" class="weather-category twt-category rtm-category">
+      <ul>
+        <li>
+          <h5 id="response-time-stat">loading</h5>
+          平均响应时间
+        </li>
+        <li>
+          <h5 id="throughput-stat">loading</h5>
+          吞吐率
+        </li>
+        <li>
+          <h5 id="online-stat">loading</h5>
+          在线人数
+        </li>
+      </ul>
+    </div>
     <div class="row">
       <div class="col-sm-12">
         <section class="panel">
@@ -158,6 +174,18 @@
     {% endif %}<!--finish http_realtime-->
 
     {% if tenantServiceInfo.service_key == 'mysql' %}
+    <div id="realtime-stat" class="weather-category twt-category rtm-category">
+      <ul>
+        <li>
+          <h5 id="sqltime-stat">loading</h5>
+          sql平均响应时间
+        </li>
+        <li>
+          <h5 id="sql-throughput-stat">loading</h5>
+          sql吞吐率
+        </li>
+      </ul>
+    </div>
     <div class="row">
       <div class="col-sm-12">
         <section class="panel">
