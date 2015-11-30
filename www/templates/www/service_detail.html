@@ -18,11 +18,15 @@
 	     {% endif  %}
 	     {% if tenant.pay_type != 'free' %}
          <li class="dropdown {% if fr == "statistic" %} active {% endif %}">
-            <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic" class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b></a>
+         	{% if tenantServiceInfo.is_web_service or tenantServiceInfo.service_key == 'mysql' %}
+              <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic" class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b></a>
               <ul class="dropdown-menu">
                   <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime">实时分析</a></li>
                   <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">历史走势</a></li>
               </ul>
+         	{% else %}
+         	  <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic">监控</a>
+            {% endif %}
           </li>
 	     {% endif %}
 	     <li {% if fr == "log" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=log">日志</a></li>

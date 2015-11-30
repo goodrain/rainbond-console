@@ -19,6 +19,8 @@ class ServiceGraph(AuthedView):
         'response-time': {"metric": 'service.perf.web.response_time', "unit": "ms"},
         'throughput': {"metric": 'service.perf.web.throughput', "unit": "count"},
         'online': {"metric": 'service.analysis.online', "unit": u"人数"},
+        'sqltime': {"metric": 'service.perf.mysql.sql_time', "unit": 'ms'},
+        'sql-throughput': {"metric": 'service.perf.mysql.throughput', "unit": "count"},
     }
 
     downsamples = {
