@@ -41,20 +41,6 @@
           $('#rtm-' + event.name).closest('section').find('span.rtm-update-time').html("更新时间: " + event.update_time);
         }
 
-        /*
-            <div id="realtime-stat" class="weather-category twt-category rtm-category">
-      <ul>
-        <li>
-          <h5 id="sqltime-current">loading</h5>
-          sql平均响应时间
-        </li>
-        <li>
-          <h5 id="sql-throughput-current">loading</h5>
-          sql吞吐率
-        </li>
-      </ul>
-    </div>
-       */
         setTimeout(function() {update_stat();}, 200);
         setInterval(function() {update_stat();}, 30000);
         post_url = '/ajax/' + tenantName + '/' + serviceAlias + '/graph';

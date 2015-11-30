@@ -5518,10 +5518,10 @@ a.guest-on i {
     margin-bottom: 5px;
 }
 
-.rtm-category-2 li {
-    width: 50%;
+.rtm-category-2 ul li {
+    width: 49%;
 }
 
-.rtm-category-3 li {
+.rtm-category-3 ul li {
     width: 33%;
 }

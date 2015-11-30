@@ -83,7 +83,7 @@ class ServiceGraph(AuthedView):
                     if value.is_integer():
                         data['values'].append([int(timestamp) * 1000, int(value)])
                     else:
-                        data['values'].append([int(timestamp) * 1000, '%.2f' % value])
+                        data['values'].append([int(timestamp) * 1000, '%.3f' % value])
                 else:
                     data['values'].append([int(timestamp) * 1000, value])
 
