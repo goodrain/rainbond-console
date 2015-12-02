@@ -4,7 +4,7 @@ TEMPLATE_DEBUG = True
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
-DEFAULT_HANDLERS = ['file_handler']
+DEFAULT_HANDLERS = ['zmq_handler']
 
 DATABASES = {
     # 'default': {
