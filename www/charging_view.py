@@ -10,7 +10,7 @@ from django.template.response import TemplateResponse
 from django.core.paginator import Paginator
 from django.http.response import HttpResponse
 from www.views import AuthedView, LeftSideBarMixin
-from www.models import TenantFeeBill
+from www.models import TenantFeeBill, TenantRegionPayModel
 
 from goodrain_web.tools import JuncheePaginator
 
@@ -78,3 +78,26 @@ class Account(LeftSideBarMixin, AuthedView):
         context["myFinanceAccount"] = "active"
         context["myFinanceStatus"] = "active"
         return TemplateResponse(self.request, "www/tradedetails.html", context)
+    
+class PayModelView(LeftSideBarMixin, AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/goodrainstyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+            'www/js/jquery.scrollTo.min.js')
+        return media
+
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        context["tenantName"] = self.tenantName
+        context['serviceAlias'] = self.serviceAlias
+        context["myPayModelstatus"] = "active"
+        context["myFinanceStatus"] = "active"
+        context["memoryList"] = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 1000]
+        context["diskList"] = [10, 20, 50, 100, 150, 200, 500, 1000, 2000, 5000, 10000]
+        context["netList"] = [10, 20, 50, 100, 200, 300, 500, 800, 1000, 1500, 2000, 2500, 3000, 5000, 8000, 10000]
+        context["periodList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+        tenantBuyPayModels = TenantRegionPayModel.object.filter(tenant_id=self.tenant.tenant_id)
+        context["tenantBuyPayModels"] = tenantBuyPayModels
+        return TemplateResponse(self.request, "www/paymodel.html", context)

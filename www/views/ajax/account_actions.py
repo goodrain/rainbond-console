@@ -1,13 +1,15 @@
 # -*- coding: utf8 -*-
 import datetime
 import json
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
-from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume
+from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants
 
 from goodrain_web.tools import JuncheePaginator
 
@@ -114,3 +116,49 @@ class AccountQuery(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/tradedetails-list.html", context)
+
+
+class PayModelInfo(AuthedView):
+    
+    @perm_required('tenant_account')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        try:
+            tenant_id = self.tenant.tenant_id
+            region_name = self.response_region
+            buy_memory = request.POST["buy_memory"]
+            buy_disk = request.POST["buy_disk"]
+            buy_net = request.POST["buy_net"]
+            buy_period = request.POST["buy_period"]
+            if int(buy_period) > 0:
+                needTotalMoney = int(buy_memory) * int(buy_period)
+                tenant = Tenants.objects.get(tenant_id=tenant_id)
+                if tenant.balance > needTotalMoney:
+                    tenant.balance = tenant.balance - needTotalMoney
+                    tenant.save()
+                    logger.debug(tenant_id + "cost money" + str(needTotalMoney))
+                    TenantConsume(tenant_id=tenant_id, total_memory=int(buy_memory) * int(buy_period), cost_money=needTotalMoney, payed_money=needTotalMoney, pay_status='payed').save()
+                    statTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                    start_time = statTime.strftime("%Y-%m-%d %H:00:00")
+                    endTime = datetime.datetime.now() + relativedelta(months=int(buy_period))
+                    end_time = endTime.strftime("%Y-%m-%d %H:00:00")
+                    data = {}
+                    data["tenant_id"] = tenant_id
+                    data["region_name"] = region_name
+                    data["pay_model"] = "month"
+                    data["buy_period"] = buy_period
+                    data["buy_memory"] = buy_memory
+                    data["buy_disk"] = buy_disk
+                    data["buy_net"] = buy_net
+                    data["buy_start_time"] = start_time
+                    data["buy_end_time"] = end_time
+                    data["create_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    TenantRegionPayModel(**data).save()
+                    result["status"] = "success"
+                else:
+                    result["status"] = "nomoney"
+            else:
+                result["status"] = "par"
+        except Exception as e:
+            logger.exception(e)
+        return JsonResponse(result, status=200)
