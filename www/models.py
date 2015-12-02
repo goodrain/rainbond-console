@@ -674,6 +674,6 @@ class TenantRegionPayModel(BaseModel):
     buy_memory = models.IntegerField(help_text=u"购买内存", default=0)
     buy_disk = models.IntegerField(help_text=u"购买磁盘", default=0)
     buy_net = models.IntegerField(help_text=u"购买流量", default=0)
-    buy_start_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"购买开始时间")
-    buy_end_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"购买结束时间")
+    buy_start_time = models.DateTimeField(help_text=u"购买开始时间")
+    buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")

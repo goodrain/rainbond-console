@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants
+from www.region import RegionInfo
 
 from goodrain_web.tools import JuncheePaginator
 
@@ -125,12 +126,13 @@ class PayModelInfo(AuthedView):
         result = {}
         try:
             tenant_id = self.tenant.tenant_id
-            region_name = self.response_region
+            region_name = request.POST["region_name"]
             buy_memory = request.POST["buy_memory"]
             buy_disk = request.POST["buy_disk"]
             buy_net = request.POST["buy_net"]
             buy_period = request.POST["buy_period"]
-            if int(buy_period) > 0:
+            regions = RegionInfo.region_names()
+            if int(buy_period) > 0 and regions.index(region_name) >= 0:
                 needTotalMoney = int(buy_memory) * int(buy_period)
                 tenant = Tenants.objects.get(tenant_id=tenant_id)
                 if tenant.balance > needTotalMoney:
@@ -153,6 +155,7 @@ class PayModelInfo(AuthedView):
                     data["buy_start_time"] = start_time
                     data["buy_end_time"] = end_time
                     data["create_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    logger.debug(data)
                     TenantRegionPayModel(**data).save()
                     result["status"] = "success"
                 else:
@@ -161,4 +164,5 @@ class PayModelInfo(AuthedView):
                 result["status"] = "par"
         except Exception as e:
             logger.exception(e)
+            result["status"] = "failure"
         return JsonResponse(result, status=200)

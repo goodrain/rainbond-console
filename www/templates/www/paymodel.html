@@ -7,48 +7,62 @@
     <section class="panel">
       <div class="panel-body">
           <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
-             <form class="form-inline" role="form">
-			     <div class="form-group">
-			         <label class="control-label">购买内存:</label>
-			         <select class="form-control" id="buy_memory">
-			         	 {% for curNum in memoryList %}
-				          <option value="{{curNum}}">{{curNum}}G</option>
-				         {% endfor %}
-			         </select>
-			     </div>
-			     <div class="form-group">
-			         <label class="control-label">购买磁盘:</label>
-			         <select class="form-control" id="buy_disk">
-			         	 {% for curNum in diskList %}
-				          <option value="{{curNum}}">{{curNum}}G</option>
-				         {% endfor %}
-			         </select>
-			     </div>
-			     <div class="form-group">
-			         <label class="control-label">购买流量:</label>
-			         <select class="form-control" id="buy_net">
-			         	 {% for curNum in netList %}
-				          <option value="{{curNum}}">{{curNum}}M</option>
-				         {% endfor %}
-			         </select>
-			     </div>
-			     <div class="form-group">
-			         <label class="control-label">购买周期:</label>
-			         <select class="form-control" id="buy_period">
-			         	 {% for curNum in periodList %}
-				          <option value="{{curNum}}">{{curNum}}月</option>
-				         {% endfor %}
-			         </select>
-			     </div>
-			     <div class="form-group">
-			     	 <button type="button" class="btn btn-danger btn-xs" onclick="paymodelSubmit()">保存</button>
-			     </div>
+          	<form class="form-inline" role="form">
+          	<table class="table table-striped table-advance table-hover">
+          	    <thead>
+			         <tr>
+			             <th>内存</th>
+			             <th>磁盘</th>
+			             <th>流量</th>
+			             <th>周期</th>
+			             <th>所需金额</th>
+			         </tr>
+			     </thead>
+			     <tbody>
+			     	<tr>
+			             <td>
+				             <select class="form-control" id="buy_memory">
+					         	 {% for curNum in memoryList %}
+						          <option value="{{curNum}}">{{curNum}}G</option>
+						         {% endfor %}
+				         	</select>
+			             </td>
+			             <td>
+				             <select class="form-control" id="buy_disk">
+					         	 {% for curNum in diskList %}
+						          <option value="{{curNum}}">{{curNum}}G</option>
+						         {% endfor %}
+					         </select>
+			             </td>
+			             <td>
+				            <select class="form-control" id="buy_net">
+					         	 {% for curNum in netList %}
+						          <option value="{{curNum}}">{{curNum}}G</option>
+						         {% endfor %}
+					         </select>
+			             </td>
+			             <td>
+				             <select class="form-control" id="buy_period">
+					         	 {% for curNum in periodList %}
+						          <option value="{{curNum}}">{{curNum}}月</option>
+						         {% endfor %}
+					         </select>
+			             </td>
+			             <td id="needMoney"></td>
+			        </tr>
+			        <tr>
+			            <input type="hidden" id="region_name" name="region_name" value="{{region_name}}">
+			        	<td colspan="5" align="center"><button type="button" class="btn btn-danger" onclick="paymodelSubmit('{{tenantName}}')">购买</button></td>
+			        </tr>
+			     </tbody> 
+			 </table>
 			 </form>
- 
+ 			 <br/>
 			 <table class="table table-striped table-advance table-hover">
 			     <thead>
 			         <tr>
 			             <th>购买时间</th>
+			             <th>所属区域</th>
 			             <th>购买内存</th>
 			             <th>购买磁盘</th>
 			             <th>购买流量</th>
@@ -60,11 +74,12 @@
 			     <tbody>
 			        {% for tenantBuyPayModel in tenantBuyPayModels %}
 			         <tr>
-			             <td class=" ">{{tenantBuyPayModel.create_time}}</td>
+			             <td class=" ">{{tenantBuyPayModel.create_time|date:'Y-m-d H:i:s'}}</td>
+			             <td class=" ">{{RegionMap|mkey:tenantBuyPayModel.region_name}}</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_memory}}G</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_disk}}G</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_net}}M</td>
-			             <td class=" ">{{tenantBuyPayModel.buy_period}}({{tenantBuyPayModel.pay_model}})</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_period}}({{PeriodMap|mkey:tenantBuyPayModel.pay_model}})</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_start_time}}</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_end_time}}</td>
 			         </tr>
@@ -74,5 +89,81 @@
 		 </div>
       </div>
     </section>
+    <script type="text/javascript">
+    	function paymodelSubmit(tenantName){
+    		var buy_memory=$("#buy_memory").val();
+    		var buy_disk=$("#buy_disk").val();
+    		var buy_net=$("#buy_net").val();
+    		var buy_period=$("#buy_period").val();
+    		var region_name=$("#region_name").val();
+    		if (buy_memory <= 0){
+    			swal("购买内存必须大于0");
+    			return false;
+    		}
+    		swal({
+    			title : "确定购买当前服务吗？",
+    			type : "warning",
+    			showCancelButton : true,
+    			confirmButtonColor : "#DD6B55",
+    			confirmButtonText : "确定",
+    			cancelButtonText : "取消",
+    			closeOnConfirm : false,
+    			closeOnCancel : false
+    		}, function(isConfirm) {
+    			if (isConfirm) {
+    				$.ajax({
+    					type : "POST",
+    					url : "/ajax/" + tenantName + "/paymodel",
+    					data : "region_name="+region_name+"&buy_memory="+buy_memory+"&buy_disk="+buy_disk+"&buy_net="+buy_net+"&buy_period="+buy_period,
+    					cache : false,
+    					beforeSend : function(xhr, settings) {
+    						var csrftoken = $.cookie('csrftoken');
+    						xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    					},
+    					success : function(msg) {
+    						var dataObj = msg
+    						if (dataObj["status"] == "success") {
+    							swal("操作成功");
+    							window.location.href = "/apps/"+tenantName+"/paymodel/"
+    						} else if (dataObj["status"] == "par") {
+    							swal("参数异常")
+    						} else if (dataObj["status"] == "nomoney") {
+    							swal("账户余额不足，不能购买");
+    						} else {
+    							swal("操作失败");
+    						}
+    					},
+    					error : function() {
+    						swal("系统异常");
+    					}
+    				});
+    			} else {
+    				swal.close();
+    			}
+    		});
+    	}
+    	
+    	function calcaulteFee(){
+    		var buy_memory=$("#buy_memory").val()
+    		var buy_disk=$("#buy_disk").val()
+    		var buy_net=$("#buy_net").val()
+    		var buy_period=$("#buy_period").val()
+    		$("#needMoney").html(buy_memory+"元")
+    	}    	
+    	$(document).ready(function () {  
+    		$("#buy_memory").change(function() {
+    			calcaulteFee()
+      	    });
+    		$("#buy_disk").change(function() {
+    			calcaulteFee()
+      	    });
+    		$("#buy_net").change(function() {
+    			calcaulteFee()
+      	    });
+    		$("#buy_period").change(function() {
+    			calcaulteFee()
+      	    });
+        });    	
+    </script>
 </section>
 {% endblock %}
