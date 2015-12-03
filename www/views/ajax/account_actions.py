@@ -11,6 +11,7 @@ from www.views import AuthedView
 from www.decorator import perm_required
 from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants
 from www.region import RegionInfo
+from django.conf import settings
 
 from goodrain_web.tools import JuncheePaginator
 
@@ -132,8 +133,25 @@ class PayModelInfo(AuthedView):
             buy_net = request.POST["buy_net"]
             buy_period = request.POST["buy_period"]
             regions = RegionInfo.region_names()
-            if int(buy_period) > 0 and regions.index(region_name) >= 0:
-                needTotalMoney = int(buy_memory) * int(buy_period)
+            period = int(buy_period)
+            pay_model = "month"
+            if period > 0 and regions.index(region_name) >= 0:
+                feerule = settings.REGION_FEE_RULE[region_name]
+                logger.debug(feerule)
+                one1 = float(feerule["memory_money"]) * int(buy_memory) 
+                one2 = float(feerule["disk_money"]) * int(buy_disk) 
+                one3 = float(feerule["net_money"]) * int(buy_net)
+                onehour = one1 + one2 + one3
+                buy_money = 0
+                tmp_perod = period
+                if period >= 12:
+                    pay_model = "year"
+                    buy_money = onehour * 24 * period * 1.5 * 30
+                    tmp_perod = period / 12
+                else:
+                    buy_money = onehour * 24 * period * 2 * 30
+                                        
+                needTotalMoney = round(buy_money, 2)
                 tenant = Tenants.objects.get(tenant_id=tenant_id)
                 if tenant.balance > needTotalMoney:
                     tenant.balance = tenant.balance - needTotalMoney
@@ -147,15 +165,15 @@ class PayModelInfo(AuthedView):
                     data = {}
                     data["tenant_id"] = tenant_id
                     data["region_name"] = region_name
-                    data["pay_model"] = "month"
-                    data["buy_period"] = buy_period
+                    data["pay_model"] = pay_model
+                    data["buy_period"] = tmp_perod
                     data["buy_memory"] = buy_memory
                     data["buy_disk"] = buy_disk
                     data["buy_net"] = buy_net
                     data["buy_start_time"] = start_time
                     data["buy_end_time"] = end_time
+                    data["buy_money"] = buy_money
                     data["create_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    logger.debug(data)
                     TenantRegionPayModel(**data).save()
                     result["status"] = "success"
                 else:

@@ -8,18 +8,27 @@
       <div class="panel-body">
           <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
           	<form class="form-inline" role="form">
+          	<input type="hidden" name="fee_rule" id="fee_rule" value="{{REGION_FEE_RULE}}">
           	<table class="table table-striped table-advance table-hover">
           	    <thead>
 			         <tr>
+			             <th>区域</th>
 			             <th>内存</th>
 			             <th>磁盘</th>
 			             <th>流量</th>
 			             <th>周期</th>
-			             <th>所需金额</th>
 			         </tr>
 			     </thead>
 			     <tbody>
 			     	<tr>
+			     	    <td>
+				             <select class="form-control" id="buy_region">
+					         	 {% for key,value in RegionMap.items %}
+						          <option value="{{key}}" {% if key == region_name %} selected="selected" {% endif %}>{{value}}</option>
+						         {% endfor %}
+				         	</select>
+			             </td>
+			             
 			             <td>
 				             <select class="form-control" id="buy_memory">
 					         	 {% for curNum in memoryList %}
@@ -43,16 +52,24 @@
 			             </td>
 			             <td>
 				             <select class="form-control" id="buy_period">
-					         	 {% for curNum in periodList %}
-						          <option value="{{curNum}}">{{curNum}}月</option>
+					         	 {% for key,value in periodList %}
+						             <option value="{{key}}" {% if key == 12 %} selected="selected" {% endif %}>{{value}}</option>
 						         {% endfor %}
 					         </select>
 			             </td>
-			             <td id="needMoney">0元</td>
+			        </tr>
+			        <tr>
+			        	<tr>
+			        		<td colspan="5" align="center">
+			        		 <strong style="font-size: 20px">
+			        		 	总金额：<label style="color: red" id="totalmoney"></label> &nbsp;&nbsp;&nbsp;&nbsp; 优惠：<label style="color: red" id="freemoney"></label>  &nbsp;&nbsp;&nbsp;&nbsp;应付金额：<label style="color: red" id="needmoney"></label>
+			        		 </strong>			        			
+			        		</td>
+			        	</tr>
 			        </tr>
 			        <tr>
 			            <input type="hidden" id="region_name" name="region_name" value="{{region_name}}">
-			        	<td colspan="5" align="center"><button type="button" class="btn btn-danger" onclick="paymodelSubmit('{{tenantName}}')">购买</button></td>
+			        	<td colspan="5" align="center"><button type="button" class="btn btn-danger" onclick="paymodelSubmit('{{tenantName}}')">打包购买</button></td>
 			        </tr>
 			     </tbody> 
 			 </table>
@@ -67,6 +84,7 @@
 			             <th>购买磁盘</th>
 			             <th>购买流量</th>
 			             <th>购买周期</th>
+			             <th>总金额</th>
 			             <th>开始计算时间</th>
 			             <th>结束计算时间</th>
 			         </tr>
@@ -78,8 +96,9 @@
 			             <td class=" ">{{RegionMap|mkey:tenantBuyPayModel.region_name}}</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_memory}}G</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_disk}}G</td>
-			             <td class=" ">{{tenantBuyPayModel.buy_net}}M</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_net}}G</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_period}}({{PeriodMap|mkey:tenantBuyPayModel.pay_model}})</td>
+			             <td class=" ">{{tenantBuyPayModel.buy_money}}元</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_start_time}}</td>
 			             <td class=" ">{{tenantBuyPayModel.buy_end_time}}</td>
 			         </tr>
@@ -90,12 +109,17 @@
       </div>
     </section>
     <script type="text/javascript">
+    
+     String.prototype.replaceAll = function(s1,s2){
+    	　　return this.replace(new RegExp(s1,"gm"),s2);
+    	}
+    
     	function paymodelSubmit(tenantName){
     		var buy_memory=$("#buy_memory").val();
     		var buy_disk=$("#buy_disk").val();
     		var buy_net=$("#buy_net").val();
     		var buy_period=$("#buy_period").val();
-    		var region_name=$("#region_name").val();
+    		var region_name=$("#buy_region").val();
     		if (buy_memory <= 0){
     			swal("购买内存必须大于0");
     			return false;
@@ -148,9 +172,29 @@
     		var buy_disk=$("#buy_disk").val()
     		var buy_net=$("#buy_net").val()
     		var buy_period=$("#buy_period").val()
-    		$("#needMoney").html(buy_memory+"元")
-    	}    	
-    	$(document).ready(function () {  
+    		var region_name=$("#buy_region").val();
+    		
+    		var fee_rule = $("#fee_rule").val()
+    		fee_rule =fee_rule.replaceAll('\'','\"')
+    		var jsonscopeobj = jQuery.parseJSON(fee_rule)
+    		var jsonobj=jsonscopeobj[region_name]
+    		var onehour = jsonobj["memory_money"]*buy_memory + jsonobj["disk_money"]*buy_disk +jsonobj["net_money"]*buy_net
+    		var buy_money=0
+    		var total_money= onehour * 24 * buy_period *30 * 4
+    		if(buy_period>=12){
+    			buy_money = onehour * 24 * buy_period *1.5 *30
+    		}else{
+    			buy_money = onehour * 24 * buy_period *2*30
+    		}
+    		var freemoney=total_money-buy_money
+    		$("#totalmoney").html(total_money.toFixed(2)+"元")
+    		$("#freemoney").html("-"+freemoney.toFixed(2)+"元")
+    		$("#needmoney").html(buy_money.toFixed(2)+"元")
+    	}
+    	$(document).ready(function () {    		
+    		$("#buy_region").change(function() {
+    			calcaulteFee()
+      	    });    		
     		$("#buy_memory").change(function() {
     			calcaulteFee()
       	    });
@@ -163,6 +207,7 @@
     		$("#buy_period").change(function() {
     			calcaulteFee()
       	    });
+    		calcaulteFee()
         });    	
     </script>
 </section>

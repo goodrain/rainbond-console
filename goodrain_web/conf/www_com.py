@@ -60,6 +60,13 @@ REGION_RULE = {
     'ali-sh': {'personal_money': 0.069, 'company_money': 0.208, 'personal_month_money': 50, 'company_month_money': 150},
 }
 
+REGION_FEE_RULE = {
+    'ucloud-bj-1': {'memory_money': 0.083, 'disk_money': 0.0069, 'net_money':0.8},
+    'aws-bj-1': {'memory_money': 0.243, 'disk_money': 0.0041, 'net_money':0.93},
+    'aws-jp-1': {'memory_money': 0.173, 'disk_money': 0.0041, 'net_money':0.89},
+    'ali-sh': {'memory_money': 0.069, 'disk_money': 0.0041, 'net_money':0.8},
+}
+
 GITLAB_SERVICE_API = {
     'url': 'http://code.goodrain.com/',
     'admin_user': 'app',

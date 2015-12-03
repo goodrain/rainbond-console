@@ -676,4 +676,5 @@ class TenantRegionPayModel(BaseModel):
     buy_net = models.IntegerField(help_text=u"购买流量", default=0)
     buy_start_time = models.DateTimeField(help_text=u"购买开始时间")
     buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
+    buy_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"购买金额")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
