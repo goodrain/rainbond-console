@@ -15,7 +15,7 @@
 			             <th>区域</th>
 			             <th>内存</th>
 			             <th>磁盘</th>
-			             <th>流量</th>
+			             <!--<th>流量</th> -->
 			             <th>周期</th>
 			         </tr>
 			     </thead>
@@ -43,6 +43,7 @@
 						         {% endfor %}
 					         </select>
 			             </td>
+			             <!-- 
 			             <td>
 				            <select class="form-control" id="buy_net">
 					         	 {% for curNum in netList %}
@@ -50,6 +51,7 @@
 						         {% endfor %}
 					         </select>
 			             </td>
+			              -->
 			             <td>
 				             <select class="form-control" id="buy_period">
 					         	 {% for key,value in periodList %}
@@ -60,7 +62,7 @@
 			        </tr>
 			        <tr>
 			        	<tr>
-			        		<td colspan="5" align="center">
+			        		<td colspan="4" align="center">
 			        		 <strong style="font-size: 20px">
 			        		 	总金额：<label style="color: red" id="totalmoney"></label> &nbsp;&nbsp;&nbsp;&nbsp; 优惠：<label style="color: red" id="freemoney"></label>  &nbsp;&nbsp;&nbsp;&nbsp;应付金额：<label style="color: red" id="needmoney"></label>
 			        		 </strong>			        			
@@ -69,7 +71,7 @@
 			        </tr>
 			        <tr>
 			            <input type="hidden" id="region_name" name="region_name" value="{{region_name}}">
-			        	<td colspan="5" align="center"><button type="button" class="btn btn-danger" onclick="paymodelSubmit('{{tenantName}}')">打包购买</button></td>
+			        	<td colspan="4" align="center"><button type="button" class="btn btn-danger" onclick="paymodelSubmit('{{tenantName}}')">打包购买</button></td>
 			        </tr>
 			     </tbody> 
 			 </table>
@@ -170,7 +172,7 @@
     	function calcaulteFee(){
     		var buy_memory=$("#buy_memory").val()
     		var buy_disk=$("#buy_disk").val()
-    		var buy_net=$("#buy_net").val()
+    		var buy_net = 0
     		var buy_period=$("#buy_period").val()
     		var region_name=$("#buy_region").val();
     		
@@ -178,13 +180,13 @@
     		fee_rule =fee_rule.replaceAll('\'','\"')
     		var jsonscopeobj = jQuery.parseJSON(fee_rule)
     		var jsonobj=jsonscopeobj[region_name]
-    		var onehour = jsonobj["memory_money"]*buy_memory + jsonobj["disk_money"]*buy_disk +jsonobj["net_money"]*buy_net
+    		var onehour = jsonobj["memory_money"]*buy_memory + jsonobj["disk_money"]*buy_disk 
     		var buy_money=0
-    		var total_money= onehour * 24 * buy_period *30 * 4
+    		var total_money= onehour * 24 * buy_period *30 * 4 + jsonobj["net_money"]*buy_net
     		if(buy_period>=12){
-    			buy_money = onehour * 24 * buy_period *1.5 *30
+    			buy_money = onehour * 24 * buy_period *1.5 *30+ jsonobj["net_money"]*buy_net
     		}else{
-    			buy_money = onehour * 24 * buy_period *2*30
+    			buy_money = onehour * 24 * buy_period *2*30+ jsonobj["net_money"]*buy_net
     		}
     		var freemoney=total_money-buy_money
     		$("#totalmoney").html(total_money.toFixed(2)+"元")
@@ -201,9 +203,9 @@
     		$("#buy_disk").change(function() {
     			calcaulteFee()
       	    });
-    		$("#buy_net").change(function() {
-    			calcaulteFee()
-      	    });
+    		//$("#buy_net").change(function() {
+    		//	calcaulteFee()
+      	    //});
     		$("#buy_period").change(function() {
     			calcaulteFee()
       	    });

@@ -141,17 +141,18 @@ class PayModelInfo(AuthedView):
                 one1 = float(feerule["memory_money"]) * int(buy_memory) 
                 one2 = float(feerule["disk_money"]) * int(buy_disk) 
                 one3 = float(feerule["net_money"]) * int(buy_net)
-                onehour = one1 + one2 + one3
+                onehour = one1 + one2
                 buy_money = 0
                 tmp_perod = period
                 if period >= 12:
                     pay_model = "year"
-                    buy_money = onehour * 24 * period * 1.5 * 30
+                    buy_money = onehour * 24 * period * 1.5 * 30 + one3
                     tmp_perod = period / 12
                 else:
-                    buy_money = onehour * 24 * period * 2 * 30
+                    buy_money = onehour * 24 * period * 2 * 30 + one3
                                         
                 needTotalMoney = round(buy_money, 2)
+                logger.debug(needTotalMoney)
                 tenant = Tenants.objects.get(tenant_id=tenant_id)
                 if tenant.balance > needTotalMoney:
                     tenant.balance = tenant.balance - needTotalMoney
