@@ -12,13 +12,11 @@
           getGraphs(start);
     });
 
-    /*
     setInterval(function() {
         var start = $('#graph-period').children('option:selected').val();
         getGraphs(start);
       }, 60000
     );
-    */
 
     function getGraphs(start) {
       $('.graph').each(function() {
