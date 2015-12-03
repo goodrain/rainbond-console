@@ -18,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 ZMQ_LOG_ADDRESS = 'tcp://127.0.0.1:9341'
 
-DEFAULT_HANDLERS = ['file_handler']
+DEFAULT_HANDLERS = ['zmq_handler']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
