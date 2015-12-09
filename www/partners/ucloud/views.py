@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import hashlib
 from django.http import JsonResponse
 from django.conf import settings
