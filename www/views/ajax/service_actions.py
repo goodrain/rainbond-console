@@ -185,7 +185,7 @@ class ServiceManage(AuthedView):
                                 depalias = depalias + ","
                             depalias = depalias + alias["service_alias"]
                         result["dep_service"] = depalias
-                    result["status"] = "dependency"                    
+                    result["status"] = "dependency"
                     return JsonResponse(result)
                 data = self.service.toJSON()
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
@@ -678,9 +678,9 @@ class ServiceCheck(AuthedView):
         data["service_id"] = self.service.service_id
         clone_url = self.service.git_url
         parsed_git_url = git_url_parse(clone_url)
-        if parsed_git_url == "code.goodrain.com":
+        if parsed_git_url.host == "code.goodrain.com":
             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2ssh
-        elif parsed_git_url == 'github.com':
+        elif parsed_git_url.host == 'github.com':
             createUser = Users.objects.get(user_id=self.service.creater)
             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.token)
         else:
