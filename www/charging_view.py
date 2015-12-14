@@ -108,7 +108,8 @@ class PayModelView(LeftSideBarMixin, AuthedView):
         context["tenantBuyPayModels"] = tenantBuyPayModels
         RegionMap = {}
         for item in RegionInfo.region_list:
-            RegionMap[item["name"]] = item["label"]
+            if item["enable"]:
+                RegionMap[item["name"]] = item["label"]
         PeriodMap = {"hour":u"小时", "month":u"月", "year":u"年"}
         context["RegionMap"] = RegionMap
         context["PeriodMap"] = PeriodMap        
