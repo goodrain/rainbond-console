@@ -132,7 +132,7 @@ class PayModelInfo(AuthedView):
             region_name = request.POST["region_name"]
             buy_memory = request.POST["buy_memory"]
             buy_disk = request.POST["buy_disk"]
-            buy_net = request.POST["buy_net"]
+            buy_net = 0
             buy_period = request.POST["buy_period"]
             regions = RegionInfo.region_names()
             period = int(buy_period)
