@@ -19,7 +19,7 @@ import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 
-RechargeTypeMap = {"alipay":u"支付宝", "100send50":u"充100送10", "weixin100":u"微信注册送100"}
+RechargeTypeMap = {"alipay":u"支付宝", "100send50":u"充100送10", "weixin100":u"微信注册送100", "rechargesend":u"充多少送多少"}
 
 class AccountBill(AuthedView):    
     @perm_required('tenant_account')
