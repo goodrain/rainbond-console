@@ -12,12 +12,14 @@ from www.decorator import perm_required
 from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants
 from www.region import RegionInfo
 from django.conf import settings
+from www.monitorservice.monitorhook import MonitorHook
 
 from goodrain_web.tools import JuncheePaginator
 
 import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
+monitorhook = MonitorHook()
 
 RechargeTypeMap = {"alipay":u"支付宝", "100send50":u"充100送10", "weixin100":u"微信注册送100", "rechargesend":u"充多少送多少"}
 
@@ -177,6 +179,7 @@ class PayModelInfo(AuthedView):
                     data["create_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     TenantRegionPayModel(**data).save()
                     result["status"] = "success"
+                    monitorhook.buyPayModelMonitor(self.tenant, self.user, 'buy_pay_model')
                 else:
                     result["status"] = "nomoney"
             else:

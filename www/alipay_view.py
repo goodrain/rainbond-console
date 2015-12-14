@@ -8,6 +8,7 @@ from www.alipay_direct.alipay_api import *
 from django.shortcuts import redirect
 from www.service_http import RegionServiceApi
 from www.utils.url import get_redirect_url
+from www.monitorservice.monitorhook import MonitorHook
 
 import logging
 logger = logging.getLogger('default')
@@ -15,6 +16,7 @@ logger = logging.getLogger('default')
 BANKS = "zhifubao,BOCB2C,ICBCB2C,CMB,CCB,ABC,COMM"
 
 regionClient = RegionServiceApi()
+monitorhook = MonitorHook()
 
 
 def submit(request, tenantName):
@@ -143,7 +145,7 @@ def return_url(request, tenantName):
                         # update notify
                 TenantPaymentNotify.objects.filter(
                     tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
-
+            monitorhook.rechargeMonitor(tenantRecharge.user_name, tenantRecharge.user_id, "recharge")
         else:
             logger.debug(
                 out_trade_no + " recharge trade_status=" + trade_status)
