@@ -26,6 +26,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/tenant-disk', ajax.AllTenantsUsedResource.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/rechargelist', ajax.AccountRecharging.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/consumelist', ajax.AccountQuery.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/paymodel', ajax.PayModelInfo.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/code_repos', ajax.CodeAction.as_view()),
     url(r'form_valid', ajax.FormValidView.as_view()),
 )

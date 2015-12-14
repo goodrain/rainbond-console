@@ -18,9 +18,6 @@ class PackageSelectView(AuthedView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         context["tenantName"] = self.tenantName
-        feerule = settings.REGION_RULE
-        context["personal_money"] = feerule[self.tenant.region]["personal_month_money"]
-        context["company_money"] = feerule[self.tenant.region]["company_month_money"]
         selected = request.GET.get("selected", "")
         context["selected"] = selected
         return TemplateResponse(self.request, "www/account/packageselect.html", context)
@@ -51,9 +48,6 @@ class PackageUpgradeView(AuthedView):
         context = self.get_context()
         context["tenantName"] = self.tenantName
         context["tenant"] = self.tenant
-        feerule = settings.REGION_RULE
-        context["personal_money"] = feerule[self.tenant.region]["personal_month_money"]
-        context["company_money"] = feerule[self.tenant.region]["company_month_money"]
         return TemplateResponse(self.request, "www/account/packageupgrade.html", context)
         
     def post(self, request, *args, **kwargs):
