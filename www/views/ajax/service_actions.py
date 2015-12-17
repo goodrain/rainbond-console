@@ -263,6 +263,10 @@ class ServiceManage(AuthedView):
                             temp_key = temp_key.replace('-', '_')
                             temport = baseService.getInnerServicePort(self.tenant.tenant_id, self.service.service_key)
                             if temport > 0:
+                                assinportNum = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, is_change=False, attr_value=service_port).count()
+                                while assinportNum > 0:
+                                    service_port = service_port + 1 
+                                    assinportNum = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, is_change=False, attr_value=service_port).count()
                                 service_port = temport + 1
                             baseService.saveServiceEnvVar(
                                 self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
