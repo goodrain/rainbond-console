@@ -275,9 +275,10 @@ class ServiceManage(AuthedView):
                             result["status"] = "inject_dependency"
                             return JsonResponse(result)
 
-                        # close inner service need to clear env
+                        # close inner service need to clear env                        
                         baseService.cancel_service_env(
                             self.service.tenant_id, self.service.service_id, self.service.service_region)
+                        TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
 
                     data = {}
                     data["protocol"] = self.service.protocol
