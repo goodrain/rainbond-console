@@ -48,7 +48,7 @@ class BaseTenantService(object):
     def getInnerServicePort(self, tenant_id, service_key):
         cur_service_port = 0
         dsn = BaseConnection()
-        query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}"";
+        query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}";
             '''.format(tenant_id=tenant_id, service_key=service_key)
         data = dsn.query(query_sql)
         logger.debug(data)
