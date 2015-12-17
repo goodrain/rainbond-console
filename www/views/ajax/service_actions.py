@@ -260,6 +260,9 @@ class ServiceManage(AuthedView):
                             temp_key = self.service.service_key.upper()
                             if self.service.category == 'application':
                                 temp_key = self.service.service_alias.upper()
+                            temport = baseService.getInnerServicePort(self.tenant.tenant_id, self.service.service_key)
+                            if temport > 0:
+                                service_port = temport + 1
                             baseService.saveServiceEnvVar(
                                 self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
                             baseService.saveServiceEnvVar(
