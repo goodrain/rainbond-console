@@ -81,6 +81,7 @@ def return_url(request, tenantName):
             tenantRecharge.status = trade_status
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
+            tempMoney = 0
             # recharge send money
             # tempMoney = int(tenantRecharge.money) / 100 * 50
             # if tempMoney > 0:
