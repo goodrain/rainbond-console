@@ -77,7 +77,7 @@
               </div>
            </div>
        {% else %}
-          {% if tenant.pay_type != "free" %}
+          {% if tenant.pay_type != "free" or tenantServiceInfo.service_key == 'mysql' %}
             <div class="row">
                 <input type="hidden" name="create_port_mapping" id='create_port_mapping' value="portMapping">
                 <div class="col-xs-12">
