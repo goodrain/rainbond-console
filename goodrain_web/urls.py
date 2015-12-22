@@ -24,6 +24,7 @@ urlpatterns = patterns(
     url(r'^account/', include('www.url_account')),
     url(r'^apps/(?P<tenantName>[\w\-]+)', include('www.url_service')),
     url(r'^ajax/', include('www.url_ajax')),
+    url(r'^market', include('www.urls.market')),
     url(r'^oauth/githup/$', login_required(ServiceGitHub.as_view())),
     url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
     url(r'^service/githubhook/$', csrf_exempt(GitHubWebHook.as_view())),

@@ -10,6 +10,8 @@ class PermActions(object):
     tenant_access_actions = (
         ('tenant_access', u"登入团队"),
         ('tenant_account', u"租户账户"),
+        ('app_add_advantage', u"评论应用"),
+        ('app_vote', u"对应用投票"),
     )
 
     tenant_viewer_actions = (

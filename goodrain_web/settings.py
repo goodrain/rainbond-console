@@ -99,6 +99,8 @@ TEMPLATE_CONTEXT_PROCESSORS = TCP + (
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 
+DATABASE_ROUTERS = ['goodrain_web.router.MultiDbRouter']
+
 LANGUAGE_CODE = 'zh-hans'
 
 DEFAULT_CHARSET = 'utf8'

@@ -1,3 +1,5 @@
+import os
+
 DEBUG = False
 
 TEMPLATE_DEBUG = True
@@ -14,10 +16,18 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'goodrain',
-        'USER': 'writer',
-        'PASSWORD': 'a5bzkEP3bjc',
-        'HOST': '127.0.0.1',
-        'PORT': '3307',
+        'USER': os.environ.get('MYSQL_USER'),
+        'PASSWORD': os.environ.get('MYSQL_PASSWORD'),
+        'HOST': os.environ.get('MYSQL_HOST'),
+        'PORT': os.environ.get('MYSQL_PORT'),
+    },
+    'stack': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'stack',
+        'USER': os.environ.get('MYSQL_USER'),
+        'PASSWORD': os.environ.get('MYSQL_PASSWORD'),
+        'HOST': os.environ.get('MYSQL_HOST'),
+        'PORT': os.environ.get('MYSQL_PORT'),
     },
 }
 
@@ -86,11 +96,11 @@ UCLOUD_APP = {
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-        'LOCATION': '127.0.0.1:11212',
+        'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
     },
     'session': {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-        'LOCATION': '127.0.0.1:11212',
+        'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
     }
 }
 
