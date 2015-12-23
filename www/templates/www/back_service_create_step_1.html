@@ -81,15 +81,13 @@
 					{% if dependecy_services %}
 						{% for key, deployed_services in dependecy_services.items %}
 						<div class="form-group">
-						  <!--input type="hidden" class="createService" name="createService" value="">
-						  <input type="hidden" class="hasService" name="hasService" value=""-->
 						  	<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{key.upper}}服务</label>
 						  	<div class="col-lg-10">
-						  		<select class="form-control col-lg-2" name="dependency_service">
-						  			<option value="__new__.{{d_service.service_key}}" selected="selected">新建</option>
+						  		<select class="form-control col-lg-2" style="width: 150px" name="dependency_service">
+						  			<option value="__new__.{{key}}" selected="selected">新建</option>
 						  			{% if deployed_services %}
 						  			{% for d_service in deployed_services %}
-						  			<option value="{{d_service.service_alias}}.{{d_service.service_key}}" selected="selected">{{d_service.service_alias}}</option>
+						  			<option value="{{d_service.service_alias}}.{{key}}">{{d_service.service_alias}}</option>
 						  			{% endfor %}
 						  			{% endif %}
 						  		</select>

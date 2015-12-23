@@ -13,6 +13,7 @@ from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantS
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.monitorservice.monitorhook import MonitorHook
+from www.utils.crypt import make_uuid
 
 import logging
 logger = logging.getLogger('default')
@@ -71,6 +72,20 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                 dependecy_services[s.service_key].append(s)
             return dependecy_services
 
+    def parse_dependency_service(self, dependency_service):
+        new_services = []
+        exist_t_services = []
+        for string in dependency_service:
+            service_alias, service_key = string.split('.', 1)
+            if service_alias == '__new__':
+                new_s = ServiceInfo.objects.get(service_key=service_key)
+                new_services.append(new_s)
+            else:
+                exist_t_s = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=service_alias)
+                exist_t_services.append(exist_t_s)
+
+        return new_services, exist_t_services
+
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
@@ -94,11 +109,8 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        logger.debug('debug', request.POST)
-        return JsonResponse({"status": "exist"}, status=200)
         service_alias = ""
-        uid = str(uuid.uuid4()) + self.tenant.tenant_id
-        service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
+        service_id = make_uuid(self.tenant.tenant_id)
         result = {}
         try:
             self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
@@ -108,13 +120,13 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
 
             tenant_id = self.tenant.tenant_id
 
-            service_key = request.POST.get("service_key", "")
-            if service_key == "":
+            service_key = request.POST.get("service_key", None)
+            if service_key is None:
                 result["status"] = "notexist"
                 return JsonResponse(result, status=200)
 
-            service_alias = request.POST.get("create_service_name", "")
-            if service_alias == "":
+            service_alias = request.POST.get("create_service_name", None)
+            if service_alias is None:
                 result["status"] = "empty"
                 return JsonResponse(result, status=200)
 
@@ -133,14 +145,17 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                     service.min_cpu = ccpu
                     service.min_memory = cm
             logger.debug(service.min_memory)
-            createService = request.POST.get("createService", "")
-            logger.debug(createService)
-            dependencyNum = 0
-            serviceKeys = createService.split(",")
-            if createService != "":
-                dependencyNum = len(serviceKeys)
+
+            dependency_service = request.POST.getlist("dependency_service")
+            logger.debug(dependency_service)
+            new_services, exist_t_services = self.parse_dependency_service(dependency_service)
+
+            if new_services:
+                new_required_memory = reduce(lambda x, y: x + y, [s.min_memory for s in new_services])
+            else:
+                new_required_memory = 0
             # calculate resource
-            flag = tenantUsedResource.predict_next_memory(self.tenant, dependencyNum * 128 + service.min_memory)
+            flag = tenantUsedResource.predict_next_memory(self.tenant, new_required_memory + service.min_memory)
             if not flag:
                 if self.tenant.pay_type == "free":
                     result["status"] = "over_memory"
@@ -148,12 +163,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                     result["status"] = "over_money"
                 return JsonResponse(result, status=200)
             # create new service
-            if createService != "":
-                for skey in serviceKeys:
+            if new_services:
+                for dep_service in new_services:
                     try:
-                        dep_service = ServiceInfo.objects.get(service_key=skey)
-                        tempUuid = str(uuid.uuid4()) + skey
-                        dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
+                        dep_service_id = make_uuid(dep_service.service_key)
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
@@ -165,13 +178,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         logger.exception(e)
 
             # exist service dependency
-            hasService = request.POST.get("hasService", "")
-            logger.debug(hasService)
-            if hasService != "":
-                serviceIds = hasService.split(",")
-                for sid in serviceIds:
+            if exist_t_services:
+                for t_service in exist_t_services:
                     try:
-                        baseService.create_service_dependency(tenant_id, service_id, sid, self.response_region)
+                        baseService.create_service_dependency(tenant_id, service_id, t_service.service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)
 
@@ -199,7 +209,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             logger.exception(e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
-            TenantServiceRelation.objects.get(service_id=service_id).delete()
+            TenantServiceRelation.objects.filter(service_id=service_id).delete()
             result["status"] = "failure"
         return JsonResponse(result, status=200)
 

@@ -6,13 +6,26 @@ import hashlib
 
 
 def encrypt_passwd(string):
-    new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(ord(string[2])/7)
+    new_word = str(ord(string[7])) + string + str(ord(string[5])) + 'goodrain' + str(ord(string[2]) / 7)
     password = hashlib.sha224(new_word).hexdigest()[0:16]
     return password
 
 
 def make_tenant_id():
     return str(uuid.uuid4()).replace('-', '')
+
+
+def make_uuid(key=None):
+    random_uuid = str(uuid.uuid4()).replace('-', '')
+    if key is not None:
+        if isinstance(key, unicode):
+            merged_str = random_uuid + key.encode('utf8')
+        elif isinstance(key, str):
+            merged_str = random_uuid + key
+
+        return hashlib.md5(merged_str).hexdigest()
+    else:
+        return random_uuid
 
 
 class AuthCode(object):
@@ -95,7 +108,7 @@ class AuthCode(object):
             box[i] = box[j]
             box[j] = tmp
 
-        #for i in xrange(len(box)):
+        # for i in xrange(len(box)):
         #    print str(box[i]).rjust(5),
         #    if ((i + 1) % 10) == 0:
         #        print ''
