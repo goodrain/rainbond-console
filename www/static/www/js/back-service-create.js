@@ -29,7 +29,7 @@ $(function(){
         }else{
             $('#create_service_notice').slideUp();
         }        
-        var service_dependecy = $("#service_dependecy").val()        
+        /*var service_dependecy = $("#service_dependecy").val()        
 		if(service_dependecy !=""){
 			var _selectValue = $('input[type="radio"][name="delineCheckbox1"]:checked').val()
 			if (typeof(_selectValue) != "undefined") { 
@@ -49,9 +49,9 @@ $(function(){
 				$('#create_dependency_service_notice').slideDown();
 				return;
 			}
-		}
+		}*/
 		var tenantName = $("#tenantName").val()
-		$("#back_service_finished").attr('disabled', "true")
+		$("#back_service_finished").prop('disabled', true)
 		var _data = $("form").serialize();
     	$.ajax({
     		type : "post",
@@ -81,13 +81,13 @@ $(function(){
     				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
     			} else {
     				swal("创建失败");
-    				$("#back_service_finished").removeAttr('disabled')
+    				$("#back_service_finished").prop('disabled', false)
                 }
-    			$("#back_service_finished").removeAttr('disabled')
+    			$("#back_service_finished").prop('disabled', false)
     		},
     		error : function() {
     			swal("系统异常,请重试");
-    			$("#back_service_finished").removeAttr('disabled')
+    			$("#back_service_finished").prop('disabled', false)
     		}
     	})
     });

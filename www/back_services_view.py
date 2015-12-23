@@ -58,6 +58,19 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/back-service-create.js')
         return media
 
+    def find_dependecy_services(self, serviceObj):
+        if serviceObj.dependecy is None:
+            return {}
+        else:
+            tenant_id = self.tenant.tenant_id
+            dependecy_keys = serviceObj.dependecy.split(',')
+            dependecy_keys.append('redis')
+            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
+            dependecy_services = dict((el, []) for el in dependecy_keys)
+            for s in deployTenantServices:
+                dependecy_services[s.service_key].append(s)
+            return dependecy_services
+
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
@@ -71,11 +84,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
 
             serviceObj = ServiceInfo.objects.get(service_key=service_key)
             context["service"] = serviceObj
-            if serviceObj.dependecy is not None and serviceObj.dependecy != "":
-                tenant_id = self.tenant.tenant_id
-                deployTenantServices = TenantServiceInfo.objects.filter(
-                    tenant_id=tenant_id, service_type=serviceObj.dependecy, service_region=self.response_region)
-                context["deployTenantServices"] = deployTenantServices
+            context["dependecy_services"] = self.find_dependecy_services(serviceObj)
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
         except Exception as e:
@@ -85,6 +94,8 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
+        logger.debug('debug', request.POST)
+        return JsonResponse({"status": "exist"}, status=200)
         service_alias = ""
         uid = str(uuid.uuid4()) + self.tenant.tenant_id
         service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()

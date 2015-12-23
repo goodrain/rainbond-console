@@ -9,7 +9,7 @@
 					method="post" action="" novalidate="novalidate">
 					<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
 					<input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
-					<input type="hidden" id="service_dependecy" name="service_dependecy" value="{{service.dependecy}}" />
+					<!--input type="hidden" id="service_dependecy" name="service_dependecy" value="{{service.dependecy}}" /-->
 					
 					<div class="form-group">
 						<div class="col-lg-12 ">
@@ -78,28 +78,30 @@
 							</select>
 						</div>
 					</div>					
-					{% if service.dependecy %}
-						
-						<input type="hidden" id="createService" name="createService" value="">
-						<input type="hidden" id="hasService" name="hasService" value="">
-						<div class="form-group ">
-							<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{service.dependecy.upper}}服务</label>
-							<div class="col-lg-10">
-							    <label class="radio-inline"> <input type="radio"
-									name="delineCheckbox1"
-									value="{{service.dependecy}}_{{service.dependecy}}" checked="checked">新建{{service.dependecy.upper}}
-								</label>
-								{% if deployTenantServices %}
-									{% for deployCache in deployTenantServices %}
-									<label class="radio-inline"> <input type="radio"
-										name="delineCheckbox1"
-										value="{{deployCache.service_id}}_{{deployCache.service_type}}">
-										{{deployCache.service_alias}}
-									</label>
-									{% endfor %}
-								{% endif %}
-							</div>
-						</div>
+					{% if dependecy_services %}
+						{% for key, deployed_services in dependecy_services %}
+						<div class="form-group">
+						  <!--input type="hidden" class="createService" name="createService" value="">
+						  <input type="hidden" class="hasService" name="hasService" value=""-->
+						  	<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{key.upper}}服务</label>
+						  	<div class="col-lg-10">
+						  	    <label class="radio-inline">
+						  	    	<input type="radio" name="createService"
+						  			value="{{key}}_{{service.dependecy}}" checked="checked">新建{{key.upper}}
+						  		</label>
+						  		{% if deployed_services %}
+						  			{% for d_service in deployed_services %}
+						  			<label class="radio-inline">
+						  			<input type="radio"
+						  				name="hasService"
+						  				value="{{d_service.service_id}}_{{d_service.service_key}}">
+						  				{{d_service.service_alias}}
+						  			</label>
+						  			{% endfor %}
+						  		{% endif %}
+						  	</div>
+						</div>>
+						{% endfor %}
 												
 						<div class="form-group ">
 							<div id="create_dependency_service_notice" class="alert alert-danger"
