@@ -65,7 +65,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
         else:
             tenant_id = self.tenant.tenant_id
             dependecy_keys = serviceObj.dependecy.split(',')
-            dependecy_keys.append('redis')
             deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
             dependecy_services = dict((el, []) for el in dependecy_keys)
             for s in deployTenantServices:
