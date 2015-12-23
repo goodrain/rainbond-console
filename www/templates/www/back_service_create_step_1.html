@@ -79,28 +79,22 @@
 						</div>
 					</div>					
 					{% if dependecy_services %}
-						{% for key, deployed_services in dependecy_services %}
+						{% for key, deployed_services in dependecy_services.items %}
 						<div class="form-group">
 						  <!--input type="hidden" class="createService" name="createService" value="">
 						  <input type="hidden" class="hasService" name="hasService" value=""-->
 						  	<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{key.upper}}服务</label>
 						  	<div class="col-lg-10">
-						  	    <label class="radio-inline">
-						  	    	<input type="radio" name="createService"
-						  			value="{{key}}_{{service.dependecy}}" checked="checked">新建{{key.upper}}
-						  		</label>
-						  		{% if deployed_services %}
+						  		<select class="form-control col-lg-2" name="dependency_service">
+						  			<option value="__new__.{{d_service.service_key}}" selected="selected">新建</option>
+						  			{% if deployed_services %}
 						  			{% for d_service in deployed_services %}
-						  			<label class="radio-inline">
-						  			<input type="radio"
-						  				name="hasService"
-						  				value="{{d_service.service_id}}_{{d_service.service_key}}">
-						  				{{d_service.service_alias}}
-						  			</label>
+						  			<option value="{{d_service.service_alias}}.{{d_service.service_key}}" selected="selected">{{d_service.service_alias}}</option>
 						  			{% endfor %}
-						  		{% endif %}
+						  			{% endif %}
+						  		</select>
 						  	</div>
-						</div>>
+						</div>
 						{% endfor %}
 												
 						<div class="form-group ">
