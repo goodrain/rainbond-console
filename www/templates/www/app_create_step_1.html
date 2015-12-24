@@ -17,7 +17,7 @@
 	            <div class="form-group ">
 	                <label for="create_app_name" class="control-label col-lg-2 app_name">名称</label>
 	                <div class="col-lg-8">
-	                    <input class="form-control valid" id="create_app_name" name="create_app_name" minlength="2" type="text" required="" placeholder="给应用起个名字">
+	                    <input class="form-control valid" id="create_app_name" name="create_app_name" minlength="2" type="text" required="" placeholder="给应用起个名字" value="{{app_an}}">
 	                    <div id="create_appname_notice" class="alert alert-danger" role="alert" style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">英文小写字母开始结束, 允许包含数字, 中划线 -</div>
 	                </div>
 	            </div>
@@ -82,5 +82,19 @@
 	        </div>
 	    </div>
     </section><!-- page end-->
+    <script type="text/javascript">
+    	var app_status='{{app_status}}'
+   		$(document).ready(function () {
+  	    	if(app_status == "exist") {
+   				swal("服务名已存在");
+   			}else if(app_status == "owed"){
+   				swal("余额不足请及时充值")
+   			}else if(app_status == "over_memory") {
+   				swal("免费资源已达上限，不能创建");
+   			}else if(app_status == "over_money") {
+   				swal("余额不足，不能创建");
+   			}
+   	    });
+    </script>
 </section>
 {% endblock %}

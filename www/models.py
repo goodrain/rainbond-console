@@ -661,3 +661,20 @@ class TenantServiceEnvVar(BaseModel):
 
     def __unicode__(self):
         return self.name
+
+class TenantRegionPayModel(BaseModel):
+    
+    class Meta:
+        db_table = 'tenant_region_pay_model'
+                
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")   
+    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+    pay_model = models.CharField(max_length=10, default='hour', help_text=u"付费模式:hour,month,year")
+    buy_period = models.IntegerField(help_text=u"购买周期", default=0)
+    buy_memory = models.IntegerField(help_text=u"购买内存", default=0)
+    buy_disk = models.IntegerField(help_text=u"购买磁盘", default=0)
+    buy_net = models.IntegerField(help_text=u"购买流量", default=0)
+    buy_start_time = models.DateTimeField(help_text=u"购买开始时间")
+    buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
+    buy_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"购买金额")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")

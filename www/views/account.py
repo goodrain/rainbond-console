@@ -65,19 +65,8 @@ class Login(BaseView):
         if isinstance(user, AnonymousUser):
             self.form = UserLoginForm()
             return self.get_response()
-        else:
-            time = request.GET.get('time', '')
-            return_to = request.GET.get('return_to', '')
-            if return_to is not None and return_to != "" and return_to.find("?") == -1:
-                tmp = user.email + time + "20616aea2c1136cda6701dd13d5c71"
-                d5 = hashlib.md5(tmp.encode("UTF-8")).hexdigest()
-                url = return_to + "?username=" + user.email + \
-                    "&time=" + time + "&token=" + d5
-                logger.debug('account.login', d5)
-                logger.debug('account.login', url)
-                return self.redirect_to(url)
-            else:
-                return self.redirect_view()
+        else:            
+            return self.redirect_view()
 
     @never_cache
     def post(self, request, *args, **kwargs):
@@ -104,7 +93,12 @@ class Login(BaseView):
                 user.git_user_id = git_user_id
                 user.save()
                 logger.info("account.login", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
-
+        
+        # to judge from www create servcie
+        app_ty = request.COOKIES.get('app_ty')
+        if app_ty is not None:
+            return self.redirect_to("/autodeploy?fr=www_app")
+                
         if next_url is not None:
             return self.redirect_to(next_url)
         else:
@@ -442,6 +436,11 @@ class Registation(BaseView, RegionOperateMixin):
 
             user = authenticate(username=email, password=password)
             login(request, user)
+                        
+            # to judge from www create servcie
+            app_ty = request.COOKIES.get('app_ty')
+            if app_ty is not None:
+                return self.redirect_to("/autodeploy?fr=www_app")
 
             selected_pay_level = ""
             pl = request.GET.get("pl", "")

@@ -46,7 +46,7 @@
         post_url = '/ajax/' + tenantName + '/' + serviceAlias + '/graph';
 
         function update_stat() {
-          $('#realtime-stat h5').each(function() {
+          $('#realtime-stat h1').each(function() {
             var graph_id = $(this).attr('id');
               $.ajax({
                 url: post_url,

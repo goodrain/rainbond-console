@@ -47,8 +47,8 @@ REGION_SERVICE_API = [{
     'url': 'http://api.aws-jp-1.goodrain.com:8888',
     'apitype': 'region service',
     'region_name': 'aws-jp-1',
-    #'proxy': HTTP_PROXY['ali_hk_proxy'],
-    #'proxy_priority': True,
+    # 'proxy': HTTP_PROXY['ali_hk_proxy'],
+    # 'proxy_priority': True,
 }, {
     'url': 'http://api.ali-sh.goodrain.com:8888',
     'apitype': 'region service',
@@ -64,10 +64,17 @@ WEBSOCKET_URL = {
 }
 
 REGION_RULE = {
-    'ucloud-bj-1': {'personal_money': 0.083, 'company_money': 0.25, 'personal_month_money': 60, 'company_month_money': 180},
-    'aws-bj-1': {'personal_money': 0.243, 'company_money': 0.729, 'personal_month_money': 175, 'company_month_money': 525},
-    'aws-jp-1': {'personal_money': 0.173, 'company_money': 0.52, 'personal_month_money': 125, 'company_month_money': 375},
-    'ali-sh': {'personal_money': 0.069, 'company_money': 0.208, 'personal_month_money': 50, 'company_month_money': 150},
+    'ucloud-bj-1': {'personal_money': 0.083, 'company_money': 0.332, 'personal_month_money': 60, 'company_month_money': 120},
+    'aws-bj-1': {'personal_money': 0.243, 'company_money': 0.972, 'personal_month_money': 175, 'company_month_money': 350},
+    'aws-jp-1': {'personal_money': 0.173, 'company_money': 0.692, 'personal_month_money': 125, 'company_month_money': 250},
+    'ali-sh': {'personal_money': 0.069, 'company_money': 0.276, 'personal_month_money': 50, 'company_month_money': 100},
+}
+
+REGION_FEE_RULE = {
+    'ucloud-bj-1': {'memory_money': 0.083, 'disk_money': 0.0069, 'net_money':0.8},
+    'aws-bj-1': {'memory_money': 0.243, 'disk_money': 0.0041, 'net_money':0.93},
+    'aws-jp-1': {'memory_money': 0.173, 'disk_money': 0.0041, 'net_money':0.89},
+    'ali-sh': {'memory_money': 0.069, 'disk_money': 0.0041, 'net_money':0.8},
 }
 
 GITLAB_SERVICE_API = {
@@ -89,8 +96,8 @@ QING_CLOUD_APP = {
 }
 
 UCLOUD_APP = {
-    "secret_key": "81b5615a617cb990b4c87bc9e1e91871ae070068",
-    "api_url": "http://114.119.38.96/api"
+    "secret_key": "b701f150c808b2b067692ab3580e719d3d88f0ce",
+    "api_url": "https://api.ucloud.cn"
 }
 
 CACHES = {

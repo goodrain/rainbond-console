@@ -8,6 +8,7 @@ from www.alipay_direct.alipay_api import *
 from django.shortcuts import redirect
 from www.service_http import RegionServiceApi
 from www.utils.url import get_redirect_url
+from www.monitorservice.monitorhook import MonitorHook
 
 import logging
 logger = logging.getLogger('default')
@@ -15,6 +16,7 @@ logger = logging.getLogger('default')
 BANKS = "zhifubao,BOCB2C,ICBCB2C,CMB,CCB,ABC,COMM"
 
 regionClient = RegionServiceApi()
+monitorhook = MonitorHook()
 
 
 def submit(request, tenantName):
@@ -79,23 +81,23 @@ def return_url(request, tenantName):
             tenantRecharge.status = trade_status
             tenantRecharge.trade_no = trade_no
             tenantRecharge.save()
+            tempMoney = 0
             # recharge send money
-            tempMoney = int(tenantRecharge.money) / 100 * 50
-            if tempMoney > 0:
-                sendRecharge = TenantRecharge()
-                sendRecharge.tenant_id = tenantRecharge.tenant_id
-                sendRecharge.user_id = tenantRecharge.user_id
-                sendRecharge.user_name = tenantRecharge.user_name
-                sendRecharge.order_no = tenantRecharge.order_no
-                sendRecharge.recharge_type = "100send50"
-                sendRecharge.money = tempMoney
-                sendRecharge.subject = "充100值送50"
-                sendRecharge.body = "充100值送50"
-                sendRecharge.show_url = ""
-                sendRecharge.time = datetime.datetime.now().strftime(
-                    '%Y-%m-%d %H:%M:%S')
-                sendRecharge.status = "TRADE_SUCCESS"
-                sendRecharge.save()
+            # tempMoney = int(tenantRecharge.money) / 100 * 50
+            # if tempMoney > 0:
+            #    sendRecharge = TenantRecharge()
+            #    sendRecharge.tenant_id = tenantRecharge.tenant_id
+            #    sendRecharge.user_id = tenantRecharge.user_id
+            #    sendRecharge.user_name = tenantRecharge.user_name
+            #    sendRecharge.order_no = tenantRecharge.order_no
+            #    sendRecharge.recharge_type = "100send50"
+            #    sendRecharge.money = tempMoney
+            #    sendRecharge.subject = "充100值送50"
+            #    sendRecharge.body = "充100值送50"
+            #    sendRecharge.show_url = ""
+            #    sendRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            #    sendRecharge.status = "TRADE_SUCCESS"
+            #    sendRecharge.save()
             # concurrent question
             tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
             tenant.balance = tenant.balance + tenantRecharge.money + tempMoney
@@ -144,7 +146,7 @@ def return_url(request, tenantName):
                         # update notify
                 TenantPaymentNotify.objects.filter(
                     tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
-
+            monitorhook.rechargeMonitor(tenantRecharge.user_name, tenantRecharge.user_id, "recharge")
         else:
             logger.debug(
                 out_trade_no + " recharge trade_status=" + trade_status)

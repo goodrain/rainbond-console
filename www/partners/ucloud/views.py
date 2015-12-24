@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import hashlib
 from django.http import JsonResponse
 from django.conf import settings
@@ -37,12 +38,12 @@ class EntranceView(BaseView, LoginRedirectMixin):
 
         u_api = UCloudApi(token)
         u_response = u_api.get_user_info()
+        logger.debug("partners.auth_ucloud", u_response)
+
         if u_response.RetCode != 0:
             info = "get_user_info got retcode: {0}".format(u_response.RetCode)
             logger.error("partners.auth_ucloud", info)
-            return JsonResponse({"ok": False, "info": info}, status=403)
-
-        logger.debug("partners.auth_ucloud", u_response)
+            return None
 
         return u_response.DataSet[0]
 
@@ -52,6 +53,9 @@ class EntranceView(BaseView, LoginRedirectMixin):
             return JsonResponse({"ok": False, "info": "need AccessToken field"}, status=400)
 
         remote_user = self.get_remote_user(AccessToken)
+        if remote_user is None:
+            return JsonResponse({"ok": False, "info": "用户验证失败"}, status=403)
+
         if isinstance(request.user, AnonymousUser):
             pass
         else:

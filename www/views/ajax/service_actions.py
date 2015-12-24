@@ -185,7 +185,7 @@ class ServiceManage(AuthedView):
                                 depalias = depalias + ","
                             depalias = depalias + alias["service_alias"]
                         result["dep_service"] = depalias
-                    result["status"] = "dependency"                    
+                    result["status"] = "dependency"
                     return JsonResponse(result)
                 data = self.service.toJSON()
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
@@ -260,6 +260,13 @@ class ServiceManage(AuthedView):
                             temp_key = self.service.service_key.upper()
                             if self.service.category == 'application':
                                 temp_key = self.service.service_alias.upper()
+                            temp_key = temp_key.replace('-', '_')
+                            temport = baseService.getInnerServicePort(self.tenant.tenant_id, self.service.service_key)
+                            if temport > 0:
+                                assinportNum = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, is_change=False, attr_value=service_port).count()
+                                while assinportNum > 0:
+                                    service_port = service_port + 1 
+                                    assinportNum = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, is_change=False, attr_value=service_port).count()
                             baseService.saveServiceEnvVar(
                                 self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
                             baseService.saveServiceEnvVar(
@@ -272,9 +279,10 @@ class ServiceManage(AuthedView):
                             result["status"] = "inject_dependency"
                             return JsonResponse(result)
 
-                        # close inner service need to clear env
+                        # close inner service need to clear env                        
                         baseService.cancel_service_env(
                             self.service.tenant_id, self.service.service_id, self.service.service_region)
+                        TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
 
                     data = {}
                     data["protocol"] = self.service.protocol
@@ -678,9 +686,9 @@ class ServiceCheck(AuthedView):
         data["service_id"] = self.service.service_id
         clone_url = self.service.git_url
         parsed_git_url = git_url_parse(clone_url)
-        if parsed_git_url == "code.goodrain.com":
+        if parsed_git_url.host == "code.goodrain.com":
             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2ssh
-        elif parsed_git_url == 'github.com':
+        elif parsed_git_url.host == 'github.com':
             createUser = Users.objects.get(user_id=self.service.creater)
             gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.token)
         else:

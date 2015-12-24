@@ -31,7 +31,7 @@ class BaseHttpClient(object):
         pass
 
     def __init__(self, *args, **kwargs):
-        self.http = httplib2.Http(timeout=20)
+        self.timeout = 20
         self.apitype = 'Not specified'
         # self.report = Dict({"ok":True})
 
@@ -59,7 +59,7 @@ class BaseHttpClient(object):
     def _request(self, url, method, headers=None, body=None, client=None, *args, **kwargs):
         retry_count = 2
         if client is None:
-            client = self.http
+            client = httplib2.Http(timeout=self.timeout)
         while retry_count:
             try:
                 if body is None:

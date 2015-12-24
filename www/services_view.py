@@ -8,24 +8,25 @@ import json
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
+from django.shortcuts import redirect
 from django.http import Http404
 from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin
 from www.decorator import perm_required
-from www.models import Users, TenantRegionInfo, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceEnv, TenantServiceEnvVar
+from www.models import Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceAuth, TenantServiceEnv, TenantServiceEnvVar
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
 from github_http import GitHubApi
 from django.conf import settings
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from www.monitorservice.monitorhook import MonitorHook
+from www.utils.url import get_redirect_url
 
 logger = logging.getLogger('default')
-
 gitClient = GitlabApi()
-
 gitHubClient = GitHubApi()
-
 regionClient = RegionServiceApi()
-
+monitorhook = MonitorHook()
 
 class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
 
@@ -318,6 +319,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
                         cur_git_url = self.service.git_url.split("/")
                         httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+                    elif self.service.code_from == "gitlab_pub":
+                        cur_git_url = self.service.git_url.split("/")
+                        httpGitUrl = "http://code.goodrain.com/demo/" + cur_git_url[1]
                     else:
                         httpGitUrl = self.service.git_url
                     context["httpGitUrl"] = httpGitUrl
@@ -414,7 +418,215 @@ class ServiceHistoryLog(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)
+    
+    
+class ServiceAutoDeploy(BaseView):
+    
+    def getTenants(self, user_id):
+        tenants_has = PermRelTenant.objects.filter(user_id=user_id)
+        if tenants_has:
+            tenant_pk = tenants_has[0].tenant_id
+            tenant = Tenants.objects.get(pk=tenant_pk)
+            return tenant
+        else:
+            return None
 
+    def app_create(self, user, tenant, app_name, git_url, service_code_from):
+        status = ""
+        uid = str(uuid.uuid4())
+        service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
+        try:
+            tenant_id = tenant.tenant_id
+            
+            if tenant.pay_type == "payed":
+                tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=tenant.region)
+                if tenant_region.service_status == 2:
+                    status = "owed"
+                    return  status
+            
+            service_alias = app_name.lower()
+            # get base service
+            service = ServiceInfo.objects.get(service_key="application")
+            # create console tenant service
+            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
+            if num > 0:
+                status = "exist"
+                return  status             
+            # calculate resource
+            tenantUsedResource = TenantUsedResource()
+            flag = tenantUsedResource.predict_next_memory(tenant, service.min_memory)
+            if not flag:
+                if tenant.pay_type == "free":
+                    status = "over_memory"
+                else:
+                    status = "over_money"
+                return  status
+            # create console service
+            baseService = BaseTenantService()
+            service.desc = ""
+            newTenantService = baseService.create_service(
+                service_id, tenant_id, service_alias, service, user.pk, region=tenant.region)
+            monitorhook.serviceMonitor(user.nick_name, newTenantService, 'create_service', True)
+            # code repos
+            if service_code_from == "gitlab_new":
+                project_id = 0
+                if user.git_user_id > 0:
+                    project_id = gitClient.createProject(tenant.tenant_name + "_" + service_alias)
+                    logger.debug(project_id)
+                    monitorhook.gitProjectMonitor(user.nick_name, newTenantService, 'create_git_project', project_id)
+                    if project_id > 0:
+                        gitClient.addProjectMember(project_id, user.git_user_id, 'master')
+                        gitClient.addProjectMember(project_id, 2, 'reporter')
+                        ts = TenantServiceInfo.objects.get(service_id=service_id)
+                        ts.git_project_id = project_id
+                        ts.git_url = "git@code.goodrain.com:app/" + tenant.tenant_name + "_" + service_alias + ".git"
+                        ts.code_from = service_code_from
+                        ts.code_version = "master"
+                        ts.save()
+                        gitClient.createWebHook(project_id)
+                    else:
+                        ts = TenantServiceInfo.objects.get(service_id=service_id)
+                        ts.code_from = service_code_from
+                        ts.code_version = "master"
+                        ts.save()
+            else:
+                ts = TenantServiceInfo.objects.get(service_id=service_id)
+                
+                new_git_url = git_url
+                new_git_version = "master"                
+                if service_code_from == "github_pub":
+                    if git_url.find(".git") < 0:
+                        gits = git_url.split("/")
+                        size = len(gits)
+                        new_git_version = gits[size - 1]
+                        bra = "/" + gits[size - 2] + "/" + gits[size - 1]
+                        new_git_url = git_url.replace(bra, ".git")                    
+                ts.git_project_id = "0"
+                ts.git_url = new_git_url
+                ts.code_from = service_code_from
+                ts.code_version = new_git_version
+                ts.save()
+
+                data = {}
+                data["tenant_id"] = ts.tenant_id
+                data["service_id"] = ts.service_id
+                data["git_url"] = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
+                task = {}
+                task["tube"] = "code_check"
+                task["service_id"] = ts.service_id
+                task["data"] = data
+                logger.debug(json.dumps(task))
+                regionClient.writeToRegionBeanstalk(tenant.region, ts.service_id, json.dumps(task))
+            # create region tenantservice
+            baseService.create_region_service(newTenantService, tenant.tenant_name, tenant.region, user.nick_name)
+            monitorhook.serviceMonitor(user.nick_name, newTenantService, 'init_region_service', True)
+            # create service env
+            baseService.create_service_env(tenant_id, service_id, tenant.region)
+            # record log
+            status = "success"
+        except Exception as e:
+            logger.exception(e)
+            TenantServiceInfo.objects.filter(service_id=service_id).delete()
+            tempTenantService = TenantServiceInfo.objects.get(service_id=service_id)
+            monitorhook.serviceMonitor(user.nick_name, tempTenantService, 'create_service_error', False)
+            status = "failure"
+        return status
+    
+    def dealAppRequest(self, request, tenant, app_ty, app_an, app_sd):
+        status = ""
+        tmpUrl = ""
+        if app_ty == "1":
+            if app_an != "" and app_sd != "":
+                status = self.app_create(self.user, tenant, app_an, app_sd, "github_pub")
+                if status == "success":
+                    tmpUrl = "/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an)                        
+                else:
+                    tmpUrl = "/apps/{0}/app-create/".format(tenant.tenant_name)
+            else:
+                tmpUrl = "/apps/{0}/app-create/".format(tenant.tenant_name)
+        elif app_ty == "2":
+            if app_an == "":
+                app_an = "demo"
+            if app_sd == "":
+                status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_new")
+            else:
+                status = self.app_create(self.user, tenant, app_an, app_sd, "gitlab_pub")
+            if status == "success":
+                tmpUrl = "/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an)
+            else:
+                tmpUrl = "/apps/{0}/app-create/".format(tenant.tenant_name)
+        elif app_ty == "3":
+            tmpUrl = "/apps/{0}/service-deploy/?service_key={1}".format(tenant.tenant_name, app_sd)
+        else:
+            tmpUrl = "/apps/{0}".format(tenant.tenant_name)
+        return status, tmpUrl
+        
+    
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        app_ty = request.GET.get("ty", "")
+        app_an = request.GET.get("an", "")
+        app_sd = request.GET.get("sd", "")
+        fr = request.GET.get("fr", "")
+        if fr != "" and fr == "www_app":
+            app_ty = request.COOKIES.get('app_ty', '')            
+            app_an = request.COOKIES.get('app_an', '')            
+            app_sd = request.COOKIES.get('app_sd', '') 
+        logger.debug("app_ty=" + app_ty)
+        logger.debug("app_an=" + app_an)
+        logger.debug("app_sd=" + app_sd)                                
+        if self.user is not None and self.user.pk is not None:
+            tenant = self.getTenants(self.user.pk)
+            if tenant is None:
+                return self.redirect_to("/login")            
+            status, temUrl = self.dealAppRequest(request, tenant, app_ty, app_an, app_sd)
+            response = redirect(get_redirect_url(temUrl, request))            
+            response.delete_cookie('app_ty')            
+            response.delete_cookie('app_sd')
+            if status == "success":
+                response.delete_cookie('app_an')
+            else:
+                response.set_cookie('app_status', status)            
+        else:
+            response = redirect(get_redirect_url("/login", request))
+            if app_ty != "":
+                response.set_cookie('app_ty', app_ty)
+                response.set_cookie('app_an', app_an)
+                response.set_cookie('app_sd', app_sd)
+        return response
+    
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        app_ty = request.POST.get("ty", "")
+        app_an = request.POST.get("an", "")
+        app_sd = request.POST.get("sd", "")
+        fr = request.GET.get("fr", "")
+        if fr != "" and fr == "www_app":
+            app_ty = request.COOKIES.get('app_ty', '')            
+            app_an = request.COOKIES.get('app_an', '')            
+            app_sd = request.COOKIES.get('app_sd', '') 
+        logger.debug("app_ty=" + app_ty)
+        logger.debug("app_an=" + app_an)
+        logger.debug("app_sd=" + app_sd)
+        if self.user is not None and self.user.pk is not None:
+            tenant = self.getTenants(self.user.pk)
+            if tenant is None:
+                return self.redirect_to("/login")            
+            status, temUrl = self.dealAppRequest(request, tenant, app_ty, app_an, app_sd)
+            response = redirect(get_redirect_url(temUrl, request))           
+            response.delete_cookie('app_ty')            
+            response.delete_cookie('app_sd')
+            if status == "success":
+                response.delete_cookie('app_an')
+            else:
+                response.set_cookie('app_status', status)         
+        else:
+            response = redirect(get_redirect_url("/login", request))
+            if app_ty != "":
+                response.set_cookie('app_ty', app_ty)
+                response.set_cookie('app_an', app_an)
+                response.set_cookie('app_sd', app_sd)
+        return response
 
 class GitLabManager(AuthedView):
 

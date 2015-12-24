@@ -1,5 +1,4 @@
  <!-- statistic start -->
- {% if tenant.pay_type != 'free' %}
  <div role="tabpanel" class="tab-pane active" id="statistic">
   {% if statistic_type == 'history' %}
    <div>
@@ -136,15 +135,15 @@
     <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-3">
       <ul>
         <li>
-          <h5 id="response-time-stat">loading</h5>
+          <h1 id="response-time-stat">loading</h1>
           平均响应时间
         </li>
         <li>
-          <h5 id="throughput-stat">loading</h5>
+          <h1 id="throughput-stat">loading</h1>
           吞吐率
         </li>
         <li>
-          <h5 id="online-stat">loading</h5>
+          <h1 id="online-stat">loading</h1>
           在线人数
         </li>
       </ul>
@@ -177,11 +176,11 @@
     <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-2">
       <ul>
         <li>
-          <h5 id="sqltime-stat">loading</h5>
+          <h1 id="sqltime-stat">loading</h1>
           sql平均响应时间
         </li>
         <li>
-          <h5 id="sql-throughput-stat">loading</h5>
+          <h1 id="sql-throughput-stat">loading</h1>
           sql吞吐率
         </li>
       </ul>
@@ -212,5 +211,4 @@
 
   {% endif %}<!--finish realtime-->
  </div>
- {% endif %}
  <!-- statistic end-->

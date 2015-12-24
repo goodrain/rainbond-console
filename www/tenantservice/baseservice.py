@@ -45,6 +45,19 @@ class BaseTenantService(object):
                 cur_service_port = int(temp)
         return cur_service_port
 
+    def getInnerServicePort(self, tenant_id, service_key):
+        cur_service_port = 0
+        dsn = BaseConnection()
+        query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}";
+            '''.format(tenant_id=tenant_id, service_key=service_key)
+        data = dsn.query(query_sql)
+        logger.debug(data)
+        if data is not None:
+            temp = data[0]["service_port"]
+            if temp is not None:
+                cur_service_port = int(temp)
+        return cur_service_port
+
     def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
         if service.category in ("application", "app_publish"):
             service_port = service.inner_port + 1000

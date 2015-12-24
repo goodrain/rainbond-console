@@ -141,3 +141,36 @@ class MonitorHook(object):
             data["result"] = "failure"
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
+        
+    def rechargeMonitor(self, nick_name, user_id, action):
+        try:
+            data = {}
+            data["operator"] = nick_name
+            data["origin"] = "goodrain_web"
+            data["target_id"] = user_id
+            data["target_name"] = nick_name
+            data["category"] = "user"
+            data["action"] = action
+            data["info"] = ""
+            data["result"] = "success"
+            data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            logger.debug('monitor.hook', json.dumps(data))
+        except Exception:
+            pass        
+
+    def buyPayModelMonitor(self, tenant, user, action):
+        try:
+            data = {}
+            data["operator"] = user.nick_name
+            data["origin"] = "goodrain_web"
+            data["target_id"] = tenant.tenant_id
+            data["target_name"] = tenant.tenant_name
+            data["category"] = "tenant"
+            data["action"] = action
+            data["info"] = ""
+            data["result"] = "success"
+            data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            logger.debug('monitor.hook', json.dumps(data))
+        except Exception:
+            pass
+        

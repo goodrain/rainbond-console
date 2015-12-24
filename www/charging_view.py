@@ -10,12 +10,15 @@ from django.template.response import TemplateResponse
 from django.core.paginator import Paginator
 from django.http.response import HttpResponse
 from www.views import AuthedView, LeftSideBarMixin
-from www.models import TenantFeeBill
+from www.models import TenantFeeBill, TenantRegionPayModel
+from www.region import RegionInfo
+from django.conf import settings
 
 from goodrain_web.tools import JuncheePaginator
 
 import logging
 logger = logging.getLogger('default')
+
 
 
 class Recharging(LeftSideBarMixin, AuthedView):
@@ -78,3 +81,37 @@ class Account(LeftSideBarMixin, AuthedView):
         context["myFinanceAccount"] = "active"
         context["myFinanceStatus"] = "active"
         return TemplateResponse(self.request, "www/tradedetails.html", context)
+    
+class PayModelView(LeftSideBarMixin, AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/goodrainstyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+            'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js')
+        return media
+
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        if self.tenant.pay_level != "company":
+            return self.redirect_to("/payed/" + self.tenantName + "/upgrade")
+        context = self.get_context()
+        context["tenant"] = self.tenant
+        context["tenantName"] = self.tenantName
+        context["region_name"] = self.response_region
+        context["myPayModelstatus"] = "active"
+        context["myFinanceStatus"] = "active"
+        context["memoryList"] = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 1000]
+        context["diskList"] = [0, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+        context["netList"] = [0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
+        context["periodList"] = [(1, "1月"), (2, "2月"), (3, "3月"), (4, "4月"), (5, "5月"), (6, "6月"), (7, "7月"), (8, "8月"), (9, "9月"), (12, "1年"), (24, "2年")]
+        tenantBuyPayModels = TenantRegionPayModel.objects.filter(tenant_id=self.tenant.tenant_id)
+        context["tenantBuyPayModels"] = tenantBuyPayModels
+        RegionMap = {}
+        for item in RegionInfo.region_list:
+            if item["enable"]:
+                RegionMap[item["name"]] = item["label"]
+        PeriodMap = {"hour":u"小时", "month":u"月", "year":u"年"}
+        context["RegionMap"] = RegionMap
+        context["PeriodMap"] = PeriodMap        
+        context["REGION_FEE_RULE"] = settings.REGION_FEE_RULE   
+        return TemplateResponse(self.request, "www/paymodel.html", context)

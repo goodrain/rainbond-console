@@ -18,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 ZMQ_LOG_ADDRESS = 'tcp://127.0.0.1:9341'
 
-DEFAULT_HANDLERS = ['file_handler']
+DEFAULT_HANDLERS = ['zmq_handler']
 
 PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
@@ -134,11 +134,11 @@ EMAIL_HOST_PASSWORD = 'Thaechee3moo'
 EMAIL_USE_SSL = True
 
 DISCOURSE_SECRET_KEY = 'c2GZHIg8pcF2Pg5M'
-#STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
-    #'DEFAULT_PERMISSION_CLASSES': (),
+    # 'DEFAULT_PERMISSION_CLASSES': (),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
