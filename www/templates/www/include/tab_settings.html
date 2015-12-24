@@ -41,11 +41,12 @@
       </div>
   </section>
    
-  {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
+  
   <section class="panel">
       <header class="panel-heading">对外服务</header>
       <div class="panel-body">
        {% if tenantServiceInfo.protocol == "http" %}
+        {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
            <div class="row">
               <div class="col-xs-12">
                 <table class="table">
@@ -76,6 +77,7 @@
                 </table>
               </div>
            </div>
+        {% endif %}
        {% else %}
           {% if tenant.pay_type != "free" or tenantServiceInfo.service_key == 'mysql' %}
             <div class="row">
@@ -111,7 +113,7 @@
        {% endif %}
       </div>
   </section>
-  {% endif %}
+  
   <section class="panel">
       <header class="panel-heading">对内服务
         {% if 'manage_service' in user.actions %}
