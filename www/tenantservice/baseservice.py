@@ -141,7 +141,7 @@ class BaseTenantService(object):
         data["container_cmd"] = newTenantService.cmd
         data["node_label"] = ""
         data["is_create_service"] = newTenantService.is_service
-        data["is_binding_port"] = newTenantService.is_web_service
+        data["is_binding_port"] = newTenantService.is_web_service or newTenantService.service_key == 'mysql'
         data["deploy_version"] = newTenantService.deploy_version if do_deploy else None
         data["domain"] = domain
         data["category"] = newTenantService.category
