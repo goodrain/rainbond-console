@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 from django.template.response import TemplateResponse
-from django.http.response import JsonResponse
+from django.http.response import JsonResponse, HttpResponse
 
 from www.views import AuthedView, BaseView
 from www.decorator import perm_required
@@ -124,6 +124,11 @@ class AppList(BaseView):
     def get(self, request, category_id=None, *args, **kwargs):
         queries = request.GET.dict()
         data = self.get_app_list(category_id, **queries)
+        flag = queries.get('flag', None)
+        if flag == 'cross':
+            callback = queries.get('callback')
+            body = callback + json.dumps(data)
+            return HttpResponse(body)
         return JsonResponse(data)
 
 
@@ -163,6 +168,13 @@ class AppInfo(BaseView):
                 "version": publish_app.version, "install": publish_app.install_link
             })
 
+        queries = request.GET.dict()
+        flag = queries.get('flag', None)
+        if flag == 'cross':
+            callback = queries.get('callback')
+            body = callback + json.dumps(data)
+            return HttpResponse(body)
+
         return JsonResponse(data)
 
 
@@ -178,7 +190,15 @@ class AppAdvantage(BaseView):
         app.using = app.using + 1
         app.save(update_fields=['using'])
 
-        return JsonResponse({"success": True, "info": u"评论成功"}, status=200)
+        data = {"success": True, "info": u"评论成功"}
+        queries = request.POST.dict()
+        flag = queries.get('flag', None)
+        if flag == 'cross':
+            callback = queries.get('callback')
+            body = callback + json.dumps(data)
+            return HttpResponse(body)
+
+        return JsonResponse(data, status=200)
 
 
 class AdvantageVote(BaseView):
@@ -194,4 +214,12 @@ class AdvantageVote(BaseView):
         app.using = app.using + 1
         app.save(update_fields=['using'])
 
-        return JsonResponse({"success": True, "info": u"投票成功"}, status=200)
+        data = {"success": True, "info": u"投票成功"}
+        queries = request.POST.dict()
+        flag = queries.get('flag', None)
+        if flag == 'cross':
+            callback = queries.get('callback')
+            body = callback + json.dumps(data)
+            return HttpResponse(body)
+
+        return JsonResponse(data, status=200)
