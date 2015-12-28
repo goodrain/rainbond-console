@@ -1,9 +1,9 @@
 # -*- coding: utf8 -*-
 import json
-from django.template.response import TemplateResponse
+#from django.template.response import TemplateResponse
 from django.http.response import JsonResponse, HttpResponse
 
-from www.views import AuthedView, BaseView
+from www.views import BaseView
 from www.decorator import perm_required
 from www.models import Category, App, OneLiner, Vote, ServiceInfo
 
@@ -223,3 +223,7 @@ class AdvantageVote(BaseView):
             return HttpResponse(body)
 
         return JsonResponse(data, status=200)
+
+    @perm_required('app_vote')
+    def put(self, *args, **kwargs):
+        return self.post(*args, **kwargs)
