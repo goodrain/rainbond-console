@@ -5,7 +5,7 @@ from django.http.response import JsonResponse, HttpResponse
 
 from www.views import BaseView
 from www.decorator import perm_required
-from www.models import Category, App, OneLiner, Vote, ServiceInfo
+from www.models import Category, App, OneLiner, Vote, ServiceInfo, AnonymousUser
 
 import logging
 logger = logging.getLogger('default')
@@ -180,8 +180,10 @@ class AppInfo(BaseView):
 
 class AppAdvantage(BaseView):
 
-    @perm_required('app_add_advantage')
     def post(self, request, app_id, *args, **kwargs):
+        if isinstance(self.user, AnonymousUser):
+            return HttpResponse("login required", status=403)
+
         data = json.loads(request.body)
         line = data['line']
         user_id = self.user.pk
@@ -203,8 +205,10 @@ class AppAdvantage(BaseView):
 
 class AdvantageVote(BaseView):
 
-    @perm_required('app_vote')
     def post(self, request, app_id, liner_id, *args, **kwargs):
+        if isinstance(self.user, AnonymousUser):
+            return HttpResponse("login required", status=403)
+
         user_id = self.user.pk
         app = App.objects.get(pk=app_id)
         liner = OneLiner.objects.get(pk=liner_id)
@@ -224,6 +228,5 @@ class AdvantageVote(BaseView):
 
         return JsonResponse(data, status=200)
 
-    @perm_required('app_vote')
     def put(self, *args, **kwargs):
         return self.post(*args, **kwargs)
