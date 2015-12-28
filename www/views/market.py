@@ -127,7 +127,7 @@ class AppList(BaseView):
         flag = queries.get('flag', None)
         if flag == 'cross':
             callback = queries.get('callback')
-            body = callback + json.dumps(data)
+            body = callback + '(' + json.dumps(data) + ')'
             return HttpResponse(body)
         return JsonResponse(data)
 
@@ -172,7 +172,7 @@ class AppInfo(BaseView):
         flag = queries.get('flag', None)
         if flag == 'cross':
             callback = queries.get('callback')
-            body = callback + json.dumps(data)
+            body = callback + '(' + json.dumps(data) + ')'
             return HttpResponse(body)
 
         return JsonResponse(data)
@@ -195,7 +195,7 @@ class AppAdvantage(BaseView):
         flag = queries.get('flag', None)
         if flag == 'cross':
             callback = queries.get('callback')
-            body = callback + json.dumps(data)
+            body = callback + '(' + json.dumps(data) + ')'
             return HttpResponse(body)
 
         return JsonResponse(data, status=200)
@@ -219,7 +219,7 @@ class AdvantageVote(BaseView):
         flag = queries.get('flag', None)
         if flag == 'cross':
             callback = queries.get('callback')
-            body = callback + json.dumps(data)
+            body = callback + '(' + json.dumps(data) + ')'
             return HttpResponse(body)
 
         return JsonResponse(data, status=200)
