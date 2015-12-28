@@ -184,8 +184,8 @@ class AppAdvantage(BaseView):
         if isinstance(self.user, AnonymousUser):
             return HttpResponse("login required", status=403)
 
-        data = json.loads(request.body)
-        line = data['line']
+        #data = json.loads(request.body)
+        line = request.POST.get("line")
         user_id = self.user.pk
         app = App.objects.get(pk=app_id)
         OneLiner.objects.create(app_id=app_id, line=line, agree=0, creater=user_id)
@@ -212,10 +212,15 @@ class AdvantageVote(BaseView):
         user_id = self.user.pk
         app = App.objects.get(pk=app_id)
         liner = OneLiner.objects.get(pk=liner_id)
-        Vote.objects.create(user_id=user_id, liner_id=liner_id)
-        liner.agree = liner.agree + 1
+        v, created = Vote.objects.get_or_create(user_id=user_id, liner_id=liner_id)
+        if created:
+            liner.agree = liner.agree + 1
+            app.using = app.using + 1
+        else:
+            v.delete()
+            liner.agree = liner.agree - 1
+            app.using = app.using - 1
         liner.save(update_fields=['agree'])
-        app.using = app.using + 1
         app.save(update_fields=['using'])
 
         data = {"success": True, "info": u"投票成功"}
