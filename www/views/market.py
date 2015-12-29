@@ -190,7 +190,12 @@ class AppAdvantage(BaseView):
             return HttpResponse("login required", status=403)
 
         #data = json.loads(request.body)
-        line = request.POST.get("line")
+        logger.debug('debug', request)
+        if request.method == "POST":
+            queries = request.POST.dict()
+        else:
+            queries = request.GET.dict()
+        line = queries.get("line")
         user_id = self.user.pk
         app = App.objects.get(pk=app_id)
         OneLiner.objects.create(app_id=app_id, line=line, agree=0, creater=user_id)
@@ -198,7 +203,6 @@ class AppAdvantage(BaseView):
         app.save(update_fields=['using'])
 
         data = {"success": True, "info": u"评论成功"}
-        queries = request.POST.dict()
         flag = queries.get('flag', None)
         if flag == 'cross':
             callback = queries.get('callback')
@@ -234,7 +238,10 @@ class AdvantageVote(BaseView):
         app.save(update_fields=['using'])
 
         data = {"success": True, "info": u"投票成功"}
-        queries = request.POST.dict()
+        if request.method == "POST":
+            queries = request.POST.dict()
+        else:
+            queries = request.GET.dict()
         flag = queries.get('flag', None)
         if flag == 'cross':
             callback = queries.get('callback')
