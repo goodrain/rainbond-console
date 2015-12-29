@@ -186,24 +186,30 @@ class AppAdvantage(BaseView):
         return self.post(*args, **kwargs)
 
     def post(self, request, app_id, *args, **kwargs):
-        if isinstance(self.user, AnonymousUser):
-            return HttpResponse("login required", status=403)
-
-        #data = json.loads(request.body)
         logger.debug('debug', request)
         if request.method == "POST":
             queries = request.POST.dict()
         else:
             queries = request.GET.dict()
+        flag = queries.get('flag', None)
+        if isinstance(self.user, AnonymousUser):
+            data = {"success": False, "info": "login required", "code": 403}
+            if flag == 'cross':
+                callback = queries.get('callback')
+                body = callback + '(' + json.dumps(data) + ')'
+                return HttpResponse(body, status=200)
+            else:
+                return JsonResponse(data, status=200)
+
+        #data = json.loads(request.body)
         line = queries.get("line")
         user_id = self.user.pk
         app = App.objects.get(pk=app_id)
-        OneLiner.objects.create(app_id=app_id, line=line, agree=0, creater=user_id)
+        liner = OneLiner.objects.create(app_id=app_id, line=line, agree=0, creater=user_id)
         app.using = app.using + 1
         app.save(update_fields=['using'])
 
-        data = {"success": True, "info": u"评论成功"}
-        flag = queries.get('flag', None)
+        data = {"success": True, "info": u"评论成功", "code": 200, "id": liner.pk}
         if flag == 'cross':
             callback = queries.get('callback')
             body = callback + '(' + json.dumps(data) + ')'
@@ -220,8 +226,20 @@ class AdvantageVote(BaseView):
 
     def post(self, request, app_id, liner_id, *args, **kwargs):
         logger.debug('debug', request)
+        if request.method == "POST":
+            queries = request.POST.dict()
+        else:
+            queries = request.GET.dict()
+
+        flag = queries.get('flag', None)
         if isinstance(self.user, AnonymousUser):
-            return HttpResponse("login required", status=403)
+            data = {"success": False, "info": "login required", "code": 403}
+            if flag == 'cross':
+                callback = queries.get('callback')
+                body = callback + '(' + json.dumps(data) + ')'
+                return HttpResponse(body, status=200)
+            else:
+                return JsonResponse(data, status=200)
 
         user_id = self.user.pk
         app = App.objects.get(pk=app_id)
@@ -230,19 +248,17 @@ class AdvantageVote(BaseView):
         if created:
             liner.agree = liner.agree + 1
             app.using = app.using + 1
+            action = "argee"
         else:
             v.delete()
             liner.agree = liner.agree - 1
             app.using = app.using - 1
+            action = "cancel"
         liner.save(update_fields=['agree'])
         app.save(update_fields=['using'])
 
-        data = {"success": True, "info": u"投票成功"}
-        if request.method == "POST":
-            queries = request.POST.dict()
-        else:
-            queries = request.GET.dict()
-        flag = queries.get('flag', None)
+        data = {"success": True, "info": action, "code": 200}
+
         if flag == 'cross':
             callback = queries.get('callback')
             body = callback + '(' + json.dumps(data) + ')'
