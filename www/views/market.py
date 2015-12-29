@@ -4,7 +4,8 @@ import json
 from django.http.response import JsonResponse, HttpResponse
 
 from www.views import BaseView
-from www.decorator import perm_required
+#from www.decorator import perm_required
+from django.views.decorators.cache import never_cache
 from www.models import Category, App, OneLiner, Vote, ServiceInfo, AnonymousUser
 
 import logging
@@ -180,6 +181,10 @@ class AppInfo(BaseView):
 
 class AppAdvantage(BaseView):
 
+    @never_cache
+    def get(self, *args, **kwargs):
+        return self.post(*args, **kwargs)
+
     def post(self, request, app_id, *args, **kwargs):
         if isinstance(self.user, AnonymousUser):
             return HttpResponse("login required", status=403)
@@ -205,7 +210,12 @@ class AppAdvantage(BaseView):
 
 class AdvantageVote(BaseView):
 
+    @never_cache
+    def get(self, *args, **kwargs):
+        return self.post(*args, **kwargs)
+
     def post(self, request, app_id, liner_id, *args, **kwargs):
+        logger.debug('debug', request)
         if isinstance(self.user, AnonymousUser):
             return HttpResponse("login required", status=403)
 
