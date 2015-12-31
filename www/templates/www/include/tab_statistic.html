@@ -12,7 +12,7 @@
        </select>
      </div>
    </div>
-   {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+   {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
    <div class="row">
      <div class="col-md-6">
        <section class="panel">
@@ -131,7 +131,7 @@
 
   {% endif %}<!--end statistic_history-->
   {% if statistic_type == 'realtime' %}
-    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
     <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-3">
       <ul>
         <li>

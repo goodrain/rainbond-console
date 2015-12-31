@@ -13,7 +13,7 @@
 	   <header class="panel-heading tab-bg-dark-navy-blue ">
 	   <ul class="nav nav-tabs" id ="nav-tabs">
 	     <li {% if fr == "deployed" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=deployed">概览</a></li>
-	     {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" %}
+	     {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
 	     	<li {% if fr == "relations" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=relations">依赖</a></li>
 	     {% endif  %}
          <li class="dropdown {% if fr == "statistic" %} active {% endif %}">
