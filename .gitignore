@@ -6,3 +6,4 @@ goodrain_web/conf/local.py
 /.gitignore
 /doc/
 migrations/
+/.DS_Store
