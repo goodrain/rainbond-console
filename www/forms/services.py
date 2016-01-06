@@ -81,7 +81,7 @@ class ServicePublishForm(forms.Form):
         else:
             submit = Submit('publish', u'发布', css_class='btn btn-lg btn-success btn-block')
 
-        self.helper.layout = Div(
+        self.helper.layout = Layout(
             Field('app_key'),
             Field('app_name'),
             Field('app_version'),

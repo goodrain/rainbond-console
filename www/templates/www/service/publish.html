@@ -6,7 +6,7 @@
   <div class="row">
       <div class="col-lg-9 m-bot15">
         <!--div class="container"-->
-          <form id="app_publish_form" class="form-public-app" enctype="multipart/form-data" action="" method="post">
+          <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action="" method="post">
             <h2 class="form-signin-heading"> 发布应用</h2>
         
             {% if errors %}
@@ -17,7 +17,7 @@
             {{ form.non_field_errors }}
             {% endif %}
         
-            <div>
+            <div class="login-wrap" style="background: #FFFFFF;">
                 {% crispy form %}
             </div>
         
