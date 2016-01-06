@@ -28,7 +28,7 @@ class ServicePublishForm(forms.Form):
     )
     app_name = fields.CharField(
         required=True, max_length=40,
-        min_length=3,
+        min_length=3, ajax_check=True,
         label=u"应用名称",
     )
     app_version = fields.CharField(

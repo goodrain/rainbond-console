@@ -53,6 +53,13 @@ class FormValidView(BaseView):
         from www.models import ServiceInfo
         try:
             ServiceInfo.objects.get(service_key=value)
-            return {"feedback": u"要发布的应用名已存在"}, 409
+            return {"feedback": u"要发布的应用key已存在"}, 409
         except ServiceInfo.DoesNotExist:
+            return {"feedback": "ok"}, 200
+
+    def app_name_check(self, value):
+        from www.models import App, ServiceInfo
+        if ServiceInfo.objects.filter(service_name=value).exists() or App.objects.filter(name=value).exists():
+            return {"feedback": u"要发布的应用名已存在"}, 409
+        else:
             return {"feedback": "ok"}, 200
