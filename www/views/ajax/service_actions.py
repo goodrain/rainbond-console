@@ -265,7 +265,7 @@ class ServiceManage(AuthedView):
                             if temport > 0:
                                 assinportNum = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, is_change=False, attr_value=service_port).count()
                                 while assinportNum > 0:
-                                    service_port = service_port + 1 
+                                    service_port = service_port + 1
                                     assinportNum = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, is_change=False, attr_value=service_port).count()
                             baseService.saveServiceEnvVar(
                                 self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
@@ -279,7 +279,7 @@ class ServiceManage(AuthedView):
                             result["status"] = "inject_dependency"
                             return JsonResponse(result)
 
-                        # close inner service need to clear env                        
+                        # close inner service need to clear env
                         baseService.cancel_service_env(
                             self.service.tenant_id, self.service.service_id, self.service.service_region)
                         TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()

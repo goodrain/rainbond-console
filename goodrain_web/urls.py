@@ -11,8 +11,8 @@ from www.tests import TestView
 
 urlpatterns = patterns(
     '',
-    url(r'^$', views.Index.as_view()),
-    url(r'^favicon\.ico$', GrRedirectView.as_view(url='/static/www/favicon.ico')),
+    url(r'^$', views.Index.as_view()), url(r'^favicon\.ico$', GrRedirectView.as_view(url='/static/www/favicon.ico')),
+
     url(r'^monitor$', views.monitor),
     url(r'^login$', views.Login.as_view()),
     url(r'^logout$', views.Logout.as_view()),
@@ -24,7 +24,6 @@ urlpatterns = patterns(
     url(r'^account/', include('www.urls.account')),
     url(r'^apps/(?P<tenantName>[\w\-]+)', include('www.urls.service')),
     url(r'^ajax/', include('www.urls.ajax')),
-    url(r'^market', include('www.urls.market')),
     url(r'^oauth/githup/$', login_required(ServiceGitHub.as_view())),
     url(r'^service/gitlabhook/$', csrf_exempt(GitLabWebHook.as_view())),
     url(r'^service/githubhook/$', csrf_exempt(GitHubWebHook.as_view())),

@@ -9,7 +9,7 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServiceInfo
+from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServiceInfo, App, AppUsing
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.monitorservice.monitorhook import MonitorHook
@@ -218,6 +218,15 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
             appversion.deploy_num += 1
             appversion.view_num += 1
             appversion.save(update_fields=['deploy_num', 'view_num'])
+
+        try:
+            app = App.objects.get(service_key=service.service_key)
+        except App.DoesNotExist:
+            pass
+        else:
+            app_use, created = AppUsing.objects.get_or_create(app_id=app.pk, user_id=self.user.pk)
+            app_use.install_count = app_use.install_count + 1
+            app_use.save()
 
         newTenantService, update_fields = self.copy_properties(appversion, newTenantService)
         newTenantService.save(update_fields=update_fields)

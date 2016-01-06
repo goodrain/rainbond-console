@@ -2,7 +2,7 @@ import os
 
 DEBUG = False
 
-TEMPLATE_DEBUG = True
+TEMPLATE_DEBUG = False
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
@@ -71,10 +71,10 @@ REGION_RULE = {
 }
 
 REGION_FEE_RULE = {
-    'ucloud-bj-1': {'memory_money': 0.083, 'disk_money': 0.0069, 'net_money':0.8},
-    'aws-bj-1': {'memory_money': 0.243, 'disk_money': 0.0041, 'net_money':0.93},
-    'aws-jp-1': {'memory_money': 0.173, 'disk_money': 0.0041, 'net_money':0.89},
-    'ali-sh': {'memory_money': 0.069, 'disk_money': 0.0041, 'net_money':0.8},
+    'ucloud-bj-1': {'memory_money': 0.083, 'disk_money': 0.0069, 'net_money': 0.8},
+    'aws-bj-1': {'memory_money': 0.243, 'disk_money': 0.0041, 'net_money': 0.93},
+    'aws-jp-1': {'memory_money': 0.173, 'disk_money': 0.0041, 'net_money': 0.89},
+    'ali-sh': {'memory_money': 0.069, 'disk_money': 0.0041, 'net_money': 0.8},
 }
 
 GITLAB_SERVICE_API = {

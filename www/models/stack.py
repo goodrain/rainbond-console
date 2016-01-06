@@ -6,23 +6,6 @@ options.DEFAULT_NAMES = options.DEFAULT_NAMES + ('in_db',)
 from .main import BaseModel
 
 
-level_choice = (
-    ('end', 'end'), ('secondary', 'secondary'), ('root', 'root')
-)
-
-
-class Category(BaseModel):
-
-    class Meta:
-        in_db = 'stack'
-        db_table = 'category'
-
-    name = models.CharField(max_length=20, unique=True, help_text=u"名称")
-    level = models.CharField(max_length=20, choices=level_choice, help_text=u"分类级别")
-    parent = models.IntegerField(db_index=True, default=0, help_text=u"父分类")
-    root = models.IntegerField(db_index=True, default=0, help_text=u"根分类")
-
-
 class App(BaseModel):
 
     class Meta:
@@ -41,26 +24,12 @@ class App(BaseModel):
     update_time = models.DateTimeField(auto_now=True)
 
 
-class OneLiner(BaseModel):
+class AppUsing(BaseModel):
 
     class Meta:
         in_db = 'stack'
-        db_table = 'one_liner'
+        db_table = 'app_using'
 
     app_id = models.IntegerField(db_index=True, help_text=u'app_id')
-    line = models.CharField(max_length=50, help_text=u"内容")
-    agree = models.IntegerField(help_text=u"赞同次数")
-    create_time = models.DateTimeField(auto_now_add=True)
-    creater = models.IntegerField(help_text=u"评论用户")
-
-
-class Vote(BaseModel):
-
-    class Meta:
-        in_db = 'stack'
-        db_table = 'vote'
-        unique_together = (('user_id', 'liner_id'),)
-
-    user_id = models.IntegerField(help_text=u"投票人")
-    liner_id = models.IntegerField(db_index=True, help_text=u"投票对象")
-    create_time = models.DateTimeField(auto_now_add=True)
+    user_id = models.IntegerField(help_text=u"用户id")
+    install_count = models.SmallIntegerField(default=0, help_text=u"用户安装次数")
