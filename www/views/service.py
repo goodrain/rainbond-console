@@ -74,7 +74,7 @@ class TeamInfo(LeftSideBarMixin, AuthedView):
         return self.get_response()
 
 
-class ServicePublishView(AuthedView):
+class ServicePublishView(LeftSideBarMixin, AuthedView):
 
     def get_context(self):
         context = super(ServicePublishView, self).get_context()
