@@ -5525,3 +5525,7 @@ a.guest-on i {
 .rtm-category-3 ul li {
     width: 33%;
 }
+
+.asteriskField {
+    display: none;
+}

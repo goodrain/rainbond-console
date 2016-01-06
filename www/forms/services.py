@@ -24,32 +24,40 @@ class ServicePublishForm(forms.Form):
         required=True, max_length=32,
         validators=[is_standard_word, is_sensitive],
         min_length=3, ajax_check=True, pattern=standard_regex_string,
+        label=u"应用key",
     )
     app_name = fields.CharField(
         required=True, max_length=40,
-        min_length=3
+        min_length=3,
+        label=u"应用名称",
     )
     app_version = fields.CharField(
-        required=True, pattern="^\d+(\.\d+){1,2}"
+        required=True, pattern="^\d+(\.\d+){1,2}",
+        label=u"应用版本",
     )
+
     app_info = fields.CharField(
         required=True, min_length=5, max_length=100,
-        widget=widgets.Textarea(attrs={'cols': '20', 'rows': '3'})
+        widget=widgets.Textarea(attrs={'cols': '20', 'rows': '3'}),
+        label=u"应用描述",
     )
     pay_type = fields.ChoiceField(
         choices=(('free', u'免费'), ('pay', u'付费')),
         initial="free",
+        label=u"付费类型",
     )
 
     price = fields.DecimalField(
         required=False, min_value=0.00, initial=0.00,
         max_digits=4, decimal_places=2,
-        widget=widgets.NumberInput(attrs={"step": 0.01})
+        widget=widgets.NumberInput(attrs={"step": 0.01}),
+        label=u"价格",
     )
 
     change_log = fields.CharField(
         required=True, min_length=5, max_length=400,
-        widget=widgets.Textarea(attrs={'cols': '20', 'rows': ''})
+        widget=widgets.Textarea(attrs={'cols': '20', 'rows': ''}),
+        label=u"更新日志",
     )
 
     def __init__(self, *args, **kwargs):
@@ -74,19 +82,17 @@ class ServicePublishForm(forms.Form):
             submit = Submit('publish', u'发布', css_class='btn btn-lg btn-success btn-block')
 
         self.helper.layout = Div(
-            Field('app_key', css_class="form-control", placeholder=u'应用'),
-            Field('app_name', css_class="form-control", placeholder=u'应用名称'),
-            Field('app_version', css_class="form-control", placeholder='应用版本'),
-            Field('app_info', css_class="form-control", placeholder='应用描述'),
-            Field('pay_type', css_class="form-control", placeholder='付费类型'),
-            Field('price', css_class="form-control", placeholder='价格'),
-            Field('change_log', css_class="form-control", placeholder='更新日志'),
+            Field('app_key'),
+            Field('app_name'),
+            Field('app_version'),
+            Field('app_info'),
+            Field('pay_type'),
+            Field('price'),
+            Field('change_log'),
             FormActions(submit),
-            css_class='login-wrap',
-            style="background: #FFFFFF;",
         )
 
         self.helper.help_text_inline = True
         self.helper.error_text_inline = True
-        self.helper.form_id = 'form-user-login'
-        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-lg-2'
+        self.helper.field_class = 'col-lg-8'
