@@ -105,3 +105,21 @@ margin-right: -15px;}
  .teamtips dl{margin:0;}
 
 #region_select {min-width: 132px;}
+
+/*publish*/
+.form-public-app h2.form-signin-heading {
+    margin: 0;
+    padding:20px 15px;
+    text-align: center;
+    background: #41cac0;
+    border-radius: 5px 5px 0 0;
+    -webkit-border-radius: 5px 5px 0 0;
+    color: #fff;
+    font-size: 18px;
+    text-transform: uppercase;
+    font-weight: 300;
+    font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
+}
+@media (min-width:450px) {
+    .form-public-app .login-wrap{width: 100%; float: none;}
+ }
