@@ -6,7 +6,7 @@ from django.http.response import HttpResponse
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation
+from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation, App
 from www.forms.services import ServicePublishForm
 from www.utils import increase_version
 from www.service_http import RegionServiceApi
@@ -174,9 +174,11 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
     def _add_new_app(self, d, pub_service):
         try:
             app = ServiceInfo(service_key=d['app_key'], publisher=self.user.nick_name, service_name=d['app_name'], info=d['app_info'],
-                              status="test", category="app_publish", version=d['app_version'])
+                              status="test", category="app_publish", version=d['app_version'], creater=self.user.pk)
             app = self.copy_public_properties(pub_service, app)
             app.dependecy = self.get_pub_srv_deps(pub_service)
+            App.objects.create(name=app.service_name, description=app.info, service_key=app.service_key, category_id=3,
+                               pay_type=d['pay_type'], using=0, creater=self.user.pk)
             return app
         except Exception, e:
             raise e
@@ -191,7 +193,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
 
     def create_new_version(self, app, d, pub_service):
         new_version = AppServiceInfo(service_key=app.service_key, service_id=pub_service.service_id, pay_type=d['pay_type'], price=d['price'],
-                                     deploy_version=pub_service.deploy_version, app_version=d['app_version'], change_log=d['change_log'])
+                                     deploy_version=pub_service.deploy_version, app_version=d['app_version'], change_log=d['change_log'], creater=self.user.pk)
         new_version = self.copy_public_properties(pub_service, new_version)
         new_env = self.extend_env(new_version, pub_service)
         new_version.env = new_env

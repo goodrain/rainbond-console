@@ -22,6 +22,7 @@ class App(BaseModel):
     using = models.IntegerField(help_text=u"应用使用人次")
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)
+    creater = models.IntegerField(null=True, help_text=u"创建人")
 
 
 class AppUsing(BaseModel):

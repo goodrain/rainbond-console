@@ -237,6 +237,7 @@ class ServiceInfo(BaseModel):
         max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
     is_init_accout = models.BooleanField(
         default=False, blank=True, help_text=u"是否初始化账户")
+    creater = models.IntegerField(null=True, help_text=u"创建人")
 
     def __unicode__(self):
         return self.service_key
@@ -257,6 +258,7 @@ class AppServiceInfo(BaseModel):
     app_version = models.CharField(max_length=12, help_text=u"用户发布版本")
     change_log = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新日志")
     create_time = models.DateTimeField(help_text=u"创建时间", auto_now=True)
+    creater = models.IntegerField(null=True, help_text=u"创建人")
 
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
     image = models.CharField(max_length=100, help_text=u"镜像")
