@@ -1,0 +1,47 @@
+{% extends 'www/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %}好雨云平台 | 团队选择{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block body %}
+    <header class="header white-bg">
+        {% block header %}
+        {% include 'www/header_no_region.html' %}
+        {% endblock %}
+    </header>
+    <div class="container">
+        <form class="form-horizontal" enctype="multipart/form-data" action="" method="post">
+            {% csrf_token %}
+            <div id="div_id_tenant_name" class="form-group">
+                <label for="id_tenant_name" class="control-label col-lg-2 requiredField">团队</label>
+                <div class="controls col-lg-8">
+                  <select class="select form-control" id="tenant_name" name="tenant">
+                    {% for name in tenant_names %}
+                    <option value="{{name}}">{{name}}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+            </div>
+            <div id="div_id_region" class="form-group">
+                <label for="id_region" class="control-label col-lg-2 requiredField">机房</label>
+                <div class="controls col-lg-8">
+                  <select class="select form-control" id="region" name="region">
+                    {% for name, display_name in regions %}
+                    <option value="{{name}}">{{display_name}}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+
+{% endblock %}
