@@ -60,7 +60,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
         return media
 
     def find_dependecy_services(self, serviceObj):
-        if serviceObj.dependecy is None:
+        if not bool(serviceObj.dependecy):
             return {}
         else:
             tenant_id = self.tenant.tenant_id
