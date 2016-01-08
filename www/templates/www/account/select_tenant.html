@@ -23,7 +23,7 @@
             <form class="form-horizontal" enctype="multipart/form-data" action="" method="post">
                 {% csrf_token %}
                 <div id="div_id_tenant_name" class="form-group clearfix">
-                    <label for="tenant_name" class="control-label col-lg-2 requiredField text-right">团队</label>
+                    <label for="tenant_name" class="control-label col-lg-2 requiredField" style="text-align: right;">团队</label>
                     <div class="controls col-lg-8">
                       <select class="select form-control" id="tenant_name" name="tenant">
                         {% for name in tenant_names %}
@@ -33,7 +33,7 @@
                     </div>
                 </div>
                 <div id="div_id_region" class="form-group clearfix">
-                    <label for="region" class="control-label col-lg-2 requiredField text-right">机房</label>
+                    <label for="region" class="control-label col-lg-2 requiredField" style="text-align: right;">机房</label>
                     <div class="controls col-lg-8">
                       <select class="select form-control" id="region" name="region">
                         {% for name, display_name in regions %}
@@ -42,8 +42,10 @@
                       </select>
                     </div>
                 </div>
-                <div class="form-group col-sm-offset-2 col-sm-3 clearfix">
-                    <button type="submit" class="btn btn-lg btn-success">确定</button>
+                <div class="form-group clearfix">
+                    <div class="col-sm-offset-2 col-sm-3 clearfix">
+                        <button type="submit" class="btn btn-lg btn-success col-sm-8">确定</button>
+                    </div>
                 </div>
             </form>
         </div>
