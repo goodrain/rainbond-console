@@ -88,6 +88,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
+        choose_region = request.GET.get("region", None)
+        if choose_region is not None:
+            self.response_region = choose_region
+
         context = self.get_context()
         try:
             service_key = request.GET.get("service_key", "")
@@ -108,10 +112,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        choose_region = request.GET.get("region", None)
-        if choose_region is not None:
-            self.response_region = choose_region
-
         service_alias = ""
         service_id = make_uuid(self.tenant.tenant_id)
         result = {}
