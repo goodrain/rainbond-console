@@ -653,8 +653,17 @@ class PhoneCodeView(BaseView):
 
 class TenantSelectView(BaseView):
 
+    def get_tenant_names(self):
+        tids = PermRelTenant.objects.filter(user_id=self.user.pk).values_list("tenant_id", flat=True)
+        tnames = Tenants.objects.filter(tenant_id__in=tids).values_list("tenant_name", flat=True)
+        return tnames
+
     def get(self, request, *args, **kwargs):
-        tenant_names = ["testa", "testb"]
+        if isinstance(self.user, AnonymousUser):
+            return self.redirect_to('/login')
+
+        tenant_names = self.get_tenant_names()
+        #tenant_names = ['testa', 'testb']
         regions = RegionInfo.register_choices()
         context = self.get_context()
         context.update({"tenant_names": tenant_names, "regions": regions})
@@ -662,4 +671,15 @@ class TenantSelectView(BaseView):
         return TemplateResponse(request, 'www/account/select_tenant.html', context)
 
     def post(self, request, *args, **kwargs):
-        return HttpResponse("received", status=200)
+        post_data = request.POST.dict()
+        get_paras = request.GET.dict()
+        action = get_paras.pop("action", None)
+        tenant = post_data.get('tenant')
+        region = post_data.get('region')
+
+        if action is None:
+            return self.get(request, *args, **kwargs)
+        elif action == 'app_install':
+            service_key = get_paras.get('service_key')
+            next_url = '/apps/{0}/service-deploy/?service_key={2}?region={1}'.format(tenant, region, service_key)
+            return self.redirect_to(next_url)
