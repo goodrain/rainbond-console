@@ -17,31 +17,36 @@
         {% include 'www/header_no_region.html' %}
         {% endblock %}
     </header>
-    <div class="container">
-        <form class="form-horizontal" enctype="multipart/form-data" action="" method="post">
-            {% csrf_token %}
-            <div id="div_id_tenant_name" class="form-group">
-                <label for="id_tenant_name" class="control-label col-lg-2 requiredField">团队</label>
-                <div class="controls col-lg-8">
-                  <select class="select form-control" id="tenant_name" name="tenant">
-                    {% for name in tenant_names %}
-                    <option value="{{name}}">{{name}}</option>
-                    {% endfor %}
-                  </select>
+    <div class="container wrapper">
+        <div class="col-sm-2"></div>
+        <div class="col-sm-8">
+            <form class="form-horizontal" enctype="multipart/form-data" action="" method="post">
+                {% csrf_token %}
+                <div id="div_id_tenant_name" class="form-group clearfix">
+                    <label for="tenant_name" class="control-label col-lg-2 requiredField text-right">团队</label>
+                    <div class="controls col-lg-8">
+                      <select class="select form-control" id="tenant_name" name="tenant">
+                        {% for name in tenant_names %}
+                        <option value="{{name}}">{{name}}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
                 </div>
-            </div>
-            <div id="div_id_region" class="form-group">
-                <label for="id_region" class="control-label col-lg-2 requiredField">机房</label>
-                <div class="controls col-lg-8">
-                  <select class="select form-control" id="region" name="region">
-                    {% for name, display_name in regions %}
-                    <option value="{{name}}">{{display_name}}</option>
-                    {% endfor %}
-                  </select>
+                <div id="div_id_region" class="form-group clearfix">
+                    <label for="region" class="control-label col-lg-2 requiredField text-right">机房</label>
+                    <div class="controls col-lg-8">
+                      <select class="select form-control" id="region" name="region">
+                        {% for name, display_name in regions %}
+                        <option value="{{name}}">{{display_name}}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
                 </div>
-            </div>
-        </form>
+                <div class="form-group col-sm-offset-2 col-sm-3 clearfix">
+                    <button type="submit" class="btn btn-lg btn-success">确定</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-sm-2"></div>
     </div>
-
-
 {% endblock %}
