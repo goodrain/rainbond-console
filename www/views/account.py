@@ -655,7 +655,7 @@ class TenantSelectView(BaseView):
 
     def get_tenant_names(self):
         tids = PermRelTenant.objects.filter(user_id=self.user.pk).values_list("tenant_id", flat=True)
-        tnames = Tenants.objects.filter(tenant_id__in=tids).values_list("tenant_name", flat=True)
+        tnames = Tenants.objects.filter(pk__in=tids).values_list("tenant_name", flat=True)
         return tnames
 
     def get(self, request, *args, **kwargs):
