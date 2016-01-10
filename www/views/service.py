@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import json
-#from django.views.decorators.cache import never_cache
+# from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 
@@ -78,9 +78,9 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
 
     def get_context(self):
         context = super(ServicePublishView, self).get_context()
-        context.update({
-            'form': self.form,
-        })
+        # context.update({
+        #    'form': self.form,
+        #})
         return context
 
     def get_media(self):
@@ -105,14 +105,17 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
 
     @perm_required('sys_admin')
     def get(self, request, *args, **kwargs):
+        context = self.get_context()
         published_versions = AppServiceInfo.objects.filter(service_id=self.service.service_id).order_by('-create_time')
         if published_versions:
             last_pub_version = published_versions[0]
             form_init_data = self.prepare_app_update(last_pub_version)
-            self.form = ServicePublishForm(initial=form_init_data, is_update=True)
+            #self.form = ServicePublishForm(initial=form_init_data, is_update=True)
+            context.update({"fields": form_init_data, "is-init": False})
         else:
-            self.form = ServicePublishForm()
-        return self.get_response()
+            #self.form = ServicePublishForm()
+            context.update({"fields": {}, "is-init": True})
+        return TemplateResponse(self.request, 'www/service/publish.html', context)
 
     @perm_required('sys_admin')
     def post(self, request, *args, **kwargs):

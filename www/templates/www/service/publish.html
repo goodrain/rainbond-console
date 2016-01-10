@@ -18,9 +18,80 @@
             {% endif %}
         
             <div class="login-wrap" style="background: #FFFFFF;">
-                {% crispy form %}
+                {% csrf_token %}
+
+              <div id="div_id_app_key" class="form-group">
+                <label for="id_app_key" class="control-label col-lg-2 requiredField">应用key<span class="asteriskField">*</span></label>
+                {% with fields.app_key as field %}
+                <div class="controls col-lg-8">
+                  <input class="textinput textInput form-control" id="id_app_key" name="app_key" required {% if is-init %} data-error="不合法" data-minlength="3" maxlength="32"  pattern="^[a-z0-9][a-z0-9_\-]+[a-z0-9]$"{% else %} readonly {% endif %} type="text" value="{{field.value}}"/>
+                  <span class="help-block with-errors"></span>
+                </div>
+                {% endwith %}
+              </div>
+              <div id="div_id_app_name" class="form-group">
+                <label for="id_app_name" class="control-label col-lg-2 requiredField">应用名称<span class="asteriskField">*</span></label>
+                {% with fields.app_name as field %}
+                <div class="controls col-lg-8">
+                  <input class="textinput textInput form-control" id="id_app_name" name="app_name" required {% if is-init %} data-error="不合法" data-minlength="3" data-remote="/ajax/form_valid" maxlength="40"{% else %} readonly {% endif %} type="text" value="{{field.value}}"/>
+                  <span class="help-block with-errors"></span>
+                </div>
+                {% endwith %}
+              </div>
+              <div id="div_id_app_version" class="form-group">
+                <label for="id_app_version" class="control-label col-lg-2 requiredField">应用版本<span class="asteriskField">*</span></label>
+                {% with fields.app_version as field %}
+                <div class="controls col-lg-8">
+                  <input class="textinput textInput form-control" id="id_app_version" name="app_version" required data-error="不合法" pattern="^\d+(\.\d+){1,2}" type="text" value="{{field.value}}"/>
+                  <span class="help-block with-errors"></span>
+                </div>
+                {% endwith %}
+              </div>
+              <div id="div_id_app_info" class="form-group">
+                <label for="id_app_info" class="control-label col-lg-2 requiredField">应用描述<span class="asteriskField">*</span></label>
+                {% with fields.app_info as field %}
+                <div class="controls col-lg-8">
+                  <textarea class="textarea form-control" cols="20" data-minlength="5" id="id_app_info" maxlength="100" name="app_info" rows="3"  required>{{field.value}}</textarea>
+                </div>
+                {% endwith %}
+              </div>
+              <div id="div_id_pay_type" class="form-group">
+                <label for="id_pay_type" class="control-label col-lg-2 requiredField">付费类型<span class="asteriskField">*</span></label>
+                {% with fields.pay_type as field %}
+                <div class="controls col-lg-8">
+                  <select class="select form-control" id="id_pay_type" name="pay_type">
+                      <option value="free" selected="selected">免费</option>
+                      <option value="pay">付费</option>
+                  </select>
+                </div>
+                {% endwith %}
+              </div>
+              <div id="div_id_price" class="form-group">
+                <label for="id_price" class="control-label col-lg-2">价格</label>
+                {% with fields.price as field %}
+                <div class="controls col-lg-8">
+                  <input class="numberinput form-control" data-error="不合法" id="id_price" min="0.0" name="price" step="0.01" type="number" value="{{field.value|default:"0.00"}}" />
+                  <span class="help-block with-errors"></span>
+                </div>
+                {% endwith %}
+              </div>
+              <div id="div_id_change_log" class="form-group">
+                <label for="id_change_log" class="control-label col-lg-2 requiredField">更新日志<span class="asteriskField">*</span></label>
+                {% with fields.change_log as field %}
+                <div class="controls col-lg-8">
+                  <textarea class="textarea form-control" cols="20" data-minlength="5" id="id_change_log" maxlength="400" name="change_log" rows=""  required></textarea>
+                </div>
+                {% endwith %}
+              </div>
+              <div class="form-actions">
+              {% if is-init %}
+                <input type="submit" name="publish" value="发布" class="btn btn-lg btn-success btn-block" id="submit-id-publish" />
+              {% else %}
+                <input type="submit" name="update" value="更新" class="btn btn-lg btn-primary btn-block" id="submit-id-update" />
+              {% endif %}
+              </div>
             </div>
-        
+
           </form>
         <!--/div-->
     </div>
