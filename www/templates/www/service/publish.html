@@ -24,7 +24,7 @@
                 <label for="id_app_key" class="control-label col-lg-2 requiredField">应用key<span class="asteriskField">*</span></label>
                 {% with fields.app_key as field %}
                 <div class="controls col-lg-8">
-                  <input class="textinput textInput form-control" id="id_app_key" name="app_key" required {% if is-init %} data-error="不合法" data-minlength="3" maxlength="32"  pattern="^[a-z0-9][a-z0-9_\-]+[a-z0-9]$"{% else %} readonly {% endif %} type="text" value="{{field.value}}"/>
+                  <input class="textinput textInput form-control" id="id_app_key" name="app_key" required {% if isinit %} data-error="不合法" data-minlength="3" maxlength="32" data-remote="/ajax/form_valid" pattern="^[a-z0-9][a-z0-9_\-]+[a-z0-9]$"{% else %} readonly {% endif %} type="text" value="{{field.value}}"/>
                   <span class="help-block with-errors"></span>
                 </div>
                 {% endwith %}
@@ -33,7 +33,7 @@
                 <label for="id_app_name" class="control-label col-lg-2 requiredField">应用名称<span class="asteriskField">*</span></label>
                 {% with fields.app_name as field %}
                 <div class="controls col-lg-8">
-                  <input class="textinput textInput form-control" id="id_app_name" name="app_name" required {% if is-init %} data-error="不合法" data-minlength="3" data-remote="/ajax/form_valid" maxlength="40"{% else %} readonly {% endif %} type="text" value="{{field.value}}"/>
+                  <input class="textinput textInput form-control" id="id_app_name" name="app_name" required {% if isinit %} data-error="不合法" data-minlength="3" data-remote="/ajax/form_valid" maxlength="40"{% else %} readonly {% endif %} type="text" value="{{field.value}}"/>
                   <span class="help-block with-errors"></span>
                 </div>
                 {% endwith %}
@@ -75,6 +75,23 @@
                 </div>
                 {% endwith %}
               </div>
+              <div class="form-group clearfix">
+                <label for="app_type_first" class="col-sm-2 col-lg-2 control-label text-right">分类</label>
+                <div class="col-sm-10 col-lg-10">
+                  <select class="col-sm-2 col-lg-3" id="app_type_first" name="app_type_first">
+                    {% for category in root_category_list %}
+                    <option value="{{category.id}}">{{category.display_name}}</option>
+                    {% endfor %}
+                  </select>
+                  <select class="col-sm-2 col-lg-3" id="app_type_second" name="app_type_second" style="margin-left: 10px;">
+                    <option value="0" selected="selected">选择分类</option>
+                    <option value="2">数据库</option>
+                  </select>
+                  <select class="col-sm-2 col-lg-3" id="app_type_third" name="app_type_third" style="margin-left: 10px;">
+                    <option value="0" selected="selected">选择分类</option>
+                  </select>
+                </div>
+              </div>
               <div id="div_id_change_log" class="form-group">
                 <label for="id_change_log" class="control-label col-lg-2 requiredField">更新日志<span class="asteriskField">*</span></label>
                 {% with fields.change_log as field %}
@@ -84,7 +101,7 @@
                 {% endwith %}
               </div>
               <div class="form-actions">
-              {% if is-init %}
+              {% if isinit %}
                 <input type="submit" name="publish" value="发布" class="btn btn-lg btn-success btn-block" id="submit-id-publish" />
               {% else %}
                 <input type="submit" name="update" value="更新" class="btn btn-lg btn-primary btn-block" id="submit-id-update" />

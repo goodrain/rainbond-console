@@ -34,3 +34,15 @@ class AppUsing(BaseModel):
     app_id = models.IntegerField(db_index=True, help_text=u'app_id')
     user_id = models.IntegerField(help_text=u"用户id")
     install_count = models.SmallIntegerField(default=0, help_text=u"用户安装次数")
+
+
+class Category(BaseModel):
+
+    class Meta:
+        in_db = 'stack'
+        db_table = 'category'
+
+    name = models.CharField(max_length=20, unique=True, help_text=u"名称")
+    level = models.CharField(max_length=20, help_text=u"分类级别")
+    parent = models.IntegerField(db_index=True, default=0, help_text=u"父分类")
+    root = models.IntegerField(db_index=True, default=0, help_text=u"根分类")

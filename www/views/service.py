@@ -6,7 +6,7 @@ from django.http.response import HttpResponse
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation, App
+from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation, App, Category
 from www.forms.services import ServicePublishForm
 from www.utils import increase_version
 from www.service_http import RegionServiceApi
@@ -85,7 +85,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(ServicePublishView, self).get_media(
-        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/validator.min.js')
+        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/validator.min.js', 'www/js/gr/app_publish.js')
         return media
 
     def get_response(self):
@@ -111,10 +111,13 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
             last_pub_version = published_versions[0]
             form_init_data = self.prepare_app_update(last_pub_version)
             #self.form = ServicePublishForm(initial=form_init_data, is_update=True)
-            context.update({"fields": form_init_data, "is-init": False})
+            context.update({"fields": form_init_data, "isinit": False})
         else:
             #self.form = ServicePublishForm()
-            context.update({"fields": {}, "is-init": True})
+            context.update({"fields": {}, "isinit": True})
+        root_categories = Category.objects.only('ID', 'name').filter(parent=0)
+        root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
+        context['root_category_list'] = root_category_list
         return TemplateResponse(self.request, 'www/service/publish.html', context)
 
     @perm_required('sys_admin')
