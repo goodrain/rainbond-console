@@ -139,7 +139,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         try:
             success = func(post_data)
             if success:
-                return self.redirect_to('/apps/{0}/service/'.format(self.tenantName))
+                return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
             else:
                 logger.error('service.publish', "{} failed".format(action))
                 return HttpResponse(u"发布过程出现异常", status=500)
@@ -183,7 +183,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
                               status="test", category="app_publish", version=d['app_version'], creater=self.user.pk)
             app = self.copy_public_properties(pub_service, app)
             app.dependecy = self.get_pub_srv_deps(pub_service)
-            App.objects.create(name=app.service_name, description=app.info, service_key=app.service_key, category_id=3,
+            App.objects.create(name=app.service_name, description=app.info, service_key=app.service_key, category_id=d['app_type_third'],
                                pay_type=d['pay_type'], using=0, creater=self.user.pk)
             return app
         except Exception, e:

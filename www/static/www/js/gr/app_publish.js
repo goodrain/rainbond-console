@@ -13,7 +13,7 @@ $(function(){
 //分类列表
 function getCategoryList(cateId, contId){
     if(cateId * 1){
-        $.get('https://app.goodrain.com/ajax/category_list/' + cateId, null, function(res){
+        $.get('https://app.goodrain.com/ajax/category_list/' + cateId + '?callback=?', {flag: 'cross'}, function(res){
             if(res.length){
                 var listStr = '<option value="0" selected="selected">选择分类</option>';
                 for(var i=0, len=res.length; i<len; i++){
