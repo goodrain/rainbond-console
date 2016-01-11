@@ -46,7 +46,21 @@
   {% block body %}{% endblock body %}
   {{ media.js }}
   {% block extrajs %}{% endblock %}
-  <script src="//meiqia.com/js/mechat.js?unitid=557f9c184eae356304000003" charset="UTF-8" async="async"></script>
+  <!--script src="//meiqia.com/js/mechat.js?unitid=557f9c184eae356304000003" charset="UTF-8" async="async"></script-->
+  <script type='text/javascript'>
+    (function(m, ei, q, i, a, j, s) {
+        m[a] = m[a] || function() {
+            (m[a].a = m[a].a || []).push(arguments)
+        };
+        j = ei.createElement(q),
+            s = ei.getElementsByTagName(q)[0];
+        j.async = true;
+        j.charset = 'UTF-8';
+        j.src = i;
+        s.parentNode.insertBefore(j, s)
+    })(window, document, 'script', '//eco-api.meiqia.com/dist/meiqia.js', '_MEIQIA');
+    _MEIQIA('entId', 5732);
+  </script>
 </body>
 
 </html>
