@@ -651,14 +651,16 @@ class PhoneCode(BaseModel):
 class TenantServiceEnvVar(BaseModel):
 
     class Meta:
-        db_table = 'tenant_service_evn_var'
+        db_table = 'tenant_service_env_var'
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
+    container_port = models.IntegerField(default=0, help_text=u"端口")
     name = models.CharField(max_length=100, help_text=u"名称")
     attr_name = models.CharField(max_length=100, help_text=u"属性")
     attr_value = models.CharField(max_length=40, help_text=u"值")
     is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
+    scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
     create_time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
 
     def __unicode__(self):
@@ -681,3 +683,19 @@ class TenantRegionPayModel(BaseModel):
     buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
     buy_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"购买金额")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+
+
+class TenantServicesPort(BaseModel):
+
+    class Meta:
+        db_table = 'tenant_services_port'
+        unique_together = ('service_id', 'container_port')
+
+    tenant_id = models.CharField(max_length=32, null=True, blank=True, help_text=u'租户id')
+    service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务ID")
+    container_port = models.IntegerField(default=0, help_text=u"容器端口")
+    mapping_port = models.IntegerField(default=0, help_text=u"映射端口")
+    protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
+    port_alias = models.CharField(max_length=30, null=True, blank=True, help_text=u"port别名")
+    is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
+    is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
