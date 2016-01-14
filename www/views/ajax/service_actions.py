@@ -236,6 +236,8 @@ class ServiceManage(AuthedView):
                     data["inner_service"] = self.service.is_service
                     data["inner_service_port"] = self.service.service_port
                     data["service_type"] = par_opt_type
+                    data["port_alias"] = self.service.service_key.upper()
+                    data["container_port"] = self.service.inner_port
                     regionClient.modifyServiceProtocol(self.service.service_region, self.service.service_id, json.dumps(data))
                     self.service.protocol = protocol
                     self.service.is_web_service = outer_service
@@ -290,6 +292,8 @@ class ServiceManage(AuthedView):
                     data["inner_service"] = inner_service
                     data["inner_service_port"] = service_port
                     data["service_type"] = par_opt_type
+                    data["port_alias"] = self.service.service_key.upper()
+                    data["container_port"] = self.service.inner_port
                     regionClient.modifyServiceProtocol(self.service.service_region, self.service.service_id, json.dumps(data))
                     self.service.service_port = service_port
                     self.service.is_service = inner_service

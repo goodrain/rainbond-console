@@ -160,6 +160,7 @@ class BaseTenantService(object):
         data["category"] = newTenantService.category
         data["protocol"] = newTenantService.protocol
         data["operator"] = nick_name
+        data["service_type"] = newTenantService.service_type
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
@@ -206,6 +207,9 @@ class BaseTenantService(object):
         task = {}
         task["tenant_id"] = tenant_id
         task["attr"] = data
+        task["scope"] = "outer"
+        service=TenantServiceInfo.objects.get(service_id=service_id)
+        task["container_port"] = service.inner_port
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
 
     def cancel_service_env(self, tenant_id, service_id, region):
