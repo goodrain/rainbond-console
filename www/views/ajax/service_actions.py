@@ -909,3 +909,27 @@ class ServiceBranch(AuthedView):
         self.service.code_version = branch
         self.service.save(update_fields=['code_version'])
         return JsonResponse({"ok": True}, status=200)
+
+from www.views import BaseView
+
+
+class ServicePort(BaseView):
+
+    def post(self, request, *args, **kwargs):
+        return JsonResponse({"success": True}, status=200)
+
+    def get(self, request, *args, **kwargs):
+        data = {
+            "environment": [
+                {"desc": u"连接地址", "name": "MYSQL_HOST", "value": "127.0.0.1"},
+                {"desc": u"连接端口", "name": "MYSQL_PORT", "value": "3307"},
+                {"desc": u"用户名", "name": "MYSQL_USER", "value": "admin"},
+                {"desc": u"密码", "name": "MYSQL_PORT", "value": "123465"},
+            ],
+            "outer_service": {
+                "domain": "qwueyqweyqwyeqw.goodoasidqwe.qwieqiw",
+                "port": 21000,
+            }
+        }
+
+        return JsonResponse(data, status=200)
