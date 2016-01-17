@@ -172,7 +172,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
-                        baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
+                        # baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)
@@ -201,7 +201,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
 
             # create service env
-            baseService.create_service_env(tenant_id, service_id, self.response_region)
+            # baseService.create_service_env(tenant_id, service_id, self.response_region)
 
             result["status"] = "success"
             result["service_id"] = service_id

@@ -106,7 +106,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
-            baseService.addServicePort(newTenantService, container_port=5000, protocol='http', port_alias=None, is_inner_service=False, is_outer_service=True)
+            baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias=None, is_inner_service=False, is_outer_service=True)
 
             # code repos
             if service_code_from == "gitlab_new":
@@ -191,7 +191,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
             # create service env
-            baseService.create_service_env(tenant_id, service_id, self.response_region)
+            # baseService.create_service_env(tenant_id, service_id, self.response_region)
             # record log
             data["status"] = "success"
             data["service_alias"] = service_alias
@@ -278,7 +278,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
-                        baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
+                        # baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)

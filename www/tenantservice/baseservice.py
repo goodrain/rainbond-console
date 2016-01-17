@@ -240,7 +240,7 @@ class BaseTenantService(object):
         tenantServiceEnvVar["scope"] = scope
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
 
-    def addServicePort(self, service, container_port=0, protocol='', port_alias=None, is_inner_service=False, is_outer_service=False):
+    def addServicePort(self, service, is_init_account, container_port=0, protocol='', port_alias=None, is_inner_service=False, is_outer_service=False):
         port = TenantServicesPort(tenant_id=service.tenant_id, service_id=service.service_id, container_port=container_port,
                                   protocol=protocol, port_alias=port_alias, is_inner_service=is_inner_service,
                                   is_outer_service=is_outer_service)
@@ -251,7 +251,7 @@ class BaseTenantService(object):
                 port.mapping_port = mapping_port
                 self.saveServiceEnvVar(service.tenant_id, service.service_id, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False)
                 self.saveServiceEnvVar(service.tenant_id, service.service_id, u"端口", env_prefix + "_PORT", mapping_port, False)
-            if service.is_init_account:
+            if is_init_account:
                 password = service.service_id[:8]
                 TenantServiceAuth.objects.create(service_id=service.service_id, user="admin", password=password)
                 self.saveServiceEnvVar(service.tenant_id, service.service_id, u"用户名", env_prefix + "_USER", "admin", True, scope="both")
