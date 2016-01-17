@@ -114,7 +114,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
             'www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
             'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/swfobject.js', 'www/js/web_socket.js', 'www/js/websoket-goodrain.js'
+            'www/js/swfobject.js', 'www/js/web_socket.js', 'www/js/websoket-goodrain.js',
+            'www/js/bootstrap-switch.min.js', 'www/js/bootstrap-editable.min.js', 'www/js/gr/multi_port.js'
         )
         if self.statistic:
             if self.statistic_type == 'history':
@@ -344,8 +345,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         arr.append(evnVarObj)
                         envMap[evnVarObj.service_id] = arr
                     context["envMap"] = envMap
-                    context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                    context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)
+                context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
