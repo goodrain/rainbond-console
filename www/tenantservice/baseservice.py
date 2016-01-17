@@ -250,16 +250,16 @@ class BaseTenantService(object):
             if is_inner_service:
                 mapping_port = self.prepare_mapping_port(service, container_port)
                 port.mapping_port = mapping_port
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False)
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT", mapping_port, False)
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
             if is_init_account:
                 password = service.service_id[:8]
                 TenantServiceAuth.objects.create(service_id=service.service_id, user="admin", password=password)
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"用户名", env_prefix + "_USER", "admin", True, scope="both")
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"密码", env_prefix + "_PASSWORD", password, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"用户名", env_prefix + "_USER", "admin", False, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"密码", env_prefix + "_PASSWORD", password, False, scope="both")
             port.save()
         except Exception, e:
-            raise e
+            logger.exception(e)
 
     def is_user_click(self, region, service_id):
         is_ok = True
