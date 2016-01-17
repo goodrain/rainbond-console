@@ -55,7 +55,7 @@ class CopyPortAndEnvMixin(object):
             baseService.addServicePort(new_service, service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
                                        is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
         for env in envs:
-            baseService.saveServiceEnvVar(new_service.tenant_id, new_service.service_id, env.name, env.attr_name, env.attr_value, env.is_change, env.scope)
+            baseService.saveServiceEnvVar(new_service.tenant_id, new_service.service_id, env.container_port, env.name, env.attr_name, env.attr_value, env.is_change, env.scope)
 
 
 class LeftSideBarMixin(object):
