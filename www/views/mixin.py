@@ -52,7 +52,7 @@ class CopyPortAndEnvMixin(object):
 
         baseService = BaseTenantService()
         for port in ports:
-            baseService.addServicePort(new_service, container_port=port.port, protocol=port.protocol, port_alias=port.port_alias,
+            baseService.addServicePort(new_service, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
                                        is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
         for env in envs:
             baseService.saveServiceEnvVar(new_service.tenant_id, new_service.service_id, env.name, env.attr_name, env.attr_value, env.is_change, env.scope)
