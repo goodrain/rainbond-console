@@ -77,7 +77,6 @@
       }
 
 
-
       //即时修改端口别名和协议类型
       $(document).ready(function() {
         $('.edit-alias').editable({

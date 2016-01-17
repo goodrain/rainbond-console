@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo
+from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort
 from www.service_http import RegionServiceApi
 from django.conf import settings
 
@@ -58,7 +58,16 @@ class BaseTenantService(object):
                 cur_service_port = int(temp)
         return cur_service_port
 
+    def prepare_mapping_port(self, service, container_port):
+        port_list = TenantServicesPort.objects.filter(tenant_id=service.tenant_id, container_port__gt=container_port).values_list(
+            'mapping_port', flat=True).order_by('mapping_port')
+
+        port_list.insert(0, container_port)
+        max_port = reduce(lambda x, y: y if (y - x) == 1 else x, port_list)
+        return max_port + 1
+
     def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
+        '''
         if service.category in ("application", "app_publish", "app_sys_publish"):
             service_port = service.inner_port + 1000
         else:
@@ -67,6 +76,7 @@ class BaseTenantService(object):
             deployPort = self.getMaxPort(tenant_id, service.service_key, service_alias)
             if deployPort > 0:
                 service_port = deployPort + 1
+        '''
 
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
@@ -76,23 +86,13 @@ class BaseTenantService(object):
         tenantServiceInfo["service_region"] = region
         tenantServiceInfo["desc"] = service.desc
         tenantServiceInfo["category"] = service.category
-        tenantServiceInfo["service_port"] = service_port
-        tenantServiceInfo["is_web_service"] = service.is_web_service
+        # tenantServiceInfo["service_port"] = service_port
+        # tenantServiceInfo["is_web_service"] = service.is_web_service
         tenantServiceInfo["image"] = service.image
         tenantServiceInfo["cmd"] = service.cmd
         tenantServiceInfo["setting"] = service.setting
         tenantServiceInfo["extend_method"] = service.extend_method
-        password = "admin"
-        if service.is_init_accout:
-            uk = service.service_key.upper() + "_USER=" + "admin"
-            up = service.service_key.upper() + "_PASS=" + service_id[:8]
-            envar = service.env + "," + uk + "," + up + ","
-            password = service_id[:8]
-            ta = TenantServiceAuth(service_id=service_id, user="admin", password=password)
-            ta.save()
-        else:
-            envar = service.env + ","
-        tenantServiceInfo["env"] = envar
+        tenantServiceInfo["env"] = service.env
         tenantServiceInfo["min_node"] = service.min_node
         tenantServiceInfo["min_cpu"] = service.min_cpu
         tenantServiceInfo["min_memory"] = service.min_memory
@@ -100,7 +100,7 @@ class BaseTenantService(object):
         tenantServiceInfo["version"] = service.version
         volume_path = ""
         host_path = ""
-        if service.volume_mount_path is not None and service.volume_mount_path != "":
+        if bool(service.volume_mount_path):
             volume_path = service.volume_mount_path
             host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
         tenantServiceInfo["volume_mount_path"] = volume_path
@@ -114,21 +114,23 @@ class BaseTenantService(object):
         tenantServiceInfo["service_type"] = service.service_type
         tenantServiceInfo["creater"] = creater
         tenantServiceInfo["total_memory"] = service.min_node * service.min_memory
-        if service.is_web_service:
-            tenantServiceInfo["protocol"] = 'http'
-        else:
-            tenantServiceInfo["protocol"] = 'stream'
-        tenantServiceInfo["is_service"] = service.is_service
+        # if service.is_web_service:
+        #     tenantServiceInfo["protocol"] = 'http'
+        # else:
+        #     tenantServiceInfo["protocol"] = 'stream'
+        # tenantServiceInfo["is_service"] = service.is_service
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
 
         # if service is inner service need to save env var
+        '''
         if service.is_service:
             self.saveServiceEnvVar(tenant_id, service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
             self.saveServiceEnvVar(tenant_id, service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
             if service.is_init_accout:
                 self.saveServiceEnvVar(tenant_id, service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
                 self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
+        '''
         return newTenantService
 
     def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True):
@@ -147,19 +149,31 @@ class BaseTenantService(object):
         data["status"] = 0
         data["replicas"] = newTenantService.min_node
         data["service_alias"] = newTenantService.service_alias
-        data["service_port"] = newTenantService.service_port
+        # data["service_port"] = newTenantService.service_port
         data["service_version"] = newTenantService.version
         data["container_env"] = newTenantService.env
-        data["container_port"] = newTenantService.inner_port
+        # data["container_port"] = newTenantService.inner_port
         data["container_cmd"] = newTenantService.cmd
         data["node_label"] = ""
-        data["is_create_service"] = newTenantService.is_service
-        data["is_binding_port"] = newTenantService.is_web_service or newTenantService.service_key == 'mysql'
+        # data["is_create_service"] = newTenantService.is_service
+        # data["is_binding_port"] = newTenantService.is_web_service or newTenantService.service_key == 'mysql'
         data["deploy_version"] = newTenantService.deploy_version if do_deploy else None
         data["domain"] = domain
         data["category"] = newTenantService.category
-        data["protocol"] = newTenantService.protocol
+        # data["protocol"] = newTenantService.protocol
         data["operator"] = nick_name
+        data["extend_info"] = {"ports": [], "envs": []}
+
+        ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
+            'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        if ports_info:
+            data["extend_info"]["ports"] = ports_info
+
+        envs_info = TenantServiceEnvVar.objects.filter(service_id=newTenantService.service_id).values(
+            'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+        if envs_info:
+            data["extend_info"]["envs"] = envs_info
+
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
@@ -214,7 +228,7 @@ class BaseTenantService(object):
         task["attr"] = {}
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
 
-    def saveServiceEnvVar(self, tenant_id, service_id, name, attr_name, attr_value, isChange):
+    def saveServiceEnvVar(self, tenant_id, service_id, name, attr_name, attr_value, isChange, scope="outer"):
         tenantServiceEnvVar = {}
         tenantServiceEnvVar["tenant_id"] = tenant_id
         tenantServiceEnvVar["service_id"] = service_id
@@ -222,7 +236,28 @@ class BaseTenantService(object):
         tenantServiceEnvVar["attr_name"] = attr_name
         tenantServiceEnvVar["attr_value"] = attr_value
         tenantServiceEnvVar["is_change"] = isChange
+        tenantServiceEnvVar["scope"] = scope
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
+
+    def addServicePort(self, service, container_port=0, protocol='', port_alias=None, is_inner_service=False, is_outer_service=False):
+        port = TenantServicesPort(tenant_id=service.tenant_id, service_id=service.service_id, container_port=container_port,
+                                  protocol=protocol, port_alias=port_alias, is_inner_service=is_inner_service,
+                                  is_outer_service=is_outer_service)
+        try:
+            env_prefix = port_alias.upper() if bool(port_alias) else service.service_key.upper()
+            if is_inner_service:
+                mapping_port = self.prepare_mapping_port(service, container_port)
+                port.mapping_port = mapping_port
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False)
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, u"端口", env_prefix + "_PORT", mapping_port, False)
+            if service.is_init_account:
+                password = service.service_id[:8]
+                TenantServiceAuth.objects.create(service_id=service.service_id, user="admin", password=password)
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, u"用户名", env_prefix + "_USER", "admin", True, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, u"密码", env_prefix + "_PASSWORD", password, scope="both")
+            port.save()
+        except Exception, e:
+            raise e
 
     def is_user_click(self, region, service_id):
         is_ok = True

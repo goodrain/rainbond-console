@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from django.http import Http404
 from www.service_http import RegionServiceApi
-from www.models import PermRelTenant, Tenants
+from www.models import PermRelTenant, Tenants, AppServicesPort, AppServiceEnvVar
 from www.tenantservice.baseservice import BaseTenantService
 from www.region import RegionInfo
 
@@ -38,6 +38,24 @@ class LoginRedirectMixin(object):
             logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
                 self.user.nick_name, self.user.pk))
             return Http404
+
+
+class CopyPortAndEnvMixin(object):
+
+    def copy_port_and_env(self, service, new_service):
+        if service.category in ("app_publish", "app_sys_publish"):
+            ports = AppServicesPort.objects.filter(service_key=service.service_key, app_version=service.version)
+            envs = AppServiceEnvVar.objects.filter(service_key=service.service_key, app_version=service.version)
+        else:
+            ports = AppServicesPort.objects.filter(service_key=service.service_key)
+            envs = AppServiceEnvVar.objects.filter(service_key=service.service_key)
+
+        baseService = BaseTenantService()
+        for port in ports:
+            baseService.addServicePort(new_service, container_port=port.port, protocol=port.protocol, port_alias=port.port_alias,
+                                       is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
+        for env in envs:
+            baseService.saveServiceEnvVar(new_service.tenant_id, new_service.service_id, env.name, env.attr_name, env.attr_value, env.is_change, env.scope)
 
 
 class LeftSideBarMixin(object):
