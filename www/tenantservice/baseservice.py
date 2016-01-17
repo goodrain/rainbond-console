@@ -62,6 +62,7 @@ class BaseTenantService(object):
         port_list = TenantServicesPort.objects.filter(tenant_id=service.tenant_id, container_port__gt=container_port).values_list(
             'mapping_port', flat=True).order_by('mapping_port')
 
+        port_list = list(port_list)
         port_list.insert(0, container_port)
         max_port = reduce(lambda x, y: y if (y - x) == 1 else x, port_list)
         return max_port + 1
