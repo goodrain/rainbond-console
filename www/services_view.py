@@ -111,6 +111,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         media = super(TenantService, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
             'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/style.css',
+            'www/css/bootstrap-switch.min.css', 'www/css/bootstrap-editable.css',
             'www/css/style-responsive.css', 'www/js/jquery.cookie.js', 'www/js/service.js',
             'www/js/gr/basic.js', 'www/css/gr/basic.css', 'www/js/perms.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',

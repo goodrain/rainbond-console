@@ -59,7 +59,7 @@
               {% for port in ports %}
                 <tr port="{{port.container_port}}">
                     <td class="port-arrow"><a fold="yes"><i class="fa fa-chevron-circle-right fa-lg"></i></a></td>
-                    <td> {{port.port}}</td>
+                    <td> {{port.container_port}}</td>
                     <td>
                         <a href="#" class="edit-protocol" data-title="更改协议类型" data-value="{{port.protocol}}"></a>
                     </td>
