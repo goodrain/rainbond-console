@@ -195,6 +195,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
 
+            self.copy_port_and_env(service, newTenantService)
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
