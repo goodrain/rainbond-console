@@ -12,7 +12,8 @@ from django.shortcuts import redirect
 from django.http import Http404
 from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin
 from www.decorator import perm_required
-from www.models import Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant, TenantServiceRelation, TenantServiceAuth, TenantServiceEnv, TenantServiceEnvVar
+from www.models import (Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant,
+                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar)
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
@@ -27,6 +28,7 @@ gitClient = GitlabApi()
 gitHubClient = GitHubApi()
 regionClient = RegionServiceApi()
 monitorhook = MonitorHook()
+
 
 class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
 
@@ -342,6 +344,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         arr.append(evnVarObj)
                         envMap[evnVarObj.service_id] = arr
                     context["envMap"] = envMap
+                    context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
+                    context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
@@ -418,10 +422,10 @@ class ServiceHistoryLog(AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)
-    
-    
+
+
 class ServiceAutoDeploy(BaseView):
-    
+
     def getTenants(self, user_id):
         tenants_has = PermRelTenant.objects.filter(user_id=user_id)
         if tenants_has:
@@ -437,13 +441,13 @@ class ServiceAutoDeploy(BaseView):
         service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
         try:
             tenant_id = tenant.tenant_id
-            
+
             if tenant.pay_type == "payed":
                 tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=tenant.region)
                 if tenant_region.service_status == 2:
                     status = "owed"
-                    return  status
-            
+                    return status
+
             service_alias = app_name.lower()
             # get base service
             service = ServiceInfo.objects.get(service_key="application")
@@ -451,7 +455,7 @@ class ServiceAutoDeploy(BaseView):
             num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
             if num > 0:
                 status = "exist"
-                return  status             
+                return status
             # calculate resource
             tenantUsedResource = TenantUsedResource()
             flag = tenantUsedResource.predict_next_memory(tenant, service.min_memory)
@@ -460,7 +464,7 @@ class ServiceAutoDeploy(BaseView):
                     status = "over_memory"
                 else:
                     status = "over_money"
-                return  status
+                return status
             # create console service
             baseService = BaseTenantService()
             service.desc = ""
@@ -491,16 +495,16 @@ class ServiceAutoDeploy(BaseView):
                         ts.save()
             else:
                 ts = TenantServiceInfo.objects.get(service_id=service_id)
-                
+
                 new_git_url = git_url
-                new_git_version = "master"                
+                new_git_version = "master"
                 if service_code_from == "github_pub":
                     if git_url.find(".git") < 0:
                         gits = git_url.split("/")
                         size = len(gits)
                         new_git_version = gits[size - 1]
                         bra = "/" + gits[size - 2] + "/" + gits[size - 1]
-                        new_git_url = git_url.replace(bra, ".git")                    
+                        new_git_url = git_url.replace(bra, ".git")
                 ts.git_project_id = "0"
                 ts.git_url = new_git_url
                 ts.code_from = service_code_from
@@ -531,7 +535,7 @@ class ServiceAutoDeploy(BaseView):
             monitorhook.serviceMonitor(user.nick_name, tempTenantService, 'create_service_error', False)
             status = "failure"
         return status
-    
+
     def dealAppRequest(self, request, tenant, app_ty, app_an, app_sd):
         status = ""
         tmpUrl = ""
@@ -539,7 +543,7 @@ class ServiceAutoDeploy(BaseView):
             if app_an != "" and app_sd != "":
                 status = self.app_create(self.user, tenant, app_an, app_sd, "github_pub")
                 if status == "success":
-                    tmpUrl = "/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an)                        
+                    tmpUrl = "/apps/{0}/{1}/app-dependency/".format(tenant.tenant_name, app_an)
                 else:
                     tmpUrl = "/apps/{0}/app-create/".format(tenant.tenant_name)
             else:
@@ -560,8 +564,7 @@ class ServiceAutoDeploy(BaseView):
         else:
             tmpUrl = "/apps/{0}".format(tenant.tenant_name)
         return status, tmpUrl
-        
-    
+
     @never_cache
     def get(self, request, *args, **kwargs):
         app_ty = request.GET.get("ty", "")
@@ -569,24 +572,24 @@ class ServiceAutoDeploy(BaseView):
         app_sd = request.GET.get("sd", "")
         fr = request.GET.get("fr", "")
         if fr != "" and fr == "www_app":
-            app_ty = request.COOKIES.get('app_ty', '')            
-            app_an = request.COOKIES.get('app_an', '')            
-            app_sd = request.COOKIES.get('app_sd', '') 
+            app_ty = request.COOKIES.get('app_ty', '')
+            app_an = request.COOKIES.get('app_an', '')
+            app_sd = request.COOKIES.get('app_sd', '')
         logger.debug("app_ty=" + app_ty)
         logger.debug("app_an=" + app_an)
-        logger.debug("app_sd=" + app_sd)                                
+        logger.debug("app_sd=" + app_sd)
         if self.user is not None and self.user.pk is not None:
             tenant = self.getTenants(self.user.pk)
             if tenant is None:
-                return self.redirect_to("/login")            
+                return self.redirect_to("/login")
             status, temUrl = self.dealAppRequest(request, tenant, app_ty, app_an, app_sd)
-            response = redirect(get_redirect_url(temUrl, request))            
-            response.delete_cookie('app_ty')            
+            response = redirect(get_redirect_url(temUrl, request))
+            response.delete_cookie('app_ty')
             response.delete_cookie('app_sd')
             if status == "success":
                 response.delete_cookie('app_an')
             else:
-                response.set_cookie('app_status', status)            
+                response.set_cookie('app_status', status)
         else:
             response = redirect(get_redirect_url("/login", request))
             if app_ty != "":
@@ -594,7 +597,7 @@ class ServiceAutoDeploy(BaseView):
                 response.set_cookie('app_an', app_an)
                 response.set_cookie('app_sd', app_sd)
         return response
-    
+
     @never_cache
     def post(self, request, *args, **kwargs):
         app_ty = request.POST.get("ty", "")
@@ -602,24 +605,24 @@ class ServiceAutoDeploy(BaseView):
         app_sd = request.POST.get("sd", "")
         fr = request.GET.get("fr", "")
         if fr != "" and fr == "www_app":
-            app_ty = request.COOKIES.get('app_ty', '')            
-            app_an = request.COOKIES.get('app_an', '')            
-            app_sd = request.COOKIES.get('app_sd', '') 
+            app_ty = request.COOKIES.get('app_ty', '')
+            app_an = request.COOKIES.get('app_an', '')
+            app_sd = request.COOKIES.get('app_sd', '')
         logger.debug("app_ty=" + app_ty)
         logger.debug("app_an=" + app_an)
         logger.debug("app_sd=" + app_sd)
         if self.user is not None and self.user.pk is not None:
             tenant = self.getTenants(self.user.pk)
             if tenant is None:
-                return self.redirect_to("/login")            
+                return self.redirect_to("/login")
             status, temUrl = self.dealAppRequest(request, tenant, app_ty, app_an, app_sd)
-            response = redirect(get_redirect_url(temUrl, request))           
-            response.delete_cookie('app_ty')            
+            response = redirect(get_redirect_url(temUrl, request))
+            response.delete_cookie('app_ty')
             response.delete_cookie('app_sd')
             if status == "success":
                 response.delete_cookie('app_an')
             else:
-                response.set_cookie('app_status', status)         
+                response.set_cookie('app_status', status)
         else:
             response = redirect(get_redirect_url("/login", request))
             if app_ty != "":
@@ -627,6 +630,7 @@ class ServiceAutoDeploy(BaseView):
                 response.set_cookie('app_an', app_an)
                 response.set_cookie('app_sd', app_sd)
         return response
+
 
 class GitLabManager(AuthedView):
 
