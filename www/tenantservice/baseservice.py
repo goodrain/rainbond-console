@@ -168,12 +168,12 @@ class BaseTenantService(object):
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         if ports_info:
-            data["extend_info"]["ports"] = ports_info
+            data["extend_info"]["ports"] = list(ports_info)
 
         envs_info = TenantServiceEnvVar.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
-            data["extend_info"]["envs"] = envs_info
+            data["extend_info"]["envs"] = list(envs_info)
 
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
