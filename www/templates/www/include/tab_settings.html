@@ -103,10 +103,12 @@
                             </td>
                             <td>
                               {% if env.is_change %}<input name="attr_name" value="{{env.attr_name}}">
+                              {% else %}{{env.attr_name}}
+                              {% endif %}
                             </td>
                             <td>
                               {% if env.is_change %}<input name="attr_value" value="{{env.attr_value}}">
-                              {% else %}{{env.name}}
+                              {% else %}{{env.attr_value}}
                               {% endif %}
                             </td>
                             <td>
