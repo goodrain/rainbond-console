@@ -1,13 +1,9 @@
 # -*- coding: utf8 -*-
-import uuid
-import hashlib
-import json
-
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
-from www.views import AuthedView, LeftSideBarMixin
+from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServiceInfo, App, AppUsing
 from service_http import RegionServiceApi
@@ -50,7 +46,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
         return TemplateResponse(self.request, "www/service_market.html", context)
 
 
-class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
+class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -173,9 +169,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
+                        self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
-                        baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
+                        # baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)
@@ -198,12 +195,13 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
 
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
 
+            self.copy_port_and_env(service, newTenantService)
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
 
             # create service env
-            baseService.create_service_env(tenant_id, service_id, self.response_region)
+            # baseService.create_service_env(tenant_id, service_id, self.response_region)
 
             result["status"] = "success"
             result["service_id"] = service_id
@@ -238,7 +236,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView):
 
     def copy_properties(self, copy_from, to):
         update_fields = []
-        for field in ('deploy_version', 'cmd', 'setting', 'image', 'dependecy', 'env'):
+        for field in ('deploy_version', 'cmd', 'setting', 'image', 'dependecy', 'env', 'service_type'):
             if hasattr(to, field) and hasattr(copy_from, field):
                 to_value = getattr(to, field)
                 from_value = getattr(copy_from, field)

@@ -1,14 +1,12 @@
 # -*- coding: utf8 -*-
 import logging
-import uuid
-import hashlib
 import json
 
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import JsonResponse
-from www.views import BaseView, AuthedView, LeftSideBarMixin
+from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
@@ -17,6 +15,7 @@ from github_http import GitHubApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.utils.language import is_redirect
 from www.monitorservice.monitorhook import MonitorHook
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
 
@@ -40,7 +39,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
-        try:            
+        try:
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"
             request.session["app_tenant"] = self.tenantName
@@ -60,8 +59,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
 
         service_alias = ""
         service_code_from = ""
-        uid = str(uuid.uuid4())
-        service_id = hashlib.md5(uid.encode("UTF-8")).hexdigest()
+        service_id = make_uuid(self.tenant.tenant_id)
         data = {}
         try:
             tenant_id = self.tenant.tenant_id
@@ -108,6 +106,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
+            baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias=None, is_inner_service=False, is_outer_service=True)
 
             # code repos
             if service_code_from == "gitlab_new":
@@ -192,7 +191,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
             # create service env
-            baseService.create_service_env(tenant_id, service_id, self.response_region)
+            # baseService.create_service_env(tenant_id, service_id, self.response_region)
             # record log
             data["status"] = "success"
             data["service_alias"] = service_alias
@@ -204,13 +203,13 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 gitClient.deleteProject(tempTenantService.git_project_id)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
-            TenantServiceRelation.objects.get(service_id=service_id).delete()
+            TenantServiceRelation.objects.filter(service_id=service_id).delete()
             monitorhook.serviceMonitor(self.user.nick_name, tempTenantService, 'create_service_error', False)
             data["status"] = "failure"
         return JsonResponse(data, status=200)
 
 
-class AppDependencyCodeView(LeftSideBarMixin, AuthedView):
+class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
@@ -272,14 +271,14 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView):
                 for skey in serviceKeys:
                     try:
                         dep_service = ServiceInfo.objects.get(service_key=skey)
-                        tempUuid = str(uuid.uuid4()) + skey
-                        dep_service_id = hashlib.md5(tempUuid.encode("UTF-8")).hexdigest()
+                        dep_service_id = make_uuid(skey)
                         depTenantService = baseService.create_service(
                             dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
+                        self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
-                        baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
+                        # baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)

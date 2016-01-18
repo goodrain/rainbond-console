@@ -293,7 +293,7 @@ class TenantServiceInfo(BaseModel):
         max_length=200, null=True, blank=True, help_text=u"描述")
     category = models.CharField(
         max_length=15, help_text=u"服务分类：application,cache,store")
-    service_port = models.IntegerField(help_text=u"服务端口", default=8000)
+    service_port = models.IntegerField(help_text=u"服务端口", default=0)
     is_web_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否web服务")
     version = models.CharField(max_length=20, help_text=u"版本")
@@ -309,7 +309,7 @@ class TenantServiceInfo(BaseModel):
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
     min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
     min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
-    inner_port = models.IntegerField(help_text=u"内部端口")
+    inner_port = models.IntegerField(help_text=u"内部端口", default=0)
     volume_mount_path = models.CharField(
         max_length=50, null=True, blank=True, help_text=u"mount目录")
     host_path = models.CharField(
@@ -332,7 +332,7 @@ class TenantServiceInfo(BaseModel):
     creater = models.IntegerField(help_text=u"服务创建者", default=0)
     language = models.CharField(
         max_length=40, null=True, blank=True, help_text=u"代码语言")
-    protocol = models.CharField(max_length=15, help_text=u"服务协议：http,stream")
+    protocol = models.CharField(max_length=15, default='', help_text=u"服务协议：http,stream")
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
     is_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否inner服务")
@@ -648,25 +648,6 @@ class PhoneCode(BaseModel):
         auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
-class TenantServiceEnvVar(BaseModel):
-
-    class Meta:
-        db_table = 'tenant_service_env_var'
-
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, help_text=u"服务id")
-    container_port = models.IntegerField(default=0, help_text=u"端口")
-    name = models.CharField(max_length=100, help_text=u"名称")
-    attr_name = models.CharField(max_length=100, help_text=u"属性")
-    attr_value = models.CharField(max_length=40, help_text=u"值")
-    is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
-    scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
-    create_time = models.DateTimeField(auto_now=True, help_text=u"创建时间")
-
-    def __unicode__(self):
-        return self.name
-
-
 class TenantRegionPayModel(BaseModel):
 
     class Meta:
@@ -685,6 +666,41 @@ class TenantRegionPayModel(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
+class TenantServiceEnvVar(BaseModel):
+
+    class Meta:
+        db_table = 'tenant_service_env_var'
+
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务id")
+    container_port = models.IntegerField(default=0, help_text=u"端口")
+    name = models.CharField(max_length=100, help_text=u"名称")
+    attr_name = models.CharField(max_length=100, help_text=u"属性")
+    attr_value = models.CharField(max_length=200, help_text=u"值")
+    is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
+    scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+
+    def __unicode__(self):
+        return self.name
+
+
+class AppServiceEnvVar(BaseModel):
+
+    class Meta:
+        db_table = 'app_service_env_var'
+
+    service_key = models.CharField(max_length=32, db_index=True, help_text=u"服务key")
+    app_version = models.CharField(max_length=12, null=True, blank=True, help_text=u"版本")
+    container_port = models.IntegerField(default=0, help_text=u"端口")
+    name = models.CharField(max_length=100, help_text=u"名称")
+    attr_name = models.CharField(max_length=100, help_text=u"属性")
+    attr_value = models.CharField(max_length=200, help_text=u"值")
+    is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
+    scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+
+
 class TenantServicesPort(BaseModel):
 
     class Meta:
@@ -695,6 +711,20 @@ class TenantServicesPort(BaseModel):
     service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务ID")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     mapping_port = models.IntegerField(default=0, help_text=u"映射端口")
+    protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
+    port_alias = models.CharField(max_length=30, null=True, blank=True, help_text=u"port别名")
+    is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
+    is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
+
+
+class AppServicesPort(BaseModel):
+
+    class Meta:
+        db_table = 'app_services_port'
+
+    service_key = models.CharField(max_length=32, db_index=True, help_text=u"服务key")
+    app_version = models.CharField(max_length=12, null=True, blank=True, help_text=u"版本")
+    container_port = models.IntegerField(default=0, help_text=u"容器端口")
     protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
     port_alias = models.CharField(max_length=30, null=True, blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
