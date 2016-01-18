@@ -69,10 +69,10 @@
                       <!--a href="#" class="edit-alias" data-title="更改端口别名" data-value="{{port.port_alias}}"></a-->
                     </td>
                     <td>
-                        <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" data-disabled data-on-text="开启" data-off-text="关闭">
+                        <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" disabled data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
-                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if tenant.pay_type == "free" and tenantServiceInfo.service_key != 'mysql' %}data-disabled{% endif %} data-on-text="开启" data-off-text="关闭">
+                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if tenant.pay_type == "free" and tenantServiceInfo.service_key != 'mysql' %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                 </tr>
               {% endfor %}

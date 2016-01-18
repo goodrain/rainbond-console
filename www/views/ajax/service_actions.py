@@ -963,18 +963,8 @@ class ServicePort(AuthedView):
 
     def get(self, request, port, *args, **kwargs):
         deal_port = TenantServicesPort.objects.get(service_id=self.service.service_id, container_port=int(port))
-        data = {
-            "environment": [
-                {"desc": u"连接地址", "name": "MYSQL_HOST", "value": "127.0.0.1"},
-                {"desc": u"连接端口", "name": "MYSQL_PORT", "value": "3307"},
-                {"desc": u"用户名", "name": "MYSQL_USER", "value": "admin"},
-                {"desc": u"密码", "name": "MYSQL_PORT", "value": "123465"},
-            ],
-            "outer_service": {
-                "domain": "qwueyqweyqwyeqw.goodoasidqwe.qwieqiw",
-                "port": 21000,
-            }
-        }
+        data = {"environment": [], "outer_service": {}}
+
         if deal_port.is_inner_service:
             for port_env in TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port):
                 data["environment"].append({
