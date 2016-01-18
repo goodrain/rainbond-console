@@ -267,10 +267,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager
                 # relationships password
-                if self.service.is_service:
+
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True).exists():
                     sids = [self.service.service_id]
                     envMap = {}
-                    envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
+                    envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids, scope__in=("outer", "both"))
                     logger.debug(len(envVarlist))
                     if len(envVarlist) > 0:
                         for evnVarObj in envVarlist:
@@ -292,13 +293,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 map = {}
                 sids = [self.service.service_id]
                 for tenantService in tenantServiceList:
-                    if tenantService.is_service:
+                    if TenantServicesPort.objects.filter(service_id=tenantService.service_id, is_inner_service=True).exists():
                         sids.append(tenantService.service_id)
                         map[tenantService.service_id] = tenantService
                 context["serviceMap"] = map
                 # env map
                 envMap = {}
-                envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
+                envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids, scope__in=("outer", "both"))
                 for evnVarObj in envVarlist:
                     arr = envMap.get(evnVarObj.service_id)
                     if arr is None:
