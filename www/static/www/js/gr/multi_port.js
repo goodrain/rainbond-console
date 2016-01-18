@@ -138,6 +138,8 @@
       function attr_delete(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "del_attr"};
         var del_tr = $(this).closest('tr');
+        attr_name = del_tr.find('input["name"="' + attr_name + '"]').val();
+        dict["attr_name"] = attr_name;
 
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
         $.post(url, dict, function(res) {
@@ -159,7 +161,7 @@
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
         $.post(url, dict, function(res) {
           if (res.success) {
-            add_tr.closest('.btn-toolbar').remove();
+            add_tr.find('.btn-toolbar').remove();
           }
         });
       }
