@@ -958,7 +958,7 @@ class ServiceEnv(AuthedView):
                     "attr_name": attr_name, "attr_value": attr_value, "is_change": True, "scope": scope
                 }
                 TenantServiceEnvVar.objects.create(**attr)
-                data = {"action": "add", "attr": attr, "tenant_id": self.service.tenant_id}  # tenant_id仅做兼容
+                data = {"action": "add", "attrs": attr}
                 regionClient.createServiceEnv(self.service.service_region, self.service.service_id, json.dumps(data))
                 return JsonResponse({"success": True, "info": "创建成功"})
         elif action == 'del_attr':
