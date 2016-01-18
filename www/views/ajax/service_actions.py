@@ -963,7 +963,7 @@ class ServicePort(AuthedView):
 
     def get(self, request, port, *args, **kwargs):
         deal_port = TenantServicesPort.objects.get(service_id=self.service.service_id, container_port=int(port))
-        data = {"environment": [], "outer_service": {}}
+        data = {"environment": []}
 
         if deal_port.is_inner_service:
             for port_env in TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port):
