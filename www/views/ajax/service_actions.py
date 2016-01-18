@@ -9,7 +9,9 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import ServiceInfo, AppServiceInfo, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation, TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain, TenantServiceEnvVar
+from www.models import (ServiceInfo, AppServiceInfo, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation,
+                        TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain,
+                        TenantServiceEnvVar, TenantServicesPort)
 from www.service_http import RegionServiceApi
 from www.gitlab_http import GitlabApi
 from www.github_http import GitHubApi
@@ -915,15 +917,52 @@ class ServiceBranch(AuthedView):
         self.service.save(update_fields=['code_version'])
         return JsonResponse({"ok": True}, status=200)
 
-from www.views import BaseView
 
+class ServicePort(AuthedView):
 
-class ServicePort(BaseView):
+    @perm_required("manage_service")
+    def post(self, request, port, *args, **kwargs):
+        action = request.POST.get("action")
+        deal_port = TenantServicesPort.objects.get(service_id=self.service.service_id, container_port=int(port))
 
-    def post(self, request, *args, **kwargs):
-        return JsonResponse({"success": True}, status=200)
+        modify_protocol = True
+        service_type = None
+        if action == 'open_outer':
+            deal_port.is_outer_service = True
+            service_type = 'outer'
+        elif action == 'close_outer':
+            deal_port.is_outer_service = False
+            service_type = 'outer'
+        '''
+        elif action == 'open_inner':
+            deal_port.is_inner_service = True
+            service_type = 'inner'
+        elif action == 'close_inner':
+            deal_port.is_inner_service = False
+            service_type = 'inner'
+        elif action == 'change_protocol':
+            protocol = request.POST.get("value")
+            deal_port.protocol = protocol
+        '''
 
-    def get(self, request, *args, **kwargs):
+        try:
+            if modify_protocol:
+                data = {
+                    "protocol": deal_port.protocol, "outer_service": deal_port.is_outer_service, "inner_service": deal_port.is_inner_service,
+                    "inner_service_port": deal_port.mapping_port, "service_type": service_type, "port_alias": deal_port.port_alias,
+                    "container_port": deal_port.container_port,
+                }
+                regionClient.modifyServiceProtocol(self.service.service_region, self.service.service_id, json.dumps(data))
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
+                deal_port.save()
+            return JsonResponse({"success": True, "info": u"更改成功"}, status=200)
+        except Exception, e:
+            logger.exception(e)
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', False)
+            return JsonResponse({"success": False, "info": u"更改失败", "code": 500}, status=200)
+
+    def get(self, request, port, *args, **kwargs):
+        deal_port = TenantServicesPort.objects.get(service_id=self.service.service_id, container_port=int(port))
         data = {
             "environment": [
                 {"desc": u"连接地址", "name": "MYSQL_HOST", "value": "127.0.0.1"},
@@ -936,12 +975,29 @@ class ServicePort(BaseView):
                 "port": 21000,
             }
         }
+        if deal_port.is_inner_service:
+            for port_env in TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port):
+                data["environment"].append({
+                    "desc": port_env.name, "name": port_env.attr_name, "value": port_env.attr_value
+                })
+        if deal_port.is_outer_service:
+            if deal_port.protocol == 'stream':
+                data["outer_service"] = {
+                    "domain": "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, self.service.service_region),
+                    "port": deal_port.mapping_port
+                }
+            elif deal_port.protocol == 'http':
+                data["outer_service"] = {
+                    "domain": "{0}.{1}.{2}.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, self.service.service_region),
+                    "port": 80 if self.service.service_region == 'aws-jp-1' else 10080
+                }
 
         return JsonResponse(data, status=200)
 
 
 class ServiceEnv(AuthedView):
 
+    @perm_required("manage_service")
     def post(self, request, *args, **kwargs):
         action = request.POST.get('action')
 

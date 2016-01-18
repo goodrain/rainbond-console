@@ -41,7 +41,7 @@
       </div>
   </section>
   
-<!--section class="panel">
+<section class="panel">
     <header class="panel-heading">端口开放</header>
     <div class="panel-body">
         <table class="table table-striped table-advance table-hover">
@@ -61,23 +61,26 @@
                     <td class="port-arrow"><a fold="yes"><i class="fa fa-chevron-circle-right fa-lg"></i></a></td>
                     <td> {{port.container_port}}</td>
                     <td>
-                        <a href="#" class="edit-protocol" data-title="更改协议类型" data-value="{{port.protocol}}"></a>
+                      {{port.protocol}}
+                        <!--a href="#" class="edit-protocol" data-title="更改协议类型" data-value="{{port.protocol}}"></a-->
                     </td>
                     <td>
-                        <a href="#" class="edit-alias" data-title="更改端口别名" data-value="{{port.port_alias}}"></a>
+                      {{port.port_alias|default:""}}
+                      <!--a href="#" class="edit-alias" data-title="更改端口别名" data-value="{{port.port_alias}}"></a-->
                     </td>
                     <td>
-                        <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" data-on-text="开启" data-off-text="关闭">
+                        <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" data-disabled data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
-                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" data-on-text="开启" data-off-text="关闭">
+                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if tenant.pay_type == "free" and tenantServiceInfo.service_key != 'mysql' %}data-disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                 </tr>
               {% endfor %}
             </tbody>
         </table>
     </div>
-</section-->
+</section>
+
 <section class="panel">
     <header class="panel-heading">自定义环境变量</header>
     <div class="panel-body">
@@ -120,7 +123,7 @@
 
   
   <section class="panel">
-      <header class="panel-heading">对外服务</header>
+      <header class="panel-heading">域名绑定</header>
       <div class="panel-body">
        {% if tenantServiceInfo.protocol == "http" %}
         {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
@@ -157,7 +160,7 @@
         {% endif %}
        {% else %}
           {% if tenant.pay_type != "free" or tenantServiceInfo.service_key == 'mysql' %}
-            <div class="row">
+            <!--div class="row">
                 <input type="hidden" name="create_port_mapping" id='create_port_mapping' value="portMapping">
                 <div class="col-xs-12">
                      <table class="table table-hover">
@@ -185,13 +188,13 @@
                        </tbody>
                      </table>
                  </div>
-               </div>
+               </div-->
             {% endif %}
        {% endif %}
       </div>
   </section>
   
-  <section class="panel">
+  <!--section class="panel">
       <header class="panel-heading">对内服务
         {% if 'manage_service' in user.actions %}
         {% if tenantServiceInfo.is_service %}
@@ -246,7 +249,7 @@
     {% endif %}
      {% endwith %}
      {% endif %}
-  </section>
+  </section-->
 
   <section class="panel">
     <header class="panel-heading">扩容方式</header>

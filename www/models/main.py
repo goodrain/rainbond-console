@@ -712,7 +712,7 @@ class TenantServicesPort(BaseModel):
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     mapping_port = models.IntegerField(default=0, help_text=u"映射端口")
     protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
-    port_alias = models.CharField(max_length=30, null=True, blank=True, help_text=u"port别名")
+    port_alias = models.CharField(max_length=30, default='', blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
 
@@ -726,6 +726,6 @@ class AppServicesPort(BaseModel):
     app_version = models.CharField(max_length=12, null=True, blank=True, help_text=u"版本")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
-    port_alias = models.CharField(max_length=30, null=True, blank=True, help_text=u"port别名")
+    port_alias = models.CharField(max_length=30, default='', blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
