@@ -949,14 +949,14 @@ class ServiceEnv(AuthedView):
             name = request.POST.get('name', '')
             attr_name = request.POST.get('attr_name')
             attr_value = request.POST.get('attr_value')
-            scope = request.POST.pop('scope', 'inner')
+            scope = request.POST.get('scope', 'inner')
 
             form = EnvCheckForm(request.POST)
             if not form.is_valid():
-                return JsonResponse({"success": False, "code": 400, "info": form.errors})
+                return JsonResponse({"success": False, "code": 400, "info": u"变量名不合法"})
 
             if TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).exists():
-                return JsonResponse({"success": False, "code": 409, "info": "变量名冲突"})
+                return JsonResponse({"success": False, "code": 409, "info": u"变量名冲突"})
             else:
                 attr = {
                     "tenant_id": self.service.tenant_id, "service_id": self.service.service_id, "name": name,
@@ -965,11 +965,11 @@ class ServiceEnv(AuthedView):
                 TenantServiceEnvVar.objects.create(**attr)
                 data = {"action": "add", "attrs": attr}
                 regionClient.createServiceEnv(self.service.service_region, self.service.service_id, json.dumps(data))
-                return JsonResponse({"success": True, "info": "创建成功"})
+                return JsonResponse({"success": True, "info": u"创建成功"})
         elif action == 'del_attr':
             attr_name = request.POST.get("attr_name")
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).delete()
 
             data = {"action": "delete", "attr_names": [attr_name]}
             regionClient.createServiceEnv(self.service.service_region, self.service.service_id, json.dumps(data))
-            return JsonResponse({"success": True, "info": "删除成功"})
+            return JsonResponse({"success": True, "info": u"删除成功"})
