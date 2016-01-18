@@ -280,6 +280,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                                 arr = []
                             arr.append(evnVarObj)
                             envMap[evnVarObj.service_id] = arr
+                    context["hasInnerServices"] = True
                     context["envMap"] = envMap
             elif fr == "relations":
                 # service relationships

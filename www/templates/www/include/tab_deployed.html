@@ -65,7 +65,7 @@
       </section>
     </div>
   </div>
-  {% if tenantServiceInfo.is_service %}
+  {% if hasInnerServices %}
   {% if 'manage_service' in user.actions %}
   {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
   <div class="row">
