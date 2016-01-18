@@ -138,7 +138,7 @@
       function attr_delete(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "del_attr"};
         var del_tr = $(this).closest('tr');
-        attr_name = del_tr.find('input["name"="' + attr_name + '"]').val();
+        attr_name = del_tr.find('input[name="attr_name"]').val();
         dict["attr_name"] = attr_name;
 
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
