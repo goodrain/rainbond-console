@@ -933,3 +933,18 @@ class ServicePort(BaseView):
         }
 
         return JsonResponse(data, status=200)
+
+
+class ServiceEnv(AuthedView):
+
+    def post(self, request, *args, **kwargs):
+        name = request.POST.get('name', '')
+        attr_name = request.POST.get('attr_name')
+        attr_value = request.POST.get('attr_value')
+
+        if TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).exists():
+            return JsonResponse({"success": False, "code": 409, "info": "变量名冲突"})
+        else:
+            TenantServiceEnvVar.objects.create(tenant_id=self.service.tenant_id, service_id=self.service.service_id, name=name,
+                                               attr_name=attr_name, attr_value=attr_value, is_change=True, scope='inner')
+            return JsonResponse({"success": True, "info": "创建成功"})

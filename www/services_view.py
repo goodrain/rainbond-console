@@ -347,7 +347,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         envMap[evnVarObj.service_id] = arr
                     context["envMap"] = envMap
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner")
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 

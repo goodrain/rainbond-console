@@ -140,8 +140,10 @@
         var del_tr = $(this).closest('tr');
 
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
-        $.post(url, dict, function(event) {
-          del_tr.remove();
+        $.post(url, dict, function(res) {
+          if (res.success) {
+            del_tr.remove();
+          }
         });
       }
 
@@ -155,8 +157,10 @@
         });
 
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
-        $.post(url, dict, function(event) {
-          console.log(event);
+        $.post(url, dict, function(res) {
+          if (res.success) {
+            add_tr.closest('.btn-toolbar').remove();
+          }
         });
       }
 

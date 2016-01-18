@@ -41,7 +41,7 @@
       </div>
   </section>
   
-<section class="panel">
+<!--section class="panel">
     <header class="panel-heading">端口开放</header>
     <div class="panel-body">
         <table class="table table-striped table-advance table-hover">
@@ -95,15 +95,19 @@
                     <tbody>
                     {% for env in envs %}
                         <tr>
-                            <input name="attr_id" type="hidden" value="{{env.pk}}">
+                            <input name="attr_id" type="hidden" placeholder="选填" value="{{env.pk}}">
                             <td>
-                                <input name="name" value="{{env.name}}">
+                              {% if env.is_change %}<input name="name" value="{{env.name}}">
+                              {% else %}{{env.name}}
+                              {% endif %}
                             </td>
                             <td>
-                                <input name="attr_name" value="{{env.attr_name}}">
+                              {% if env.is_change %}<input name="attr_name" value="{{env.attr_name}}">
                             </td>
                             <td>
-                                <input name="attr_value" value="{{env.attr_value}}">
+                              {% if env.is_change %}<input name="attr_value" value="{{env.attr_value}}">
+                              {% else %}{{env.name}}
+                              {% endif %}
                             </td>
                             <td>
                                 <button type="button" class="attr-delete btn btn-danger btn-xs"><i class="fa fa-trash-o"></i></button>
@@ -116,7 +120,7 @@
             </div>
         </div>
     </div>
-</section>
+</section-->
 
   
   <section class="panel">
