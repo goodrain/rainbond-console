@@ -942,13 +942,29 @@ class ServicePort(BaseView):
 class ServiceEnv(AuthedView):
 
     def post(self, request, *args, **kwargs):
-        name = request.POST.get('name', '')
-        attr_name = request.POST.get('attr_name')
-        attr_value = request.POST.get('attr_value')
+        action = request.POST.get('action')
 
-        if TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).exists():
-            return JsonResponse({"success": False, "code": 409, "info": "变量名冲突"})
-        else:
-            TenantServiceEnvVar.objects.create(tenant_id=self.service.tenant_id, service_id=self.service.service_id, name=name,
-                                               attr_name=attr_name, attr_value=attr_value, is_change=True, scope='inner')
-            return JsonResponse({"success": True, "info": "创建成功"})
+        if action == 'add_attr':
+            name = request.POST.get('name', '')
+            attr_name = request.POST.get('attr_name')
+            attr_value = request.POST.get('attr_value')
+            scope = request.POST.get('scope', 'inner')
+
+            if TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).exists():
+                return JsonResponse({"success": False, "code": 409, "info": "变量名冲突"})
+            else:
+                attr = {
+                    "tenant_id": self.service.tenant_id, "service_id": self.service.service_id, "name": name,
+                    "attr_name": attr_name, "attr_value": attr_value, "is_change": True, "scope": scope
+                }
+                TenantServiceEnvVar.objects.create(**attr)
+                data = {"action": "add", "attr": attr, "tenant_id": self.service.tenant_id}  # tenant_id仅做兼容
+                regionClient.createServiceEnv(self.service.service_region, self.service.service_id, json.dumps(data))
+                return JsonResponse({"success": True, "info": "创建成功"})
+        elif action == 'del_attr':
+            attr_name = request.POST.get("attr_name")
+            TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).delete()
+
+            data = {"action": "delete", "attr_names": [attr_name]}
+            regionClient.createServiceEnv(self.service.service_region, self.service.service_id, json.dumps(data))
+            return JsonResponse({"success": True, "info": "删除成功"})

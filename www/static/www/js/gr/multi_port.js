@@ -148,7 +148,7 @@
       }
 
       function attr_save(event) {
-        var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "new_attr"};
+        var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "add_attr"};
         var add_tr = $(this).closest('tr');
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
