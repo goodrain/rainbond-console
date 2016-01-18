@@ -9,7 +9,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Div, Fieldset, ButtonHolder, HTML, Row
 from crispy_forms.bootstrap import (AppendedText, FieldWithButtons, StrictButton, InlineField,
                                     PrependedText, FormActions, AccordionGroup, InlineCheckboxes)
-from www.models import Users, Tenants, PhoneCode
+from www.models import TenantServiceEnvVar
 from www.layout import Submit, Field
 import widgets
 import fields
@@ -96,3 +96,26 @@ class ServicePublishForm(forms.Form):
         self.helper.error_text_inline = True
         self.helper.label_class = 'col-lg-2'
         self.helper.field_class = 'col-lg-8'
+
+
+SENSITIVE_ENV_NAMES = (
+    'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'SERVICE_VERSION', 'MEMORY_SIZE', 'SERVICE_EXTEND_METHOD',
+    'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE',
+    'PATH', 'PORT',
+)
+
+
+class EnvCheckForm(forms.ModelForm):
+
+    class Meta:
+        model = TenantServiceEnvVar
+        fields = ('name', 'attr_name', 'attr_value')
+
+    def clean(self):
+        attr_name = self.cleaned_data.get("attr_name")
+
+        if attr_name in SENSITIVE_ENV_NAMES:
+            self.add_error('attr_name', u"不允许的变量名")
+
+        if not re.match(r'[A-Z_][A-Z0-9_]+', attr_name):
+            self.add_error('attr_name', u"变量名称不符合规范")

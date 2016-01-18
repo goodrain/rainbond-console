@@ -674,7 +674,7 @@ class TenantServiceEnvVar(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务id")
     container_port = models.IntegerField(default=0, help_text=u"端口")
-    name = models.CharField(max_length=100, help_text=u"名称")
+    name = models.CharField(max_length=100, blank=True, help_text=u"名称")
     attr_name = models.CharField(max_length=100, help_text=u"属性")
     attr_value = models.CharField(max_length=200, help_text=u"值")
     is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")

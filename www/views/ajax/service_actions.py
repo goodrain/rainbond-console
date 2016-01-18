@@ -19,6 +19,7 @@ from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from goodrain_web.decorator import method_perf_time
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.giturlparse import parse as git_url_parse
+from www.forms.services import EnvCheckForm
 
 import logging
 from django.template.defaultfilters import length
@@ -948,7 +949,11 @@ class ServiceEnv(AuthedView):
             name = request.POST.get('name', '')
             attr_name = request.POST.get('attr_name')
             attr_value = request.POST.get('attr_value')
-            scope = request.POST.get('scope', 'inner')
+            scope = request.POST.pop('scope', 'inner')
+
+            form = EnvCheckForm(request.POST)
+            if not form.is_valid():
+                return JsonResponse({"success": False, "code": 400, "info": form.errors})
 
             if TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).exists():
                 return JsonResponse({"success": False, "code": 409, "info": "变量名冲突"})

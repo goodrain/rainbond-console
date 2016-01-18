@@ -107,9 +107,9 @@
       $('#add_service_attr').click(function(event) {
         var msg = '<tr>'
         msg = msg + '<input type="hidden" name="attr_id" value="0">'
-        msg = msg + '<td><input name ="name" type="text" value=""></td>'
-        msg = msg + '<td><input name ="attr_name" type="text" value=""></td>'
-        msg = msg + '<td><input name ="attr_value" type="text" value=""></td>' +
+        msg = msg + '<td><input name="name" type="text" placeholder="可以不填写" value=""></td>'
+        msg = msg + '<td><input name="attr_name" type="text" value=""></td>'
+        msg = msg + '<td><input name="attr_value" type="text" value=""></td>' +
         '<td><div class="btn-toolbar" role="toolbar">' + 
           '<div class="btn-group" role="group">' + 
             '<button type="button" class="attr-save btn btn-success btn-xs" "><i class="fa fa-check"></i></button>' +
@@ -138,7 +138,7 @@
       function attr_delete(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "del_attr"};
         var del_tr = $(this).closest('tr');
-        attr_name = del_tr.find('input[name="attr_name"]').val();
+        attr_name = del_tr.find('.attr_name_field').val();
         dict["attr_name"] = attr_name;
 
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
@@ -162,6 +162,8 @@
         $.post(url, dict, function(res) {
           if (res.success) {
             add_tr.find('.btn-toolbar').remove();
+          } else {
+            alert(res.info);
           }
         });
       }
