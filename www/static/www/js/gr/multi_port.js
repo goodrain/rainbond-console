@@ -35,9 +35,13 @@
         } else {
           $(this).attr('fold', 'yes');
           $(this).children('i').removeClass('fa-chevron-circle-down').addClass('fa-chevron-circle-right');
-          next_tr = $(this).closest('tr').next('tr');
+          /*next_tr = $(this).closest('tr').next('tr');
           if (next_tr.hasClass('port-detail')) {
             next_tr.remove();
+          }*/
+          var next_table = $(this).closest('tr').parents('table').next();
+          if (next_table.hasClass('port-detail')) {
+            next_table.remove();
           }
         }
       });
@@ -54,8 +58,9 @@
           if (event.outer_service) {
             next_tr = next_tr + make_outer_html(event.outer_service);
           }
-          next_tr = next_tr + '</tr>'
-          curr_tr.after(next_tr);
+          next_tr = next_tr + '</tr>';
+          // curr_tr.parents('table').after(next_tr);
+          curr_tr.parents('table').after('<table class="table table-striped table-advance table-hover port-detail">' + next_tr + '</body>');
         });
       }
 
