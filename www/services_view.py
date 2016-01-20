@@ -282,6 +282,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                             envMap[evnVarObj.service_id] = arr
                     context["hasInnerServices"] = True
                     context["envMap"] = envMap
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True).exists():
+                    context["hasOuterServices"] = True
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
@@ -350,6 +352,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["envMap"] = envMap
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
                 context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner")
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+                    context["hasHttpServices"] = True
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 

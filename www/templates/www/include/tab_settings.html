@@ -125,7 +125,7 @@
   <section class="panel">
       <header class="panel-heading">域名绑定</header>
       <div class="panel-body">
-       {% if tenantServiceInfo.protocol == "http" %}
+       {% if hasHttpServices %}
         {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
            <div class="row">
               <div class="col-xs-12">
