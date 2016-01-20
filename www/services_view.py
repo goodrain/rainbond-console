@@ -10,7 +10,7 @@ from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.shortcuts import redirect
 from django.http import Http404
-from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin
+from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant,
                         TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar)
@@ -432,7 +432,7 @@ class ServiceHistoryLog(AuthedView):
         return TemplateResponse(self.request, "www/service_history_log.html", context)
 
 
-class ServiceAutoDeploy(BaseView):
+class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
 
     def getTenants(self, user_id):
         tenants_has = PermRelTenant.objects.filter(user_id=user_id)
@@ -479,6 +479,7 @@ class ServiceAutoDeploy(BaseView):
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, user.pk, region=tenant.region)
             monitorhook.serviceMonitor(user.nick_name, newTenantService, 'create_service', True)
+            self.copy_port_and_env(service, newTenantService)
             # code repos
             if service_code_from == "gitlab_new":
                 project_id = 0
