@@ -123,7 +123,7 @@
 
   
   <section class="panel">
-      <header class="panel-heading">名绑定域</header>
+      <header class="panel-heading">域名绑定</header>
       <div class="panel-body">
        {% if hasHttpServices %}
         {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
@@ -160,7 +160,7 @@
         {% endif %}
        {% else %}
           {% if tenant.pay_type != "free" or tenantServiceInfo.service_key == 'mysql' %}
-            <div class="row">
+            <!--div class="row">
                 <input type="hidden" name="create_port_mapping" id='create_port_mapping' value="portMapping">
                 <div class="col-xs-12">
                      <table class="table table-hover">
@@ -188,7 +188,7 @@
                        </tbody>
                      </table>
                  </div>
-               </div>
+               </div-->
             {% endif %}
        {% endif %}
       </div>
