@@ -973,8 +973,10 @@ class ServicePort(AuthedView):
         if deal_port.is_outer_service:
             if deal_port.protocol == 'stream':
                 body = regionClient.findMappingPort(self.service.service_region, self.service.service_id)
+                cur_region=self.service.service_region
+                cur_region= cur_region.replace("-1","")
                 data["outer_service"] = {
-                    "domain": "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, self.service.service_region),
+                    "domain": "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region),
                     "port": body["port"],
                 }
             elif deal_port.protocol == 'http':
