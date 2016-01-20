@@ -6,7 +6,7 @@ from django.http.response import HttpResponse
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation, App, Category
+from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation, App, Category, AppServicesPort, AppServiceEnvVar, TenantServicesPort, TenantServiceEnvVar
 from www.forms.services import ServicePublishForm
 from www.utils import increase_version
 from www.service_http import RegionServiceApi
@@ -203,6 +203,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         new_version = self.copy_public_properties(pub_service, new_version)
         new_env = self.extend_env(new_version, pub_service)
         new_version.env = new_env
+        self.copy_ports_and_envs(new_version)
         new_version.save()
         app.env = new_env
         return new_version
@@ -228,6 +229,19 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
             return ','.join(dep_service_keys)
         else:
             return ""
+
+    def copy_ports_and_envs(self, new_version):
+        service_key = new_version.service_key
+        service_id = new_version.service_id
+        for source_port in TenantServicesPort.objects.filter(service_id=service_id):
+            AppServicesPort.objects.create(service_key=service_key, app_version=new_version.app_version, container_port=source_port.container_port,
+                                           protocol=source_port.protocol, port_alias=source_port.port_alias, is_inner_service=source_port.is_inner_service,
+                                           is_outer_service=source_port.is_outer_service)
+
+        for source_env in TenantServiceEnvVar.objects.filter(service_id=service_id):
+            AppServiceEnvVar.objects.create(service_key=service_key, app_version=new_version.app_version, container_port=source_env.container_port,
+                                            name=source_env.name, attr_name=source_env.attr_name, attr_value=source_env.attr_value,
+                                            is_change=source_env.is_change, scope=source_env.scope)
 
     def create_publish_event(self):
         template = {
