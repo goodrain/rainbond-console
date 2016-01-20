@@ -479,7 +479,9 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, user.pk, region=tenant.region)
             monitorhook.serviceMonitor(user.nick_name, newTenantService, 'create_service', True)
-            self.copy_port_and_env(service, newTenantService)
+            baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http',
+                                       port_alias=None, is_inner_service=False, is_outer_service=True)
+            # self.copy_port_and_env(service, newTenantService)
             # code repos
             if service_code_from == "gitlab_new":
                 project_id = 0
