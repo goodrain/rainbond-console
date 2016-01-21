@@ -61,21 +61,21 @@
                     <td class="port-arrow"><a fold="yes"><i class="fa fa-chevron-circle-right fa-lg"></i></a></td>
                     <td>
                       {% if user.is_sys_admin %}
-                        <a href="#" class="edit-port" data-title="更改监听端口" data-url="{{port.edit_link}}" data-value="{{port.container_port}}"></a>
+                        <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
                       {% else %}
                         {{port.container_port}}
                       {% endif %}
                     </td>
                     <td>
                       {% if user.is_sys_admin %}
-                        <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="{{port.edit_link}}" data-value="{{port.protocol}}"></a>
+                        <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
                       {% else %}
                         {{port.protocol}}
                       {% endif %}
                     </td>
                     <td>
                       {% if user.is_sys_admin %}
-                        <a href="#" class="edit-port-alias" data-title="更改别名" data-url="{{port.edit_link}}" data-value="{{port.port_alias}}"></a>
+                        <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}"></a>
                       {% else %}
                         {{port.port_alias}}
                       {% endif %}
