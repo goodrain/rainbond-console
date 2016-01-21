@@ -966,8 +966,9 @@ class ServicePort(AuthedView):
                 return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 400})
             deal_port.is_inner_service = True
             data.update({"modified_field": "is_inner_service", "current_value": True})
+
+            baseService = BaseTenantService()
             if deal_port.mapping_port <= 1:
-                baseService = BaseTenantService()
                 mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
                 deal_port.mapping_port = mapping_port
                 deal_port.save(update_fields=['mapping_port'])
@@ -977,6 +978,15 @@ class ServicePort(AuthedView):
                 baseService.saveServiceEnvVar(self.service.tenant_id, self.service.service_id, deal_port.container_port, u"端口",
                                               deal_port.port_alias + "_PORT", mapping_port, False, scope="outer")
                 data.update({"mapping_port": mapping_port})
+            else:
+                # 兼容旧的非对内服务, mapping_port有正常值
+                unique = TenantServicesPort.objects.filter(service_id=deal_port.service_id, mapping_port=deal_port.mapping_port).count()
+                if unique > 1:
+                    new_mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
+                    deal_port.mapping_port = new_mapping_port
+                    deal_port.save(update_fields=['mapping_port'])
+                data.update({"mapping_port": mapping_port})
+
             port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).values(
                 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
             data.update({"port_envs": list(port_envs)})
