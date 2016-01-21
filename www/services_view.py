@@ -352,8 +352,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["envMap"] = envMap
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
                 context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner")
-                for port in context["ports"]:
-                    port.edit_link = '/ajax/{0}/{1}/ports/{}'.format(self.tenantName, self.serviceAlias, port.container_port)
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                     context["hasHttpServices"] = True
             else:
