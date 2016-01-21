@@ -937,7 +937,7 @@ class ServicePort(AuthedView):
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port).exists():
             return False, u"端口冲突"
 
-        return False, port
+        return True, port
 
     @perm_required("manage_service")
     def post(self, request, port, *args, **kwargs):
@@ -957,10 +957,10 @@ class ServicePort(AuthedView):
                 data.update({"mapping_port": 1})
         elif action == 'close_outer':
             deal_port.is_outer_service = False
-            data.update({"modified_field": "is_outer_service", "current_value": True})
+            data.update({"modified_field": "is_outer_service", "current_value": False})
         elif action == 'close_inner':
             deal_port.is_inner_service = False
-            data.update({"modified_field": "is_inner_service", "current_value": True})
+            data.update({"modified_field": "is_inner_service", "current_value": False})
         elif action == 'open_inner':
             if bool(deal_port.port_alias) is False:
                 return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 400})
