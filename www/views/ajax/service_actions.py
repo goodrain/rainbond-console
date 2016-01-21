@@ -990,7 +990,7 @@ class ServicePort(AuthedView):
                 deal_port.port_alias = new_port_alias
                 envs = TenantServiceEnvVar.objects.only('attr_name').filter(service_id=deal_port.service_id, container_port=deal_port.container_port)
                 for env in envs:
-                    new_attr_name = new_port_alias + env.lstrip(old_port_alias)
+                    new_attr_name = new_port_alias + env.attr_name.lstrip(old_port_alias)
                     env.attr_name = new_attr_name
                     env.save()
                 port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).values(
