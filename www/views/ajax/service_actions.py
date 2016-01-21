@@ -952,6 +952,9 @@ class ServicePort(AuthedView):
         elif action == 'open_outer':
             deal_port.is_outer_service = True
             data.update({"modified_field": "is_outer_service", "current_value": True})
+            if deal_port.mapping_port == 0:
+                deal_port.mapping_port = 1
+                data.update({"mapping_port": 1})
         elif action == 'close_outer':
             deal_port.is_outer_service = False
             data.update({"modified_field": "is_outer_service", "current_value": True})
@@ -1002,7 +1005,7 @@ class ServicePort(AuthedView):
                 old_port = deal_port.container_port
                 deal_port.container_port = new_port
                 TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=old_port).update(container_port=new_port)
-
+                data.update({"modified_field": "port", "current_value": new_port})
         try:
             regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
