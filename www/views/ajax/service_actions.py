@@ -981,11 +981,13 @@ class ServicePort(AuthedView):
             else:
                 # 兼容旧的非对内服务, mapping_port有正常值
                 unique = TenantServicesPort.objects.filter(service_id=deal_port.service_id, mapping_port=deal_port.mapping_port).count()
+                logger.debug("debug", "unique count is {}".format(unique))
                 if unique > 1:
                     new_mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
+                    logger.debug("debug", "new_mapping_port is {}".format(new_mapping_port))
                     deal_port.mapping_port = new_mapping_port
                     deal_port.save(update_fields=['mapping_port'])
-                data.update({"mapping_port": mapping_port})
+                    data.update({"mapping_port": new_mapping_port})
 
             port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).values(
                 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
