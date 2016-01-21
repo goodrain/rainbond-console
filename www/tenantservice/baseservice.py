@@ -59,7 +59,7 @@ class BaseTenantService(object):
         return cur_service_port
 
     def prepare_mapping_port(self, service, container_port):
-        port_list = TenantServicesPort.objects.filter(tenant_id=service.tenant_id, container_port__gt=container_port).values_list(
+        port_list = TenantServicesPort.objects.filter(tenant_id=service.tenant_id, mapping_port__gt=container_port).values_list(
             'mapping_port', flat=True).order_by('mapping_port')
 
         port_list = list(port_list)
