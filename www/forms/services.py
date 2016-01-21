@@ -117,5 +117,5 @@ class EnvCheckForm(forms.ModelForm):
         if attr_name in SENSITIVE_ENV_NAMES:
             self.add_error('attr_name', u"不允许的变量名")
 
-        if not re.match(r'[A-Z_][A-Z0-9_]+', attr_name):
+        if not re.match(r'^[A-Z][A-Z0-9_]*$', attr_name):
             self.add_error('attr_name', u"变量名称不符合规范")

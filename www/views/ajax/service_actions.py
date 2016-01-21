@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import datetime
 import json
+import re
 
 from django.db.models import Sum
 from django.db.models import Max
@@ -920,41 +921,92 @@ class ServiceBranch(AuthedView):
 
 class ServicePort(AuthedView):
 
+    def check_port_alias(self, port_alias):
+        if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
+            return False, u"格式不符合要求"
+
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, port_alias=port_alias).exists():
+            return False, u"别名冲突"
+
+        return True, port_alias
+
+    def check_port(self, port):
+        if not re.match(r'^\d{2,5}$', str(port)):
+            return False, u"格式不符合要求"
+
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port).exists():
+            return False, u"端口冲突"
+
+        return False, port
+
     @perm_required("manage_service")
     def post(self, request, port, *args, **kwargs):
         action = request.POST.get("action")
         deal_port = TenantServicesPort.objects.get(service_id=self.service.service_id, container_port=int(port))
 
-        modify_protocol = True
-        service_type = None
-        if action == 'open_outer':
-            deal_port.is_outer_service = True
-            service_type = 'outer'
-        elif action == 'close_outer':
-            deal_port.is_outer_service = False
-            service_type = 'outer'
-        '''
-        elif action == 'open_inner':
-            deal_port.is_inner_service = True
-            service_type = 'inner'
-        elif action == 'close_inner':
-            deal_port.is_inner_service = False
-            service_type = 'inner'
-        elif action == 'change_protocol':
+        data = {"port": int(port)}
+        if action == 'change_protocol':
             protocol = request.POST.get("value")
             deal_port.protocol = protocol
-        '''
+            data.update({"modified_field": "protocol", "current_value": protocol})
+        elif action == 'open_outer':
+            deal_port.is_outer_service = True
+            data.update({"modified_field": "is_outer_service", "current_value": True})
+        elif action == 'close_outer':
+            deal_port.is_outer_service = False
+            data.update({"modified_field": "is_outer_service", "current_value": True})
+        elif action == 'close_inner':
+            deal_port.is_inner_service = False
+            data.update({"modified_field": "is_inner_service", "current_value": True})
+        elif action == 'open_inner':
+            if bool(deal_port.port_alias) is False:
+                return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 400})
+            deal_port.is_inner_service = True
+            data.update({"modified_field": "is_inner_service", "current_value": True})
+            if deal_port.mapping_port <= 1:
+                baseService = BaseTenantService()
+                mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
+                deal_port.mapping_port = mapping_port
+                deal_port.save(update_fields=['mapping_port'])
+                TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).delete()
+                baseService.saveServiceEnvVar(self.service.tenant_id, self.service.service_id, deal_port.container_port, u"连接地址",
+                                              deal_port.port_alias + "_HOST", "127.0.0.1", False, scope="outer")
+                baseService.saveServiceEnvVar(self.service.tenant_id, self.service.service_id, deal_port.container_port, u"端口",
+                                              deal_port.port_alias + "_PORT", mapping_port, False, scope="outer")
+                data.update({"mapping_port": mapping_port})
+            port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).values(
+                'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+            data.update({"port_envs": list(port_envs)})
+        elif action == 'change_port_alias':
+            new_port_alias = request.POST.get("value")
+            success, reason = self.check_port_alias(new_port_alias)
+            if not success:
+                return JsonResponse({"success": False, "info": reason, "code": 400})
+            else:
+                old_port_alias = deal_port.port_alias
+                deal_port.port_alias = new_port_alias
+                envs = TenantServiceEnvVar.objects.only('attr_name').filter(service_id=deal_port.service_id, container_port=deal_port.container_port)
+                for env in envs:
+                    new_attr_name = new_port_alias + env.lstrip(old_port_alias)
+                    env.attr_name = new_attr_name
+                    env.save()
+                port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).values(
+                    'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+                data.update({"modified_field": "port_alias", "current_value": new_port_alias, "port_envs": list(port_envs)})
+        elif action == 'change_port':
+            new_port = int(request.POST.get("value"))
+            success, reason = self.check_port(new_port)
+            if not success:
+                return JsonResponse({"success": False, "info": reason, "code": 400})
+            else:
+                old_port = deal_port.container_port
+                deal_port.container_port = new_port
+                TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=old_port).update(container_port=new_port)
 
         try:
-            if modify_protocol:
-                data = {
-                    "protocol": deal_port.protocol, "outer_service": deal_port.is_outer_service, "inner_service": deal_port.is_inner_service,
-                    "inner_service_port": deal_port.mapping_port, "service_type": service_type, "port_alias": deal_port.port_alias,
-                    "container_port": deal_port.container_port,
-                }
-                regionClient.modifyServiceProtocol(self.service.service_region, self.service.service_id, json.dumps(data))
-                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
-                deal_port.save()
+            regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
+            deal_port.save()
             return JsonResponse({"success": True, "info": u"更改成功"}, status=200)
         except Exception, e:
             logger.exception(e)
@@ -973,8 +1025,8 @@ class ServicePort(AuthedView):
         if deal_port.is_outer_service:
             if deal_port.protocol == 'stream':
                 body = regionClient.findMappingPort(self.service.service_region, self.service.service_id)
-                cur_region=self.service.service_region
-                cur_region= cur_region.replace("-1","")
+                cur_region = self.service.service_region
+                cur_region = cur_region.replace("-1", "")
                 data["outer_service"] = {
                     "domain": "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region),
                     "port": body["port"],

@@ -84,14 +84,13 @@
 
       //即时修改端口别名和协议类型
       $(document).ready(function() {
-        $('.edit-alias').editable({
+        $('.edit-port-alias').editable({
           type: 'text',
           pk: 1,    
-          title: '更改端口别名',
           ajaxOptions: {
               beforeSend: function(xhr, settings) {
                 xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
-                settings.data += '&action=rename_alias';
+                settings.data += '&action=change_port_alias';
               },
           }
         });
@@ -103,6 +102,16 @@
               beforeSend: function(xhr, settings) {
                 xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
                 settings.data += '&action=change_protocol';
+              },
+          }
+        });
+        $('.edit-port').editable({
+          type: 'text',
+          pk: 1,    
+          ajaxOptions: {
+              beforeSend: function(xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
+                settings.data += '&action=change_port';
               },
           }
         });
