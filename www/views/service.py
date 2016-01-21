@@ -238,7 +238,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
                                            protocol=source_port.protocol, port_alias=source_port.port_alias, is_inner_service=source_port.is_inner_service,
                                            is_outer_service=source_port.is_outer_service)
 
-        for source_env in TenantServiceEnvVar.objects.filter(service_id=service_id):
+        for source_env in TenantServiceEnvVar.objects.filter(service_id=service_id, scope="inner"):
             AppServiceEnvVar.objects.create(service_key=service_key, app_version=new_version.app_version, container_port=source_env.container_port,
                                             name=source_env.name, attr_name=source_env.attr_name, attr_value=source_env.attr_value,
                                             is_change=source_env.is_change, scope=source_env.scope)
