@@ -203,7 +203,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         return app
 
     def create_new_version(self, app, d, pub_service):
-        previous_versions = AppServiceInfo.objects.only('update_version').filter(service_key=app.service_key).order_by('update_version')
+        previous_versions = AppServiceInfo.objects.only('update_version').filter(service_key=app.service_key).order_by('-update_version')
         if previous_versions:
             new_update_version = previous_versions[0].update_version + 1
         else:
