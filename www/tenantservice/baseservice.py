@@ -245,7 +245,7 @@ class BaseTenantService(object):
         tenantServiceEnvVar["scope"] = scope
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
 
-    def addServicePort(self, service, is_init_account, container_port=0, protocol='', port_alias=None, is_inner_service=False, is_outer_service=False):
+    def addServicePort(self, service, is_init_account, container_port=0, protocol='', port_alias='', is_inner_service=False, is_outer_service=False):
         port = TenantServicesPort(tenant_id=service.tenant_id, service_id=service.service_id, container_port=container_port,
                                   protocol=protocol, port_alias=port_alias, is_inner_service=is_inner_service,
                                   is_outer_service=is_outer_service)

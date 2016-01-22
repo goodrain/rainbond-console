@@ -106,7 +106,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
-            baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias=None, is_inner_service=False, is_outer_service=True)
+            baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias='', is_inner_service=False, is_outer_service=True)
 
             # code repos
             if service_code_from == "gitlab_new":

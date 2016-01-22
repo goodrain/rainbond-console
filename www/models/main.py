@@ -247,7 +247,7 @@ class AppServiceInfo(BaseModel):
 
     class Meta:
         db_table = 'app_service'
-        unique_together = (('service_key', 'app_version'), ('service_id', 'deploy_version'))
+        unique_together = (('service_key', 'update_version'), ('service_id', 'deploy_version'),)
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
@@ -256,8 +256,9 @@ class AppServiceInfo(BaseModel):
     deploy_num = models.IntegerField(default=0, help_text=u"当前部署数量")
     view_num = models.IntegerField(default=0, help_text=u"被部署次数")
     app_version = models.CharField(max_length=12, help_text=u"用户发布版本")
+    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     change_log = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新日志")
-    create_time = models.DateTimeField(help_text=u"创建时间", auto_now=True)
+    create_time = models.DateTimeField(help_text=u"创建时间", auto_add_now=True)
     creater = models.IntegerField(null=True, help_text=u"创建人")
 
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
@@ -274,7 +275,7 @@ class AppServiceInfo(BaseModel):
         return not bool(self.image.startswith('goodrain.me/runner'))
 
     def __unicode__(self):
-        return u"{0}({1})".format(self.service_key, self.app_version)
+        return u"{0}({1}-{2})".format(self.service_key, self.app_version, self.update_version)
 
 
 class TenantServiceInfo(BaseModel):
@@ -692,6 +693,7 @@ class AppServiceEnvVar(BaseModel):
 
     service_key = models.CharField(max_length=32, db_index=True, help_text=u"服务key")
     app_version = models.CharField(max_length=12, null=True, blank=True, help_text=u"版本")
+    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     container_port = models.IntegerField(default=0, help_text=u"端口")
     name = models.CharField(max_length=100, help_text=u"名称")
     attr_name = models.CharField(max_length=100, help_text=u"属性")
@@ -724,6 +726,7 @@ class AppServicesPort(BaseModel):
 
     service_key = models.CharField(max_length=32, db_index=True, help_text=u"服务key")
     app_version = models.CharField(max_length=12, null=True, blank=True, help_text=u"版本")
+    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
     port_alias = models.CharField(max_length=30, default='', blank=True, help_text=u"port别名")

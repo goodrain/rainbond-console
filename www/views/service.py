@@ -96,7 +96,8 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         form_init_data = {
             'app_key': {"value": app.service_key, "attrs": {"readonly": True}},
             'app_name': {"value": app.service_name, "attrs": {"readonly": True}},
-            'app_version': {"value": increase_version(last_pub_version.app_version, 1)},
+            # 'app_version': {"value": increase_version(last_pub_version.app_version, 1)},
+            'app_version': last_pub_version.app_version,
             'app_info': {"value": app.info},
             'pay_type': {"value": last_pub_version.pay_type},
             'price': {"value": last_pub_version.price},
@@ -110,10 +111,10 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         if published_versions:
             last_pub_version = published_versions[0]
             form_init_data = self.prepare_app_update(last_pub_version)
-            #self.form = ServicePublishForm(initial=form_init_data, is_update=True)
+            # self.form = ServicePublishForm(initial=form_init_data, is_update=True)
             context.update({"fields": form_init_data, "isinit": False})
         else:
-            #self.form = ServicePublishForm()
+            # self.form = ServicePublishForm()
             context.update({"fields": {}, "isinit": True})
         root_categories = Category.objects.only('ID', 'name').filter(parent=0)
         root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
@@ -151,6 +152,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         try:
             app = self._add_new_app(post_data, self.service)
             new_version = self.create_new_version(app, post_data, self.service)
+            app.update_version = new_version.update_version
             app.save()
             event_id = self.create_publish_event()
             if new_version.is_slug():
@@ -166,6 +168,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         try:
             app = self._update_app(post_data, self.service)
             new_version = self.create_new_version(app, post_data, self.service)
+            app.update_version = new_version.update_version
             app.save()
             event_id = self.create_publish_event()
             if new_version.is_slug():
@@ -198,8 +201,14 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         return app
 
     def create_new_version(self, app, d, pub_service):
+        previous_versions = AppServiceInfo.objects.only('update_version').filter(service_key=app.service_key).order_by('update_version')
+        if previous_versions:
+            new_update_version = previous_versions[0].update_version + 1
+        else:
+            new_update_version = 1
         new_version = AppServiceInfo(service_key=app.service_key, service_id=pub_service.service_id, pay_type=d['pay_type'], price=d['price'],
-                                     deploy_version=pub_service.deploy_version, app_version=d['app_version'], change_log=d['change_log'], creater=self.user.pk)
+                                     deploy_version=pub_service.deploy_version, app_version=d['app_version'], update_version=new_update_version,
+                                     change_log=d['change_log'], creater=self.user.pk)
         new_version = self.copy_public_properties(pub_service, new_version)
         new_env = self.extend_env(new_version, pub_service)
         new_version.env = new_env
@@ -234,13 +243,13 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         service_key = new_version.service_key
         service_id = new_version.service_id
         for source_port in TenantServicesPort.objects.filter(service_id=service_id):
-            AppServicesPort.objects.create(service_key=service_key, app_version=new_version.app_version, container_port=source_port.container_port,
-                                           protocol=source_port.protocol, port_alias=source_port.port_alias, is_inner_service=source_port.is_inner_service,
-                                           is_outer_service=source_port.is_outer_service)
+            AppServicesPort.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
+                                           container_port=source_port.container_port, protocol=source_port.protocol, port_alias=source_port.port_alias,
+                                           is_inner_service=source_port.is_inner_service, is_outer_service=source_port.is_outer_service)
 
         for source_env in TenantServiceEnvVar.objects.filter(service_id=service_id, scope="inner"):
-            AppServiceEnvVar.objects.create(service_key=service_key, app_version=new_version.app_version, container_port=source_env.container_port,
-                                            name=source_env.name, attr_name=source_env.attr_name, attr_value=source_env.attr_value,
+            AppServiceEnvVar.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
+                                            container_port=source_env.container_port, name=source_env.name, attr_name=source_env.attr_name, attr_value=source_env.attr_value,
                                             is_change=source_env.is_change, scope=source_env.scope)
 
     def create_publish_event(self):

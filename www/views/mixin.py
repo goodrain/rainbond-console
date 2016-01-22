@@ -44,8 +44,8 @@ class CopyPortAndEnvMixin(object):
 
     def copy_port_and_env(self, service, new_service):
         if service.category in ("app_publish", "app_sys_publish"):
-            ports = AppServicesPort.objects.filter(service_key=service.service_key, app_version=service.version)
-            envs = AppServiceEnvVar.objects.filter(service_key=service.service_key, app_version=service.version)
+            ports = AppServicesPort.objects.filter(service_key=service.service_key, app_version=service.version, update_version=service.update_version)
+            envs = AppServiceEnvVar.objects.filter(service_key=service.service_key, app_version=service.version, update_version=service.update_version)
         else:
             ports = AppServicesPort.objects.filter(service_key=service.service_key)
             envs = AppServiceEnvVar.objects.filter(service_key=service.service_key)
