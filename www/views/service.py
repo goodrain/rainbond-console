@@ -97,7 +97,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
             'app_key': {"value": app.service_key, "attrs": {"readonly": True}},
             'app_name': {"value": app.service_name, "attrs": {"readonly": True}},
             # 'app_version': {"value": increase_version(last_pub_version.app_version, 1)},
-            'app_version': last_pub_version.app_version,
+            'app_version': {"value": last_pub_version.app_version},
             'app_info': {"value": app.info},
             'pay_type': {"value": last_pub_version.pay_type},
             'price': {"value": last_pub_version.price},
