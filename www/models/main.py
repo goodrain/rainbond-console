@@ -258,7 +258,7 @@ class AppServiceInfo(BaseModel):
     app_version = models.CharField(max_length=12, help_text=u"用户发布版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     change_log = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新日志")
-    create_time = models.DateTimeField(help_text=u"创建时间", auto_add_now=True)
+    create_time = models.DateTimeField(help_text=u"创建时间", auto_now_add=True)
     creater = models.IntegerField(null=True, help_text=u"创建人")
 
     deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
