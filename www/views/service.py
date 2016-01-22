@@ -152,6 +152,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         try:
             app = self._add_new_app(post_data, self.service)
             new_version = self.create_new_version(app, post_data, self.service)
+            logger.info("service.publish", "update {} set update_version from {} to {}".format(app.service_key, app.update_version, new_version.update_version))
             app.update_version = new_version.update_version
             app.save()
             event_id = self.create_publish_event()
@@ -168,6 +169,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         try:
             app = self._update_app(post_data, self.service)
             new_version = self.create_new_version(app, post_data, self.service)
+            logger.info("service.publish", "update {} set update_version from {} to {}".format(app.service_key, app.update_version, new_version.update_version))
             app.update_version = new_version.update_version
             app.save()
             event_id = self.create_publish_event()
