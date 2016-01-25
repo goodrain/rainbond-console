@@ -140,7 +140,8 @@
         var msg = '<tr>'
         msg = msg + '<input type="hidden" name="attr_id" value="0">'
         msg = msg + '<td><input name="attr_name" type="text" value=""></td>'
-        msg = msg + '<td><input name="attr_value" type="text" value=""></td>' +
+        msg = msg + '<td><input name="attr_value" type="text" value=""></td>'
+        msg = msg + '<td><input name="name" type="text" placeholder="可以不填写" value=""></td>' +
         '<td><div class="btn-toolbar" role="toolbar">' + 
           '<div class="btn-group" role="group">' + 
             '<button type="button" class="attr-save btn btn-success btn-xs" "><i class="fa fa-check"></i></button>' +
@@ -149,7 +150,6 @@
             '<button type="button" class="attr-cancel btn btn-danger btn-xs" "><i class="fa fa-times"></i></button></td>' +
           '</div>' + 
         '</div></td>'
-        msg = msg + '<td><input name="name" type="text" placeholder="可以不填写" value=""></td>'
         msg = msg + '</tr>'
         $("#envVartable tr:last").after(msg);
         $('.attr-cancel').unbind('click').bind('click', attr_cancel);

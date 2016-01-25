@@ -141,7 +141,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         try:
             success = func(post_data)
             if success:
-                return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+                return self.redirect_to('/apps/{0}/{1}/publish/extra/'.format(self.tenantName, self.serviceAlias))
             else:
                 logger.error('service.publish', "{} failed".format(action))
                 return HttpResponse(u"发布过程出现异常", status=500)
@@ -338,4 +338,6 @@ class ServicePublishExtraView(LeftSideBarMixin, AuthedView):
         except Exception, e:
             logger.exception("service.publish", e)
             return JsonResponse({"success": False, "info": "未知错误"}, status=500)
-        return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+
+        next_url = '/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias)
+        return JsonResponse({"success": True, "next_url": next_url}, status=200)
