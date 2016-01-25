@@ -34,3 +34,93 @@ function getCategoryList(cateId, contId){
         }
     }
 }
+
+$('.select-all-envs').click(
+  function() {
+    var checked = $(this).prop('checked');
+    if (checked) {
+      $(this).closest('table').find('tbody tr').addClass('warning');
+      $(this).closest('table').find('input.env-select').prop('checked',true);
+    } else {
+      $(this).closest('table').find('tbody tr').removeClass('warning');
+      $(this).closest('table').find('input.env-select').prop('checked',false);
+    }
+  }
+);
+
+$('.env-select').click(
+  function() {
+    var checked = $(this).prop('checked');
+    if (checked) {
+        $(this).closest('tr').addClass('warning');
+    } else {
+        $(this).closest('tr').removeClass('warning');
+        $('.select-all-envs').prop('checked',false);
+    }
+  }
+);
+
+$('.rw-option').change(function() {
+    var curr_tr = $(this).closest('tr');
+    var rewrite_td = curr_tr.find('.rewrite-attr-value');
+    var option = $(this).val();
+    var html_content = '';
+    if (option=='custom') {
+        old_value = rewrite_td.html();
+        console.log(old_value);
+        rewrite_td.attr('old_value', old_value);
+        //removeAttr('name');
+        content = '<input name="attr_value" type="text" value="" placeholder="在此举例">';
+        rewrite_td.html(content);
+    } else if (option=='readonly') {
+        old_value = rewrite_td.attr('old_value');
+        console.log(old_value);
+        rewrite_td.html(old_value);
+        rewrite_td.attr('name', 'attr_value');
+    }
+});
+
+$('#confirm-commit').click(function() {
+    envs = []
+    $('#service-envs tbody tr.warning').each(function() {
+        env = {};
+        $(this).find('[name^=attr]').each(function(event) {
+            i = $(this);
+            name = $(this).attr('name');
+            value = $(this).val() || i.html();
+            env[name] = value;
+        });
+        envs.push(env);
+    });
+    var csrftoken = $.cookie('csrftoken');
+    data = {"envs": envs};
+    $.ajax({
+      url: window.location.pathname,
+      method: "POST",
+      data: $.stringify(data),
+      beforeSend: function(xhr) {
+        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+      },
+      success :function (event) {
+        if (event.success) {
+          window.location.href = event.next_url;
+        } else {
+          showMessage(event.info);
+        }
+      },
+      contentType: 'application/json; charset=utf-8',
+
+      statusCode: {
+        403: function(event) {
+          alert("你没有此权限");
+        }
+      },
+    });});
+
+$(document).ready(
+  function () {
+      $('.select-all-envs').prop('checked', true);
+      $('.env-select').prop('checked', true);
+      $('.env-select').closest('tr').addClass('warning');
+  }
+);

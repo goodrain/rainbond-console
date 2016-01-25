@@ -101,9 +101,9 @@
                 <table class="table table-hover" id="envVartable">
                     <thead>
                         <tr>
-                            <th>说明</th>
                             <th>变量名</th>
                             <th>变量值</th>
+                            <th>说明</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -111,14 +111,14 @@
                     {% for env in envs %}
                         <tr>
                             <input name="attr_id" type="hidden" placeholder="选填" value="{{env.pk}}">
-                            <td>
-                              {{env.name}}
-                            </td>
                             <td class="attr_name_field">
                               {{env.attr_name}}
                             </td>
                             <td>
                               {{env.attr_value}}
+                            </td>
+                            <td>
+                              {{env.name}}
                             </td>
                             <td>
                                 <button type="button" class="attr-delete btn btn-danger btn-xs"><i class="fa fa-trash-o"></i></button>
