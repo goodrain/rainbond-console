@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
 import json
+from addict import Dict
 # from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
-from django.http.response import HttpResponse
+from django.http.response import HttpResponse, JsonResponse
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
@@ -214,7 +215,6 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         new_version = self.copy_public_properties(pub_service, new_version)
         new_env = self.extend_env(new_version, pub_service)
         new_version.env = new_env
-        self.copy_ports_and_envs(new_version)
         new_version.save()
         app.env = new_env
         return new_version
@@ -240,19 +240,6 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
             return ','.join(dep_service_keys)
         else:
             return ""
-
-    def copy_ports_and_envs(self, new_version):
-        service_key = new_version.service_key
-        service_id = new_version.service_id
-        for source_port in TenantServicesPort.objects.filter(service_id=service_id):
-            AppServicesPort.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
-                                           container_port=source_port.container_port, protocol=source_port.protocol, port_alias=source_port.port_alias,
-                                           is_inner_service=source_port.is_inner_service, is_outer_service=source_port.is_outer_service)
-
-        for source_env in TenantServiceEnvVar.objects.filter(service_id=service_id, scope="inner"):
-            AppServiceEnvVar.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
-                                            container_port=source_env.container_port, name=source_env.name, attr_name=source_env.attr_name, attr_value=source_env.attr_value,
-                                            is_change=source_env.is_change, scope=source_env.scope)
 
     def create_publish_event(self):
         template = {
@@ -316,6 +303,25 @@ class ServicePublishExtraView(LeftSideBarMixin, AuthedView):
         ) + self.vendor('www/css/goodrainstyle.css', 'www/js/gr/basic.js', 'www/js/jquery.cookie.js', 'www/js/validator.min.js', 'www/js/gr/app_publish.js')
         return media
 
+    def copy_ports(self, new_version):
+        service_key = new_version.service_key
+        service_id = new_version.service_id
+        for source_port in TenantServicesPort.objects.filter(service_id=service_id):
+            AppServicesPort.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
+                                           container_port=source_port.container_port, protocol=source_port.protocol, port_alias=source_port.port_alias,
+                                           is_inner_service=source_port.is_inner_service, is_outer_service=source_port.is_outer_service)
+
+    def copy_envs(self, new_version, envs):
+        service_key = new_version.service_key
+        service_id = new_version.service_id
+        for env in envs:
+            source_env = TenantServiceEnvVar.objects.get(service_id=service_id, attr_name=env.attr_name)
+            opts = [env['attr_rw']]
+            options = u','.join(opts)
+            AppServiceEnvVar.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
+                                            container_port=0, name=source_env.name, attr_name=source_env.attr_name, attr_value=env.attr_value,
+                                            is_change=source_env.is_change, scope=source_env.scope, options=options)
+
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         envs = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=0)
@@ -323,5 +329,13 @@ class ServicePublishExtraView(LeftSideBarMixin, AuthedView):
         return TemplateResponse(request, 'www/service/publish_extra.html', context)
 
     def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        return HttpResponse(data)
+        try:
+            data = json.loads(request.body)
+            data = Dict(data)
+            new_version = AppServiceInfo.objects.filter(service_id=self.service.service_id).order_by('-update_version').first()
+            self.copy_envs(new_version, data.envs)
+            self.copy_ports(new_version)
+        except Exception, e:
+            logger.exception("service.publish", e)
+            return JsonResponse({"success": False, "info": "未知错误"}, status=500)
+        return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))

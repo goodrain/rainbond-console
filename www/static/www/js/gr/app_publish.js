@@ -70,7 +70,7 @@ $('.rw-option').change(function() {
         console.log(old_value);
         rewrite_td.attr('old_value', old_value);
         //removeAttr('name');
-        content = '<input name="attr_value" type="text" value="" placeholder="在此举例">';
+        content = '<input name="attr_value" type="text" value="" placeholder="填写示例">';
         rewrite_td.html(content);
     } else if (option=='readonly') {
         old_value = rewrite_td.attr('old_value');
