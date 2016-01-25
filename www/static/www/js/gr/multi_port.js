@@ -88,6 +88,7 @@
           type: 'text',
           pk: 1,
           error: function (data) {
+            console.log(data);
             showMessage(data.info);
           },  
           ajaxOptions: {
