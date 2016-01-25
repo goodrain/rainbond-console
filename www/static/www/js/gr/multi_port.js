@@ -86,7 +86,10 @@
       $(document).ready(function() {
         $('.edit-port-alias').editable({
           type: 'text',
-          pk: 1,    
+          pk: 1,
+          error: function (data) {
+            showMessage(data.info);
+          },  
           ajaxOptions: {
               beforeSend: function(xhr, settings) {
                 xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
@@ -97,7 +100,10 @@
         $('.edit-protocol').editable({
           type: 'select',
           source: [{value: "http", text: 'http'}, {value: "stream", text: 'stream'}],
-          pk: 1,    
+          pk: 1,
+          error: function (data) {
+            showMessage(data.info);
+          },
           ajaxOptions: {
               beforeSend: function(xhr, settings) {
                 xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
@@ -107,7 +113,13 @@
         });
         $('.edit-port').editable({
           type: 'text',
-          pk: 1,    
+          pk: 1,
+          success: function (data) {
+            window.location.reload();
+          },
+          error: function (data) {
+            showMessage(data.info);
+          },  
           ajaxOptions: {
               beforeSend: function(xhr, settings) {
                 xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
@@ -177,7 +189,7 @@
           if (res.success) {
             add_tr.find('.btn-toolbar').remove();
           } else {
-            alert(res.info);
+            showMessage(res.info);
           }
         });
       }

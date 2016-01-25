@@ -963,7 +963,7 @@ class ServicePort(AuthedView):
             data.update({"modified_field": "is_inner_service", "current_value": False})
         elif action == 'open_inner':
             if bool(deal_port.port_alias) is False:
-                return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 400})
+                return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 400}, status=400)
             deal_port.is_inner_service = True
             data.update({"modified_field": "is_inner_service", "current_value": True})
 
@@ -996,7 +996,7 @@ class ServicePort(AuthedView):
             new_port_alias = request.POST.get("value")
             success, reason = self.check_port_alias(new_port_alias)
             if not success:
-                return JsonResponse({"success": False, "info": reason, "code": 400})
+                return JsonResponse({"success": False, "info": reason, "code": 400}, status=400)
             else:
                 old_port_alias = deal_port.port_alias
                 deal_port.port_alias = new_port_alias
@@ -1012,7 +1012,7 @@ class ServicePort(AuthedView):
             new_port = int(request.POST.get("value"))
             success, reason = self.check_port(new_port)
             if not success:
-                return JsonResponse({"success": False, "info": reason, "code": 400})
+                return JsonResponse({"success": False, "info": reason, "code": 400}, status=400)
             else:
                 old_port = deal_port.container_port
                 deal_port.container_port = new_port
