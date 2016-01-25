@@ -88,8 +88,9 @@
           type: 'text',
           pk: 1,
           error: function (data) {
-            console.log(data);
-            showMessage(data.info);
+            msg = data.responseText;
+            res = $.parseJSON(msg);
+            showMessage(res.info);
           },  
           ajaxOptions: {
               beforeSend: function(xhr, settings) {
@@ -103,7 +104,9 @@
           source: [{value: "http", text: 'http'}, {value: "stream", text: 'stream'}],
           pk: 1,
           error: function (data) {
-            showMessage(data.info);
+            msg = data.responseText;
+            res = $.parseJSON(msg);
+            showMessage(res.info);
           },
           ajaxOptions: {
               beforeSend: function(xhr, settings) {
@@ -119,7 +122,9 @@
             window.location.reload();
           },
           error: function (data) {
-            showMessage(data.info);
+            msg = data.responseText;
+            res = $.parseJSON(msg);
+            showMessage(res.info);
           },  
           ajaxOptions: {
               beforeSend: function(xhr, settings) {
