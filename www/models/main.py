@@ -4,6 +4,7 @@ from django.db import models
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id
 from django.db.models.fields import DateTimeField
+from .fields import GrOptionsCharField
 
 # Create your models here.
 
@@ -701,6 +702,7 @@ class AppServiceEnvVar(BaseModel):
     attr_value = models.CharField(max_length=200, help_text=u"值")
     is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
     scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
+    options = GrOptionsCharField(max_length=100, help_text=u"参数选项", default="readonly")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
 
