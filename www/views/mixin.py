@@ -102,9 +102,12 @@ class LeftSideBarMixin(object):
         baseService = BaseTenantService()
         services = baseService.get_service_list(
             self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
+        services = list(services)
         for s in services:
             if s.service_alias == self.serviceAlias:
                 s.is_selected = True
+                services.insert(0, s)
+                services.remove(s)
                 break
 
         return services
