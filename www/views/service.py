@@ -308,11 +308,11 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
 class ServicePublishExtraView(LeftSideBarMixin, AuthedView):
 
     def get_context(self):
-        context = super(ServicePublishView, self).get_context()
+        context = super(ServicePublishExtraView, self).get_context()
         return context
 
     def get_media(self):
-        media = super(ServicePublishView, self).get_media(
+        media = super(ServicePublishExtraView, self).get_media(
         ) + self.vendor('www/css/goodrainstyle.css', 'www/js/gr/basic.js', 'www/js/jquery.cookie.js', 'www/js/validator.min.js', 'www/js/gr/app_publish.js')
         return media
 
@@ -321,3 +321,7 @@ class ServicePublishExtraView(LeftSideBarMixin, AuthedView):
         envs = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=0)
         context['envs'] = envs
         return TemplateResponse(request, 'www/service/publish_extra.html', context)
+
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        return HttpResponse(data)
