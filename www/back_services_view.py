@@ -216,7 +216,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
     def update_app_service(self, service, newTenantService):
         with transaction.atomic():
-            appversion = AppServiceInfo.objects.defer('change_log').get(service_key=service.service_key, app_version=service.version)
+            appversion = AppServiceInfo.objects.defer('change_log').get(service_key=service.service_key, app_version=service.version, update_version=service.update_version)
             appversion.deploy_num += 1
             appversion.view_num += 1
             appversion.save(update_fields=['deploy_num', 'view_num'])

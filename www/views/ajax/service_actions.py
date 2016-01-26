@@ -344,7 +344,7 @@ class ServiceManage(AuthedView):
 
     def update_app_service(self, tservice):
         try:
-            appversion = AppServiceInfo.objects.only('deploy_num').get(service_key=tservice.service_key, app_version=tservice.version)
+            appversion = AppServiceInfo.objects.only('deploy_num').get(service_key=tservice.service_key, app_version=tservice.version, update_version=tservice.update_version)
             appversion.deploy_num -= 1
             appversion.save()
         except AppServiceInfo.DoesNotExist:
