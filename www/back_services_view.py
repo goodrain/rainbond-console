@@ -289,6 +289,8 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             source_service = ServiceInfo.objects.get(service_key=self.service.service_key)
             self.copy_envs(source_service, [])
             self.copy_ports(source_service)
+            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
             return self.redirect_to('/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias))
 
     def post(self, request, *args, **kwargs):
