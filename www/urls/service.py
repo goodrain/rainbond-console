@@ -23,8 +23,8 @@ urlpatterns = patterns(
 
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/$', ServicePublishView.as_view()),
-    url(r'^/(?P<serviceAlias>[\w\-]+)/publish/extra/$', ServicePublishExtraView.as_view()),
-    url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra$', ServiceDeployExtraView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/publish/extra/?$', ServicePublishExtraView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra/?$', ServiceDeployExtraView.as_view()),
 
     # url(r'^(?P<serviceAlias>[\w\-]+)/app-deploy/$', login_required(ServiceAppDeploy.as_view())),
 

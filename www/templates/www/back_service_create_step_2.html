@@ -34,7 +34,7 @@
                                 {% for env in envs %}
                                 <tr>
                                     <td name="attr_name">{{env.attr_name}}</td>
-                                    {% if env.options.direct_copy %}<td name="attr_value">{{env.attr_value}}</td>
+                                    {% if 'direct_copy' in env.options %}<td name="attr_value">{{env.attr_value}}</td>
                                     {% else %}<td><input name="attr_value" placeholder="举例: {{env.attr_value}}"></td>
                                     {% endif %}
                                 </tr>
