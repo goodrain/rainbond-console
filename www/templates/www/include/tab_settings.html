@@ -111,15 +111,9 @@
                     {% for env in envs %}
                         <tr>
                             <input name="attr_id" type="hidden" placeholder="选填" value="{{env.pk}}">
-                            <td class="attr_name_field">
-                              {{env.attr_name}}
-                            </td>
-                            <td>
-                              {{env.attr_value}}
-                            </td>
-                            <td>
-                              {{env.name}}
-                            </td>
+                            <td class="attr_name_field">{{env.attr_name}}</td>
+                            <td>{{env.attr_value}}</td>
+                            <td>{{env.name}}</td>
                             <td>
                                 <button type="button" class="attr-delete btn btn-danger btn-xs"><i class="fa fa-trash-o"></i></button>
                             </td>
