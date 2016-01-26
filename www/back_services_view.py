@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
+import json
+from addict import Dict
 from django.db import transaction
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServiceInfo, App, AppUsing
+from www.models import (ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServiceInfo,
+                        App, AppUsing, AppServicesPort, AppServiceEnvVar, TenantServicesPort, TenantServiceEnvVar)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
 from www.monitorservice.monitorhook import MonitorHook
@@ -195,10 +198,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
 
-            self.copy_port_and_env(service, newTenantService)
-            # create region tenantservice
-            baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
-            monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
+            # self.copy_port_and_env(service, newTenantService)
 
             # create service env
             # baseService.create_service_env(tenant_id, service_id, self.response_region)
@@ -236,7 +236,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
     def copy_properties(self, copy_from, to):
         update_fields = []
-        for field in ('deploy_version', 'cmd', 'setting', 'image', 'dependecy', 'env', 'service_type'):
+        for field in ('deploy_version', 'update_version', 'cmd', 'setting', 'image', 'dependecy', 'env', 'service_type'):
             if hasattr(to, field) and hasattr(copy_from, field):
                 to_value = getattr(to, field)
                 from_value = getattr(copy_from, field)
@@ -244,3 +244,67 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     setattr(to, field, from_value)
                     update_fields.append(field)
         return to, update_fields
+
+
+class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
+            'www/css/goodrainstyle.css', 'www/js/gr/basic.js', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/back-service-create.js')
+        return media
+
+    def copy_envs(self, source_service, envs):
+        s = self.service
+        baseService = BaseTenantService()
+        for env in envs:
+            source_env = AppServiceEnvVar.objects.get(service_key=s.service_key, app_version=s.version,
+                                                      update_version=s.update_version, attr_name=env.attr_name)
+            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
+                                          env.attr_name, env.attr_value, source_env.is_change, source_env.scope)
+
+        for sys_env in AppServiceEnvVar.objects.filter(service_key=s.service_key, app_version=s.version,
+                                                       update_version=s.update_version, container_port__lt=0):
+            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, sys_env.container_port, sys_env.name,
+                                          sys_env.attr_name, sys_env.attr_value, sys_env.is_change, sys_env.scope)
+
+    def copy_ports(self, source_service):
+        if self.service.category in ("app_publish", "app_sys_publish"):
+            AppPorts = AppServicesPort.objects.filter(service_key=self.service.service_key, app_version=self.service.version, update_version=self.service.update_version)
+        else:
+            AppPorts = AppServicesPort.objects.filter(service_key=self.service.service_key)
+        baseService = BaseTenantService()
+        for port in AppPorts:
+            baseService.addServicePort(self.service, source_service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
+                                       is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        envs = AppServiceEnvVar.objects.filter(service_key=self.service.service_key, app_version=self.service.version, update_version=self.service.update_version, container_port=0)
+        if envs:
+            context['envs'] = envs
+            return TemplateResponse(request, 'www/back_service_create_step_2.html', context)
+        else:
+            source_service = ServiceInfo.objects.get(service_key=self.service.service_key)
+            self.copy_envs(source_service, [])
+            self.copy_ports(source_service)
+            return self.redirect_to('/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias))
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            data = Dict(data)
+            source_service = ServiceInfo.objects.get(service_key=self.service.service_key)
+            self.copy_envs(source_service, data.envs)
+            self.copy_ports(source_service)
+            # create region tenantservice
+            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
+
+        except Exception, e:
+            logger.exception("service.create", e)
+            return JsonResponse({"success": False, "info": u"内部错误"}, status=500)
+
+        next_url = '/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias)
+        return JsonResponse({"success": True, "next_url": next_url}, status=200)

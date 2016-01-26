@@ -115,7 +115,8 @@ $('#confirm-commit').click(function() {
           alert("你没有此权限");
         }
       },
-    });});
+    });
+  });
 
 $(document).ready(
   function () {

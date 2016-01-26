@@ -18,7 +18,7 @@ $(function(){
         }
     });
     //第一步
-    $('#back_service_finished').click(function(){
+    $('#back_service_step1').click(function(){
         var appName = $('#create_service_name').val(),
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
@@ -51,7 +51,7 @@ $(function(){
 			}
 		}*/
 		var tenantName = $("#tenantName").val()
-		$("#back_service_finished").prop('disabled', true)
+		$("#back_service_step1").prop('disabled', true)
 		var _data = $("form").serialize();
     	$.ajax({
     		type : "post",
@@ -78,7 +78,7 @@ $(function(){
     				swal("服务名称不能为空");    				
     			}else if (dataObj["status"] == "success") {
     				service_alias = dataObj["service_alias"]
-    				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
+    				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/setup/extra/";
     			} else {
     				swal("创建失败");
     				$("#back_service_finished").prop('disabled', false)
@@ -90,5 +90,48 @@ $(function(){
     			$("#back_service_finished").prop('disabled', false)
     		}
     	})
+    });
+
+    $('#back_service_finished').click(function() {
+        envs = []
+        $('tbody tr').each(function() {
+            env = {};
+            $(this).find('[name^=attr]').each(function(event) {
+                i = $(this);
+                name = $(this).attr('name');
+                value = $(this).val() || i.html();
+                if (value) {
+                    env[name] = value;
+                } else {
+                    showMessage("有未填写的内容");
+                    return;
+                }
+            });
+            envs.push(env);
+        });
+        var csrftoken = $.cookie('csrftoken');
+        data = {"envs": envs};
+        $.ajax({
+          url: window.location.pathname,
+          method: "POST",
+          data: $.stringify(data),
+          beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+          },
+          success :function (event) {
+            if (event.success) {
+              window.location.href = event.next_url;
+            } else {
+              showMessage(event.info);
+            }
+          },
+          contentType: 'application/json; charset=utf-8',
+
+          statusCode: {
+            403: function(event) {
+              alert("你没有此权限");
+            }
+          },
+        });
     });
 });
