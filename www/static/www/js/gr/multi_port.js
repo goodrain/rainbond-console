@@ -170,7 +170,7 @@
       function attr_delete(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "del_attr"};
         var del_tr = $(this).closest('tr');
-        attr_name = del_tr.find('.attr_name_field').val();
+        attr_name = del_tr.find('.attr_name_field').html();
         dict["attr_name"] = attr_name;
 
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
