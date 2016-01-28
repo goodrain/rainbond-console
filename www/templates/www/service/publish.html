@@ -55,7 +55,7 @@
                 </div>
                 {% endwith %}
               </div>
-              <div id="div_id_pay_type" class="form-group">
+              <!--div id="div_id_pay_type" class="form-group">
                 <label for="id_pay_type" class="control-label col-lg-2 requiredField">付费类型<span class="asteriskField">*</span></label>
                 {% with fields.pay_type as field %}
                 <div class="controls col-lg-8">
@@ -65,8 +65,9 @@
                   </select>
                 </div>
                 {% endwith %}
-              </div>
-              <div id="div_id_price" class="form-group">
+              </div-->
+              <input type="hidden" name="pay_type" value="free">
+              <!--div id="div_id_price" class="form-group">
                 <label for="id_price" class="control-label col-lg-2">价格</label>
                 {% with fields.price as field %}
                 <div class="controls col-lg-8">
@@ -74,7 +75,8 @@
                   <span class="help-block with-errors"></span>
                 </div>
                 {% endwith %}
-              </div>
+              </div-->
+              <input type="hidden" name="pay_type" value="free">
               {% if isinit %}
               <div class="form-group clearfix">
                 <label for="app_type_first" class="col-sm-2 col-lg-2 control-label text-right">分类</label>

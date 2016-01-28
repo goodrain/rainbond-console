@@ -21,7 +21,7 @@ logger = logging.getLogger('default')
 
 class ServicePublishForm(forms.Form):
     app_key = fields.CharField(
-        required=True, max_length=32,
+        required=False, max_length=32,
         validators=[is_standard_word, is_sensitive],
         min_length=3, ajax_check=True, pattern=standard_regex_string,
         label=u"应用key",
