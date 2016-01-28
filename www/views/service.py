@@ -132,13 +132,15 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         post_data = request.POST.dict()
         logger.debug("service.publish", "post_data is {0}".format(post_data))
         if 'publish' in post_data:
+            app_key = make_uuid(self.serviceAlias)
             action = 'app_publish'
         elif 'update' in post_data:
+            last_version = AppServiceInfo.objects.only('service_key').filter(service_id=self.service.service_id).order_by('-create_time').first()
+            app_key = last_version.service_key
             action = 'app_update'
         else:
             return HttpResponse("error", status=500)
 
-        app_key = make_uuid(self.serviceAlias)
         post_data["app_key"] = app_key
 
         func = getattr(self, action)
