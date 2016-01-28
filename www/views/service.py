@@ -11,6 +11,7 @@ from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, Tenant
 from www.forms.services import ServicePublishForm
 from www.utils import increase_version
 from www.service_http import RegionServiceApi
+from www.utils.crypt import make_uuid
 
 import logging
 logger = logging.getLogger('default')
@@ -137,6 +138,9 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         else:
             return HttpResponse("error", status=500)
 
+        app_key = make_uuid(self.serviceAlias)
+        post_data["app_key"] = app_key
+
         func = getattr(self, action)
         try:
             success = func(post_data)
@@ -217,6 +221,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         new_version.env = new_env
         new_version.save()
         app.env = new_env
+        app.desc = d['change_log']
         return new_version
 
     def copy_public_properties(self, copy_from, to):
