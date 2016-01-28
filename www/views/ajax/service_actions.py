@@ -176,6 +176,11 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', False)
         elif action == "delete":
             try:
+                published = AppServiceInfo.objects.filter(service_id=self.service.service_id).count()
+                if published:
+                    result["status"] = "failure"
+                    result["info"] = u"关联了已发布服务, 不可删除"
+                    return JsonResponse(result)
                 dependSids = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).values("service_id")
                 if len(dependSids) > 0:
                     sids = []
