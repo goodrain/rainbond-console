@@ -30,17 +30,20 @@ class GitlabApi(BaseHttpClient):
 
     def get_private_token(self):
         private_token = ""
-        try:
-            body = {}
-            body["login"] = self.admin_user
-            body["email"] = self.admin_email
-            body["password"] = self.admin_password
-            url = self.url + PREFIX + "/session"
-            headers = {'Content-Type': 'application/json'}
-            res, body = self._post(url, headers, json.dumps(body))
-            private_token = body["private_token"]
-        except Exception as e:
-            logger.exception(e)
+        body = {}
+        body["login"] = self.admin_user
+        body["email"] = self.admin_email
+        body["password"] = self.admin_password
+        url = self.url + PREFIX + "/session"
+        headers = {'Content-Type': 'application/json'}
+        num = 0
+        while num < 2 and private_token == "":
+            try:
+                num = num + 1
+                res, body = self._post(url, headers, json.dumps(body))
+                private_token = body["private_token"]
+            except Exception as e:
+                logger.exception(e)
         return private_token
 
     def getUser(self, user_id):
@@ -70,48 +73,54 @@ class GitlabApi(BaseHttpClient):
 
     def createUser(self, email, password, username, name):
         git_user_id = 0
-        try:
-            user = {}
-            user["email"] = email
-            user["password"] = password
-            user["username"] = username
-            user["name"] = name
-            user["projects_limit"] = 1
-            user["admin"] = False
-            user["can_create_group"] = False
-            user["confirm "] = False
-            url = self.url + PREFIX + "/users"
-            private_token = self.get_private_token()
-            logger.debug(private_token)
-            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}
-            res, body = self._post(url, headers, json.dumps(user))
-            logger.debug(body)
-            git_user_id = body["id"]
-            logger.debug(git_user_id)
-        except Exception as e:
-            logger.exception(e)
+        user = {}
+        user["email"] = email
+        user["password"] = password
+        user["username"] = username
+        user["name"] = name
+        user["projects_limit"] = 1
+        user["admin"] = False
+        user["can_create_group"] = False
+        user["confirm "] = False
+        url = self.url + PREFIX + "/users"
+        private_token = self.get_private_token()
+        logger.debug(private_token)
+        headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}
+        num = 0
+        while num < 2 and git_user_id == 0:
+            try:
+                num = num + 1
+                res, body = self._post(url, headers, json.dumps(user))
+                logger.debug(body)
+                git_user_id = body["id"]
+                logger.debug(git_user_id)
+            except Exception as e:
+                logger.exception(e)
         return git_user_id
 
     def createProject(self, appname):
         project_id = 0
-        try:
-            project = {}
-            project["name"] = appname
-            project["issues_enabled"] = True
-            project["merge_requests_enabled"] = True
-            project["wiki_enabled"] = True
-            project["snippets_enabled"] = True
-            project["public"] = False
-            project["visibility_level"] = 0
-            private_token = self.get_private_token()
-            url = self.url + PREFIX + "/projects"
-            headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}
-            res, body = self._post(url, headers, json.dumps(project))
-            logger.debug(body)
-            project_id = body["id"]
-            logger.debug(project_id)
-        except Exception as e:
-            logger.exception(e)
+        project = {}
+        project["name"] = appname
+        project["issues_enabled"] = True
+        project["merge_requests_enabled"] = True
+        project["wiki_enabled"] = True
+        project["snippets_enabled"] = True
+        project["public"] = False
+        project["visibility_level"] = 0
+        private_token = self.get_private_token()
+        url = self.url + PREFIX + "/projects"
+        headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': private_token}
+        num = 0
+        while num < 2 and project_id == 0:
+            try:
+                num = num + 1
+                res, body = self._post(url, headers, json.dumps(project))
+                logger.debug(body)
+                project_id = body["id"]
+                logger.debug(project_id)
+            except Exception as e:
+                logger.exception(e)
         return project_id
 
     def createProjectForUser(self, appname, user_id):

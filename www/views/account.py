@@ -640,6 +640,8 @@ class PhoneCodeView(BaseView):
                     return JsonResponse(result)
             phone_code = random.randrange(0, 1000001, 6)
             send_result = send_phone_message(phone, phone_code)
+            if not send_result:
+                send_result = send_phone_message(phone, phone_code)
             newpc = PhoneCode(phone=phone, type="register", code=phone_code)
             newpc.save()
             monitorhook.phoneCodeMonitor(phone, phone_code, send_result)
@@ -663,7 +665,7 @@ class TenantSelectView(BaseView):
             return self.redirect_to('/login')
 
         tenant_names = self.get_tenant_names()
-        #tenant_names = ['testa', 'testb']
+        # tenant_names = ['testa', 'testb']
         regions = RegionInfo.register_choices()
         context = self.get_context()
         context.update({"tenant_names": tenant_names, "regions": regions})
