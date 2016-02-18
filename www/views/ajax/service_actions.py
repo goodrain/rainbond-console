@@ -551,7 +551,7 @@ class AllServiceInfo(AuthedView):
                 else:
                     id_string = ','.join(service_ids)
                     bodys = regionClient.check_status(self.cookie_region, json.dumps({"service_ids": id_string}))
-                    logger.debug(bodys)
+                    #logger.debug(bodys)
                     for key, value in bodys.items():
                         child = {}
                         child["status"] = value
