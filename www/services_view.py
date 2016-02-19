@@ -272,7 +272,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     sids = [self.service.service_id]
                     envMap = {}
                     envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids, scope__in=("outer", "both"))
-                    logger.debug(len(envVarlist))
+                    #logger.debug(len(envVarlist))
                     if len(envVarlist) > 0:
                         for evnVarObj in envVarlist:
                             arr = envMap.get(evnVarObj.service_id)

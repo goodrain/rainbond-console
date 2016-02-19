@@ -78,75 +78,78 @@ def return_url(request, tenantName):
         logger.debug(trade_status)
         if trade_status == 'TRADE_SUCCESS' or trade_status == 'TRADE_FINISHED':
             tenantRecharge = TenantRecharge.objects.get(order_no=out_trade_no)
-            tenantRecharge.status = trade_status
-            tenantRecharge.trade_no = trade_no
-            tenantRecharge.save()
-            tempMoney = 0
-            # recharge send money
-            # tempMoney = int(tenantRecharge.money) / 100 * 50
-            # if tempMoney > 0:
-            #    sendRecharge = TenantRecharge()
-            #    sendRecharge.tenant_id = tenantRecharge.tenant_id
-            #    sendRecharge.user_id = tenantRecharge.user_id
-            #    sendRecharge.user_name = tenantRecharge.user_name
-            #    sendRecharge.order_no = tenantRecharge.order_no
-            #    sendRecharge.recharge_type = "100send50"
-            #    sendRecharge.money = tempMoney
-            #    sendRecharge.subject = "充100值送50"
-            #    sendRecharge.body = "充100值送50"
-            #    sendRecharge.show_url = ""
-            #    sendRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            #    sendRecharge.status = "TRADE_SUCCESS"
-            #    sendRecharge.save()
-            # concurrent question
-            tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
-            tenant.balance = tenant.balance + tenantRecharge.money + tempMoney
-            # tenant.pay_type = 'payed'
-            tenant.save()
-            # charging owed money
-            last_money = 0.0
-            openServiceTag = True
-            recharges = TenantConsume.objects.filter(
-                tenant_id=tenantRecharge.tenant_id, pay_status="unpayed")
-            if len(recharges) > 0:
-                for recharge in recharges:
-                    temTenant = Tenants.objects.get(
-                        tenant_id=tenantRecharge.tenant_id)
-                    last_money = recharge.cost_money
-                    if recharge.cost_money <= temTenant.balance:
-                        logger.debug(
-                            tenantRecharge.tenant_id + " charging owed money:" + str(recharge.cost_money))
-                        temTenant.balance = float(
-                            temTenant.balance) - float(recharge.cost_money)
-                        temTenant.save()
-                        recharge.payed_money = recharge.cost_money
-                        recharge.pay_status = "payed"
-                        recharge.save()
-                    else:
-                        openServiceTag = False
-            # if stop service,need to open
-            tenantNew = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
-            if openServiceTag and last_money < tenantNew.balance:
-                tenant_regions = TenantRegionInfo.objects.filter(
-                    tenant_id=tenantRecharge.tenant_id, is_active=True)
-                for tenant_region in tenant_regions:
-                    if tenant_region.service_status == 2:
-                        tenantServices = TenantServiceInfo.objects.filter(
-                            tenant_id=tenantRecharge.tenant_id, service_region=tenant_region.region_name)
-                        for tenantService in tenantServices:
-                            tenantService.deploy_version = datetime.datetime.now().strftime(
-                                '%Y%m%d%H%M%S')
-                            tenantService.save()
-                            body = {
-                                "deploy_version": tenantService.deploy_version}
-                            regionClient.restart(
-                                tenantService.service_region, tenantService.service_id, json.dumps(body))
-                        tenant_region.service_status = 1
-                        tenant_region.save()
-                        # update notify
-                TenantPaymentNotify.objects.filter(
-                    tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
-            monitorhook.rechargeMonitor(tenantRecharge.user_name, tenantRecharge.user_id, "recharge")
+            if tenantRecharge.trade_no is None or tenantRecharge.trade_no == "":
+                tenantRecharge.status = trade_status
+                tenantRecharge.trade_no = trade_no
+                tenantRecharge.save()
+                tempMoney = 0
+                # recharge send money
+                # tempMoney = int(tenantRecharge.money) / 100 * 50
+                # if tempMoney > 0:
+                #    sendRecharge = TenantRecharge()
+                #    sendRecharge.tenant_id = tenantRecharge.tenant_id
+                #    sendRecharge.user_id = tenantRecharge.user_id
+                #    sendRecharge.user_name = tenantRecharge.user_name
+                #    sendRecharge.order_no = tenantRecharge.order_no
+                #    sendRecharge.recharge_type = "100send50"
+                #    sendRecharge.money = tempMoney
+                #    sendRecharge.subject = "充100值送50"
+                #    sendRecharge.body = "充100值送50"
+                #    sendRecharge.show_url = ""
+                #    sendRecharge.time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                #    sendRecharge.status = "TRADE_SUCCESS"
+                #    sendRecharge.save()
+                # concurrent question
+                tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+                tenant.balance = tenant.balance + tenantRecharge.money + tempMoney
+                # tenant.pay_type = 'payed'
+                tenant.save()
+                # charging owed money
+                last_money = 0.0
+                openServiceTag = True
+                recharges = TenantConsume.objects.filter(
+                    tenant_id=tenantRecharge.tenant_id, pay_status="unpayed")
+                if len(recharges) > 0:
+                    for recharge in recharges:
+                        temTenant = Tenants.objects.get(
+                            tenant_id=tenantRecharge.tenant_id)
+                        last_money = recharge.cost_money
+                        if recharge.cost_money <= temTenant.balance:
+                            logger.debug(
+                                tenantRecharge.tenant_id + " charging owed money:" + str(recharge.cost_money))
+                            temTenant.balance = float(
+                                temTenant.balance) - float(recharge.cost_money)
+                            temTenant.save()
+                            recharge.payed_money = recharge.cost_money
+                            recharge.pay_status = "payed"
+                            recharge.save()
+                        else:
+                            openServiceTag = False
+                # if stop service,need to open
+                tenantNew = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+                if openServiceTag and last_money < tenantNew.balance:
+                    tenant_regions = TenantRegionInfo.objects.filter(
+                        tenant_id=tenantRecharge.tenant_id, is_active=True)
+                    for tenant_region in tenant_regions:
+                        if tenant_region.service_status == 2:
+                            tenantServices = TenantServiceInfo.objects.filter(
+                                tenant_id=tenantRecharge.tenant_id, service_region=tenant_region.region_name)
+                            for tenantService in tenantServices:
+                                tenantService.deploy_version = datetime.datetime.now().strftime(
+                                    '%Y%m%d%H%M%S')
+                                tenantService.save()
+                                body = {
+                                    "deploy_version": tenantService.deploy_version}
+                                regionClient.restart(
+                                    tenantService.service_region, tenantService.service_id, json.dumps(body))
+                            tenant_region.service_status = 1
+                            tenant_region.save()
+                            # update notify
+                    TenantPaymentNotify.objects.filter(
+                        tenant_id=tenantRecharge.tenant_id).update(status='unvalid')
+                monitorhook.rechargeMonitor(tenantRecharge.user_name, tenantRecharge.user_id, "recharge")
+            else:
+                logger.debug(out_trade_no + " recharge return result again")
         else:
             logger.debug(
                 out_trade_no + " recharge trade_status=" + trade_status)
