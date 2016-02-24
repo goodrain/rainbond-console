@@ -259,6 +259,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["tenant"] = self.tenant
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
+            if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+                context["hasHttpServices"] = True
 
             if fr == "deployed":
                 http_port_str = '' if self.response_region == 'aws-jp-1' else ':10080'
@@ -352,8 +354,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["envMap"] = envMap
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
                 context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner")
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
-                    context["hasHttpServices"] = True
+
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
