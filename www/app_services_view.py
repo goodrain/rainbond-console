@@ -542,8 +542,8 @@ class GitCheckCode(BaseView):
                         tse.save()
                     service = TenantServiceInfo.objects.get(service_id=service_id)
                     if language != "false":
-                        if language.find("Java") > -1 and service.min_memory < 256:
-                            service.min_memory = 256
+                        if language.find("Java") > -1 and service.min_memory < 512:
+                            service.min_memory = 512
                             data = {}
                             data["language"] = "java"
                             regionClient.changeMemory(service.service_region, service_id, json.dumps(data))
