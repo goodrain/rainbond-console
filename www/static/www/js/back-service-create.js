@@ -71,7 +71,7 @@ $(function(){
     			} else if (dataObj["status"] == "exist") {
     				swal("服务名已存在");
     			} else if (dataObj["status"] == "over_memory") {
-    				swal(资源已达上限，不能创建");
+    				swal("资源已达上限，不能创建");
     			} else if (dataObj["status"] == "over_money") {
     				swal("余额不足，不能创建");
     			} else if (dataObj["status"] == "empty") {
