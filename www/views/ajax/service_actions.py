@@ -379,44 +379,45 @@ class ServiceUpgrade(AuthedView):
                 container_cpu = request.POST["cpu"]
                 old_container_cpu = self.service.min_cpu
                 old_container_memory = self.service.min_memory
-                old_deploy_version = self.service.deploy_version
-                upgrade_container_memory = int(container_memory)
-                left = upgrade_container_memory % 128
-                if upgrade_container_memory > 0 and upgrade_container_memory <= 65536 and left == 0:
-                    upgrade_container_cpu = upgrade_container_memory / 128 * 20
-                    # temp record service status
-                    temData = {}
-                    temData["service_id"] = self.service.service_id
-                    temData["status"] = 2
-                    old_status = regionClient.updateTenantServiceStatus(
-                        self.service.service_region, self.service.service_id, json.dumps(temData))
-                    # calculate resource
-                    diff_memory = upgrade_container_memory - int(old_container_memory)
-                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory, self.service.service_region)
-                    if not flag:
-                        if rt_type == "memory":
-                            result["status"] = "over_memory"
-                        else:
-                            result["status"] = "over_money"
+                if container_memory != old_container_memory or container_cpu != old_container_cpu:
+                    old_deploy_version = self.service.deploy_version
+                    upgrade_container_memory = int(container_memory)
+                    left = upgrade_container_memory % 128
+                    if upgrade_container_memory > 0 and upgrade_container_memory <= 65536 and left == 0:
+                        upgrade_container_cpu = upgrade_container_memory / 128 * 20
+                        # temp record service status
+                        temData = {}
                         temData["service_id"] = self.service.service_id
-                        temData["status"] = old_status
-                        regionClient.updateTenantServiceStatus(self.service.service_region,
-                                                               self.service.service_id, json.dumps(temData))
-                        return JsonResponse(result, status=200)
-
-                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                    self.service.min_cpu = upgrade_container_cpu
-                    self.service.min_memory = upgrade_container_memory
-                    self.service.deploy_version = deploy_version
-                    self.service.save()
-
-                    body = {}
-                    body["container_memory"] = upgrade_container_memory
-                    body["deploy_version"] = deploy_version
-                    body["container_cpu"] = upgrade_container_cpu
-                    body["operator"] = str(self.user.nick_name)
-                    regionClient.verticalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
-                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
+                        temData["status"] = 2
+                        old_status = regionClient.updateTenantServiceStatus(
+                            self.service.service_region, self.service.service_id, json.dumps(temData))
+                        # calculate resource
+                        diff_memory = upgrade_container_memory - int(old_container_memory)
+                        rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory, self.service.service_region)
+                        if not flag:
+                            if rt_type == "memory":
+                                result["status"] = "over_memory"
+                            else:
+                                result["status"] = "over_money"
+                            temData["service_id"] = self.service.service_id
+                            temData["status"] = old_status
+                            regionClient.updateTenantServiceStatus(self.service.service_region,
+                                                                   self.service.service_id, json.dumps(temData))
+                            return JsonResponse(result, status=200)
+    
+                        deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                        self.service.min_cpu = upgrade_container_cpu
+                        self.service.min_memory = upgrade_container_memory
+                        self.service.deploy_version = deploy_version
+                        self.service.save()
+    
+                        body = {}
+                        body["container_memory"] = upgrade_container_memory
+                        body["deploy_version"] = deploy_version
+                        body["container_cpu"] = upgrade_container_cpu
+                        body["operator"] = str(self.user.nick_name)
+                        regionClient.verticalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                        monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
                 result["status"] = "success"
             except Exception, e:
                 self.service.min_cpu = old_container_cpu
@@ -551,7 +552,7 @@ class AllServiceInfo(AuthedView):
                 else:
                     id_string = ','.join(service_ids)
                     bodys = regionClient.check_status(self.cookie_region, json.dumps({"service_ids": id_string}))
-                    #logger.debug(bodys)
+                    # logger.debug(bodys)
                     for key, value in bodys.items():
                         child = {}
                         child["status"] = value
