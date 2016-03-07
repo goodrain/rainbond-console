@@ -67,9 +67,9 @@ class AppDeploy(AuthedView):
         temData["status"] = 2
         old_status = regionClient.updateTenantServiceStatus(self.service.service_region, service_id, json.dumps(temData))
         # calculate resource
-        flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
+        rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, 0, self.service.service_region)
         if not flag:
-            if self.tenant.pay_type == "free":
+            if rt_type == "memory":
                 data["status"] = "over_memory"
             else:
                 data["status"] = "over_money"
@@ -150,9 +150,9 @@ class ServiceManage(AuthedView):
                 old_status = regionClient.updateTenantServiceStatus(
                     self.service.service_region, self.service.service_id, json.dumps(temData))
                 # calculate resource
-                flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
+                rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, 0, self.service.service_region)
                 if not flag:
-                    if self.tenant.pay_type == "free":
+                    if rt_type == "memory":
                         result["status"] = "over_memory"
                     else:
                         result["status"] = "over_money"
@@ -324,9 +324,9 @@ class ServiceManage(AuthedView):
                     old_status = regionClient.updateTenantServiceStatus(
                         self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
-                    flag = tenantUsedResource.predict_next_memory(self.tenant, 0)
+                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, 0, self.service.service_region)
                     if not flag:
-                        if self.tenant.pay_type == "free":
+                        if rt_type == "memory":
                             result["status"] = "over_memory"
                         else:
                             result["status"] = "over_money"
@@ -392,9 +392,9 @@ class ServiceUpgrade(AuthedView):
                         self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = upgrade_container_memory - int(old_container_memory)
-                    flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory)
+                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory, self.service.service_region)
                     if not flag:
-                        if self.tenant.pay_type == "free":
+                        if rt_type == "memory":
                             result["status"] = "over_memory"
                         else:
                             result["status"] = "over_money"
@@ -441,9 +441,9 @@ class ServiceUpgrade(AuthedView):
                         self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = (new_node_num - old_min_node) * self.service.min_memory
-                    flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory)
+                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory, self.service.service_region)
                     if not flag:
-                        if self.tenant.pay_type == "free":
+                        if rt_type == "memory":
                             result["status"] = "over_memory"
                         else:
                             result["status"] = "over_money"

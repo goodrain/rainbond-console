@@ -157,9 +157,9 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             else:
                 new_required_memory = 0
             # calculate resource
-            flag = tenantUsedResource.predict_next_memory(self.tenant, new_required_memory + service.min_memory)
+            rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, new_required_memory + service.min_memory, self.response_region)
             if not flag:
-                if self.tenant.pay_type == "free":
+                if rt_type == "memory":
                     result["status"] = "over_memory"
                 else:
                     result["status"] = "over_money"

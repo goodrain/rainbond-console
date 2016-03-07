@@ -467,9 +467,9 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
                 return status
             # calculate resource
             tenantUsedResource = TenantUsedResource()
-            flag = tenantUsedResource.predict_next_memory(tenant, service.min_memory)
+            rt_type, flag = tenantUsedResource.predict_next_memory(tenant, service.min_memory, tenant.region)
             if not flag:
-                if tenant.pay_type == "free":
+                if rt_type == "memory":
                     status = "over_memory"
                 else:
                     status = "over_money"

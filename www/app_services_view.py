@@ -92,9 +92,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
 
             # calculate resource
             tenantUsedResource = TenantUsedResource()
-            flag = tenantUsedResource.predict_next_memory(self.tenant, service.min_memory)
+            rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, service.min_memory, self.response_region)
             if not flag:
-                if self.tenant.pay_type == "free":
+                if rt_type == "memory":
                     data["status"] = "over_memory"
                 else:
                     data["status"] = "over_money"
@@ -258,9 +258,9 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 serviceKeys = createService.split(",")
                 # resource check
                 tenantUsedResource = TenantUsedResource()
-                flag = tenantUsedResource.predict_next_memory(self.tenant, self.service.min_memory + len(serviceKeys) * 128)
+                rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service.min_memory + len(serviceKeys) * 128, self.response_region)
                 if not flag:
-                    if self.tenant.pay_type == "free":
+                    if rt_type == "memory":
                         data["status"] = "over_memory"
                     else:
                         data["status"] = "over_money"
@@ -542,8 +542,8 @@ class GitCheckCode(BaseView):
                         tse.save()
                     service = TenantServiceInfo.objects.get(service_id=service_id)
                     if language != "false":
-                        if language.find("Java") > -1 and service.min_memory < 512:
-                            service.min_memory = 512
+                        if language.find("Java") > -1 and service.min_memory < 256:
+                            service.min_memory = 256
                             data = {}
                             data["language"] = "java"
                             regionClient.changeMemory(service.service_region, service_id, json.dumps(data))

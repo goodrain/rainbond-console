@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort
+from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel
 from www.service_http import RegionServiceApi
 from django.conf import settings
 
@@ -329,8 +329,22 @@ class TenantUsedResource(object):
                     totalMemory = totalMemory + disk_storage
         return totalMemory
 
-    def predict_next_memory(self, tenant, newAddMemory):
+    def calculate_guarantee_resource(self, tenant):
+        memory = 0
+        if tenant.pay_type == "company":
+            cur_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            dsn = BaseConnection()
+            query_sql = "select region_name,sum(buy_memory) as buy_memory,sum(buy_disk) as buy_disk, sum(buy_net) as buy_net  from tenant_region_pay_model where tenant_id='" + tenant.tenant_id + "' and buy_end_time <='" + cur_time + "' group by region_name"
+            sqlobjs = dsn.query(query_sql)
+            if sqlobjs is not None and len(sqlobjs) > 0:
+                for sqlobj in sqlobjs:
+                    memory = memory + int(sqlobj["buy_memory"])
+        return memory
+
+
+    def predict_next_memory(self, tenant, newAddMemory, cur_region):
         result = False
+        rt_type = "memory"
         if tenant.pay_type == "free":
             tm = self.calculate_real_used_resource(tenant) + newAddMemory
             logger.debug(tenant.tenant_id + " used memory " + str(tm))
@@ -338,16 +352,20 @@ class TenantUsedResource(object):
                 result = True
         elif tenant.pay_type == "payed":
             tm = self.calculate_real_used_resource(tenant) + newAddMemory
-            ruleJson = self.feerule[tenant.region]
-            unit_money = 0
-            if tenant.pay_level == "personal":
-                unit_money = float(ruleJson['personal_money'])
-            elif tenant.pay_level == "company":
-                unit_money = float(ruleJson['company_money'])
-            total_money = unit_money * (tm * 1.0 / 1024)
-            logger.debug(tenant.tenant_id + "use memory " + str(tm) + " used money " + str(total_money))
-            if tenant.balance >= total_money:
-                result = True
+            guarantee_memory = self.calculate_guarantee_resource(tenant)
+            if tm - guarantee_memory <= 51200:
+                ruleJson = self.feerule[cur_region]
+                unit_money = 0
+                if tenant.pay_level == "personal":
+                    unit_money = float(ruleJson['personal_money'])
+                elif tenant.pay_level == "company":
+                    unit_money = float(ruleJson['company_money'])
+                total_money = unit_money * (tm * 1.0 / 1024)
+                logger.debug(tenant.tenant_id + "use memory " + str(tm) + " used money " + str(total_money))
+                if tenant.balance >= total_money:
+                    result = True
+                else:
+                    rt_type = "money"
         elif tenant.pay_type == "unpay":
             result = True
-        return result
+        return rt_type, result
