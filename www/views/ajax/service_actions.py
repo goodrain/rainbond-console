@@ -379,7 +379,7 @@ class ServiceUpgrade(AuthedView):
                 container_cpu = request.POST["cpu"]
                 old_container_cpu = self.service.min_cpu
                 old_container_memory = self.service.min_memory
-                if container_memory != old_container_memory or container_cpu != old_container_cpu:
+                if int(container_memory) != old_container_memory or int(container_cpu) != old_container_cpu:
                     old_deploy_version = self.service.deploy_version
                     upgrade_container_memory = int(container_memory)
                     left = upgrade_container_memory % 128
