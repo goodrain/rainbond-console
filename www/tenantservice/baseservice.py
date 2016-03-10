@@ -362,7 +362,7 @@ class TenantUsedResource(object):
                 elif tenant.pay_level == "company":
                     unit_money = float(ruleJson['company_money'])
                 total_money = unit_money * (tm * 1.0 / 1024)
-                logger.debug(tenant.tenant_id + "use memory " + str(tm) + " used money " + str(total_money))
+                logger.debug(tenant.tenant_id + " use memory " + str(tm) + " used money " + str(total_money))
                 if tenant.balance >= total_money:
                     result = True
                 else:
