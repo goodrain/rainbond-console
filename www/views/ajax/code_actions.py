@@ -78,19 +78,20 @@ class CodeAction(AuthedView):
             action = request.POST["action"]
             if action == "gitlab":
                 code_id = request.POST["code_id"]
-                branchList = gitLabClient.getProjectBranches(code_id)
-                logger.debug(branchList)
-                arr = []
-                if type(branchList) is str:
-                    branchList = json.loads(branchList)
-                for branch in branchList:
-                    d = {}
-                    d["ref"] = branch["name"]
-                    d["version"] = branch["name"]
-                    arr.append(d)
-                data["data"] = arr
-                data["status"] = "success"
-                data["code_id"] = code_id
+                if code_id != "undefined":
+                    branchList = gitLabClient.getProjectBranches(code_id)
+                    logger.debug(branchList)
+                    arr = []
+                    if type(branchList) is str:
+                        branchList = json.loads(branchList)
+                    for branch in branchList:
+                        d = {}
+                        d["ref"] = branch["name"]
+                        d["version"] = branch["name"]
+                        arr.append(d)
+                    data["data"] = arr
+                    data["status"] = "success"
+                    data["code_id"] = code_id
             elif action == "github":
                 user = request.POST["user"]
                 repos = request.POST["repos"]
