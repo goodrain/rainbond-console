@@ -12,7 +12,7 @@ from www.decorator import perm_required
 
 from www.models import (ServiceInfo, AppServiceInfo, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation,
                         TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain,
-                        TenantServiceEnvVar, TenantServicesPort)
+                        TenantServiceEnvVar, TenantServicesPort, TenantServiceMountRelation)
 from www.service_http import RegionServiceApi
 from www.gitlab_http import GitlabApi
 from www.github_http import GitHubApi
