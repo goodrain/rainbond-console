@@ -187,12 +187,6 @@ class QingCloudApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region)
         return body
 
-    def modifyServiceProtocol(self, region, service_id, body):
-        url = self.region_map[region][
-            'url'] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
-        res, body = self._post(url, self.default_headers, body, region=region)
-        return body
-
     def findMappingPort(self, region, service_id):
         url = self.region_map[region][
             'url'] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"

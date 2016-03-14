@@ -2,6 +2,7 @@
 <div role="tabpanel" class="tab-pane active" id="relations">
    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
    <div class="col-sm-16 text-left">
+        <h4>环境变量依赖</h4>
         <section class="panel">
             <table class="table table-hover">
                 <thead>
@@ -96,5 +97,38 @@
         </section>
     </div>
     {% endif  %}
+    
+   <div class="col-sm-16 text-left">
+        <h4>持久化目录共享</h4>
+        <section class="panel">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th width="33%">服务名称</th>
+                    <th width="33%">Mnt目录</th>
+                    <th width="33%" class="text-center">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for tenantSer in tenantServiceList %}
+                   {% if tenantSer.category == "application" and tenantSer.service_alias != tenantServiceInfo.service_alias %}
+                    <tr>
+                        <td>{{tenantSer.service_alias}}</td>
+                        <td>/mnt/{{tenantSer.service_alias}}</td>
+                        <td class="text-center">
+                        {% if 'manage_service' in user.actions %}
+                             {% if tenantSer.service_id not in mntsids %}
+                                <button type="button" class="btn btn-danger"  onclick="buid_mnt('add','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">mnt</button>
+                             {% else %}
+                                <button type="button" class="btn btn-danger"  onclick="buid_mnt('cancel','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">取消</button>
+                             {% endif %}
+                        {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+               </tbody>
+            </table>
+        </section>
+    </div>
 </div>
 <!-- relations end -->

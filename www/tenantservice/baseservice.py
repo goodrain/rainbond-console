@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel
+from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
 from www.service_http import RegionServiceApi
 from django.conf import settings
 
@@ -278,6 +278,32 @@ class BaseTenantService(object):
                     is_ok = False
         return is_ok
 
+    def create_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
+        dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
+        task = {}
+        task["dep_service_id"] = dependS.service_id
+        task["tenant_id"] = tenant_id
+        task["mnt_name"] = "/mnt/"+dependS.service_alias
+        task["mnt_dir"] = dependS.host_path
+        regionClient.createServiceMnt(region, service_id, json.dumps(task))
+        tsr = TenantServiceMountRelation()
+        tsr.tenant_id = tenant_id
+        tsr.service_id = service_id
+        tsr.dep_service_id = dependS.service_id
+        tsr.mnt_name = "/mnt/"+dependS.service_alias
+        tsr.mnt_dir = dependS.host_path
+        tsr.dep_order = 0
+        tsr.save()
+
+    def cancel_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
+        dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
+        task = {}
+        task["dep_service_id"] = dependS.service_id
+        task["tenant_id"] = tenant_id
+        task["mnt_name"] = "v"
+        task["mnt_dir"] = "v"
+        regionClient.cancelServiceMnt(region, service_id, json.dumps(task))
+        TenantServiceMountRelation.objects.get(service_id=service_id, dep_service_id=dependS.service_id).delete()
 
 class TenantUsedResource(object):
 

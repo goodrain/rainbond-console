@@ -352,64 +352,6 @@ function delete_service(tenantName, service_alias) {
 	});
 }
 
-function service_protocol(opt_type, action, tenantName, service_alias) {
-	if (action != "start" && action != "close" && action != "change") {
-		swal("系统异常");
-		window.location.href = window.location.href;
-	}
-	var protocol = ""
-	var outer_service = "close"
-	var inner_service = "close"
-	var service_visitor_ip = ""
-	if (opt_type == "outer") {
-		protocol = $("#protocol").val();
-		outer_service = action
-	}
-	if (opt_type == "inner") {
-		inner_service = action
-	}
-	$.ajax({
-		type : "POST",
-		url : "/ajax/" + tenantName + "/" + service_alias + "/manage/",
-		data : "opt_type=" + opt_type + "&protocol=" + protocol
-				+ "&action=protocol&inner_service=" + inner_service
-				+ "&outer_service=" + outer_service,
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(msg) {
-			var dataObj = msg
-			if (dataObj["status"] == "success") {
-				swal("操作成功")
-				if (window.location.href.indexOf("fr=") < 0) {
-					window.location.href = window.location.href
-							+ "?fr=settings";
-				} else {
-					window.location.href = window.location.href
-				}
-			} else if (dataObj["status"] == "often") {
-				swal("操作正在进行中，请稍后")
-			} else if (dataObj["status"] == "owed") {
-				swal("余额不足请及时充值")
-			} else if (dataObj["status"] == "over_memory") {
-				swal("资源已达上限，不能升级")
-			} else if (dataObj["status"] == "over_money") {
-				swal("余额不足，不能升级")
-			} else if (dataObj["status"] == "inject_dependency") {
-				swal("服务被依赖，不能关闭")
-			} else {
-				swal("操作失败")
-			}
-
-		},
-		error : function() {
-			swal("系统异常");
-		}
-	})
-}
-
 function buid_relation(action, curServiceName, depServiceName, tenantName) {
 	if (action != "add" && action != "cancel") {
 		swal("系统异常");
@@ -552,4 +494,40 @@ function attr_save(service_id, tenant_name, service_name) {
 function attr_delete(obj){
 	var trobj = $(obj).closest('tr');
 	$(trobj).remove();
+}
+
+
+
+function buid_mnt(action, curServiceName, depServiceName, tenantName) {
+    if (action != "add" && action != "cancel") {
+        swal("系统异常");
+        window.location.href = window.location.href;
+    }
+    $.ajax({
+        type : "POST",
+        url : "/ajax/" + tenantName + "/" + curServiceName + "/mnt",
+        data : "dep_service_alias=" + depServiceName + "&action=" + action,
+        cache : false,
+        beforeSend : function(xhr, settings) {
+            var csrftoken = $.cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success : function(msg) {
+            var dataObj = msg
+            if (dataObj["status"] == "success") {
+                swal("操作成功")
+                if (window.location.href.indexOf("fr=") < 0) {
+                    window.location.href = window.location.href
+                            + "?fr=relations";
+                } else {
+                    window.location.href = window.location.href
+                }
+            } else {
+                swal("操作失败")
+            }
+        },
+        error : function() {
+            // swal("系统异常");
+        }
+    })
 }

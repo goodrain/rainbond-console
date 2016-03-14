@@ -177,11 +177,6 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, region=region)
         return body
 
-    def modifyServiceProtocol(self, region, service_id, body):
-        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
-        res, body = self._post(url, self.default_headers, body, region=region)
-        return body
-
     def findMappingPort(self, region, service_id):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/port-mapping/"
         res, body = self._get(url, self.default_headers, region=region)
@@ -248,4 +243,15 @@ class RegionServiceApi(BaseHttpClient):
     def latest_log(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/statistic/log/" + service_id + "/last"
         res, body = self._get(url, self.default_headers, body, region=region)
+        return body
+    
+    
+    def createServiceMnt(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/mnt/"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return body
+
+    def cancelServiceMnt(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/mnt/"
+        res, body = self._put(url, self.default_headers, body, region=region)
         return body

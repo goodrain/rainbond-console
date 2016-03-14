@@ -13,7 +13,7 @@ from django.http import Http404
 from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant,
-                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar)
+                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation)
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from gitlab_http import GitlabApi
@@ -288,7 +288,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["hasHttpServices"] = True
             elif fr == "relations":
                 # service relationships
-                tsrs = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+                tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
                 relationsids = []
                 if len(tsrs) > 0:
                     for tsr in tsrs:
@@ -312,6 +312,15 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     arr.append(evnVarObj)
                     envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
+                
+                # add dir mnt
+                mtsrs = TenantServiceMountRelation.objects.filter(service_id=self.service.service_id)
+                mntsids = []
+                if len(mtsrs) > 0:
+                    for mnt in mtsrs:
+                        mntsids.append(mnt.dep_service_id)
+                context["mntsids"] = mntsids
+                
             elif fr == "statistic":
                 context['statistic_type'] = self.statistic_type
                 if self.service.service_key in ('mysql',):
@@ -395,9 +404,8 @@ class ServiceGitHub(BaseView):
 class ServiceLatestLog(AuthedView):
 
     def get_media(self):
-        media = super(ServiceLatestLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/jquery-ui.css',
-                                                                        'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
-                                                                        'www/js/jquery.scrollTo.min.js')
+        media = super(ServiceLatestLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
+                'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js','www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -416,9 +424,8 @@ class ServiceLatestLog(AuthedView):
 class ServiceHistoryLog(AuthedView):
 
     def get_media(self):
-        media = super(ServiceHistoryLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/jquery-ui.css',
-                                                                         'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
-                                                                         'www/js/jquery.scrollTo.min.js')
+        media = super(ServiceHistoryLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
+                'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js','www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache

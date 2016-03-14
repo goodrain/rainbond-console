@@ -737,3 +737,15 @@ class AppServicesPort(BaseModel):
     port_alias = models.CharField(max_length=30, default='', blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
+    
+class TenantServiceMountRelation(BaseModel):
+
+    class Meta:
+        db_table = 'tenant_service_mnt_relation'
+        unique_together = ('service_id', 'dep_service_id')
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    dep_service_id = models.CharField(max_length=32, help_text=u"依赖服务id")
+    mnt_name = models.CharField(max_length=100, help_text=u"mnt name")
+    mnt_dir = models.CharField(max_length=400, help_text=u"mnt dir")
+    

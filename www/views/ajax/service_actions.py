@@ -219,100 +219,13 @@ class ServiceManage(AuthedView):
                 ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
+                TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', False)
-        elif action == "protocol":
-            par_opt_type = request.POST["opt_type"]
-            if par_opt_type == "outer":
-                try:
-                    protocol = request.POST["protocol"]
-                    par_outer_service = request.POST["outer_service"]
-                    if par_outer_service == "change":
-                        logger.debug("old protocol=" + self.service.protocol + ";new protocol=" + protocol)
-                        if protocol == self.service.protocol:
-                            result["status"] = "success"
-                            return JsonResponse(result)
-                    outer_service = False
-                    if par_outer_service == "start" or par_outer_service == "change":
-                        outer_service = True
-                    data = {}
-                    data["protocol"] = protocol
-                    data["outer_service"] = outer_service
-                    data["inner_service"] = self.service.is_service
-                    data["inner_service_port"] = self.service.service_port
-                    data["service_type"] = par_opt_type
-                    data["port_alias"] = self.service.service_key.upper()
-                    data["container_port"] = self.service.inner_port
-                    regionClient.modifyServiceProtocol(self.service.service_region, self.service.service_id, json.dumps(data))
-                    self.service.protocol = protocol
-                    self.service.is_web_service = outer_service
-                    self.service.save()
-                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
-                    result["status"] = "success"
-                except Exception, e:
-                    logger.exception(e)
-                    result["status"] = "failure"
-                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', False)
-            elif par_opt_type == "inner":
-                try:
-                    par_inner_service = request.POST["inner_service"]
-                    inner_service = False
-                    if par_inner_service == "start" or par_inner_service == "change":
-                        inner_service = True
-                    service_port = self.service.service_port
-                    if inner_service:
-                        number = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).count()
-                        if number < 1:
-                            # open inner service add new env variable
-                            temp_key = self.service.service_key.upper()
-                            if self.service.category == 'application':
-                                temp_key = self.service.service_alias.upper()
-                            temp_key = temp_key.replace('-', '_')
-                            temport = baseService.getInnerServicePort(self.tenant.tenant_id, self.service.service_key)
-                            if temport > 0:
-                                assinportNum = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, is_change=False, attr_value=service_port).count()
-                                while assinportNum > 0:
-                                    service_port = service_port + 1
-                                    assinportNum = TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, is_change=False, attr_value=service_port).count()
-                            baseService.saveServiceEnvVar(
-                                self.tenant.tenant_id, self.service.service_id, u"连接地址", temp_key + "_HOST", "127.0.0.1", False)
-                            baseService.saveServiceEnvVar(
-                                self.tenant.tenant_id, self.service.service_id, u"端口", temp_key + "_PORT", service_port, False)
-                        baseService.create_service_env(
-                            self.service.tenant_id, self.service.service_id, self.service.service_region)
-                    else:
-                        depNumber = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).count()
-                        if depNumber > 0:
-                            result["status"] = "inject_dependency"
-                            return JsonResponse(result)
-
-                        # close inner service need to clear env
-                        baseService.cancel_service_env(
-                            self.service.tenant_id, self.service.service_id, self.service.service_region)
-                        TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
-
-                    data = {}
-                    data["protocol"] = self.service.protocol
-                    data["outer_service"] = self.service.is_web_service
-                    data["inner_service"] = inner_service
-                    data["inner_service_port"] = service_port
-                    data["service_type"] = par_opt_type
-                    data["port_alias"] = self.service.service_key.upper()
-                    data["container_port"] = self.service.inner_port
-                    regionClient.modifyServiceProtocol(self.service.service_region, self.service.service_id, json.dumps(data))
-                    self.service.service_port = service_port
-                    self.service.is_service = inner_service
-                    self.service.save()
-                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_inner', True)
-                    result["status"] = "success"
-                except Exception, e:
-                    logger.exception(e)
-                    result["status"] = "failure"
-                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_inner', False)
         elif action == "rollback":
             try:
                 event_id = request.POST["event_id"]
@@ -1095,3 +1008,24 @@ class ServiceEnv(AuthedView):
             data = {"action": "delete", "attr_names": [attr_name]}
             regionClient.createServiceEnv(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"删除成功"})
+
+
+class ServiceMnt(AuthedView):
+
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        action = request.POST["action"]
+        dep_service_alias = request.POST["dep_service_alias"]
+        try:
+            tenant_id = self.tenant.tenant_id
+            service_id = self.service.service_id
+            if action == "add":
+                baseService.create_service_mnt(tenant_id, service_id, dep_service_alias, self.service.service_region)
+            elif action == "cancel":
+                baseService.cancel_service_mnt(tenant_id, service_id, dep_service_alias, self.service.service_region)
+            result["status"] = "success"
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return JsonResponse(result)
