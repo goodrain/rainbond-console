@@ -268,22 +268,23 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if self.service.category == 'store':
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager
+                    
                 # relationships password
-
+                envMap = {}
+                envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"))
+                #logger.debug(len(envVarlist))
+                if len(envVarlist) > 0:
+                    for evnVarObj in envVarlist:
+                        arr = envMap.get(evnVarObj.service_id)
+                        if arr is None:
+                            arr = []
+                        arr.append(evnVarObj)
+                        envMap[evnVarObj.service_id] = arr
+                context["envMap"] = envMap
+                
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True).exists():
-                    sids = [self.service.service_id]
-                    envMap = {}
-                    envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids, scope__in=("outer", "both"))
-                    #logger.debug(len(envVarlist))
-                    if len(envVarlist) > 0:
-                        for evnVarObj in envVarlist:
-                            arr = envMap.get(evnVarObj.service_id)
-                            if arr is None:
-                                arr = []
-                            arr.append(evnVarObj)
-                            envMap[evnVarObj.service_id] = arr
                     context["hasInnerServices"] = True
-                    context["envMap"] = envMap
+                    
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                     context["hasHttpServices"] = True
             elif fr == "relations":

@@ -65,7 +65,6 @@
       </section>
     </div>
   </div>
-  {% if hasInnerServices %}
   {% if 'manage_service' in user.actions %}
   {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
   <div class="row">
@@ -82,11 +81,13 @@
            </thead>
            <tbody>
             {% for curServiceEnvVar in curServiceEnvVarList %}
-             <tr>
-               <td>{{curServiceEnvVar.name}}</td>
-               <td>{{curServiceEnvVar.attr_name}}</td>
-               <td>{{curServiceEnvVar.attr_value}}</td>
-             </tr>
+                {% if curServiceEnvVar.name != "" %}
+                 <tr>
+                   <td>{{curServiceEnvVar.name}}</td>
+                   <td>{{curServiceEnvVar.attr_name}}</td>
+                   <td>{{curServiceEnvVar.attr_value}}</td>
+                 </tr>
+                 {% endif %}
             {% endfor %}
            </tbody>
          </table>
@@ -94,7 +95,6 @@
      </div>
   </div>
   {% endwith %}
-  {% endif %}
   {% endif %}
   <div class="row">
     <div class="col-lg-12 text-left">
