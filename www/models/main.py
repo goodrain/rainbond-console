@@ -113,7 +113,7 @@ class Users(models.Model):
     @property
     def is_sys_admin(self):
         admins = ('liufan@gmail.com', 'messi@goodrain.com',  'elviszhang@163.com', 'rhino@goodrain.com',
-                  'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com')
+                  'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
         return bool(self.email in admins)
 
     def get_session_auth_hash(self):
