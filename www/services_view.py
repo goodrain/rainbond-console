@@ -241,6 +241,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
         context["fr"] = fr
         try:
             if self.service.category == "application" and self.service.ID > 598:
+                # forbidden blank page
+                if self.service.code_version is None or self.service.code_version == "":
+                    if self.service.code_from is None or self.service.code_from == "":
+                       self.service.code_version = "master" 
+                       self.service.code_from = "gitlab_new"
+                       self.service.save()
                 # no create gitlab repos
                 self.createGitProject()
                 # no upload code
