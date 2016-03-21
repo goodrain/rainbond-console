@@ -7,8 +7,8 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, TenantServiceLog
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
-from gitlab_http import GitlabApi
-from github_http import GitHubApi
+from www.gitlab_http import GitlabApi
+from www.github_http import GitHubApi
 from www.utils.giturlparse import parse as git_url_parse
 
 import logging
