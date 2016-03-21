@@ -1,9 +1,12 @@
 # -*- coding: utf8 -*-
 from www.models import Tenants, TenantServiceInfo, PermRelService, PermRelTenant, AnonymousUser
 from goodrain_web.errors import UrlParseError, PermissionDenied
+from www.tenantservice.baseservice import CodeRepositoriesService
 
 import logging
 logger = logging.getLogger('default')
+
+codeRepositoriesService = CodeRepositoriesService()
 
 
 class PermActions(object):
