@@ -6,7 +6,7 @@ TEMPLATE_DEBUG = False
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
-DEFAULT_HANDLERS = ['file_handler']
+DEFAULT_HANDLERS = ['zmq_formatter']
 
 DATABASES = {
     # 'default': {
@@ -120,12 +120,12 @@ SESSION_COOKIE_AGE = 3600
 MODULES = {
     "Owned_Fee" : True,
     "Memory_Limit" : True,
-    "GitLab_Project" : False,
-    "GitLab_User" : False,
-    "Git_Hub" : False,
+    "GitLab_Project" : True,
+    "GitLab_User" : True,
+    "Git_Hub" : True,
     "Git_Code_Manual":False,
-    "Finance_Center" : False,
-    "Team_Invite" : False,
-    "Multi_Region" : False,
-    "Monitor_Control" : False
+    "Finance_Center" : True,
+    "Team_Invite" : True,
+    "Multi_Region" : True,
+    "Monitor_Control" : True
 }

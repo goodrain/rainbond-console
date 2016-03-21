@@ -114,14 +114,6 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias='', is_inner_service=False, is_outer_service=True)
 
-            code_clone_url = request.POST.get("service_code_clone_url", "")
-            code_id = request.POST.get("service_code_id", "")
-            code_version = request.POST.get("service_code_version", "master")
-            if code_id == "" or code_clone_url == "" or code_version == "":
-                data["status"] = "code_repos"
-                TenantServiceInfo.objects.get(service_id=service_id).delete()
-                return JsonResponse(data, status=200)
-            
             # code repos
             if service_code_from == "gitlab_new":
                 codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, "", "", "")
