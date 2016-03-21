@@ -85,7 +85,7 @@ class Login(BaseView):
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
 
         # create git user
-        createUser(user, username, password, user.nick_name, user.nick_name)
+        codeRepositoriesService.createUser(user, username, password, user.nick_name, user.nick_name)
         
         # to judge from www create servcie
         app_ty = request.COOKIES.get('app_ty')

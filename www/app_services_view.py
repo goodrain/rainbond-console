@@ -116,7 +116,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             
             # code repos
             if service_code_from == "gitlab_new":
-                codeRepositoriesService.initRepositories(self.tenant, self.user, service_code_from, "", "", "")
+                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, "", "", "")
             elif service_code_from == "gitlab_exit":
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
@@ -125,7 +125,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     data["status"] = "code_repos"
                     TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
-                codeRepositoriesService.initRepositories(self.tenant, self.user, service_code_from, code_clone_url, code_id, code_version)
+                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, code_clone_url, code_id, code_version)
                 
             elif service_code_from == "github":
                 code_id = request.POST.get("service_code_id", "")
@@ -135,7 +135,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     data["status"] = "code_repos"
                     TenantServiceInfo.objects.get(service_id=service_id).delete()
                     return JsonResponse(data, status=200)
-                codeRepositoriesService.initRepositories(self.tenant, self.user, service_code_from, code_clone_url, code_id, code_version)
+                codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, code_clone_url, code_id, code_version)
 
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)

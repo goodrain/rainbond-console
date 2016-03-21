@@ -152,6 +152,7 @@ class AuthedView(BaseView):
         context = super(AuthedView, self).get_context()
         context['tenantName'] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
+        context['actions'] = settings.ACTIONS
         return context
 
     def has_perm(self, perm):

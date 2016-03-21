@@ -362,7 +362,9 @@ class TenantUsedResource(object):
         return memory
 
 class TenantAccountService(object):
-
+    def __init__(self):
+        self.action = settings.ACTIONS
+        
     def isOwnedMoney(self, tenant_id, region_name):
         if self.action["Owned_Fee"]:
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region_name)
@@ -371,6 +373,10 @@ class TenantAccountService(object):
         return False
 
 class CodeRepositoriesService(object):
+    
+    def __init__(self):
+        self.action = settings.ACTIONS
+    
     def initRepositories(self, tenant, user, service, service_code_from, code_url, code_id, code_version):
         if service_code_from == "gitlab_new":
             if self.action["GitLab_Project"]:
@@ -384,7 +390,7 @@ class CodeRepositoriesService(object):
                         gitClient.addProjectMember(project_id, user.git_user_id, 'master')
                         gitClient.addProjectMember(project_id, 2, 'reporter')
                         ts.git_project_id = project_id
-                        ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + service_alias + ".git"
+                        ts.git_url = "git@code.goodrain.com:app/" + tenant.tenant_name + "_" + service.service_alias + ".git"
                         gitClient.createWebHook(project_id)
                     ts.code_from = service_code_from
                     ts.code_version = "master"
@@ -415,14 +421,14 @@ class CodeRepositoriesService(object):
         data["service_id"] = service.service_id
         data["git_url"] = "--branch " + service.code_version + " --depth 1 " + service.git_url
         
-        parsed_git_url = git_url_parse(clone_url)
+        parsed_git_url = git_url_parse(service.git_url)
         if parsed_git_url.host == "code.goodrain.com":
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2ssh
+            gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
         elif parsed_git_url.host == 'github.com':
             createUser = Users.objects.get(user_id=service.creater)
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.token)
+            gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.token)
         else:
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https
+            gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https
         data["git_url"] = gitUrl
 
         task = {}

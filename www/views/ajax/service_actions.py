@@ -180,7 +180,7 @@ class ServiceManage(AuthedView):
                 except Exception as e:
                     logger.exception(e)
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
-                    codeRepositoriesService.deleteProject(self.service.git_project_id)
+                    codeRepositoriesService.deleteProject(self.service)
                 if self.service.category == 'app_publish':
                     self.update_app_service(self.service)
 

@@ -210,10 +210,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # forbidden blank page
                 if self.service.code_version is None or self.service.code_version == "":
                     if self.service.code_from is None or self.service.code_from == "":
-                       self.service.code_version = "master" 
-                       self.service.code_from = "gitlab_new"
-                       self.service.save()
-                       codeRepositoriesService.initRepositories(self.tenant, self.user, service_code_from, "", "", "")
+                       codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)

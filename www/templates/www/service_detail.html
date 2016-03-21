@@ -16,17 +16,19 @@
 	     {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
 	     	<li {% if fr == "relations" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=relations">依赖</a></li>
 	     {% endif  %}
-         <li class="dropdown {% if fr == "statistic" %} active {% endif %}">
-         	{% if hasHttpServices or tenantServiceInfo.service_key == 'mysql' %}
-              <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic" class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b></a>
-              <ul class="dropdown-menu">
-                  <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime">实时分析</a></li>
-                  <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">历史走势</a></li>
-              </ul>
-         	{% else %}
-         	  <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic">监控</a>
-            {% endif %}
-          </li>
+	     {% if action.Monitor_Control %}
+             <li class="dropdown {% if fr == "statistic" %} active {% endif %}">
+             	{% if hasHttpServices or tenantServiceInfo.service_key == 'mysql' %}
+                  <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic" class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                      <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime">实时分析</a></li>
+                      <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">历史走势</a></li>
+                  </ul>
+             	{% else %}
+             	  <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic">监控</a>
+                {% endif %}
+              </li>
+         {% endif %}
 	     <li {% if fr == "log" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=log">日志</a></li>
 	     <li {% if fr == "settings" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=settings">高级</a></li>
 	   </ul>

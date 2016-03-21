@@ -123,9 +123,9 @@ ACTIONS = {
     "GitLab_Project" : True,
     "GitLab_User" : True,
     "Git_Hub" : True,
-    "Recharge" : True,
-    "Team_Invite" : True,
     "Finance_Center" : True,
+    "Team_Invite" : True,
+    "Recharge" : True,
     "Multi_Region" : True,
     "Monitor_Control" : True
 }
