@@ -10,13 +10,14 @@ from www.apis.ucloud import UCloudApi
 from www.models import AnonymousUser, Users, Tenants, PermRelTenant, TenantRegionInfo
 from www.auth import authenticate, login, logout
 from www.monitorservice.monitorhook import MonitorHook
-from www.gitlab_http import GitlabApi
+from www.tenantservice.baseservice import CodeRepositoriesService
 from forms import AppendInfoForm
 
 import logging
 logger = logging.getLogger('default')
 
 monitorhook = MonitorHook()
+codeRepositoriesService = CodeRepositoriesService()
 
 
 class EntranceView(BaseView, LoginRedirectMixin):
@@ -164,16 +165,8 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
             init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
             monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
             # create gitlab user
-            gitClient = GitlabApi()
-            git_user_id = gitClient.createUser(
-                user.email, git_pass, nick_name, nick_name)
-            user.git_user_id = git_user_id
-            user.save(update_fields=['git_user_id'])
-            monitorhook.gitUserMonitor(user, git_user_id)
-            if git_user_id == 0:
-                logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
-            else:
-                logger.info("account.register", "create gitlab user for register user {0}, got id {1}".format(nick_name, git_user_id))
+            codeRepositoriesService.createUser(user.email, git_pass, nick_name, nick_name)
+            
             return self.redirect_view()
         except Exception, e:
             logger.exception(e)

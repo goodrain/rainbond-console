@@ -10,7 +10,7 @@ from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServiceInfo,
                         App, AppUsing, AppServicesPort, AppServiceEnvVar, TenantServicesPort, TenantServiceEnvVar)
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 
@@ -21,6 +21,7 @@ regionClient = RegionServiceApi()
 baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
 monitorhook = MonitorHook()
+tenantAccountService = TenantAccountService()
 
 
 class ServiceMarket(LeftSideBarMixin, AuthedView):
@@ -112,15 +113,13 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         service_alias = ""
-        service_id = make_uuid(self.tenant.tenant_id)
+        tenant_id = self.tenant.tenant_id
+        service_id = make_uuid(tenant_id)
         result = {}
         try:
-            self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
-            if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
+            if tenantAccountService.isOwnedMoney(tenant_id, self.response_region):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
-
-            tenant_id = self.tenant.tenant_id
 
             service_key = request.POST.get("service_key", None)
             if service_key is None:
@@ -156,8 +155,14 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 new_required_memory = reduce(lambda x, y: x + y, [s.min_memory for s in new_services])
             else:
                 new_required_memory = 0
+                
             # calculate resource
-            rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, new_required_memory + service.min_memory, self.response_region)
+            tempService = TenantServiceInfo()
+            tempService.min_memory = service.min_memory
+            tempService.service_region = self.response_region
+            tempService.min_node = service.min_node
+            diffMemory = new_required_memory + service.min_memory
+            rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
             if not flag:
                 if rt_type == "memory":
                     result["status"] = "over_memory"
@@ -197,11 +202,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 newTenantService = self.update_app_service(service, newTenantService)
 
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
-
-            # self.copy_port_and_env(service, newTenantService)
-
-            # create service env
-            # baseService.create_service_env(tenant_id, service_id, self.response_region)
 
             result["status"] = "success"
             result["service_id"] = service_id

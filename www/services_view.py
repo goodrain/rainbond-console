@@ -16,18 +16,18 @@ from www.models import (Users, ServiceInfo, TenantRegionInfo, Tenants, TenantSer
                         TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation)
 from www.region import RegionInfo
 from service_http import RegionServiceApi
-from gitlab_http import GitlabApi
-from github_http import GitHubApi
 from django.conf import settings
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.url import get_redirect_url
 
 logger = logging.getLogger('default')
-gitClient = GitlabApi()
-gitHubClient = GitHubApi()
 regionClient = RegionServiceApi()
 monitorhook = MonitorHook()
+tenantAccountService = TenantAccountService()
+baseService = BaseTenantService()
+tenantUsedResource = TenantUsedResource()
+codeRepositoriesService = CodeRepositoriesService()
 
 
 class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
@@ -170,40 +170,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
         return perm_users
 
-    def createGitProject(self):
-        if self.service.code_from == "gitlab_new" and self.service.git_project_id == 0 and self.user.git_user_id > 0:
-            project_id = gitClient.createProject(self.tenantName + "_" + self.serviceAlias)
-            logger.debug(project_id)
-            if project_id > 0:
-                gitClient.addProjectMember(project_id, self.user.git_user_id, 'master')
-                gitClient.addProjectMember(project_id, 2, 'reporter')
-                ts = TenantServiceInfo.objects.get(service_id=self.service.service_id)
-                ts.git_project_id = project_id
-                ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + self.serviceAlias + ".git"
-                ts.save()
-
-    def sendCodeCheckMsg(self):
-        data = {}
-        data["tenant_id"] = self.service.tenant_id
-        data["service_id"] = self.service.service_id
-        if self.service.code_from != "github":
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + self.service.git_url
-            data["git_url"] = gitUrl
-        else:
-            clone_url = self.service.git_url
-            code_user = clone_url.split("/")[3]
-            code_project_name = clone_url.split("/")[4].split(".")[0]
-            createUser = Users.objects.get(user_id=self.service.creater)
-            clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + clone_url
-            data["git_url"] = gitUrl
-        task = {}
-        task["service_id"] = self.service.service_id
-        task["data"] = data
-        task["tube"] = "code_check"
-        logger.debug(json.dumps(task))
-        regionClient.writeToRegionBeanstalk(self.service.service_region, self.service.service_id, json.dumps(task))
-
     def get_manage_app(self, http_port_str):
         service_manager = {"deployed": False}
         if self.service.service_key == 'mysql':
@@ -240,18 +206,17 @@ class TenantService(LeftSideBarMixin, AuthedView):
         fr = request.GET.get("fr", "deployed")
         context["fr"] = fr
         try:
-            if self.service.category == "application" and self.service.ID > 598:
+            if self.service.category == "application":
                 # forbidden blank page
                 if self.service.code_version is None or self.service.code_version == "":
                     if self.service.code_from is None or self.service.code_from == "":
                        self.service.code_version = "master" 
                        self.service.code_from = "gitlab_new"
                        self.service.save()
-                # no create gitlab repos
-                self.createGitProject()
+                       codeRepositoriesService.initRepositories(self.tenant, self.user, service_code_from, "", "", "")
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
-                    self.sendCodeCheckMsg()
+                    codeRepositoriesService.codeCheck(self.service)
                     return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 if tse.user_dependency is None or tse.user_dependency == "":
@@ -397,7 +362,7 @@ class ServiceGitHub(BaseView):
         code = request.GET.get("code", "")
         state = request.GET.get("state", "")
         if code != "" and state != "" and int(state) == self.user.pk:
-            result = gitHubClient.get_access_token(code)
+            result = codeRepositoriesService.get_gitHub_access_token(code)
             content = json.loads(result)
             token = content["access_token"]
             user = Users.objects.get(user_id=int(state))
@@ -465,11 +430,9 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
         try:
             tenant_id = tenant.tenant_id
 
-            if tenant.pay_type == "payed":
-                tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=tenant.region)
-                if tenant_region.service_status == 2:
-                    status = "owed"
-                    return status
+            if tenantAccountService.isOwnedMoney(tenant_id, tenant.region):
+                status = "owed"
+                return status
 
             service_alias = app_name.lower()
             # get base service
@@ -480,8 +443,12 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
                 status = "exist"
                 return status
             # calculate resource
-            tenantUsedResource = TenantUsedResource()
-            rt_type, flag = tenantUsedResource.predict_next_memory(tenant, service.min_memory, tenant.region)
+            tempService = TenantServiceInfo()
+            tempService.min_memory = service.min_memory
+            tempService.service_region = self.response_region
+            tempService.min_node = service.min_node
+            diffMemory = service.min_node*service.min_memory
+            rt_type, flag = tenantUsedResource.predict_next_memory(tenant,tempService, diffMemory, False)
             if not flag:
                 if rt_type == "memory":
                     status = "over_memory"
@@ -489,7 +456,7 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
                     status = "over_money"
                 return status
             # create console service
-            baseService = BaseTenantService()
+            
             service.desc = ""
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, user.pk, region=tenant.region)
@@ -498,55 +465,24 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
                                        port_alias=None, is_inner_service=False, is_outer_service=True)
             # self.copy_port_and_env(service, newTenantService)
             # code repos
-            if service_code_from == "gitlab_new":
-                project_id = 0
-                if user.git_user_id > 0:
-                    project_id = gitClient.createProject(tenant.tenant_name + "_" + service_alias)
-                    logger.debug(project_id)
-                    monitorhook.gitProjectMonitor(user.nick_name, newTenantService, 'create_git_project', project_id)
-                    if project_id > 0:
-                        gitClient.addProjectMember(project_id, user.git_user_id, 'master')
-                        gitClient.addProjectMember(project_id, 2, 'reporter')
-                        ts = TenantServiceInfo.objects.get(service_id=service_id)
-                        ts.git_project_id = project_id
-                        ts.git_url = "git@code.goodrain.com:app/" + tenant.tenant_name + "_" + service_alias + ".git"
-                        ts.code_from = service_code_from
-                        ts.code_version = "master"
-                        ts.save()
-                        gitClient.createWebHook(project_id)
-                    else:
-                        ts = TenantServiceInfo.objects.get(service_id=service_id)
-                        ts.code_from = service_code_from
-                        ts.code_version = "master"
-                        ts.save()
-            else:
-                ts = TenantServiceInfo.objects.get(service_id=service_id)
-
-                new_git_url = git_url
-                new_git_version = "master"
-                if service_code_from == "github_pub":
-                    if git_url.find(".git") < 0:
-                        gits = git_url.split("/")
-                        size = len(gits)
-                        new_git_version = gits[size - 1]
-                        bra = "/" + gits[size - 2] + "/" + gits[size - 1]
-                        new_git_url = git_url.replace(bra, ".git")
-                ts.git_project_id = "0"
-                ts.git_url = new_git_url
-                ts.code_from = service_code_from
-                ts.code_version = new_git_version
-                ts.save()
-
-                data = {}
-                data["tenant_id"] = ts.tenant_id
-                data["service_id"] = ts.service_id
-                data["git_url"] = "--branch " + ts.code_version + " --depth 1 " + ts.git_url
-                task = {}
-                task["tube"] = "code_check"
-                task["service_id"] = ts.service_id
-                task["data"] = data
-                logger.debug(json.dumps(task))
-                regionClient.writeToRegionBeanstalk(tenant.region, ts.service_id, json.dumps(task))
+            
+            ts = TenantServiceInfo.objects.get(service_id=service_id)
+            new_git_url = git_url
+            new_git_version = "master"
+            if service_code_from == "github_pub":
+                if git_url.find(".git") < 0:
+                    gits = git_url.split("/")
+                    size = len(gits)
+                    new_git_version = gits[size - 1]
+                    bra = "/" + gits[size - 2] + "/" + gits[size - 1]
+                    new_git_url = git_url.replace(bra, ".git")
+                    
+            ts.git_project_id = "0"
+            ts.git_url = new_git_url
+            ts.code_from = service_code_from
+            ts.code_version = new_git_version
+            ts.save()
+            codeRepositoriesService.codeCheck(ts)
             # create region tenantservice
             baseService.create_region_service(newTenantService, tenant.tenant_name, tenant.region, user.nick_name)
             monitorhook.serviceMonitor(user.nick_name, newTenantService, 'init_region_service', True)
@@ -656,23 +592,3 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
                 response.set_cookie('app_an', app_an)
                 response.set_cookie('app_sd', app_sd)
         return response
-
-
-class GitLabManager(AuthedView):
-
-    @never_cache
-    def get(self, request, *args, **kwargs):
-        # result=gitClient.createUser("git2@goodrain.com ", "12345678", "git2", "git2")
-        # logger.debug(result)
-        # result = gitClient.getProjectEvent(2)
-        project_id = 0
-        # if self.user.git_user_id > 0:
-        #    project_id = gitClient.createProject("test"+"_"+"app")
-        #    logger.debug(project_id)
-        #    if project_id > 0:
-        # ts = TenantServiceInfo.objects.get(service_id=service_id)
-        # ts.git_project_id = project_id
-        # ts.save()
-        #        gitClient.addProjectMember(project_id,self.user.git_user_id,30)
-        #        gitClient.addProjectMember(project_id,2,20)
-        return HttpResponse(str(project_id))

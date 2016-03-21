@@ -6,13 +6,12 @@ from www.utils.crypt import AuthCode
 from www.utils.mail import send_invite_mail_withHtml
 
 from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity
-from www.gitlab_http import GitlabApi
 from www.utils.giturlparse import parse as git_url_parse
 
 import logging
 logger = logging.getLogger('default')
 
-gitClient = GitlabApi()
+codeRepositoriesService = CodeRepositoriesService()
 
 
 gitlab_identity_map = {
@@ -56,25 +55,25 @@ class ServiceIdentity(AuthedView):
             if parsed_git_url.host != 'code.goodrain.com':
                 return
             try:
-                current_members = gitClient.listProjectMembers(project_id)
+                current_members = codeRepositoriesService.listProjectMembers(project_id)
                 is_member = self.user_exists_in_gitlab(user, current_members)
 
                 if identity in ('admin', 'developer'):
                     gitlab_identity = gitlab_identity_map.get(identity)
                     if is_member:
                         logger.info("perm.gitlab", "modify user {0} identity for project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
-                        gitClient.editMemberIdentity(project_id, user.git_user_id, gitlab_identity)
+                        codeRepositoriesService.editMemberIdentity(project_id, user.git_user_id, gitlab_identity)
                     else:
                         logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
-                        gitClient.addProjectMember(project_id, user.git_user_id, gitlab_identity)
+                        codeRepositoriesService.addProjectMember(project_id, user.git_user_id, gitlab_identity)
                 elif identity == 'remove':
                     if is_member:
                         logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
-                        gitClient.deleteProjectMember(project_id, user.git_user_id)
+                        codeRepositoriesService.deleteProjectMember(project_id, user.git_user_id)
                 else:
                     if is_member:
                         logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, self.service.git_url))
-                        gitClient.deleteProjectMember(project_id, user.git_user_id)
+                        codeRepositoriesService.deleteProjectMember(project_id, user.git_user_id)
             except Exception, e:
                 logger.exception('perm.gitlab', e)
 
@@ -130,25 +129,25 @@ class TenantIdentity(AuthedView):
             if parsed_git_url.host != 'code.goodrain.com':
                 return
 
-            current_members = gitClient.listProjectMembers(project_id)
+            current_members = codeRepositoriesService.listProjectMembers(project_id)
             is_member = self.user_exists_in_gitlab(user, current_members)
             try:
                 if identity in ('admin', 'developer'):
                     gitlab_identity = gitlab_identity_map.get(identity)
                     if is_member:
                         logger.info("perm.gitlab", "modify user {0} identity for project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                        gitClient.editMemberIdentity(project_id, user.git_user_id, gitlab_identity)
+                        codeRepositoriesService.editMemberIdentity(project_id, user.git_user_id, gitlab_identity)
                     else:
                         logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                        gitClient.addProjectMember(project_id, user.git_user_id, gitlab_identity)
+                        codeRepositoriesService.addProjectMember(project_id, user.git_user_id, gitlab_identity)
                 elif identity == 'remove':
                     if is_member:
                         logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                        gitClient.deleteProjectMember(project_id, user.git_user_id)
+                        codeRepositoriesService.deleteProjectMember(project_id, user.git_user_id)
                 else:
                     if is_member:
                         logger.info("perm.gitlab", "remove user {0} perms from project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                        gitClient.deleteProjectMember(project_id, user.git_user_id)
+                        codeRepositoriesService.deleteProjectMember(project_id, user.git_user_id)
                 added_pids.append(project_id)
             except Exception, e:
                 logger.exception("perm.gitlab", e)
@@ -242,7 +241,7 @@ class InviteServiceUser(AuthedView):
                         if git_project_id > 0 and user.git_user_id > 0:
                             if identity in ("developer", "admin"):
                                 gitlab_identity = gitlab_identity_map.get(identity)
-                                gitClient.addProjectMember(git_project_id, user.git_user_id, gitlab_identity)
+                                codeRepositoriesService.addProjectMember(git_project_id, user.git_user_id, gitlab_identity)
                                 logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, git_project_id, self.service.git_url))
 
         except Users.DoesNotExist:
@@ -303,7 +302,7 @@ class InviteTenantUser(AuthedView):
                     parsed_git_url = git_url_parse(s.git_url)
                     if parsed_git_url.host == 'code.goodrain.com':
                         logger.info("perm.gitlab", "add user {0} into project {1} with address {2}".format(user.nick_name, project_id, s.git_url))
-                        gitClient.addProjectMember(project_id, user.git_user_id, gitlab_identity)
+                        codeRepositoriesService.addProjectMember(project_id, user.git_user_id, gitlab_identity)
                         added_pids.append(project_id)
             except Exception, e:
                 logger.exception("perm.gitlab", e)

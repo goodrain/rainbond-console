@@ -3,14 +3,21 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
+from www.models import Users, TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
 from www.service_http import RegionServiceApi
 from django.conf import settings
+from www.monitorservice.monitorhook import MonitorHook
+from gitlab_http import GitlabApi
+from github_http import GitHubApi
+from www.utils.giturlparse import parse as git_url_parse
 
 import logging
 logger = logging.getLogger('default')
 
+monitorhook = MonitorHook()
 regionClient = RegionServiceApi()
+gitClient = GitlabApi()
+gitHubClient = GitHubApi()
 
 
 class BaseTenantService(object):
@@ -44,7 +51,7 @@ class BaseTenantService(object):
             if temp is not None:
                 cur_service_port = int(temp)
         return cur_service_port
-
+    
     def getInnerServicePort(self, tenant_id, service_key):
         cur_service_port = 0
         dsn = BaseConnection()
@@ -66,19 +73,8 @@ class BaseTenantService(object):
         port_list.insert(0, container_port)
         max_port = reduce(lambda x, y: y if (y - x) == 1 else x, port_list)
         return max_port + 1
-
+    
     def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
-        '''
-        if service.category in ("application", "app_publish", "app_sys_publish"):
-            service_port = service.inner_port + 1000
-        else:
-            service_port = service.inner_port
-        if service.is_service:
-            deployPort = self.getMaxPort(tenant_id, service.service_key, service_alias)
-            if deployPort > 0:
-                service_port = deployPort + 1
-        '''
-
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
         tenantServiceInfo["tenant_id"] = tenant_id
@@ -87,8 +83,6 @@ class BaseTenantService(object):
         tenantServiceInfo["service_region"] = region
         tenantServiceInfo["desc"] = service.desc
         tenantServiceInfo["category"] = service.category
-        # tenantServiceInfo["service_port"] = service_port
-        # tenantServiceInfo["is_web_service"] = service.is_web_service
         tenantServiceInfo["image"] = service.image
         tenantServiceInfo["cmd"] = service.cmd
         tenantServiceInfo["setting"] = service.setting
@@ -115,25 +109,10 @@ class BaseTenantService(object):
         tenantServiceInfo["service_type"] = service.service_type
         tenantServiceInfo["creater"] = creater
         tenantServiceInfo["total_memory"] = service.min_node * service.min_memory
-        # if service.is_web_service:
-        #     tenantServiceInfo["protocol"] = 'http'
-        # else:
-        #     tenantServiceInfo["protocol"] = 'stream'
-        # tenantServiceInfo["is_service"] = service.is_service
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
-
-        # if service is inner service need to save env var
-        '''
-        if service.is_service:
-            self.saveServiceEnvVar(tenant_id, service_id, u"连接地址", service.service_key.upper() + "_HOST", "127.0.0.1", False)
-            self.saveServiceEnvVar(tenant_id, service_id, u"端口", service.service_key.upper() + "_PORT", service_port, False)
-            if service.is_init_accout:
-                self.saveServiceEnvVar(tenant_id, service_id, u"用户名", service.service_key.upper() + "_USER", "admin", True)
-                self.saveServiceEnvVar(tenant_id, service_id, u"密码", service.service_key.upper() + "_PASSWORD", password, True)
-        '''
         return newTenantService
-
+    
     def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
@@ -150,47 +129,31 @@ class BaseTenantService(object):
         data["status"] = 0
         data["replicas"] = newTenantService.min_node
         data["service_alias"] = newTenantService.service_alias
-        # data["service_port"] = newTenantService.service_port
         data["service_version"] = newTenantService.version
         data["container_env"] = newTenantService.env
-        # data["container_port"] = newTenantService.inner_port
         data["container_cmd"] = newTenantService.cmd
         data["node_label"] = ""
-        # data["is_create_service"] = newTenantService.is_service
-        # data["is_binding_port"] = newTenantService.is_web_service or newTenantService.service_key == 'mysql'
         data["deploy_version"] = newTenantService.deploy_version if do_deploy else None
         data["domain"] = domain
         data["category"] = newTenantService.category
-        # data["protocol"] = newTenantService.protocol
         data["operator"] = nick_name
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
-
+    
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         if ports_info:
             data["extend_info"]["ports"] = list(ports_info)
-
+    
         envs_info = TenantServiceEnvVar.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
             data["extend_info"]["envs"] = list(envs_info)
-
+    
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
-
-    def record_service_log(self, user_pk, user_nike_name, service_id, tenant_id):
-        log = {}
-        log["user_id"] = user_pk
-        log["user_name"] = user_nike_name
-        log["service_id"] = service_id
-        log["tenant_id"] = tenant_id
-        log["action"] = "deploy"
-        log["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        tenantServiceLog = TenantServiceLog(**log)
-        tenantServiceLog.save()
-
+    
     def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         dependS = TenantServiceInfo.objects.get(service_id=dep_service_id)
         task = {}
@@ -205,7 +168,7 @@ class BaseTenantService(object):
         tsr.dep_service_type = dependS.service_type
         tsr.dep_order = 0
         tsr.save()
-
+    
     def cancel_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         task = {}
         task["dep_service_id"] = dep_service_id
@@ -213,7 +176,7 @@ class BaseTenantService(object):
         task["dep_service_type"] = "v"
         regionClient.cancelServiceDependency(region, service_id, json.dumps(task))
         TenantServiceRelation.objects.get(service_id=service_id, dep_service_id=dep_service_id).delete()
-
+    
     def create_service_env(self, tenant_id, service_id, region):
         tenantServiceEnvList = TenantServiceEnvVar.objects.filter(service_id=service_id)
         data = {}
@@ -226,13 +189,13 @@ class BaseTenantService(object):
         service = TenantServiceInfo.objects.get(service_id=service_id)
         task["container_port"] = service.inner_port
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
-
+    
     def cancel_service_env(self, tenant_id, service_id, region):
         task = {}
         task["tenant_id"] = tenant_id
         task["attr"] = {}
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
-
+    
     def saveServiceEnvVar(self, tenant_id, service_id, container_port, name, attr_name, attr_value, isChange, scope="outer"):
         tenantServiceEnvVar = {}
         tenantServiceEnvVar["tenant_id"] = tenant_id
@@ -244,7 +207,7 @@ class BaseTenantService(object):
         tenantServiceEnvVar["is_change"] = isChange
         tenantServiceEnvVar["scope"] = scope
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
-
+    
     def addServicePort(self, service, is_init_account, container_port=0, protocol='', port_alias='', is_inner_service=False, is_outer_service=False):
         port = TenantServicesPort(tenant_id=service.tenant_id, service_id=service.service_id, container_port=container_port,
                                   protocol=protocol, port_alias=port_alias, is_inner_service=is_inner_service,
@@ -264,7 +227,7 @@ class BaseTenantService(object):
             port.save()
         except Exception, e:
             logger.exception(e)
-
+    
     def is_user_click(self, region, service_id):
         is_ok = True
         data = regionClient.getLatestServiceEvent(region, service_id)
@@ -277,24 +240,24 @@ class BaseTenantService(object):
                 if event.status == "start" and diffsec <= 180:
                     is_ok = False
         return is_ok
-
+    
     def create_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
         dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
         task = {}
         task["dep_service_id"] = dependS.service_id
         task["tenant_id"] = tenant_id
-        task["mnt_name"] = "/mnt/"+dependS.service_alias
+        task["mnt_name"] = "/mnt/" + dependS.service_alias
         task["mnt_dir"] = dependS.host_path
         regionClient.createServiceMnt(region, service_id, json.dumps(task))
         tsr = TenantServiceMountRelation()
         tsr.tenant_id = tenant_id
         tsr.service_id = service_id
         tsr.dep_service_id = dependS.service_id
-        tsr.mnt_name = "/mnt/"+dependS.service_alias
+        tsr.mnt_name = "/mnt/" + dependS.service_alias
         tsr.mnt_dir = dependS.host_path
         tsr.dep_order = 0
         tsr.save()
-
+    
     def cancel_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
         dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
         task = {}
@@ -309,21 +272,8 @@ class TenantUsedResource(object):
 
     def __init__(self):
         self.feerule = settings.REGION_RULE
-
-    def calculate_used_resource(self, tenant):
-        totalMemory = 0
-        if tenant.pay_type == "free":
-            dsn = BaseConnection()
-            query_sql = '''
-                select sum(s.min_node * s.min_memory) as totalMemory from tenant_service s where s.tenant_id = "{tenant_id}"
-                '''.format(tenant_id=tenant.tenant_id)
-            sqlobj = dsn.query(query_sql)
-            if sqlobj is not None and len(sqlobj) > 0:
-                oldMemory = sqlobj[0]["totalMemory"]
-                if oldMemory is not None:
-                    totalMemory = int(oldMemory)
-        return totalMemory
-
+        self.action = settings.ACTIONS
+    
     def calculate_real_used_resource(self, tenant):
         totalMemory = 0
         tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True)
@@ -367,32 +317,190 @@ class TenantUsedResource(object):
                     memory = memory + int(sqlobj["buy_memory"])
         return memory
 
-
-    def predict_next_memory(self, tenant, newAddMemory, cur_region):
-        result = False
+    def predict_next_memory(self, tenant, cur_service, newAddMemory, ischeckStatus):
+        result = True
         rt_type = "memory"
-        if tenant.pay_type == "free":
-            tm = self.calculate_real_used_resource(tenant) + newAddMemory
-            logger.debug(tenant.tenant_id + " used memory " + str(tm))
-            if tm <= tenant.limit_memory:
-                result = True
-        elif tenant.pay_type == "payed":
-            tm = self.calculate_real_used_resource(tenant) + newAddMemory
-            guarantee_memory = self.calculate_guarantee_resource(tenant)
-            logger.debug(tenant.tenant_id + " used memory:" + str(tm)+" guarantee_memory:"+str(guarantee_memory))
-            if tm - guarantee_memory <= 102400:
-                ruleJson = self.feerule[cur_region]
-                unit_money = 0
-                if tenant.pay_level == "personal":
-                    unit_money = float(ruleJson['personal_money'])
-                elif tenant.pay_level == "company":
-                    unit_money = float(ruleJson['company_money'])
-                total_money = unit_money * (tm * 1.0 / 1024)
-                logger.debug(tenant.tenant_id + " use memory " + str(tm) + " used money " + str(total_money))
-                if tenant.balance >= total_money:
+        if self.action["Memory_Limit"]:
+            result = False
+            if ischeckStatus:
+                newAddMemory = newAddMemory + self.curServiceMemory(cur_service)
+            if tenant.pay_type == "free":
+                tm = self.calculate_real_used_resource(tenant) + newAddMemory
+                logger.debug(tenant.tenant_id + " used memory " + str(tm))
+                if tm <= tenant.limit_memory:
                     result = True
-                else:
-                    rt_type = "money"
-        elif tenant.pay_type == "unpay":
-            result = True
+            elif tenant.pay_type == "payed":
+                tm = self.calculate_real_used_resource(tenant) + newAddMemory
+                guarantee_memory = self.calculate_guarantee_resource(tenant)
+                logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
+                if tm - guarantee_memory <= 102400:
+                    ruleJson = self.feerule[cur_region]
+                    unit_money = 0
+                    if tenant.pay_level == "personal":
+                        unit_money = float(ruleJson['personal_money'])
+                    elif tenant.pay_level == "company":
+                        unit_money = float(ruleJson['company_money'])
+                    total_money = unit_money * (tm * 1.0 / 1024)
+                    logger.debug(tenant.tenant_id + " use memory " + str(tm) + " used money " + str(total_money))
+                    if tenant.balance >= total_money:
+                        result = True
+                    else:
+                        rt_type = "money"
+            elif tenant.pay_type == "unpay":
+                result = True
         return rt_type, result
+    
+    def curServiceMemory(self, cur_service):
+        memory = 0
+        try:
+            body = regionClient.check_service_status(cur_service.service_region, cur_service.service_id)
+            status = body[cur_service.service_id]
+            if status != "running":
+                memory = cur_service.min_node * cur_service.min_memory
+        except Exception:
+            pass
+        return memory
+
+class TenantAccountService(object):
+
+    def isOwnedMoney(self, tenant_id, region_name):
+        if self.action["Owned_Fee"]:
+            tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region_name)
+            if tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
+                return True
+        return False
+
+class CodeRepositoriesService(object):
+    def initRepositories(self, tenant, user, service, service_code_from, code_url, code_id, code_version):
+        if service_code_from == "gitlab_new":
+            if self.action["GitLab_Project"]:
+                project_id = 0
+                if user.git_user_id > 0:
+                    project_id = gitClient.createProject(tenant.tenant_name + "_" + service.service_alias)
+                    logger.debug(project_id)
+                    monitorhook.gitProjectMonitor(user.nick_name, service, 'create_git_project', project_id)
+                    ts = TenantServiceInfo.objects.get(service_id=service.service_id)
+                    if project_id > 0:
+                        gitClient.addProjectMember(project_id, user.git_user_id, 'master')
+                        gitClient.addProjectMember(project_id, 2, 'reporter')
+                        ts.git_project_id = project_id
+                        ts.git_url = "git@code.goodrain.com:app/" + self.tenantName + "_" + service_alias + ".git"
+                        gitClient.createWebHook(project_id)
+                    ts.code_from = service_code_from
+                    ts.code_version = "master"
+                    ts.save()
+        elif service_code_from == "gitlab_exit":
+            ts = TenantServiceInfo.objects.get(service_id=service.service_id)
+            ts.git_project_id = code_id
+            ts.git_url = code_url
+            ts.code_from = service_code_from
+            ts.code_version = code_version
+            ts.save()
+            self.codeCheck(ts)
+        elif service_code_from == "github":
+            ts = TenantServiceInfo.objects.get(service_id=service_id)
+            ts.git_project_id = code_id
+            ts.git_url = code_url
+            ts.code_from = service_code_from
+            ts.code_version = code_version
+            ts.save()
+            code_user = code_url.split("/")[3]
+            code_project_name = code_url.split("/")[4].split(".")[0]
+            gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
+            self.codeCheck(ts)
+
+    def codeCheck(self, service):
+        data = {}
+        data["tenant_id"] = service.tenant_id
+        data["service_id"] = service.service_id
+        data["git_url"] = "--branch " + service.code_version + " --depth 1 " + service.git_url
+        
+        parsed_git_url = git_url_parse(clone_url)
+        if parsed_git_url.host == "code.goodrain.com":
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2ssh
+        elif parsed_git_url.host == 'github.com':
+            createUser = Users.objects.get(user_id=service.creater)
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.token)
+        else:
+            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https
+        data["git_url"] = gitUrl
+
+        task = {}
+        task["tube"] = "code_check"
+        task["service_id"] = service.service_id
+        task["data"] = data
+        logger.debug(json.dumps(task))
+        regionClient.writeToRegionBeanstalk(service.service_region, service.service_id, json.dumps(task))
+        
+    def deleteProject(self, service):
+        if self.action["GitLab_Project"]:
+            if service.code_from == "gitlab_new" and service.git_project_id > 0:
+                gitClient.deleteProject(service.git_project_id)
+
+    def getProjectBranches(self, project_id):
+        if self.action["GitLab_Project"]:
+            return gitClient.getProjectBranches(project_id)
+        return ""
+    
+    def createUser(self, user, email, password, username, name):
+        if self.action["GitLab_User"]:
+            if user.git_user_id == 0:
+                logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
+                git_user_id = gitClient.createUser(email, password, username, name)
+                if git_user_id == 0:
+                    logger.info("account.gituser", "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
+                else:
+                    user.git_user_id = git_user_id
+                    user.save()
+                    logger.info("account.gituser", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
+                monitorhook.gitUserMonitor(user, git_user_id)
+    
+    def modifyUser(self, user, password):
+        if self.action["GitLab_User"]:
+            gitClient.modifyUser(user.git_user_id, password=raw_password)
+        
+    def addProjectMember(self, git_project_id, git_user_id, level):
+        if self.action["GitLab_Project"]:
+            gitClient.addProjectMember(git_project_id, git_user_id, level)
+        
+    def listProjectMembers(self, git_project_id):
+        if self.action["GitLab_Project"]:
+            return gitClient.listProjectMembers(project_id)
+        return ""
+    
+    def deleteProjectMember(project_id, git_user_id):
+        if self.action["GitLab_Project"]:
+            gitClient.deleteProjectMember(project_id, user.git_user_id)
+        
+    def addProjectMember(self, project_id, git_user_id, gitlab_identity):
+        if self.action["GitLab_Project"]:
+            gitClient.addProjectMember(project_id, git_user_id, gitlab_identity)
+    
+    def editMemberIdentity(self, project_id, git_user_id, gitlab_identity):
+        if self.action["GitLab_Project"]:
+            gitClient.editMemberIdentity(project_id, git_user_id, gitlab_identity)
+
+    def get_gitHub_access_token(self, code):
+        if self.action["Git_Hub"]:
+            return gitHubClient.get_access_token(code)
+        return ""
+    
+    def get_branchs(self, owner, repo, token):
+        if self.action["Git_Hub"]:
+            return githubClient.get_branchs(owner, repo, token)
+        return ""
+    
+    def getgGitHubAllRepos(self, token):
+        if self.action["Git_Hub"]:
+            return gitHubClient.getAllRepos(token)
+        return ""
+    
+    def gitHub_authorize_url(self, user):
+        if self.action["Git_Hub"]:
+            return gitHubClient.authorize_url(user.pk)
+        return ""
+    
+    def gitHub_ReposRefs(self, user, repos, token):
+        if self.action["Git_Hub"]:
+            return gitHubClient.getReposRefs(user, repos, token)
+        return ""

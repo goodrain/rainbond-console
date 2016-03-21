@@ -14,11 +14,9 @@ from www.models import (ServiceInfo, AppServiceInfo, TenantServiceInfo, TenantRe
                         TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain,
                         TenantServiceEnvVar, TenantServicesPort, TenantServiceMountRelation)
 from www.service_http import RegionServiceApi
-from www.gitlab_http import GitlabApi
-from www.github_http import GitHubApi
 from django.conf import settings
 from www.db import BaseConnection
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from goodrain_web.decorator import method_perf_time
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.giturlparse import parse as git_url_parse
@@ -28,13 +26,12 @@ import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 
-gitClient = GitlabApi()
-githubClient = GitHubApi()
-
 regionClient = RegionServiceApi()
 baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
 monitorhook = MonitorHook()
+tenantAccountService = TenantAccountService()
+codeRepositoriesService = CodeRepositoriesService()
 
 
 class AppDeploy(AuthedView):
@@ -43,13 +40,12 @@ class AppDeploy(AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         data = {}
-        self.tenant_region = TenantRegionInfo.objects.get(
-            tenant_id=self.service.tenant_id, region_name=self.service.service_region)
-        if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
+
+        if tenantAccountService.isOwnedMoney(self.service.tenant_id, self.service.service_region):
             data["status"] = "owed"
             return JsonResponse(data, status=200)
 
-        if self.service.ID > 598 and (self.service.language is None or self.service.language == ""):
+        if self.service.language is None or self.service.language == "":
             data["status"] = "language"
             return JsonResponse(data, status=200)
 
@@ -61,21 +57,13 @@ class AppDeploy(AuthedView):
                 data["status"] = "often"
                 return JsonResponse(data, status=200)
 
-        # temp record service status
-        temData = {}
-        temData["service_id"] = service_id
-        temData["status"] = 2
-        old_status = regionClient.updateTenantServiceStatus(self.service.service_region, service_id, json.dumps(temData))
         # calculate resource
-        rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, 0, self.service.service_region)
+        rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, 0, True)
         if not flag:
             if rt_type == "memory":
                 data["status"] = "over_memory"
             else:
                 data["status"] = "over_money"
-            temData["service_id"] = service_id
-            temData["status"] = old_status
-            regionClient.updateTenantServiceStatus(self.service.service_region, service_id, json.dumps(temData))
             return JsonResponse(data, status=200)
         try:
             gitUrl = request.POST.get('git_url', None)
@@ -117,9 +105,8 @@ class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        self.tenant_region = TenantRegionInfo.objects.get(
-            tenant_id=self.service.tenant_id, region_name=self.service.service_region)
-        if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
+        
+        if tenantAccountService.isOwnedMoney(self.service.tenant_id, self.service.service_region):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
 
@@ -143,27 +130,16 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', False)
         elif action == "restart":
             try:
-                # temp record service status
-                temData = {}
-                temData["service_id"] = self.service.service_id
-                temData["status"] = 2
-                old_status = regionClient.updateTenantServiceStatus(
-                    self.service.service_region, self.service.service_id, json.dumps(temData))
                 # calculate resource
-                rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, 0, self.service.service_region)
+                diff_memory = self.service.min_node * self.service.min_memory
+                rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, diff_memory, False)
                 if not flag:
                     if rt_type == "memory":
                         result["status"] = "over_memory"
                     else:
                         result["status"] = "over_money"
-                    temData["service_id"] = self.service.service_id
-                    temData["status"] = old_status
-                    regionClient.updateTenantServiceStatus(self.service.service_region,
-                                                           self.service.service_id, json.dumps(temData))
                     return JsonResponse(result, status=200)
-
-                self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                self.service.save()
+                
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
@@ -204,11 +180,7 @@ class ServiceManage(AuthedView):
                 except Exception as e:
                     logger.exception(e)
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
-                    same_repo_services = TenantServiceInfo.objects.only('ID').filter(
-                        tenant_id=self.service.tenant_id, git_url=self.service.git_url).exclude(service_id=self.service.service_id)
-                    if not same_repo_services:
-                        gitClient.deleteProject(self.service.git_project_id)
-                    gitClient.deleteProject(self.service.git_project_id)
+                    codeRepositoriesService.deleteProject(self.service.git_project_id)
                 if self.service.category == 'app_publish':
                     self.update_app_service(self.service)
 
@@ -231,21 +203,13 @@ class ServiceManage(AuthedView):
                 event_id = request.POST["event_id"]
                 deploy_version = request.POST["deploy_version"]
                 if event_id != "":
-                    temData = {}
-                    temData["service_id"] = self.service.service_id
-                    temData["status"] = 2
-                    old_status = regionClient.updateTenantServiceStatus(
-                        self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
-                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, 0, self.service.service_region)
+                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, 0, True)
                     if not flag:
                         if rt_type == "memory":
                             result["status"] = "over_memory"
                         else:
                             result["status"] = "over_money"
-                        temData["service_id"] = self.service.service_id
-                        temData["status"] = old_status
-                        regionClient.updateTenantServiceStatus(self.service.service_region, self.service.service_id, json.dumps(temData))
                         return JsonResponse(result, status=200)
                     body = {}
                     body["event_id"] = event_id
@@ -274,11 +238,11 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        self.tenant_region = TenantRegionInfo.objects.get(
-            tenant_id=self.service.tenant_id, region_name=self.service.service_region)
-        if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
+        
+        if tenantAccountService.isOwnedMoney(self.service.tenant_id, self.service.service_region):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
+        
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
             if not baseService.is_user_click(self.service.service_region, self.service.service_id):
@@ -293,109 +257,65 @@ class ServiceUpgrade(AuthedView):
                 old_container_cpu = self.service.min_cpu
                 old_container_memory = self.service.min_memory
                 if int(container_memory) != old_container_memory or int(container_cpu) != old_container_cpu:
-                    old_deploy_version = self.service.deploy_version
                     upgrade_container_memory = int(container_memory)
                     left = upgrade_container_memory % 128
                     if upgrade_container_memory > 0 and upgrade_container_memory <= 65536 and left == 0:
-                        upgrade_container_cpu = upgrade_container_memory / 128 * 20
-                        # temp record service status
-                        temData = {}
-                        temData["service_id"] = self.service.service_id
-                        temData["status"] = 2
-                        old_status = regionClient.updateTenantServiceStatus(
-                            self.service.service_region, self.service.service_id, json.dumps(temData))
                         # calculate resource
                         diff_memory = upgrade_container_memory - int(old_container_memory)
-                        rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory, self.service.service_region)
+                        rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, diff_memory, True)
                         if not flag:
                             if rt_type == "memory":
                                 result["status"] = "over_memory"
                             else:
                                 result["status"] = "over_money"
-                            temData["service_id"] = self.service.service_id
-                            temData["status"] = old_status
-                            regionClient.updateTenantServiceStatus(self.service.service_region,
-                                                                   self.service.service_id, json.dumps(temData))
                             return JsonResponse(result, status=200)
     
-                        deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                        self.service.min_cpu = upgrade_container_cpu
-                        self.service.min_memory = upgrade_container_memory
-                        self.service.deploy_version = deploy_version
-                        self.service.save()
-    
+                        upgrade_container_cpu = upgrade_container_memory / 128 * 20
+                        
                         body = {}
                         body["container_memory"] = upgrade_container_memory
-                        body["deploy_version"] = deploy_version
+                        body["deploy_version"] = self.service.deploy_version
                         body["container_cpu"] = upgrade_container_cpu
                         body["operator"] = str(self.user.nick_name)
                         regionClient.verticalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                        
+                        self.service.min_cpu = upgrade_container_cpu
+                        self.service.min_memory = upgrade_container_memory
+                        self.service.save()
+                        
                         monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
                 result["status"] = "success"
             except Exception, e:
-                self.service.min_cpu = old_container_cpu
-                self.service.min_memory = old_container_memory
-                self.service.deploy_version = old_deploy_version
-                self.service.save()
                 logger.exception(e)
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', False)
                 result["status"] = "failure"
         elif action == "horizontal":
             node_num = request.POST["node_num"]
-            old_min_node = self.service.min_node
-            old_deploy_version = self.service.deploy_version
             try:
                 new_node_num = int(node_num)
+                old_min_node = self.service.min_node
                 if new_node_num >= 0 and new_node_num != old_min_node:
-                    # temp record service status
-                    temData = {}
-                    temData["service_id"] = self.service.service_id
-                    temData["status"] = 2
-                    old_status = regionClient.updateTenantServiceStatus(
-                        self.service.service_region, self.service.service_id, json.dumps(temData))
                     # calculate resource
                     diff_memory = (new_node_num - old_min_node) * self.service.min_memory
-                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, diff_memory, self.service.service_region)
+                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, diff_memory, True)
                     if not flag:
                         if rt_type == "memory":
                             result["status"] = "over_memory"
                         else:
                             result["status"] = "over_money"
-                        temData["service_id"] = self.service.service_id
-                        temData["status"] = old_status
-                        regionClient.updateTenantServiceStatus(self.service.service_region,
-                                                               self.service.service_id, json.dumps(temData))
                         return JsonResponse(result, status=200)
 
-                    deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-
-                    isResetStatus = False
-                    try:
-                        body = {}
-                        body["node_num"] = node_num
-                        body["deploy_version"] = deploy_version
-                        body["operator"] = str(self.user.nick_name)
-                        regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
-                    except Exception, e:
-                        logger.exception(e)
-                        isResetStatus = True
-
-                    if not isResetStatus:
-                        self.service.min_node = node_num
-                        self.service.deploy_version = deploy_version
-                        self.service.save()
-
-                    if isResetStatus or new_node_num < old_min_node:
-                        temData["service_id"] = self.service.service_id
-                        temData["status"] = old_status
-                        regionClient.updateTenantServiceStatus(self.service.service_region,
-                                                               self.service.service_id, json.dumps(temData))
+                    body = {}
+                    body["node_num"] = new_node_num
+                    body["deploy_version"] = self.service.deploy_version
+                    body["operator"] = str(self.user.nick_name)
+                    regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                    
+                    self.service.min_node = new_node_num
+                    self.service.save()
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', True)
                 result["status"] = "success"
             except Exception, e:
-                self.service.min_node = old_min_node
-                self.service.deploy_version = old_deploy_version
-                self.service.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', False)
@@ -525,9 +445,7 @@ class ServiceDetail(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            self.tenant_region = TenantRegionInfo.objects.get(
-                tenant_id=self.service.tenant_id, region_name=self.service.service_region)
-            if self.tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
+            if tenantAccountService.isOwnedMoney(self.service.tenant_id, self.service.service_region):
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
             else:
@@ -607,27 +525,6 @@ class ServiceLog(AuthedView):
 
 class ServiceCheck(AuthedView):
 
-    def sendCodeCheckMsg(self):
-        data = {}
-        data["tenant_id"] = self.service.tenant_id
-        data["service_id"] = self.service.service_id
-        clone_url = self.service.git_url
-        parsed_git_url = git_url_parse(clone_url)
-        if parsed_git_url.host == "code.goodrain.com":
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2ssh
-        elif parsed_git_url.host == 'github.com':
-            createUser = Users.objects.get(user_id=self.service.creater)
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.token)
-        else:
-            gitUrl = "--branch " + self.service.code_version + " --depth 1 " + parsed_git_url.url2https
-
-        data["git_url"] = gitUrl
-        task = {}
-        task["tube"] = "code_check"
-        task["data"] = data
-        task["service_id"] = self.service.service_id
-        regionClient.writeToRegionBeanstalk(self.service.service_region, self.service.service_id, json.dumps(task))
-
     @method_perf_time
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
@@ -635,8 +532,8 @@ class ServiceCheck(AuthedView):
         try:
             requestNumber = request.GET.get("requestNumber", "0")
             reqNum = int(requestNumber)
-            if reqNum > 0 and reqNum % 20 == 0:
-                self.sendCodeCheckMsg()
+            if reqNum > 0 and reqNum % 30 == 0:
+                codeRepositoriesService.codeCheck(self.service)
             if self.service.language is None or self.service.language == "":
                 tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 dps = json.loads(tse.check_dependency)
@@ -798,7 +695,7 @@ class ServiceBranch(AuthedView):
     def get_gitlab_branchs(self, parsed_git_url):
         project_id = self.service.git_project_id
         if project_id > 0:
-            branchlist = gitClient.getProjectBranches(project_id)
+            branchlist = codeRepositoriesService.getProjectBranches(project_id)
             branchs = [e['name'] for e in branchlist]
             return branchs
         else:
@@ -810,10 +707,10 @@ class ServiceBranch(AuthedView):
         owner = parsed_git_url.owner
         repo = parsed_git_url.repo
         try:
-            branch_list = githubClient.get_branchs(owner, repo, token)
+            branch_list = codeRepositoriesService.get_branchs(owner, repo, token)
             branchs = [e['name'] for e in branch_list]
             return branchs
-        except githubClient.CallApiError, e:
+        except Exception, e:
             logger.error('client_error', e)
             return []
 
