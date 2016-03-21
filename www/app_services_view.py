@@ -14,6 +14,7 @@ from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource,
 from www.utils.language import is_redirect
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
+from django.conf import settings
 
 logger = logging.getLogger('default')
 
@@ -31,14 +32,21 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js', 'www/js/app-create.js')
+            'www/js/respond.min.js', )
+        if settings.MODULES["Git_Code_Manual"]:
+            media = media +  self.vendor("www/js/app-create-manual.js")
+        else:
+            media = media +  self.vendor("www/js/app-create.js")
         return media
 
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         context = self.get_context()
-        response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
+        if settings.MODULES["Git_Code_Manual"]:
+            response = TemplateResponse(self.request, "www/app_create_manual_code_step_1.html", context)
+        else:
+            response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
         try:
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"

@@ -1,0 +1,51 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <!-- page start-->
+    <section class="panel">
+	    <div class="panel-body">
+	        <div class=" form">
+	           <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+	            <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
+                <input type="hidden" id="service_code_from" name="service_code_from" value="gitlab_exit">
+                <input type="hidden" id="service_code_id" name="service_code_id" value="0">        
+	            <div class="form-group">
+	                <div class="col-lg-12 text-center">
+						<img src="/static/www/img/step-1.png" width="80%" style="padding-bottom: 50px;padding-top: 30px;"/>
+	                </div>
+	            </div>
+	            <div class="form-group ">
+	                <label for="create_app_name" class="control-label col-lg-2 app_name">名称</label>
+	                <div class="col-lg-8">
+	                    <input class="form-control valid" id="create_app_name" name="create_app_name" minlength="2" type="text" required="" placeholder="给应用起个名字" value="{{app_an}}">
+	                    <div id="create_appname_notice" class="alert alert-danger" role="alert" style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">英文小写字母开始结束, 允许包含数字, 中划线 -</div>
+	                </div>
+	            </div>
+	            <div class="form-group ">
+                    <label for="create_app_name" class="control-label col-lg-2 app_name">代码仓库地址</label>
+                    <div class="col-lg-8">
+                        <input class="form-control valid" id="service_code_clone_url" name="service_code_clone_url" minlength="2" type="text" required="" placeholder="代码仓库地址" value="">
+                        <div id="create_git_notice" class="alert alert-danger" role="alert" style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码仓库地址不能为空</div>
+                    </div>
+                </div>
+                
+                <div class="form-group ">
+                    <label for="create_app_name" class="control-label col-lg-2 app_name">代码版本</label>
+                    <div class="col-lg-8">
+                        <input class="form-control valid" id="service_code_version" name="service_code_version" minlength="2" type="text" required="" placeholder="代码版本" value="master">
+                        <div id="create_version_notice" class="alert alert-danger" role="alert" style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码版本不能为空</div>
+                    </div>
+                </div>
+	            <div class="col-lg-offset-3 col-lg-6 " style="padding-top: 50px;padding-bottom: 20px;">
+	                <button id="first_step" type="button" class="btn btn-lg btn-info btn-block">下一步</button>
+	            </div>
+	        </form>
+	        </div>
+	    </div>
+    </section>
+</section>
+{% endblock %}
+
