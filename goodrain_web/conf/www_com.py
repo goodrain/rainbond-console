@@ -128,7 +128,8 @@ MODULES = {
     "Team_Invite" : True,
     "Multi_Region" : True,
     "Monitor_Control" : True,
-    "User_Register" : False,
+    "User_Register" : True,
     "Sms_Check" : True,
-    "Email_Invite" : True
+    "Email_Invite" : True,
+    "Package_Show" : True
 }

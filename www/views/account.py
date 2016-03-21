@@ -420,13 +420,15 @@ class Registation(BaseView, RegionOperateMixin):
             app_ty = request.COOKIES.get('app_ty')
             if app_ty is not None:
                 return self.redirect_to("/autodeploy?fr=www_app")
-
-            selected_pay_level = ""
-            pl = request.GET.get("pl", "")
-            region_levels = pl.split(":")
-            if len(region_levels) == 2:
-                selected_pay_level = region_levels[1]
-            url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
+            
+            url = '/apps/{0}'.format(tenant_name)
+            if settings.MODULES["Package_Show"]:
+                selected_pay_level = ""
+                pl = request.GET.get("pl", "")
+                region_levels = pl.split(":")
+                if len(region_levels) == 2:
+                    selected_pay_level = region_levels[1]
+                url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
             logger.debug(url)
             return self.redirect_to(url)
 
