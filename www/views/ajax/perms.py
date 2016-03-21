@@ -8,6 +8,8 @@ from www.utils.mail import send_invite_mail_withHtml
 from www.models import Users, Tenants, TenantServiceInfo, PermRelService, PermRelTenant, service_identity, tenant_identity
 from www.utils.giturlparse import parse as git_url_parse
 
+from www.tenantservice.baseservice import CodeRepositoriesService
+
 import logging
 logger = logging.getLogger('default')
 
