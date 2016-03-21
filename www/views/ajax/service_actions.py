@@ -41,7 +41,7 @@ class AppDeploy(AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
 
-        if tenantAccountService.isOwnedMoney(self.service.tenant_id, self.service.service_region):
+        if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             data["status"] = "owed"
             return JsonResponse(data, status=200)
 
@@ -106,7 +106,7 @@ class ServiceManage(AuthedView):
     def post(self, request, *args, **kwargs):
         result = {}
         
-        if tenantAccountService.isOwnedMoney(self.service.tenant_id, self.service.service_region):
+        if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
 
@@ -239,7 +239,7 @@ class ServiceUpgrade(AuthedView):
     def post(self, request, *args, **kwargs):
         result = {}
         
-        if tenantAccountService.isOwnedMoney(self.service.tenant_id, self.service.service_region):
+        if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
         
@@ -445,7 +445,7 @@ class ServiceDetail(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            if tenantAccountService.isOwnedMoney(self.service.tenant_id, self.service.service_region):
+            if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
             else:

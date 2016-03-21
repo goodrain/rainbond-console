@@ -118,12 +118,12 @@ SESSION_COOKIE_DOMAIN = '.goodrain.com'
 SESSION_COOKIE_AGE = 3600
 
 MODULES = {
-    "Owned_Fee" : False,
-    "Memory_Limit" : False,
+    "Owned_Fee" : True,
+    "Memory_Limit" : True,
     "GitLab_Project" : False,
     "GitLab_User" : False,
     "Git_Hub" : False,
-    "Git_Code_Manual":True,
+    "Git_Code_Manual":False,
     "Finance_Center" : False,
     "Team_Invite" : False,
     "Multi_Region" : False,

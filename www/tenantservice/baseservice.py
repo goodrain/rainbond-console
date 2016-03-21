@@ -365,10 +365,10 @@ class TenantAccountService(object):
     def __init__(self):
         self.MODULES = settings.MODULES
         
-    def isOwnedMoney(self, tenant_id, region_name):
+    def isOwnedMoney(self, tenant, region_name):
         if self.MODULES["Owned_Fee"]:
-            tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region_name)
-            if tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
+            tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=region_name)
+            if tenant_region.service_status == 2 and tenant.pay_type == "payed":
                 return True
         return False
 

@@ -427,7 +427,7 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
         try:
             tenant_id = tenant.tenant_id
 
-            if tenantAccountService.isOwnedMoney(tenant_id, tenant.region):
+            if tenantAccountService.isOwnedMoney(tenant, tenant.region):
                 status = "owed"
                 return status
 

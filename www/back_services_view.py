@@ -117,7 +117,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         service_id = make_uuid(tenant_id)
         result = {}
         try:
-            if tenantAccountService.isOwnedMoney(tenant_id, self.response_region):
+            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
 

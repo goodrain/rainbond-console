@@ -71,7 +71,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         service_id = make_uuid(tenant_id)
         data = {}
         try:
-            if tenantAccountService.isOwnedMoney(tenant_id, self.response_region):
+            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
 
