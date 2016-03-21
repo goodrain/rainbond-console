@@ -4,7 +4,7 @@
 <!--logo start-->
 <a href="/" class="logo">好雨<span>云平台</span></a>
 <!--logo end-->
-{% if action.Multi_Region %}
+{% if MODULES.Multi_Region %}
     {% block region_zone %}
     <div class="nav notify-row" id="top_menu">
         <div class="btn-group">
@@ -47,7 +47,7 @@
                 <span class="username">{% if user.is_authenticated %}{{ user.nick_name }}{% else %}匿名用户{% endif %}</span>
                 <b class="caret"></b>
             </a>
-            {% if actions.Finance_Center %}
+            {% if MODULES.Finance_Center %}
             <ul class="dropdown-menu">
                 <div class="log-arrow-up"></div>
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>

@@ -272,7 +272,7 @@ class TenantUsedResource(object):
 
     def __init__(self):
         self.feerule = settings.REGION_RULE
-        self.action = settings.ACTIONS
+        self.MODULES = settings.MODULES
     
     def calculate_real_used_resource(self, tenant):
         totalMemory = 0
@@ -320,7 +320,7 @@ class TenantUsedResource(object):
     def predict_next_memory(self, tenant, cur_service, newAddMemory, ischeckStatus):
         result = True
         rt_type = "memory"
-        if self.action["Memory_Limit"]:
+        if self.MODULES["Memory_Limit"]:
             result = False
             if ischeckStatus:
                 newAddMemory = newAddMemory + self.curServiceMemory(cur_service)
@@ -363,10 +363,10 @@ class TenantUsedResource(object):
 
 class TenantAccountService(object):
     def __init__(self):
-        self.action = settings.ACTIONS
+        self.MODULES = settings.MODULES
         
     def isOwnedMoney(self, tenant_id, region_name):
-        if self.action["Owned_Fee"]:
+        if self.MODULES["Owned_Fee"]:
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region_name)
             if tenant_region.service_status == 2 and self.tenant.pay_type == "payed":
                 return True
@@ -375,11 +375,11 @@ class TenantAccountService(object):
 class CodeRepositoriesService(object):
     
     def __init__(self):
-        self.action = settings.ACTIONS
+        self.MODULES = settings.MODULES
     
     def initRepositories(self, tenant, user, service, service_code_from, code_url, code_id, code_version):
         if service_code_from == "gitlab_new":
-            if self.action["GitLab_Project"]:
+            if self.MODULES["GitLab_Project"]:
                 project_id = 0
                 if user.git_user_id > 0:
                     project_id = gitClient.createProject(tenant.tenant_name + "_" + service.service_alias)
@@ -439,17 +439,17 @@ class CodeRepositoriesService(object):
         regionClient.writeToRegionBeanstalk(service.service_region, service.service_id, json.dumps(task))
         
     def deleteProject(self, service):
-        if self.action["GitLab_Project"]:
+        if self.MODULES["GitLab_Project"]:
             if service.code_from == "gitlab_new" and service.git_project_id > 0:
                 gitClient.deleteProject(service.git_project_id)
 
     def getProjectBranches(self, project_id):
-        if self.action["GitLab_Project"]:
+        if self.MODULES["GitLab_Project"]:
             return gitClient.getProjectBranches(project_id)
         return ""
     
     def createUser(self, user, email, password, username, name):
-        if self.action["GitLab_User"]:
+        if self.MODULES["GitLab_User"]:
             if user.git_user_id == 0:
                 logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
                 git_user_id = gitClient.createUser(email, password, username, name)
@@ -462,51 +462,51 @@ class CodeRepositoriesService(object):
                 monitorhook.gitUserMonitor(user, git_user_id)
     
     def modifyUser(self, user, password):
-        if self.action["GitLab_User"]:
+        if self.MODULES["GitLab_User"]:
             gitClient.modifyUser(user.git_user_id, password=raw_password)
         
     def addProjectMember(self, git_project_id, git_user_id, level):
-        if self.action["GitLab_Project"]:
+        if self.MODULES["GitLab_Project"]:
             gitClient.addProjectMember(git_project_id, git_user_id, level)
         
     def listProjectMembers(self, git_project_id):
-        if self.action["GitLab_Project"]:
+        if self.MODULES["GitLab_Project"]:
             return gitClient.listProjectMembers(project_id)
         return ""
     
     def deleteProjectMember(project_id, git_user_id):
-        if self.action["GitLab_Project"]:
+        if self.MODULES["GitLab_Project"]:
             gitClient.deleteProjectMember(project_id, user.git_user_id)
         
     def addProjectMember(self, project_id, git_user_id, gitlab_identity):
-        if self.action["GitLab_Project"]:
+        if self.MODULES["GitLab_Project"]:
             gitClient.addProjectMember(project_id, git_user_id, gitlab_identity)
     
     def editMemberIdentity(self, project_id, git_user_id, gitlab_identity):
-        if self.action["GitLab_Project"]:
+        if self.MODULES["GitLab_Project"]:
             gitClient.editMemberIdentity(project_id, git_user_id, gitlab_identity)
 
     def get_gitHub_access_token(self, code):
-        if self.action["Git_Hub"]:
+        if self.MODULES["Git_Hub"]:
             return gitHubClient.get_access_token(code)
         return ""
     
     def get_branchs(self, owner, repo, token):
-        if self.action["Git_Hub"]:
+        if self.MODULES["Git_Hub"]:
             return githubClient.get_branchs(owner, repo, token)
         return ""
     
     def getgGitHubAllRepos(self, token):
-        if self.action["Git_Hub"]:
+        if self.MODULES["Git_Hub"]:
             return gitHubClient.getAllRepos(token)
         return ""
     
     def gitHub_authorize_url(self, user):
-        if self.action["Git_Hub"]:
+        if self.MODULES["Git_Hub"]:
             return gitHubClient.authorize_url(user.pk)
         return ""
     
     def gitHub_ReposRefs(self, user, repos, token):
-        if self.action["Git_Hub"]:
+        if self.MODULES["Git_Hub"]:
             return gitHubClient.getReposRefs(user, repos, token)
         return ""
