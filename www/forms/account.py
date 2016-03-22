@@ -302,9 +302,12 @@ class RegisterForm(forms.Form):
         required=True, label='',
         validators=[is_phone]
     )
-    phone_code = forms.CharField(
-        required=True, label='',
-    )
+    
+    if settings.MODULES["Sms_Check"]:
+        phone_code = forms.CharField(
+            required=True, label='',
+        )
+        
     captcha_code = forms.CharField(
         required=True, label='',
     )
