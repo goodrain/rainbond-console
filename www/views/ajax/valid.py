@@ -2,6 +2,7 @@
 from django.http import JsonResponse
 from www.views import BaseView
 
+
 import logging
 logger = logging.getLogger('default')
 
