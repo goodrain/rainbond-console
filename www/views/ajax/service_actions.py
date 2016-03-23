@@ -317,13 +317,13 @@ class ServiceUpgrade(AuthedView):
                             regionClient.updateTenantServiceStatus(self.service.service_region,
                                                                    self.service.service_id, json.dumps(temData))
                             return JsonResponse(result, status=200)
-
+    
                         deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
                         self.service.min_cpu = upgrade_container_cpu
                         self.service.min_memory = upgrade_container_memory
                         self.service.deploy_version = deploy_version
                         self.service.save()
-
+    
                         body = {}
                         body["container_memory"] = upgrade_container_memory
                         body["deploy_version"] = deploy_version
@@ -535,10 +535,6 @@ class ServiceDetail(AuthedView):
                     result["totalMemory"] = 0
                     result["status"] = "Undeployed"
                 else:
-                    if self.service.service_region == 'ucloud-bj-1':
-                        result['status'] = 'Unknown'
-                        return JsonResponse(result)
-
                     body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
                     status = body[self.service.service_id]
                     if status == "running":
