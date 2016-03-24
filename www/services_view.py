@@ -442,7 +442,7 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
             # calculate resource
             tempService = TenantServiceInfo()
             tempService.min_memory = service.min_memory
-            tempService.service_region = self.response_region
+            tempService.service_region = tenant.region
             tempService.min_node = service.min_node
             diffMemory = service.min_node*service.min_memory
             rt_type, flag = tenantUsedResource.predict_next_memory(tenant,tempService, diffMemory, False)
