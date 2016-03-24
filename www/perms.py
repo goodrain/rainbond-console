@@ -34,6 +34,10 @@ class PermActions(object):
         ('drop_tenant', u"删除团队"), ('transfer_ownership', u"移交所有权"),
     ) + tenant_admin_actions
 
+    tenant_gray_actions = (
+        ('app_publish', u"应用发布"),
+    ) + tenant_admin_actions
+
     service_viewer_actions = (
         ('view_service', u"查看单个服务"),
     )

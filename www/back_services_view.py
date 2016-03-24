@@ -37,7 +37,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            if self.user.is_sys_admin:
+            if self.user.is_sys_admin or "app_publish" in self.user.actions:
                 cacheServiceList = ServiceInfo.objects.all()
             else:
                 cacheServiceList = ServiceInfo.objects.filter(status="published")

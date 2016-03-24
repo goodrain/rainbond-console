@@ -106,7 +106,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         }
         return form_init_data
 
-    @perm_required('sys_admin')
+    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         published_versions = AppServiceInfo.objects.filter(service_id=self.service.service_id).order_by('-create_time')
@@ -123,7 +123,7 @@ class ServicePublishView(LeftSideBarMixin, AuthedView):
         context['root_category_list'] = root_category_list
         return TemplateResponse(self.request, 'www/service/publish.html', context)
 
-    @perm_required('sys_admin')
+    @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         self.form = ServicePublishForm(request.POST)
         if not self.form.is_valid():
