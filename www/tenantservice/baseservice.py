@@ -336,7 +336,7 @@ class TenantUsedResource(object):
                 guarantee_memory = self.calculate_guarantee_resource(tenant)
                 logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
                 if tm - guarantee_memory <= 102400:
-                    ruleJson = self.feerule[cur_region]
+                    ruleJson = self.feerule[cur_service.service_region]
                     unit_money = 0
                     if tenant.pay_level == "personal":
                         unit_money = float(ruleJson['personal_money'])
