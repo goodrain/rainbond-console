@@ -319,35 +319,9 @@ class TenantUsedResource(object):
                     memory = memory + int(sqlobj["buy_memory"])
         return memory
 
-<<<<<<< HEAD
-    def predict_next_memory(self, tenant, newAddMemory, cur_region):
-        result = False
-=======
     def predict_next_memory(self, tenant, cur_service, newAddMemory, ischeckStatus):
         result = True
->>>>>>> refs/remotes/origin/dev
         rt_type = "memory"
-<<<<<<< HEAD
-        if tenant.pay_type == "free":
-            tm = self.calculate_real_used_resource(tenant) + newAddMemory
-            logger.debug(tenant.tenant_id + " used memory " + str(tm))
-            if tm <= tenant.limit_memory:
-                result = True
-        elif tenant.pay_type == "payed":
-            tm = self.calculate_real_used_resource(tenant) + newAddMemory
-            guarantee_memory = self.calculate_guarantee_resource(tenant)
-            logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
-            if tm - guarantee_memory <= 102400:
-                ruleJson = self.feerule[cur_region]
-                unit_money = 0
-                if tenant.pay_level == "personal":
-                    unit_money = float(ruleJson['personal_money'])
-                elif tenant.pay_level == "company":
-                    unit_money = float(ruleJson['company_money'])
-                total_money = unit_money * (tm * 1.0 / 1024)
-                logger.debug(tenant.tenant_id + " use memory " + str(tm) + " used money " + str(total_money))
-                if tenant.balance >= total_money:
-=======
         if self.MODULES["Memory_Limit"]:
             result = False
             if ischeckStatus:
@@ -356,7 +330,6 @@ class TenantUsedResource(object):
                 tm = self.calculate_real_used_resource(tenant) + newAddMemory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
                 if tm <= tenant.limit_memory:
->>>>>>> refs/remotes/origin/dev
                     result = True
             elif tenant.pay_type == "payed":
                 tm = self.calculate_real_used_resource(tenant) + newAddMemory
