@@ -5,19 +5,17 @@ import json
 from django.views.decorators.cache import never_cache
 from django.http import HttpResponseRedirect
 from django.http import JsonResponse
-from www.github_http import GitHubApi
-from www.gitlab_http import GitlabApi
 from www.views import AuthedView
 from www.models import Users
 from www.decorator import perm_required
 from www.db import BaseConnection
+from www.tenantservice.baseservice import CodeRepositoriesService
 
 import logging
 from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 
-gitLabClient = GitlabApi()
-gitHubClient = GitHubApi()
+codeRepositoriesService = CodeRepositoriesService()
 
 class CodeAction(AuthedView):    
     @perm_required('tenant_account')
@@ -46,11 +44,11 @@ class CodeAction(AuthedView):
             elif action == "github":
                 token = self.user.github_token
                 if token is not None:
-                    repos = gitHubClient.getAllRepos(token)
+                    repos = codeRepositoriesService.getgGitHubAllRepos(token)
                     reposList = json.loads(repos)
                     if isinstance(reposList, dict):
                         data["status"] = "unauthorized"
-                        data["url"] = gitHubClient.authorize_url(self.user.pk)
+                        data["url"] = codeRepositoriesService.gitHub_authorize_url(self.user)
                     else:                        
                         arr = []
                         for reposJson in reposList:
@@ -66,7 +64,7 @@ class CodeAction(AuthedView):
                         data["status"] = "success"
                 else:
                     data["status"] = "unauthorized"
-                    data["url"] = gitHubClient.authorize_url(self.user.pk)
+                    data["url"] = codeRepositoriesService.gitHub_authorize_url(self.user)
         except Exception as e:
             logger.exception(e)
         return JsonResponse(data, status=200)
@@ -79,7 +77,7 @@ class CodeAction(AuthedView):
             if action == "gitlab":
                 code_id = request.POST["code_id"]
                 if code_id != "undefined":
-                    branchList = gitLabClient.getProjectBranches(code_id)
+                    branchList = codeRepositoriesService.getProjectBranches(code_id)
                     logger.debug(branchList)
                     arr = []
                     if type(branchList) is str:
@@ -99,11 +97,11 @@ class CodeAction(AuthedView):
                 token = self.user.github_token
                 data["code_id"] = code_id
                 if token is not None:
-                    repos = gitHubClient.getReposRefs(user, repos, token)
+                    repos = codeRepositoriesService.gitHub_ReposRefs(user, repos, token)
                     reposList = json.loads(repos)
                     if isinstance(reposList, dict):
                         data["status"] = "unauthorized"
-                        data["url"] = gitHubClient.authorize_url(self.user.pk)
+                        data["url"] = codeRepositoriesService.gitHub_authorize_url(self.user)
                     else:
                         arr = []
                         for reposJson in reposList:
@@ -116,7 +114,7 @@ class CodeAction(AuthedView):
                         data["status"] = "success"
                 else:
                     data["status"] = "unauthorized"
-                    data["url"] = gitHubClient.authorize_url(self.user.pk)
+                    data["url"] = codeRepositoriesService.gitHub_authorize_url(self.user)
         except Exception as e:
             logger.exception(e)
         return JsonResponse(data, status=200)

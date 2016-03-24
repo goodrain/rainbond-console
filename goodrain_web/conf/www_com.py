@@ -116,3 +116,20 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 # SESSION_CACHE_ALIAS = 'session'
 SESSION_COOKIE_DOMAIN = '.goodrain.com'
 SESSION_COOKIE_AGE = 3600
+
+MODULES = {
+    "Owned_Fee" : True,
+    "Memory_Limit" : True,
+    "GitLab_Project" : True,
+    "GitLab_User" : True,
+    "Git_Hub" : True,
+    "Git_Code_Manual":False,
+    "Finance_Center" : True,
+    "Team_Invite" : True,
+    "Multi_Region" : True,
+    "Monitor_Control" : True,
+    "User_Register" : True,
+    "Sms_Check" : True,
+    "Email_Invite" : True,
+    "Package_Show" : True
+}

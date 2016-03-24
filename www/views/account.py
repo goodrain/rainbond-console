@@ -11,7 +11,6 @@ from www.models import Users, Tenants, TenantRegionInfo, TenantServiceInfo, Anon
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
-from www.gitlab_http import GitlabApi
 from www.db import BaseConnection
 import datetime
 import time
@@ -21,15 +20,17 @@ import re
 from www.region import RegionInfo
 from www.views import BaseView, RegionOperateMixin
 from www.monitorservice.monitorhook import MonitorHook
+from www.tenantservice.baseservice import CodeRepositoriesService
 
 import hashlib
 
 import logging
 logger = logging.getLogger('default')
 
-gitClient = GitlabApi()
+codeRepositoriesService = CodeRepositoriesService()
 
 monitorhook = MonitorHook()
+
 
 
 class Login(BaseView):
@@ -84,17 +85,8 @@ class Login(BaseView):
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
 
         # create git user
-        if user.git_user_id == 0:
-            logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
-            git_user_id = gitClient.createUser(
-                username, password, user.nick_name, user.nick_name)
-            if git_user_id == 0:
-                logger.info("account.login", "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
-            else:
-                user.git_user_id = git_user_id
-                user.save()
-                logger.info("account.login", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
-
+        codeRepositoriesService.createUser(user, username, password, user.nick_name, user.nick_name)
+        
         # to judge from www create servcie
         app_ty = request.COOKIES.get('app_ty')
         if app_ty is not None:
@@ -281,14 +273,8 @@ class PasswordReset(BaseView):
 
     def create_git_user(self, user, password):
         logger.info("account.passwdreset", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
-        git_user_id = gitClient.createUser(
-            user.email, password, user.nick_name, user.nick_name)
-        if git_user_id == 0:
-            logger.info("account.passwdreset", "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
-        else:
-            user.git_user_id = git_user_id
-            user.save()
-            logger.info("account.passwdreset", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
+        codeRepositoriesService.createUser(user, user.email, password, user.nick_name, user.nick_name)
+        
 
     def get(self, request, *args, **kwargs):
         self.form = PasswordResetForm()
@@ -312,7 +298,7 @@ class PasswordReset(BaseView):
             logger.info("account.passwdreset", "reset password for user {0} in my database".format(user.nick_name))
             if user.git_user_id != 0:
                 try:
-                    gitClient.modifyUser(user.git_user_id, password=raw_password)
+                    codeRepositoriesService.modifyUser(user, raw_password)
                     logger.info("account.passwdreset", "reset password for user {0} in gitlab".format(user.nick_name))
                 except Exception, e:
                     logger.error("account.passwdreset", "reset password for user {0} in gitlab failed".format(user.nick_name))
@@ -421,15 +407,7 @@ class Registation(BaseView, RegionOperateMixin):
             init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
             monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
             # create gitlab user
-            git_user_id = gitClient.createUser(
-                email, password, nick_name, nick_name)
-            user.git_user_id = git_user_id
-            user.save()
-            monitorhook.gitUserMonitor(user, git_user_id)
-            if git_user_id == 0:
-                logger.error("account.register", "create gitlab user for register user {0} failed".format(nick_name))
-            else:
-                logger.info("account.register", "create gitlab user for register user {0}, got id {1}".format(nick_name, git_user_id))
+            codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
 
             # wei xin user need to add 100
             if rf == "wx":
@@ -442,13 +420,15 @@ class Registation(BaseView, RegionOperateMixin):
             app_ty = request.COOKIES.get('app_ty')
             if app_ty is not None:
                 return self.redirect_to("/autodeploy?fr=www_app")
-
-            selected_pay_level = ""
-            pl = request.GET.get("pl", "")
-            region_levels = pl.split(":")
-            if len(region_levels) == 2:
-                selected_pay_level = region_levels[1]
-            url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
+            
+            url = '/apps/{0}'.format(tenant_name)
+            if settings.MODULES["Package_Show"]:
+                selected_pay_level = ""
+                pl = request.GET.get("pl", "")
+                region_levels = pl.split(":")
+                if len(region_levels) == 2:
+                    selected_pay_level = region_levels[1]
+                url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
             logger.debug(url)
             return self.redirect_to(url)
 
@@ -512,13 +492,10 @@ class InviteRegistation(BaseView):
                 level = 30
             elif identity == "admin":
                 level = 40
-            gitClient.addProjectMember(git_project_id, user.git_user_id, level)
+            codeRepositoriesService.addProjectMember(git_project_id, user.git_user_id, level)
 
     def add_git_user(self, user, password):
-        git_user_id = gitClient.createUser(
-            user.email, password, user.nick_name, user.nick_name)
-        user.git_user_id = git_user_id
-        user.save()
+        codeRepositoriesService.createUser(user, user.email, password, user.nick_name, user.nick_name)
 
     def get(self, request, *args, **kwargs):
         encoded_data = str(request.GET.get('key'))

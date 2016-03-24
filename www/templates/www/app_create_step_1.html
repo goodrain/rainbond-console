@@ -30,12 +30,17 @@
 		                <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
 		                <input type="hidden" id="service_code_version" name="service_code_version" value="">
 		                <input type="hidden" id="service_code_id" name="service_code_id" value="">
-
-	                    <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" checked> 新建仓库</label>
-	                    <label style="font-size:14px" class="checkbox-inline ">
+                        {% if MODULES.GitLab_Project %}
+                            <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" checked> 新建仓库</label>
+                            <label style="font-size:14px" class="checkbox-inline ">
+                        {% endif %}
+	                    
 	                    <input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2"> 使用已有仓库</label>
 	                    <label style="font-size:14px" class="checkbox-inline select_git">
-	                    <input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3"> 连接Github</label>
+	                    
+	                    {% if MODULES.Git_Hub %}
+	                       <input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3"> 连接Github</label>
+	                    {% endif %}
 	                </div>
 	            </div>
 	            <h4 id="wait_loading" class="col-lg-offset-2 col-lg-10" style="padding-bottom: 30px; display: none;">仓库连接中，请稍候......</h4>

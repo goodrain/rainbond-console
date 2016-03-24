@@ -4,19 +4,21 @@
 <!--logo start-->
 <a href="/" class="logo">好雨<span>云平台</span></a>
 <!--logo end-->
-{% block region_zone %}
-<div class="nav notify-row" id="top_menu">
-    <div class="btn-group">
-        <button class="btn btn-white" type="button">{{current_region.label}}</button>
-        <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
-        <ul id="region_select" role="menu" class="dropdown-menu">
-            {% for region in arrival_regions %}
-            <li><a href="/apps/{{tenantName}}/?region={{region.name}}">{{region.label}}</a></li>
-            {% endfor %}
-        </ul>
+{% if MODULES.Multi_Region %}
+    {% block region_zone %}
+    <div class="nav notify-row" id="top_menu">
+        <div class="btn-group">
+            <button class="btn btn-white" type="button">{{current_region.label}}</button>
+            <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
+            <ul id="region_select" role="menu" class="dropdown-menu">
+                {% for region in arrival_regions %}
+                <li><a href="/apps/{{tenantName}}/?region={{region.name}}">{{region.label}}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
     </div>
-</div>
-{% endblock %}
+    {% endblock %}
+{% endif %}
 <div class="top-nav ">
     <!--search & user info start-->
     <ul class="nav pull-right top-menu">
@@ -45,6 +47,7 @@
                 <span class="username">{% if user.is_authenticated %}{{ user.nick_name }}{% else %}匿名用户{% endif %}</span>
                 <b class="caret"></b>
             </a>
+            {% if MODULES.Finance_Center %}
             <ul class="dropdown-menu">
                 <div class="log-arrow-up"></div>
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
@@ -53,6 +56,7 @@
                 <li class="divider"></li>
                 <li><a href="/logout"><i class="fa fa-sign-out"></i> 退出</a></li>
             </ul>
+            {% endif %}
         </li>
         <!-- user login dropdown end -->
     </ul>

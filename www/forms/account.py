@@ -15,6 +15,7 @@ import widgets
 import fields
 from www.region import RegionInfo
 import time
+from django.conf import settings
 
 import logging
 logger = logging.getLogger('default')
@@ -121,16 +122,24 @@ class UserLoginForm(forms.Form):
         super(UserLoginForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_tag = False
-        self.helper.layout = Div(
-            Field('email', css_class="form-control", placeholder=''),
-            Field('password', css_class="form-control", placeholder=''),
-            FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
-            HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
-            HTML(u'''<div class="forgetpass" style="float: right;"><a class="" href="/account/begin_password_reset">忘记密码?</a></div>'''),
-            css_class='login-wrap',
-            style="background: #FFFFFF;",
-        )
-
+        if settings.MODULES["User_Register"]:
+            self.helper.layout = Div(
+                Field('email', css_class="form-control", placeholder=''),
+                Field('password', css_class="form-control", placeholder=''),
+                FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
+                HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
+                HTML(u'''<div class="forgetpass" style="float: right;"><a class="" href="/account/begin_password_reset">忘记密码?</a></div>'''),
+                css_class='login-wrap',
+                style="background: #FFFFFF;",
+            )
+        else:
+            self.helper.layout = Div(
+                Field('email', css_class="form-control", placeholder=''),
+                Field('password', css_class="form-control", placeholder=''),
+                FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
+                css_class='login-wrap',
+                style="background: #FFFFFF;",
+            )
         self.helper.help_text_inline = True
         self.helper.error_text_inline = True
         self.helper.form_id = 'form-user-login'
@@ -293,9 +302,12 @@ class RegisterForm(forms.Form):
         required=True, label='',
         validators=[is_phone]
     )
-    phone_code = forms.CharField(
-        required=True, label='',
-    )
+    
+    if settings.MODULES["Sms_Check"]:
+        phone_code = forms.CharField(
+            required=True, label='',
+        )
+        
     captcha_code = forms.CharField(
         required=True, label='',
     )
@@ -376,53 +388,47 @@ class RegisterForm(forms.Form):
             self.fields['machine_region'].widget.attrs['readonly'] = True
         if selected_region is not None and selected_region != "":
             self.fields['machine_region'].initial = selected_region
-
-        self.helper.layout = Layout(
-            Div(
-                Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
-                Field('email', css_class="form-control", placeholder=text_email),
-                HTML("<hr/>"),
-                # Field('tenant', css_class="form-control teamdomain", placeholder='团队域名'),
-                AppendedText('tenant', '.goodrain.net', placeholder=text_tenant, css_class='teamdomain'),
-
-                AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
-                # HTML('<input type="text" name="tenant" id="tenant" value="" class="teamdomain" placeholder="团队域名"> .goodrain.net'),
-                Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
-                Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
-
-                AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
-                             css_class='input-xlarge', placeholder='验证码'),
-
-                Field('phone', css_class="form-control", placeholder=text_phone),
-                AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>',
-                             css_class='input-xlarge', placeholder='手机验证码'),
-
-                # PrependedText('prepended_text','captcha'),
-
-                # Field('phone_code', 'Serial #', '<button class=\"btn btn-primary\">获取验证码</button>', css_class="form-control", placeholder='验证码'),
-                # StrictButton('Submit', type='submit', css_class='btn-primary')
-                # FieldWithButtons('phone_code', StrictButton('获取验证码', type='submit', css_class='form-control')),
-                # Field('checkboxes', placeholder='机房'),
-
-                # Field('appended_text'),
-                # PrependedText('appended_text', '我已阅读并同意<a href="" target="_blank">好雨云平台使用协议</a>',active=True),
-
-                # InlineCheckboxes('checkbox_inline'),
-                # Field('checkboxes', css_class="form-control"),
-                # AppendedText('checkboxes'),
-                # Field('checkboxes', style="background: #FAFAFA; padding: 10px;"),
-                # HTML('<a href="" target="_blank">好雨云平台使用协议</a>'),
-                # help_text = '<a href="" target="_blank">好雨云平台使用协议</a>',
-
-                FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
-
-                HTML("<hr/>"),
-
-                HTML(u'''<div style="font-size: 14px">已经有帐号，请<a class="" href="/login">登录</a></div>'''),
-                css_class="login-wrap"
+            
+        if settings.MODULES["Sms_Check"]:
+            self.helper.layout = Layout(
+                Div(
+                    Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                    Field('email', css_class="form-control", placeholder=text_email),
+                    HTML("<hr/>"),
+                    AppendedText('tenant', '.goodrain.net', placeholder=text_tenant, css_class='teamdomain'),
+                    AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
+                    Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
+                    Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                    AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
+                                 css_class='input-xlarge', placeholder='验证码'),
+                    Field('phone', css_class="form-control", placeholder=text_phone),
+                    AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>',
+                                 css_class='input-xlarge', placeholder='手机验证码'),
+                    FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
+                    HTML("<hr/>"),
+                    HTML(u'''<div style="font-size: 14px">已经有帐号，请<a class="" href="/login">登录</a></div>'''),
+                    css_class="login-wrap"
+                )
             )
-
-        )
+        else:
+            self.helper.layout = Layout(
+                Div(
+                    Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                    Field('email', css_class="form-control", placeholder=text_email),
+                    HTML("<hr/>"),
+                    AppendedText('tenant', '.goodrain.net', placeholder=text_tenant, css_class='teamdomain'),
+                    AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
+                    Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
+                    Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                    AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
+                                 css_class='input-xlarge', placeholder='验证码'),
+                    Field('phone', css_class="form-control", placeholder=text_phone),
+                    FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
+                    HTML("<hr/>"),
+                    HTML(u'''<div style="font-size: 14px">已经有帐号，请<a class="" href="/login">登录</a></div>'''),
+                    css_class="login-wrap"
+                )
+            )
         self.helper.form_id = 'form-normal-reg'
         self.helper.form_class = 'form-horizontal'
 
@@ -495,33 +501,34 @@ class RegisterForm(forms.Form):
             )
 
         if phone is not None and phone != "":
-            phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
-            if len(phoneCodes) > 0:
-                phoneCode = phoneCodes[0]
-                last = int(phoneCode.create_time.strftime("%s"))
-                now = int(time.time())
-                if now - last > 1800:
-                    logger.info('form_valid.register', phone + "too long time")
+            if settings.MODULES["Sms_Check"]:
+                phoneCodes = PhoneCode.objects.filter(phone=phone).order_by('-ID')[:1]
+                if len(phoneCodes) > 0:
+                    phoneCode = phoneCodes[0]
+                    last = int(phoneCode.create_time.strftime("%s"))
+                    now = int(time.time())
+                    if now - last > 1800:
+                        logger.info('form_valid.register', phone + "too long time")
+                        raise forms.ValidationError(
+                            self.error_messages['phone_code_error'],
+                            code='phone_code_error'
+                        )
+                    if phoneCode.code != phone_code:
+                        logger.info('form_valid.register', phone + " different")
+                        raise forms.ValidationError(
+                            self.error_messages['phone_code_error'],
+                            code='phone_code_error'
+                        )
+                else:
                     raise forms.ValidationError(
                         self.error_messages['phone_code_error'],
                         code='phone_code_error'
                     )
-                if phoneCode.code != phone_code:
-                    logger.info('form_valid.register', phone + " different")
-                    raise forms.ValidationError(
-                        self.error_messages['phone_code_error'],
-                        code='phone_code_error'
-                    )
-            else:
-                raise forms.ValidationError(
-                    self.error_messages['phone_code_error'],
-                    code='phone_code_error'
-                )
         else:
             logger.info('form_valid.register', phone + " is None")
             raise forms.ValidationError(
-                self.error_messages['phone_code_error'],
-                code='phone_code_error'
+                self.error_messages['phone_empty'],
+                code='phone_empty'
             )
 
         if real_captcha_code.lower() != captcha_code.lower():

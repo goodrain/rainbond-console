@@ -26,14 +26,11 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/extra/?$', ServicePublishExtraView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra/?$', ServiceDeployExtraView.as_view()),
 
-    # url(r'^(?P<serviceAlias>[\w\-]+)/app-deploy/$', login_required(ServiceAppDeploy.as_view())),
-
     url(r'^/service/$', login_required(ServiceMarket.as_view())),
 
     url(r'^/service-deploy/$', login_required(ServiceMarketDeploy.as_view())),
 
     url(r'^/team/$', TeamInfo.as_view()),
-    url(r'^/gitlab/$', login_required(GitLabManager.as_view())),
 
     url(r'^/(?P<serviceAlias>[\w\-]+)/detail/?$', login_required(TenantService.as_view())),
 

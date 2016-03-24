@@ -37,7 +37,8 @@
         		<i class="fa fa-group"></i>
                 <span>团队</span>
             </a>
-        </li>        
+        </li>
+        {% if MODULES.Finance_Center %}        
         <li class="sub-menu">
         	<a href="javascript:;" class="{{myFinanceStatus}}">
             <i class="fa fa-jpy"></i>
@@ -48,6 +49,7 @@
                 <li class="{{myFinanceAccount}}"><a href="/apps/{{tenantName}}/consume/">消费明细</a></li>                                
             </ul>
         </li>
+        {% endif %}
     </ul>
     <!-- sidebar menu end-->
 </div>
