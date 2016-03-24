@@ -21,7 +21,7 @@ class BaseTenantService(object):
             services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
         else:
             my_tenant_identity = PermRelTenant.objects.get(tenant_id=tenant_pk, user_id=user_pk).identity
-            if my_tenant_identity in ('admin', 'developer', 'viewer'):
+            if my_tenant_identity in ('admin', 'developer', 'viewer', 'gray'):
                 services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
             else:
                 dsn = BaseConnection()
@@ -283,14 +283,14 @@ class BaseTenantService(object):
         task = {}
         task["dep_service_id"] = dependS.service_id
         task["tenant_id"] = tenant_id
-        task["mnt_name"] = "/mnt/"+dependS.service_alias
+        task["mnt_name"] = "/mnt/" + dependS.service_alias
         task["mnt_dir"] = dependS.host_path
         regionClient.createServiceMnt(region, service_id, json.dumps(task))
         tsr = TenantServiceMountRelation()
         tsr.tenant_id = tenant_id
         tsr.service_id = service_id
         tsr.dep_service_id = dependS.service_id
-        tsr.mnt_name = "/mnt/"+dependS.service_alias
+        tsr.mnt_name = "/mnt/" + dependS.service_alias
         tsr.mnt_dir = dependS.host_path
         tsr.dep_order = 0
         tsr.save()
@@ -304,6 +304,7 @@ class BaseTenantService(object):
         task["mnt_dir"] = "v"
         regionClient.cancelServiceMnt(region, service_id, json.dumps(task))
         TenantServiceMountRelation.objects.get(service_id=service_id, dep_service_id=dependS.service_id).delete()
+
 
 class TenantUsedResource(object):
 
@@ -360,13 +361,13 @@ class TenantUsedResource(object):
         if tenant.pay_type == "company":
             cur_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             dsn = BaseConnection()
-            query_sql = "select region_name,sum(buy_memory) as buy_memory,sum(buy_disk) as buy_disk, sum(buy_net) as buy_net  from tenant_region_pay_model where tenant_id='" + tenant.tenant_id + "' and buy_end_time <='" + cur_time + "' group by region_name"
+            query_sql = "select region_name,sum(buy_memory) as buy_memory,sum(buy_disk) as buy_disk, sum(buy_net) as buy_net  from tenant_region_pay_model where tenant_id='" + \
+                tenant.tenant_id + "' and buy_end_time <='" + cur_time + "' group by region_name"
             sqlobjs = dsn.query(query_sql)
             if sqlobjs is not None and len(sqlobjs) > 0:
                 for sqlobj in sqlobjs:
                     memory = memory + int(sqlobj["buy_memory"])
         return memory
-
 
     def predict_next_memory(self, tenant, newAddMemory, cur_region):
         result = False
@@ -379,7 +380,7 @@ class TenantUsedResource(object):
         elif tenant.pay_type == "payed":
             tm = self.calculate_real_used_resource(tenant) + newAddMemory
             guarantee_memory = self.calculate_guarantee_resource(tenant)
-            logger.debug(tenant.tenant_id + " used memory:" + str(tm)+" guarantee_memory:"+str(guarantee_memory))
+            logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
             if tm - guarantee_memory <= 102400:
                 ruleJson = self.feerule[cur_region]
                 unit_money = 0
