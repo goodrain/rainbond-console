@@ -406,7 +406,7 @@ class CodeRepositoriesService(object):
             ts.save()
             self.codeCheck(ts)
         elif service_code_from == "github":
-            ts = TenantServiceInfo.objects.get(service_id=service_id)
+            ts = TenantServiceInfo.objects.get(service_id=service.service_id)
             ts.git_project_id = code_id
             ts.git_url = code_url
             ts.code_from = service_code_from
