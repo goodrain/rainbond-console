@@ -183,7 +183,7 @@ class UserLoginForm(forms.Form):
 class PasswordResetBeginForm(forms.Form):
     account = forms.CharField(
         required=True, max_length=32,
-        label=u"邮箱或手机号",
+        label=u"注册邮箱",
         validators=[is_account],
     )
 
