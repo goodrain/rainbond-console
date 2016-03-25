@@ -74,7 +74,7 @@ class GitHubApi(BaseHttpClient):
 
     def getReposRefs(self, user, repos, token):
         try:
-            url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token
+            url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token+"&per_page=200"
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'}
             response, content = http.request(url, 'GET', headers=headers)
