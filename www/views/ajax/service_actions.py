@@ -192,6 +192,7 @@ class ServiceManage(AuthedView):
                 TenantServiceRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
+                TenantServicesPort.objects.filter(service_id=self.service.service_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
