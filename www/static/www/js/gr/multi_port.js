@@ -1,5 +1,4 @@
 (function ($) {
-    //var new_tr = '<tr class="port-detail"><td class="details" colspan="7"><table><thead><tr><th>说明</th><th>变量名</th><th>变量值</th><th></th></tr></thead><tbody><tr><input type="hidden" name="d817c02e952344199e04e5c7ec6fa620_serviceNoChange" value="6521" /><td>连接地址</td><td>MYSQL_HOST</td><td>127.0.0.1</td><td></td></tr><tr><input type="hidden" name="d817c02e952344199e04e5c7ec6fa620_serviceNoChange" value="6522" /><td>端口</td><td>MYSQL_PORT</td><td>3309</td><td></td></tr><tr><td>用户名</td><td>MYSQL_USER</td><td>admin</td><td></td></tr><tr><td>密码</td><td>MYSQL_PASSWORD</td><td>d817c02e</td><td></td></tr></tbody></table></td><td class="details" colspan="5"><table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;"><tbody><tr><td>访问地址</td><td>op_mysql.goodrain.ali-sh-s1.goodrain.net</td></tr><tr><td>端口</td><td>12345</td></tr></tbody></table></td></tr>';
       //设定端口对内服务和对外服务的开关
       $('.switch-box').bootstrapSwitch();
       $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {

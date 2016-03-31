@@ -179,7 +179,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 service_manager['deployed'] = True
                 manager = has_managers[0]
                 service_manager[
-                    'url'] = 'http://{0}.{1}.{2}.goodrain.net{3}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, http_port_str)
+                    'url'] = 'http://{0}.{1}.{2}{3}{4}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, http_port_str, settings.WILD_DOMAIN)
             else:
                 service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin'.format(self.tenant.tenant_name)
         return service_manager
@@ -227,12 +227,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["tenant"] = self.tenant
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
+            context["wild_domain"] = settings.WILD_DOMAIN
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
 
             if fr == "deployed":
-                http_port_str = '' if self.response_region == 'aws-jp-1' else ':10080'
-                context['http_port_str'] = http_port_str
+                context['http_port_str'] = ":"+settings.WILD_PORTS[self.response_region]
                 if self.service.category == 'store':
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager

@@ -51,7 +51,6 @@ for k in dir(conf_mod):
 SECRET_KEY = 'hd_279hu4@3^bq&8w5hm_l$+xrip$_r8vh5t%ru(q8#!rauoj1'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io']
 
 AUTHENTICATION_BACKENDS = ('www.auth.backends.ModelBackend', 'www.auth.backends.PartnerModelBackend', 'django.contrib.auth.backends.ModelBackend')
 
@@ -127,13 +126,6 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-EMAIL_HOST = 'smtp.ym.163.com'
-EMAIL_PORT = 465
-EMAIL_HOST_USER = 'no-reply@goodrain.com'
-EMAIL_HOST_PASSWORD = 'Thaechee3moo'
-EMAIL_USE_SSL = True
-
-DISCOURSE_SECRET_KEY = 'c2GZHIg8pcF2Pg5M'
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 REST_FRAMEWORK = {

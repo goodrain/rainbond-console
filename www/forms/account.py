@@ -395,7 +395,8 @@ class RegisterForm(forms.Form):
                     Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                     Field('email', css_class="form-control", placeholder=text_email),
                     HTML("<hr/>"),
-                    AppendedText('tenant', '.goodrain.net', placeholder=text_tenant, css_class='teamdomain'),
+                    
+                    AppendedText('tenant', settings.WILD_DOMAIN, placeholder=text_tenant, css_class='teamdomain'),
                     AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
                     Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                     Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
@@ -416,7 +417,7 @@ class RegisterForm(forms.Form):
                     Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                     Field('email', css_class="form-control", placeholder=text_email),
                     HTML("<hr/>"),
-                    AppendedText('tenant', '.goodrain.net', placeholder=text_tenant, css_class='teamdomain'),
+                    AppendedText('tenant', settings.WILD_DOMAIN, placeholder=text_tenant, css_class='teamdomain'),
                     AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
                     Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                     Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),

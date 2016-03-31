@@ -860,13 +860,13 @@ class ServicePort(AuthedView):
                 cur_region = self.service.service_region
                 cur_region = cur_region.replace("-1", "")
                 data["outer_service"] = {
-                    "domain": "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region),
+                    "domain": "{0}.{1}.{2}-s1{3}".format(self.service.service_alias, self.tenant.tenant_name, cur_region, settings.WILD_DOMAIN),
                     "port": body["port"],
                 }
             elif deal_port.protocol == 'http':
                 data["outer_service"] = {
-                    "domain": "{0}.{1}.{2}.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, self.service.service_region),
-                    "port": 80 if self.service.service_region == 'aws-jp-1' else 10080
+                    "domain": "{0}.{1}.{2}{3}".format(self.service.service_alias, self.tenant.tenant_name, self.service.service_region, settings.WILD_DOMAIN),
+                    "port": setting.WILD_PORTS[self.service.service_region]
                 }
 
         return JsonResponse(data, status=200)

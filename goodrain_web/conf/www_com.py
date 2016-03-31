@@ -8,6 +8,27 @@ ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
 DEFAULT_HANDLERS = ['zmq_handler']
 
+EMAIL_HOST = 'smtp.ym.163.com'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = 'no-reply@goodrain.com'
+EMAIL_HOST_PASSWORD = 'Thaechee3moo'
+EMAIL_USE_SSL = True
+
+DISCOURSE_SECRET_KEY = 'c2GZHIg8pcF2Pg5M'
+
+ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io']
+
+REGION_TOKEN = "Token 5ca196801173be06c7e6ce41d5f7b3b8071e680a"
+
+WILD_DOMAIN = ".goodrain.net"
+
+WILD_PORTS= {
+    "ali-sh":"10080",
+    "aws-bj-1":"10080",
+    "aws-jp-1":"80",
+    "ucloud-bj-1":"10080"
+}
+
 DATABASES = {
     # 'default': {
     #    'ENGINE': 'django.db.backends.sqlite3',
@@ -133,3 +154,6 @@ MODULES = {
     "Email_Invite" : True,
     "Package_Show" : True
 }
+
+
+
