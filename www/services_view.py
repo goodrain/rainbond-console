@@ -232,7 +232,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["hasHttpServices"] = True
 
             if fr == "deployed":
-                context['http_port_str'] = ":"+settings.WILD_PORTS[self.response_region]
+                http_port_str = settings.WILD_PORTS[self.response_region]
+                context['http_port_str'] = ":"+http_port_str
                 if self.service.category == 'store':
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager
