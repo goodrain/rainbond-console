@@ -22,6 +22,10 @@ REGION_TOKEN = "Token 5ca196801173be06c7e6ce41d5f7b3b8071e680a"
 
 WILD_DOMAIN = ".goodrain.net"
 
+STREAM_DOMAIN = False
+
+STREAM_DOMAIN_URL = ""
+
 WILD_DOMAINS = {
     "ali-sh":".ali-sh.goodrain.net",
     "aws-bj-1":".ali-sh.goodrain.net",

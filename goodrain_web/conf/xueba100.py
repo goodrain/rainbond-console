@@ -21,6 +21,10 @@ REGION_TOKEN = ""
 
 WILD_DOMAIN = ".docker.xueba100.net"
 
+STREAM_DOMAIN = True
+
+STREAM_DOMAIN_URL = "nat.xueba100.net"
+
 WILD_DOMAINS = {
     "xueba100":".docker.xueba100.net"
 }

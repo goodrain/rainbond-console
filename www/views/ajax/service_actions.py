@@ -859,13 +859,18 @@ class ServicePort(AuthedView):
                 body = regionClient.findMappingPort(self.service.service_region, self.service.service_id)
                 cur_region = self.service.service_region
                 cur_region = cur_region.replace("-1", "")
+                
+                domain = "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region)
+                if settings.STREAM_DOMAIN:
+                    domain = settings.STREAM_DOMAIN_URL
+                    
                 data["outer_service"] = {
-                    "domain": "{0}.{1}.{2}".format(self.service.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[cur_region]),
+                    "domain": domain,
                     "port": body["port"],
                 }
             elif deal_port.protocol == 'http':
                 data["outer_service"] = {
-                    "domain": "{0}.{1}.{2}".format(self.service.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[cur_region]),
+                    "domain": "{0}.{1}{2}".format(self.service.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[cur_region]),
                     "port": setting.WILD_PORTS[self.service.service_region]
                 }
 
