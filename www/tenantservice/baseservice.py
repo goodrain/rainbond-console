@@ -424,7 +424,7 @@ class CodeRepositoriesService(object):
         data["git_url"] = "--branch " + service.code_version + " --depth 1 " + service.git_url
         
         parsed_git_url = git_url_parse(service.git_url)
-        if parsed_git_url.host == "code.goodrain.com":
+        if parsed_git_url.host == "code.goodrain.com" and not settings.MODULES["Git_Code_Manual"]:
             gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
         elif parsed_git_url.host == 'github.com':
             createUser = Users.objects.get(user_id=service.creater)
@@ -440,6 +440,16 @@ class CodeRepositoriesService(object):
         logger.debug(json.dumps(task))
         regionClient.writeToRegionBeanstalk(service.service_region, service.service_id, json.dumps(task))
         
+    def showGitUrl(self, service):
+        httpGitUrl = service.git_url
+        if settings.MODULES["Git_Code_Manual"]:
+                httpGitUrl=service.git_url
+        else:
+            if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
+                cur_git_url = service.git_url.split("/")
+                httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+        return httpGitUrl
+    
     def deleteProject(self, service):
         if self.MODULES["GitLab_Project"]:
             if service.code_from == "gitlab_new" and service.git_project_id > 0:

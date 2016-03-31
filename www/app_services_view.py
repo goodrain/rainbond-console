@@ -259,14 +259,8 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
             context["myAppStatus"] = "active"
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
-
-            httpGitUrl = ""
-            if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
-                cur_git_url = self.service.git_url.split("/")
-                httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
-            else:
-                httpGitUrl = self.service.git_url
-            context["httpGitUrl"] = httpGitUrl
+            
+            context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
 
             tenantServiceRelations = TenantServiceRelation.objects.filter(
                 tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)

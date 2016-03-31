@@ -304,16 +304,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["memoryList"] = self.memory_choices()
                 if self.service.category == "application" or self.service.category == "manager":
                     # service git repository
-                    httpGitUrl = ""
-                    if self.service.code_from == "gitlab_new" or self.service.code_from == "gitlab_exit":
-                        cur_git_url = self.service.git_url.split("/")
-                        httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
-                    elif self.service.code_from == "gitlab_pub":
-                        cur_git_url = self.service.git_url.split("/")
-                        httpGitUrl = "http://code.goodrain.com/demo/" + cur_git_url[1]
-                    else:
-                        httpGitUrl = self.service.git_url
-                    context["httpGitUrl"] = httpGitUrl
+                    context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
                     # service domain
                     try:
                         domain = ServiceDomain.objects.get(service_id=self.service.service_id)
