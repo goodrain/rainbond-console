@@ -36,6 +36,16 @@ WILD_PORTS= {
     "ucloud-bj-1":"10080"
 }
 
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    # 'DEFAULT_PERMISSION_CLASSES': (),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    'PAGE_SIZE': 10
+}
+
 DATABASES = {
     # 'default': {
     #    'ENGINE': 'django.db.backends.sqlite3',
