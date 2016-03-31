@@ -430,7 +430,7 @@ class CodeRepositoriesService(object):
             createUser = Users.objects.get(user_id=service.creater)
             gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.github_token)
         else:
-            gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https
+            gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
         data["git_url"] = gitUrl
 
         task = {}
