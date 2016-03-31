@@ -21,6 +21,10 @@ REGION_TOKEN = ""
 
 WILD_DOMAIN = ".docker.xueba100.net"
 
+WILD_DOMAINS = {
+    "xueba100":".docker.xueba100.net"
+}
+
 WILD_PORTS= {
     "xueba100":"80"
 }

@@ -860,12 +860,12 @@ class ServicePort(AuthedView):
                 cur_region = self.service.service_region
                 cur_region = cur_region.replace("-1", "")
                 data["outer_service"] = {
-                    "domain": "{0}.{1}.{2}-s1{3}".format(self.service.service_alias, self.tenant.tenant_name, cur_region, settings.WILD_DOMAIN),
+                    "domain": "{0}.{1}.{2}".format(self.service.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[cur_region]),
                     "port": body["port"],
                 }
             elif deal_port.protocol == 'http':
                 data["outer_service"] = {
-                    "domain": "{0}.{1}.{2}{3}".format(self.service.service_alias, self.tenant.tenant_name, self.service.service_region, settings.WILD_DOMAIN),
+                    "domain": "{0}.{1}.{2}".format(self.service.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[cur_region]),
                     "port": setting.WILD_PORTS[self.service.service_region]
                 }
 

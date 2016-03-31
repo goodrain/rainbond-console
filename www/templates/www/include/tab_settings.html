@@ -134,7 +134,7 @@
                   <tbody>
                   <tr>
                     <td><input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com"></td>
-                    <td><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{region_name}}{{wild_domain}}{{http_port_str}}" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}.{{region_name}}{{wild_domain}}</a></td>
+                    <td><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}</a></td>
                     <td>未验证</td>
                     {% if 'manage_service' in user.actions %}
                     <td class="text-center">

@@ -22,6 +22,13 @@ REGION_TOKEN = "Token 5ca196801173be06c7e6ce41d5f7b3b8071e680a"
 
 WILD_DOMAIN = ".goodrain.net"
 
+WILD_DOMAINS = {
+    "ali-sh":".ali-sh.goodrain.net",
+    "aws-bj-1":".ali-sh.goodrain.net",
+    "aws-jp-1":".ali-sh.goodrain.net",
+    "ucloud-bj-1":".ali-sh.goodrain.net"
+}
+
 WILD_PORTS= {
     "ali-sh":"10080",
     "aws-bj-1":"10080",

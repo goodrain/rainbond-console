@@ -227,7 +227,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["tenant"] = self.tenant
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
-            context["wild_domain"] = settings.WILD_DOMAIN
+            context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
 
