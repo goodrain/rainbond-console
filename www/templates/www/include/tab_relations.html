@@ -111,7 +111,7 @@
                 </thead>
                 <tbody>
                 {% for tenantSer in tenantServiceList %}
-                   {% if tenantSer.category == "application" and tenantSer.service_alias != tenantServiceInfo.service_alias %}
+                   {% if tenantSer.service_alias != tenantServiceInfo.service_alias %}
                     <tr>
                         <td>{{tenantSer.service_alias}}</td>
                         <td>/mnt/{{tenantSer.service_alias}}</td>
