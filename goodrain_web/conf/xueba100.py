@@ -120,6 +120,5 @@ MODULES = {
     "Sms_Check" : False,
     "Email_Invite" : False,
     "Package_Show" : False,
-    "RegionToken" : False,
-    "RegionToken" : True
+    "RegionToken" : False
 }

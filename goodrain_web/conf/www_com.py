@@ -173,7 +173,8 @@ MODULES = {
     "User_Register" : True,
     "Sms_Check" : True,
     "Email_Invite" : True,
-    "Package_Show" : True
+    "Package_Show" : True,
+    "RegionToken" : True
 }
 
 
