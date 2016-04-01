@@ -28,9 +28,9 @@ STREAM_DOMAIN_URL = ""
 
 WILD_DOMAINS = {
     "ali-sh":".ali-sh.goodrain.net",
-    "aws-bj-1":".ali-sh.goodrain.net",
-    "aws-jp-1":".ali-sh.goodrain.net",
-    "ucloud-bj-1":".ali-sh.goodrain.net"
+    "aws-bj-1":".aws-bj-1.goodrain.net",
+    "aws-jp-1":".aws-jp-1.goodrain.net",
+    "ucloud-bj-1":".ucloud-bj-1.goodrain.net"
 }
 
 WILD_PORTS= {
