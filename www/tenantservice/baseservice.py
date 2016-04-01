@@ -475,7 +475,7 @@ class CodeRepositoriesService(object):
     
     def modifyUser(self, user, password):
         if self.MODULES["GitLab_User"]:
-            gitClient.modifyUser(user.git_user_id, password=raw_password)
+            gitClient.modifyUser(user.git_user_id, password=password)
         
     def addProjectMember(self, git_project_id, git_user_id, level):
         if self.MODULES["GitLab_Project"]:
