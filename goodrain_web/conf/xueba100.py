@@ -7,6 +7,8 @@ ZMQ_LOG_ADDRESS = 'tcp://gr-docker-scheduler-001:9341'
 
 DEFAULT_HANDLERS = ['zmq_handler']
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
 EMAIL_HOST = 'xxxx.xxx.xxx'
 EMAIL_PORT = 465
 EMAIL_HOST_USER = 'xxx@xxx.com'

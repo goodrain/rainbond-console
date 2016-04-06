@@ -8,6 +8,8 @@ ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
 DEFAULT_HANDLERS = ['zmq_handler']
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
 EMAIL_HOST = 'smtp.ym.163.com'
 EMAIL_PORT = 465
 EMAIL_HOST_USER = 'no-reply@goodrain.com'

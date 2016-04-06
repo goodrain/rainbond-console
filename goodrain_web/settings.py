@@ -124,8 +124,6 @@ STATIC_ROOT = 'static/'
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 LOGGING = {
