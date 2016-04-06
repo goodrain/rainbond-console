@@ -43,6 +43,8 @@ for k in dir(conf_mod):
             exec "{0} = {1}".format(k, v)
         elif isinstance(v, bool):
             exec "{0} = {1}".format(k, v)
+        elif isinstance(v, int):
+            exec "{0} = {1}".format(k, v)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -125,14 +127,6 @@ STATIC_ROOT = 'static/'
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-EMAIL_HOST = 'smtp.ym.163.com'
-EMAIL_PORT = 465
-EMAIL_HOST_USER = 'no-reply@goodrain.com'
-EMAIL_HOST_PASSWORD = 'Thaechee3moo'
-EMAIL_USE_SSL = True
 
 LOGGING = {
     'version': 1,
