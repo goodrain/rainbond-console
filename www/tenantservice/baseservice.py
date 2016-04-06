@@ -505,7 +505,7 @@ class CodeRepositoriesService(object):
     
     def get_branchs(self, owner, repo, token):
         if self.MODULES["Git_Hub"]:
-            return githubClient.get_branchs(owner, repo, token)
+            return gitHubClient.get_branchs(owner, repo, token)
         return ""
     
     def getgGitHubAllRepos(self, token):
