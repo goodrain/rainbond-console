@@ -503,11 +503,6 @@ class CodeRepositoriesService(object):
             return gitHubClient.get_access_token(code)
         return ""
     
-    def get_branchs(self, owner, repo, token):
-        if self.MODULES["Git_Hub"]:
-            return gitHubClient.get_branchs(owner, repo, token)
-        return ""
-    
     def getgGitHubAllRepos(self, token):
         if self.MODULES["Git_Hub"]:
             return gitHubClient.getAllRepos(token)

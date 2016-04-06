@@ -707,17 +707,22 @@ class ServiceBranch(AuthedView):
         token = user.github_token
         owner = parsed_git_url.owner
         repo = parsed_git_url.repo
+        branchs = []
         try:
-            branch_list = codeRepositoriesService.get_branchs(owner, repo, token)
-            branchs = [e['name'] for e in branch_list]
-            return branchs
+            repos = codeRepositoriesService.gitHub_ReposRefs(owner, repo, token)
+            reposList = json.loads(repos)
+            for reposJson in reposList:
+                ref = reposJson["ref"]
+                branchs.append(ref.split("/")[2])
         except Exception, e:
             logger.error('client_error', e)
-            return []
+        return branchs
 
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
+        logger.info("11111111111111111111")
         parsed_git_url = git_url_parse(self.service.git_url)
+        logger.info(parsed_git_url.host)
         if parsed_git_url.host == 'code.goodrain.com':
             branchs = self.get_gitlab_branchs(parsed_git_url)
         elif parsed_git_url.host.endswith('github.com'):

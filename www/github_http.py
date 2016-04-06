@@ -145,8 +145,3 @@ class GitHubApi(BaseHttpClient):
         except Exception as e:
             logger.exception(e)
         return result
-
-    def get_branchs(self, user, repo, token):
-        url = self.base_url + '/repos/{0}/{1}/branches'.format(user, repo) + '?access_token=' + token
-        res, body = self._get(url, self.default_headers)
-        return body
