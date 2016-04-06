@@ -126,6 +126,14 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_HOST = 'smtp.ym.163.com'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = 'no-reply@goodrain.com'
+EMAIL_HOST_PASSWORD = 'Thaechee3moo'
+EMAIL_USE_SSL = True
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
