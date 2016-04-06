@@ -230,10 +230,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
-
+            
+            http_port_str = settings.WILD_PORTS[self.response_region]
+            context['http_port_str'] = ":"+http_port_str
+                
             if fr == "deployed":
-                http_port_str = settings.WILD_PORTS[self.response_region]
-                context['http_port_str'] = ":"+http_port_str
                 if self.service.category == 'store':
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager
