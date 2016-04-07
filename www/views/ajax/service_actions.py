@@ -745,8 +745,8 @@ class ServiceBranch(AuthedView):
             branchs = self.get_github_branchs(parsed_git_url)
         else:
             branchs = [self.service.code_version]
-        if len(brances) > 0:
-            brances.sort(reverse=True)
+        if len(branchs) > 0:
+            branchs.sort(reverse=True)
         result = {"current": self.service.code_version, "branchs": branchs}
         return JsonResponse(result, status=200)
 
