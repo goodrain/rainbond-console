@@ -157,6 +157,7 @@ class ServiceManage(AuthedView):
                     result["status"] = "failure"
                     result["info"] = u"关联了已发布服务, 不可删除"
                     return JsonResponse(result)
+                
                 dependSids = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).values("service_id")
                 if len(dependSids) > 0:
                     sids = []
@@ -170,8 +171,25 @@ class ServiceManage(AuthedView):
                                 depalias = depalias + ","
                             depalias = depalias + alias["service_alias"]
                         result["dep_service"] = depalias
-                    result["status"] = "dependency"
-                    return JsonResponse(result)
+                        result["status"] = "evn_dependency"
+                        return JsonResponse(result)
+                    
+                dependSids = TenantServiceMountRelation.objects.filter(dep_service_id=self.service.service_id).values("service_id")
+                if len(dependSids) > 0:
+                    sids = []
+                    for ds in dependSids:
+                        sids.append(ds["service_id"])
+                    if len(sids) > 0:
+                        aliasList = TenantServiceInfo.objects.filter(service_id__in=sids).values('service_alias')
+                        depalias = ""
+                        for alias in aliasList:
+                            if depalias != "":
+                                depalias = depalias + ","
+                            depalias = depalias + alias["service_alias"]
+                        result["dep_service"] = depalias
+                        result["status"] = "mnt_dependency"
+                        return JsonResponse(result)
+                
                 data = self.service.toJSON()
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
                 newTenantServiceDelete.save()
@@ -720,16 +738,15 @@ class ServiceBranch(AuthedView):
 
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
-        logger.info("11111111111111111111")
         parsed_git_url = git_url_parse(self.service.git_url)
-        logger.info(parsed_git_url.host)
         if parsed_git_url.host == 'code.goodrain.com':
             branchs = self.get_gitlab_branchs(parsed_git_url)
         elif parsed_git_url.host.endswith('github.com'):
             branchs = self.get_github_branchs(parsed_git_url)
         else:
             branchs = [self.service.code_version]
-
+        if len(brances) > 0:
+            brances.sort(reverse=True)
         result = {"current": self.service.code_version, "branchs": branchs}
         return JsonResponse(result, status=200)
 

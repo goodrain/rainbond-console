@@ -78,7 +78,6 @@ class CodeAction(AuthedView):
                 code_id = request.POST["code_id"]
                 if code_id != "undefined":
                     branchList = codeRepositoriesService.getProjectBranches(code_id)
-                    logger.debug(branchList)
                     arr = []
                     if type(branchList) is str:
                         branchList = json.loads(branchList)
@@ -104,6 +103,7 @@ class CodeAction(AuthedView):
                         data["url"] = codeRepositoriesService.gitHub_authorize_url(self.user)
                     else:
                         arr = []
+                        reposList.sort(reverse=True)
                         for reposJson in reposList:
                             d = {}
                             ref = reposJson["ref"]

@@ -331,14 +331,21 @@ function delete_service(tenantName, service_alias) {
 						window.location.href = "/apps/" + tenantName
 					} else if (dataObj["status"] == "often") {
 						swal("上次操作正在进行中，稍后再试")
-					} else if (dataObj["status"] == "dependency") {
+					} else if (dataObj["status"] == "evn_dependency") {
 						var dep_service = dataObj["dep_service"]
 						if (typeof(dep_service) == "undefined"){
-							swal("当前服务被依赖不能删除");
+							swal("当前服务被环境依赖不能删除");
 						}else{
-							swal("当前服务被("+dep_service+")依赖不能删除");
+							swal("当前服务被("+dep_service+")环境依赖不能删除");
 						}
-					} else {
+					} else if (dataObj["status"] == "mnt_dependency") {
+                        var dep_service = dataObj["dep_service"]
+                        if (typeof(dep_service) == "undefined"){
+                            swal("当前服务被挂载依赖不能删除");
+                        }else{
+                            swal("当前服务被("+dep_service+")挂载依赖不能删除");
+                        }
+                    } else {
 						swal("操作失败");
 					}
 				},
