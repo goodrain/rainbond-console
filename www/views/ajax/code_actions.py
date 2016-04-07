@@ -102,13 +102,17 @@ class CodeAction(AuthedView):
                         data["status"] = "unauthorized"
                         data["url"] = codeRepositoriesService.gitHub_authorize_url(self.user)
                     else:
-                        arr = []
-                        reposList.sort(reverse=True)
+                        branches={}
                         for reposJson in reposList:
-                            d = {}
                             ref = reposJson["ref"]
-                            d["ref"] = ref
-                            d["version"] = ref.split("/")[2]
+                            branches[ref.split("/")[2]]=ref
+                        keys = branches.keys()
+                        keys.sort(reverse=True)
+                        arr = []
+                        for version in keys:
+                            d = {}
+                            d["version"] = version
+                            d["ref"] = branches[version]
                             arr.append(d)
                         data["data"] = arr
                         data["status"] = "success"
