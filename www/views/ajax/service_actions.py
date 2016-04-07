@@ -745,8 +745,8 @@ class ServiceBranch(AuthedView):
             branchs = self.get_github_branchs(parsed_git_url)
         else:
             branchs = [self.service.code_version]
-        if len(branchs) > 0:
-            branchs.sort(reverse=True)
+        #if len(branchs) > 0:
+        #    branchs.sort(reverse=True)
         result = {"current": self.service.code_version, "branchs": branchs}
         return JsonResponse(result, status=200)
 
@@ -892,7 +892,7 @@ class ServicePort(AuthedView):
             elif deal_port.protocol == 'http':
                 data["outer_service"] = {
                     "domain": "{0}.{1}{2}".format(self.service.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[service_region]),
-                    "port": setting.WILD_PORTS[self.service.service_region]
+                    "port": settings.WILD_PORTS[self.service.service_region]
                 }
 
         return JsonResponse(data, status=200)
