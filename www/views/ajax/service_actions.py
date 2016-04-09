@@ -962,14 +962,11 @@ class ServiceNewPort(AuthedView):
         action = request.POST.get('action')
 
         if action == 'add_port':
-            name = request.POST.get('name', '')
             port_port = request.POST.get('port_port', "5000")
             port_protocol = request.POST.get('port_protocol', "http")
             port_alias = request.POST.get('port_alias', "")
             port_inner = request.POST.get('port_inner', "0")
             port_outter = request.POST.get('port_outter', "0")
-            
-            logger.info(port_outter)
             
             if not re.match(r'^[0-9_]*$', port_port):
                 return JsonResponse({"success": False, "code": 400, "info": u"端口不合法"})
@@ -998,11 +995,15 @@ class ServiceNewPort(AuthedView):
             }
             TenantServicesPort.objects.create(**port)
             data = {"action": "add", "ports": port}
-            # regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
+            regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"创建成功"})
         elif action == 'del_port':
+            if TenantServicesPort.objects.filter(service_id=self.service.service_id).count()==1:
+                return JsonResponse({"success": False, "code": 409, "info": u"服务至少保留一个端口"})
+            
             port_port = request.POST.get("port_port")
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
+            TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             data = {"action": "delete", "port_ports": [port_port]}
-            # regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
+            regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"删除成功"})
