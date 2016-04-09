@@ -722,7 +722,6 @@ class TenantServicesPort(BaseModel):
     port_alias = models.CharField(max_length=30, default='', blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
-    #is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
 
 
 class AppServicesPort(BaseModel):
