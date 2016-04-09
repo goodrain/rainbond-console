@@ -203,14 +203,14 @@
       
       //服务端口新建
       $('#add_service_port').click(function(event) {
-        var msg = ''
+        var msg = '<tr colspan=7></tr>'
         msg = msg + '<tr>'
         msg = msg + '<td></td>'
         msg = msg + '<td><input name="port_port" value=""></td>'
         msg = msg + '<td><select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
-        msg = msg + '<td><input name ="port_alias" value=""></td>'
+        msg = msg + '<td><input name ="port_alias" value="">[A-Z]格式</td>'
         msg = msg + '<td><select name="port_inner"><option value="0">关闭</option><option value="1">开启</option></select></td>'
-        msg = msg + '<td><select name="port_outter"><option value="0">关闭</option><option value="1">开启</option></select></td>'
+        msg = msg + '<td><select name="port_outter"><option value="0">关闭</option></select></td>'
         msg = msg + '<td><div class="btn-toolbar" role="toolbar">' + 
               '<div class="btn-group" role="group">' + 
                 '<button type="button" class="port-save btn btn-success btn-xs" "><i class="fa fa-check"></i></button>' +
@@ -239,13 +239,12 @@
       function port_delete(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "del_port"};
         var del_tr = $(this).closest('tr');
-        attr_name = del_tr.find('.attr_name_field').html();
-        dict["attr_name"] = attr_name;
-
+        port = del_tr.attr('port');
+        dict["port_port"] = port;
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-port';
         $.post(url, dict, function(res) {
           if (res.success) {
-            del_tr.remove();
+            window.location.href = window.location.href;
           }
         });
       }
@@ -258,11 +257,17 @@
           value = $(this).val();
           dict[name] = value;
         });
-
+        add_tr.find('select').each(function() {
+          name = $(this).attr("name");
+          value = $(this).val();
+          dict[name] = value;
+        });
+        
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-port';
         $.post(url, dict, function(res) {
           if (res.success) {
             add_tr.find('.btn-toolbar').remove();
+            window.location.href = window.location.href;
           } else {
             showMessage(res.info);
           }

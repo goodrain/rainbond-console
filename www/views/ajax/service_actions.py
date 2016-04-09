@@ -745,7 +745,7 @@ class ServiceBranch(AuthedView):
             branchs = self.get_github_branchs(parsed_git_url)
         else:
             branchs = [self.service.code_version]
-        #if len(branchs) > 0:
+        # if len(branchs) > 0:
         #    branchs.sort(reverse=True)
         result = {"current": self.service.code_version, "branchs": branchs}
         return JsonResponse(result, status=200)
@@ -955,7 +955,7 @@ class ServiceMnt(AuthedView):
         return JsonResponse(result)
     
     
-class ServicePort(AuthedView):
+class ServiceNewPort(AuthedView):
 
     @perm_required("manage_service")
     def post(self, request, *args, **kwargs):
@@ -963,35 +963,46 @@ class ServicePort(AuthedView):
 
         if action == 'add_port':
             name = request.POST.get('name', '')
-            port_port = request.POST.get('port_port')
-            port_protocol = request.POST.get('port_protocol', http)
-            port_alias = request.POST.get('port_alias')
-            port_inner = request.POST.get('port_inner', False)
-            port_outter = request.POST.get('port_outter', False)
+            port_port = request.POST.get('port_port', "5000")
+            port_protocol = request.POST.get('port_protocol', "http")
+            port_alias = request.POST.get('port_alias', "")
+            port_inner = request.POST.get('port_inner', "0")
+            port_outter = request.POST.get('port_outter', "0")
+            
+            logger.info(port_outter)
+            
+            if not re.match(r'^[0-9_]*$', port_port):
+                return JsonResponse({"success": False, "code": 400, "info": u"端口不合法"})
+            
+            port_port = int(port_port)
+            port_inner = int(port_inner)
+            port_outter = int(port_outter)
             
             if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
                 return JsonResponse({"success": False, "code": 400, "info": u"别名不合法"})
             
-            if port_outter:
-                 if TenantServicesPort.objects.filter(service_id=self.service.service_id,is_outer_service=1).count()>0:
+            if port_outter == 1:
+                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=1).count() > 0:
                      return JsonResponse({"success": False, "code": 409, "info": u"只能开启一个对外端口"})
             
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).exists():
                 return JsonResponse({"success": False, "code": 409, "info": u"容器端口冲突"})
             
-            mapping_port = baseService.prepare_mapping_port(self.service, port_port)
+            mapping_port = 0
+            if port_inner == 1 and port_protocol=="stream":
+                 mapping_port = baseService.prepare_mapping_port(self.service, port_port)
             port = {
                 "tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
-                "container_port": port_port, "mapping_port": mapping_port, "protocol": port_protocol, "is_change": True, "port_alias": port_alias,
+                "container_port": port_port, "mapping_port": mapping_port, "protocol": port_protocol, "port_alias": port_alias,
                 "is_inner_service": port_inner, "is_outer_service": port_outter
             }
             TenantServicesPort.objects.create(**port)
             data = {"action": "add", "ports": port}
-            #regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
+            # regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"创建成功"})
         elif action == 'del_port':
             port_port = request.POST.get("port_port")
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             data = {"action": "delete", "port_ports": [port_port]}
-            #regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
+            # regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"删除成功"})
