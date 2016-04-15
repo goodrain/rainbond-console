@@ -30,17 +30,17 @@ STREAM_DOMAIN = False
 STREAM_DOMAIN_URL = ""
 
 WILD_DOMAINS = {
-    "ali-sh":".ali-sh.goodrain.net",
-    "aws-bj-1":".aws-bj-1.goodrain.net",
-    "aws-jp-1":".aws-jp-1.goodrain.net",
-    "ucloud-bj-1":".ucloud-bj-1.goodrain.net"
+    "ali-sh": ".ali-sh.goodrain.net",
+    "aws-bj-1": ".aws-bj-1.goodrain.net",
+    "aws-jp-1": ".aws-jp-1.goodrain.net",
+    "ucloud-bj-1": ".ucloud-bj-1.goodrain.net"
 }
 
-WILD_PORTS= {
-    "ali-sh":"10080",
-    "aws-bj-1":"10080",
-    "aws-jp-1":"80",
-    "ucloud-bj-1":"10080"
+WILD_PORTS = {
+    "ali-sh": "10080",
+    "aws-bj-1": "10080",
+    "aws-jp-1": "80",
+    "ucloud-bj-1": "10080"
 }
 
 REST_FRAMEWORK = {
@@ -157,28 +157,25 @@ CACHES = {
 }
 
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_ENGINE = "www.contrib.sessions.backends.cache"
 # SESSION_CACHE_ALIAS = 'session'
 SESSION_COOKIE_DOMAIN = '.goodrain.com'
 SESSION_COOKIE_AGE = 3600
 
 MODULES = {
-    "Owned_Fee" : True,
-    "Memory_Limit" : True,
-    "GitLab_Project" : True,
-    "GitLab_User" : True,
-    "Git_Hub" : True,
-    "Git_Code_Manual":False,
-    "Finance_Center" : True,
-    "Team_Invite" : True,
-    "Multi_Region" : True,
-    "Monitor_Control" : True,
-    "User_Register" : True,
-    "Sms_Check" : True,
-    "Email_Invite" : True,
-    "Package_Show" : True,
-    "RegionToken" : True
+    "Owned_Fee": True,
+    "Memory_Limit": True,
+    "GitLab_Project": True,
+    "GitLab_User": True,
+    "Git_Hub": True,
+    "Git_Code_Manual": False,
+    "Finance_Center": True,
+    "Team_Invite": True,
+    "Multi_Region": True,
+    "Monitor_Control": True,
+    "User_Register": True,
+    "Sms_Check": True,
+    "Email_Invite": True,
+    "Package_Show": True,
+    "RegionToken": True
 }
-
-
-
