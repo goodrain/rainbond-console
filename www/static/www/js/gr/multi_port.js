@@ -16,6 +16,7 @@
             if(res.success){
                 return;
             }else{
+                showMessage(res.info);
                 port_switch.bootstrapSwitch('state', !state, true);
             }
           }, 'json');

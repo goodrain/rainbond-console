@@ -762,7 +762,7 @@ class ServicePort(AuthedView):
 
     def check_port_alias(self, port_alias):
         if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
-            return False, u"格式不符合要求"
+            return False, u"格式不符合要求^[A-Z][A-Z0-9_]"
 
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, port_alias=port_alias).exists():
             return False, u"别名冲突"
@@ -771,7 +771,7 @@ class ServicePort(AuthedView):
 
     def check_port(self, port):
         if not re.match(r'^\d{2,5}$', str(port)):
-            return False, u"格式不符合要求"
+            return False, u"格式不符合要求^\d{2,5}"
 
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port).exists():
             return False, u"端口冲突"
@@ -802,7 +802,7 @@ class ServicePort(AuthedView):
             data.update({"modified_field": "is_inner_service", "current_value": False})
         elif action == 'open_inner':
             if bool(deal_port.port_alias) is False:
-                return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 400}, status=400)
+                return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 409})
             deal_port.is_inner_service = True
             data.update({"modified_field": "is_inner_service", "current_value": True})
 
