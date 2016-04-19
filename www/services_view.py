@@ -238,22 +238,29 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if self.service.category == 'store':
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager
+                 
+                # inner service   
+                innerPorts={}
+                tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
+                for tsp in tsps:
+                    innerPorts[tsp.container_port]=True
                     
+                if len(tsps)>0:
+                    context["hasInnerServices"] = True
+                
                 # relationships password
                 envMap = {}
                 envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"))
                 #logger.debug(len(envVarlist))
                 if len(envVarlist) > 0:
                     for evnVarObj in envVarlist:
-                        arr = envMap.get(evnVarObj.service_id)
-                        if arr is None:
-                            arr = []
-                        arr.append(evnVarObj)
-                        envMap[evnVarObj.service_id] = arr
+                        if innerPorts.get(evnVarObj.container_port, False):
+                            arr = envMap.get(evnVarObj.service_id)
+                            if arr is None:
+                                arr = []
+                            arr.append(evnVarObj)
+                            envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
-                
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True).exists():
-                    context["hasInnerServices"] = True
                     
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                     context["hasHttpServices"] = True
