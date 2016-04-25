@@ -762,7 +762,7 @@ class ServicePort(AuthedView):
 
     def check_port_alias(self, port_alias):
         if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
-            return False, u"格式不符合要求"
+            return False, u"格式不符合要求^[A-Z][A-Z0-9_]"
 
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, port_alias=port_alias).exists():
             return False, u"别名冲突"
@@ -771,7 +771,7 @@ class ServicePort(AuthedView):
 
     def check_port(self, port):
         if not re.match(r'^\d{2,5}$', str(port)):
-            return False, u"格式不符合要求"
+            return False, u"格式不符合要求^\d{2,5}"
 
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port).exists():
             return False, u"端口冲突"
@@ -802,7 +802,7 @@ class ServicePort(AuthedView):
             data.update({"modified_field": "is_inner_service", "current_value": False})
         elif action == 'open_inner':
             if bool(deal_port.port_alias) is False:
-                return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 400}, status=400)
+                return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 409})
             deal_port.is_inner_service = True
             data.update({"modified_field": "is_inner_service", "current_value": True})
 
@@ -841,7 +841,7 @@ class ServicePort(AuthedView):
                 deal_port.port_alias = new_port_alias
                 envs = TenantServiceEnvVar.objects.only('attr_name').filter(service_id=deal_port.service_id, container_port=deal_port.container_port)
                 for env in envs:
-                    new_attr_name = new_port_alias + env.attr_name.lstrip(old_port_alias)
+                    new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias,'')
                     env.attr_name = new_attr_name
                     env.save()
                 port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).values(
