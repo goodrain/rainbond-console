@@ -1,0 +1,89 @@
+{% extends 'www/raster.html' %}{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <div class="row">
+        <div class="col-lg-9 m-bot15">
+            <!--div class="container"-->
+            <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action=""
+                  method="post">
+                <input type="hidden" name="app_key" value="{{fields.app_key}}"/>
+                <input type="hidden" name="app_version" value="{{fields.app_version}}"/>
+                <h2 class="form-signin-heading">设置服务依赖</h2>
+
+                {% if errors %}
+                <div class="alert alert-danger alert-dismissable">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    {% blocktrans count counter=errors|length %}Please correct the error below.{% plural %}Please
+                    correct the errors below.{% endblocktrans %}
+                </div>
+                {{ form.non_field_errors }}
+                {% endif %}
+
+                <div class="login-wrap" style="background: #FFFFFF;">
+                    {% csrf_token %}
+
+                    <selection>
+                        <div class="col-lg-5">
+                            <label>被依赖服务</label>
+                            <div class="controls" id="app_suffix">
+                                {% if suffix %}
+                                    {% for x in suffix %}
+                                        <input type="button" name="{{x.app_alias}}"/>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <label>依赖服务</label>
+                            <div id="app_prefix">
+                                {% if pre_fix %}
+                                    {% for x in pre_fix %}
+                                        <input type="button" name="{{x.app_alias}}"/>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </selection>
+
+                    <div id="div_app_relation" class="form-group">
+                        <label for="id_app_relation" class="control-label col-lg-2 requiredField">服务节点<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-2">
+                            <select name="relation" id="id_app_relation" class="form-control">
+                                {% for curNum in nodeList %}
+                                {% if curNum == fields.min_node %}
+                                <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                                {% else %}
+                                <option value="{{forloop.counter}}">{{curNum}}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                            <span class="help-block with-errors"></span>
+                        </div>
+
+                        <input type="checkbox" id="outer" name="relationButton"/>被依赖服务
+                        <input type="checkbox" id="inner" name="relationButton"/>依赖服务
+                        <input type="button" id="addRelation" value="添加"/>
+                    </div>
+
+
+                    <div class="form-actions">
+                        <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"
+                               id="submit-id-publish"/>
+                    </div>
+                </div>
+            </form>
+            <!--/div-->
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extrajs %}
+<script type="text/javascript">
+    $('#app_publish_form').validator();
+</script>
+{% endblock %}

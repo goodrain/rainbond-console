@@ -7,7 +7,7 @@ from django.http.response import HttpResponse, JsonResponse
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import Users, PermRelTenant, AppServiceInfo, ServiceInfo, TenantServiceRelation, App, Category, AppServicesPort, AppServiceEnvVar, TenantServicesPort, TenantServiceEnvVar
+from www.models import Users, PermRelTenant, TenantServiceRelation, App, Category, AppServicePort, AppServiceEnv, TenantServicesPort, TenantServiceEnvVar
 from www.forms.services import ServicePublishForm
 from www.utils import increase_version
 from www.service_http import RegionServiceApi
@@ -76,275 +76,275 @@ class TeamInfo(LeftSideBarMixin, AuthedView):
         return self.get_response()
 
 
-class ServicePublishView(LeftSideBarMixin, AuthedView):
-
-    def get_context(self):
-        context = super(ServicePublishView, self).get_context()
-        # context.update({
-        #    'form': self.form,
-        #})
-        return context
-
-    def get_media(self):
-        media = super(ServicePublishView, self).get_media(
-        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/validator.min.js', 'www/js/gr/app_publish.js')
-        return media
-
-    def get_response(self):
-        return TemplateResponse(self.request, 'www/service/publish.html', self.get_context())
-
-    def prepare_app_update(self, last_pub_version):
-        app = ServiceInfo.objects.get(service_key=last_pub_version.service_key)
-        form_init_data = {
-            'app_key': {"value": app.service_key, "attrs": {"readonly": True}},
-            'app_name': {"value": app.service_name, "attrs": {"readonly": True}},
-            # 'app_version': {"value": increase_version(last_pub_version.app_version, 1)},
-            'app_version': {"value": last_pub_version.app_version},
-            'app_info': {"value": app.info},
-            'pay_type': {"value": last_pub_version.pay_type},
-            'price': {"value": last_pub_version.price},
-        }
-        return form_init_data
-
-    @perm_required('app_publish')
-    def get(self, request, *args, **kwargs):
-        context = self.get_context()
-        published_versions = AppServiceInfo.objects.filter(service_id=self.service.service_id).order_by('-create_time')
-        if published_versions:
-            last_pub_version = published_versions[0]
-            form_init_data = self.prepare_app_update(last_pub_version)
-            # self.form = ServicePublishForm(initial=form_init_data, is_update=True)
-            context.update({"fields": form_init_data, "isinit": False})
-        else:
-            # self.form = ServicePublishForm()
-            context.update({"fields": {}, "isinit": True})
-        root_categories = Category.objects.only('ID', 'name').filter(parent=0)
-        root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
-        context['root_category_list'] = root_category_list
-        return TemplateResponse(self.request, 'www/service/publish.html', context)
-
-    @perm_required('app_publish')
-    def post(self, request, *args, **kwargs):
-        self.form = ServicePublishForm(request.POST)
-        if not self.form.is_valid():
-            return self.get_response()
-
-        post_data = request.POST.dict()
-        logger.debug("service.publish", "post_data is {0}".format(post_data))
-        if 'publish' in post_data:
-            app_key = make_uuid(self.serviceAlias)
-            action = 'app_publish'
-        elif 'update' in post_data:
-            last_version = AppServiceInfo.objects.only('service_key').filter(service_id=self.service.service_id).order_by('-create_time').first()
-            app_key = last_version.service_key
-            action = 'app_update'
-        else:
-            return HttpResponse("error", status=500)
-
-        post_data["app_key"] = app_key
-
-        func = getattr(self, action)
-        try:
-            success = func(post_data)
-            if success:
-                return self.redirect_to('/apps/{0}/{1}/publish/extra/'.format(self.tenantName, self.serviceAlias))
-            else:
-                logger.error('service.publish', "{} failed".format(action))
-                return HttpResponse(u"发布过程出现异常", status=500)
-        except Exception, e:
-            logger.exception('service.publish', e)
-            return HttpResponse(u"应用发布失败", status=500)
-
-    def app_publish(self, post_data):
-        try:
-            app = self._add_new_app(post_data, self.service)
-            new_version = self.create_new_version(app, post_data, self.service)
-            logger.info("service.publish", "update {} set update_version from {} to {}".format(app.service_key, app.update_version, new_version.update_version))
-            app.update_version = new_version.update_version
-            app.save()
-            event_id = self.create_publish_event()
-            if new_version.is_slug():
-                self.upload_slug(new_version, event_id)
-            elif new_version.is_image():
-                self.upload_image(new_version, event_id)
-            return True
-        except Exception, e:
-            logger.exception('service.publish', e)
-            return False
-
-    def app_update(self, post_data):
-        try:
-            app = self._update_app(post_data, self.service)
-            new_version = self.create_new_version(app, post_data, self.service)
-            logger.info("service.publish", "update {} set update_version from {} to {}".format(app.service_key, app.update_version, new_version.update_version))
-            app.update_version = new_version.update_version
-            app.save()
-            event_id = self.create_publish_event()
-            if new_version.is_slug():
-                self.upload_slug(new_version, event_id)
-            elif new_version.is_image():
-                self.upload_image(new_version, event_id)
-            return True
-        except Exception, e:
-            logger.exception('service.publish', e)
-            return False
-
-    def _add_new_app(self, d, pub_service):
-        try:
-            app = ServiceInfo(service_key=d['app_key'], publisher=self.user.nick_name, service_name=d['app_name'], info=d['app_info'],
-                              status="test", category="app_publish", version=d['app_version'], creater=self.user.pk)
-            app = self.copy_public_properties(pub_service, app)
-            app.dependecy = self.get_pub_srv_deps(pub_service)
-            App.objects.create(name=app.service_name, description=app.info, service_key=app.service_key, category_id=d['app_type_third'],
-                               pay_type=d['pay_type'], using=0, creater=self.user.pk)
-            return app
-        except Exception, e:
-            raise e
-
-    def _update_app(self, d, pub_service):
-        app = ServiceInfo.objects.get(service_key=d['app_key'])
-        app.info = d['app_info']
-        app.version = d['app_version']
-        app.service_name = d['app_name']
-        app.dependecy = self.get_pub_srv_deps(pub_service)
-        return app
-
-    def create_new_version(self, app, d, pub_service):
-        previous_versions = AppServiceInfo.objects.only('update_version').filter(service_key=app.service_key).order_by('-update_version')
-        if previous_versions:
-            new_update_version = previous_versions[0].update_version + 1
-        else:
-            new_update_version = 1
-        new_version = AppServiceInfo(service_key=app.service_key, service_id=pub_service.service_id, pay_type=d['pay_type'], price=d['price'],
-                                     deploy_version=pub_service.deploy_version, app_version=d['app_version'], update_version=new_update_version,
-                                     change_log=d['change_log'], creater=self.user.pk)
-        new_version = self.copy_public_properties(pub_service, new_version)
-        new_env = self.extend_env(new_version, pub_service)
-        new_version.env = new_env
-        new_version.save()
-        app.env = new_env
-        app.desc = d['change_log']
-        return new_version
-
-    def copy_public_properties(self, copy_from, to):
-        for field in ('is_service', 'is_web_service', 'image', 'extend_method', 'cmd', 'setting', 'env',
-                      'min_node', 'min_cpu', 'min_memory', 'inner_port', 'volume_mount_path', 'service_type'):
-            if hasattr(to, field) and hasattr(copy_from, field):
-                setattr(to, field, getattr(copy_from, field))
-        return to
-
-    def extend_env(self, app_version, pub_service):
-        if pub_service.image.startswith('goodrain.me/runner'):
-            SLUG_PATH = '/app_publish/{0}/{1}.tgz'.format(app_version.service_key, pub_service.deploy_version)
-            return app_version.env.rstrip(',') + ',SLUG_PATH=' + SLUG_PATH + ','
-        else:
-            return app_version.env
-
-    def get_pub_srv_deps(self, pub_service):
-        deps = TenantServiceRelation.objects.filter(service_id=pub_service.service_id)
-        if deps:
-            dep_service_keys = list(set([e.dep_service_type for e in deps]))
-            return ','.join(dep_service_keys)
-        else:
-            return ""
-
-    def create_publish_event(self):
-        template = {
-            "user_id": self.user.nick_name,
-            "tenant_id": self.service.tenant_id,
-            "service_id": self.service.service_id,
-            "type": "publish",
-            "desc": u"应用发布中...",
-            "show": True,
-        }
-        try:
-            r = RegionServiceApi()
-            body = r.create_event(self.service.service_region, json.dumps(template))
-            return body.event_id
-        except Exception, e:
-            logger.exception("service.publish", e)
-            return None
-
-    def upload_slug(self, new, event_id):
-        oss_upload_task = {
-            "app_key": new.service_key, "service_id": new.service_id,
-            "deploy_version": new.deploy_version, "tenant_id": self.service.tenant_id,
-            "action": "create_new_version", "event_id": event_id
-        }
-        try:
-            delete_models = AppServiceInfo.objects.only('deploy_version').filter(service_key=new.service_key, deploy_num=0).exclude(app_version=new.app_version)
-            if delete_models:
-                oss_upload_task['delete_versions'] = [e.deploy_version for e in delete_models]
-            r = RegionServiceApi()
-            r.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
-            delete_models.delete()
-        except Exception, e:
-            logger.error("service.publish", "upload_slug for {0}({1}), but an error occurred".format(new.service_key, new.app_version))
-            logger.exception("service.publish", e)
-
-    def upload_image(self, new, event_id):
-        image_upload_task = {
-            "action": "create_new_version", "image": new.image, "event_id": event_id
-        }
-
-        try:
-            delete_models = AppServiceInfo.objects.only('deploy_version').filter(service_key=new.service_key, deploy_num=0).exclude(app_version=new.app_version)
-            if delete_models:
-                image_upload_task['delete_versions'] = [e.deploy_version for e in delete_models]
-            r = RegionServiceApi()
-            r.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
-            delete_models.delete()
-        except Exception, e:
-            logger.error("service.publish", "upload_image for {0}({1}), but an error occurred".format(new.service_key, new.app_version))
-            logger.exception("service.publish", e)
-
-
-class ServicePublishExtraView(LeftSideBarMixin, AuthedView):
-
-    def get_context(self):
-        context = super(ServicePublishExtraView, self).get_context()
-        return context
-
-    def get_media(self):
-        media = super(ServicePublishExtraView, self).get_media(
-        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/gr/basic.js', 'www/js/jquery.cookie.js', 'www/js/validator.min.js', 'www/js/gr/app_publish.js')
-        return media
-
-    def copy_ports(self, new_version):
-        service_key = new_version.service_key
-        service_id = new_version.service_id
-        for source_port in TenantServicesPort.objects.filter(service_id=service_id):
-            AppServicesPort.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
-                                           container_port=source_port.container_port, protocol=source_port.protocol, port_alias=source_port.port_alias,
-                                           is_inner_service=source_port.is_inner_service, is_outer_service=source_port.is_outer_service)
-
-    def copy_envs(self, new_version, envs):
-        service_key = new_version.service_key
-        service_id = new_version.service_id
-        for env in envs:
-            source_env = TenantServiceEnvVar.objects.get(service_id=service_id, attr_name=env.attr_name)
-            opts = [env['attr_rw']]
-            options = u','.join(opts)
-            AppServiceEnvVar.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
-                                            container_port=0, name=source_env.name, attr_name=source_env.attr_name, attr_value=env.attr_value,
-                                            is_change=source_env.is_change, scope=source_env.scope, options=options)
-
-    def get(self, request, *args, **kwargs):
-        context = self.get_context()
-        envs = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=0)
-        context['envs'] = envs
-        return TemplateResponse(request, 'www/service/publish_extra.html', context)
-
-    def post(self, request, *args, **kwargs):
-        try:
-            data = json.loads(request.body)
-            data = Dict(data)
-            new_version = AppServiceInfo.objects.filter(service_id=self.service.service_id).order_by('-update_version').first()
-            self.copy_envs(new_version, data.envs)
-            self.copy_ports(new_version)
-        except Exception, e:
-            logger.exception("service.publish", e)
-            return JsonResponse({"success": False, "info": "未知错误"}, status=500)
-
-        next_url = '/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias)
-        return JsonResponse({"success": True, "next_url": next_url}, status=200)
+# class ServicePublishView(LeftSideBarMixin, AuthedView):
+#
+#     def get_context(self):
+#         context = super(ServicePublishView, self).get_context()
+#         # context.update({
+#         #    'form': self.form,
+#         #})
+#         return context
+#
+#     def get_media(self):
+#         media = super(ServicePublishView, self).get_media(
+#         ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/validator.min.js', 'www/js/gr/app_publish.js')
+#         return media
+#
+#     def get_response(self):
+#         return TemplateResponse(self.request, 'www/service/publish.html', self.get_context())
+#
+#     def prepare_app_update(self, last_pub_version):
+#         app = ServiceInfo.objects.get(service_key=last_pub_version.service_key)
+#         form_init_data = {
+#             'app_key': {"value": app.service_key, "attrs": {"readonly": True}},
+#             'app_name': {"value": app.service_name, "attrs": {"readonly": True}},
+#             # 'app_version': {"value": increase_version(last_pub_version.app_version, 1)},
+#             'app_version': {"value": last_pub_version.app_version},
+#             'app_info': {"value": app.info},
+#             'pay_type': {"value": last_pub_version.pay_type},
+#             'price': {"value": last_pub_version.price},
+#         }
+#         return form_init_data
+#
+#     @perm_required('app_publish')
+#     def get(self, request, *args, **kwargs):
+#         context = self.get_context()
+#         published_versions = AppServiceInfo.objects.filter(service_id=self.service.service_id).order_by('-create_time')
+#         if published_versions:
+#             last_pub_version = published_versions[0]
+#             form_init_data = self.prepare_app_update(last_pub_version)
+#             # self.form = ServicePublishForm(initial=form_init_data, is_update=True)
+#             context.update({"fields": form_init_data, "isinit": False})
+#         else:
+#             # self.form = ServicePublishForm()
+#             context.update({"fields": {}, "isinit": True})
+#         root_categories = Category.objects.only('ID', 'name').filter(parent=0)
+#         root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
+#         context['root_category_list'] = root_category_list
+#         return TemplateResponse(self.request, 'www/service/publish.html', context)
+#
+#     @perm_required('app_publish')
+#     def post(self, request, *args, **kwargs):
+#         self.form = ServicePublishForm(request.POST)
+#         if not self.form.is_valid():
+#             return self.get_response()
+#
+#         post_data = request.POST.dict()
+#         logger.debug("service.publish", "post_data is {0}".format(post_data))
+#         if 'publish' in post_data:
+#             app_key = make_uuid(self.serviceAlias)
+#             action = 'app_publish'
+#         elif 'update' in post_data:
+#             last_version = AppServiceInfo.objects.only('service_key').filter(service_id=self.service.service_id).order_by('-create_time').first()
+#             app_key = last_version.service_key
+#             action = 'app_update'
+#         else:
+#             return HttpResponse("error", status=500)
+#
+#         post_data["app_key"] = app_key
+#
+#         func = getattr(self, action)
+#         try:
+#             success = func(post_data)
+#             if success:
+#                 return self.redirect_to('/apps/{0}/{1}/publish/extra/'.format(self.tenantName, self.serviceAlias))
+#             else:
+#                 logger.error('service.publish', "{} failed".format(action))
+#                 return HttpResponse(u"发布过程出现异常", status=500)
+#         except Exception, e:
+#             logger.exception('service.publish', e)
+#             return HttpResponse(u"应用发布失败", status=500)
+#
+#     def app_publish(self, post_data):
+#         try:
+#             app = self._add_new_app(post_data, self.service)
+#             new_version = self.create_new_version(app, post_data, self.service)
+#             logger.info("service.publish", "update {} set update_version from {} to {}".format(app.service_key, app.update_version, new_version.update_version))
+#             app.update_version = new_version.update_version
+#             app.save()
+#             event_id = self.create_publish_event()
+#             if new_version.is_slug():
+#                 self.upload_slug(new_version, event_id)
+#             elif new_version.is_image():
+#                 self.upload_image(new_version, event_id)
+#             return True
+#         except Exception, e:
+#             logger.exception('service.publish', e)
+#             return False
+#
+#     def app_update(self, post_data):
+#         try:
+#             app = self._update_app(post_data, self.service)
+#             new_version = self.create_new_version(app, post_data, self.service)
+#             logger.info("service.publish", "update {} set update_version from {} to {}".format(app.service_key, app.update_version, new_version.update_version))
+#             app.update_version = new_version.update_version
+#             app.save()
+#             event_id = self.create_publish_event()
+#             if new_version.is_slug():
+#                 self.upload_slug(new_version, event_id)
+#             elif new_version.is_image():
+#                 self.upload_image(new_version, event_id)
+#             return True
+#         except Exception, e:
+#             logger.exception('service.publish', e)
+#             return False
+#
+#     def _add_new_app(self, d, pub_service):
+#         try:
+#             app = ServiceInfo(service_key=d['app_key'], publisher=self.user.nick_name, service_name=d['app_name'], info=d['app_info'],
+#                               status="test", category="app_publish", version=d['app_version'], creater=self.user.pk)
+#             app = self.copy_public_properties(pub_service, app)
+#             app.dependecy = self.get_pub_srv_deps(pub_service)
+#             App.objects.create(name=app.service_name, description=app.info, service_key=app.service_key, category_id=d['app_type_third'],
+#                                pay_type=d['pay_type'], using=0, creater=self.user.pk)
+#             return app
+#         except Exception, e:
+#             raise e
+#
+#     def _update_app(self, d, pub_service):
+#         app = ServiceInfo.objects.get(service_key=d['app_key'])
+#         app.info = d['app_info']
+#         app.version = d['app_version']
+#         app.service_name = d['app_name']
+#         app.dependecy = self.get_pub_srv_deps(pub_service)
+#         return app
+#
+#     def create_new_version(self, app, d, pub_service):
+#         previous_versions = AppServiceInfo.objects.only('update_version').filter(service_key=app.service_key).order_by('-update_version')
+#         if previous_versions:
+#             new_update_version = previous_versions[0].update_version + 1
+#         else:
+#             new_update_version = 1
+#         new_version = AppServiceInfo(service_key=app.service_key, service_id=pub_service.service_id, pay_type=d['pay_type'], price=d['price'],
+#                                      deploy_version=pub_service.deploy_version, app_version=d['app_version'], update_version=new_update_version,
+#                                      change_log=d['change_log'], creater=self.user.pk)
+#         new_version = self.copy_public_properties(pub_service, new_version)
+#         new_env = self.extend_env(new_version, pub_service)
+#         new_version.env = new_env
+#         new_version.save()
+#         app.env = new_env
+#         app.desc = d['change_log']
+#         return new_version
+#
+#     def copy_public_properties(self, copy_from, to):
+#         for field in ('is_service', 'is_web_service', 'image', 'extend_method', 'cmd', 'setting', 'env',
+#                       'min_node', 'min_cpu', 'min_memory', 'inner_port', 'volume_mount_path', 'service_type'):
+#             if hasattr(to, field) and hasattr(copy_from, field):
+#                 setattr(to, field, getattr(copy_from, field))
+#         return to
+#
+#     def extend_env(self, app_version, pub_service):
+#         if pub_service.image.startswith('goodrain.me/runner'):
+#             SLUG_PATH = '/app_publish/{0}/{1}.tgz'.format(app_version.service_key, pub_service.deploy_version)
+#             return app_version.env.rstrip(',') + ',SLUG_PATH=' + SLUG_PATH + ','
+#         else:
+#             return app_version.env
+#
+#     def get_pub_srv_deps(self, pub_service):
+#         deps = TenantServiceRelation.objects.filter(service_id=pub_service.service_id)
+#         if deps:
+#             dep_service_keys = list(set([e.dep_service_type for e in deps]))
+#             return ','.join(dep_service_keys)
+#         else:
+#             return ""
+#
+#     def create_publish_event(self):
+#         template = {
+#             "user_id": self.user.nick_name,
+#             "tenant_id": self.service.tenant_id,
+#             "service_id": self.service.service_id,
+#             "type": "publish",
+#             "desc": u"应用发布中...",
+#             "show": True,
+#         }
+#         try:
+#             r = RegionServiceApi()
+#             body = r.create_event(self.service.service_region, json.dumps(template))
+#             return body.event_id
+#         except Exception, e:
+#             logger.exception("service.publish", e)
+#             return None
+#
+#     def upload_slug(self, new, event_id):
+#         oss_upload_task = {
+#             "app_key": new.service_key, "service_id": new.service_id,
+#             "deploy_version": new.deploy_version, "tenant_id": self.service.tenant_id,
+#             "action": "create_new_version", "event_id": event_id
+#         }
+#         try:
+#             delete_models = AppServiceInfo.objects.only('deploy_version').filter(service_key=new.service_key, deploy_num=0).exclude(app_version=new.app_version)
+#             if delete_models:
+#                 oss_upload_task['delete_versions'] = [e.deploy_version for e in delete_models]
+#             r = RegionServiceApi()
+#             r.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
+#             delete_models.delete()
+#         except Exception, e:
+#             logger.error("service.publish", "upload_slug for {0}({1}), but an error occurred".format(new.service_key, new.app_version))
+#             logger.exception("service.publish", e)
+#
+#     def upload_image(self, new, event_id):
+#         image_upload_task = {
+#             "action": "create_new_version", "image": new.image, "event_id": event_id
+#         }
+#
+#         try:
+#             delete_models = AppServiceInfo.objects.only('deploy_version').filter(service_key=new.service_key, deploy_num=0).exclude(app_version=new.app_version)
+#             if delete_models:
+#                 image_upload_task['delete_versions'] = [e.deploy_version for e in delete_models]
+#             r = RegionServiceApi()
+#             r.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+#             delete_models.delete()
+#         except Exception, e:
+#             logger.error("service.publish", "upload_image for {0}({1}), but an error occurred".format(new.service_key, new.app_version))
+#             logger.exception("service.publish", e)
+#
+#
+# class ServicePublishExtraView(LeftSideBarMixin, AuthedView):
+#
+#     def get_context(self):
+#         context = super(ServicePublishExtraView, self).get_context()
+#         return context
+#
+#     def get_media(self):
+#         media = super(ServicePublishExtraView, self).get_media(
+#         ) + self.vendor('www/css/goodrainstyle.css', 'www/js/gr/basic.js', 'www/js/jquery.cookie.js', 'www/js/validator.min.js', 'www/js/gr/app_publish.js')
+#         return media
+#
+#     def copy_ports(self, new_version):
+#         service_key = new_version.service_key
+#         service_id = new_version.service_id
+#         for source_port in TenantServicesPort.objects.filter(service_id=service_id):
+#             AppServicesPort.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
+#                                            container_port=source_port.container_port, protocol=source_port.protocol, port_alias=source_port.port_alias,
+#                                            is_inner_service=source_port.is_inner_service, is_outer_service=source_port.is_outer_service)
+#
+#     def copy_envs(self, new_version, envs):
+#         service_key = new_version.service_key
+#         service_id = new_version.service_id
+#         for env in envs:
+#             source_env = TenantServiceEnvVar.objects.get(service_id=service_id, attr_name=env.attr_name)
+#             opts = [env['attr_rw']]
+#             options = u','.join(opts)
+#             AppServiceEnvVar.objects.create(service_key=service_key, app_version=new_version.app_version, update_version=new_version.update_version,
+#                                             container_port=0, name=source_env.name, attr_name=source_env.attr_name, attr_value=env.attr_value,
+#                                             is_change=source_env.is_change, scope=source_env.scope, options=options)
+#
+#     def get(self, request, *args, **kwargs):
+#         context = self.get_context()
+#         envs = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=0)
+#         context['envs'] = envs
+#         return TemplateResponse(request, 'www/service/publish_extra.html', context)
+#
+#     def post(self, request, *args, **kwargs):
+#         try:
+#             data = json.loads(request.body)
+#             data = Dict(data)
+#             new_version = AppServiceInfo.objects.filter(service_id=self.service.service_id).order_by('-update_version').first()
+#             self.copy_envs(new_version, data.envs)
+#             self.copy_ports(new_version)
+#         except Exception, e:
+#             logger.exception("service.publish", e)
+#             return JsonResponse({"success": False, "info": "未知错误"}, status=500)
+#
+#         next_url = '/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias)
+#         return JsonResponse({"success": True, "next_url": next_url}, status=200)

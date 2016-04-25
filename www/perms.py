@@ -137,4 +137,4 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
     if perm in user.actions:
         return True
 
-    raise PermissionDenied("you don't not enough permissions")
+    raise PermissionDenied("you don't have enough permissions")

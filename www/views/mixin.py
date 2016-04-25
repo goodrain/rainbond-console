@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from django.http import Http404
 from www.service_http import RegionServiceApi
-from www.models import PermRelTenant, Tenants, AppServicesPort, AppServiceEnvVar
+from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv
 from www.tenantservice.baseservice import BaseTenantService
 from www.region import RegionInfo
 
@@ -44,11 +44,11 @@ class CopyPortAndEnvMixin(object):
 
     def copy_port_and_env(self, service, new_service):
         if service.category in ("app_publish", "app_sys_publish"):
-            ports = AppServicesPort.objects.filter(service_key=service.service_key, app_version=service.version, update_version=service.update_version)
-            envs = AppServiceEnvVar.objects.filter(service_key=service.service_key, app_version=service.version, update_version=service.update_version)
+            ports = AppServicePort.objects.filter(app_key=service.service_key, app_version=service.version, update_version=service.update_version)
+            envs = AppServiceEnv.objects.filter(app_key=service.service_key, app_version=service.version, update_version=service.update_version)
         else:
-            ports = AppServicesPort.objects.filter(service_key=service.service_key)
-            envs = AppServiceEnvVar.objects.filter(service_key=service.service_key)
+            ports = AppServicePort.objects.filter(app_key=service.service_key)
+            envs = AppServiceEnv.objects.filter(app_key=service.service_key)
 
         baseService = BaseTenantService()
         for port in ports:

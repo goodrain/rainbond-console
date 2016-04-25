@@ -68,6 +68,11 @@ class Login(BaseView):
             self.form = UserLoginForm()
             return self.get_response()
         else:
+            # 判断是否有跳转参数,有参数跳转到返回页面
+            next_url = request.GET.get('next', None)
+            if next_url is not None:
+                next_url += '?nick_name={}&email={}'.format(user.nick_name, user.email)
+                return self.redirect_to(next_url)
             return self.redirect_view()
 
     @never_cache
@@ -93,6 +98,7 @@ class Login(BaseView):
             return self.redirect_to("/autodeploy?fr=www_app")
 
         if next_url is not None:
+            next_url += '?nick_name={}&email={}'.format(user.nick_name, user.email)
             return self.redirect_to(next_url)
         else:
             return self.redirect_view()
@@ -662,3 +668,16 @@ class TenantSelectView(BaseView):
             service_key = get_paras.get('service_key')
             next_url = '/apps/{0}/service-deploy/?service_key={2}&region={1}'.format(tenant, region, service_key)
             return self.redirect_to(next_url)
+
+
+class AccountView(BaseView):
+    """用户信息视图"""
+    def post(self, request, *args, **kwargs):
+        email = request.POST.get('email', None)
+        if email is None:
+            return JsonResponse({"success": False, "nick_name": "Anonymous"})
+        user_info = Users.objects.get(email=email)
+        if user_info is None:
+            return JsonResponse({"success": False, "nick_name": "Anonymous"})
+        else:
+            return JsonResponse({"success": True, "nick_name": user_info.nick_name})

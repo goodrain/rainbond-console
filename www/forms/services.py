@@ -118,3 +118,44 @@ class EnvCheckForm(forms.ModelForm):
 
         if not re.match(r'^[A-Z][A-Z0-9_]*$', attr_name):
             self.add_error('attr_name', u"变量名称不符合规范")
+
+
+class PublishServiceForm(forms.Form):
+    """ 服务发布表单step1 """
+
+    def __init__(self, *args, **kwargs):
+        initial = kwargs.pop('initial', None)
+        is_update = kwargs.pop('is_update', False)
+
+        super(ServicePublishForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_tag = False
+
+        if initial is not None:
+            for field in initial:
+                value = initial[field]['value']
+                attrs = initial[field].get('attrs', {})
+                self.fields[field].initial = value
+                self.fields[field].widget.attrs.update(attrs)
+
+        if is_update:
+            del self.fields['app_key'].widget.attrs['data-remote']
+            submit = Submit('update', u'更新', css_class='btn btn-lg btn-primary btn-block')
+        else:
+            submit = Submit('publish', u'发布', css_class='btn btn-lg btn-success btn-block')
+
+        self.helper.layout = Layout(
+            Field('app_key'),
+            Field('app_name'),
+            Field('app_version'),
+            Field('app_info'),
+            Field('pay_type'),
+            Field('price'),
+            Field('change_log'),
+            FormActions(submit),
+        )
+
+        self.helper.help_text_inline = True
+        self.helper.error_text_inline = True
+        self.helper.label_class = 'col-lg-2'
+        self.helper.field_class = 'col-lg-8'

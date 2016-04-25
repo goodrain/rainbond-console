@@ -1,4 +1,12 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% block main-content%}
+{% extends 'www/raster.html' %}
+{% load i18n %}
+
+<!--这里引入新的js-->
+{% block extrahead %}
+    <script src="{% static 'www/js/app-language-php.js' %}"></script>
+{% endblock %}
+
+{% block main-content%}
 <section class="wrapper site-min-height">
 	<!-- page start-->
 	<section class="panel">
@@ -19,9 +27,11 @@
 						<label class="control-label col-lg-2 ">版本 </label>
 						<div class="col-lg-2">
 							<select class="form-control" id="service_version" name="service_version">
+								<option value="7.0.3" >7.0.3</option>
 								<option value="5.6.11" selected="selected">5.6.11（默认）</option>
 								<option value="5.5.27">5.5.27</option>
 								<option value="5.4.40">5.4.40</option>
+								<option value="5.3.29">5.3.29</option>
 							</select>
 						</div>
 					</div>
@@ -321,9 +331,10 @@
 																		<td>1.1.28</td>
 
 																	</tr>
+																	<!--下面扩展为第三方扩展,php7.0.3不支持,使用自定义属性php7-->
 																	<tr>
 
-																		<td><label> <input type="checkbox" name="service_dependency" value="apcu">
+																		<td><label> <input php7="false" type="checkbox" name="service_dependency" value="apcu">
 																		</label></td>
 																		<td><a href="http://pecl.php.net/package/apcu">APCu</a></td>
 																		<td>4.0.6</td>
@@ -331,7 +342,7 @@
 																	</tr>
 																	<tr>
 
-																		<td><label> <input type="checkbox" name="service_dependency" value="blackfire">
+																		<td><label> <input php7="false" type="checkbox" name="service_dependency" value="blackfire">
 																		</label></td>
 																		<td><a href="http://blackfire.io/">Blackfire</a></td>
 																		<td>0.20.6</td>
@@ -339,7 +350,7 @@
 																	</tr>
 																	<tr>
 
-																		<td><label> <input type="checkbox" name="service_dependency" value="imagick">
+																		<td><label> <input php7="false" type="checkbox" name="service_dependency" value="imagick">
 																		</label></td>
 																		<td><a href="http://docs.php.net/imagick">ImageMagick</a></td>
 																		<td>3.1.2</td>
@@ -347,7 +358,7 @@
 																	</tr>
 																	<tr>
 
-																		<td><label> <input type="checkbox" name="service_dependency" value="memcached">
+																		<td><label> <input php7="false" type="checkbox" name="service_dependency" value="memcached">
 																		</label></td>
 																		<td><a href="http://docs.php.net/memcached">memcached</a></td>
 																		<td>2.2.0</td>
@@ -355,7 +366,7 @@
 																	</tr>
 																	<tr>
 
-																		<td><label> <input type="checkbox" name="service_dependency" value="mongo">
+																		<td><label> <input php7="false" type="checkbox" name="service_dependency" value="mongo">
 																		</label></td>
 																		<td><a href="http://docs.php.net/mongo">MongoDB</a></td>
 																		<td>1.6.6</td>
@@ -363,7 +374,7 @@
 																	</tr>
 																	<tr>
 
-																		<td><label> <input type="checkbox" name="service_dependency" value="newrelic">
+																		<td><label> <input php7="false" type="checkbox" name="service_dependency" value="newrelic">
 																		</label></td>
 																		<td><a href="http://newrelic.com/php">New
 																				Relic</a></td>
@@ -372,7 +383,7 @@
 																	</tr>
 																	<tr>
 
-																		<td><label> <input type="checkbox" name="service_dependency" value="oauth">
+																		<td><label> <input php7="false" type="checkbox" name="service_dependency" value="oauth">
 																		</label></td>
 																		<td><a href="http://docs.php.net/oauth">OAuth</a></td>
 																		<td>1.2.3</td>
@@ -380,7 +391,7 @@
 																	</tr>
 																	<tr>
 
-																		<td><label> <input type="checkbox" name="service_dependency" value="redis">
+																		<td><label> <input php7="false" type="checkbox" name="service_dependency" value="redis">
 																		</label></td>
 																		<td><a href="http://pecl.php.net/package/redis">PHPRedis</a></td>
 																		<td>2.2.7</td>

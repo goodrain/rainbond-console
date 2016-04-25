@@ -192,94 +192,6 @@ extend_method = (
 )
 
 
-class ServiceInfo(BaseModel):
-
-    class Meta:
-        db_table = 'service'
-
-    service_key = models.CharField(
-        max_length=32, unique=True, help_text=u"服务key")
-    publisher = models.CharField(max_length=40, help_text=u"发布者")
-    service_name = models.CharField(max_length=40, help_text=u"服务名")
-    pic = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"服务图片")
-    info = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"简介")
-    desc = models.CharField(
-        max_length=400, null=True, blank=True, help_text=u"描述")
-    status = models.CharField(
-        max_length=15, choices=service_status, help_text=u"服务状态：published")
-    category = models.CharField(
-        max_length=15, choices=service_category, help_text=u"服务分类：application,cache,store")
-    is_service = models.BooleanField(
-        default=False, blank=True, help_text=u"是否service")
-    is_web_service = models.BooleanField(
-        default=False, blank=True, help_text=u"是否web服务")
-    version = models.CharField(max_length=20, help_text=u"版本")
-    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
-    image = models.CharField(max_length=50, help_text=u"镜像")
-    extend_method = models.CharField(
-        max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
-    cmd = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"启动参数")
-    setting = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"设置项")
-    env = models.CharField(
-        max_length=200, null=True, blank=True, help_text=u"环境变量")
-    dependecy = models.CharField(
-        max_length=100, null=True, blank=True, help_text=u"依赖服务--service_key待确认")
-    min_node = models.IntegerField(help_text=u"启动个数", default=1)
-    min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
-    min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
-    inner_port = models.IntegerField(help_text=u"内部端口")
-    publish_time = models.DateTimeField(help_text=u"发布时间", auto_now=True)
-    volume_mount_path = models.CharField(
-        max_length=50, null=True, blank=True, help_text=u"mount目录")
-    service_type = models.CharField(
-        max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
-    is_init_accout = models.BooleanField(
-        default=False, blank=True, help_text=u"是否初始化账户")
-    creater = models.IntegerField(null=True, help_text=u"创建人")
-
-    def __unicode__(self):
-        return self.service_key
-
-
-class AppServiceInfo(BaseModel):
-
-    class Meta:
-        db_table = 'app_service'
-        unique_together = (('service_key', 'update_version'), ('service_id', 'deploy_version'),)
-
-    service_key = models.CharField(max_length=32, help_text=u"服务key")
-    service_id = models.CharField(max_length=32, help_text=u"服务id")
-    pay_type = models.CharField(max_length=12, default='free', choices=app_pay_choices, help_text=u"付费类型")
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"单价")
-    deploy_num = models.IntegerField(default=0, help_text=u"当前部署数量")
-    view_num = models.IntegerField(default=0, help_text=u"被部署次数")
-    app_version = models.CharField(max_length=12, help_text=u"用户发布版本")
-    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
-    change_log = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新日志")
-    create_time = models.DateTimeField(help_text=u"创建时间", auto_now_add=True)
-    creater = models.IntegerField(null=True, help_text=u"创建人")
-
-    deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
-    image = models.CharField(max_length=100, help_text=u"镜像")
-    cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
-    setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
-    env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
-    dependecy = models.CharField(max_length=100, null=True, blank=True, help_text=u"依赖服务")
-
-    def is_slug(self):
-        return bool(self.image.startswith('goodrain.me/runner'))
-
-    def is_image(self):
-        return not bool(self.image.startswith('goodrain.me/runner'))
-
-    def __unicode__(self):
-        return u"{0}({1}-{2})".format(self.service_key, self.app_version, self.update_version)
-
-
 class TenantServiceInfo(BaseModel):
 
     class Meta:
@@ -690,24 +602,6 @@ class TenantServiceEnvVar(BaseModel):
         return self.name
 
 
-class AppServiceEnvVar(BaseModel):
-
-    class Meta:
-        db_table = 'app_service_env_var'
-
-    service_key = models.CharField(max_length=32, db_index=True, help_text=u"服务key")
-    app_version = models.CharField(max_length=12, null=True, blank=True, help_text=u"版本")
-    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
-    container_port = models.IntegerField(default=0, help_text=u"端口")
-    name = models.CharField(max_length=100, help_text=u"名称")
-    attr_name = models.CharField(max_length=100, help_text=u"属性")
-    attr_value = models.CharField(max_length=200, help_text=u"值")
-    is_change = models.BooleanField(default=False, blank=True, help_text=u"是否可改变")
-    scope = models.CharField(max_length=10, help_text=u"范围", default="outer")
-    options = GrOptionsCharField(max_length=100, help_text=u"参数选项", default="readonly")
-    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-
-
 class TenantServicesPort(BaseModel):
 
     class Meta:
@@ -724,20 +618,6 @@ class TenantServicesPort(BaseModel):
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
 
 
-class AppServicesPort(BaseModel):
-
-    class Meta:
-        db_table = 'app_services_port'
-
-    service_key = models.CharField(max_length=32, db_index=True, help_text=u"服务key")
-    app_version = models.CharField(max_length=12, null=True, blank=True, help_text=u"版本")
-    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
-    container_port = models.IntegerField(default=0, help_text=u"容器端口")
-    protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")
-    port_alias = models.CharField(max_length=30, default='', blank=True, help_text=u"port别名")
-    is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
-    is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
-    
 class TenantServiceMountRelation(BaseModel):
 
     class Meta:
