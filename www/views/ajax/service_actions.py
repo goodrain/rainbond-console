@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import (ServiceInfo, AppServiceInfo, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation,
+from www.models import (ServiceInfo, AppService, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation,
                         TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain,
                         TenantServiceEnvVar, TenantServicesPort, TenantServiceMountRelation)
 from www.service_http import RegionServiceApi
@@ -152,7 +152,7 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', False)
         elif action == "delete":
             try:
-                published = AppServiceInfo.objects.filter(service_id=self.service.service_id).count()
+                published = AppService.objects.filter(service_id=self.service.service_id).count()
                 if published:
                     result["status"] = "failure"
                     result["info"] = u"关联了已发布服务, 不可删除"
@@ -245,10 +245,10 @@ class ServiceManage(AuthedView):
 
     def update_app_service(self, tservice):
         try:
-            appversion = AppServiceInfo.objects.only('deploy_num').get(service_key=tservice.service_key, app_version=tservice.version, update_version=tservice.update_version)
+            appversion = AppService.objects.only('deploy_num').get(service_key=tservice.service_key, app_version=tservice.version, update_version=tservice.update_version)
             appversion.deploy_num -= 1
             appversion.save()
-        except AppServiceInfo.DoesNotExist:
+        except AppService.DoesNotExist:
             pass
 
 

@@ -25,6 +25,7 @@ class MultiDbRouter(object):
         Make sure the auth app only appears in the 'auth_db'
         database.
         """
-        if hasattr(model._meta, 'in_db'):
-            return model._meta.in_db == db
+        if model and model._meta:
+            if hasattr(model._meta, 'in_db'):
+                return model._meta.in_db == db
         return None

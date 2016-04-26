@@ -29,7 +29,7 @@ class AppService(BaseModel):
     """ 服务发布表格 """
     class Meta:
         db_table = 'app_service'
-        unique_together = (('app_key', 'app_version'), 'service_id')
+        unique_together = ('app_key', 'app_version')
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, unique=True, help_text=u"服务id")
