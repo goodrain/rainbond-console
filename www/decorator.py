@@ -55,6 +55,7 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
 
 
 def perm_required(perm):
+    logger.debug("debug", "check perm {}".format(perm))
     def perm_test(user, *args, **kwargs):
         tenantName = kwargs.get('tenantName', None)
         serviceAlias = kwargs.get('serviceAlias', None)
