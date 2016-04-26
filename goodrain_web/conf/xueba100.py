@@ -128,3 +128,6 @@ MODULES = {
 REGIONS = (
     {"name": "xueba100", "label": u'\u5b66\u9738100', "enable": True}
 )
+
+# logo path
+MEDIA_ROOT = '/data/media'

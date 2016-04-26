@@ -57,3 +57,6 @@ GITHUB_SERVICE_API = {
 SESSION_CACHE_ALIAS = 'session'
 SESSION_COOKIE_DOMAIN = '.goodrain.com'
 SESSION_COOKIE_AGE = 3600
+
+# logo path
+MEDIA_ROOT = '/data/media'

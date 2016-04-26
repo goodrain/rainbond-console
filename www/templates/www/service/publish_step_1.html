@@ -75,18 +75,19 @@
                                         </tr>
                                         </thead>
                                         <tbody>
+                                        {% if env_list_len > 0 %}
                                         {% for env in env_list %}
                                         <tr>
                                             <input type="hidden" name="env_list[{{forloop.counter}}].attr_name"
-                                                   value="{{env_list[{{forloop.counter}}].attr_name}}"/>
+                                                   value="{{env.attr_name}}"/>
                                             <input type="hidden" name="env_list[{{forloop.counter}}].name"
-                                                   value="{{env_list[{{forloop.counter}}].name}}"/>
+                                                   value="{{env.name}}"/>
                                             <td>{{env.name}}</td>
-                                            <td class="attr_name_field">{{attr_name}}</td>
+                                            <td class="attr_name_field">{{env.attr_name}}</td>
                                             <td>
                                                 <input type="text"
                                                     name="env_list[{{forloop.counter}}].attr_value"
-                                                    value="{{env_list[{{forloop.counter}}].attr_value}}" />
+                                                    value="{{env.attr_value}}" />
                                             </td>
                                             <td>
                                                 <input class="switch-box"
@@ -94,9 +95,13 @@
                                                        type="checkbox" {% if env.scope %}checked{% endif %}
                                                        data-size="mini" data-on-color="info"
                                                        data-on-text="对内" data-off-text="对外">
+                                                <select>
+
+                                                </select>
                                             </td>
                                         </tr>
                                         {% endfor %}
+                                        {% endif %}
                                         </tbody>
                                     </table>
                                     <button type="button" class="btn btn-success btn-xs" id="add_service_attr">新增环境变量</button>
@@ -121,6 +126,7 @@
                                         </tr>
                                         </thead>
                                         <tbody>
+                                        {% if port_list_len > 0 %}
                                         {% for port in port_list %}
                                         <tr>
                                             <td>
@@ -146,6 +152,7 @@
                                             </td>
                                         </tr>
                                         {% endfor %}
+                                        {% endif %}
                                         </tbody>
                                     </table>
                                     <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增端口变量</button>
@@ -155,7 +162,7 @@
                     </selection>
 
                     <div class="form-actions">
-                        <input type="submit" name="publish" value="发布" class="btn btn-lg btn-success btn-block"
+                        <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"
                                id="submit-id-publish"/>
                     </div>
                 </div>
