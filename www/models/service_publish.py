@@ -32,10 +32,7 @@ class AppService(BaseModel):
         unique_together = ('app_key', 'app_version')
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, unique=True, help_text=u"服务id")
-    service_alias = models.CharField(max_length=100, help_text=u"服务别名")
-    deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
-
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
     app_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     app_alias = models.CharField(max_length=100, help_text=u"服务发布名称")
@@ -45,10 +42,10 @@ class AppService(BaseModel):
     desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"描述")
     status = models.CharField(max_length=15, choices=app_status, help_text=u"服务状态：发布后显示还是隐藏")
     category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
-
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
     image = models.CharField(max_length=100, help_text=u"镜像")
+    slug = models.CharField(max_length=200, help_text=u"slug包路径",default="")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
@@ -58,16 +55,12 @@ class AppService(BaseModel):
     inner_port = models.IntegerField(help_text=u"内部端口", default=0)
     volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
-    language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
-
-    pay_type = models.CharField(max_length=12, default='free', choices=app_pay_choices, help_text=u"付费类型")
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"单价")
+    is_init_accout = models.BooleanField(default=False, blank=True, help_text=u"是否初始化账户")
+    creater = models.IntegerField(null=True, help_text=u"创建人")
     is_base = models.BooleanField(default=False, blank=True, help_text=u"是否基础服务")
     is_outer = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
     is_ok = models.BooleanField(help_text=u'发布是否成功', default=True)
-
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
-
+    
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
         return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
@@ -83,26 +76,21 @@ class ServiceInfo(BaseModel):
     """ 服务发布表格 """
     class Meta:
         db_table = 'service'
-        unique_together = ('app_key', 'app_version')
+        unique_together = ('service_key')
 
-    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
-    service_id = models.CharField(max_length=32, unique=True, help_text=u"服务id")
-    service_alias = models.CharField(max_length=100, help_text=u"服务别名")
-    deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
-
-    app_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
-    app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
-    app_alias = models.CharField(max_length=100, help_text=u"服务发布名称")
-    publisher = models.EmailField(max_length=35, unique=True, help_text=u"邮件地址")
-    logo = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
+    service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
+    service_name = models.CharField(max_length=100, help_text=u"服务发布名称")
+    pic = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
     info = models.CharField(max_length=100, null=True, blank=True, help_text=u"简介")
     desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"描述")
     status = models.CharField(max_length=15, choices=app_status, help_text=u"服务状态：发布后显示还是隐藏")
     category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
-
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
+    version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     image = models.CharField(max_length=100, help_text=u"镜像")
+    slug = models.CharField(max_length=200, help_text=u"slug包路径")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
@@ -110,17 +98,11 @@ class ServiceInfo(BaseModel):
     min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
     min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
     inner_port = models.IntegerField(help_text=u"内部端口", default=0)
+    publish_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
     service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
-    language = models.CharField(max_length=40, null=True, blank=True, help_text=u"代码语言")
-
-    pay_type = models.CharField(max_length=12, default='free', choices=app_pay_choices, help_text=u"付费类型")
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"单价")
-    is_base = models.BooleanField(default=False, blank=True, help_text=u"是否基础服务")
-    is_outer = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
-    is_ok = models.BooleanField(help_text=u'发布是否成功', default=True)
-
-    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    is_init_accout = models.BooleanField(default=False, blank=True, help_text=u"是否初始化账户")
+    creater = models.IntegerField(null=True, help_text=u"创建人")
 
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
@@ -192,3 +174,15 @@ class AppServiceCategory(BaseModel):
     level = models.CharField(max_length=20, choices=level_choice, help_text=u"分类级别")
     parent = models.IntegerField(db_index=True, default=0, help_text=u"父分类")
     root = models.IntegerField(db_index=True, default=0, help_text=u"根分类")
+    
+    
+class ServiceExtendMethod(BaseModel):
+
+    class Meta:
+        db_table = 'app_service_extend_method'
+
+    app_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    is_vertical = models.IntegerField(db_index=True, default=0, help_text=u"是否垂直伸缩")
+    vertical_range = models.CharField(max_length=200, default='', help_text=u"垂直伸缩的范围")
+    is_horizontal = models.IntegerField(db_index=True, default=0, help_text=u"是否水平伸缩")
+    horizontal_range = models.CharField(max_length=200, default='', help_text=u"水平伸缩的范围")
