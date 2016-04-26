@@ -22,7 +22,7 @@ app_status = (
 
 def logo_path(instance, filename):
     suffix = filename.split('.')[-1]
-    return '{0}{1}.{2}'.format(settings.LOGO_PATH, make_uuid(), suffix)
+    return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
 
 
 # 服务--app关系表格

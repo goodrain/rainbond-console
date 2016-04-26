@@ -187,4 +187,4 @@ REGIONS = (
 )
 
 # logo path
-LOGO_PATH = '/data/media/logo/'
+MEDIA_ROOT = '/data/media'
