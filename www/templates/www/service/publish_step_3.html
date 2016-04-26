@@ -4,7 +4,7 @@
 {% block main-content %}
 <section class="wrapper site-min-height">
     <div class="row">
-        <div class="col-lg-9 m-bot15">
+        <div class="col-lg-12 m-bot15">
             <!--div class="container"-->
             <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action=""
                   method="post">
@@ -29,7 +29,7 @@
 
                     <div id="div_id_app_dest" class="form-group">
                         <div class="controls col-lg-8">
-                            <input type="checkbox" id="publish_dest" name="is_outer"/>发布到云端
+                            <input type="checkbox" id="publish_dest" name="is_outer" value="0"/>发布到云端
                         </div>
                     </div>
                     <div id="div_id_app_name" class="form-group">
@@ -39,9 +39,6 @@
                             <input class="textinput textInput form-control" id="id_app_name"
                                    name="app_alias"
                                    required
-                                   data-error="不合法"
-                                   data-minlength="3"
-                                   data-remote="/ajax/form_valid"
                                    maxlength="40"
                                    type="text" value="{{app.app_alias}}"/>
                             <span class="help-block with-errors"></span>
@@ -94,7 +91,6 @@
 
                     <!--<input type="hidden" name="pay_type" value="free">-->
                     <!--<input type="hidden" name="price" value="0.00">-->
-                    {% if isinit %}
                     <div class="form-group clearfix">
                         <label for="app_type_first" class="col-sm-2 col-lg-2 control-label text-right">分类</label>
                         <div class="col-sm-10 col-lg-10">
@@ -113,7 +109,6 @@
                             </select>
                         </div>
                     </div>
-                    {% endif %}
 
                     <div class="form-actions">
                         <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"

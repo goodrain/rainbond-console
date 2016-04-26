@@ -185,3 +185,6 @@ REGIONS = (
     {"name": "ali-sh", "label": u'\u963f\u91cc\u4e91[\u4e0a\u6d77]', "enable": True},
     {"name": "aws-bj-1", "label": u'\u4e9a\u9a6c\u900a[\u5317\u4eac]', "enable": False}
 )
+
+# logo path
+LOGO_PATH = '/data/media/logo/'

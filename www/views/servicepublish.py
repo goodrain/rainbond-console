@@ -38,11 +38,11 @@ def copy_properties(copy_from, to, field_list):
 class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
     """ 服务信息配置页面 """
     def get_context(self):
-        context = super(PublishServiceView, self).get_context()
+        context = super(PublishServiceDetailView, self).get_context()
         return context
 
     def get_media(self):
-        media = super(PublishServiceView, self).get_media() + \
+        media = super(PublishServiceDetailView, self).get_media() + \
                 self.vendor('www/css/goodrainstyle.css',
                             'www/js/jquery.cookie.js',
                             'www/js/validator.min.js',
@@ -56,16 +56,16 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
         # 生成新的version
         init_data = {
-            'tenant_id': {'value': self.service.tenant_id},
-            'service_id': {'value': self.service.service_id},
-            'deploy_version': {'value': self.service.deploy_version},
-            'app_key': {'value': make_uuid(self.serviceAlias) if pre_app else pre_app.app_key},
-            'app_version': {'value': make_uuid(self.serviceAlias)[:20]},
-            'app_alias': {'value': self.service.service_alias},
-            'publisher': {'value': self.user.email},
-            'min_node': {'value': self.service.min_node},
-            'min_memory': {'value': self.service.min_memory},
-            'volume_mount_path': {'value': self.service.volume_mount_path},
+            'tenant_id': self.service.tenant_id,
+            'service_id': self.service.service_id,
+            'deploy_version': self.service.deploy_version,
+            'app_key': pre_app.app_key if pre_app else make_uuid(self.serviceAlias),
+            'app_version': pre_app.app_version if pre_app else '0.0.1',
+            'app_alias': self.service.service_alias,
+            'publisher': self.user.email,
+            'min_node': self.service.min_node,
+            'min_memory': self.service.min_memory,
+            'volume_mount_path': self.service.volume_mount_path,
         }
         # 查询对应服务的名称等信息
         context.update({'app': init_data})
@@ -94,9 +94,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             info = detail_form.cleaned_data['info']
             desc = detail_form.cleaned_data['desc']
             logo = detail_form.cleaned_data['logo']
-            app_type_first = detail_form.cleaned_data['category_1']
-            app_type_second = detail_form.cleaned_data['category_2']
-            app_type_third = detail_form.cleaned_data['category_3']
+            app_type_first = detail_form.cleaned_data['app_type_first']
+            app_type_second = detail_form.cleaned_data['app_type_second']
+            app_type_third = detail_form.cleaned_data['app_type_third']
             is_outer = detail_form.cleaned_data['is_outer']
 
             # 获取保存的服务信息
@@ -132,7 +132,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 app = copy_properties(self.service, app, filed_list)
                 app.save()
             # 跳转到服务关系页面
-            return self.redirect_to('/apps/{0}/{1}/publish/v1/relation/'.format(self.tenantName, self.serviceAlias))
+            return self.redirect_to('/apps/{0}/{1}/publish/relation/'.format(self.tenantName, self.serviceAlias))
         else:
             logger.error('service.publish', "form valid failed: {}".format(detail_form.errors))
             return HttpResponse(u"发布过程出现异常", status=500)
@@ -141,11 +141,11 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
 class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
     """ 服务关系配置页面 """
     def get_context(self):
-        context = super(PublishServiceView, self).get_context()
+        context = super(PublishServiceRelationView, self).get_context()
         return context
 
     def get_media(self):
-        media = super(PublishServiceView, self).get_media() + \
+        media = super(PublishServiceRelationView, self).get_media() + \
                 self.vendor('www/css/goodrainstyle.css',
                             'www/js/jquery.cookie.js',
                             'www/js/validator.min.js',
@@ -204,7 +204,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             # 批量增加
             new_list = AppServiceRelation.objects.bulk_create(relation_list)
             if new_list:
-                return self.redirect_to('/apps/{0}/{1}/publish/v1/extra/'.format(self.tenantName, self.serviceAlias))
+                return self.redirect_to('/apps/{0}/{1}/publish/extra/'.format(self.tenantName, self.serviceAlias))
             else:
                 logger.error('service.publish', "batch add relationship failed")
                 return HttpResponse(u"发布过程出现异常", status=500)
@@ -403,15 +403,15 @@ class ServiceDetailForm(forms.Form):
     deploy_version = forms.CharField()
     app_key = forms.CharField()
     app_version = forms.CharField()
-    pre_version = forms.CharField()
     app_alias = forms.CharField()
     logo = forms.FileField()
-    info = forms.CharField()
-    desc = forms.CharField()
-    app_type_first = forms.ChoiceField()
-    app_type_second = forms.ChoiceField()
-    app_type_third = forms.ChoiceField()
-    is_outer = forms.BooleanField()
+    info = forms.CharField(required=False)
+    desc = forms.CharField(required=False)
+    app_type_first = forms.CharField(required=False)
+    app_type_second = forms.CharField(required=False)
+    app_type_third = forms.CharField(required=False)
+    is_outer = forms.BooleanField(required=False,
+                                  initial=False)
 
 
     # 修改|新增|删除

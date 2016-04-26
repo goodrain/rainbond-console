@@ -7,6 +7,7 @@ from django.db.models.fields import DateTimeField
 from .fields import GrOptionsCharField
 from .main import BaseModel, extend_method, app_pay_choices
 from www.utils.crypt import make_uuid
+from django.conf import settings
 # Create your models here.
 
 service_status = (
@@ -21,7 +22,7 @@ app_status = (
 
 def logo_path(instance, filename):
     suffix = filename.split('.')[-1]
-    return '/data/media/logo/{0}.{1}'.format(make_uuid(), suffix)
+    return '{0}{1}.{2}'.format(settings.LOGO_PATH, make_uuid(), suffix)
 
 
 # 服务--app关系表格
