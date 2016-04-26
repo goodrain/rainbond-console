@@ -118,7 +118,7 @@ class ServiceInfo(BaseModel):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"单价")
     is_base = models.BooleanField(default=False, blank=True, help_text=u"是否基础服务")
     is_outer = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
-    is_ok = models.IntegerField(help_text=u'发布是否成功', max_length=2, notnull=True, default=1)
+    is_ok = models.BooleanField(help_text=u'发布是否成功', default=True)
 
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
