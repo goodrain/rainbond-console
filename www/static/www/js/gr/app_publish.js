@@ -125,3 +125,26 @@ $(document).ready(
       $('.env-select').closest('tr').addClass('warning');
   }
 );
+
+// 添加依赖关系
+$("#addRelation").bind("click", function () {
+    // 获取服务的信息
+    var tmpKey = $("#id_app_relation").val();
+    var tmpVersion = $("#id_app_relation").attr("version");
+    if (tmpKey == null) {
+        alert("请选择服务!")
+    }
+    // 获取依赖关系
+    var tmpValue = $("input[name=relationRadio]").val();
+    if (tmpValue == null) {
+        alert("请选择依赖关系")
+    }
+    // 添加到对应的div区域
+    if (tmpValue == "inner") {
+        suffixarray.add({key: tmpKey, version: tmpVersion})
+        $("#app_suffix").val(suffixarray)
+    } else {
+        prefixarray.add({key: tmpKey, version: tmpVersion})
+        $("#app_prefix").val(prefixarray)
+    }
+});

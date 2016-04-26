@@ -49,9 +49,9 @@
                                 <select name="min_memory" id="id_app_memory" class="form-control">
                                     {% for cuMemory in memoryList %}
                                     {% if cuMemory.value == fields.min_memory %}
-                                    <option value="{{forloop.counter}}"  selected="selected">{{cuMemory.label}}</option>
+                                    <option value="{{cuMemory.value}}"  selected="selected">{{cuMemory.label}}</option>
                                     {% else %}
-                                    <option value="{{forloop.counter}}">{{cuMemory.label}}</option>
+                                    <option value="{{cuMemory.value}}">{{cuMemory.label}}</option>
                                     {% endif %}
                                     {% endfor %}
                                 </select>
@@ -155,13 +155,8 @@
                     </selection>
 
                     <div class="form-actions">
-                        {% if isinit %}
                         <input type="submit" name="publish" value="发布" class="btn btn-lg btn-success btn-block"
                                id="submit-id-publish"/>
-                        {% else %}
-                        <input type="submit" name="update" value="更新" class="btn btn-lg btn-primary btn-block"
-                               id="submit-id-update"/>
-                        {% endif %}
                     </div>
                 </div>
             </form>

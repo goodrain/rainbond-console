@@ -22,13 +22,14 @@
                 <div class="login-wrap" style="background: #FFFFFF;">
                     {% csrf_token %}
                     <!--隐藏域-->
+                    <input type="hidden" name="tenant_id" value="{{app.tenant_id}}"/>
+                    <input type="hidden" name="service_id" value="{{app.service_id}}"/>
+                    <input type="hidden" name="deploy_version" value="{{app.deploy_version}}"/>
                     <input type="hidden" name="app_key" value="{{app.app_key}}"/>
-                    <input type="hidden" name="pre_version" value="{{app.app_version}}"/>
-
 
                     <div id="div_id_app_dest" class="form-group">
                         <div class="controls col-lg-8">
-                            <input type="checkbox" id="publish_dest" name="dist"/>发布到云端
+                            <input type="checkbox" id="publish_dest" name="is_outer"/>发布到云端
                         </div>
                     </div>
                     <div id="div_id_app_name" class="form-group">
@@ -36,7 +37,7 @@
                                 class="asteriskField">*</span></label>
                         <div class="controls col-lg-8">
                             <input class="textinput textInput form-control" id="id_app_name"
-                                   name="app_name"
+                                   name="app_alias"
                                    required
                                    data-error="不合法"
                                    data-minlength="3"
@@ -66,7 +67,7 @@
                         <div class="controls col-lg-8">
                             <textarea class="textarea form-control" cols="20"
                                       data-minlength="5" id="id_app_info"
-                                      maxlength="100" name="app_info" rows="3"
+                                      maxlength="100" name="info" rows="3"
                                       required>{{app.info}}</textarea>
                         </div>
                     </div>
@@ -76,24 +77,24 @@
                         <div class="controls col-lg-8">
                             <textarea class="textarea form-control" cols="20"
                                       data-minlength="5" id="id_app_desc"
-                                      maxlength="400" name="app_desc" rows=""
+                                      maxlength="400" name="desc" rows=""
                                       required>{{app.desc}}</textarea>
                         </div>
                     </div>
                     <div id="div_id_app_logo" class="form-group">
-                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">描述<span
+                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">图片<span
                                 class="asteriskField">*</span></label>
                         <div class="controls col-lg-8">
                             {% if app.logo %}
                                 <img src="/{{app.logo}}">
                             {% endif %}
-                            <input type="file" name="app_logo" id="id_app_logo"/>
+                            <input type="file" name="logo" id="id_app_logo"/>
                         </div>
                     </div>
 
-                    <input type="hidden" name="pay_type" value="free">
-                    <input type="hidden" name="price" value="0.00">
-                    <!--{% if isinit %}-->
+                    <!--<input type="hidden" name="pay_type" value="free">-->
+                    <!--<input type="hidden" name="price" value="0.00">-->
+                    {% if isinit %}
                     <div class="form-group clearfix">
                         <label for="app_type_first" class="col-sm-2 col-lg-2 control-label text-right">分类</label>
                         <div class="col-sm-10 col-lg-10">
@@ -112,14 +113,13 @@
                             </select>
                         </div>
                     </div>
-                    <!--{% endif %}-->
+                    {% endif %}
 
                     <div class="form-actions">
-                        <input type="submit" name="publish" value="发布" class="btn btn-lg btn-success btn-block"
+                        <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"
                                id="submit-id-publish"/>
                     </div>
                 </div>
-
             </form>
             <!--/div-->
         </div>

@@ -8,8 +8,8 @@
             <!--div class="container"-->
             <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action=""
                   method="post">
-                <input type="hidden" name="app_key" value="{{fields.app_key}}"/>
-                <input type="hidden" name="app_version" value="{{fields.app_version}}"/>
+                <input type="hidden" name="app_key" value="{{app.app_key}}"/>
+                <input type="hidden" name="app_version" value="{{app.app_version}}"/>
                 <h2 class="form-signin-heading">设置服务依赖</h2>
 
                 {% if errors %}
@@ -28,22 +28,12 @@
                         <div class="col-lg-5">
                             <label>被依赖服务</label>
                             <div class="controls" id="app_suffix">
-                                {% if suffix %}
-                                    {% for x in suffix %}
-                                        <input type="button" name="{{x.app_alias}}"/>
-                                    {% endfor %}
-                                {% endif %}
                             </div>
                         </div>
 
                         <div class="col-lg-5">
                             <label>依赖服务</label>
                             <div id="app_prefix">
-                                {% if pre_fix %}
-                                    {% for x in pre_fix %}
-                                        <input type="button" name="{{x.app_alias}}"/>
-                                    {% endfor %}
-                                {% endif %}
                             </div>
                         </div>
                     </selection>
@@ -53,19 +43,15 @@
                                 class="asteriskField">*</span></label>
                         <div class="controls col-lg-2">
                             <select name="relation" id="id_app_relation" class="form-control">
-                                {% for curNum in nodeList %}
-                                {% if curNum == fields.min_node %}
-                                <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
-                                {% else %}
-                                <option value="{{forloop.counter}}">{{curNum}}</option>
-                                {% endif %}
+                                {% for service in relationlist %}
+                                <option value="{{service.app_key}}" version="{{service.app_version}}">{{service.app_alias}}</option>
                                 {% endfor %}
                             </select>
                             <span class="help-block with-errors"></span>
                         </div>
 
-                        <input type="checkbox" id="outer" name="relationButton"/>被依赖服务
-                        <input type="checkbox" id="inner" name="relationButton"/>依赖服务
+                        <input type="radio" value="outer" name="relationRadio"/>被依赖服务
+                        <input type="radio" value="inner" name="relationRadio"/>依赖服务
                         <input type="button" id="addRelation" value="添加"/>
                     </div>
 

@@ -35,11 +35,8 @@ def copy_properties(copy_from, to, field_list):
     return to
 
 
-class PublishServiceView(LeftSideBarMixin, AuthedView):
-    """ 1, 服务发布统一按照新增处理
-        2, 所有的服务数据均从tenant_service获取
-        3, 动态配置app_version,最后统一更新为用户自定义version
-    """
+class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
+    """ 服务信息配置页面 """
     def get_context(self):
         context = super(PublishServiceView, self).get_context()
         return context
@@ -54,9 +51,8 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
 
     @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
-        # 跳转到服务发布页面
         context = self.get_context()
-        # 查询服务上一次发布的信息
+        # 获取之前发布的服务信息
         pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
         # 生成新的version
         init_data = {
@@ -71,134 +67,75 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             'min_memory': {'value': self.service.min_memory},
             'volume_mount_path': {'value': self.service.volume_mount_path},
         }
-        context.update('fields', init_data)
-        if pre_app:
-            # 查询端口信息
-            port_list = AppServicePort.objects.filter(app_key=pre_app.app_key, app_version=pre_app.app_version)\
-                .values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
-            # 查询环境信息
-            env_list = AppServiceEnv.objects.filter(app_key=pre_app.app_key, app_version=pre_app.app_version)\
-                .values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        else:
-            # 查询端口信息
-            port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id) \
-                .values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
-            # 查询环境信息
-            env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id) \
-                .values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        context.update({'fields': init_data,
-                        'port_list': list(port_list),
-                        'env_list': list(env_list),
-                        'is_init': False if pre_app else True})
+        # 查询对应服务的名称等信息
+        context.update({'app': init_data})
+        root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
+        root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
+        context['root_category_list'] = root_category_list
         # 返回页面
         return TemplateResponse(self.request,
-                                'www/service/publish_step_1.html',
+                                'www/service/publish_step_3.html',
                                 context)
 
     # form提交.
     @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         # todo 需要添加form表单验证
-        post_data = request.POST.dict()
-        logger.debug("service.publish", "post_data is {0}".format(post_data))
-        if 'publish' in post_data:
-            action = 'app_publish'
-        elif 'update' in post_data:
-            action = 'app_publish'  # 'app_update'
-        else:
-            return HttpResponse("error", status=500)
+        # 信息的表单
+        detail_form = ServiceDetailForm(request.POST, request.FILES)
+        if detail_form.is_valid():
+            logger.debug("service.publish", "post_data is {0}".format(detail_form))
+            # 获取表单信息
+            service_id = detail_form.cleaned_data['service_id']
+            deploy_version = detail_form.cleaned_data['deploy_version']
+            app_key = detail_form.cleaned_data['app_key']
+            app_version = detail_form.cleaned_data['app_version']
+            app_alias = detail_form.cleaned_data['app_version']
+            info = detail_form.cleaned_data['info']
+            desc = detail_form.cleaned_data['desc']
+            logo = detail_form.cleaned_data['logo']
+            app_type_first = detail_form.cleaned_data['category_1']
+            app_type_second = detail_form.cleaned_data['category_2']
+            app_type_third = detail_form.cleaned_data['category_3']
+            is_outer = detail_form.cleaned_data['is_outer']
 
-        func = getattr(self, 'app_publish')
-        try:
-            success = func(post_data)
-            if success:
-                return self.redirect_to('/apps/{0}/{1}/publish/v1/relation/'.format(self.tenantName, self.serviceAlias))
+            # 获取保存的服务信息
+            app = AppService.objects.filter(app_key=app_key, app_version=app_version)
+            if app:
+                # update
+                app.app_alias = app_alias
+                app.logo = logo
+                app.info = info
+                app.desc = desc
+                app.is_outer = is_outer
+                app.category = app_type_third
+                app.save()
             else:
-                logger.error('service.publish', "{} failed".format(action))
-                return HttpResponse(u"发布过程出现异常", status=500)
-        except Exception as e:
-            logger.exception('service.publish', e)
-            return HttpResponse(u"应用发布失败", status=500)
-
-    def app_publish(self, post_data):
-        """ 服务发布流程 """
-        # 添加发布服务
-        app = self._add_new_app(post_data)
-        logger.debug(u'publish.service. now add publish service ok')
-        # 添加服务端口
-        self._add_new_app_env(app, post_data)
-        logger.debug(u'publish.service. now add publish service env ok')
-        # 添加服务环境
-        self._add_new_app_port(app, post_data)
-        logger.debug(u'publish.service. now add publish service port ok')
-        logger.info("service.publish",
-                    "now publish service:{}:{}".format(app.service_id,
-                                                       app.deploy_version))
-        return True
-
-
-
-    # 添加发布服务
-    def _add_new_app(self, data):
-        # 获取之前的数据
-        pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
-        # 获X取新数据
-        app = AppService(
-            app_key=data['app_key'],
-            app_version=data['app_version'],
-            app_alias=data.get('app_alias', self.service.service_alias),
-            publisher=self.user.email,
-            logo=None if pre_app else pre_app.logo,
-            info=None if pre_app else pre_app.info,
-            desc=None if pre_app else pre_app.desc,
-            status='show' if pre_app else pre_app.status,
-            category=None if pre_app else pre_app.category,
-            volume_mount_path=data.get('volume_mount_path', self.service.volume_mount_path),
-            pay_type='free' if pre_app else pre_app.pay_type,
-            price='0.00' if pre_app else pre_app.price,
-            is_base=False if pre_app else pre_app.is_base,
-            is_outer=False if pre_app else pre_app.is_outer,
-            is_ok=1)
-        filed_list = ('tenant_id', 'service_id', 'deploy_version',
-                      'is_service', 'is_web_service', 'image',
-                      'extend_method', 'cmd', 'env', 'language',
-                      'min_node', 'min_cpu', 'min_memory', 'inner_port',
-                      'service_type')
-        app = copy_properties(self.service, app, filed_list)
-        app.save()
-        return app
-
-    def _add_new_app_env(self, app, data):
-        # 删除之前所有
-        AppServiceEnv.objects.filter(app_key=app.app_key,
-                                     app_version=app.app_version).delete()
-        env_list = data.get('env_list', [])
-        env_data = []
-        for i in env_list:
-            app_env = AppServiceEnv(app_key=app.app_key,
-                                    app_version=app.app_version)
-            filed_list = ('name', 'attr_name', 'attr_value', 'is_change',
-                          'container_port', 'scope', 'options')
-            app_env = copy_properties(i, app_env, filed_list)
-            env_data.append(app_env)
-        # 批量增加
-        AppServiceEnv.objects.bulk_create(env_data)
-        return env_data
-
-    def _add_new_app_port(self, app, data):
-        AppServicePort.objects.filter(app_key=app.app_key,
-                                      app_version=app.app_version).delete()
-        port_list = data.get('port_list', [])
-        port_data = []
-        for port in port_list:
-            app_port = AppServicePort(app_key=app.app_key,
-                                      app_version=app.app_version)
-            field_list = ('container_port', 'mapping_port', 'protocol',
-                          'port_alias', 'is_inner_service', 'is_outer_service')
-            app_port = copy_properties(port, app_port, field_list)
-            port_data.append(app_port)
-        AppServicePort.objects.bulk_create(port_data)
-        return port_data
+                # new
+                app = AppService(
+                    app_key=app_key,
+                    app_version=app_version,
+                    app_alias=app_alias,
+                    creater=self.user.email,
+                    logo=logo,
+                    info=info,
+                    desc=desc,
+                    status='show',
+                    category=app_type_third,
+                    is_base=False,
+                    is_outer=is_outer,
+                    is_ok=1)
+                filed_list = ('tenant_id', 'service_id', 'is_service', 'env',
+                              'is_web_service', 'image', 'extend_method', 'cmd',
+                              'min_node', 'min_cpu', 'min_memory', 'inner_port',
+                              'service_type', 'volume_mount_path', 'is_init_accout')
+                app = copy_properties(self.service, app, filed_list)
+                app.save()
+            # 跳转到服务关系页面
+            return self.redirect_to('/apps/{0}/{1}/publish/v1/relation/'.format(self.tenantName, self.serviceAlias))
+        else:
+            logger.error('service.publish', "form valid failed: {}".format(detail_form.errors))
+            return HttpResponse(u"发布过程出现异常", status=500)
 
 
 class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
@@ -208,7 +145,11 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         return context
 
     def get_media(self):
-        media = super(PublishServiceView, self).get_media()
+        media = super(PublishServiceView, self).get_media() + \
+                self.vendor('www/css/goodrainstyle.css',
+                            'www/js/jquery.cookie.js',
+                            'www/js/validator.min.js',
+                            'www/js/gr/app_publish.js')
         return media
 
     @perm_required('app_publish')
@@ -220,29 +161,12 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                                              Q(publisher=self.user.email)) \
             .values('tenant_id', 'service_id', 'app_alias', 'deploy_version', 'app_key', 'app_version')
         # 最新的纪录是之前新增的,获取app_key,app_version
-        pre_app = app_list.filter(service_id=self.service.service_id).order_by('ID')[1:2]
+        app = app_list.filter(service_id=self.service.service_id).order_by('ID')[:1]
         # 获取所有可配置的服务列表
         work_list = app_list.exclude(service_id=self.service.service_id)
-        # 判断之前是否已经发布过服务,获取之前的依赖关系
-        if pre_app:
-            # 查询依赖当前服务的发布服务
-            suf_fix = AppServiceRelation.objects.filter(dep_app_key=pre_app.app_key,
-                                                        dep_app_version=pre_app.app_version)
-            suf_fix_key = [x.app_key for x in suf_fix]
-            suf_fix_list = work_list.filter(service_id__in=suf_fix_key)
-            # 查询当前服务依赖的其他服务
-            pre_fix = AppServiceRelation.objects.filter(app_key=pre_app.app_key,
-                                                        app_version=pre_app.app_version)
-            pre_fix_key = [x.app_key for x in pre_fix]
-            pre_fix_list = work_list.filter(service_id__in=pre_fix_key)
-
-            work_list.remove(suf_fix_list)
-            work_list.remove(pre_fix_list)
         # 查询对应服务的名称等信息
-        context.update({'suffix': list(suf_fix_list),
-                        'prefix': list(pre_fix_list),
-                        'work_list': list(work_list),
-                        'is_publish': True if pre_app else False})
+        context.update({'relationlist': list(work_list),
+                        'app': app})
         # 返回页面
         return TemplateResponse(self.request,
                                 'www/service/publish_step_2.html',
@@ -265,6 +189,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                                               dep_app_key=app.app_key,
                                               dep_app_version=app.app_version)
                 relation_list.append(relation)
+            AppServiceRelation.objects.filter(dep_app_key=app.app_key, dep_app_version=app.app_version).delete()
         # 保存依赖当前服务的发布服务
         suf_fix_list = post_data.get("suffix", [])
         if suf_fix_list:
@@ -273,8 +198,8 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                                               app_version=app.app_version,
                                               dep_app_key=suf_fix.app_key,
                                               dep_app_version=suf_fix.app_version)
-            relation_list.append(relation)
-
+                relation_list.append(relation)
+            AppServiceRelation.objects.filter(app_key=app.app_key, app_version=app.app_version).delete()
         try:
             # 批量增加
             new_list = AppServiceRelation.objects.bulk_create(relation_list)
@@ -288,107 +213,139 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             return HttpResponse(u"应用发布失败", status=500)
 
 
-class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
-    """ 服务信息配置页面 """
+class PublishServiceView(LeftSideBarMixin, AuthedView):
+    """ 1, 服务发布统一按照新增处理
+        2, 所有的服务数据均从tenant_service获取
+        3, 动态配置app_version,最后统一更新为用户自定义version
+    """
     def get_context(self):
         context = super(PublishServiceView, self).get_context()
         return context
 
     def get_media(self):
-        media = super(PublishServiceView, self).get_media()
+        media = super(PublishServiceView, self).get_media() + \
+                self.vendor('www/css/goodrainstyle.css',
+                            'www/js/jquery.cookie.js',
+                            'www/js/validator.min.js',
+                            'www/js/gr/app_publish.js')
         return media
 
     @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
+        # 跳转到服务发布页面
         context = self.get_context()
-        # 获取之前发布的服务信息
+        # 查询服务上一次发布的信息
+        app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
         pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[1:2]
-        if pre_app:
-            pass
-        else:
-            pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
-        # 查询对应服务的名称等信息
-        context.update({'app': pre_app})
-        root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
-        root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
-        context['root_category_list'] = root_category_list
+        # 生成新的version
+        init_data = {
+            'tenant_id': {'value': self.service.tenant_id},
+            'service_id': {'value': self.service.service_id},
+            'deploy_version': {'value': self.service.deploy_version},
+            'app_key': {'value': app.app_key},
+            'app_version': {'value': app.app_version},
+            'app_alias': {'value': self.service.service_alias},
+            'publisher': {'value': self.user.email},
+            'min_node': {'value': self.service.min_node},
+            'min_memory': {'value': self.service.min_memory},
+            'volume_mount_path': {'value': self.service.volume_mount_path},
+        }
+        context.update('fields', init_data)
+        # 端口
+        port_list = AppServicePort.objects.filter(app_key=app.app_key, app_version=app.app_version).values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        if not port_list and pre_app:
+            port_list = AppServicePort.objects.filter(app_key=pre_app.app_key, app_version=pre_app.app_version).values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        # 服务不存在直接使用tenantservice
+        if not port_list:
+            port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id).values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        # 环境
+        env_list = AppServiceEnv.objects.filter(app_key=app.app_key, app_version=app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+        if not env_list and pre_app:
+            env_list = AppServiceEnv.objects.filter(app_key=pre_app.app_key, app_version=pre_app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+        #
+        if not env_list:
+            env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+
+        context.update({'port_list': list(port_list),
+                        'env_list': list(env_list),
+                        })
+        context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G')]
+        choice_list = []
+        for value, label in choices:
+            choice_list.append({"label": label, "value": value})
+        context["memoryList"] = choice_list
+
         # 返回页面
         return TemplateResponse(self.request,
-                                'www/service/publish_step_3.html',
+                                'www/service/publish_step_1.html',
                                 context)
 
     # form提交.
     @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         # todo 需要添加form表单验证
-
-        # 信息的表单
-        detail_form = ServiceDetailForm(request.POST, request.FILES)
-        if detail_form.is_valid():
-            logger.debug("service.publish", "post_data is {0}".format(detail_form))
-            # 获取表单信息
-            service_id = self.service.service_id
-            app_key = detail_form.cleaned_data['app_key']
-            app_version = detail_form.cleaned_data['app_version']
-            pre_version = detail_form.cleaned_data['pre_version']
-            app_alias = detail_form.cleaned_data['app_version']
-            info = detail_form.cleaned_data['info']
-            desc = detail_form.cleaned_data['desc']
-            category_1 = detail_form.cleaned_data['category_1']
-            category_2 = detail_form.cleaned_data['category_2']
-            category_3 = detail_form.cleaned_data['category_3']
-            logo = detail_form.cleaned_data['logo']
-            is_outer = detail_form.cleaned_data['is_outer']
-            # 获取保存的服务信息
-            app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
-            # 更新app的属性
-            app.app_alias = app_alias
-            # 这里判断版本号是否与之前的一致
-            if app_version == pre_version:
-                # 需要删除之前的纪录
-                AppService.objects.delete(app_version=pre_version, app_key=app.app_key)
-                AppServiceEnv.objects.filter(app_version=pre_version, app_key=app.app_key).delete()
-                AppServiceEnv.objects.filter(app_version=app.app_version, app_key=app.app_key).update(app_version=app_version)
-                AppServicePort.objects.filter(app_version=pre_version, app_key=app.app_key).delete()
-                AppServicePort.objects.filter(app_version=app.app_version, app_key=app.app_key).update(app_version=app_version)
-                AppServiceRelation.objects.filter(app_version=pre_version, app_key=app.app_key).delete()
-                AppServiceRelation.objects.filter(app_version=app.app_version, app_key=app.app_key).update(app_version=app_version)
-                AppServiceRelation.objects.filter(dep_app_version=pre_version, dep_app_key=app.app_key).delete()
-                AppServiceRelation.objects.filter(dep_app_version=app.app_version, dep_app_key=app.app_key).update(app_version=app_version)
-            app.app_version = app_version
-            app.info = info
-            app.desc = desc
-            app.logo = logo
-            app.category = '{}:{}:{}'.format(category_1, category_2, category_3)
-            app.save()
-
-            # 保存到service表格
-            app_record = ServiceInfo()
-            filed_list = ('tenant_id', 'service_id', 'deploy_version', 'app_key',
-                          'app_version', 'app_alias', 'publisher', 'logo', 'info',
-                          'desc', 'status', 'category', 'is_service', 'is_web_service',
-                          'image', 'extend_method', 'cmd', 'env', 'min_node',
-                          'min_cpu', 'min_memory', 'inner_port', 'volume_mount_path',
-                          'service_type', 'language', 'pay_type', 'price', 'is_base'
-                          )
-            app_record = copy_properties(app, app_record, filed_list)
-            app_record['is_outer'] = is_outer
-
-            # 通知region api进行发布操作
-            # 生成发布事件
-            event_id = self._create_publish_event(is_outer)
-            if app.is_slug():
-                self.upload_slug(app, event_id)
-            elif app.is_image():
-                self.upload_image(app, event_id)
-
-            data = {"success": True, "code": 200}
-            return JsonResponse(data, status=200)
+        post_data = request.POST.dict()
+        logger.debug("service.publish", "post_data is {0}".format(post_data))
+        # 节点\内存\cpu
+        minnode = post_data.get('min_node')
+        minmemory = post_data.get('min_memory')
+        app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
+        # app slug
+        if app.is_slug():
+            app.slug = '/app_publish/{0}/{1}.tgz'.format(app.app_key, app.app_version)
+        if minnode == self.service.min_node and minmemory == self.service.min_memory:
+            pass
         else:
-            data = {"success": False, "code": 201}
-            return JsonResponse(data, status=200)
+            app.min_node = minnode
+            app.min_memory = minmemory
+            cm = int(minmemory)
+            if cm >= 128:
+                ccpu = int(cm / 128) * 20
+                app.min_cpu = ccpu
+            app = app.save()
+        logger.debug(u'publish.service. now add publish service ok')
+        # 环境配置
+        AppServiceEnv.objects.filter(app_key=app.app_key,
+                                     app_version=app.app_version).delete()
+        env_list = post_data.get('env_list', [])
+        env_data = []
+        for i in env_list:
+            app_env = AppServiceEnv(app_key=app.app_key,
+                                    app_version=app.app_version)
+            filed_list = ('name', 'attr_name', 'attr_value', 'is_change',
+                          'container_port', 'scope', 'options')
+            app_env = copy_properties(i, app_env, filed_list)
+            env_data.append(app_env)
+        # 批量增加
+        AppServiceEnv.objects.bulk_create(env_data)
+        logger.debug(u'publish.service. now add publish service env ok')
+        # 端口配置
+        AppServicePort.objects.filter(app_key=app.app_key,
+                                      app_version=app.app_version).delete()
+        port_list = post_data.get('port_list', [])
+        port_data = []
+        for port in port_list:
+            app_port = AppServicePort(app_key=app.app_key,
+                                      app_version=app.app_version)
+            field_list = ('container_port', 'mapping_port', 'protocol',
+                          'port_alias', 'is_inner_service', 'is_outer_service')
+            app_port = copy_properties(port, app_port, field_list)
+            port_data.append(app_port)
+        AppServicePort.objects.bulk_create(port_data)
+        logger.debug(u'publish.service. now add publish service port ok')
 
-    def _create_publish_event(self, is_outer):
+        # 生成发布事件
+        event_id = self._create_publish_event()
+        if app.is_slug():
+            self.upload_slug(app, event_id)
+        elif app.is_image():
+            self.upload_image(app, event_id)
+
+        next_url = '/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias)
+        return JsonResponse({"success": True, "next_url": next_url}, status=200)
+
+    def _create_publish_event(self):
         template = {
             "user_id": self.user.nick_name,
             "tenant_id": self.service.tenant_id,
@@ -396,7 +353,6 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             "type": "publish",
             "desc": u"应用发布中...",
             "show": True,
-            "is_outer": is_outer,
         }
         try:
             body = regionClient.create_event(self.service.service_region, json.dumps(template))
@@ -405,17 +361,17 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             logger.exception("service.publish", e)
             return None
 
-    def upload_slug(self, app, event_id, is_outer):
+    def upload_slug(self, app, event_id):
         """ 上传slug包 """
         oss_upload_task = {
             "app_key": app.app_key,
             "app_version": app.app_version,
-            "service_id": app.service_id,
-            "deploy_version": app.deploy_version,
+            "service_id": self.service.service_id,
+            "deploy_version": self.service.deploy_version,
             "tenant_id": self.service.tenant_id,
             "action": "create_new_version",
             "event_id": event_id,
-            "is_outer": is_outer,
+            "is_outer": app.is_outer,
         }
         try:
             regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
@@ -424,13 +380,13 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                          "upload_slug for {0}({1}), but an error occurred".format(app.app_key, app.app_version))
             logger.exception("service.publish", e)
 
-    def upload_image(self, app, event_id, is_outer):
+    def upload_image(self, app, event_id):
         """ 上传image镜像 """
         image_upload_task = {
             "action": "create_new_version",
             "image": app.image,
             "event_id": event_id,
-            "is_outer": is_outer,
+            "is_outer": app.is_outer,
         }
 
         try:
@@ -444,17 +400,17 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
 class ServiceDetailForm(forms.Form):
     """ 服务发布详情页form """
     service_id = forms.CharField()
+    deploy_version = forms.CharField()
     app_key = forms.CharField()
     app_version = forms.CharField()
-
+    pre_version = forms.CharField()
     app_alias = forms.CharField()
     logo = forms.FileField()
     info = forms.CharField()
     desc = forms.CharField()
-    category_1 = forms.ChoiceField()
-    category_2 = forms.ChoiceField()
-    category_3 = forms.ChoiceField()
-
+    app_type_first = forms.ChoiceField()
+    app_type_second = forms.ChoiceField()
+    app_type_third = forms.ChoiceField()
     is_outer = forms.BooleanField()
 
 

@@ -48,7 +48,7 @@ urlpatterns = patterns(
     url(r'^/recharge/alipay-notify$', alipay_view.notify_url),
 
     # new publish service
-    url(r'^/(?P<serviceAlias>[\w\-]+)/publish/v1/$', PublishServiceView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/publish/v1/$', PublishServiceDetailView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/v1/relation/?$', PublishServiceRelationView.as_view()),
-    url(r'^/(?P<serviceAlias>[\w\-]+)/publish/v1/extra/?$', PublishServiceDetailView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/publish/v1/extra/?$', PublishServiceView.as_view()),
 )

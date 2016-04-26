@@ -76,7 +76,6 @@ class ServiceInfo(BaseModel):
     """ 服务发布表格 """
     class Meta:
         db_table = 'service'
-        unique_together = ('service_key')
 
     service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
     publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
