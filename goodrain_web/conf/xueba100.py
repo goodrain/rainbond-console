@@ -116,7 +116,6 @@ MODULES = {
     "Git_Code_Manual":True,
     "Finance_Center" : False,
     "Team_Invite" : False,
-    "Multi_Region" : False,
     "Monitor_Control" : False,
     "User_Register" : False,
     "Sms_Check" : False,
@@ -124,3 +123,8 @@ MODULES = {
     "Package_Show" : False,
     "RegionToken" : False
 }
+
+#"学霸100".decode('UTF-8')
+REGIONS = (
+    {"name": "xueba100", "label": u'\u5b66\u9738100', "enable": True}
+)

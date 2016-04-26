@@ -19,7 +19,7 @@ from www.utils import increase_version
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 
-from www.models import AppService, Service, AppServiceEnv, AppServicePort, AppServiceCategory, AppServiceRelation
+from www.models import AppService, ServiceInfo, AppServiceEnv, AppServicePort, AppServiceCategory, AppServiceRelation
 
 import logging
 
@@ -362,7 +362,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             app.save()
 
             # 保存到service表格
-            app_record = Service()
+            app_record = ServiceInfo()
             filed_list = ('tenant_id', 'service_id', 'deploy_version', 'app_key',
                           'app_version', 'app_alias', 'publisher', 'logo', 'info',
                           'desc', 'status', 'category', 'is_service', 'is_web_service',

@@ -1,12 +1,12 @@
 import os
 
-DEBUG = False
+DEBUG = True
 
 TEMPLATE_DEBUG = False
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
-DEFAULT_HANDLERS = ['zmq_handler']
+DEFAULT_HANDLERS = ['file_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
@@ -171,7 +171,6 @@ MODULES = {
     "Git_Code_Manual": False,
     "Finance_Center": True,
     "Team_Invite": True,
-    "Multi_Region": True,
     "Monitor_Control": True,
     "User_Register": True,
     "Sms_Check": True,
@@ -179,3 +178,10 @@ MODULES = {
     "Package_Show": True,
     "RegionToken": True
 }
+
+REGIONS = (
+    {"name": "ucloud-bj-1", "label": u'ucloud[\u5317\u4eac]', "enable": True},
+    {"name": "aws-jp-1", "label": u'\u4e9a\u9a6c\u900a[\u65e5\u672c]', "enable": True},
+    {"name": "ali-sh", "label": u'\u963f\u91cc\u4e91[\u4e0a\u6d77]', "enable": True},
+    {"name": "aws-bj-1", "label": u'\u4e9a\u9a6c\u900a[\u5317\u4eac]', "enable": False}
+)
