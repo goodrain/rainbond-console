@@ -24,6 +24,7 @@ from www.models import AppService, ServiceInfo, AppServiceEnv, AppServicePort, A
 import logging
 
 logger = logging.getLogger('default')
+regionClient = RegionServiceApi()
 
 
 # 复制数据属性
@@ -398,8 +399,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             "is_outer": is_outer,
         }
         try:
-            r = RegionServiceApi()
-            body = r.create_event(self.service.service_region, json.dumps(template))
+            body = regionClient.create_event(self.service.service_region, json.dumps(template))
             return body.event_id
         except Exception as e:
             logger.exception("service.publish", e)
@@ -418,8 +418,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             "is_outer": is_outer,
         }
         try:
-            r = RegionServiceApi()
-            r.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
+            regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
             logger.error("service.publish",
                          "upload_slug for {0}({1}), but an error occurred".format(app.app_key, app.app_version))
@@ -435,8 +434,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         }
 
         try:
-            r = RegionServiceApi()
-            r.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
                          "upload_image for {0}({1}), but an error occurred".format(app.app_key, app.app_version))
