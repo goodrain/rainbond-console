@@ -4,7 +4,7 @@ MAINTAINER qisy@goodrain.com
 RUN echo "Asia/Shanghai" > /etc/timezone;dpkg-reconfigure -f noninteractive tzdata
 
 RUN apt-get update \
-    && apt-get install -y curl wget python2.7 python2.7-dev libzmq3 libzmq3-dev python-zmq libmysqlclient-dev python-yaml python-crypto
+    && apt-get install -y curl wget python2.7 python2.7-dev libzmq3 libzmq3-dev python-zmq libmysqlclient-dev python-yaml python-crypto python-mysqldb
 
 
 RUN curl https://bootstrap.pypa.io/get-pip.py | python -
