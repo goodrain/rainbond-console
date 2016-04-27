@@ -267,7 +267,8 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         }
 
         try:
-            regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            pass
+            #regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
                          "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
