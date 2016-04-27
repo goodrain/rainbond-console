@@ -218,16 +218,16 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
         s = self.service
         baseService = BaseTenantService()
         for env in envs:
-            source_env = AppServiceEnv.objects.get(app_key=s.service_key, app_version=s.version, attr_name=env.attr_name)
+            source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version, attr_name=env.attr_name)
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
                                           env.attr_name, env.attr_value, source_env.is_change, source_env.scope)
 
-        for sys_env in AppServiceEnv.objects.filter(app_key=s.service_key, app_version=s.version, container_port__lt=0):
+        for sys_env in AppServiceEnv.objects.filter(service_key=s.service_key, app_version=s.version, container_port__lt=0):
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, sys_env.container_port, sys_env.name,
                                           sys_env.attr_name, sys_env.attr_value, sys_env.is_change, sys_env.scope)
 
     def copy_ports(self, source_service):
-        AppPorts = AppServicePort.objects.filter(app_key=self.service.service_key, app_version=self.service.version)
+        AppPorts = AppServicePort.objects.filter(service_key=self.service.service_key, app_version=self.service.version)
         baseService = BaseTenantService()
         for port in AppPorts:
             baseService.addServicePort(self.service, source_service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,

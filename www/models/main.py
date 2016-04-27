@@ -208,11 +208,13 @@ class ServiceInfo(BaseModel):
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
     version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
+    update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     image = models.CharField(max_length=100, help_text=u"镜像")
     slug = models.CharField(max_length=200, help_text=u"slug包路径")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
+    dependecy = models.CharField(max_length=100, default="", help_text=u"依赖服务--service_key待确认")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)
     min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
     min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
@@ -231,7 +233,7 @@ class ServiceInfo(BaseModel):
         return not self.is_slug(self)
 
     def __unicode__(self):
-        return u"{0}({1})".format(self.service_id, self.app_key)
+        return u"{0}({1})".format(self.service_id, self.service_key)
 
 class TenantServiceInfo(BaseModel):
 

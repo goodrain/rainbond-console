@@ -20,7 +20,7 @@ logger = logging.getLogger('default')
 
 
 class ServicePublishForm(forms.Form):
-    app_key = fields.CharField(
+    service_key = fields.CharField(
         required=False, max_length=32,
         validators=[is_standard_word, is_sensitive],
         min_length=3, ajax_check=True, pattern=standard_regex_string,
@@ -76,13 +76,13 @@ class ServicePublishForm(forms.Form):
                 self.fields[field].widget.attrs.update(attrs)
 
         if is_update:
-            del self.fields['app_key'].widget.attrs['data-remote']
+            del self.fields['service_key'].widget.attrs['data-remote']
             submit = Submit('update', u'更新', css_class='btn btn-lg btn-primary btn-block')
         else:
             submit = Submit('publish', u'发布', css_class='btn btn-lg btn-success btn-block')
 
         self.helper.layout = Layout(
-            Field('app_key'),
+            Field('service_key'),
             Field('app_name'),
             Field('app_version'),
             Field('app_info'),
@@ -139,13 +139,13 @@ class PublishServiceForm(forms.Form):
                 self.fields[field].widget.attrs.update(attrs)
 
         if is_update:
-            del self.fields['app_key'].widget.attrs['data-remote']
+            del self.fields['service_key'].widget.attrs['data-remote']
             submit = Submit('update', u'更新', css_class='btn btn-lg btn-primary btn-block')
         else:
             submit = Submit('publish', u'发布', css_class='btn btn-lg btn-success btn-block')
 
         self.helper.layout = Layout(
-            Field('app_key'),
+            Field('service_key'),
             Field('app_name'),
             Field('app_version'),
             Field('app_info'),
