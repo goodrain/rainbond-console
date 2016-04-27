@@ -10,19 +10,10 @@ from www.utils.crypt import make_uuid
 from django.conf import settings
 # Create your models here.
 
-service_status = (
-    (u"已发布", 'published'), (u"测试中", "test"),
-)
-
 
 app_status = (
     ('show', u'显示'), ("hidden", u'隐藏'),
 )
-
-
-def logo_path(instance, filename):
-    suffix = filename.split('.')[-1]
-    return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
 
 
 # 服务--app关系表格
