@@ -112,7 +112,7 @@ class Users(models.Model):
 
     @property
     def is_sys_admin(self):
-        admins = ('liufan@gmail.com', 'messi@goodrain.com',  'elviszhang@163.com', 'rhino@goodrain.com',
+        admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
                   'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
         return bool(self.email in admins)
 
@@ -191,6 +191,47 @@ extend_method = (
     (u"不伸缩", 'stateless'), (u"垂直伸缩", 'vertical')
 )
 
+
+class ServiceInfo(BaseModel):
+    """ 服务发布表格 """
+    class Meta:
+        db_table = 'service'
+
+    service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
+    service_name = models.CharField(max_length=100, help_text=u"服务发布名称")
+    pic = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
+    info = models.CharField(max_length=100, null=True, blank=True, help_text=u"简介")
+    desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"描述")
+    status = models.CharField(max_length=15, choices=app_status, help_text=u"服务状态：发布后显示还是隐藏")
+    category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
+    is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
+    is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
+    version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
+    image = models.CharField(max_length=100, help_text=u"镜像")
+    slug = models.CharField(max_length=200, help_text=u"slug包路径")
+    extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
+    cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
+    env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
+    min_node = models.IntegerField(help_text=u"启动个数", default=1)
+    min_cpu = models.IntegerField(help_text=u"cpu个数", default=500)
+    min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=256)
+    inner_port = models.IntegerField(help_text=u"内部端口", default=0)
+    publish_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    volume_mount_path = models.CharField(max_length=50, null=True, blank=True, help_text=u"mount目录")
+    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型:web,mysql,redis,mongodb,phpadmin")
+    is_init_accout = models.BooleanField(default=False, blank=True, help_text=u"是否初始化账户")
+    creater = models.IntegerField(null=True, help_text=u"创建人")
+
+    def is_slug(self):
+        # return bool(self.image.startswith('goodrain.me/runner'))
+        return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
+
+    def is_image(self):
+        return not self.is_slug(self)
+
+    def __unicode__(self):
+        return u"{0}({1})".format(self.service_id, self.app_key)
 
 class TenantServiceInfo(BaseModel):
 
