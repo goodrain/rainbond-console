@@ -27,11 +27,6 @@
                     <input type="hidden" name="deploy_version" value="{{app.deploy_version}}"/>
                     <input type="hidden" name="service_key" value="{{app.service_key}}"/>
 
-                    <div id="div_id_app_dest" class="form-group">
-                        <div class="controls col-lg-8">
-                            <input type="checkbox" id="publish_dest" name="is_outer" value="0"/>发布到云端
-                        </div>
-                    </div>
                     <div id="div_id_app_name" class="form-group">
                         <label for="id_app_name" class="control-label col-lg-2 requiredField">应用名称<span
                                 class="asteriskField">*</span></label>
@@ -109,7 +104,24 @@
                             </select>
                         </div>
                     </div>
-
+                    
+                    <div id="div_id_app_logo" class="form-group">
+                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">是否发布到云端<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            <input type="checkbox" id="publish_dest" name="is_outer" value="0"/>
+                        </div>
+                    </div>
+                    
+                    <div id="div_id_app_logo" class="form-group">
+                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">是否初始化账户<span
+                                class="asteriskField">*</span></label>
+                        <div class="controls col-lg-8">
+                            <input type="checkbox" id="init_account" name="is_outer" value="0"/>
+                        </div>
+                    </div>
+                    
+                
                     <div class="form-actions">
                         <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"
                                id="submit-id-publish"/>
