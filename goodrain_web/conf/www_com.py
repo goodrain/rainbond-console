@@ -65,15 +65,7 @@ DATABASES = {
         'PASSWORD': os.environ.get('MYSQL_PASSWORD'),
         'HOST': os.environ.get('MYSQL_HOST'),
         'PORT': os.environ.get('MYSQL_PORT'),
-    },
-    'stack': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'stack',
-        'USER': os.environ.get('MYSQL_USER'),
-        'PASSWORD': os.environ.get('MYSQL_PASSWORD'),
-        'HOST': os.environ.get('MYSQL_HOST'),
-        'PORT': os.environ.get('MYSQL_PORT'),
-    },
+    }
 }
 
 HTTP_PROXY = {
