@@ -191,9 +191,6 @@ extend_method = (
     (u"不伸缩", 'stateless'), (u"垂直伸缩", 'vertical')
 )
 
-def logo_path(instance, filename):
-    suffix = filename.split('.')[-1]
-    return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
 
 class ServiceInfo(BaseModel):
     """ 服务发布表格 """
@@ -203,7 +200,7 @@ class ServiceInfo(BaseModel):
     service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
     publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
     service_name = models.CharField(max_length=100, help_text=u"服务发布名称")
-    pic = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
+    pic = models.CharField(max_length=100, null=True, blank=True, help_text=u"logo")
     info = models.CharField(max_length=100, null=True, blank=True, help_text=u"简介")
     desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"描述")
     status = models.CharField(max_length=15, choices=service_status, help_text=u"服务状态：发布后显示还是隐藏")
