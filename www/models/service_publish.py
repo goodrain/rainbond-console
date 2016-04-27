@@ -110,9 +110,9 @@ class AppServiceRelation(BaseModel):
     class Meta:
         db_table = 'app_service_relation'
 
-    service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
-    dep_service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    dep_service_key = models.CharField(max_length=32, help_text=u"服务key")
     dep_app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
 
 level_choice = (
@@ -137,7 +137,10 @@ class ServiceExtendMethod(BaseModel):
         db_table = 'app_service_extend_method'
 
     service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
-    is_vertical = models.IntegerField(db_index=True, default=0, help_text=u"是否垂直伸缩")
-    vertical_range = models.CharField(max_length=200, default='', help_text=u"垂直伸缩的范围")
-    is_horizontal = models.IntegerField(db_index=True, default=0, help_text=u"是否水平伸缩")
-    horizontal_range = models.CharField(max_length=200, default='', help_text=u"水平伸缩的范围")
+    app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
+    min_node = models.IntegerField(default=1, help_text=u"最小节点")
+    max_node = models.IntegerField(default=20, help_text=u"最大节点")
+    step_node = models.IntegerField(default=1, help_text=u"节点步长")
+    min_memory = models.IntegerField(default=1, help_text=u"最小内存")
+    max_memory = models.IntegerField(default=20, help_text=u"最大内存")
+    step_memory = models.IntegerField(default=1, help_text=u"内存步长")

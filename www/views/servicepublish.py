@@ -16,7 +16,7 @@ from www.models import TenantServicesPort, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 
-from www.models import AppService, AppServiceEnv, AppServicePort, AppServiceCategory, AppServiceRelation
+from www.models import AppService, AppServiceEnv, AppServicePort, AppServiceCategory, AppServiceRelation,ServiceExtendMethod
 
 import logging
 
@@ -381,6 +381,11 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         # 节点\内存\cpu
         minnode = post_data.get('min_node')
         minmemory = post_data.get('min_memory')
+        maxnode=post_data.get('max_node')
+        maxmemory=post_data.get('max_memory')
+        stepnode=post_data.get('step_node')
+        stepmemory=post_data.get('step_memory')
+        
         app = AppService.objects.get(service_key=service_key, app_version=app_version)
         if minnode == self.service.min_node and minmemory == self.service.min_memory:
             pass
@@ -435,7 +440,19 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             port_data.append(app_port)
         AppServicePort.objects.bulk_create(port_data)
         logger.debug(u'publish.service. now add publish service port ok')
-
+        
+        ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
+        extendMethod={}
+        extendMethod["service_key"]=service_key
+        extendMethod["app_version"]=app_version
+        extendMethod["min_node"]=service_key
+        extendMethod["max_node"]=maxnode
+        extendMethod["step_node"]=stepnode
+        extendMethod["min_memory"]=minmemory
+        extendMethod["max_memory"]=maxmemory
+        extendMethod["step_memory"]=stepmemory
+        ServiceExtendMethod(**extendMethod).save()
+        
         return self.redirect_to('/apps/{0}/{1}/publish/relation/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
 
 

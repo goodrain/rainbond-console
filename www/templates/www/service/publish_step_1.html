@@ -29,15 +29,38 @@
                             <label for="id_app_node" class="control-label col-lg-2 requiredField">服务节点<span
                                     class="asteriskField">*</span></label>
                             <div class="controls col-lg-8">
-                                <select name="min_node" id="id_app_node" class="form-control">
-                                    {% for curNum in nodeList %}
-                                    {% if curNum == fields.min_node %}
-                                    <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
-                                    {% else %}
-                                    <option value="{{forloop.counter}}">{{curNum}}</option>
-                                    {% endif %}
-                                    {% endfor %}
-                                </select>
+                                <div class="controls col-lg-4">
+                                    最小节点:
+                                    <select name="min_node" id="min_app_node" class="control-label">
+                                        {% for curNum in nodeList %}
+                                        {% if curNum == fields.min_node %}
+                                        <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                                        {% else %}
+                                        <option value="{{forloop.counter}}">{{curNum}}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="controls col-lg-4">
+                                    最大节点:
+                                    <select name="max_node" id="max_app_node" class="control-label">
+                                        {% for curNum in nodeList %}
+                                        {% if curNum == fields.min_node %}
+                                        <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                                        {% else %}
+                                        <option value="{{forloop.counter}}">{{curNum}}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="controls col-lg-4">
+                                    步长：
+                                    <select name="step_node" id="step_app_node" class="control-label">
+                                        <option value="1"  selected="selected">1</option>\
+                                        <option value="2">2</option>
+                                    </select>
+                                </div>
+                                
                                 <span class="help-block with-errors"></span>
                             </div>
                         </div>
@@ -46,7 +69,21 @@
                             <label for="id_app_memory" class="control-label col-lg-2 requiredField">内存调整<span
                                     class="asteriskField">*</span></label>
                             <div class="controls col-lg-8">
-                                <select name="min_memory" id="id_app_memory" class="form-control">
+                               <div class="controls col-lg-4">
+                                    最小内存：
+                                    <select name="min_memory" id="min_app_memory" class="control-label">
+                                        {% for cuMemory in memoryList %}
+                                        {% if cuMemory.value == fields.min_memory %}
+                                        <option value="{{cuMemory.value}}"  selected="selected">{{cuMemory.label}}</option>
+                                        {% else %}
+                                        <option value="{{cuMemory.value}}">{{cuMemory.label}}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                               </div>
+                               <div class="controls col-lg-4">
+                                最大内存：
+                                <select name="max_memory" id="max_app_memory" class="control-label">
                                     {% for cuMemory in memoryList %}
                                     {% if cuMemory.value == fields.min_memory %}
                                     <option value="{{cuMemory.value}}"  selected="selected">{{cuMemory.label}}</option>
@@ -55,6 +92,15 @@
                                     {% endif %}
                                     {% endfor %}
                                 </select>
+                               </div>
+                               <div class="controls col-lg-4">
+                                步长：
+                                <select name="step_memory" id="step_app_memory" class="control-label">
+                                    <option value="128"  selected="selected">128M</option>\
+                                    <option value="256">256M</option>
+                                    <option value="512">512M</option>
+                                </select>
+                               </div>
                                 <span class="help-block with-errors"></span>
                             </div>
                         </div>
