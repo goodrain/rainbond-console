@@ -275,13 +275,14 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         env_data = []
         env_list = env_string.split(";")
         for env in env_list:
-            name, attr_name, attr_value, scope = env.split(",")
+            name, attr_name, attr_value, scope, is_change = env.split(",")
             app_env = AppServiceEnv(service_key=app.service_key,
                                     app_version=app.app_version,
                                     name=name,
                                     attr_name=attr_name,
                                     attr_value=attr_value,
                                     scope=scope,
+                                    is_change=is_change,
                                     container_port=0)
             env_data.append(app_env)
         # 批量增加

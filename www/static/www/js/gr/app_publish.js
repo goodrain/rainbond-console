@@ -190,6 +190,7 @@ $("#add_service_attr").bind("click", function () {
             .append($("<option/>").val("inner").text("对内"))
             .append($("<option/>").val("outer").text("对外"))
             .appendTo($("<td/>").appendTo(tr));
+    $("<td/>").append($("<input/>").attr({"type":"checkbox", "id":"env_list_"+num+"_change"})).appendTo(tr);
     $("<td/>").append($("<button/>").text("X").attr("onclick", "javascript:removetr(this);")).appendTo(tr);
     $("#env_body").append(tr);
     $("#env_list_len").val(num);
@@ -222,7 +223,7 @@ var checkdata = function () {
     $("input[name='env_list']").remove();
     var envarray = new Array()
     for (var i = 1; i <= num; i++) {
-        var tmparray = new Array(4)
+        var tmparray = new Array(5)
         var tmpname = "env_list_"+ i + "_name";
         if (typeof($('#'+tmpname+'')) === 'undefined') {
             continue;
@@ -234,6 +235,8 @@ var checkdata = function () {
         tmparray[2] = $('#'+tmpname+'').val();
         tmpname = "env_list_"+ i + "_scope";
         tmparray[3] = $('#'+tmpname+'').val();
+        tmpname = "env_list_"+ i + "_change";
+        tmparray[4] = $('#'+tmpname+'').prop("checked") ? 1 : 0;
         envarray.push(tmparray.join(','))
     }
     $("<input/>").attr({"type":"hidden", "name":"env_list"})

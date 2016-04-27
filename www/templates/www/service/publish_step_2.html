@@ -120,6 +120,7 @@
                                             <th>变量名</th>
                                             <th>变量值</th>
                                             <th>作用域</th>
+                                            <th>是否可修改</th>
                                             <th>操作</th>
                                         </tr>
                                         </thead>
@@ -149,6 +150,11 @@
                                                         <option value="both">对外</option>
                                                     {% endif %}
                                                 </select>
+                                            </td>
+                                            <td>
+                                                <input type="checkbox" id="env_list_{{forloop.counter}}_change"
+                                                       {% if env.is_change %}checked{% endif %}
+                                                />
                                             </td>
                                             <td><button onclick="javascript:removetr(this);">X</button></td>
                                         </tr>
