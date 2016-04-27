@@ -61,6 +61,8 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
         if len(pre_app) == 1:
             pre_app = list(pre_app)[0]
+            if pre_app.category:
+                first, second, third = pre_app.category.split(",")
             init_data.update({
                 'service_key': pre_app.service_key,
                 'app_version': pre_app.app_version,
@@ -70,8 +72,11 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'volume_mount_path': pre_app.volume_mount_path,
                 'info': pre_app.info,
                 'desc': pre_app.desc,
-                'is_outer':pre_app.is_outer,
+                'is_outer': pre_app.is_outer,
                 'is_init_accout': pre_app.is_init_accout,
+                'first': first if first else 0,
+                'second': second if second else 0,
+                'thrid': third if third else 0,
             })
         else:
             init_data.update({
@@ -93,7 +98,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         context['root_category_list'] = root_category_list
         # 返回页面
         return TemplateResponse(self.request,
-                                'www/service/publish_step_3.html',
+                                'www/service/publish_step_1.html',
                                 context)
 
     # form提交.
@@ -129,7 +134,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 app.desc = desc
                 app.is_outer = is_outer
                 app.is_init_accout = is_init_accout
-                app.category = app_type_third
+                app.category = '{},{},{}'.format(app_type_first, app_type_second, app_type_third)
                 app.save()
             else:
                 # new
@@ -142,7 +147,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     info=info,
                     desc=desc,
                     status='show',
-                    category=app_type_third,
+                    category='{},{},{}'.format(app_type_first, app_type_second, app_type_third),
                     is_base=False,
                     is_outer=is_outer,
                     is_init_accout=is_init_accout,
@@ -160,6 +165,164 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         else:
             logger.error('service.publish', "form valid failed: {}".format(detail_form.errors))
             return HttpResponse(u"发布过程出现异常", status=500)
+
+
+class PublishServiceView(LeftSideBarMixin, AuthedView):
+    """ 1, 服务发布统一按照新增处理
+        2, 所有的服务数据均从tenant_service获取
+        3, 动态配置app_version,最后统一更新为用户自定义version
+    """
+    def get_context(self):
+        context = super(PublishServiceView, self).get_context()
+        return context
+
+    def get_media(self):
+        media = super(PublishServiceView, self).get_media() + \
+                self.vendor('www/css/goodrainstyle.css',
+                            'www/js/jquery.cookie.js',
+                            'www/js/validator.min.js',
+                            'www/js/gr/app_publish.js')
+        return media
+
+    @perm_required('app_publish')
+    def get(self, request, *args, **kwargs):
+        # 跳转到服务发布页面
+        context = self.get_context()
+        service_key = request.GET.get('service_key')
+        app_version = request.GET.get('app_version')
+        # 查询服务上一次发布的信息,不存在会异常
+        app = AppService.objects.get(service_key=service_key, app_version=app_version)
+        # 查询上一次发布的服务
+        pre_app = AppService.objects.filter(service_key=service_key).order_by('ID')[1:2]
+        if len(pre_app) == 1:
+            pre_app = list(pre_app)[0]
+        # 生成新的version
+        init_data = {
+            'tenant_id': self.service.tenant_id,
+            'service_id': self.service.service_id,
+            'deploy_version': self.service.deploy_version,
+            'service_key': app.service_key,
+            'app_version': app.app_version,
+            'app_alias': self.service.service_alias,
+            'publisher': self.user.email,
+            'min_node': self.service.min_node,
+            'min_memory': self.service.min_memory,
+            'volume_mount_path': self.service.volume_mount_path,
+        }
+        context.update({'fields': init_data})
+        # 端口
+        port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        if not port_list and pre_app:
+            port_list = AppServicePort.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        # 服务不存在直接使用tenantservice
+        if not port_list:
+            port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        # 环境
+        env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+        if not env_list and pre_app:
+            env_list = AppServiceEnv.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+        #
+        if not env_list:
+            env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+
+        context.update({'port_list': list(port_list),
+                        'env_list': list(env_list), })
+        context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G')]
+        choice_list = []
+        for value, label in choices:
+            choice_list.append({"label": label, "value": value})
+        context["memoryList"] = choice_list
+
+        # 返回页面
+        return TemplateResponse(self.request,
+                                'www/service/publish_step_2.html',
+                                context)
+
+    # form提交.
+    @perm_required('app_publish')
+    def post(self, request, *args, **kwargs):
+        # todo 需要添加form表单验证
+        post_data = request.POST.dict()
+        service_key = post_data.get('service_key')
+        app_version = post_data.get('app_version')
+        logger.debug("service.publish", "post_data is {0}".format(post_data))
+        # 节点\内存\cpu
+        minnode = post_data.get('min_node')
+        minmemory = post_data.get('min_memory')
+        maxnode=post_data.get('max_node')
+        maxmemory=post_data.get('max_memory')
+        stepnode=post_data.get('step_node')
+        stepmemory=post_data.get('step_memory')
+        
+        app = AppService.objects.get(service_key=service_key, app_version=app_version)
+        if minnode == self.service.min_node and minmemory == self.service.min_memory:
+            pass
+        else:
+            app.min_node = minnode
+            app.min_memory = minmemory
+            cm = int(minmemory)
+            if cm >= 128:
+                ccpu = int(cm / 128) * 20
+                app.min_cpu = ccpu
+            app.save()
+        logger.debug(u'publish.service. now add publish service ok')
+        # 环境配置
+        AppServiceEnv.objects.filter(service_key=app.service_key,
+                                     app_version=app.app_version).delete()
+        env_string = post_data.get('env_list')
+        logger.info("env_list={}".format(env_string))
+        env_data = []
+        env_list = env_string.split(";")
+        for env in env_list:
+            name, attr_name, attr_value, scope = env.split(",")
+            app_env = AppServiceEnv(service_key=app.service_key,
+                                    app_version=app.app_version,
+                                    name=name,
+                                    attr_name=attr_name,
+                                    attr_value=attr_value,
+                                    scope=scope,
+                                    container_port=0)
+            env_data.append(app_env)
+        # 批量增加
+        AppServiceEnv.objects.bulk_create(env_data)
+        logger.debug(u'publish.service. now add publish service env ok')
+        # 端口配置
+        AppServicePort.objects.filter(service_key=app.service_key,
+                                      app_version=app.app_version).delete()
+        port_string = post_data.get('port_list')
+        port_data = []
+        port_list = port_string.split(";")
+        for port in port_list:
+            container_port, protocol, port_alias, is_inner_service, is_outer_service = port.split(",")
+            if is_inner_service == "0":
+                is_inner_service = ""
+            if is_outer_service == "0":
+                is_outer_service = ""
+            app_port = AppServicePort(service_key=app.service_key,
+                                      app_version=app.app_version,
+                                      container_port=container_port,
+                                      protocol=protocol,
+                                      port_alias=port_alias,
+                                      is_inner_service=is_inner_service,
+                                      is_outer_service=is_outer_service)
+            port_data.append(app_port)
+        AppServicePort.objects.bulk_create(port_data)
+        logger.debug(u'publish.service. now add publish service port ok')
+        
+        ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
+        extendMethod={}
+        extendMethod["service_key"]=service_key
+        extendMethod["app_version"]=app_version
+        extendMethod["min_node"]=minnode
+        extendMethod["max_node"]=maxnode
+        extendMethod["step_node"]=stepnode
+        extendMethod["min_memory"]=minmemory
+        extendMethod["max_memory"]=maxmemory
+        extendMethod["step_memory"]=stepmemory
+        ServiceExtendMethod(**extendMethod).save()
+        
+        return self.redirect_to('/apps/{0}/{1}/publish/relation/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
 
 
 class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
@@ -183,19 +346,28 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
         # 查询基础服务,和当前用户发布的服务publisher in None,self.user.email
-        app_list = AppService.objects.filter(Q(is_base=True) | 
+        app_list = AppService.objects.filter(Q(is_base=True) |
                                              Q(creater=self.user.pk)) \
             .values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
         # 最新的纪录是之前新增的,获取service_key,app_version
         app = app_list.get(service_key=service_key, app_version=app_version)
         # 获取所有可配置的服务列表
         work_list = app_list.exclude(service_id=self.service.service_id)
+        # 查询依赖关系
+        suffix = AppServiceRelation.objects.filter(service_key=service_key,
+                                                   app_version=app_version)
+        prefix = AppServiceRelation.objects.filter(dep_service_key=service_key,
+                                                   dep_app_version=app_version)
+        context.update({
+            'suffix': list(suffix),
+            'prefix': list(prefix),
+        })
         # 查询对应服务的名称等信息
         context.update({'relationlist': list(work_list),
                         'app': app})
         # 返回页面
         return TemplateResponse(self.request,
-                                'www/service/publish_step_2.html',
+                                'www/service/publish_step_3.html',
                                 context)
 
     # form提交.
@@ -299,164 +471,6 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             logger.error("service.publish",
                          "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
             logger.exception("service.publish", e)
-
-
-class PublishServiceView(LeftSideBarMixin, AuthedView):
-    """ 1, 服务发布统一按照新增处理
-        2, 所有的服务数据均从tenant_service获取
-        3, 动态配置app_version,最后统一更新为用户自定义version
-    """
-    def get_context(self):
-        context = super(PublishServiceView, self).get_context()
-        return context
-
-    def get_media(self):
-        media = super(PublishServiceView, self).get_media() + \
-                self.vendor('www/css/goodrainstyle.css',
-                            'www/js/jquery.cookie.js',
-                            'www/js/validator.min.js',
-                            'www/js/gr/app_publish.js')
-        return media
-
-    @perm_required('app_publish')
-    def get(self, request, *args, **kwargs):
-        # 跳转到服务发布页面
-        context = self.get_context()
-        service_key = request.GET.get('service_key')
-        app_version = request.GET.get('app_version')
-        # 查询服务上一次发布的信息,不存在会异常
-        app = AppService.objects.get(service_key=service_key, app_version=app_version)
-        # 查询上一次发布的服务
-        pre_app = AppService.objects.filter(service_key=service_key).order_by('ID')[1:2]
-        if len(pre_app) == 1:
-            pre_app = list(pre_app)[0]
-        # 生成新的version
-        init_data = {
-            'tenant_id': self.service.tenant_id,
-            'service_id': self.service.service_id,
-            'deploy_version': self.service.deploy_version,
-            'service_key': app.service_key,
-            'app_version': app.app_version,
-            'app_alias': self.service.service_alias,
-            'publisher': self.user.email,
-            'min_node': self.service.min_node,
-            'min_memory': self.service.min_memory,
-            'volume_mount_path': self.service.volume_mount_path,
-        }
-        context.update({'fields': init_data})
-        # 端口
-        port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
-        if not port_list and pre_app:
-            port_list = AppServicePort.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
-        # 服务不存在直接使用tenantservice
-        if not port_list:
-            port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
-        # 环境
-        env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        if not env_list and pre_app:
-            env_list = AppServiceEnv.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        #
-        if not env_list:
-            env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-
-        context.update({'port_list': list(port_list),
-                        'env_list': list(env_list), })
-        context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-        choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G')]
-        choice_list = []
-        for value, label in choices:
-            choice_list.append({"label": label, "value": value})
-        context["memoryList"] = choice_list
-
-        # 返回页面
-        return TemplateResponse(self.request,
-                                'www/service/publish_step_1.html',
-                                context)
-
-    # form提交.
-    @perm_required('app_publish')
-    def post(self, request, *args, **kwargs):
-        # todo 需要添加form表单验证
-        post_data = request.POST.dict()
-        service_key = post_data.get('service_key')
-        app_version = post_data.get('app_version')
-        logger.debug("service.publish", "post_data is {0}".format(post_data))
-        # 节点\内存\cpu
-        minnode = post_data.get('min_node')
-        minmemory = post_data.get('min_memory')
-        maxnode=post_data.get('max_node')
-        maxmemory=post_data.get('max_memory')
-        stepnode=post_data.get('step_node')
-        stepmemory=post_data.get('step_memory')
-        
-        app = AppService.objects.get(service_key=service_key, app_version=app_version)
-        if minnode == self.service.min_node and minmemory == self.service.min_memory:
-            pass
-        else:
-            app.min_node = minnode
-            app.min_memory = minmemory
-            cm = int(minmemory)
-            if cm >= 128:
-                ccpu = int(cm / 128) * 20
-                app.min_cpu = ccpu
-            app.save()
-        logger.debug(u'publish.service. now add publish service ok')
-        # 环境配置
-        AppServiceEnv.objects.filter(service_key=app.service_key,
-                                     app_version=app.app_version).delete()
-        env_string = post_data.get('env_list')
-        logger.info("env_list={}".format(env_string))
-        env_data = []
-        env_list = env_string.split(";")
-        for env in env_list:
-            name, attr_name, attr_value, scope = env.split(",")
-            app_env = AppServiceEnv(service_key=app.service_key,
-                                    app_version=app.app_version,
-                                    name=name,
-                                    attr_name=attr_name,
-                                    attr_value=attr_value,
-                                    scope=scope,
-                                    container_port=0)
-            env_data.append(app_env)
-        # 批量增加
-        AppServiceEnv.objects.bulk_create(env_data)
-        logger.debug(u'publish.service. now add publish service env ok')
-        # 端口配置
-        AppServicePort.objects.filter(service_key=app.service_key,
-                                      app_version=app.app_version).delete()
-        port_string = post_data.get('port_list')
-        port_data = []
-        port_list = port_string.split(";")
-        for port in port_list:
-            container_port, protocol, port_alias, is_inner_service, is_outer_service = port.split(",")
-            if is_inner_service == "0":
-                is_inner_service = ""
-            if is_outer_service == "0":
-                is_outer_service = ""
-            app_port = AppServicePort(service_key=app.service_key,
-                                      app_version=app.app_version,
-                                      container_port=container_port,
-                                      protocol=protocol,
-                                      port_alias=port_alias,
-                                      is_inner_service=is_inner_service,
-                                      is_outer_service=is_outer_service)
-            port_data.append(app_port)
-        AppServicePort.objects.bulk_create(port_data)
-        logger.debug(u'publish.service. now add publish service port ok')
-        
-        ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
-        extendMethod={}
-        extendMethod["service_key"]=service_key
-        extendMethod["app_version"]=app_version
-        extendMethod["min_node"]=minnode
-        extendMethod["max_node"]=maxnode
-        extendMethod["step_node"]=stepnode
-        extendMethod["min_memory"]=minmemory
-        extendMethod["max_memory"]=maxmemory
-        extendMethod["step_memory"]=stepmemory
-        ServiceExtendMethod(**extendMethod).save()
-        
-        return self.redirect_to('/apps/{0}/{1}/publish/relation/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
 
 
 class ServiceDetailForm(forms.Form):

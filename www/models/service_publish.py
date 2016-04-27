@@ -112,8 +112,10 @@ class AppServiceRelation(BaseModel):
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
+    app_alias = models.CharField(max_length=100, help_text=u"服务发布名称")
     dep_service_key = models.CharField(max_length=32, help_text=u"服务key")
     dep_app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
+    dep_app_alias = models.CharField(max_length=100, help_text=u"服务发布名称")
 
 level_choice = (
     ('end', 'end'), ('secondary', 'secondary'), ('root', 'root')

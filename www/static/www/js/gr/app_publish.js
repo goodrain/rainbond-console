@@ -145,12 +145,12 @@ $("#addRelation").bind("click", function () {
     if (tmpValue == "suffix") {
         $("<div />").text(tmpAlias).attr({"data-key":tmpKey, "data-version":tmpVersion})
                 .addClass("controls controls-row")
-                .append($("<span/>").text("x").attr("onclick", "javascript:removelabel(this);"))
+                .append($("<button/>").text("X").attr("onclick", "javascript:removelabel(this);"))
                 .appendTo($("#app_suffix"));
     } else {
         $("<div />").text(tmpAlias).attr({"data-key":tmpKey, "data-version":tmpVersion})
                 .addClass("controls controls-row")
-                .append($("<span/>").text("x").attr("onclick", "javascript:removelabel(this);"))
+                .append($("<button/>").text("X").attr("onclick", "javascript:removelabel(this);"))
                 .appendTo($("#app_prefix"));
     }
 });
@@ -232,7 +232,6 @@ var checkdata = function () {
         tmparray[2] = $('#'+tmpname+'').val();
         tmpname = "env_list_"+ i + "_scope";
         tmparray[3] = $('#'+tmpname+'').val();
-        alert(tmparray.join(','));
         envarray.push(tmparray.join(','))
     }
     $("<input/>").attr({"type":"hidden", "name":"env_list"})
@@ -256,7 +255,6 @@ var checkdata = function () {
         tmparray[3] = $('#'+tmpname+'').prop("checked") ? 1 : 0;
         tmpname = "port_list_"+ i + "_is_outer_service";
         tmparray[4] = $('#'+tmpname+'').prop("checked") ? 1 : 0;
-        alert(tmparray.join(','));
         portarry.push(tmparray.join(','));
     }
     $("<input/>").attr({"type":"hidden", "name":"port_list"})
