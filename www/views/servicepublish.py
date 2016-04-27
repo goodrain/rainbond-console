@@ -187,10 +187,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                                              Q(creater=self.user.pk)) \
             .values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
         # 最新的纪录是之前新增的,获取service_key,app_version
-        app = app_list.filter(service_key=service_key, app_version=app_version)
-        if not app:
-            logger.error('service.publish', "service_key={},app_version={} error".format(service_key, app_version))
-            return HttpResponse(u"发布过程出现异常", status=500)
+        app = app_list.get(service_key=service_key, app_version=app_version)
         # 获取所有可配置的服务列表
         work_list = app_list.exclude(service_id=self.service.service_id)
         # 查询对应服务的名称等信息
@@ -212,23 +209,29 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         app = AppService.objects.get(service_key=service_key, app_version=app_version)
         # 保存当前服务依赖的其他服务
         relation_list = []
-        pre_fix_list = post_data.get("prefix", [])
+        pre_fix_string = post_data.get("prefix")
+        logger.info("pre_fix_string={}".format(pre_fix_string))
+        pre_fix_list = pre_fix_string.split(";")
         if pre_fix_list:
             for pre_fix in pre_fix_list:
-                relation = AppServiceRelation(service_key=pre_fix.service_key,
-                                              app_version=pre_fix.app_version,
+                pre_key, pre_version = pre_fix.split(",")
+                relation = AppServiceRelation(service_key=pre_key,
+                                              app_version=pre_version,
                                               dep_service_key=app.service_key,
                                               dep_app_version=app.app_version)
                 relation_list.append(relation)
             AppServiceRelation.objects.filter(dep_service_key=app.service_key, dep_app_version=app.app_version).delete()
         # 保存依赖当前服务的发布服务
-        suf_fix_list = post_data.get("suffix", [])
+        suf_fix_string = post_data.get("suffix")
+        logger.info("pre_fix_string={}".format(suf_fix_string))
+        suf_fix_list = suf_fix_string.split(";")
         if suf_fix_list:
             for suf_fix in suf_fix_list:
+                suf_key, suf_version = suf_fix.split(",")
                 relation = AppServiceRelation(service_key=app.service_key,
                                               app_version=app.app_version,
-                                              dep_service_key=suf_fix.service_key,
-                                              dep_app_version=suf_fix.app_version)
+                                              dep_service_key=suf_key,
+                                              dep_app_version=suf_version)
                 relation_list.append(relation)
             AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version).delete()
 

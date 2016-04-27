@@ -25,39 +25,48 @@
                     {% csrf_token %}
 
                     <selection>
-                        <div class="col-lg-5">
-                            <label>被依赖服务</label>
-                            <div class="controls" id="app_suffix">
+                        <div class="col-lg-6 row">
+                            <label>依赖服务</label>
+                            <input type="hidden" name="suffix"/>
+                            <div class="controls" id="app_suffix" style="height: 300px">
+
                             </div>
                         </div>
 
-                        <div class="col-lg-5">
-                            <label>依赖服务</label>
-                            <div id="app_prefix">
+                        <div class="col-lg-6">
+                            <label>被依赖服务</label>
+                            <input type="hidden" name="prefix"/>
+                            <div id="app_prefix" id="app_prefix" style="height: 300px">
                             </div>
                         </div>
                     </selection>
 
-                    <div id="div_app_relation" class="form-group">
+                    <div id="div_app_relation" class="form-group col-lg-12">
                         <label for="id_app_relation" class="control-label col-lg-2 requiredField">服务节点<span
                                 class="asteriskField">*</span></label>
-                        <div class="controls col-lg-2">
-                            <select name="relation" id="id_app_relation" class="form-control">
+                        <div class="controls col-lg-4">
+                            <select id="id_app_relation" class="form-control">
                                 {% for service in relationlist %}
-                                <option value="{{service.service_key}}" version="{{service.app_version}}">{{service.app_alias}}</option>
+                                <option value="{{service.service_key}}" data-version="{{service.app_version}}"
+                                        data-alias="{{service.app_alias}}">{{service.app_alias}}</option>
                                 {% endfor %}
                             </select>
                             <span class="help-block with-errors"></span>
                         </div>
+                        <div class="col-lg-4">
+                            <input type="radio" value="prefix" name="relationRadio" />被依赖服务
+                            <input type="radio" value="suffix" name="relationRadio" checked/>依赖服务
+                        </div>
+                        <div class="col-lg-2">
+                            <input type="button" id="addRelation" value="添加"/>
+                        </div>
 
-                        <input type="radio" value="outer" name="relationRadio"/>被依赖服务
-                        <input type="radio" value="inner" name="relationRadio"/>依赖服务
-                        <input type="button" id="addRelation" value="添加"/>
                     </div>
 
 
                     <div class="form-actions">
                         <input type="submit" name="publish" value="发布" class="btn btn-lg btn-success btn-block"
+                               onclick="return relationdata();"
                                id="submit-id-publish"/>
                     </div>
                 </div>

@@ -130,24 +130,52 @@ $(document).ready(
 $("#addRelation").bind("click", function () {
     // 获取服务的信息
     var tmpKey = $("#id_app_relation").val();
-    var tmpVersion = $("#id_app_relation").attr("version");
+    var op = $("#id_app_relation").find("option[value='"+tmpKey+"']")
+    var tmpVersion = $(op).attr("data-version");
+    var tmpAlias = $(op).attr("data-alias");
     if (tmpKey == null) {
         alert("请选择服务!")
     }
     // 获取依赖关系
-    var tmpValue = $("input[name=relationRadio]").val();
+    var tmpValue = $("input[name=relationRadio]:checked").val()
     if (tmpValue == null) {
         alert("请选择依赖关系")
     }
     // 添加到对应的div区域
-    if (tmpValue == "inner") {
-        suffixarray.add({key: tmpKey, version: tmpVersion})
-        $("#app_suffix").val(suffixarray)
+    if (tmpValue == "suffix") {
+        $("<div />").text(tmpAlias).attr({"data-key":tmpKey, "data-version":tmpVersion})
+                .addClass("controls controls-row")
+                .append($("<span/>").text("x").attr("onclick", "javascript:removelabel(this);"))
+                .appendTo($("#app_suffix"));
     } else {
-        prefixarray.add({key: tmpKey, version: tmpVersion})
-        $("#app_prefix").val(prefixarray)
+        $("<div />").text(tmpAlias).attr({"data-key":tmpKey, "data-version":tmpVersion})
+                .addClass("controls controls-row")
+                .append($("<span/>").text("x").attr("onclick", "javascript:removelabel(this);"))
+                .appendTo($("#app_prefix"));
     }
 });
+var removelabel = function (label) {
+    var lableobj = $(label).closest('div');
+    $(lableobj).remove();
+    return false;
+};
+var relationdata = function () {
+    var suffix = new Array();
+    $("#app_suffix").find("div").each(function (obj, callback, args) {
+        skey = $(this).attr("data-key");
+        svalue = $(this).attr("data-version");
+        suffix.push(skey + ", " + svalue)
+    });
+    $("input[name='suffix']").val(suffix.join(";"))
+    var prefix = new Array();
+    $("#app_prefix").find("div").each(function (obj, callback, args) {
+        pkey = $(this).attr("data-key");
+        pvalue = $(this).attr("data-version");
+        prefix.push(pkey + ", " + pvalue)
+    });
+    $("input[name='prefix']").val(prefix.join(";"))
+    return true;
+}
 
 $("#add_service_attr").bind("click", function () {
     //获取当前数量
@@ -235,4 +263,6 @@ var checkdata = function () {
             .val(portarry.join(";")).appendTo($("#port_body"));
     return true;
 }
+
+
 
