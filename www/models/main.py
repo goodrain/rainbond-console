@@ -112,7 +112,7 @@ class Users(models.Model):
 
     @property
     def is_sys_admin(self):
-        admins = ('liufan@gmail.com', 'messi@goodrain.com',  'elviszhang@163.com', 'rhino@goodrain.com',
+        admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
                   'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
         return bool(self.email in admins)
 
@@ -370,7 +370,6 @@ class TenantServiceInfoDelete(BaseModel):
 
     class Meta:
         db_table = 'tenant_service_delete'
-        unique_together = ('tenant_id', 'service_alias')
 
     service_id = models.CharField(
         max_length=32, unique=True, help_text=u"服务id")
@@ -737,7 +736,8 @@ class AppServicesPort(BaseModel):
     port_alias = models.CharField(max_length=30, default='', blank=True, help_text=u"port别名")
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
-    
+
+
 class TenantServiceMountRelation(BaseModel):
 
     class Meta:
@@ -748,4 +748,3 @@ class TenantServiceMountRelation(BaseModel):
     dep_service_id = models.CharField(max_length=32, help_text=u"依赖服务id")
     mnt_name = models.CharField(max_length=100, help_text=u"mnt name")
     mnt_dir = models.CharField(max_length=400, help_text=u"mnt dir")
-    
