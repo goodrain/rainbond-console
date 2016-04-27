@@ -183,7 +183,11 @@
                                         {% for port in port_list %}
                                         <tr>
                                             <td>
-                                                <input type="text" id="port_list_{{forloop.counter}}_container_port" value="{{port.container_port}}"/>
+                                                <input type="text" id="port_list_{{forloop.counter}}_container_port"
+                                                       required
+                                                       data-error="不合法"
+                                                       pattern="^\d+$"
+                                                       value="{{port.container_port}}"/>
                                             </td>
                                             <td>
                                                 <select id="port_list_{{forloop.counter}}_protocol">

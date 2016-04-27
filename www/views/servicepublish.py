@@ -58,7 +58,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         }
         
         # 获取之前发布的服务信息
-        pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
+        pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('-ID')[:1]
         if len(pre_app) == 1:
             pre_app = list(pre_app)[0]
             if pre_app.category:
@@ -86,10 +86,10 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'min_node': self.service.min_node,
                 'min_memory': self.service.min_memory,
                 'volume_mount_path': self.service.volume_mount_path,
-                'info': self.service.info,
-                'desc': self.service.desc,
+                'info': '',
+                'desc': self.service.desc if self.service.desc else '',
                 'is_init_accout': False,
-                'is_outer':pre_app.is_outer,
+                'is_outer': False,
             })
         # 查询对应服务的名称等信息
         context.update({'app': init_data})
@@ -112,7 +112,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             # 获取表单信息
             service_key = detail_form.cleaned_data['service_key']
             app_version = detail_form.cleaned_data['app_version']
-            app_alias = detail_form.cleaned_data['app_version']
+            app_alias = detail_form.cleaned_data['app_alias']
             info = detail_form.cleaned_data['info']
             desc = detail_form.cleaned_data['desc']
             logo = detail_form.cleaned_data['logo']
@@ -193,8 +193,9 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         # 查询服务上一次发布的信息,不存在会异常
         app = AppService.objects.get(service_key=service_key, app_version=app_version)
         # 查询上一次发布的服务
-        pre_app = AppService.objects.filter(service_key=service_key).order_by('ID')[1:2]
-        if len(pre_app) == 1:
+        pre_app = AppService.objects.filter(service_key=service_key).order_by('-ID')[1:2]
+        pre_num = len(pre_app)
+        if pre_num == 1:
             pre_app = list(pre_app)[0]
         # 生成新的version
         init_data = {
@@ -212,17 +213,16 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         context.update({'fields': init_data})
         # 端口
         port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
-        if not port_list and pre_app:
+        if len(port_list) < 1 and pre_num == 1:
             port_list = AppServicePort.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         # 服务不存在直接使用tenantservice
-        if not port_list:
+        if len(port_list) < 1:
             port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         # 环境
         env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        if not env_list and pre_app:
+        if len(env_list) < 1 and pre_num == 1:
             env_list = AppServiceEnv.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        #
-        if not env_list:
+        if len(env_list) < 1:
             env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
 
         context.update({'port_list': list(port_list),
@@ -352,7 +352,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         # 最新的纪录是之前新增的,获取service_key,app_version
         app = app_list.get(service_key=service_key, app_version=app_version)
         # 获取所有可配置的服务列表
-        work_list = app_list.exclude(service_id=self.service.service_id)
+        work_list = app_list.exclude(service_key=service_key, app_version=app_version)
         # 查询依赖关系
         suffix = AppServiceRelation.objects.filter(service_key=service_key,
                                                    app_version=app_version)
@@ -386,12 +386,15 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         pre_fix_list = pre_fix_string.split(";")
         if pre_fix_list:
             for pre_fix in pre_fix_list:
-                pre_key, pre_version = pre_fix.split(",")
-                relation = AppServiceRelation(service_key=pre_key,
-                                              app_version=pre_version,
-                                              dep_service_key=app.service_key,
-                                              dep_app_version=app.app_version)
-                relation_list.append(relation)
+                if pre_fix:
+                    pre_key, pre_version, pre_alias = pre_fix.split(",")
+                    relation = AppServiceRelation(service_key=pre_key,
+                                                  app_version=pre_version,
+                                                  app_alias=pre_alias,
+                                                  dep_service_key=app.service_key,
+                                                  dep_app_version=app.app_version,
+                                                  dep_app_alias=app.app_alias)
+                    relation_list.append(relation)
             AppServiceRelation.objects.filter(dep_service_key=app.service_key, dep_app_version=app.app_version).delete()
         # 保存依赖当前服务的发布服务
         suf_fix_string = post_data.get("suffix")
@@ -399,12 +402,15 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         suf_fix_list = suf_fix_string.split(";")
         if suf_fix_list:
             for suf_fix in suf_fix_list:
-                suf_key, suf_version = suf_fix.split(",")
-                relation = AppServiceRelation(service_key=app.service_key,
-                                              app_version=app.app_version,
-                                              dep_service_key=suf_key,
-                                              dep_app_version=suf_version)
-                relation_list.append(relation)
+                if suf_fix:
+                    suf_key, suf_version, suf_alias = suf_fix.split(",")
+                    relation = AppServiceRelation(service_key=app.service_key,
+                                                  app_version=app.app_version,
+                                                  app_alias=app.app_alias,
+                                                  dep_service_key=suf_key,
+                                                  dep_app_version=suf_version,
+                                                  dep_app_alias=suf_alias)
+                    relation_list.append(relation)
             AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version).delete()
 
         # 批量增加

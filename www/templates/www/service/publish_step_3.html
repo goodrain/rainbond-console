@@ -31,7 +31,8 @@
                             <div class="controls" id="app_suffix" style="height: 300px">
                                 {% if suffix %}
                                 {% for x in suffix %}
-                                    <div data-key="{{x.dep_service_key}}" data-version="{{x.dep_app_version}}" class="controls controls-row" >
+                                    <div data-key="{{x.dep_service_key}}" data-version="{{x.dep_app_version}}"
+                                         class="controls controls-row" data-alias="{{x.dep_app_alias}}">
                                         {{x.dep_app_alias}}-{{x.dep_app_version}}
                                         <button onclick="javascript:removelabel(this);">X</button>
                                     </div>
@@ -46,7 +47,8 @@
                             <div id="app_prefix" id="app_prefix" style="height: 300px">
                                 {% if prefix %}
                                 {% for x in prefix %}
-                                <div data-key="{{x.service_key}}" data-version="{{x.app_version}}" class="controls controls-row" >
+                                <div data-key="{{x.service_key}}" data-version="{{x.app_version}}"
+                                     class="controls controls-row" data-alias="{{x.app_alias}}">
                                     {{x.app_alias}}-{{x.app_version}}
                                     <button onclick="javascript:removelabel(this);">X</button>
                                 </div>
@@ -69,8 +71,8 @@
                             <span class="help-block with-errors"></span>
                         </div>
                         <div class="col-lg-4">
-                            <input type="radio" value="prefix" name="relationRadio" />被依赖服务
                             <input type="radio" value="suffix" name="relationRadio" checked/>依赖服务
+                            <input type="radio" value="prefix" name="relationRadio" />被依赖服务
                         </div>
                         <div class="col-lg-2">
                             <input type="button" id="addRelation" value="添加"/>

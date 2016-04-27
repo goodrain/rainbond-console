@@ -143,12 +143,12 @@ $("#addRelation").bind("click", function () {
     }
     // 添加到对应的div区域
     if (tmpValue == "suffix") {
-        $("<div />").text(tmpAlias).attr({"data-key":tmpKey, "data-version":tmpVersion})
+        $("<div />").text(tmpAlias+'-'+tmpVersion).attr({"data-key":tmpKey, "data-version":tmpVersion, "data-alias": tmpAlias})
                 .addClass("controls controls-row")
                 .append($("<button/>").text("X").attr("onclick", "javascript:removelabel(this);"))
                 .appendTo($("#app_suffix"));
     } else {
-        $("<div />").text(tmpAlias).attr({"data-key":tmpKey, "data-version":tmpVersion})
+        $("<div />").text(tmpAlias+'-'+tmpVersion).attr({"data-key":tmpKey, "data-version":tmpVersion, "data-alias": tmpAlias})
                 .addClass("controls controls-row")
                 .append($("<button/>").text("X").attr("onclick", "javascript:removelabel(this);"))
                 .appendTo($("#app_prefix"));
@@ -164,14 +164,16 @@ var relationdata = function () {
     $("#app_suffix").find("div").each(function (obj, callback, args) {
         skey = $(this).attr("data-key");
         svalue = $(this).attr("data-version");
-        suffix.push(skey + ", " + svalue)
+        salias = $(this).attr("data-alias");
+        suffix.push(skey + ", " + svalue + "," + salias)
     });
     $("input[name='suffix']").val(suffix.join(";"))
     var prefix = new Array();
     $("#app_prefix").find("div").each(function (obj, callback, args) {
         pkey = $(this).attr("data-key");
         pvalue = $(this).attr("data-version");
-        prefix.push(pkey + ", " + pvalue)
+        salias = $(this).attr("data-alias");
+        prefix.push(pkey + ", " + pvalue + "," + salias)
     });
     $("input[name='prefix']").val(prefix.join(";"))
     return true;
