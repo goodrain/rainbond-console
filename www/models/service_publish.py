@@ -30,7 +30,7 @@ class AppService(BaseModel):
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
-    service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     app_alias = models.CharField(max_length=100, help_text=u"服务发布名称")
     logo = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
@@ -56,7 +56,7 @@ class AppService(BaseModel):
     is_outer = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
     is_ok = models.BooleanField(help_text=u'发布是否成功', default=True)
     creater = models.IntegerField(null=True, help_text=u"创建人")
-    publisher = models.EmailField(max_length=35, unique=True, help_text=u"邮件地址")
+    publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
     
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
@@ -136,7 +136,7 @@ class ServiceExtendMethod(BaseModel):
     class Meta:
         db_table = 'app_service_extend_method'
 
-    service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     min_node = models.IntegerField(default=1, help_text=u"最小节点")
     max_node = models.IntegerField(default=20, help_text=u"最大节点")
