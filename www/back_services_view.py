@@ -7,8 +7,7 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import (AppService, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppService,
-                        App, AppUsing, AppServicePort, AppServiceEnv, TenantServicesPort, TenantServiceEnvVar)
+from www.models import (ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServicePort, AppServiceEnv, TenantServicesPort)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService
 from www.monitorservice.monitorhook import MonitorHook
@@ -38,10 +37,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            if self.user.is_sys_admin or "app_publish" in self.user.actions:
-                cacheServiceList = AppService.objects.all()
-            else:
-                cacheServiceList = AppService.objects.filter(is_ok=True)
+            cacheServiceList = ServiceInfo.objects.all()
             context["cacheServiceList"] = cacheServiceList
             context["serviceMarketStatus"] = "active"
             context["tenantName"] = self.tenantName
@@ -77,7 +73,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         for string in dependency_service:
             service_alias, service_key = string.split('.', 1)
             if service_alias == '__new__':
-                new_s = AppService.objects.get(service_key=service_key)
+                new_s = ServiceInfo.objects.get(service_key=service_key)
                 new_services.append(new_s)
             else:
                 exist_t_s = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=service_alias)
@@ -100,7 +96,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             context["serviceMarketStatus"] = "active"
 
-            serviceObj = AppService.objects.get(service_key=service_key)
+            serviceObj = ServiceInfo.objects.get(service_key=service_key)
             context["service"] = serviceObj
             context["dependecy_services"] = self.find_dependecy_services(serviceObj)
             context["tenantName"] = self.tenantName
@@ -138,7 +134,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "exist"
                 return JsonResponse(result, status=200)
 
-            service = AppService.objects.get(service_key=service_key)
+            service = ServiceInfo.objects.get(service_key=service_key)
             service_memory = request.POST.get("service_memory", "")
             if service_memory != "":
                 cm = int(service_memory)
@@ -146,7 +142,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     ccpu = int(cm / 128) * 20
                     service.min_cpu = ccpu
                     service.min_memory = cm
-            logger.debug(service.min_memory)
 
             dependency_service = request.POST.getlist("dependency_service")
             logger.debug(dependency_service)
@@ -180,8 +175,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
-                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
-                        # baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
+                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True) 
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)
@@ -195,15 +189,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                         logger.exception(e)
 
             # create console service
-
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
 
-            if service.category == 'app_publish':
-                newTenantService = self.update_app_service(service, newTenantService)
-
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
-
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias
@@ -214,37 +203,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
             result["status"] = "failure"
         return JsonResponse(result, status=200)
-
-    def update_app_service(self, service, newTenantService):
-        with transaction.atomic():
-            appversion = AppService.objects.defer('change_log').get(service_key=service.service_key, app_version=service.version, update_version=service.update_version)
-            appversion.deploy_num += 1
-            appversion.view_num += 1
-            appversion.save(update_fields=['deploy_num', 'view_num'])
-
-        try:
-            app = App.objects.get(service_key=service.service_key)
-        except App.DoesNotExist:
-            pass
-        else:
-            app_use, created = AppUsing.objects.get_or_create(app_id=app.pk, user_id=self.user.pk)
-            app_use.install_count = app_use.install_count + 1
-            app_use.save()
-
-        newTenantService, update_fields = self.copy_properties(appversion, newTenantService)
-        newTenantService.save(update_fields=update_fields)
-        return newTenantService
-
-    def copy_properties(self, copy_from, to):
-        update_fields = []
-        for field in ('deploy_version', 'update_version', 'cmd', 'setting', 'image', 'dependecy', 'env', 'service_type'):
-            if hasattr(to, field) and hasattr(copy_from, field):
-                to_value = getattr(to, field)
-                from_value = getattr(copy_from, field)
-                if to_value != from_value:
-                    setattr(to, field, from_value)
-                    update_fields.append(field)
-        return to, update_fields
 
 
 class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
@@ -260,21 +218,16 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
         s = self.service
         baseService = BaseTenantService()
         for env in envs:
-            source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version,
-                                                      update_version=s.update_version, attr_name=env.attr_name)
+            source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version, attr_name=env.attr_name)
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
                                           env.attr_name, env.attr_value, source_env.is_change, source_env.scope)
 
-        for sys_env in AppServiceEnv.objects.filter(service_key=s.service_key, app_version=s.version,
-                                                       update_version=s.update_version, container_port__lt=0):
+        for sys_env in AppServiceEnv.objects.filter(service_key=s.service_key, app_version=s.version, container_port__lt=0):
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, sys_env.container_port, sys_env.name,
                                           sys_env.attr_name, sys_env.attr_value, sys_env.is_change, sys_env.scope)
 
     def copy_ports(self, source_service):
-        if self.service.category in ("app_publish", "app_sys_publish"):
-            AppPorts = AppServicePort.objects.filter(service_key=self.service.service_key, app_version=self.service.version, update_version=self.service.update_version)
-        else:
-            AppPorts = AppServicePort.objects.filter(service_key=self.service.service_key)
+        AppPorts = AppServicePort.objects.filter(service_key=self.service.service_key, app_version=self.service.version)
         baseService = BaseTenantService()
         for port in AppPorts:
             baseService.addServicePort(self.service, source_service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
@@ -282,12 +235,12 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context()
-        envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version, update_version=self.service.update_version, container_port=0)
+        envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version, container_port=0)
         if envs:
             context['envs'] = envs
             return TemplateResponse(request, 'www/back_service_create_step_2.html', context)
         else:
-            source_service = AppService.objects.get(service_key=self.service.service_key)
+            source_service = ServiceInfo.objects.get(service_key=self.service.service_key)
             self.copy_envs(source_service, [])
             self.copy_ports(source_service)
             baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
@@ -298,7 +251,7 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
         try:
             data = json.loads(request.body)
             data = Dict(data)
-            source_service = AppService.objects.get(service_key=self.service.service_key)
+            source_service = ServiceInfo.objects.get(service_key=self.service.service_key)
             self.copy_envs(source_service, data.envs)
             self.copy_ports(source_service)
             # create region tenantservice

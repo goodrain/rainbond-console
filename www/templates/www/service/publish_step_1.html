@@ -4,11 +4,11 @@
 {% block main-content %}
 <section class="wrapper site-min-height">
     <div class="row">
-        <div class="col-lg-9 m-bot15">
+        <div class="col-lg-12 m-bot15">
             <!--div class="container"-->
             <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action=""
                   method="post">
-                <input type="hidden" name="app_key" value="{{fields.app_key}}"/>
+                <input type="hidden" name="service_key" value="{{fields.service_key}}"/>
                 <input type="hidden" name="app_version" value="{{fields.app_version}}"/>
                 <h2 class="form-signin-heading"> 发布应用</h2>
 
@@ -68,37 +68,41 @@
                                     <table class="table table-hover" id="env_table">
                                         <thead>
                                         <tr>
+                                            <th>名称</th>
                                             <th>变量名</th>
                                             <th>变量值</th>
-                                            <th>说明</th>
-                                            <th>变量范围</th>
+                                            <th>作用域</th>
+                                            <th>操作</th>
                                         </tr>
                                         </thead>
-                                        <tbody>
-                                        {% if env_list_len > 0 %}
+                                        <tbody id="env_body">
+                                        <input type="hidden" id="env_list_len" value="{{env_list|length}}"/>
+                                        {% if env_list %}
                                         {% for env in env_list %}
                                         <tr>
-                                            <input type="hidden" name="env_list[{{forloop.counter}}].attr_name"
-                                                   value="{{env.attr_name}}"/>
-                                            <input type="hidden" name="env_list[{{forloop.counter}}].name"
-                                                   value="{{env.name}}"/>
-                                            <td>{{env.name}}</td>
-                                            <td class="attr_name_field">{{env.attr_name}}</td>
+                                            <td><input type="text" name="env_list[{{forloop.counter}}].name" value="{{env.name}}"/></td>
+                                            <td><input type="text" name="env_list[{{forloop.counter}}].attr_name" value="{{env.attr_name}}"/></td>
+                                            <td><input type="text" name="env_list[{{forloop.counter}}].attr_value" value="{{env.attr_value}}"/></td>
                                             <td>
-                                                <input type="text"
-                                                    name="env_list[{{forloop.counter}}].attr_value"
-                                                    value="{{env.attr_value}}" />
-                                            </td>
-                                            <td>
-                                                <input class="switch-box"
-                                                       name="env_list[{{forloop.counter}}].scope"
-                                                       type="checkbox" {% if env.scope %}checked{% endif %}
-                                                       data-size="mini" data-on-color="info"
-                                                       data-on-text="对内" data-off-text="对外">
-                                                <select>
-
+                                                <select name="env_list[{{forloop.counter}}].scope">
+                                                    {% ifequal env.scope 'inner' %}
+                                                        <option value="inner" selected>对内</option>
+                                                    {% else %}
+                                                        <option value="inner">对内</option>
+                                                    {% endifequal %}
+                                                    {% ifequal env.scope 'outer' %}
+                                                        <option value="outer" selected>对外</option>
+                                                    {% else %}
+                                                        <option value="outer">对外</option>
+                                                    {% endifequal %}
+                                                    {% ifequal env.scope 'both' %}
+                                                    <option value="both" selected>内外</option>
+                                                    {% else %}
+                                                    <option value="both">内外</option>
+                                                    {% endifequal %}
                                                 </select>
                                             </td>
+                                            <td><button onclick="javascript:removetr(this);">X</button></td>
                                         </tr>
                                         {% endfor %}
                                         {% endif %}
@@ -118,27 +122,43 @@
                                     <table class="table table-hover" id="port_table">
                                         <thead>
                                         <tr>
-                                            <th>端口号</th>
+                                            <th>容器端口</th>
+                                            <th>映射端口</th>
                                             <th>协议类型</th>
                                             <th>别名</th>
-                                            <th>对内服务</th>
-                                            <th>对外服务</th>
+                                            <th>内部端口</th>
+                                            <th>外部端口</th>
+                                            <th>操作</th>
                                         </tr>
                                         </thead>
-                                        <tbody>
-                                        {% if port_list_len > 0 %}
+                                        <tbody id="port_body">
+                                        <input type="hidden" id="port_list_len" value="{{port_list|length}}"/>
+                                        {% if port_list %}
                                         {% for port in port_list %}
                                         <tr>
                                             <td>
-                                                <input name="port_list[{{forloop.counter}}].container_port"
-                                                       value="{{port_list[{{forloop.counter}}].container_port}}"
-                                                />
+                                                <input type="text" name="port_list[{{forloop.counter}}].container_port" value="{{port.container_port}}"/>
                                             </td>
-                                            <td>{{port.protocol}}</td>
+                                            <td>
+                                                <input type="text" name="port_list[{{forloop.counter}}].mapping_port" value="{{port.mapping_port}}"/>
+                                            </td>
+                                            <td>
+                                                <select name="port_list[{{forloop.counter}}].protocol">
+                                                    {% ifequal port.protocol 'http' %}
+                                                    <option value="http" selected>HTTP</option>
+                                                    {% else %}
+                                                    <option value="http">HTTP</option>
+                                                    {% endifequal %}
+                                                    {% ifequal port.protocol 'stream' %}
+                                                    <option value="stream" selected>STREAM</option>
+                                                    {% else %}
+                                                    <option value="stream">STREAM</option>
+                                                    {% endifequal %}
+                                                </select>
+                                            </td>
                                             <td>
                                                 <input name="port_list[{{forloop.counter}}].port_alias"
-                                                       value="{{port_list[{{forloop.counter}}].port_alias}}"
-                                                />
+                                                       value="{{port.port_alias}}" disabled/>
                                             </td>
                                             <td>
                                                 <input class="switch-box" name="port_list[{{forloop.counter}}].is_inner_service"
@@ -150,6 +170,7 @@
                                                        type="checkbox" {% if port.is_outer_service %}checked{% endif %}
                                                        data-size="mini" data-on-color="success" data-on-text="开启" data-off-text="关闭">
                                             </td>
+                                            <td><button onclick="javascript:removetr(this);">X</button></td>
                                         </tr>
                                         {% endfor %}
                                         {% endif %}
@@ -163,6 +184,7 @@
 
                     <div class="form-actions">
                         <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"
+                               onclick="return checkdata();"
                                id="submit-id-publish"/>
                     </div>
                 </div>

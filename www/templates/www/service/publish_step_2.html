@@ -4,11 +4,11 @@
 {% block main-content %}
 <section class="wrapper site-min-height">
     <div class="row">
-        <div class="col-lg-9 m-bot15">
+        <div class="col-lg-12 m-bot15">
             <!--div class="container"-->
             <form id="app_publish_form" class="form-public-app form-horizontal" enctype="multipart/form-data" action=""
                   method="post">
-                <input type="hidden" name="app_key" value="{{app.app_key}}"/>
+                <input type="hidden" name="service_key" value="{{app.service_key}}"/>
                 <input type="hidden" name="app_version" value="{{app.app_version}}"/>
                 <h2 class="form-signin-heading">设置服务依赖</h2>
 
@@ -44,7 +44,7 @@
                         <div class="controls col-lg-2">
                             <select name="relation" id="id_app_relation" class="form-control">
                                 {% for service in relationlist %}
-                                <option value="{{service.app_key}}" version="{{service.app_version}}">{{service.app_alias}}</option>
+                                <option value="{{service.service_key}}" version="{{service.app_version}}">{{service.app_alias}}</option>
                                 {% endfor %}
                             </select>
                             <span class="help-block with-errors"></span>

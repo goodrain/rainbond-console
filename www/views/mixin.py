@@ -43,13 +43,8 @@ class LoginRedirectMixin(object):
 class CopyPortAndEnvMixin(object):
 
     def copy_port_and_env(self, service, new_service):
-        if service.category in ("app_publish", "app_sys_publish"):
-            ports = AppServicePort.objects.filter(app_key=service.service_key, app_version=service.version, update_version=service.update_version)
-            envs = AppServiceEnv.objects.filter(app_key=service.service_key, app_version=service.version, update_version=service.update_version)
-        else:
-            ports = AppServicePort.objects.filter(app_key=service.service_key)
-            envs = AppServiceEnv.objects.filter(app_key=service.service_key)
-
+        ports = AppServicePort.objects.filter(service_key=service.service_key, app_version=service.version)
+        envs = AppServiceEnv.objects.filter(service_key=service.service_key, app_version=service.version)
         baseService = BaseTenantService()
         for port in ports:
             baseService.addServicePort(new_service, service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
