@@ -448,7 +448,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         extendMethod={}
         extendMethod["service_key"]=service_key
         extendMethod["app_version"]=app_version
-        extendMethod["min_node"]=service_key
+        extendMethod["min_node"]=minnode
         extendMethod["max_node"]=maxnode
         extendMethod["step_node"]=stepnode
         extendMethod["min_memory"]=minmemory
@@ -476,26 +476,3 @@ class ServiceDetailForm(forms.Form):
                                   initial=False)
     is_init_accout = forms.BooleanField(required=False,
                                   initial=False)
-
-
-    # 修改|新增|删除
-    # def _filter_array(self, old_list, new_list):
-    #     key_list = [x.attr_name for x in new_list]
-    #     dict_list = [(x.attr_name, x) for x in new_list]
-    #     del_list = []
-    #     mod_list = []
-    #     for env in old_list:
-    #         if env.attr_name in key_list:
-    #             # 修改|不变
-    #             info = dict_list[env.attr_name]
-    #             if info.attr_value == env.attr_value:
-    #                 pass
-    #             else:
-    #                 env.attr_value = info.attr_value
-    #                 mod_list.append(env)
-    #             new_list.remove(info)
-    #         else:
-    #             # 待删除
-    #             del_list.append(env)
-    #     return new_list, mod_list, del_list
-
