@@ -7,6 +7,7 @@ RUN apt-get update \
     && apt-get install -y make autoconf gcc g++ debconf python2.7 python2.7-dev libzmq3 libzmq3-dev libmysqlclient-dev curl wget python-yaml
 
 RUN curl https://bootstrap.pypa.io/get-pip.py | python -
+RUN apt-get install -y libmemcached-dev python-pylibmc
 
 ENV REGION_TAG console
 ENV PORT 5000
