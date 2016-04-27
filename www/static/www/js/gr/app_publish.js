@@ -153,10 +153,10 @@ $("#add_service_attr").bind("click", function () {
     //获取当前数量
     var num = parseInt($("#env_list_len").val()) + 1;
     var tr = $("<tr />");
-    $("<td/>").append($("<input/>").attr({"type":"text", "name":"env_list["+num+"].attr_name"})).appendTo(tr);
-    $("<td/>").append($("<input/>").attr({"type":"text", "name":"env_list["+num+"].name"})).appendTo(tr);
-    $("<td/>").append($("<input/>").attr({"type":"text", "name":"env_list["+num+"].attr_value"})).appendTo(tr);
-    $("<select/>").attr({"name":"env_list["+num+"].scope"})
+    $("<td/>").append($("<input/>").attr({"type":"text", "id":"env_list_"+num+"_attr_name"})).appendTo(tr);
+    $("<td/>").append($("<input/>").attr({"type":"text", "id":"env_list_"+num+"_name"})).appendTo(tr);
+    $("<td/>").append($("<input/>").attr({"type":"text", "id":"env_list_"+num+"_attr_value"})).appendTo(tr);
+    $("<select/>").attr({"id":"env_list_"+num+"_scope"})
             .append($("<option/>").val("inner").text("对内"))
             .append($("<option/>").val("outer").text("对外"))
             .appendTo($("<td/>").appendTo(tr));
@@ -167,15 +167,14 @@ $("#add_service_attr").bind("click", function () {
 $("#add_service_port").bind("click", function () {
     var num = parseInt($("#port_list_len").val()) + 1;
     var tr = $("<tr/>");
-    $("<td/>").append($("<input/>").attr({"type":"text", "name":"port_list["+num+"].container_port"})).appendTo(tr);
-    $("<td/>").append($("<input/>").attr({"type":"text", "name":"port_list["+num+"].mapping_port"})).appendTo(tr);
-    $("<select/>").attr({"name":"port_list["+num+"].protocol"})
+    $("<td/>").append($("<input/>").attr({"type":"text", "id":"port_list_"+num+"_container_port"})).appendTo(tr);
+    $("<select/>").attr({"id":"port_list_"+num+"_protocol"})
             .append($("<option/>").val("http").text("HTTP"))
             .append($("<option/>").val("stream").text("STREAM"))
             .appendTo($("<td/>").appendTo(tr));
-    $("<td/>").append($("<input/>").attr({"type":"text", "name":"port_list["+num+"].port_alias"})).appendTo(tr);
-    $("<td/>").append($("<input/>").attr({"type":"checkbox", "name":"port_list["+num+"].is_inner_service"}).addClass("switch-box")).appendTo(tr);
-    $("<td/>").append($("<input/>").attr({"type":"checkbox", "name":"port_list["+num+"].is_outer_service"}).addClass("switch-box")).appendTo(tr);
+    $("<td/>").append($("<input/>").attr({"type":"text", "id":"port_list_"+num+"_port_alias"})).appendTo(tr);
+    $("<td/>").append($("<input/>").attr({"type":"checkbox", "id":"port_list_"+num+"_is_inner_service"}).addClass("switch-box")).appendTo(tr);
+    $("<td/>").append($("<input/>").attr({"type":"checkbox", "id":"port_list_"+num+"_is_outer_service"}).addClass("switch-box")).appendTo(tr);
     $("<td/>").append($("<button/>").text("X").attr("onclick", "javascript:removetr(this);")).appendTo(tr);
     $("#port_body").append(tr);
     $("#port_list_len").val(num);
@@ -190,38 +189,50 @@ var removetr = function (td) {
 var checkdata = function () {
     //拼接portlist
     var num = parseInt($("#env_list_len").val());
+    $("input[name='env_list']").remove();
+    var envarray = new Array()
     for (var i = 1; i <= num; i++) {
         var tmparray = new Array(4)
-        var tmpname = "env_list["+ num + "].name";
-        tmparray[0] = $('input[name=tmpname]').val();
-        tmpname = "env_list["+ num + "].attr_name";
-        tmparray[1] = $('input[name=tmpname]').val();
-        tmpname = "env_list["+ num + "].attr_value";
-        tmparray[2] = $('input[name=tmpname]').val();
-        tmpname = "env_list["+ num + "].scope";
-        tmparray[3] = $('input[name=tmpname]').val();
-        $("<input/>").attr({"type":"hidden", "name":"env_list"})
-                .val(tmparray.join(',')).appendTo($("#env_body"));
+        var tmpname = "env_list_"+ i + "_name";
+        if (typeof($('#'+tmpname+'')) === 'undefined') {
+            continue;
+        }
+        tmparray[0] = $('#'+tmpname).val();
+        tmpname = "env_list_"+ i + "_attr_name";
+        tmparray[1] = $('#'+tmpname+'').val();
+        tmpname = "env_list_"+ i + "_attr_value";
+        tmparray[2] = $('#'+tmpname+'').val();
+        tmpname = "env_list_"+ i + "_scope";
+        tmparray[3] = $('#'+tmpname+'').val();
+        alert(tmparray.join(','));
+        envarray.push(tmparray.join(','))
     }
+    $("<input/>").attr({"type":"hidden", "name":"env_list"})
+            .val(envarray.join(";")).appendTo($("#env_body"));
     //拼接envlist
     num = parseInt($("#port_list_len").val())
+    $("input[name='port_list']").remove();
+    var portarry = new Array()
     for (var i = 1; i <= num; i++) {
-        var tmparray = new Array(6)
-        var tmpname = "port_list["+ num + "].container_port";
-        tmparray[0] = $('input[name=tmpname]').val();
-        tmpname = "port_list["+ num + "].mapping_port";
-        tmparray[1] = $('input[name=tmpname]').val();
-        tmpname = "port_list["+ num + "].protocol";
-        tmparray[2] = $('input[name=tmpname]').val();
-        tmpname = "port_list["+ num + "].port_alias";
-        tmparray[3] = $('input[name=tmpname]').val();
-        tmpname = "port_list["+ num + "].is_inner_service";
-        tmparray[4] = $('input[name=tmpname]').val();
-        tmpname = "port_list["+ num + "].is_outer_service";
-        tmparray[5] = $('input[name=tmpname]').val();
-        $("<input/>").attr({"type":"hidden", "name":"port_list"})
-                .val(tmparray.join(',')).appendTo($("#env_body"));
+        var tmparray = new Array(5)
+        var tmpname = "port_list_"+ i + "_container_port";
+        if (typeof($('#'+tmpname+'')) === 'undefined') {
+            continue;
+        }
+        tmparray[0] = $('#'+tmpname+'').val();
+        tmpname = "port_list_"+ i + "_protocol";
+        tmparray[1] = $('#'+tmpname+'').val();
+        tmpname = "port_list_"+ i + "_port_alias";
+        tmparray[2] = $('#'+tmpname+'').val();
+        tmpname = "port_list_"+ i + "_is_inner_service";
+        tmparray[3] = $('#'+tmpname+'').prop("checked") ? 1 : 0;
+        tmpname = "port_list_"+ i + "_is_outer_service";
+        tmparray[4] = $('#'+tmpname+'').prop("checked") ? 1 : 0;
+        alert(tmparray.join(','));
+        portarry.push(tmparray.join(','));
     }
+    $("<input/>").attr({"type":"hidden", "name":"port_list"})
+            .val(portarry.join(";")).appendTo($("#port_body"));
     return true;
 }
 

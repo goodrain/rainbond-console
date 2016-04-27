@@ -319,12 +319,12 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         }
         context.update({'fields': init_data})
         # 端口
-        port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+        port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         if not port_list and pre_app:
-            port_list = AppServicePort.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+            port_list = AppServicePort.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         # 服务不存在直接使用tenantservice
         if not port_list:
-            port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id).values('container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
+            port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id).values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         # 环境
         env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if not env_list and pre_app:
@@ -373,15 +373,19 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         # 环境配置
         AppServiceEnv.objects.filter(service_key=app.service_key,
                                      app_version=app.app_version).delete()
-        env_list = request.POST.getlist('env_list', [])
-        logger.info("env_list=".format(env_list))
+        env_string = post_data.get('env_list')
+        logger.info("env_list={}".format(env_string))
         env_data = []
-        for i in env_list:
+        env_list = env_string.split(";")
+        for env in env_list:
+            name, attr_name, attr_value, scope = env.split(",")
             app_env = AppServiceEnv(service_key=app.service_key,
-                                    app_version=app.app_version)
-            filed_list = ('name', 'attr_name', 'attr_value', 'is_change',
-                          'container_port', 'scope', 'options')
-            app_env = copy_properties(i, app_env, filed_list)
+                                    app_version=app.app_version,
+                                    name=name,
+                                    attr_name=attr_name,
+                                    attr_value=attr_value,
+                                    scope=scope,
+                                    container_port=0)
             env_data.append(app_env)
         # 批量增加
         AppServiceEnv.objects.bulk_create(env_data)
@@ -389,15 +393,19 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         # 端口配置
         AppServicePort.objects.filter(service_key=app.service_key,
                                       app_version=app.app_version).delete()
-        port_list = request.POST.getlist('port_list', [])
-        logger.info("port_list=".format(port_list))
+        port_string = post_data.get('port_list')
+        logger.info("port_list={}".format(port_string))
         port_data = []
+        port_list = port_string.split(";")
         for port in port_list:
+            container_port, protocol, port_alias, is_inner_service, is_outer_service = port.split(",")
             app_port = AppServicePort(service_key=app.service_key,
-                                      app_version=app.app_version)
-            field_list = ('container_port', 'mapping_port', 'protocol',
-                          'port_alias', 'is_inner_service', 'is_outer_service')
-            app_port = copy_properties(port, app_port, field_list)
+                                      app_version=app.app_version,
+                                      container_port=container_port,
+                                      protocol=protocol,
+                                      port_alias=port_alias,
+                                      is_inner_service=is_inner_service,
+                                      is_outer_service=is_outer_service)
             port_data.append(app_port)
         AppServicePort.objects.bulk_create(port_data)
         logger.debug(u'publish.service. now add publish service port ok')

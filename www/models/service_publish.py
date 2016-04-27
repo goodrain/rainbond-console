@@ -15,9 +15,11 @@ app_status = (
     ('show', u'显示'), ("hidden", u'隐藏'),
 )
 
+
 def logo_path(instance, filename):
     suffix = filename.split('.')[-1]
     return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
+
 
 # 服务--app关系表格
 class AppService(BaseModel):
@@ -71,8 +73,9 @@ class AppServiceEnv(BaseModel):
     """ 服务环境配置 """
     class Meta:
         db_table = 'app_service_env_var'
+        unique_together = ('service_key', 'app_version', 'attr_name')
 
-    service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     container_port = models.IntegerField(default=0, help_text=u"端口")
     name = models.CharField(max_length=100, blank=True, help_text=u"名称")
@@ -91,8 +94,9 @@ class AppServicePort(BaseModel):
     """ 服务端口配置 """
     class Meta:
         db_table = 'app_service_port'
+        unique_together = ('service_key', 'app_version', 'container_port')
 
-    service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     container_port = models.IntegerField(default=0, help_text=u"容器端口")
     protocol = models.CharField(max_length=15, default='', blank=True, help_text=u"服务协议：http,stream")

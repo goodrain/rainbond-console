@@ -80,25 +80,27 @@
                                         {% if env_list %}
                                         {% for env in env_list %}
                                         <tr>
-                                            <td><input type="text" name="env_list[{{forloop.counter}}].name" value="{{env.name}}"/></td>
-                                            <td><input type="text" name="env_list[{{forloop.counter}}].attr_name" value="{{env.attr_name}}"/></td>
-                                            <td><input type="text" name="env_list[{{forloop.counter}}].attr_value" value="{{env.attr_value}}"/></td>
+                                            <td><input type="text" id="env_list_{{forloop.counter}}_name" value="{{env.name}}"/></td>
+                                            <td><input type="text" id="env_list_{{forloop.counter}}_attr_name" value="{{env.attr_name}}"/></td>
+                                            <td><input type="text" id="env_list_{{forloop.counter}}_attr_value" value="{{env.attr_value}}"/></td>
                                             <td>
-                                                <select name="env_list[{{forloop.counter}}].scope">
+                                                <select id="env_list_{{forloop.counter}}_scope">
                                                     {% ifequal env.scope 'inner' %}
                                                         <option value="inner" selected>对内</option>
                                                     {% else %}
                                                         <option value="inner">对内</option>
                                                     {% endifequal %}
+
                                                     {% ifequal env.scope 'outer' %}
                                                         <option value="outer" selected>对外</option>
                                                     {% else %}
                                                         <option value="outer">对外</option>
                                                     {% endifequal %}
+
                                                     {% ifequal env.scope 'both' %}
-                                                    <option value="both" selected>内外</option>
+                                                        <option value="both" selected>内外</option>
                                                     {% else %}
-                                                    <option value="both">内外</option>
+                                                        <option value="both">内外</option>
                                                     {% endifequal %}
                                                 </select>
                                             </td>
@@ -123,7 +125,6 @@
                                         <thead>
                                         <tr>
                                             <th>容器端口</th>
-                                            <th>映射端口</th>
                                             <th>协议类型</th>
                                             <th>别名</th>
                                             <th>内部端口</th>
@@ -137,13 +138,10 @@
                                         {% for port in port_list %}
                                         <tr>
                                             <td>
-                                                <input type="text" name="port_list[{{forloop.counter}}].container_port" value="{{port.container_port}}"/>
+                                                <input type="text" id="port_list_{{forloop.counter}}_container_port" value="{{port.container_port}}"/>
                                             </td>
                                             <td>
-                                                <input type="text" name="port_list[{{forloop.counter}}].mapping_port" value="{{port.mapping_port}}"/>
-                                            </td>
-                                            <td>
-                                                <select name="port_list[{{forloop.counter}}].protocol">
+                                                <select id="port_list_{{forloop.counter}}_protocol">
                                                     {% ifequal port.protocol 'http' %}
                                                     <option value="http" selected>HTTP</option>
                                                     {% else %}
@@ -157,18 +155,16 @@
                                                 </select>
                                             </td>
                                             <td>
-                                                <input name="port_list[{{forloop.counter}}].port_alias"
+                                                <input id="port_list_{{forloop.counter}}_port_alias"
                                                        value="{{port.port_alias}}" disabled/>
                                             </td>
                                             <td>
-                                                <input class="switch-box" name="port_list[{{forloop.counter}}].is_inner_service"
-                                                       type="checkbox" {% if port.is_inner_service %}checked{% endif %}
-                                                       data-size="mini" data-on-color="info" data-on-text="开启" data-off-text="关闭">
+                                                <input type="checkbox" {% if port.is_inner_service %}checked{% endif %}
+                                                       id="port_list_{{forloop.counter}}_is_inner_service"/>
                                             </td>
                                             <td>
-                                                <input class="switch-box" name="port_list[{{forloop.counter}}].is_outer_service"
-                                                       type="checkbox" {% if port.is_outer_service %}checked{% endif %}
-                                                       data-size="mini" data-on-color="success" data-on-text="开启" data-off-text="关闭">
+                                                <input type="checkbox" {% if port.is_outer_service %}checked{% endif %}
+                                                       id="port_list_{{forloop.counter}}_is_outer_service"/>
                                             </td>
                                             <td><button onclick="javascript:removetr(this);">X</button></td>
                                         </tr>
