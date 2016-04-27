@@ -13,7 +13,8 @@ from django.http import Http404
 from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant,
-                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation)
+                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation,
+                        ServiceExtendMethod)
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from django.conf import settings
@@ -185,14 +186,17 @@ class TenantService(LeftSideBarMixin, AuthedView):
         return service_manager
 
     def memory_choices(self):
-        choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G')]
-        if self.service.service_key == 'mysql':
-            choices.extend([
-                (16384, '16G'), (32768, '32G'), (65536, '64G')
-            ])
-        choice_list = []
-        for value, label in choices:
-            choice_list.append({"label": label, "value": value})
+        memory_dict={}
+        memory_dict["128"]='128M'
+        memory_dict["256"]='256M'
+        memory_dict["512"]='512M'
+        memory_dict["1024"]='1G'
+        memory_dict["2048"]='2G'
+        memory_dict["4096"]='4G'
+        memory_dict["8192"]='8G'
+        memory_dict["16384"]='16G'
+        memory_dict["32768"]='32G'
+        memory_dict["65536"]='64G'
         return choice_list
 
     @never_cache
@@ -308,8 +312,29 @@ class TenantService(LeftSideBarMixin, AuthedView):
             elif fr == "log":
                 pass
             elif fr == "settings":
-                context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-                context["memoryList"] = self.memory_choices()
+                nodeList=[]
+                memoryList=[]
+                try:
+                   sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
+                   nodeList.append(sem.min_node)
+                   next_node=sem.min_node+sem.step_node
+                   while(next_node<=sem.max_node):
+                       nodeList.append(next_node)
+                       next_node=sem.min_node+sem.step_node
+                
+                   num =1
+                   memoryList.append(sem.min_memory)
+                   next_memory= sem.min_memory * pow(2,num)
+                   while(next_memory<=sem.max_memory):
+                       memoryList.append(next_memory)
+                       num=num+1
+                       next_memory= sem.min_memory * pow(2,num)
+                       
+                except Exception as e:
+                    pass
+                context["nodeList"] = nodeList
+                context["memoryList"] = memoryList
+                context["memorydict"] = self.memory_choices()
                 if self.service.category == "application" or self.service.category == "manager":
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)

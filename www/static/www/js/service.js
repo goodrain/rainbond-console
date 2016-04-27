@@ -227,9 +227,9 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 
 // 服务垂直升级
 function service_upgrade(tenantName, service_alias) {
-	var service_min_config = $("#serviceMemorys").val();
-	memory = 128 * Math.pow(2, service_min_config - 1)
-	cpu = 20 * Math.pow(2, service_min_config - 1)
+	var service_min = $("#serviceMemorys").val();
+	memory = service_min
+	cpu = 20 * (service_min/128)
 	$.ajax({
 		type : "post",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade",
