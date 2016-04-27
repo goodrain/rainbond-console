@@ -85,23 +85,19 @@
                                             <td><input type="text" id="env_list_{{forloop.counter}}_attr_value" value="{{env.attr_value}}"/></td>
                                             <td>
                                                 <select id="env_list_{{forloop.counter}}_scope">
-                                                    {% ifequal env.scope 'inner' %}
+                                                    {% if env.scope == 'inner' %}
                                                         <option value="inner" selected>对内</option>
-                                                    {% else %}
-                                                        <option value="inner">对内</option>
-                                                    {% endifequal %}
-
-                                                    {% ifequal env.scope 'outer' %}
-                                                        <option value="outer" selected>对外</option>
-                                                    {% else %}
                                                         <option value="outer">对外</option>
-                                                    {% endifequal %}
-
-                                                    {% ifequal env.scope 'both' %}
-                                                        <option value="both" selected>内外</option>
-                                                    {% else %}
                                                         <option value="both">内外</option>
-                                                    {% endifequal %}
+                                                    {% elif env.scope == 'outer' %}
+                                                        <option value="outer" selected>对外</option>
+                                                        <option value="inner">对内</option>
+                                                        <option value="both">内外</option>
+                                                    {% elif env.scope == 'both' %}
+                                                        <option value="both" selected>内外</option>
+                                                        <option value="inner">对内</option>
+                                                        <option value="both">对外</option>
+                                                    {% endif %}
                                                 </select>
                                             </td>
                                             <td><button onclick="javascript:removetr(this);">X</button></td>

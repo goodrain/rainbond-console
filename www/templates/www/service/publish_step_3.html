@@ -109,7 +109,7 @@
                         <label for="id_app_logo" class="control-label col-lg-2 requiredField">是否发布到云端<span
                                 class="asteriskField">*</span></label>
                         <div class="controls col-lg-8">
-                            <input type="checkbox" id="publish_dest" name="is_outer" value="0"/>
+                            <input type="checkbox" id="is_outer" name="is_outer" {% if app.is_outer %} checked="checked" {% endif %} value="0"/>
                         </div>
                     </div>
                     
@@ -117,7 +117,7 @@
                         <label for="id_app_logo" class="control-label col-lg-2 requiredField">是否初始化账户<span
                                 class="asteriskField">*</span></label>
                         <div class="controls col-lg-8">
-                            <input type="checkbox" id="init_account" name="is_outer" value="0"/>
+                            <input type="checkbox" id="is_init_accout" name="is_init_accout" {% if app.is_init_accout %} checked="checked" {% endif %} value="0"/>
                         </div>
                     </div>
                     

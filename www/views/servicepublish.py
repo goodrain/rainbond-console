@@ -49,23 +49,43 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
     @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         context = self.get_context()
-        # 获取之前发布的服务信息
-        pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
-        if len(pre_app) == 1:
-            pre_app = list(pre_app)[0]
-        # 生成新的version
+        
         init_data = {
             'tenant_id': self.service.tenant_id,
             'service_id': self.service.service_id,
             'deploy_version': self.service.deploy_version,
-            'service_key': pre_app.service_key if pre_app else make_uuid(self.serviceAlias),
-            'app_version': pre_app.app_version if pre_app else '0.0.1',
-            'app_alias': self.service.service_alias,
             'publisher': self.user.email,
-            'min_node': self.service.min_node,
-            'min_memory': self.service.min_memory,
-            'volume_mount_path': self.service.volume_mount_path,
         }
+        
+        # 获取之前发布的服务信息
+        pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('ID')[:1]
+        if len(pre_app) == 1:
+            pre_app = list(pre_app)[0]
+            init_data.update({
+                'service_key': pre_app.service_key,
+                'app_version': pre_app.app_version,
+                'app_alias': pre_app.app_alias,
+                'min_node': pre_app.min_node,
+                'min_memory': pre_app.min_memory,
+                'volume_mount_path': pre_app.volume_mount_path,
+                'info': pre_app.info,
+                'desc': pre_app.desc,
+                'is_outer':pre_app.is_outer,
+                'is_init_accout': pre_app.is_init_accout,
+            })
+        else:
+            init_data.update({
+                'service_key': make_uuid(self.serviceAlias),
+                'app_version': "0.0.1",
+                'app_alias': self.service.service_alias,
+                'min_node': self.service.min_node,
+                'min_memory': self.service.min_memory,
+                'volume_mount_path': self.service.volume_mount_path,
+                'info': self.service.info,
+                'desc': self.service.desc,
+                'is_init_accout': False,
+                'is_outer':pre_app.is_outer,
+            })
         # 查询对应服务的名称等信息
         context.update({'app': init_data})
         root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
@@ -95,7 +115,8 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             app_type_second = detail_form.cleaned_data['app_type_second']
             app_type_third = detail_form.cleaned_data['app_type_third']
             is_outer = detail_form.cleaned_data['is_outer']
-
+            is_init_accout = detail_form.cleaned_data['is_init_accout']
+            
             # 获取保存的服务信息
             app = AppService.objects.filter(service_key=service_key, app_version=app_version)
             if len(app) == 1:
@@ -107,6 +128,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 app.info = info
                 app.desc = desc
                 app.is_outer = is_outer
+                app.is_init_accout = is_init_accout
                 app.category = app_type_third
                 app.save()
             else:
@@ -123,6 +145,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     category=app_type_third,
                     is_base=False,
                     is_outer=is_outer,
+                    is_init_accout=is_init_accout,
                     is_ok=1)
                 filed_list = ('tenant_id', 'service_id', 'is_service', 'env',
                               'is_web_service', 'image', 'extend_method', 'cmd',
@@ -160,7 +183,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
         # 查询基础服务,和当前用户发布的服务publisher in None,self.user.email
-        app_list = AppService.objects.filter(Q(is_base=True) |
+        app_list = AppService.objects.filter(Q(is_base=True) | 
                                              Q(creater=self.user.pk)) \
             .values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
         # 最新的纪录是之前新增的,获取service_key,app_version
@@ -212,11 +235,11 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         # 批量增加
         AppServiceRelation.objects.bulk_create(relation_list)
         # 生成发布事件
-        event_id = self._create_publish_event()
-        if app.is_slug():
-            self.upload_slug(app, event_id)
-        elif app.is_image():
-            self.upload_image(app, event_id)
+        # event_id = self._create_publish_event()
+        # if app.is_slug():
+        #    self.upload_slug(app, event_id)
+        # elif app.is_image():
+        #    self.upload_image(app, event_id)
 
         next_url = '/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias)
         return JsonResponse({"success": True, "next_url": next_url}, status=200)
@@ -250,7 +273,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             "is_outer": app.is_outer,
         }
         try:
-            #regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
+            # regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
             pass
         except Exception as e:
             logger.error("service.publish",
@@ -268,7 +291,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
 
         try:
             pass
-            #regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            # regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
                          "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
@@ -334,7 +357,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
 
         context.update({'port_list': list(port_list),
-                        'env_list': list(env_list),})
+                        'env_list': list(env_list), })
         context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
         choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G')]
         choice_list = []
@@ -394,11 +417,14 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         AppServicePort.objects.filter(service_key=app.service_key,
                                       app_version=app.app_version).delete()
         port_string = post_data.get('port_list')
-        logger.info("port_list={}".format(port_string))
         port_data = []
         port_list = port_string.split(";")
         for port in port_list:
             container_port, protocol, port_alias, is_inner_service, is_outer_service = port.split(",")
+            if is_inner_service == "0":
+                is_inner_service = ""
+            if is_outer_service == "0":
+                is_outer_service = ""
             app_port = AppServicePort(service_key=app.service_key,
                                       app_version=app.app_version,
                                       container_port=container_port,
@@ -420,13 +446,15 @@ class ServiceDetailForm(forms.Form):
     service_key = forms.CharField()
     app_version = forms.CharField()
     app_alias = forms.CharField()
-    logo = forms.FileField()
+    logo = forms.FileField(required=False)
     info = forms.CharField(required=False)
     desc = forms.CharField(required=False)
     app_type_first = forms.CharField(required=False)
     app_type_second = forms.CharField(required=False)
     app_type_third = forms.CharField(required=False)
     is_outer = forms.BooleanField(required=False,
+                                  initial=False)
+    is_init_accout = forms.BooleanField(required=False,
                                   initial=False)
 
 
