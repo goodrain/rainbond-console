@@ -21,6 +21,7 @@ else
     mkdir -pv $BUILDDIR
     git archive --format=tar $TAG | gzip | tar zxf - -C $BUILDDIR
     cd $BUILDDIR
+    mv Dockerfile_release Dockerfile
     docker build $FORCE -t hub.goodrain.com/goodrain/$PROGRAM:$TAG .
     cd $WORKDIR
     rm -rf $BUILDDIR
