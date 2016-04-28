@@ -16,7 +16,7 @@ from www.models import TenantServicesPort, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 
-from www.models import AppService, AppServiceEnv, AppServicePort, AppServiceCategory, AppServiceRelation,ServiceExtendMethod
+from www.models import AppService, AppServiceEnv, AppServicePort, AppServiceCategory, AppServiceRelation, ServiceExtendMethod
 
 import logging
 
@@ -151,7 +151,8 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     is_base=False,
                     is_outer=is_outer,
                     is_init_accout=is_init_accout,
-                    is_ok=1)
+                    publisher=self.user.email,
+                    is_ok=0)
                 filed_list = ('tenant_id', 'service_id', 'is_service', 'env',
                               'is_web_service', 'image', 'extend_method', 'cmd',
                               'min_node', 'min_cpu', 'min_memory', 'inner_port',
@@ -250,10 +251,10 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         # 节点\内存\cpu
         minnode = post_data.get('min_node')
         minmemory = post_data.get('min_memory')
-        maxnode=post_data.get('max_node')
-        maxmemory=post_data.get('max_memory')
-        stepnode=post_data.get('step_node')
-        stepmemory=post_data.get('step_memory')
+        maxnode = post_data.get('max_node')
+        maxmemory = post_data.get('max_memory')
+        stepnode = post_data.get('step_node')
+        stepmemory = post_data.get('step_memory')
         
         app = AppService.objects.get(service_key=service_key, app_version=app_version)
         if minnode == self.service.min_node and minmemory == self.service.min_memory:
@@ -312,15 +313,15 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         logger.debug(u'publish.service. now add publish service port ok')
         
         ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
-        extendMethod={}
-        extendMethod["service_key"]=service_key
-        extendMethod["app_version"]=app_version
-        extendMethod["min_node"]=minnode
-        extendMethod["max_node"]=maxnode
-        extendMethod["step_node"]=stepnode
-        extendMethod["min_memory"]=minmemory
-        extendMethod["max_memory"]=maxmemory
-        extendMethod["step_memory"]=stepmemory
+        extendMethod = {}
+        extendMethod["service_key"] = service_key
+        extendMethod["app_version"] = app_version
+        extendMethod["min_node"] = minnode
+        extendMethod["max_node"] = maxnode
+        extendMethod["step_node"] = stepnode
+        extendMethod["min_memory"] = minmemory
+        extendMethod["max_memory"] = maxmemory
+        extendMethod["step_memory"] = stepmemory
         ServiceExtendMethod(**extendMethod).save()
         
         return self.redirect_to('/apps/{0}/{1}/publish/relation/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
@@ -347,9 +348,10 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
         # 查询基础服务,和当前用户发布的服务publisher in None,self.user.email
-        app_list = AppService.objects.filter(Q(is_base=True) |
-                                             Q(creater=self.user.pk)) \
-            .values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
+        app_list = AppService.objects.filter(Q(is_base=True) | (Q(tenant_id=self.service.tenant_id) & Q(is_ok=True))).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
+            
+        #app_list = AppService.objects.filter(tenant_id=self.service.tenat_id, is_ok=True).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
+            
         # 最新的纪录是之前新增的,获取service_key,app_version
         app = app_list.get(service_key=service_key, app_version=app_version)
         # 获取所有可配置的服务列表
@@ -422,10 +424,8 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         #    self.upload_slug(app, event_id)
         # elif app.is_image():
         #    self.upload_image(app, event_id)
-
-        next_url = '/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias)
-        return JsonResponse({"success": True, "next_url": next_url}, status=200)
-
+        return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+    
     def _create_publish_event(self):
         template = {
             "user_id": self.user.nick_name,
@@ -490,9 +490,9 @@ class ServiceDetailForm(forms.Form):
     logo = forms.FileField(required=False)
     info = forms.CharField(required=False)
     desc = forms.CharField(required=False)
-    app_type_first = forms.CharField(required=False)
-    app_type_second = forms.CharField(required=False)
-    app_type_third = forms.CharField(required=False)
+    app_type_first = forms.CharField(required=True)
+    app_type_second = forms.CharField(required=True)
+    app_type_third = forms.CharField(required=True)
     is_outer = forms.BooleanField(required=False,
                                   initial=False)
     is_init_accout = forms.BooleanField(required=False,

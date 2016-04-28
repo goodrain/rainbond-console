@@ -96,7 +96,7 @@ class PublishServiceView(APIView):
             data["info"] = app.info
             data["desc"] = app.desc
             data["status"] = ""
-            data["category"] = app.category
+            data["category"] = "app_publish"
             data["is_service"] = app.is_service
             data["is_web_service"] = app.is_web_service
             data["version"] = app.app_version
@@ -104,6 +104,7 @@ class PublishServiceView(APIView):
             data["image"] = image
             data["slug"] = slug
             data["cmd"] = app.cmd
+            data["setting"]=""
             data["env"] = app.env
             data["dependecy"] = ""
             data["min_node"] = app.min_node
@@ -120,4 +121,4 @@ class PublishServiceView(APIView):
             app.save()
         except Exception as e:
             logger.exception(e)
-        return Response(data, status=200)
+        return Response({"ok": True}, status=200)

@@ -213,6 +213,7 @@ class ServiceInfo(BaseModel):
     slug = models.CharField(max_length=200, help_text=u"slug包路径", default="")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
+    setting = models.CharField(max_length=100, null=True, blank=True, help_text=u"设置项")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
     dependecy = models.CharField(max_length=100, default="", help_text=u"依赖服务--service_key待确认")
     min_node = models.IntegerField(help_text=u"启动个数", default=1)

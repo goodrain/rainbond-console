@@ -60,7 +60,9 @@
                             <textarea class="textarea form-control" cols="20"
                                       data-minlength="5" id="id_app_info"
                                       maxlength="100" name="info" rows="3"
+                                      data-error="至少10个字符"
                                       required>{{app.info}}</textarea>
+                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
                     <div id="div_id_app_desc" class="form-group">
@@ -70,7 +72,9 @@
                             <textarea class="textarea form-control" cols="20"
                                       data-minlength="5" id="id_app_desc"
                                       maxlength="400" name="desc" rows=""
+                                      data-error="至少10个字符"
                                       required>{{app.desc}}</textarea>
+                            <span class="help-block with-errors"></span>
                         </div>
                     </div>
                     <div id="div_id_app_logo" class="form-group">
@@ -96,11 +100,11 @@
                             </select>
                             <select class="col-sm-2 col-lg-3" id="app_type_second" name="app_type_second"
                                     style="margin-left: 10px;">
-                                <option value="0" selected="selected">选择分类</option>
+                                <option value="" selected="selected">选择分类</option>
                             </select>
                             <select class="col-sm-2 col-lg-3" id="app_type_third" name="app_type_third"
                                     style="margin-left: 10px;">
-                                <option value="0" selected="selected">选择分类</option>
+                                <option value="" selected="selected">选择分类</option>
                             </select>
                         </div>
                     </div>
