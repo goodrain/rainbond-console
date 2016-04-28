@@ -19,7 +19,7 @@ EXPOSE $PORT
 RUN mkdir -pv $WORK_DIR
 
 RUN echo "upgrad packages UPDATE_POINT"
-ADD requirements.txt $WORK_DIR/requirements.txt
+ADD requirments_release.txt $WORK_DIR/requirements.txt
 RUN pip install -r $WORK_DIR/requirements.txt -i https://pypi.doubanio.com/simple
 
 COPY . $WORK_DIR

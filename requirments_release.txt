@@ -1,7 +1,4 @@
 Django==1.8.0
-MySQL-python
-pylibmc
-pyzmq
 django-crispy-forms==1.4.0
 addict
 gunicorn==19.0.0
@@ -10,7 +7,6 @@ httplib2
 simplejson
 urllib3
 whitenoise
-pillow
 djangorestframework
 markdown
 django-filter
