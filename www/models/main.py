@@ -325,7 +325,6 @@ class TenantServiceInfoDelete(BaseModel):
 
     class Meta:
         db_table = 'tenant_service_delete'
-        unique_together = ('tenant_id', 'service_alias')
 
     service_id = models.CharField(
         max_length=32, unique=True, help_text=u"服务id")
