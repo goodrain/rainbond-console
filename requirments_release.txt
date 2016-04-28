@@ -1,0 +1,15 @@
+Django==1.8.0
+django-crispy-forms==1.4.0
+addict
+gunicorn==19.0.0
+wsgiref==0.1.2
+httplib2
+simplejson
+urllib3
+whitenoise
+djangorestframework
+markdown
+django-filter
+django-rest-swagger
+requests
+python-dateutil
