@@ -186,18 +186,18 @@ class TenantService(LeftSideBarMixin, AuthedView):
         return service_manager
 
     def memory_choices(self):
-        memory_dict={}
-        memory_dict["128"]='128M'
-        memory_dict["256"]='256M'
-        memory_dict["512"]='512M'
-        memory_dict["1024"]='1G'
-        memory_dict["2048"]='2G'
-        memory_dict["4096"]='4G'
-        memory_dict["8192"]='8G'
-        memory_dict["16384"]='16G'
-        memory_dict["32768"]='32G'
-        memory_dict["65536"]='64G'
-        return choice_list
+        memory_dict = {}
+        memory_dict["128"] = '128M'
+        memory_dict["256"] = '256M'
+        memory_dict["512"] = '512M'
+        memory_dict["1024"] = '1G'
+        memory_dict["2048"] = '2G'
+        memory_dict["4096"] = '4G'
+        memory_dict["8192"] = '8G'
+        memory_dict["16384"] = '16G'
+        memory_dict["32768"] = '32G'
+        memory_dict["65536"] = '64G'
+        return memory_dict
 
     @never_cache
     @perm_required('view_service')
@@ -236,7 +236,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["hasHttpServices"] = True
             
             http_port_str = settings.WILD_PORTS[self.response_region]
-            context['http_port_str'] = ":"+http_port_str
+            context['http_port_str'] = ":" + http_port_str
                 
             if fr == "deployed":
                 if self.service.category == 'store':
@@ -244,18 +244,18 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context['service_manager'] = service_manager
                  
                 # inner service   
-                innerPorts={}
+                innerPorts = {}
                 tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
                 for tsp in tsps:
-                    innerPorts[tsp.container_port]=True
+                    innerPorts[tsp.container_port] = True
                     
-                if len(tsps)>0:
+                if len(tsps) > 0:
                     context["hasInnerServices"] = True
                 
                 # relationships password
                 envMap = {}
                 envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"))
-                #logger.debug(len(envVarlist))
+                # logger.debug(len(envVarlist))
                 if len(envVarlist) > 0:
                     for evnVarObj in envVarlist:
                         if innerPorts.get(evnVarObj.container_port, False):
@@ -312,24 +312,23 @@ class TenantService(LeftSideBarMixin, AuthedView):
             elif fr == "log":
                 pass
             elif fr == "settings":
-                nodeList=[]
-                memoryList=[]
+                nodeList = []
+                memoryList = []
                 try:
                    sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
                    nodeList.append(sem.min_node)
-                   next_node=sem.min_node+sem.step_node
-                   while(next_node<=sem.max_node):
+                   next_node = sem.min_node + sem.step_node
+                   while(next_node <= sem.max_node):
                        nodeList.append(next_node)
-                       next_node=sem.min_node+sem.step_node
+                       next_node = next_node + sem.step_node
                 
-                   num =1
-                   memoryList.append(sem.min_memory)
-                   next_memory= sem.min_memory * pow(2,num)
-                   while(next_memory<=sem.max_memory):
-                       memoryList.append(next_memory)
-                       num=num+1
-                       next_memory= sem.min_memory * pow(2,num)
-                       
+                   num = 1
+                   memoryList.append(str(sem.min_memory))
+                   next_memory = sem.min_memory * pow(2, num)
+                   while(next_memory <= sem.max_memory):
+                       memoryList.append(str(next_memory))
+                       num = num + 1
+                       next_memory = sem.min_memory * pow(2, num)
                 except Exception as e:
                     pass
                 context["nodeList"] = nodeList
@@ -399,7 +398,7 @@ class ServiceLatestLog(AuthedView):
 
     def get_media(self):
         media = super(ServiceLatestLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
-                'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js','www/js/jquery.scrollTo.min.js')
+                'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -419,7 +418,7 @@ class ServiceHistoryLog(AuthedView):
 
     def get_media(self):
         media = super(ServiceHistoryLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
-                'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js','www/js/jquery.scrollTo.min.js')
+                'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -469,8 +468,8 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
             tempService.min_memory = service.min_memory
             tempService.service_region = tenant.region
             tempService.min_node = service.min_node
-            diffMemory = service.min_node*service.min_memory
-            rt_type, flag = tenantUsedResource.predict_next_memory(tenant,tempService, diffMemory, False)
+            diffMemory = service.min_node * service.min_memory
+            rt_type, flag = tenantUsedResource.predict_next_memory(tenant, tempService, diffMemory, False)
             if not flag:
                 if rt_type == "memory":
                     status = "over_memory"

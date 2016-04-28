@@ -192,9 +192,9 @@
       <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
         {% for cuMemory in memoryList %}
           {% if cuMemory == tenantServiceInfo.min_memory %}
-          <option value="cuMemory"  selected="selected">{{memorydict|mkey:cuMemory}}</option>
+          <option value="{{cuMemory}}"  selected="selected">{{memorydict|mkey:cuMemory}}</option>
           {% else %}
-          <option value="cuMemory">{{memorydict|mkey:cuMemory}}</option>
+          <option value="{{cuMemory}}">{{memorydict|mkey:cuMemory}}</option>
           {% endif %}
         {% endfor %}
       </select>

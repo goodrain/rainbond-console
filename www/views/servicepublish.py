@@ -37,18 +37,21 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
     def get_context(self):
         context = super(PublishServiceDetailView, self).get_context()
         return context
-
+ 
     def get_media(self):
-        media = super(PublishServiceDetailView, self).get_media() + \
-                self.vendor('www/css/goodrainstyle.css',
-                            'www/js/jquery.cookie.js',
-                            'www/js/validator.min.js',
-                            'www/js/gr/app_publish.js')
+        media = super(PublishServiceDetailView, self).get_media() + self.vendor(
+            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
+            'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/style.css',
+            'www/css/bootstrap-switch.min.css', 'www/css/bootstrap-editable.css',
+            'www/css/style-responsive.css','www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 
+            'www/js/jquery.scrollTo.min.js','www/js/jquery.cookie.js', 'www/js/gr/app_publish.js','www/js/validator.min.js'
+             )
         return media
 
     @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         context = self.get_context()
+        context["myAppStatus"] = "active"
         
         init_data = {
             'tenant_id': self.service.tenant_id,
