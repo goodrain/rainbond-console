@@ -54,7 +54,9 @@ class AppService(BaseModel):
     is_init_accout = models.BooleanField(default=False, blank=True, help_text=u"是否初始化账户")
     is_base = models.BooleanField(default=False, blank=True, help_text=u"是否基础服务")
     is_outer = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
-    is_ok = models.BooleanField(help_text=u'发布是否成功', default=True)
+    is_ok = models.BooleanField(help_text=u'发布是否成功', default=False)
+    dest_yb=models.BooleanField(help_text=u'云帮发布是否成功', default=False)
+    dest_ys=models.BooleanField(help_text=u'云市发布是否成功', default=False)
     creater = models.IntegerField(null=True, help_text=u"创建人")
     publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
     

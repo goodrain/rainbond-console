@@ -78,6 +78,16 @@ class PublishServiceView(APIView):
               required: false
               type: string
               paramType: form
+            - name: dest_yb
+              description: dest_yb
+              required: false
+              type: boolean
+              paramType: form
+            - name: dest_ys
+              description: dest_ys
+              required: false
+              type: boolean
+              paramType: form
 
         """
         data = {}
@@ -87,35 +97,55 @@ class PublishServiceView(APIView):
             app_version = request.data.get('app_version', "")
             image = request.data.get('image', "")
             slug = request.data.get('slug', "")
+            dest_yb = request.data.get('dest_yb', False)
+            dest_ys = request.data.get('dest_ys', False)
+            
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
-            data = {}
-            data["service_key"] = app.service_key
-            data["publisher"] = app.publisher
-            data["service_name"] = app.app_alias
-            data["pic"] = app.logo
-            data["info"] = app.info
-            data["desc"] = app.desc
-            data["status"] = ""
-            data["category"] = "app_publish"
-            data["is_service"] = app.is_service
-            data["is_web_service"] = app.is_web_service
-            data["version"] = app.app_version
-            data["update_version"] = 1
-            data["image"] = image
-            data["slug"] = slug
-            data["cmd"] = app.cmd
-            data["setting"]=""
-            data["env"] = app.env
-            data["dependecy"] = ""
-            data["min_node"] = app.min_node
-            data["min_cpu"] = app.min_cpu
-            data["min_memory"] = app.min_memory
-            data["volume_mount_path"] = app.volume_mount_path
-            data["service_type"] = app.service_type
-            data["is_init_accout"] = app.is_init_accout
-            data["creater"] = app.creater
-            ServiceInfo(**data).save()
-            app.is_ok = True
+            if not app.dest_yb:
+                app.dest_yb = dest_yb
+            if not app.dest_ys:
+                app.dest_ys = dest_ys
+            isok = False
+            if app.is_outer and app.dest_yb and app.dest_ys:
+                isok = True
+            if not app.is_outer and app.dest_yb:
+                isok = True
+            if isok:
+                data = {}
+                data["service_key"] = app.service_key
+                data["publisher"] = app.publisher
+                data["service_name"] = app.app_alias
+                data["pic"] = app.logo
+                data["info"] = app.info
+                data["desc"] = app.desc
+                data["status"] = ""
+                data["category"] = "app_publish"
+                data["is_service"] = app.is_service
+                data["is_web_service"] = app.is_web_service
+                data["version"] = app.app_version
+                data["update_version"] = 1
+                if image != "":
+                    data["image"] = image
+                else:
+                    data["image"] = app.image
+                data["slug"] = slug
+                data["cmd"] = app.cmd
+                data["setting"] = ""
+                # SLUG_PATH=/app_publish/redis-stat/20151201175854.tgz,
+                if slug != "":
+                    data["env"] = app.env + ",SLUG_PATH=" + slug + ","
+                else:
+                    data["env"] = app.env
+                data["dependecy"] = ""
+                data["min_node"] = app.min_node
+                data["min_cpu"] = app.min_cpu
+                data["min_memory"] = app.min_memory
+                data["volume_mount_path"] = app.volume_mount_path
+                data["service_type"] = app.service_type
+                data["is_init_accout"] = app.is_init_accout
+                data["creater"] = app.creater
+                ServiceInfo(**data).save()
+            app.is_ok = isok
             app.slug = slug
             app.image = image
             app.save()
