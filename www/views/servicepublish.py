@@ -146,7 +146,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     logo=logo,
                     info=info,
                     desc=desc,
-                    status='show',
+                    status='',
                     category='{},{},{}'.format(app_type_first, app_type_second, app_type_third),
                     is_base=False,
                     is_outer=is_outer,

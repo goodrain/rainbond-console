@@ -95,7 +95,7 @@ class PublishServiceView(APIView):
             data["pic"] = app.logo
             data["info"] = app.info
             data["desc"] = app.desc
-            data["status"] = app.status
+            data["status"] = ""
             data["category"] = app.category
             data["is_service"] = app.is_service
             data["is_web_service"] = app.is_web_service
@@ -105,7 +105,7 @@ class PublishServiceView(APIView):
             data["slug"] = slug
             data["cmd"] = app.cmd
             data["env"] = app.env
-            data["dependecy"] = app.dependecy
+            data["dependecy"] = ""
             data["min_node"] = app.min_node
             data["min_cpu"] = app.min_cpu
             data["min_memory"] = app.min_memory
