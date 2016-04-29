@@ -117,7 +117,7 @@
                                         <thead>
                                         <tr>
                                             <th>名称</th>
-                                            <th>变量名</th>
+                                            <th>变量名(^[A-Z][A-Z0-9_])</th>
                                             <th>变量值</th>
                                             <th>作用域</th>
                                             <th>是否可修改</th>
@@ -129,10 +129,8 @@
                                         {% if env_list %}
                                         {% for env in env_list %}
                                         <tr>
-                                            <td><input type="text" id="env_list_{{forloop.counter}}_name"
-                                                       data-error="必须是字母数字" pattern="^\w+$" value="{{env.name}}"/></td>
-                                            <td><input type="text" id="env_list_{{forloop.counter}}_attr_name"
-                                                       data-error="必须是大写字母" pattern="^[A-Z]+$" value="{{env.attr_name}}"/></td>
+                                            <td><input type="text" id="env_list_{{forloop.counter}}_name" value="{{env.name}}"/></td>
+                                            <td><input type="text" id="env_list_{{forloop.counter}}_attr_name" value="{{env.attr_name}}"/></td>
                                             <td><input type="text" id="env_list_{{forloop.counter}}_attr_value" value="{{env.attr_value}}"/></td>
                                             <td>
                                                 <select id="env_list_{{forloop.counter}}_scope">
@@ -177,9 +175,9 @@
                                     <table class="table table-hover" id="port_table">
                                         <thead>
                                         <tr>
-                                            <th>容器端口</th>
+                                            <th>容器端口([0-9])</th>
                                             <th>协议类型</th>
-                                            <th>别名</th>
+                                            <th>别名(^[A-Z][A-Z0-9_])</th>
                                             <th>内部端口</th>
                                             <th>外部端口</th>
                                             <th>操作</th>
@@ -191,11 +189,7 @@
                                         {% for port in port_list %}
                                         <tr>
                                             <td>
-                                                <input type="text" id="port_list_{{forloop.counter}}_container_port"
-                                                       required
-                                                       data-error="端口必须是数字"
-                                                       pattern="^\d+$"
-                                                       value="{{port.container_port}}"/>
+                                                <input type="text" id="port_list_{{forloop.counter}}_container_port" value="{{port.container_port}}"/>
                                             </td>
                                             <td>
                                                 <select id="port_list_{{forloop.counter}}_protocol">

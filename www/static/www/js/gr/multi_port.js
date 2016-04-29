@@ -209,7 +209,7 @@
         msg = msg + '<td></td>'
         msg = msg + '<td><input name="port_port" value=""></td>'
         msg = msg + '<td><select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
-        msg = msg + '<td><input name ="port_alias" value="">[A-Z]格式</td>'
+        msg = msg + '<td><input name ="port_alias" value=""></td>'
         //msg = msg + '<td><select name="port_inner"><option value="0">关闭</option></select></td>'
         //msg = msg + '<td><select name="port_outter"><option value="0">关闭</option></select></td>'
         msg = msg + '<td><div class="btn-toolbar" role="toolbar">' + 

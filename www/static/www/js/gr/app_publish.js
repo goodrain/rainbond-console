@@ -217,6 +217,9 @@ var removetr = function (td) {
     return false;
 }
 
+var ENV_NAME_REG =/^[A-Z][A-Z0-9_]/;
+var PORT_REG = /^[0-9]/;
+
 var checkdata = function () {
     //拼接portlist
     var num = parseInt($("#env_list_len").val());
@@ -227,6 +230,10 @@ var checkdata = function () {
         var tmpname = "env_list_"+ i + "_name";
         if (typeof($('#'+tmpname+'')) === 'undefined') {
             continue;
+        }
+        if(!ENV_NAME_REG.test(tmpname)){
+            swal("变量名不合法")
+            return false;
         }
         tmparray[0] = $('#'+tmpname).val();
         tmpname = "env_list_"+ i + "_attr_name";
@@ -251,10 +258,18 @@ var checkdata = function () {
         if (typeof($('#'+tmpname+'')) === 'undefined') {
             continue;
         }
+        if(!PORT_REG.test(tmpname)){
+            swal("端口不合法")
+            return false;
+        }
         tmparray[0] = $('#'+tmpname+'').val();
         tmpname = "port_list_"+ i + "_protocol";
         tmparray[1] = $('#'+tmpname+'').val();
         tmpname = "port_list_"+ i + "_port_alias";
+        if(!ENV_NAME_REG.test(tmpname)){
+            swal("变量名不合法")
+            return false;
+        }
         tmparray[2] = $('#'+tmpname+'').val();
         tmpname = "port_list_"+ i + "_is_inner_service";
         tmparray[3] = $('#'+tmpname+'').prop("checked") ? 1 : 0;

@@ -968,7 +968,7 @@ class ServiceNewPort(AuthedView):
             port_inner = request.POST.get('port_inner', "0")
             port_outter = request.POST.get('port_outter', "0")
             
-            if not re.match(r'^[0-9_]*$', port_port):
+            if not re.match(r'^[0-9]*$', port_port):
                 return JsonResponse({"success": False, "code": 400, "info": u"端口不合法"})
             
             port_port = int(port_port)

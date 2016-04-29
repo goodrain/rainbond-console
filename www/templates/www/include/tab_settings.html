@@ -35,9 +35,9 @@
             <thead>
                 <tr>
                     <th> {% if user.is_sys_admin %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}</th>
-                    <th> 端口号</th>
+                    <th> 端口号([0-9])</th>
                     <th> 协议类型</th>
-                    <th> 别名</th>
+                    <th> 别名(^[A-Z][A-Z0-9_])</th>
                     <th> 对内服务</th>
                     <th> 对外服务</th>
                     <th>操作</th>
@@ -93,7 +93,7 @@
                 <table class="table table-hover" id="envVartable">
                     <thead>
                         <tr>
-                            <th>变量名</th>
+                            <th>变量名(^[A-Z][A-Z0-9_])</th>
                             <th>变量值</th>
                             <th>说明</th>
                             <th></th>
