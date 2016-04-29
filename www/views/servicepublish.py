@@ -428,11 +428,11 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             # 批量增加
             AppServiceRelation.objects.bulk_create(relation_list)
             # 生成发布事件
-            # event_id = self._create_publish_event()
-            # if app.is_slug():
-            #    self.upload_slug(app, event_id)
-            # elif app.is_image():
-            #    self.upload_image(app, event_id)
+            event_id = self._create_publish_event()
+            if app.is_slug():
+                self.upload_slug(app, event_id)
+            elif app.is_image():
+                self.upload_image(app, event_id)
             return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
         except Exception as e:
             logger.exception(e)
@@ -467,8 +467,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             "is_outer": app.is_outer,
         }
         try:
-            # regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
-            pass
+            regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
             logger.error("service.publish",
                          "upload_slug for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
@@ -477,6 +476,8 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
     def upload_image(self, app, event_id):
         """ 上传image镜像 """
         image_upload_task = {
+            "service_key": app.service_key,
+            "app_version": app.app_version,
             "action": "create_new_version",
             "image": app.image,
             "event_id": event_id,
@@ -484,8 +485,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         }
 
         try:
-            pass
-            # regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
                          "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
