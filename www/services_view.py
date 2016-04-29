@@ -240,10 +240,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context['service_manager'] = service_manager
                  
                 # inner service   
-#                innerPorts={}
-#                tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
-#                for tsp in tsps:
-#                    innerPorts[tsp.container_port]=True
+                innerPorts={}
+                tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
+                for tsp in tsps:
+                    innerPorts[tsp.container_port]=True
                     
                 if len(tsps)>0:
                     context["hasInnerServices"] = True
