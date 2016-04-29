@@ -56,16 +56,16 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         return media
 
     def find_dependecy_services(self, serviceObj):
+        asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key,app_version=serviceObj.version)
+        dependecy_keys=[]
+        if len(asrlist)>0:
+            for asr in asrlist:
+                dependecy_keys.append(asr.dep_service_key)
         
-        
-        
-        if not bool(serviceObj.dependecy):
-            return {}
-        else:
-            tenant_id = self.tenant.tenant_id
-            dependecy_keys = serviceObj.dependecy.split(',')
-            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
+        if len(dependecy_keys)>0:
             dependecy_services = dict((el, []) for el in dependecy_keys)
+            tenant_id = self.tenant.tenant_id
+            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
             for s in deployTenantServices:
                 dependecy_services[s.service_key].append(s)
             return dependecy_services
