@@ -258,12 +258,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # logger.debug(len(envVarlist))
                 if len(envVarlist) > 0:
                     for evnVarObj in envVarlist:
-                        if innerPorts.get(evnVarObj.container_port, False):
-                            arr = envMap.get(evnVarObj.service_id)
-                            if arr is None:
-                                arr = []
-                            arr.append(evnVarObj)
-                            envMap[evnVarObj.service_id] = arr
+#                        if innerPorts.get(evnVarObj.container_port, False):
+                        arr = envMap.get(evnVarObj.service_id)
+                        if arr is None:
+                            arr = []
+                        arr.append(evnVarObj)
+                        envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
                     
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():

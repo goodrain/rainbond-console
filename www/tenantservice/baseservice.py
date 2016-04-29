@@ -483,12 +483,12 @@ class CodeRepositoriesService(object):
         
     def listProjectMembers(self, git_project_id):
         if self.MODULES["GitLab_Project"]:
-            return gitClient.listProjectMembers(project_id)
+            return gitClient.listProjectMembers(git_project_id)
         return ""
     
     def deleteProjectMember(project_id, git_user_id):
         if self.MODULES["GitLab_Project"]:
-            gitClient.deleteProjectMember(project_id, user.git_user_id)
+            gitClient.deleteProjectMember(project_id, git_user_id)
         
     def addProjectMember(self, project_id, git_user_id, gitlab_identity):
         if self.MODULES["GitLab_Project"]:
