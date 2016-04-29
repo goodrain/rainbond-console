@@ -171,7 +171,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 logger.error('service.publish', "form valid failed: {}".format(detail_form.errors))
         except Exception as e:
             logger.exception(e)
-    return HttpResponse(u"发布过程出现异常", status=500)
+        return HttpResponse(u"发布过程出现异常", status=500)
 
 
 class PublishServiceView(LeftSideBarMixin, AuthedView):
@@ -332,7 +332,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             return self.redirect_to('/apps/{0}/{1}/publish/relation/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
         except Exception as e:
             logger.exception(e)
-            return HttpResponse(u"发布过程出现异常", status=500)
+        return HttpResponse(u"发布过程出现异常", status=500)
 
 
 class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
