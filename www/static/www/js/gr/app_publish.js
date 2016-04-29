@@ -183,8 +183,8 @@ $("#add_service_attr").bind("click", function () {
     //获取当前数量
     var num = parseInt($("#env_list_len").val()) + 1;
     var tr = $("<tr />");
-    $("<td/>").append($("<input/>").attr({"type":"text", "id":"env_list_"+num+"_attr_name"})).appendTo(tr);
     $("<td/>").append($("<input/>").attr({"type":"text", "id":"env_list_"+num+"_name"})).appendTo(tr);
+    $("<td/>").append($("<input/>").attr({"type":"text", "id":"env_list_"+num+"_attr_name"})).appendTo(tr);
     $("<td/>").append($("<input/>").attr({"type":"text", "id":"env_list_"+num+"_attr_value"})).appendTo(tr);
     $("<select/>").attr({"id":"env_list_"+num+"_scope"})
             .append($("<option/>").val("inner").text("对内"))
@@ -217,8 +217,8 @@ var removetr = function (td) {
     return false;
 }
 
-var ENV_NAME_REG =/^[A-Z][A-Z0-9_]/;
-var PORT_REG = /^[0-9]/;
+var ENV_NAME_REG =/^[A-Z][A-Z0-9_]*$/;
+var PORT_REG = /^[0-9]*$/;
 
 var checkdata = function () {
     //拼接portlist
@@ -229,16 +229,26 @@ var checkdata = function () {
         var tmparray = new Array(5)
         var tmpname = "env_list_"+ i + "_name";
         if (typeof($('#'+tmpname+'')) === 'undefined') {
-            continue;
+            swal("名称不能为空")
+            return false;
         }
-        if(!ENV_NAME_REG.test(tmpname)){
+        if($('#'+tmpname+'').val() == ""){
+            swal("名称不能为空")
+            return false;
+        }
+        
+        tmparray[0] = $('#'+tmpname).val();
+        tmpname = "env_list_"+ i + "_attr_name";
+        if(!ENV_NAME_REG.test($('#'+tmpname+'').val())){
             swal("变量名不合法")
             return false;
         }
-        tmparray[0] = $('#'+tmpname).val();
-        tmpname = "env_list_"+ i + "_attr_name";
         tmparray[1] = $('#'+tmpname+'').val();
         tmpname = "env_list_"+ i + "_attr_value";
+        if($('#'+tmpname+'').val() == ""){
+            swal("变量值不能为空")
+            return false;
+        }
         tmparray[2] = $('#'+tmpname+'').val();
         tmpname = "env_list_"+ i + "_scope";
         tmparray[3] = $('#'+tmpname+'').val();
@@ -258,7 +268,7 @@ var checkdata = function () {
         if (typeof($('#'+tmpname+'')) === 'undefined') {
             continue;
         }
-        if(!PORT_REG.test(tmpname)){
+        if(!PORT_REG.test($('#'+tmpname+'').val())){
             swal("端口不合法")
             return false;
         }
@@ -266,8 +276,8 @@ var checkdata = function () {
         tmpname = "port_list_"+ i + "_protocol";
         tmparray[1] = $('#'+tmpname+'').val();
         tmpname = "port_list_"+ i + "_port_alias";
-        if(!ENV_NAME_REG.test(tmpname)){
-            swal("变量名不合法")
+        if(!ENV_NAME_REG.test($('#'+tmpname+'').val())){
+            swal("端口别名不合法")
             return false;
         }
         tmparray[2] = $('#'+tmpname+'').val();
