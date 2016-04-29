@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import (ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServicePort, AppServiceEnv, TenantServicesPort)
+from www.models import (ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServicePort, AppServiceEnv, TenantServicesPort, AppServiceRelation)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService
 from www.monitorservice.monitorhook import MonitorHook
@@ -56,6 +56,9 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         return media
 
     def find_dependecy_services(self, serviceObj):
+        
+        
+        
         if not bool(serviceObj.dependecy):
             return {}
         else:
