@@ -166,43 +166,42 @@
     <header class="panel-heading">扩容方式</header>
   <div class="panel-body">
     <div class="row">
-    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
-    <div class="col-xs-2 control-label">实例数</div>
-    <div class="col-xs-2 control-label">
-      <select name="serviceNods" id="serviceNods" class="form-control m-bot15">
-        {% for curNum in nodeList %}
-          {% if curNum == tenantServiceInfo.min_node %}
-          <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
-          {% else %}
-          <option value="{{forloop.counter}}">{{curNum}}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
-    </div>
-    {% if 'manage_service' in user.actions %}
-    <div class="col-xs-2 control-label">
-      <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
-    </div>
-    {% endif %}
-    {% endif %}
-    <div class="col-xs-2 control-label">内存调整</div>
-    <div class="col-xs-2 control-label">
-      <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
-        {% for cuMemory in memoryList %}
-          {% if cuMemory == tenantServiceInfo.min_memory %}
-          <option value="{{cuMemory}}"  selected="selected">{{memorydict|mkey:cuMemory}}</option>
-          {% else %}
-          <option value="{{cuMemory}}">{{memorydict|mkey:cuMemory}}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
-    </div>
-    {% if 'manage_service' in user.actions %}
-    <div class="col-xs-2 control-label">
-      <button type="button"  onclick="service_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
-    </div>
-    {% endif %}
-    </div>
+       <div class="col-xs-2 control-label">实例数</div>
+            <div class="col-xs-2 control-label">
+              <select name="serviceNods" id="serviceNods" class="form-control m-bot15">
+                {% for curNum in nodeList %}
+                  {% if curNum == tenantServiceInfo.min_node %}
+                  <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                  {% else %}
+                  <option value="{{forloop.counter}}">{{curNum}}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            {% if 'manage_service' in user.actions %}
+            <div class="col-xs-2 control-label">
+              <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+            </div>
+            {% endif %}
+        </div>
+        <div class="col-xs-2 control-label">内存调整</div>
+            <div class="col-xs-2 control-label">
+              <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
+                {% for cuMemory in memoryList %}
+                  {% if cuMemory == tenantServiceInfo.min_memory %}
+                  <option value="{{cuMemory}}"  selected="selected">{{memorydict|mkey:cuMemory}}</option>
+                  {% else %}
+                  <option value="{{cuMemory}}">{{memorydict|mkey:cuMemory}}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            {% if 'manage_service' in user.actions %}
+            <div class="col-xs-2 control-label">
+              <button type="button"  onclick="service_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+            </div>
+            {% endif %}
+        </div>
   </div>
   </section>
   
