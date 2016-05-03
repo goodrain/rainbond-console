@@ -37,7 +37,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            cacheServiceList = ServiceInfo.objects.all()
+            cacheServiceList = ServiceInfo.objects.all(status="published")
             context["cacheServiceList"] = cacheServiceList
             context["serviceMarketStatus"] = "active"
             context["tenantName"] = self.tenantName
