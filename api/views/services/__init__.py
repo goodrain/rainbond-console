@@ -1,3 +1,5 @@
-from basic import SelectedServiceView, PublishServiceView
+from basic import SelectedServiceView, PublishServiceView, ReceiveServiceView
 
-__all__ = ('SelectedServiceView')
+__all__ = ('SelectedServiceView',
+           'PublishServiceView',
+           'ReceiveServiceView')

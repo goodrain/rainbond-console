@@ -180,3 +180,7 @@ REGIONS = (
 
 # logo path
 MEDIA_ROOT = '/data/media'
+
+# cloud market url
+CLOUD_MARKET = 'http://app.goodrain.com/'
+CLOUD_ASSISTANT = 'goodrain'
