@@ -13,8 +13,8 @@
                     {% if cacheServiceList %}
                     {% for cache in cacheServiceList %}
                     <div class="col-lg-2">
-                        <h3>{{cache.service_name}}</h3>
-                        <span>{{cache.version}}</span>
+                        <h4>{{cache.service_name}}</h4>
+                        <h5>{{cache.version}}</h5>
                         <button type="button" class="btn btn-success"
                                 onclick="service_create('{{tenantName}}','{{cache.service_key}}')">部署
                         </button>

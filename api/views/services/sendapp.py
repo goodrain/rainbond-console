@@ -31,14 +31,14 @@ class AppSendUtil:
                                                       app_version=self.app_version)
             extend_list = ServiceExtendMethod.objects.filter(service_key=self.service_key,
                                                              app_version=self.app_version)
-            tmp_data = {'cloud_assistant': settings.CLOUD_ASSISTANT}
+            req_data.update({'cloud_assistant': settings.CLOUD_ASSISTANT})
             all_data = {
-                'pre_list': list(pre_list),
-                'suf_list': list(suf_list),
-                'env_list': list(env_list),
-                'port_list': list(port_list),
-                'extend_list': list(extend_list),
-                'service': dict(req_data, **tmp_data),
+                'pre_list': json.dumps(list(pre_list)),
+                'suf_list': json.dumps(list(suf_list)),
+                'env_list': json.dumps(list(env_list)),
+                'port_list': json.dumps(list(port_list)),
+                'extend_list': json.dumps(list(extend_list)),
+                'service': json.dumps(req_data),
             }
             retry = 3
             while retry > 0:

@@ -11,7 +11,7 @@ urlpatterns = patterns(
     url(r'^tenants/services/hibernate$', TenantHibernateView.as_view()),
     url(r'^tenants/services/publish$', PublishServiceView.as_view()),
     url(r'^tenants/services/receive$', ReceiveServiceView.as_view()),
-    url(r'^tenants/services/query', QueryServiceView.as_view()),
+    url(r'^tenants/services/query$', QueryServiceView.as_view()),
     url(r'^tenants/member$', TenantView.as_view()),
     url(r'^tenants/all-members$', AllTenantView.as_view()),
     url(r'^tenants/services/codecheck', GitCheckCodeView.as_view()),
