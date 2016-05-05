@@ -302,7 +302,7 @@ function app_upgrade(tenantName, service_alias) {
 // 服务扩容方式修改
 function extends_upgrade(tenantName, service_alias) {
     var extend_method = $("#extend_method").val();
-    if (extend_method !="" {
+    if (extend_method !="") {
         $.ajax({
             type : "post",
             url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade/",

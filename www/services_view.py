@@ -201,9 +201,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
     
     def extends_choices(self):
         extends_dict = {}
-        extends_dict["state"] = '有状态'
-        extends_dict["stateless"] = '无状态'
-        extends_dict["state-expend"] = '有状态可水平扩容'
+        extends_dict["state"] = u'有状态'
+        extends_dict["stateless"] = u'无状态'
+        extends_dict["state-expend"] = u'有状态可水平扩容'
         return extends_dict
 
     @never_cache
@@ -259,13 +259,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if len(tsps) > 0:
                     context["hasInnerServices"] = True
                 
-                # relationships password
                 envMap = {}
                 envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"))
-                # logger.debug(len(envVarlist))
                 if len(envVarlist) > 0:
                     for evnVarObj in envVarlist:
-#                        if innerPorts.get(evnVarObj.container_port, False):
                         arr = envMap.get(evnVarObj.service_id)
                         if arr is None:
                             arr = []
