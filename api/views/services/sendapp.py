@@ -35,11 +35,11 @@ class AppSendUtil:
                                                              app_version=self.app_version)
             req_data.update({'cloud_assistant': settings.CLOUD_ASSISTANT})
             all_data = {
-                'pre_list': map(lambda x: x.to_JSON(), pre_list),
-                'suf_list': map(lambda x: x.to_JSON(), suf_list),
-                'env_list': map(lambda x: x.to_JSON(), env_list),
-                'port_list': map(lambda x: x.to_JSON(), port_list),
-                'extend_list': map(lambda x: x.to_JSON(), extend_list),
+                'pre_list': map(lambda x: x.to_dict(), pre_list),
+                'suf_list': map(lambda x: x.to_dict(), suf_list),
+                'env_list': map(lambda x: x.to_dict(), env_list),
+                'port_list': map(lambda x: x.to_dict(), port_list),
+                'extend_list': map(lambda x: x.to_dict(), extend_list),
                 'service': req_data,
             }
             retry = 3

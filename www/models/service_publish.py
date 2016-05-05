@@ -42,7 +42,7 @@ class AppService(BaseModel):
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
     image = models.CharField(max_length=100, help_text=u"镜像")
-    slug = models.CharField(max_length=200, help_text=u"slug包路径",default="")
+    slug = models.CharField(max_length=200, help_text=u"slug包路径", default="")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
@@ -56,8 +56,8 @@ class AppService(BaseModel):
     is_base = models.BooleanField(default=False, blank=True, help_text=u"是否基础服务")
     is_outer = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
     is_ok = models.BooleanField(help_text=u'发布是否成功', default=False)
-    dest_yb=models.BooleanField(help_text=u'云帮发布是否成功', default=False)
-    dest_ys=models.BooleanField(help_text=u'云市发布是否成功', default=False)
+    dest_yb = models.BooleanField(help_text=u'云帮发布是否成功', default=False)
+    dest_ys = models.BooleanField(help_text=u'云市发布是否成功', default=False)
     creater = models.IntegerField(null=True, help_text=u"创建人")
     publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
     show_category = models.CharField(max_length=15, help_text=u"服务分类")
@@ -71,6 +71,16 @@ class AppService(BaseModel):
 
     def __unicode__(self):
         return u"{0}({1})".format(self.service_id, self.service_key)
+    
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
 
 
 class AppServiceEnv(BaseModel):
@@ -90,9 +100,15 @@ class AppServiceEnv(BaseModel):
     options = GrOptionsCharField(max_length=100, help_text=u"参数选项", default="readonly")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
-    def to_JSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                          sort_keys=True, indent=4)
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
 
 
 class AppServicePort(BaseModel):
@@ -109,9 +125,15 @@ class AppServicePort(BaseModel):
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
 
-    def to_JSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                          sort_keys=True, indent=4)
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
 
 
 class AppServiceRelation(BaseModel):
@@ -126,9 +148,15 @@ class AppServiceRelation(BaseModel):
     dep_app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     dep_app_alias = models.CharField(max_length=100, help_text=u"服务发布名称")
 
-    def to_JSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                          sort_keys=True, indent=4)
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
 
 
 level_choice = (
@@ -161,6 +189,12 @@ class ServiceExtendMethod(BaseModel):
     max_memory = models.IntegerField(default=20, help_text=u"最大内存")
     step_memory = models.IntegerField(default=1, help_text=u"内存步长")
 
-    def to_JSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                          sort_keys=True, indent=4)
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
