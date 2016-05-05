@@ -123,6 +123,7 @@ class PublishServiceView(APIView):
                 data["desc"] = app.desc
                 data["status"] = "published"
                 data["category"] = "app_publish"
+                data["show_category"] = app.show_category
                 data["is_service"] = app.is_service
                 data["is_web_service"] = app.is_web_service
                 data["version"] = app.app_version
@@ -157,20 +158,15 @@ class PublishServiceView(APIView):
         except Exception as e:
             logger.exception(e)
 
-        # 发送服务信息到app
-        body = {
-
-        }
-        appClient.publishServiceData()
-
-
-
-        apputil = AppSendUtil(service_key, app_version)
-        # 发送服务参数
-        data.pop('pic')
-        apputil.send_services(data)
-        # 发送图片
-        # apputil.send_image('app_logo', app.logo)
+        # 发布到云市,调用http接口发送数据
+        if dest_ys:
+            apputil = AppSendUtil(service_key, app_version)
+            # 发送服务参数不发送图片参数
+            data.pop('pic')
+            apputil.send_services(data)
+            # 发送图片
+            logger.debug('send service logo:{}'.format(app.logo))
+            apputil.send_image('app_logo', app.logo)
 
         return Response({"ok": True}, status=200)
 
@@ -392,9 +388,9 @@ class QueryServiceView(APIView):
             service_key = request.POST.get('service_key')
             app_version = request.POST.get('app_version')
 
-            utils = AppSendUtil()
+            utils = AppSendUtil(service_key, app_version)
             json_data = utils.query_service(service_key, app_version)
-            logger.debug('---recive data---{}'.format(json_data))
+            logger.debug('---receive data---{}'.format(json_data))
 
             service_data = json_data.get('service', None)
             if not service_data:
