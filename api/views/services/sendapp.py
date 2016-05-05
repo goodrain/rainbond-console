@@ -92,3 +92,29 @@ class AppSendUtil:
             logger.error('send service to app error!', ce)
             return 2
 
+
+    def query_service(self, service_key, app_version):
+        try:
+            dest_url = settings.CLOUD_MARKET + 'api/v0/service'
+            headers = {'content-type': 'application/json'}
+            all_data = {
+                'service_key': service_key,
+                'app_version': app_version,
+                'cloud_assistant': settings.CLOUD_ASSISTANT,
+            }
+            data = json.dumps(all_data)
+            logger.debug('post service json data={}'.format(data))
+            resp = requests.get(dest_url, headers=headers, data=data)
+            logger.info(resp)
+            result_data = resp.status_code
+            if result_data == 200:
+                data = resp.json()
+                if data.get('code') == 200:
+                    return data.get('data')
+                else:
+                    return json.dumps({"code": 500})
+            else:
+                return json.dumps({"code": 500})
+        except requests.exceptions.RequestException as ce:
+            logger.error('send service to app error!', ce)
+            return json.dumps({"code": 500})
