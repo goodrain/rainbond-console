@@ -8,6 +8,7 @@ from .fields import GrOptionsCharField
 from .main import BaseModel, extend_method, app_pay_choices
 from www.utils.crypt import make_uuid
 from django.conf import settings
+from datetime import date, datetime
 import json
 # Create your models here.
 

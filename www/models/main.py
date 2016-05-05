@@ -233,9 +233,6 @@ class ServiceInfo(BaseModel):
     def is_image(self):
         return not self.is_slug(self)
 
-    def __unicode__(self):
-        return u"{0}({1})".format(self.service_id, self.service_key)
-
 class TenantServiceInfo(BaseModel):
 
     class Meta:
