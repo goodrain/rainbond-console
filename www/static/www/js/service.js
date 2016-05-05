@@ -161,6 +161,7 @@ $(document).ready(
 	}
 )
 
+// 服务分支
 function service_branch_change(tenantName, service_alias) {
 	var branch = $("#git_branch").val();
 	$.ajax({
@@ -181,6 +182,7 @@ function service_branch_change(tenantName, service_alias) {
 	})
 }
 
+// 域名绑定
 function domainSubmit(action, service_id, tenantName, service_alias) {
 	if (action != "start" && action != "close") {
 		swal("参数异常");
@@ -297,6 +299,41 @@ function app_upgrade(tenantName, service_alias) {
 	}
 }
 
+// 服务扩容方式修改
+function extends_upgrade(tenantName, service_alias) {
+    var extend_method = $("#extend_method").val();
+    if (extend_method !="" {
+        $.ajax({
+            type : "post",
+            url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade/",
+            data : "action=extend_method&extend_method=" + extend_method,
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "success") {
+                    swal("设置成功")
+                } else if (dataObj["status"] == "owed") {
+                    swal("余额不足请及时充值")
+                } else if (dataObj["status"] == "often") {
+                    swal("操作正在进行中，请稍后")
+                } else if (dataObj["status"] == "no_support") {
+                    swal("当前服务不支持修改")
+                } else {
+                    swal("设置失败")
+                }
+            },
+            error : function() {
+                swal("系统异常,请重试");
+            }
+        })
+    }
+}
+
+// 服务删除
 function delete_service(tenantName, service_alias) {
 	swal({
 		title : "确定删除当前服务吗？",

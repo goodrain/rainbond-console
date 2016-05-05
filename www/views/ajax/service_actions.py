@@ -269,8 +269,8 @@ class ServiceUpgrade(AuthedView):
                 return JsonResponse(result, status=200)
 
         action = request.POST["action"]
-        if action == "vertical":
-            try:
+        try:
+            if action == "vertical":
                 container_memory = request.POST["memory"]
                 container_cpu = request.POST["cpu"]
                 old_container_cpu = self.service.min_cpu
@@ -304,13 +304,8 @@ class ServiceUpgrade(AuthedView):
                         
                         monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
                 result["status"] = "success"
-            except Exception, e:
-                logger.exception(e)
-                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', False)
-                result["status"] = "failure"
-        elif action == "horizontal":
-            node_num = request.POST["node_num"]
-            try:
+            elif action == "horizontal":
+                node_num = request.POST["node_num"]
                 new_node_num = int(node_num)
                 old_min_node = self.service.min_node
                 if new_node_num >= 0 and new_node_num != old_min_node:
@@ -334,10 +329,24 @@ class ServiceUpgrade(AuthedView):
                     self.service.save()
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', True)
                 result["status"] = "success"
-            except Exception, e:
-                logger.exception(e)
-                result["status"] = "failure"
+            elif action == "extend_method":
+                extend_method = request.POST["extend_method"]
+                if self.service.category=="application":
+                    body = {}
+                    body["extend_method"] = extend_method
+                    regionClient.extendMethodUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                    self.service.extend_method=extend_method
+                    self.service.save()
+                    result["status"] = "success"
+                else:
+                    result["status"] = "no_support"
+        except Exception, e:
+            logger.exception(e)
+            if action == "vertical":
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', False)
+            elif action == "horizontal":
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', False)
+            result["status"] = "failure"
         return JsonResponse(result)
 
 

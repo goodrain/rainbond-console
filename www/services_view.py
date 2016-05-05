@@ -198,6 +198,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
         memory_dict["32768"] = '32G'
         memory_dict["65536"] = '64G'
         return memory_dict
+    
+    def extends_choices(self):
+        extends_dict = {}
+        extends_dict["state"] = '有状态'
+        extends_dict["stateless"] = '无状态'
+        extends_dict["state-expend"] = '有状态可水平扩容'
+        return extends_dict
 
     @never_cache
     @perm_required('view_service')
@@ -334,6 +341,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["nodeList"] = nodeList
                 context["memoryList"] = memoryList
                 context["memorydict"] = self.memory_choices()
+                context["extends_choices"] = self.extends_choices()
                 if self.service.category == "application" or self.service.category == "manager":
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)

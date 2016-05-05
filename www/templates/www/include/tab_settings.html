@@ -166,7 +166,25 @@
     <header class="panel-heading">扩容方式</header>
     <div class="panel-body">
         <div class="row">
-            <div class="col-xs-2 control-label">实例数</div>
+            <div class="col-xs-1 control-label">扩容方式</div>
+            <div class="col-xs-2 control-label">
+                <select name="extend_method" id="extend_method" class="form-control m-bot15">
+                    {% for key,extend in extends_choices.items %}
+                        {% if key == tenantServiceInfo.extend_method %}
+                            <option value="{{key}}"  selected="selected">{{extend}}</option>
+                        {% else %}
+                            <option value="{{key}}">{{extend}}</option>
+                        {% fi %}
+                    {% endfor %}
+                    <option value="">无状态</option>
+                </select>
+            </div>
+            {% if 'manage_service' in user.actions %}
+            <div class="col-xs-1 control-label">
+              <button type="button" onclick="extends_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+            </div>
+            {% endif %}
+            <div class="col-xs-1 control-label">实例数</div>
             <div class="col-xs-2 control-label">
               <select name="serviceNods" id="serviceNods" class="form-control m-bot15">
                 {% for curNum in nodeList %}
@@ -179,7 +197,7 @@
               </select>
             </div>
             {% if 'manage_service' in user.actions %}
-            <div class="col-xs-2 control-label">
+            <div class="col-xs-1 control-label">
               <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
             </div>
             {% endif %}
