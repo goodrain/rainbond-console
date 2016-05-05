@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from django.http.response import JsonResponse
 from api.views.base import APIView
 from www.models import TenantServiceInfo, AppService, ServiceInfo, \
-    AppServiceRelation,AppServicePort, AppServiceEnv, ServiceExtendMethod
+    AppServiceRelation, AppServicePort, AppServiceEnv, ServiceExtendMethod
 from www.service_http import RegionServiceApi
 import json
 from api.views.services.sendapp import AppSendUtil
@@ -94,6 +94,7 @@ class PublishServiceView(APIView):
 
         """
         data = {}
+        isys = False
         try:
             print request.data
             service_key = request.data.get('service_key', "")
@@ -155,11 +156,12 @@ class PublishServiceView(APIView):
             app.slug = slug
             app.image = image
             # app.save()
+            isys = app.dest_ys
         except Exception as e:
             logger.exception(e)
 
         # 发布到云市,调用http接口发送数据
-        if dest_ys:
+        if isok and isys:
             apputil = AppSendUtil(service_key, app_version)
             # 发送服务参数不发送图片参数
             data.pop('pic')
@@ -167,7 +169,7 @@ class PublishServiceView(APIView):
             # 发送图片
             logger.debug('send service logo:{}'.format(app.logo))
             apputil.send_image('app_logo', app.logo)
-
+            
         return Response({"ok": True}, status=200)
 
 
