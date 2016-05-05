@@ -5,6 +5,8 @@ import json
 
 from www.models import AppServiceRelation, AppServicePort, \
     AppServiceEnv, ServiceExtendMethod
+from www.app_http import AppServiceApi
+appClient = AppServiceApi()
 
 import logging
 logger = logging.getLogger('default')
@@ -33,11 +35,11 @@ class AppSendUtil:
                                                              app_version=self.app_version)
             req_data.update({'cloud_assistant': settings.CLOUD_ASSISTANT})
             all_data = {
-                'pre_list': json.dumps(list(pre_list)),
-                'suf_list': json.dumps(list(suf_list)),
-                'env_list': json.dumps(list(env_list)),
-                'port_list': json.dumps(list(port_list)),
-                'extend_list': json.dumps(list(extend_list)),
+                'pre_list': json.dumps(map(lambda x: x.to_JSON(), pre_list)),
+                'suf_list': json.dumps(map(lambda x: x.to_JSON(), suf_list)),
+                'env_list': json.dumps(map(lambda x: x.to_JSON(), env_list)),
+                'port_list': json.dumps(map(lambda x: x.to_JSON(), port_list)),
+                'extend_list': json.dumps(map(lambda x: x.to_JSON(), extend_list)),
                 'service': json.dumps(req_data),
             }
             retry = 3
@@ -50,18 +52,21 @@ class AppSendUtil:
 
     def _send_services(self, all_data):
         try:
-            dest_url = settings.CLOUD_MARKET + 'api/v0/service'
-            headers = {'content-type': 'application/json'}
+            # dest_url = settings.CLOUD_MARKET + 'api/v0/services/published'
+            # headers = {'content-type': 'application/json'}
+            # logger.debug(dest_url)
             data = json.dumps(all_data)
             logger.debug('post service json data={}'.format(data))
-            resp = requests.post(dest_url, headers=headers, data=data)
+            # resp = requests.post(dest_url, headers=headers, data=data)
+            res, resp = appClient.publishServiceData(data)
             logger.info(resp)
-            result_data = resp.status_code
-            if result_data == 200:
+            # result_data = resp.status_code
+            if res == 200:
                 return 0
             else:
                 return 1
         except requests.exceptions.RequestException as ce:
+            print ce
             logger.error('send service to app error!', ce)
             return 2
 
@@ -77,14 +82,15 @@ class AppSendUtil:
 
     def _send_image(self, file_key, file_path):
         try:
-            dest_url = settings.CLOUD_MARKET + 'api/v0/service/logo'
+            # dest_url = settings.CLOUD_MARKET + 'api/v0/services/logo'
             data = {'service_key': self.service_key,
                     'app_version': self.app_version}
             files = {file_key: open(file_path, 'rb')}
-            resp = requests.post(dest_url, data=data, files=files)
+            res, resp = appClient.uploadFiles(body=data, files=files)
+            # resp = requests.post(dest_url, data=data, files=files)
             logger.info(resp)
-            result_data = resp.status_code
-            if result_data == 200:
+            # result_data = resp.status_code
+            if resp == 200:
                 return 0
             else:
                 return 1
@@ -92,11 +98,10 @@ class AppSendUtil:
             logger.error('send service to app error!', ce)
             return 2
 
-
     def query_service(self, service_key, app_version):
         try:
-            dest_url = settings.CLOUD_MARKET + 'api/v0/service'
-            headers = {'content-type': 'application/json'}
+            # dest_url = settings.CLOUD_MARKET + 'api/v0/services/published'
+            # headers = {'content-type': 'application/json'}
             all_data = {
                 'service_key': service_key,
                 'app_version': app_version,
@@ -104,10 +109,11 @@ class AppSendUtil:
             }
             data = json.dumps(all_data)
             logger.debug('post service json data={}'.format(data))
-            resp = requests.get(dest_url, headers=headers, data=data)
+            # resp = requests.get(dest_url, headers=headers, data=data)
+            res, resp = appClient.getServiceData(body=data)
             logger.info(resp)
-            result_data = resp.status_code
-            if result_data == 200:
+            # result_data = resp.status_code
+            if res == 200:
                 data = resp.json()
                 if data.get('code') == 200:
                     return data.get('data')

@@ -132,6 +132,7 @@ class PublishServiceView(APIView):
                 else:
                     data["image"] = app.image
                 data["slug"] = slug
+                data["extend_method"] = app.extend_method
                 data["cmd"] = app.cmd
                 data["setting"] = ""
                 # SLUG_PATH=/app_publish/redis-stat/20151201175854.tgz,
@@ -143,6 +144,7 @@ class PublishServiceView(APIView):
                 data["min_node"] = app.min_node
                 data["min_cpu"] = app.min_cpu
                 data["min_memory"] = app.min_memory
+                data["inner_port"] = app.inner_port
                 data["volume_mount_path"] = app.volume_mount_path
                 data["service_type"] = app.service_type
                 data["is_init_accout"] = app.is_init_accout
@@ -156,6 +158,13 @@ class PublishServiceView(APIView):
             logger.exception(e)
 
         # 发送服务信息到app
+        body = {
+
+        }
+        appClient.publishServiceData()
+
+
+
         apputil = AppSendUtil(service_key, app_version)
         # 发送服务参数
         data.pop('pic')

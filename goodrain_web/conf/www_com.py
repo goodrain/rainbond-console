@@ -92,6 +92,10 @@ REGION_SERVICE_API = [{
     'region_name': 'ali-sh'
 }]
 
+APP_SERVICE_API = {
+    'url': 'http://app.goodrain.com:80',
+    'apitype': 'app service'
+}
 
 WEBSOCKET_URL = {
     'ucloud-bj-1': 'wss://mpush-ucloud-bj-1.goodrain.com:6060/websocket',
@@ -182,5 +186,4 @@ REGIONS = (
 MEDIA_ROOT = '/data/media'
 
 # cloud market url
-CLOUD_MARKET = 'http://app.goodrain.com/'
 CLOUD_ASSISTANT = 'goodrain'

@@ -8,6 +8,7 @@ from .fields import GrOptionsCharField
 from .main import BaseModel, extend_method, app_pay_choices
 from www.utils.crypt import make_uuid
 from django.conf import settings
+import json
 # Create your models here.
 
 
@@ -88,8 +89,9 @@ class AppServiceEnv(BaseModel):
     options = GrOptionsCharField(max_length=100, help_text=u"参数选项", default="readonly")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
-    def __unicode__(self):
-        return self.name
+    def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)
 
 
 class AppServicePort(BaseModel):
@@ -106,6 +108,10 @@ class AppServicePort(BaseModel):
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
 
+    def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)
+
 
 class AppServiceRelation(BaseModel):
     """ 服务依赖关系 """
@@ -118,6 +124,11 @@ class AppServiceRelation(BaseModel):
     dep_service_key = models.CharField(max_length=32, help_text=u"服务key")
     dep_app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     dep_app_alias = models.CharField(max_length=100, help_text=u"服务发布名称")
+
+    def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)
+
 
 level_choice = (
     ('end', 'end'), ('secondary', 'secondary'), ('root', 'root')
@@ -148,3 +159,7 @@ class ServiceExtendMethod(BaseModel):
     min_memory = models.IntegerField(default=1, help_text=u"最小内存")
     max_memory = models.IntegerField(default=20, help_text=u"最大内存")
     step_memory = models.IntegerField(default=1, help_text=u"内存步长")
+
+    def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)

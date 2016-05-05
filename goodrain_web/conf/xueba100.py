@@ -67,6 +67,10 @@ REGION_SERVICE_API = [{
     'region_name': 'xueba100'
 }]
 
+APP_SERVICE_API = {
+    'url': 'http://app.goodrain.com:80',
+    'apitype': 'app service'
+}
 
 WEBSOCKET_URL = {
     'xueba100': 'ws://mpush.xueba100.net:6060/websocket',
@@ -133,5 +137,4 @@ REGIONS = (
 MEDIA_ROOT = '/data/media'
 
 # cloud market url
-CLOUD_MARKET = 'http://app.goodrain.com/'
 CLOUD_ASSISTANT = 'xueba100'
