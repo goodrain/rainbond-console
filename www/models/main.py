@@ -234,7 +234,7 @@ class ServiceInfo(BaseModel):
         return not self.is_slug(self)
 
     def __unicode__(self):
-        return u"{0}({1})".format(self.service_id, self.service_key)
+        return u"{0}({1})".format(self.service_key, self.version)
 
 class TenantServiceInfo(BaseModel):
 
