@@ -30,3 +30,7 @@ class AppServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, files=files)
         return res, body
 
+    def getRemoteServices(self):
+        url = self.url + "/api/v0/services/published"
+        res, body = self._get(url, self.default_headers)
+        return res, body

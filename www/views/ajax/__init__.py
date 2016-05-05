@@ -4,5 +4,7 @@ from account_actions import *
 from code_actions import *
 from graph import ServiceGraph
 from valid import FormValidView
+from service_market import *
 
-__all__ = ('ServiceIdentity', 'InviteServiceUser', 'TenantIdentity', 'InviteTenantUser', 'FormValidView', 'ServiceGraph')
+__all__ = ('ServiceIdentity', 'InviteServiceUser', 'TenantIdentity', 'InviteTenantUser', 'FormValidView', 'ServiceGraph'
+           , 'RemoteServiceMarketAjax')
