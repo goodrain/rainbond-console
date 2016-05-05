@@ -31,42 +31,43 @@
                 </div>
                 <script>
                     //这里调用ajax请求云市服务数据
-                    var remoteservice = function (service_key, app_version) {
+                    function remoteservice(service_key, app_version) {
                         window.location.href = '/ajax/{{tenantName}}/remote/market?service_key='
                                 + service_key + '&app_version=' + app_version;
                     }
-
-                    $.ajax({
-                        type: "POST",
-                        url: "/ajax/{{tenantName}}/remote/market",
-                        cache: false,
-                        beforeSend : function(xhr, settings) {
-                            var csrftoken = $.cookie('csrftoken');
-                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                        },
-                        success: function (msg) {
-                            if (msg.success) {
-                                var dataObj = msg.data
-                                tmpdata = eval(dataObj)
-                                for (var i = 0; i < tmpdata.length; i++) {
-                                    $("<div/>").addClass("col-lg-2").append(
-                                            $("<h4/>").text(tmpdata[i].service_name)
-                                    ).append(
-                                            $("<h5/>").text(tmpdata[i].version)
-                                    ).append(
-                                            $("<button/>").attr("type", "button")
-                                                    .addClass("btn btn-success")
-                                                    .attr("onclick", "remoteservice('"+dataObj[i].service_key+"','" + dataObj[i].app_version + "')")
-                                                    .text("部署")
-                                    ).appendTo($("#servicepanel"))
+                    $(document).ready(function(){
+                        $.ajax({
+                            type: "POST",
+                            url: "/ajax/{{tenantName}}/remote/market",
+                            cache: false,
+                            beforeSend : function(xhr, settings) {
+                                var csrftoken = $.cookie('csrftoken');
+                                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                            },
+                            success: function (msg) {
+                                if (msg.success) {
+                                    var dataObj = msg.data
+                                    tmpdata = eval(dataObj)
+                                    for (var i = 0; i < tmpdata.length; i++) {
+                                        $("<div/>").addClass("col-lg-2").append(
+                                                $("<h4/>").text(tmpdata[i].service_name)
+                                        ).append(
+                                                $("<h5/>").text(tmpdata[i].version)
+                                        ).append(
+                                                $("<button/>").attr("type", "button")
+                                                        .addClass("btn btn-success")
+                                                        .attr("onclick", "remoteservice('"+tmpdata[i].service_key+"','" + tmpdata[i].version + "')")
+                                                        .text("部署")
+                                        ).appendTo($("#servicepanel"))
+                                    }
                                 }
-                            }
 
-                        },
-                        error: function () {
-                            // swal("系统异常");
-                            alert("data error");
-                        }
+                            },
+                            error: function () {
+                                // swal("系统异常");
+                                alert("data error");
+                            }
+                        });
                     });
                 </script>
                 {% endif %}
