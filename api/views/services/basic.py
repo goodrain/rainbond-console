@@ -232,33 +232,33 @@ class ReceiveServiceView(APIView):
             if num == 0:
                 # add service
                 base_info = ServiceInfo()
-                base_info.service_key = service_data.service_key
-                base_info.publisher = service_data.publisher
-                base_info.service_name = service_data.service_name
-                base_info.pic = service_data.pic
-                base_info.info = service_data.info
-                base_info.desc = service_data.desc
-                base_info.status = service_data.status
-                base_info.category = service_data.category
-                base_info.is_service = service_data.is_service
-                base_info.is_web_service = service_data.is_web_service
-                base_info.version = service_data.app_version
-                base_info.update_version = service_data.update_version
-                base_info.image = service_data.image
-                base_info.slug = service_data.slug
-                base_info.extend_method = service_data.extend_method
-                base_info.cmd = service_data.cmd
-                base_info.setting = service_data.setting
-                base_info.env = service_data.env
-                base_info.dependecy = service_data.dependecy
-                base_info.min_node = service_data.min_node
-                base_info.min_cpu = service_data.min_cpu
-                base_info.min_memory = service_data.min_memory
-                base_info.inner_port = service_data.inner_port
+                base_info.service_key = service_data.get("service_key")
+                base_info.publisher = service_data.get("publisher")
+                base_info.service_name = service_data.get("service_name")
+                base_info.pic = service_data.get("pic")
+                base_info.info = service_data.get("info")
+                base_info.desc = service_data.get("desc")
+                base_info.status = service_data.get("status")
+                base_info.category = service_data.get("category")
+                base_info.is_service = service_data.get("is_service")
+                base_info.is_web_service = service_data.get("is_web_service")
+                base_info.version = service_data.get("app_version")
+                base_info.update_version = service_data.get("update_version")
+                base_info.image = service_data.get("image")
+                base_info.slug = service_data.get("slug")
+                base_info.extend_method = service_data.get("extend_method")
+                base_info.cmd = service_data.get("cmd")
+                base_info.setting = service_data.get("setting")
+                base_info.env = service_data.get("env")
+                base_info.dependecy = service_data.get("dependecy")
+                base_info.min_node = service_data.get("min_node")
+                base_info.min_cpu = service_data.get("min_cpu")
+                base_info.min_memory = service_data.get("min_memory")
+                base_info.inner_port = service_data.get("inner_port")
                 # base_info.publish_time = service_data.publish_time
-                base_info.volume_mount_path = service_data.volume_mount_path
-                base_info.service_type = service_data.service_type
-                base_info.is_init_accout = service_data.is_init_accout
+                base_info.volume_mount_path = service_data.get("volume_mount_path")
+                base_info.service_type = service_data.get("service_type")
+                base_info.is_init_accout = service_data.get("is_init_accout")
                 base_info.save()
             logger.debug('---add app service---ok---')
             # 保存service_env
@@ -290,14 +290,14 @@ class ReceiveServiceView(APIView):
             if env_list:
                 env_data = []
                 for env in env_list:
-                    app_env = AppServiceEnv(service_key=env.service_key,
-                                            app_version=env.app_version,
-                                            name=env.name,
-                                            attr_name=env.attr_name,
-                                            attr_value=env.attr_value,
-                                            scope=env.scope,
-                                            is_change=env.is_change,
-                                            container_port=env.container_port)
+                    app_env = AppServiceEnv(service_key=env.get("service_key"),
+                                            app_version=env.get("app_version"),
+                                            name=env.get("name"),
+                                            attr_name=env.get("attr_name"),
+                                            attr_value=env.get("attr_value"),
+                                            scope=env.get("scope"),
+                                            is_change=env.get("is_change"),
+                                            container_port=env.get("container_port"))
                     env_data.append(app_env)
                 AppServiceEnv.objects.bulk_create(env_data)
             logger.debug('---add app service env---ok---')
@@ -305,13 +305,13 @@ class ReceiveServiceView(APIView):
             if port_list:
                 port_data = []
                 for port in port_list:
-                    app_port = AppServicePort(service_key=port.service_key,
-                                              app_version=port.app_version,
-                                              container_port=port.container_port,
-                                              protocol=port.protocol,
-                                              port_alias=port.port_alias,
-                                              is_inner_service=port.is_inner_service,
-                                              is_outer_service=port.is_outer_service)
+                    app_port = AppServicePort(service_key=port.get("service_key"),
+                                              app_version=port.get("app_version"),
+                                              container_port=port.get("container_port"),
+                                              protocol=port.get("protocol"),
+                                              port_alias=port.get("port_alias"),
+                                              is_inner_service=port.get("is_inner_service"),
+                                              is_outer_service=port.get("is_outer_service"))
                     port_data.append(app_port)
                 AppServicePort.objects.bulk_create(port_data)
             logger.debug('---add app service port---ok---')
@@ -319,14 +319,14 @@ class ReceiveServiceView(APIView):
             if extend_list:
                 extend_data = []
                 for extend in extend_list:
-                    app_port = ServiceExtendMethod(service_key=extend.service_key,
-                                                   app_version=extend.app_version,
-                                                   min_node=extend.min_node,
-                                                   max_node=extend.max_node,
-                                                   step_node=extend.step_node,
-                                                   min_memory=extend.min_memory,
-                                                   max_memory=extend.max_memory,
-                                                   step_memory=extend.step_memory)
+                    app_port = ServiceExtendMethod(service_key=extend.get("service_key"),
+                                                   app_version=extend.get("app_version"),
+                                                   min_node=extend.get("min_node"),
+                                                   max_node=extend.get("max_node"),
+                                                   step_node=extend.get("step_node"),
+                                                   min_memory=extend.get("min_memory"),
+                                                   max_memory=extend.get("max_memory"),
+                                                   step_memory=extend.get("step_memory"))
                     extend_data.append(app_port)
                 ServiceExtendMethod.objects.bulk_create(extend_data)
             logger.debug('---add app service extend---ok---')
@@ -334,21 +334,21 @@ class ReceiveServiceView(APIView):
             relation_data = []
             if pre_list:
                 for relation in pre_list:
-                    app_relation = AppServiceRelation(service_key=relation.service_key,
-                                                      app_version=relation.app_version,
-                                                      app_alias=relation.app_alias,
-                                                      dep_service_key=relation.dep_service_key,
-                                                      dep_app_version=relation.dep_app_version,
-                                                      dep_app_alias=relation.dep_app_alias)
+                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                      app_version=relation.get("app_version"),
+                                                      app_alias=relation.get("app_alias"),
+                                                      dep_service_key=relation.get("dep_service_key"),
+                                                      dep_app_version=relation.get("dep_app_version"),
+                                                      dep_app_alias=relation.get("dep_app_alias"))
                     relation_data.append(app_relation)
             if suf_list:
                 for relation in suf_list:
-                    app_relation = AppServiceRelation(service_key=relation.service_key,
-                                                      app_version=relation.app_version,
-                                                      app_alias=relation.app_alias,
-                                                      dep_service_key=relation.dep_service_key,
-                                                      dep_app_version=relation.dep_app_version,
-                                                      dep_app_alias=relation.dep_app_alias)
+                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                      app_version=relation.get("app_version"),
+                                                      app_alias=relation.get("app_alias"),
+                                                      dep_service_key=relation.get("dep_service_key"),
+                                                      dep_app_version=relation.get("dep_app_version"),
+                                                      dep_app_alias=relation.get("dep_app_alias"))
                     relation_data.append(app_relation)
             if len(relation_data) > 0:
                 AppServiceRelation.objects.bulk_create(relation_data)
@@ -406,33 +406,33 @@ class QueryServiceView(APIView):
             if num == 0:
                 # add service
                 base_info = ServiceInfo()
-                base_info.service_key = service_data.service_key
-                base_info.publisher = service_data.publisher
-                base_info.service_name = service_data.service_name
-                base_info.pic = service_data.pic
-                base_info.info = service_data.info
-                base_info.desc = service_data.desc
-                base_info.status = service_data.status
-                base_info.category = service_data.category
-                base_info.is_service = service_data.is_service
-                base_info.is_web_service = service_data.is_web_service
-                base_info.version = service_data.app_version
-                base_info.update_version = service_data.update_version
-                base_info.image = service_data.image
-                base_info.slug = service_data.slug
-                base_info.extend_method = service_data.extend_method
-                base_info.cmd = service_data.cmd
-                base_info.setting = service_data.setting
-                base_info.env = service_data.env
-                base_info.dependecy = service_data.dependecy
-                base_info.min_node = service_data.min_node
-                base_info.min_cpu = service_data.min_cpu
-                base_info.min_memory = service_data.min_memory
-                base_info.inner_port = service_data.inner_port
+                base_info.service_key = service_data.get("service_key")
+                base_info.publisher = service_data.get("publisher")
+                base_info.service_name = service_data.get("service_name")
+                base_info.pic = service_data.get("pic")
+                base_info.info = service_data.get("info")
+                base_info.desc = service_data.get("desc")
+                base_info.status = service_data.get("status")
+                base_info.category = service_data.get("category")
+                base_info.is_service = service_data.get("is_service")
+                base_info.is_web_service = service_data.get("is_web_service")
+                base_info.version = service_data.get("app_version")
+                base_info.update_version = service_data.get("update_version")
+                base_info.image = service_data.get("image")
+                base_info.slug = service_data.get("slug")
+                base_info.extend_method = service_data.get("extend_method")
+                base_info.cmd = service_data.get("cmd")
+                base_info.setting = service_data.get("setting")
+                base_info.env = service_data.get("env")
+                base_info.dependecy = service_data.get("dependecy")
+                base_info.min_node = service_data.get("min_node")
+                base_info.min_cpu = service_data.get("min_cpu")
+                base_info.min_memory = service_data.get("min_memory")
+                base_info.inner_port = service_data.get("inner_port")
                 # base_info.publish_time = service_data.publish_time
-                base_info.volume_mount_path = service_data.volume_mount_path
-                base_info.service_type = service_data.service_type
-                base_info.is_init_accout = service_data.is_init_accout
+                base_info.volume_mount_path = service_data.get("volume_mount_path")
+                base_info.service_type = service_data.get("service_type")
+                base_info.is_init_accout = service_data.get("is_init_accout")
                 # base_info.save()
             logger.debug('---add app service---ok---')
             # 保存service_env
@@ -464,14 +464,14 @@ class QueryServiceView(APIView):
             if env_list:
                 env_data = []
                 for env in env_list:
-                    app_env = AppServiceEnv(service_key=env.service_key,
-                                            app_version=env.app_version,
-                                            name=env.name,
-                                            attr_name=env.attr_name,
-                                            attr_value=env.attr_value,
-                                            scope=env.scope,
-                                            is_change=env.is_change,
-                                            container_port=env.container_port)
+                    app_env = AppServiceEnv(service_key=env.get("service_key"),
+                                            app_version=env.get("app_version"),
+                                            name=env.get("name"),
+                                            attr_name=env.get("attr_name"),
+                                            attr_value=env.get("attr_value"),
+                                            scope=env.get("scope"),
+                                            is_change=env.get("is_change"),
+                                            container_port=env.get("container_port"))
                     env_data.append(app_env)
                     # AppServiceEnv.objects.bulk_create(env_data)
             logger.debug('---add app service env---ok---')
@@ -479,13 +479,13 @@ class QueryServiceView(APIView):
             if port_list:
                 port_data = []
                 for port in port_list:
-                    app_port = AppServicePort(service_key=port.service_key,
-                                              app_version=port.app_version,
-                                              container_port=port.container_port,
-                                              protocol=port.protocol,
-                                              port_alias=port.port_alias,
-                                              is_inner_service=port.is_inner_service,
-                                              is_outer_service=port.is_outer_service)
+                    app_port = AppServicePort(service_key=port.get("service_key"),
+                                              app_version=port.get("app_version"),
+                                              container_port=port.get("container_port"),
+                                              protocol=port.get("protocol"),
+                                              port_alias=port.get("port_alias"),
+                                              is_inner_service=port.get("is_inner_service"),
+                                              is_outer_service=port.get("is_outer_service"))
                     port_data.append(app_port)
                     # AppServicePort.objects.bulk_create(port_data)
             logger.debug('---add app service port---ok---')
@@ -493,14 +493,14 @@ class QueryServiceView(APIView):
             if extend_list:
                 extend_data = []
                 for extend in extend_list:
-                    app_port = ServiceExtendMethod(service_key=extend.service_key,
-                                                   app_version=extend.app_version,
-                                                   min_node=extend.min_node,
-                                                   max_node=extend.max_node,
-                                                   step_node=extend.step_node,
-                                                   min_memory=extend.min_memory,
-                                                   max_memory=extend.max_memory,
-                                                   step_memory=extend.step_memory)
+                    app_port = ServiceExtendMethod(service_key=extend.get("service_key"),
+                                                   app_version=extend.get("app_version"),
+                                                   min_node=extend.get("min_node"),
+                                                   max_node=extend.get("max_node"),
+                                                   step_node=extend.get("step_node"),
+                                                   min_memory=extend.get("min_memory"),
+                                                   max_memory=extend.get("max_memory"),
+                                                   step_memory=extend.get("step_memory"))
                     extend_data.append(app_port)
                     # ServiceExtendMethod.objects.bulk_create(extend_data)
             logger.debug('---add app service extend---ok---')
@@ -508,21 +508,21 @@ class QueryServiceView(APIView):
             relation_data = []
             if pre_list:
                 for relation in pre_list:
-                    app_relation = AppServiceRelation(service_key=relation.service_key,
-                                                      app_version=relation.app_version,
-                                                      app_alias=relation.app_alias,
-                                                      dep_service_key=relation.dep_service_key,
-                                                      dep_app_version=relation.dep_app_version,
-                                                      dep_app_alias=relation.dep_app_alias)
+                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                      app_version=relation.get("app_version"),
+                                                      app_alias=relation.get("app_alias"),
+                                                      dep_service_key=relation.get("dep_service_key"),
+                                                      dep_app_version=relation.get("dep_app_version"),
+                                                      dep_app_alias=relation.get("dep_app_alias"))
                     relation_data.append(app_relation)
             if suf_list:
                 for relation in suf_list:
-                    app_relation = AppServiceRelation(service_key=relation.service_key,
-                                                      app_version=relation.app_version,
-                                                      app_alias=relation.app_alias,
-                                                      dep_service_key=relation.dep_service_key,
-                                                      dep_app_version=relation.dep_app_version,
-                                                      dep_app_alias=relation.dep_app_alias)
+                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                      app_version=relation.get("app_version"),
+                                                      app_alias=relation.get("app_alias"),
+                                                      dep_service_key=relation.get("dep_service_key"),
+                                                      dep_app_version=relation.get("dep_app_version"),
+                                                      dep_app_alias=relation.get("dep_app_alias"))
                     relation_data.append(app_relation)
                     # if len(relation_data) > 0:
                     # AppServiceRelation.objects.bulk_create(relation_data)
