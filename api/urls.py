@@ -1,6 +1,6 @@
 from django.conf.urls import patterns, url, include
 from rest_framework.authtoken import views
-from api.views.services import SelectedServiceView, PublishServiceView, ReceiveServiceView
+from api.views.services import SelectedServiceView, PublishServiceView, ReceiveServiceView, QueryServiceView
 from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantView, AllTenantView, GitCheckCodeView
 from api.views.tenants import move
 
@@ -11,6 +11,7 @@ urlpatterns = patterns(
     url(r'^tenants/services/hibernate$', TenantHibernateView.as_view()),
     url(r'^tenants/services/publish$', PublishServiceView.as_view()),
     url(r'^tenants/services/receive$', ReceiveServiceView.as_view()),
+    url(r'^tenants/services/query', QueryServiceView.as_view()),
     url(r'^tenants/member$', TenantView.as_view()),
     url(r'^tenants/all-members$', AllTenantView.as_view()),
     url(r'^tenants/services/codecheck', GitCheckCodeView.as_view()),
