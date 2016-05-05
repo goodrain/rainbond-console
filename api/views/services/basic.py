@@ -158,9 +158,10 @@ class PublishServiceView(APIView):
         # 发送服务信息到app
         apputil = AppSendUtil(service_key, app_version)
         # 发送服务参数
+        data.pop('pic')
         apputil.send_services(data)
         # 发送图片
-        apputil.send_image('app_logo', app.logo)
+        # apputil.send_image('app_logo', app.logo)
 
         return Response({"ok": True}, status=200)
 
