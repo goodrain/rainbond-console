@@ -26,23 +26,26 @@ codeRepositoriesService = CodeRepositoriesService()
 
 class RemoteServiceMarketAjax(AuthedView):
     """远程的服务数据"""
-    def get(self, request, *args, **kwargs):
-        action = request.POST.get('action')
+    def post(self, request, *args, **kwargs):
         try:
             res, resp = appClient.getRemoteServices()
             if res.status == 200:
-                resp.data
-                return JsonResponse({"success": True, "data": resp.dat, "info": u"查询成功"})
+                logger.debug(resp.data)
+                return JsonResponse({"success": True, "data": resp.data, "info": u"查询成功"})
             else:
                 return JsonResponse({"success": False, "info": u"查询数据失败"})
         except Exception as e:
             logger.exception(e)
             return JsonResponse({"success": True, "info": u"查询数据失败"})
 
-    def post(self, request, *args, **kwargs):
+
+
+
+
+    def get(self, request, *args, **kwargs):
         """安装远程服务"""
-        service_key = request.POST.get('service_key')
-        app_version = request.POST.get('app_version')
+        service_key = request.GET.get('service_key')
+        app_version = request.GET.get('app_version')
         num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
         if num > 0:
             return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))

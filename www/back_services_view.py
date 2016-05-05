@@ -29,7 +29,8 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
             'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
-            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/back-service-create.js')
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/back-service-create.js',
+            'www/js/jquery.cookie.js')
         return media
 
     @never_cache
@@ -41,6 +42,8 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             context["cacheServiceList"] = cacheServiceList
             context["serviceMarketStatus"] = "active"
             context["tenantName"] = self.tenantName
+            fr = request.GET.get("fr", "local")
+            context["fr"] = fr
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_market.html", context)
