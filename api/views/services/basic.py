@@ -15,7 +15,6 @@ regionClient = RegionServiceApi()
 
 
 class SelectedServiceView(APIView):
-
     '''
     对单个服务的动作
     '''
@@ -151,11 +150,11 @@ class PublishServiceView(APIView):
                 data["service_type"] = app.service_type
                 data["is_init_accout"] = app.is_init_accout
                 data["creater"] = app.creater
-                # ServiceInfo(**data).save()
+                ServiceInfo(**data).save()
             app.is_ok = isok
             app.slug = slug
             app.image = image
-            # app.save()
+            app.save()
             isys = app.dest_ys
         except Exception as e:
             logger.exception(e)
@@ -260,16 +259,14 @@ class ReceiveServiceView(APIView):
                 base_info.service_type = service_data.get("service_type")
                 base_info.is_init_accout = service_data.get("is_init_accout")
                 base_info.save()
-            logger.debug('---add app service---ok---')
-            # 保存service_env
-            pre_list = json_data.get('pre_list', None)
-            suf_list = json_data.get('suf_list', None)
-            env_list = json_data.get('env_list', None)
-            port_list = json_data.get('port_list', None)
-            extend_list = json_data.get('extend_list', None)
+                logger.debug('---add app service---ok---')
+                # 保存service_env
+                pre_list = json_data.get('pre_list', None)
+                suf_list = json_data.get('suf_list', None)
+                env_list = json_data.get('env_list', None)
+                port_list = json_data.get('port_list', None)
+                extend_list = json_data.get('extend_list', None)
 
-            # 环境参数
-            if num > 0:
                 # 存在对应的service_key, app_version,清理对应的旧数据
                 AppServiceEnv.objects.filter(service_key=service_key,
                                              app_version=app_version).delete()
@@ -286,73 +283,72 @@ class ReceiveServiceView(APIView):
                 ServiceExtendMethod.objects.filter(service_key=service_key,
                                                    app_version=app_version).delete()
                 logger.debug('now clear ServiceExtendMethod ok!')
-            # 新增环境参数
-            if env_list:
-                env_data = []
-                for env in env_list:
-                    app_env = AppServiceEnv(service_key=env.get("service_key"),
-                                            app_version=env.get("app_version"),
-                                            name=env.get("name"),
-                                            attr_name=env.get("attr_name"),
-                                            attr_value=env.get("attr_value"),
-                                            scope=env.get("scope"),
-                                            is_change=env.get("is_change"),
-                                            container_port=env.get("container_port"))
-                    env_data.append(app_env)
-                AppServiceEnv.objects.bulk_create(env_data)
-            logger.debug('---add app service env---ok---')
-            # 端口信息
-            if port_list:
-                port_data = []
-                for port in port_list:
-                    app_port = AppServicePort(service_key=port.get("service_key"),
-                                              app_version=port.get("app_version"),
-                                              container_port=port.get("container_port"),
-                                              protocol=port.get("protocol"),
-                                              port_alias=port.get("port_alias"),
-                                              is_inner_service=port.get("is_inner_service"),
-                                              is_outer_service=port.get("is_outer_service"))
-                    port_data.append(app_port)
-                AppServicePort.objects.bulk_create(port_data)
-            logger.debug('---add app service port---ok---')
-            # 扩展信息
-            if extend_list:
-                extend_data = []
-                for extend in extend_list:
-                    app_port = ServiceExtendMethod(service_key=extend.get("service_key"),
-                                                   app_version=extend.get("app_version"),
-                                                   min_node=extend.get("min_node"),
-                                                   max_node=extend.get("max_node"),
-                                                   step_node=extend.get("step_node"),
-                                                   min_memory=extend.get("min_memory"),
-                                                   max_memory=extend.get("max_memory"),
-                                                   step_memory=extend.get("step_memory"))
-                    extend_data.append(app_port)
-                ServiceExtendMethod.objects.bulk_create(extend_data)
-            logger.debug('---add app service extend---ok---')
-            # 服务依赖关系
-            relation_data = []
-            if pre_list:
-                for relation in pre_list:
-                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
-                                                      app_version=relation.get("app_version"),
-                                                      app_alias=relation.get("app_alias"),
-                                                      dep_service_key=relation.get("dep_service_key"),
-                                                      dep_app_version=relation.get("dep_app_version"),
-                                                      dep_app_alias=relation.get("dep_app_alias"))
-                    relation_data.append(app_relation)
-            if suf_list:
-                for relation in suf_list:
-                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
-                                                      app_version=relation.get("app_version"),
-                                                      app_alias=relation.get("app_alias"),
-                                                      dep_service_key=relation.get("dep_service_key"),
-                                                      dep_app_version=relation.get("dep_app_version"),
-                                                      dep_app_alias=relation.get("dep_app_alias"))
-                    relation_data.append(app_relation)
-            if len(relation_data) > 0:
+                # 新增环境参数
+                if env_list:
+                    env_data = []
+                    for env in env_list:
+                        app_env = AppServiceEnv(service_key=env.get("service_key"),
+                                                app_version=env.get("app_version"),
+                                                name=env.get("name"),
+                                                attr_name=env.get("attr_name"),
+                                                attr_value=env.get("attr_value"),
+                                                scope=env.get("scope"),
+                                                is_change=env.get("is_change"),
+                                                container_port=env.get("container_port"))
+                        env_data.append(app_env)
+                    AppServiceEnv.objects.bulk_create(env_data)
+                logger.debug('---add app service env---ok---')
+                # 端口信息
+                if port_list:
+                    port_data = []
+                    for port in port_list:
+                        app_port = AppServicePort(service_key=port.get("service_key"),
+                                                  app_version=port.get("app_version"),
+                                                  container_port=port.get("container_port"),
+                                                  protocol=port.get("protocol"),
+                                                  port_alias=port.get("port_alias"),
+                                                  is_inner_service=port.get("is_inner_service"),
+                                                  is_outer_service=port.get("is_outer_service"))
+                        port_data.append(app_port)
+                    AppServicePort.objects.bulk_create(port_data)
+                logger.debug('---add app service port---ok---')
+                # 扩展信息
+                if extend_list:
+                    extend_data = []
+                    for extend in extend_list:
+                        app_port = ServiceExtendMethod(service_key=extend.get("service_key"),
+                                                       app_version=extend.get("app_version"),
+                                                       min_node=extend.get("min_node"),
+                                                       max_node=extend.get("max_node"),
+                                                       step_node=extend.get("step_node"),
+                                                       min_memory=extend.get("min_memory"),
+                                                       max_memory=extend.get("max_memory"),
+                                                       step_memory=extend.get("step_memory"))
+                        extend_data.append(app_port)
+                    ServiceExtendMethod.objects.bulk_create(extend_data)
+                logger.debug('---add app service extend---ok---')
+                # 服务依赖关系
+                relation_data = []
+                if pre_list:
+                    for relation in pre_list:
+                        app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                          app_version=relation.get("app_version"),
+                                                          app_alias=relation.get("app_alias"),
+                                                          dep_service_key=relation.get("dep_service_key"),
+                                                          dep_app_version=relation.get("dep_app_version"),
+                                                          dep_app_alias=relation.get("dep_app_alias"))
+                        relation_data.append(app_relation)
+                if suf_list:
+                    for relation in suf_list:
+                        app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                          app_version=relation.get("app_version"),
+                                                          app_alias=relation.get("app_alias"),
+                                                          dep_service_key=relation.get("dep_service_key"),
+                                                          dep_app_version=relation.get("dep_app_version"),
+                                                          dep_app_alias=relation.get("dep_app_alias"))
+                        relation_data.append(app_relation)
                 AppServiceRelation.objects.bulk_create(relation_data)
-            logger.debug('---add app service relation---ok---')
+                logger.debug('---add app service relation---ok---')
         except Exception as e:
             logger.exception(e)
 
@@ -434,102 +430,81 @@ class QueryServiceView(APIView):
                 base_info.service_type = service_data.get("service_type")
                 base_info.is_init_accout = service_data.get("is_init_accout")
                 # base_info.save()
-            logger.debug('---add app service---ok---')
-            # 保存service_env
-            pre_list = json_data.get('pre_list', None)
-            suf_list = json_data.get('suf_list', None)
-            env_list = json_data.get('env_list', None)
-            port_list = json_data.get('port_list', None)
-            extend_list = json_data.get('extend_list', None)
-
-            # 环境参数
-            if num > 0:
-                # 存在对应的service_key, app_version,清理对应的旧数据
-                # AppServiceEnv.objects.filter(service_key=service_key,
-                #                              app_version=app_version).delete()
-                logger.debug('now clear AppServiceEnv ok!')
-                # AppServicePort.objects.filter(service_key=service_key,
-                #                               app_version=app_version).delete()
-                logger.debug('now clear AppServicePort ok!')
-                # AppServiceRelation.objects.filter(service_key=service_key,
-                #                                   app_version=app_version).delete()
-                logger.debug('now clear AppServiceRelation ok!')
-                # AppServiceRelation.objects.filter(dep_service_key=service_key,
-                #                                   dep_app_version=app_version).delete()
-                logger.debug('now clear AppServiceRelation dep ok!')
-                # ServiceExtendMethod.objects.filter(service_key=service_key,
-                #                                    app_version=app_version).delete()
-                logger.debug('now clear ServiceExtendMethod ok!')
-            # 新增环境参数
-            if env_list:
-                env_data = []
-                for env in env_list:
-                    app_env = AppServiceEnv(service_key=env.get("service_key"),
-                                            app_version=env.get("app_version"),
-                                            name=env.get("name"),
-                                            attr_name=env.get("attr_name"),
-                                            attr_value=env.get("attr_value"),
-                                            scope=env.get("scope"),
-                                            is_change=env.get("is_change"),
-                                            container_port=env.get("container_port"))
-                    env_data.append(app_env)
-                    # AppServiceEnv.objects.bulk_create(env_data)
-            logger.debug('---add app service env---ok---')
-            # 端口信息
-            if port_list:
-                port_data = []
-                for port in port_list:
-                    app_port = AppServicePort(service_key=port.get("service_key"),
-                                              app_version=port.get("app_version"),
-                                              container_port=port.get("container_port"),
-                                              protocol=port.get("protocol"),
-                                              port_alias=port.get("port_alias"),
-                                              is_inner_service=port.get("is_inner_service"),
-                                              is_outer_service=port.get("is_outer_service"))
-                    port_data.append(app_port)
-                    # AppServicePort.objects.bulk_create(port_data)
-            logger.debug('---add app service port---ok---')
-            # 扩展信息
-            if extend_list:
-                extend_data = []
-                for extend in extend_list:
-                    app_port = ServiceExtendMethod(service_key=extend.get("service_key"),
-                                                   app_version=extend.get("app_version"),
-                                                   min_node=extend.get("min_node"),
-                                                   max_node=extend.get("max_node"),
-                                                   step_node=extend.get("step_node"),
-                                                   min_memory=extend.get("min_memory"),
-                                                   max_memory=extend.get("max_memory"),
-                                                   step_memory=extend.get("step_memory"))
-                    extend_data.append(app_port)
-                    # ServiceExtendMethod.objects.bulk_create(extend_data)
-            logger.debug('---add app service extend---ok---')
-            # 服务依赖关系
-            relation_data = []
-            if pre_list:
-                for relation in pre_list:
-                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
-                                                      app_version=relation.get("app_version"),
-                                                      app_alias=relation.get("app_alias"),
-                                                      dep_service_key=relation.get("dep_service_key"),
-                                                      dep_app_version=relation.get("dep_app_version"),
-                                                      dep_app_alias=relation.get("dep_app_alias"))
-                    relation_data.append(app_relation)
-            if suf_list:
-                for relation in suf_list:
-                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
-                                                      app_version=relation.get("app_version"),
-                                                      app_alias=relation.get("app_alias"),
-                                                      dep_service_key=relation.get("dep_service_key"),
-                                                      dep_app_version=relation.get("dep_app_version"),
-                                                      dep_app_alias=relation.get("dep_app_alias"))
-                    relation_data.append(app_relation)
-                    # if len(relation_data) > 0:
-                    # AppServiceRelation.objects.bulk_create(relation_data)
-            logger.debug('---add app service relation---ok---')
+                logger.debug('---add app service---ok---')
+                # 保存service_env
+                pre_list = json_data.get('pre_list', None)
+                suf_list = json_data.get('suf_list', None)
+                env_list = json_data.get('env_list', None)
+                port_list = json_data.get('port_list', None)
+                extend_list = json_data.get('extend_list', None)
+                # 新增环境参数
+                if env_list:
+                    env_data = []
+                    for env in env_list:
+                        app_env = AppServiceEnv(service_key=env.get("service_key"),
+                                                app_version=env.get("app_version"),
+                                                name=env.get("name"),
+                                                attr_name=env.get("attr_name"),
+                                                attr_value=env.get("attr_value"),
+                                                scope=env.get("scope"),
+                                                is_change=env.get("is_change"),
+                                                container_port=env.get("container_port"))
+                        env_data.append(app_env)
+                    AppServiceEnv.objects.bulk_create(env_data)
+                logger.debug('---add app service env---ok---')
+                # 端口信息
+                if port_list:
+                    port_data = []
+                    for port in port_list:
+                        app_port = AppServicePort(service_key=port.get("service_key"),
+                                                  app_version=port.get("app_version"),
+                                                  container_port=port.get("container_port"),
+                                                  protocol=port.get("protocol"),
+                                                  port_alias=port.get("port_alias"),
+                                                  is_inner_service=port.get("is_inner_service"),
+                                                  is_outer_service=port.get("is_outer_service"))
+                        port_data.append(app_port)
+                    AppServicePort.objects.bulk_create(port_data)
+                logger.debug('---add app service port---ok---')
+                # 扩展信息
+                if extend_list:
+                    extend_data = []
+                    for extend in extend_list:
+                        app_port = ServiceExtendMethod(service_key=extend.get("service_key"),
+                                                       app_version=extend.get("app_version"),
+                                                       min_node=extend.get("min_node"),
+                                                       max_node=extend.get("max_node"),
+                                                       step_node=extend.get("step_node"),
+                                                       min_memory=extend.get("min_memory"),
+                                                       max_memory=extend.get("max_memory"),
+                                                       step_memory=extend.get("step_memory"))
+                        extend_data.append(app_port)
+                    ServiceExtendMethod.objects.bulk_create(extend_data)
+                logger.debug('---add app service extend---ok---')
+                # 服务依赖关系
+                relation_data = []
+                if pre_list:
+                    for relation in pre_list:
+                        app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                          app_version=relation.get("app_version"),
+                                                          app_alias=relation.get("app_alias"),
+                                                          dep_service_key=relation.get("dep_service_key"),
+                                                          dep_app_version=relation.get("dep_app_version"),
+                                                          dep_app_alias=relation.get("dep_app_alias"))
+                        relation_data.append(app_relation)
+                if suf_list:
+                    for relation in suf_list:
+                        app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                          app_version=relation.get("app_version"),
+                                                          app_alias=relation.get("app_alias"),
+                                                          dep_service_key=relation.get("dep_service_key"),
+                                                          dep_app_version=relation.get("dep_app_version"),
+                                                          dep_app_alias=relation.get("dep_app_alias"))
+                        relation_data.append(app_relation)
+                AppServiceRelation.objects.bulk_create(relation_data)
+                logger.debug('---add app service relation---ok---')
         except Exception as e:
             logger.exception(e)
-
         return Response({"ok": True}, status=200)
 
 
