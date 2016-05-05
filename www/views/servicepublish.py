@@ -138,7 +138,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     app.desc = desc
                     app.is_outer = is_outer
                     app.is_init_accout = is_init_accout
-                    app.category = '{},{},{}'.format(app_type_first, app_type_second, app_type_third)
+                    app.show_category = '{},{},{}'.format(app_type_first, app_type_second, app_type_third)
                     app.save()
                 else:
                     # new
@@ -151,7 +151,8 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         info=info,
                         desc=desc,
                         status='',
-                        category='{},{},{}'.format(app_type_first, app_type_second, app_type_third),
+                        category="app_publish",
+                        show_category='{},{},{}'.format(app_type_first, app_type_second, app_type_third),
                         is_base=False,
                         is_outer=is_outer,
                         is_init_accout=is_init_accout,

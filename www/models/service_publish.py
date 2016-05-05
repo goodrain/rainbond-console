@@ -38,7 +38,7 @@ class AppService(BaseModel):
     info = models.CharField(max_length=100, null=True, blank=True, help_text=u"简介")
     desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"描述")
     status = models.CharField(max_length=15, choices=app_status, help_text=u"服务状态：发布后显示还是隐藏")
-    category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
+    category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store,app_publish")
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
     image = models.CharField(max_length=100, help_text=u"镜像")
@@ -60,6 +60,7 @@ class AppService(BaseModel):
     dest_ys=models.BooleanField(help_text=u'云市发布是否成功', default=False)
     creater = models.IntegerField(null=True, help_text=u"创建人")
     publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
+    show_category = models.CharField(max_length=15, help_text=u"服务分类")
     
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
