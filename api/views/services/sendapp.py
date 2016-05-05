@@ -97,12 +97,9 @@ class AppSendUtil:
             res, resp = appClient.getServiceData(body=data)
             logger.info(res)
             logger.info(resp)
-            if res == 200:
-                data = resp.json()
-                if data.get('code') == 200:
-                    return data.get('data')
-                else:
-                    return json.dumps({"code": 500})
+            if res.status == 200:
+                logger.debug(resp.data)
+                return json.loads(resp.data)
             else:
                 return json.dumps({"code": 500})
         except requests.exceptions.RequestException as ce:

@@ -17,12 +17,12 @@ class AppServiceApi(BaseHttpClient):
 
     def publishServiceData(self, body):
         url = self.url + "/api/v0/services/published"
-        res, body = self._post(url, self.default_headers, body)
+        res, body = self._put(url, self.default_headers, body)
         return res, body
     
     def getServiceData(self, body):
         url = self.url + "/api/v0/services/published"
-        res, body = self._get(url, self.default_headers, body)
+        res, body = self._post(url, self.default_headers, body)
         return res, body
 
     def uploadFiles(self, body, files):
