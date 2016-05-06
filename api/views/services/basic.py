@@ -55,6 +55,46 @@ class SelectedServiceView(APIView):
 class PublishServiceView(APIView):
     allowed_methods = ('post',)
 
+    
+    def init_data(self, app, slug, image):
+        data = {}
+        data["service_key"] = app.service_key
+        data["publisher"] = app.publisher
+        data["service_name"] = app.app_alias
+        data["pic"] = app.logo
+        data["info"] = app.info
+        data["desc"] = app.desc
+        data["status"] = "published"
+        data["category"] = "app_publish"
+        data["is_service"] = app.is_service
+        data["is_web_service"] = app.is_web_service
+        data["version"] = app.app_version
+        data["update_version"] = 1
+        if image != "":
+            data["image"] = image
+        else:
+            data["image"] = app.image
+        data["slug"] = slug
+        data["extend_method"] = app.extend_method
+        data["cmd"] = app.cmd
+        data["setting"] = ""
+        # SLUG_PATH=/app_publish/redis-stat/20151201175854.tgz,
+        if slug != "":
+            data["env"] = app.env + ",SLUG_PATH=" + slug + ","
+        else:
+            data["env"] = app.env
+        data["dependecy"] = ""
+        data["min_node"] = app.min_node
+        data["min_cpu"] = app.min_cpu
+        data["min_memory"] = app.min_memory
+        data["inner_port"] = app.inner_port
+        data["volume_mount_path"] = app.volume_mount_path
+        data["service_type"] = app.service_type
+        data["is_init_accout"] = app.is_init_accout
+        data["creater"] = app.creater
+        return data
+    
+    
     def post(self, request, format=None):
         """
         获取某个租户信息(tenant_id或者tenant_name)
@@ -95,7 +135,6 @@ class PublishServiceView(APIView):
         data = {}
         isys = False
         try:
-            print request.data
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
             image = request.data.get('image', "")
@@ -123,7 +162,6 @@ class PublishServiceView(APIView):
                     pass
                 if serviceInfo is None:
                     serviceInfo = ServiceInfo()
-                data = {}
                 serviceInfo.service_key = app.service_key
                 serviceInfo.publisher = app.publisher
                 serviceInfo.service_name = app.app_alias
@@ -159,6 +197,7 @@ class PublishServiceView(APIView):
                 serviceInfo.is_init_accout = app.is_init_accout
                 serviceInfo.creater = app.creater
                 serviceInfo.save()
+                data = self.init_data(app, slug, image)
             app.is_ok = isok
             if slug != "":
                 app.slug = slug
@@ -173,7 +212,8 @@ class PublishServiceView(APIView):
         if isok and isys:
             apputil = AppSendUtil(service_key, app_version)
             # 发送服务参数不发送图片参数
-            data.pop('pic')
+            if data.get("pic") is not None:
+                data.pop('pic')
             data["show_category"] = app.show_category
             apputil.send_services(data)
             # 发送图片
