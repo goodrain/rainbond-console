@@ -64,8 +64,8 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('-ID')[:1]
         if len(pre_app) == 1:
             pre_app = list(pre_app)[0]
-            if pre_app.category:
-                first, second, third = pre_app.category.split(",")
+            if pre_app.show_category:
+                first, second, third = pre_app.show_category.split(",")
             init_data.update({
                 'service_key': pre_app.service_key,
                 'app_version': pre_app.app_version,
@@ -280,43 +280,45 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
                                          app_version=app.app_version).delete()
             env_string = post_data.get('env_list')
             logger.info("env_list={}".format(env_string))
-            env_data = []
-            env_list = env_string.split(";")
-            for env in env_list:
-                name, attr_name, attr_value, scope, is_change = env.split(",")
-                app_env = AppServiceEnv(service_key=app.service_key,
-                                        app_version=app.app_version,
-                                        name=name,
-                                        attr_name=attr_name,
-                                        attr_value=attr_value,
-                                        scope=scope,
-                                        is_change=is_change,
-                                        container_port=0)
-                env_data.append(app_env)
-            # 批量增加
-            AppServiceEnv.objects.bulk_create(env_data)
+            if env_string != "" and env_string is not None:
+                env_data = []
+                env_list = env_string.split(";")
+                for env in env_list:
+                    name, attr_name, attr_value, scope, is_change = env.split(",")
+                    app_env = AppServiceEnv(service_key=app.service_key,
+                                            app_version=app.app_version,
+                                            name=name,
+                                            attr_name=attr_name,
+                                            attr_value=attr_value,
+                                            scope=scope,
+                                            is_change=is_change,
+                                            container_port=0)
+                    env_data.append(app_env)
+                # 批量增加
+                AppServiceEnv.objects.bulk_create(env_data)
             logger.debug(u'publish.service. now add publish service env ok')
             # 端口配置
             AppServicePort.objects.filter(service_key=app.service_key,
                                           app_version=app.app_version).delete()
             port_string = post_data.get('port_list')
-            port_data = []
-            port_list = port_string.split(";")
-            for port in port_list:
-                container_port, protocol, port_alias, is_inner_service, is_outer_service = port.split(",")
-                if is_inner_service == "0":
-                    is_inner_service = ""
-                if is_outer_service == "0":
-                    is_outer_service = ""
-                app_port = AppServicePort(service_key=app.service_key,
-                                          app_version=app.app_version,
-                                          container_port=container_port,
-                                          protocol=protocol,
-                                          port_alias=port_alias,
-                                          is_inner_service=is_inner_service,
-                                          is_outer_service=is_outer_service)
-                port_data.append(app_port)
-            AppServicePort.objects.bulk_create(port_data)
+            if port_string != "" and port_string is not None:
+                port_data = []
+                port_list = port_string.split(";")
+                for port in port_list:
+                    container_port, protocol, port_alias, is_inner_service, is_outer_service = port.split(",")
+                    if is_inner_service == "0":
+                        is_inner_service = ""
+                    if is_outer_service == "0":
+                        is_outer_service = ""
+                    app_port = AppServicePort(service_key=app.service_key,
+                                              app_version=app.app_version,
+                                              container_port=container_port,
+                                              protocol=protocol,
+                                              port_alias=port_alias,
+                                              is_inner_service=is_inner_service,
+                                              is_outer_service=is_outer_service)
+                    port_data.append(app_port)
+                AppServicePort.objects.bulk_create(port_data)
             logger.debug(u'publish.service. now add publish service port ok')
             
             ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
@@ -362,9 +364,9 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         # app_list = AppService.objects.filter(tenant_id=self.service.tenat_id, is_ok=True).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
             
         # 最新的纪录是之前新增的,获取service_key,app_version
-        app = app_list.get(service_key=service_key, app_version=app_version)
+        app = AppService.objects.get(service_key=service_key, app_version=app_version)
         # 获取所有可配置的服务列表
-        work_list = app_list.exclude(service_key=service_key, app_version=app_version)
+        # work_list = app_list.exclude(service_key=service_key, app_version=app_version)
         # 查询依赖关系
         suffix = AppServiceRelation.objects.filter(service_key=service_key,
                                                    app_version=app_version)
@@ -375,7 +377,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             'prefix': list(prefix),
         })
         # 查询对应服务的名称等信息
-        context.update({'relationlist': list(work_list),
+        context.update({'relationlist': list(app_list),
                         'app': app})
         # 返回页面
         return TemplateResponse(self.request,
@@ -445,7 +447,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
             "type": "publish",
-            "desc": u(info + "应用发布中..."),
+            "desc": info + u"应用发布中...",
             "show": True,
         }
         try:
@@ -455,7 +457,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             logger.exception("service.publish", e)
             return None
 
-    def upload_slug(self, app, event_id):
+    def upload_slug(self, app):
         """ 上传slug包 """
         oss_upload_task = {
             "service_key": app.service_key,
@@ -491,11 +493,11 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         }
         try:
             event_id = self._create_publish_event(u"云帮")
-            oss_upload_task.update({"dest":"yb"}, {"event_id":event_id})
+            image_upload_task.update({"dest":"yb"}, {"event_id" : event_id})
             regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
                 event_id = self._create_publish_event(u"云市")
-                oss_upload_task.update({"dest":"ys"}, {"event_id":event_id})
+                image_upload_task.update({"dest":"ys"}, {"event_id" : event_id})
                 regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
