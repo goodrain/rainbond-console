@@ -114,47 +114,56 @@ class PublishServiceView(APIView):
             if not app.is_outer and app.dest_yb:
                 isok = True
             if slug != "" and not slug.startswith("/"):
-                slug = "/"+slug
+                slug = "/" + slug
             if isok:
+                serviceInfo = None
+                try:
+                    serviceInfo = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                except Exception:   
+                    pass
+                if serviceInfo is None:
+                    serviceInfo = ServiceInfo()
                 data = {}
-                data["service_key"] = app.service_key
-                data["publisher"] = app.publisher
-                data["service_name"] = app.app_alias
-                data["pic"] = app.logo
-                data["info"] = app.info
-                data["desc"] = app.desc
-                data["status"] = "published"
-                data["category"] = "app_publish"
-                data["is_service"] = app.is_service
-                data["is_web_service"] = app.is_web_service
-                data["version"] = app.app_version
-                data["update_version"] = 1
+                serviceInfo.service_key = app.service_key
+                serviceInfo.publisher = app.publisher
+                serviceInfo.service_name = app.app_alias
+                serviceInfo.pic = app.logo
+                serviceInfo.info = app.info
+                serviceInfo.desc = app.desc
+                serviceInfo.status = "published"
+                serviceInfo.category = "app_publish"
+                serviceInfo.is_service = app.is_service
+                serviceInfo.is_web_service = app.is_web_service
+                serviceInfo.version = app.app_version
+                serviceInfo.update_version = 1
                 if image != "":
-                    data["image"] = image
+                    serviceInfo.image = image
                 else:
-                    data["image"] = app.image
-                data["slug"] = slug
-                data["extend_method"] = app.extend_method
-                data["cmd"] = app.cmd
-                data["setting"] = ""
+                    serviceInfo.image = app.image
+                serviceInfo.slug = slug
+                serviceInfo.extend_method = app.extend_method
+                serviceInfo.cmd = app.cmd
+                serviceInfo.setting = ""
                 # SLUG_PATH=/app_publish/redis-stat/20151201175854.tgz,
                 if slug != "":
-                    data["env"] = app.env + ",SLUG_PATH=" + slug + ","
+                    serviceInfo.env = app.env + ",SLUG_PATH=" + slug + ","
                 else:
-                    data["env"] = app.env
-                data["dependecy"] = ""
-                data["min_node"] = app.min_node
-                data["min_cpu"] = app.min_cpu
-                data["min_memory"] = app.min_memory
-                data["inner_port"] = app.inner_port
-                data["volume_mount_path"] = app.volume_mount_path
-                data["service_type"] = app.service_type
-                data["is_init_accout"] = app.is_init_accout
-                data["creater"] = app.creater
-                ServiceInfo(**data).save()
+                    serviceInfo.env = app.env
+                serviceInfo.dependecy = ""
+                serviceInfo.min_node = app.min_node
+                serviceInfo.min_cpu = app.min_cpu
+                serviceInfo.min_memory = app.min_memory
+                serviceInfo.inner_port = app.inner_port
+                serviceInfo.volume_mount_path = app.volume_mount_path
+                serviceInfo.service_type = app.service_type
+                serviceInfo.is_init_accout = app.is_init_accout
+                serviceInfo.creater = app.creater
+                serviceInfo.save()
             app.is_ok = isok
-            app.slug = slug
-            app.image = image
+            if slug != "":
+                app.slug = slug
+            if image != "":
+                app.image = image
             app.save()
             isys = app.dest_ys
         except Exception as e:
