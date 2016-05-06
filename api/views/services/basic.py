@@ -113,6 +113,8 @@ class PublishServiceView(APIView):
                 isok = True
             if not app.is_outer and app.dest_yb:
                 isok = True
+            if slug != "" and not slug.startswith("/"):
+                slug = "/"+slug
             if isok:
                 data = {}
                 data["service_key"] = app.service_key
