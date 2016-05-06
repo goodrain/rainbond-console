@@ -123,7 +123,6 @@ class PublishServiceView(APIView):
                 data["desc"] = app.desc
                 data["status"] = "published"
                 data["category"] = "app_publish"
-                data["show_category"] = app.show_category
                 data["is_service"] = app.is_service
                 data["is_web_service"] = app.is_web_service
                 data["version"] = app.app_version
@@ -164,6 +163,7 @@ class PublishServiceView(APIView):
             apputil = AppSendUtil(service_key, app_version)
             # 发送服务参数不发送图片参数
             data.pop('pic')
+            data["show_category"] = app.show_category
             apputil.send_services(data)
             # 发送图片
             logger.debug('send service logo:{}'.format(app.logo))
