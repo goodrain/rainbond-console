@@ -471,11 +471,11 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         try:
             # 生成发布事件
             event_id = self._create_publish_event(u"云帮")
-            oss_upload_task.update({"dest":"yb"}, {"event_id":event_id})
+            oss_upload_task.update({"dest" : "yb", "event_id" : event_id})
             regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
             if app.is_outer:
                 event_id = self._create_publish_event(u"云市")
-                oss_upload_task.update({"dest":"ys"}, {"event_id":event_id})
+                oss_upload_task.update({"dest" : "ys", "event_id" : event_id})
                 regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
             logger.error("service.publish",
@@ -493,11 +493,11 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         }
         try:
             event_id = self._create_publish_event(u"云帮")
-            image_upload_task.update({"dest":"yb"}, {"event_id" : event_id})
+            image_upload_task.update({"dest":"yb", "event_id" : event_id})
             regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
                 event_id = self._create_publish_event(u"云市")
-                image_upload_task.update({"dest":"ys"}, {"event_id" : event_id})
+                image_upload_task.update({"dest":"ys", "event_id" : event_id})
                 regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
