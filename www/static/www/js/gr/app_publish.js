@@ -293,5 +293,18 @@ var checkdata = function () {
     return true;
 }
 
+$("#submit-id-publish").bind("click", function () {
+    var second = $("#app_type_second").val();
+    if (second == 0) {
+        alert("分类不完整,请选择分类!");
+        return false;
+    }
+    var third = $("#app_type_third").val();
+    if (third == 0) {
+        alert("分类不完整,请选择分类!");
+        return false;
+    }
+    return true;
+});
 
 
