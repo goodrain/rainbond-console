@@ -189,6 +189,7 @@ $("#add_service_attr").bind("click", function () {
     $("<select/>").attr({"id":"env_list_"+num+"_scope"})
             .append($("<option/>").val("inner").text("对内"))
             .append($("<option/>").val("outer").text("对外"))
+            .append($("<option/>").val("both").text("内外"))
             .appendTo($("<td/>").appendTo(tr));
     $("<td/>").append($("<input/>").attr({"type":"checkbox", "id":"env_list_"+num+"_change"})).appendTo(tr);
     $("<td/>").append($("<button/>").text("X").attr("onclick", "javascript:removetr(this);")).appendTo(tr);
