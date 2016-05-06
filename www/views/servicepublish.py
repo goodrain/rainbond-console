@@ -143,7 +143,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 else:
                     # new
                     app = AppService(
-                        tenant_id= self.service.tenant_id,
+                        tenant_id=self.service.tenant_id,
                         service_id=self.service.service_id,
                         service_key=service_key,
                         app_version=app_version,
@@ -446,11 +446,15 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             # 批量增加
             AppServiceRelation.objects.bulk_create(relation_list)
             
+            app.dest_yb = False
+            app.dest_ys = False
+            app.save()
             # 事件
             if app.is_slug():
                 self.upload_slug(app)
             elif app.is_image():
                 self.upload_image(app)
+            
             return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
         except Exception as e:
             logger.exception(e)
