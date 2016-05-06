@@ -143,6 +143,8 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 else:
                     # new
                     app = AppService(
+                        tenant_id= self.service.tenant_id,
+                        service_id=self.service.service_id,
                         service_key=service_key,
                         app_version=app_version,
                         app_alias=app_alias,
@@ -152,10 +154,23 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         desc=desc,
                         status='',
                         category="app_publish",
+                        is_service=self.service.is_service,
+                        is_web_service=self.service.is_web_service,
+                        image=self.service.image,
+                        slug='',
+                        extend_method=self.service.extend_method,
+                        cmd=self.service.cmd,
+                        env=self.service.env,
+                        min_node=self.service.min_node,
+                        min_cpu=self.service.min_cpu,
+                        min_memory=self.service.min_memory,
+                        inner_port=self.service.inner_port,
+                        volume_mount_path=self.service.volume_mount_path,
+                        service_type=self.service.service_type,
+                        is_init_accout=is_init_accout,
                         show_category='{},{},{}'.format(app_type_first, app_type_second, app_type_third),
                         is_base=False,
                         is_outer=is_outer,
-                        is_init_accout=is_init_accout,
                         publisher=self.user.email,
                         is_ok=0)
                     filed_list = ('tenant_id', 'service_id', 'is_service', 'env',
