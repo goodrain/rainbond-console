@@ -68,7 +68,7 @@ class AppService(BaseModel):
         return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
 
     def is_image(self):
-        return not self.is_slug(self)
+        return not self.is_slug()
 
     def __unicode__(self):
         return u"{0}({1})".format(self.service_id, self.service_key)
