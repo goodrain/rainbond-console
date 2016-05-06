@@ -65,7 +65,7 @@ class AppService(BaseModel):
     
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
-        return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
+        return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
 
     def is_image(self):
         return not self.is_slug(self)
