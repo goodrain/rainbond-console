@@ -77,7 +77,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 base_info.category = service_data.get("category")
                 base_info.is_service = service_data.get("is_service")
                 base_info.is_web_service = service_data.get("is_web_service")
-                base_info.version = service_data.get("app_version")
+                base_info.version = service_data.get("version")
                 base_info.update_version = service_data.get("update_version")
                 base_info.image = service_data.get("image")
                 base_info.slug = service_data.get("slug")
