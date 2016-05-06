@@ -428,24 +428,24 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
     
             # 批量增加
             AppServiceRelation.objects.bulk_create(relation_list)
-            # 生成发布事件
-            event_id = self._create_publish_event()
+            
+            # 事件
             if app.is_slug():
-                self.upload_slug(app, event_id)
+                self.upload_slug(app)
             elif app.is_image():
-                self.upload_image(app, event_id)
+                self.upload_image(app)
             return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
         except Exception as e:
             logger.exception(e)
             return HttpResponse(u"发布过程出现异常", status=500)
     
-    def _create_publish_event(self):
+    def _create_publish_event(self, info):
         template = {
             "user_id": self.user.nick_name,
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
             "type": "publish",
-            "desc": u"应用发布中...",
+            "desc": u(info + "应用发布中..."),
             "show": True,
         }
         try:
@@ -464,35 +464,39 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             "deploy_version": self.service.deploy_version,
             "tenant_id": self.service.tenant_id,
             "action": "create_new_version",
-            "event_id": event_id,
             "is_outer": app.is_outer,
         }
         try:
-            oss_upload_task.update({"dest":"yb"})
+            # 生成发布事件
+            event_id = self._create_publish_event(u"云帮")
+            oss_upload_task.update({"dest":"yb"}, {"event_id":event_id})
             regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
-            oss_upload_task.update({"dest":"ys"})
-            regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
+            if app.is_outer:
+                event_id = self._create_publish_event(u"云市")
+                oss_upload_task.update({"dest":"ys"}, {"event_id":event_id})
+                regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
             logger.error("service.publish",
                          "upload_slug for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
             logger.exception("service.publish", e)
 
-    def upload_image(self, app, event_id):
+    def upload_image(self, app):
         """ 上传image镜像 """
         image_upload_task = {
             "service_key": app.service_key,
             "app_version": app.app_version,
             "action": "create_new_version",
             "image": app.image,
-            "event_id": event_id,
             "is_outer": app.is_outer,
         }
-
         try:
-            oss_upload_task.update({"dest":"yb"})
+            event_id = self._create_publish_event(u"云帮")
+            oss_upload_task.update({"dest":"yb"}, {"event_id":event_id})
             regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
-            oss_upload_task.update({"dest":"ys"})
-            regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            if app.is_outer:
+                event_id = self._create_publish_event(u"云市")
+                oss_upload_task.update({"dest":"ys"}, {"event_id":event_id})
+                regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
                          "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
