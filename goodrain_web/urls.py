@@ -8,6 +8,7 @@ from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
 from www.views import GrRedirectView
 from www.captcha.CodeImage import ChekcCodeImage
 from www.tests import TestView
+from django.conf import settings
 
 urlpatterns = patterns(
     '',
@@ -37,4 +38,5 @@ urlpatterns = patterns(
     url(r'^select$', views.TenantSelectView.as_view()),
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.urls.payedpackage')),
     url(r'^tests/(?P<templateName>[\w\-]+)/', TestView.as_view()),
+    url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
 ) + staticfiles_urlpatterns()

@@ -80,6 +80,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'first': first if first else 0,
                 'second': second if second else 0,
                 'thrid': third if third else 0,
+                'logo': pre_app.logo,
             })
         else:
             init_data.update({
