@@ -468,6 +468,9 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             "is_outer": app.is_outer,
         }
         try:
+            oss_upload_task.update({"dest":"yb"})
+            regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
+            oss_upload_task.update({"dest":"ys"})
             regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
             logger.error("service.publish",
@@ -486,6 +489,9 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         }
 
         try:
+            oss_upload_task.update({"dest":"yb"})
+            regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            oss_upload_task.update({"dest":"ys"})
             regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",

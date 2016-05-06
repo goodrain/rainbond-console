@@ -166,6 +166,7 @@
     <header class="panel-heading">扩容方式</header>
     <div class="panel-body">
         <div class="row">
+            {% ifequal tenantServiceInfo.category "application" %}
             <div class="col-xs-1 control-label">扩容方式</div>
             <div class="col-xs-2 control-label">
                 <select name="extend_method" id="extend_method" class="form-control m-bot15">
@@ -183,6 +184,7 @@
               <button type="button" onclick="extends_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
             </div>
             {% endif %}
+            {% endifequal %}
             <div class="col-xs-1 control-label">实例数</div>
             <div class="col-xs-1 control-label">
               <select name="serviceNods" id="serviceNods" class="form-control m-bot15">
