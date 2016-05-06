@@ -199,8 +199,6 @@ class ServiceManage(AuthedView):
                     logger.exception(e)
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
                     codeRepositoriesService.deleteProject(self.service)
-                if self.service.category == 'app_publish':
-                    self.update_app_service(self.service)
 
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
                 # env/auth/domain/relationship/envVar delete
@@ -242,14 +240,6 @@ class ServiceManage(AuthedView):
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)
         return JsonResponse(result)
-
-    def update_app_service(self, tservice):
-        try:
-            appversion = AppService.objects.only('deploy_num').get(service_key=tservice.service_key, app_version=tservice.version, update_version=tservice.update_version)
-            appversion.deploy_num -= 1
-            appversion.save()
-        except AppService.DoesNotExist:
-            pass
 
 
 class ServiceUpgrade(AuthedView):
