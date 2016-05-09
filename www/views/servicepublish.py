@@ -252,7 +252,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         context.update({'port_list': list(port_list),
                         'env_list': list(env_list), })
         context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-        choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G')]
+        choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G'), (16384, '16G'), (32768, '32G'), (65536, '64G')]
         choice_list = []
         for value, label in choices:
             choice_list.append({"label": label, "value": value})

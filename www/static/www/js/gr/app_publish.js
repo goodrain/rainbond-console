@@ -220,6 +220,10 @@ var removetr = function (td) {
 
 var ENV_NAME_REG =/^[A-Z][A-Z0-9_]*$/;
 var PORT_REG = /^[0-9]*$/;
+String.prototype.trim = function()  
+{  
+    return this.replace(/(^\s*)|(\s*$)/g, "");  
+}  
 
 var checkdata = function () {
     //拼接portlist
@@ -240,13 +244,15 @@ var checkdata = function () {
         
         tmparray[0] = $('#'+tmpname).val();
         tmpname = "env_list_"+ i + "_attr_name";
-        if(!ENV_NAME_REG.test($('#'+tmpname+'').val())){
+        var varName=$('#'+tmpname+'').val();
+        if(!ENV_NAME_REG.test(varName.trim())){
             swal("变量名不合法")
             return false;
         }
         tmparray[1] = $('#'+tmpname+'').val();
         tmpname = "env_list_"+ i + "_attr_value";
-        if($('#'+tmpname+'').val() == ""){
+        var varValue=$('#'+tmpname+'').val()
+        if(varValue.trim() == ""){
             swal("变量值不能为空")
             return false;
         }
@@ -269,7 +275,8 @@ var checkdata = function () {
         if (typeof($('#'+tmpname+'')) === 'undefined') {
             continue;
         }
-        if(!PORT_REG.test($('#'+tmpname+'').val())){
+        var varPort=$('#'+tmpname+'').val()
+        if(!PORT_REG.test(varPort.trim())){
             swal("端口不合法")
             return false;
         }
@@ -277,7 +284,8 @@ var checkdata = function () {
         tmpname = "port_list_"+ i + "_protocol";
         tmparray[1] = $('#'+tmpname+'').val();
         tmpname = "port_list_"+ i + "_port_alias";
-        if(!ENV_NAME_REG.test($('#'+tmpname+'').val())){
+        var varPortName=$('#'+tmpname+'').val()
+        if(!ENV_NAME_REG.test(varPortName.trim())){
             swal("端口别名不合法")
             return false;
         }
