@@ -76,16 +76,20 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
     def parse_dependency_service(self, dependency_service):
         new_services = []
         exist_t_services = []
+        exist_new_services = []
         for string in dependency_service:
             service_alias, service_key = string.split('.', 1)
             if service_alias == '__new__':
-                new_s = ServiceInfo.objects.get(service_key=service_key)
-                new_services.append(new_s)
+                if ServiceInfo.objects.filter(service_key=service_key).count()>0:
+                    new_s = ServiceInfo.objects.get(service_key=service_key)
+                    new_services.append(new_s)
+                else:
+                    exist_new_services.append(service_key)
             else:
                 exist_t_s = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=service_alias)
                 exist_t_services.append(exist_t_s)
 
-        return new_services, exist_t_services
+        return new_services, exist_t_services, exist_new_services
 
     @never_cache
     @perm_required('code_deploy')
@@ -151,8 +155,12 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             dependency_service = request.POST.getlist("dependency_service")
             logger.debug(dependency_service)
-            new_services, exist_t_services = self.parse_dependency_service(dependency_service)
-
+            new_services, exist_t_services, exist_new_services = self.parse_dependency_service(dependency_service)
+            
+            if len(exist_new_services)>0:
+                result["status"] = "depend_service_notexit"
+                return JsonResponse(result, status=200)
+            
             if new_services:
                 new_required_memory = reduce(lambda x, y: x + y, [s.min_memory for s in new_services])
             else:

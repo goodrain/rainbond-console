@@ -28,28 +28,7 @@ $(function(){
             return;
         }else{
             $('#create_service_notice').slideUp();
-        }        
-        /*var service_dependecy = $("#service_dependecy").val()        
-		if(service_dependecy !=""){
-			var _selectValue = $('input[type="radio"][name="delineCheckbox1"]:checked').val()
-			if (typeof(_selectValue) != "undefined") { 
-				var str = _selectValue.split("_");
-				if(str[0] == service_dependecy){
-					$("#createService").val(str[0])
-					$("#hasService").val("")
-				}else{
-					$("#hasService").val(str[0])
-					$("#createService").val("")
-				}
-			}			
-			var createService = $("#createService").val()
-			var hasService = $('#hasService').val()
-			
-			if(createService=="" && hasService==""){
-				$('#create_dependency_service_notice').slideDown();
-				return;
-			}
-		}*/
+        }
 		var tenantName = $("#tenantName").val()
 		$("#back_service_step1").prop('disabled', true)
 		var _data = $("form").serialize();
@@ -66,6 +45,8 @@ $(function(){
     			var dataObj = msg;
     			if (dataObj["status"] == "notexist"){
     				swal("所选的服务类型不存在");
+    			} else if (dataObj["status"] == "depend_service_notexit"){
+    			    swal("依赖的服务类型不存在，请先下载到服务市场");
     			} else if (dataObj["status"] == "owed"){
     				swal("余额不足请及时充值")
     			} else if (dataObj["status"] == "exist") {
