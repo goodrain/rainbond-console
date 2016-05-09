@@ -29,7 +29,7 @@ def difftime(cur_date, sec):
         pass
     return value
 
-@register.filter()
+@register.filter
 def strToInt(value):
     return int(value)
 
