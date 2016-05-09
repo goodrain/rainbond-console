@@ -304,8 +304,8 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
                     app_env = AppServiceEnv(service_key=app.service_key,
                                             app_version=app.app_version,
                                             name=name,
-                                            attr_name=attr_name,
-                                            attr_value=attr_value,
+                                            attr_name=attr_name.lstrip().rstrip(),
+                                            attr_value=attr_value.lstrip().rstrip(),
                                             scope=scope,
                                             is_change=is_change,
                                             container_port=0)
@@ -328,9 +328,9 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
                         is_outer_service = ""
                     app_port = AppServicePort(service_key=app.service_key,
                                               app_version=app.app_version,
-                                              container_port=container_port,
+                                              container_port=container_port.lstrip().rstrip(),
                                               protocol=protocol,
-                                              port_alias=port_alias,
+                                              port_alias=port_alias.lstrip().rstrip(),
                                               is_inner_service=is_inner_service,
                                               is_outer_service=is_outer_service)
                     port_data.append(app_port)
