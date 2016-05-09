@@ -206,14 +206,12 @@
             <div class="col-xs-1 control-label">内存调整</div>
             <div class="col-xs-2 control-label">
               <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
-                {% for cuMemory in memoryList %}
-                  {% with curMemory= cuMemory|strToInt %}
+                {% for cuMemory in memoryList %} 
                   {% if curMemory == tenantServiceInfo.min_memory %}
                   <option value="{{cuMemory}}"  selected="selected">{{memorydict|mkey:cuMemory}}</option>
                   {% else %}
                   <option value="{{cuMemory}}">{{memorydict|mkey:cuMemory}}</option>
                   {% endif %}
-                  {% endwith %}
                 {% endfor %}
               </select>
             </div>
