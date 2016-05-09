@@ -27,7 +27,7 @@ def logo_path(instance, filename):
 class AppService(BaseModel):
     """ 服务发布表格 """
     class Meta:
-        db_table = 'app_service_bak'
+        db_table = 'app_service'
         unique_together = ('service_key', 'app_version')
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
@@ -87,7 +87,7 @@ class AppService(BaseModel):
 class AppServiceEnv(BaseModel):
     """ 服务环境配置 """
     class Meta:
-        db_table = 'app_service_env_var_bak'
+        db_table = 'app_service_env_var'
         unique_together = ('service_key', 'app_version', 'attr_name')
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
@@ -115,7 +115,7 @@ class AppServiceEnv(BaseModel):
 class AppServicePort(BaseModel):
     """ 服务端口配置 """
     class Meta:
-        db_table = 'app_service_port_bak'
+        db_table = 'app_service_port'
         unique_together = ('service_key', 'app_version', 'container_port')
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
@@ -140,7 +140,7 @@ class AppServicePort(BaseModel):
 class AppServiceRelation(BaseModel):
     """ 服务依赖关系 """
     class Meta:
-        db_table = 'app_service_relation_bak'
+        db_table = 'app_service_relation'
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
@@ -179,7 +179,7 @@ class AppServiceCategory(BaseModel):
 class ServiceExtendMethod(BaseModel):
 
     class Meta:
-        db_table = 'app_service_extend_method_bak'
+        db_table = 'app_service_extend_method'
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
