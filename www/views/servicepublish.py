@@ -138,6 +138,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     app.info = info
                     app.desc = desc
                     app.is_outer = is_outer
+                    app.image = self.service.image
                     app.is_init_accout = is_init_accout
                     app.show_category = '{},{},{}'.format(app_type_first, app_type_second, app_type_third)
                     app.save()
@@ -508,7 +509,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
             "service_key": app.service_key,
             "app_version": app.app_version,
             "action": "create_new_version",
-            "image": app.image,
+            "image": self.service.image,
             "is_outer": app.is_outer,
         }
         try:
