@@ -276,7 +276,7 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context()
-        envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version, container_port=0)
+        envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version, container_port=0, is_change=True)
         if envs:
             context['envs'] = envs
             return TemplateResponse(request, 'www/back_service_create_step_2.html', context)

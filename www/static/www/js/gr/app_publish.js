@@ -263,7 +263,7 @@ var checkdata = function () {
         tmpname = "env_list_"+ i + "_scope";
         tmparray[3] = $('#'+tmpname+'').val();
         tmpname = "env_list_"+ i + "_change";
-        tmparray[4] = $('#'+tmpname+'').prop("checked") ? 1 : 0;
+        tmparray[4] = $('#'+tmpname+'').prop("checked") ? "1" : "";
         envarray.push(tmparray.join(','))
     }
     $("<input/>").attr({"type":"hidden", "name":"env_list"})
