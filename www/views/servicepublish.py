@@ -252,7 +252,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         context.update({'port_list': list(port_list),
                         'env_list': list(env_list), })
         context["nodeList"] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-        choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G')]
+        choices = [(128, '128M'), (256, '256M'), (512, '512M'), (1024, '1G'), (2048, '2G'), (4096, '4G'), (8192, '8G'), (16384, '16G'), (32768, '32G'), (65536, '64G')]
         choice_list = []
         for value, label in choices:
             choice_list.append({"label": label, "value": value})
@@ -304,8 +304,8 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
                     app_env = AppServiceEnv(service_key=app.service_key,
                                             app_version=app.app_version,
                                             name=name,
-                                            attr_name=attr_name,
-                                            attr_value=attr_value,
+                                            attr_name=attr_name.lstrip().rstrip(),
+                                            attr_value=attr_value.lstrip().rstrip(),
                                             scope=scope,
                                             is_change=is_change,
                                             container_port=0)
@@ -328,9 +328,9 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
                         is_outer_service = ""
                     app_port = AppServicePort(service_key=app.service_key,
                                               app_version=app.app_version,
-                                              container_port=container_port,
+                                              container_port=container_port.lstrip().rstrip(),
                                               protocol=protocol,
-                                              port_alias=port_alias,
+                                              port_alias=port_alias.lstrip().rstrip(),
                                               is_inner_service=is_inner_service,
                                               is_outer_service=is_outer_service)
                     port_data.append(app_port)
