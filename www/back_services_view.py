@@ -127,6 +127,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
             context["service_name"] = serviceObj.service_name
+            sem = ServiceExtendMethod.objects.get(service_key=serviceObj.service_key, app_version=serviceObj.version)
             memoryList = []
             num = 1
             memoryList.append(str(sem.min_memory))
