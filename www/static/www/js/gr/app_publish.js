@@ -241,7 +241,10 @@ var checkdata = function () {
             swal("名称不能为空")
             return false;
         }
-        
+        // fix bug:dom not exists
+        if ($('#'+tmpname).length == 0) {
+            continue;
+        }
         tmparray[0] = $('#'+tmpname).val();
         tmpname = "env_list_"+ i + "_attr_name";
         var varName=$('#'+tmpname+'').val();
