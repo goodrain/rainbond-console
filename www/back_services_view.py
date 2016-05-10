@@ -7,7 +7,8 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import (ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation, AppServicePort, AppServiceEnv, TenantServicesPort, AppServiceRelation)
+from www.models import (ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
+                        AppServicePort, AppServiceEnv, TenantServicesPort, AppServiceRelation, ServiceExtendMethod)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService
 from www.monitorservice.monitorhook import MonitorHook
@@ -59,13 +60,13 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         return media
 
     def find_dependecy_services(self, serviceObj):
-        asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key,app_version=serviceObj.version)
-        dependecy_keys=[]
-        if len(asrlist)>0:
+        asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key, app_version=serviceObj.version)
+        dependecy_keys = []
+        if len(asrlist) > 0:
             for asr in asrlist:
                 dependecy_keys.append(asr.dep_service_key)
         
-        if len(dependecy_keys)>0:
+        if len(dependecy_keys) > 0:
             dependecy_services = dict((el, []) for el in dependecy_keys)
             tenant_id = self.tenant.tenant_id
             deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
@@ -80,7 +81,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         for string in dependency_service:
             service_alias, service_key = string.split('.', 1)
             if service_alias == '__new__':
-                if ServiceInfo.objects.filter(service_key=service_key).count()>0:
+                if ServiceInfo.objects.filter(service_key=service_key).count() > 0:
                     new_s = ServiceInfo.objects.get(service_key=service_key)
                     new_services.append(new_s)
                 else:
@@ -91,6 +92,20 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
         return new_services, exist_t_services, exist_new_services
 
+    def memory_choices(self):
+        memory_dict = {}
+        memory_dict["128"] = '128M'
+        memory_dict["256"] = '256M'
+        memory_dict["512"] = '512M'
+        memory_dict["1024"] = '1G'
+        memory_dict["2048"] = '2G'
+        memory_dict["4096"] = '4G'
+        memory_dict["8192"] = '8G'
+        memory_dict["16384"] = '16G'
+        memory_dict["32768"] = '32G'
+        memory_dict["65536"] = '64G'
+        return memory_dict
+    
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
@@ -112,6 +127,17 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
             context["service_name"] = serviceObj.service_name
+            memoryList = []
+            num = 1
+            memoryList.append(str(sem.min_memory))
+            next_memory = sem.min_memory * pow(2, num)
+            while(next_memory <= sem.max_memory):
+                memoryList.append(str(next_memory))
+                num = num + 1
+                next_memory = sem.min_memory * pow(2, num)
+                
+            context["memoryList"] = memoryList
+            context["memorydict"] = self.memory_choices()
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/back_service_create_step_1.html", context)
@@ -157,7 +183,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             logger.debug(dependency_service)
             new_services, exist_t_services, exist_new_services = self.parse_dependency_service(dependency_service)
             
-            if len(exist_new_services)>0:
+            if len(exist_new_services) > 0:
                 result["status"] = "depend_service_notexit"
                 return JsonResponse(result, status=200)
             
