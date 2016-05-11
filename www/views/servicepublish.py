@@ -420,9 +420,9 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                 for pre_fix in pre_fix_list:
                     if pre_fix:
                         pre_key, pre_version, pre_alias = pre_fix.split(",")
-                        relation = AppServiceRelation(service_key=pre_key,
-                                                      app_version=pre_version,
-                                                      app_alias=pre_alias,
+                        relation = AppServiceRelation(service_key=pre_key.lstrip().rstrip(),
+                                                      app_version=pre_version.lstrip().rstrip(),
+                                                      app_alias=pre_alias.lstrip().rstrip(),
                                                       dep_service_key=app.service_key,
                                                       dep_app_version=app.app_version,
                                                       dep_app_alias=app.app_alias)
@@ -439,9 +439,9 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                         relation = AppServiceRelation(service_key=app.service_key,
                                                       app_version=app.app_version,
                                                       app_alias=app.app_alias,
-                                                      dep_service_key=suf_key,
-                                                      dep_app_version=suf_version,
-                                                      dep_app_alias=suf_alias)
+                                                      dep_service_key=suf_key.lstrip().rstrip(),
+                                                      dep_app_version=suf_version.lstrip().rstrip(),
+                                                      dep_app_alias=suf_alias.lstrip().rstrip())
                         relation_list.append(relation)
                 AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version).delete()
     
