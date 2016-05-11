@@ -1,14 +1,13 @@
 # -*- coding: utf8 -*-
 import json
 from addict import Dict
-from django.db import transaction
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import (ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
-                        AppServicePort, AppServiceEnv, TenantServicesPort, AppServiceRelation, ServiceExtendMethod)
+from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
+                        AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService
 from www.monitorservice.monitorhook import MonitorHook
@@ -62,9 +61,11 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
     def find_dependecy_services(self, serviceObj):
         asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key, app_version=serviceObj.version)
         dependecy_keys = []
+        dependecy_info = {}
         if len(asrlist) > 0:
             for asr in asrlist:
                 dependecy_keys.append(asr.dep_service_key)
+                dependecy_info[asr.dep_service_key]=asr.dep_app_alias
         
         if len(dependecy_keys) > 0:
             dependecy_services = dict((el, []) for el in dependecy_keys)
@@ -72,7 +73,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
             for s in deployTenantServices:
                 dependecy_services[s.service_key].append(s)
-            return dependecy_services
+            return dependecy_services, dependecy_info
 
     def parse_dependency_service(self, dependency_service):
         new_services = []
@@ -123,7 +124,9 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             serviceObj = ServiceInfo.objects.get(service_key=service_key)
             context["service"] = serviceObj
-            context["dependecy_services"] = self.find_dependecy_services(serviceObj)
+            dependecy_services, dependecy_info = self.find_dependecy_services(serviceObj)
+            context["dependecy_services"] = dependecy_services
+            context["dependecy_info"] = dependecy_info
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
             context["service_name"] = serviceObj.service_name
@@ -212,7 +215,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     try:
                         dep_service_id = make_uuid(dep_service.service_key)
                         depTenantService = baseService.create_service(
-                            dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                            dep_service_id, tenant_id, dep_service.service_name + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
