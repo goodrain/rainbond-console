@@ -57,7 +57,7 @@
 					{% if dependecy_services %}
 						{% for key, deployed_services in dependecy_services.items %}
 						<div class="form-group">
-						  	<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{dependecy_info|mkey:key.upper}}服务</label>
+						  	<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{dependecy_info|mkey:key}}服务</label>
 						  	<div class="col-lg-10">
 						  		<select class="form-control col-lg-2" style="width: 150px" name="dependency_service">
 						  			<option value="__new__.{{key}}" selected="selected">新建</option>
