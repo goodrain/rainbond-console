@@ -107,7 +107,9 @@
                             <td>{{env.attr_value}}</td>
                             <td>{{env.name}}</td>
                             <td>
+                               {% if env.is_change %}
                                 <button type="button" class="attr-delete btn btn-danger btn-xs"><i class="fa fa-trash-o"></i></button>
+                               {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
