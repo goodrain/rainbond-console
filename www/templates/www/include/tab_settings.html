@@ -192,9 +192,9 @@
               <select name="serviceNods" id="serviceNods" class="form-control m-bot15">
                 {% for curNum in nodeList %}
                   {% if curNum == tenantServiceInfo.min_node %}
-                  <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                  <option value="{{curNum}}"  selected="selected">{{curNum}}</option>
                   {% else %}
-                  <option value="{{forloop.counter}}">{{curNum}}</option>
+                  <option value="{{curNum}}">{{curNum}}</option>
                   {% endif %}
                 {% endfor %}
               </select>
