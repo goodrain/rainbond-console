@@ -279,6 +279,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             maxmemory = post_data.get('max_memory')
             stepnode = post_data.get('step_node')
             stepmemory = post_data.get('step_memory')
+            node_is_restart = post_data.get('node_is_restart')
             
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
             if minnode == self.service.min_node and minmemory == self.service.min_memory:
@@ -348,6 +349,10 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             extendMethod["min_memory"] = minmemory
             extendMethod["max_memory"] = maxmemory
             extendMethod["step_memory"] = stepmemory
+            if node_is_restart == "0":
+                extendMethod["is_restart"] = False
+            else:
+                extendMethod["is_restart"] = True
             ServiceExtendMethod(**extendMethod).save()
             return self.redirect_to('/apps/{0}/{1}/publish/relation/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
         except Exception as e:
