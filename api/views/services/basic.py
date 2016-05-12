@@ -157,7 +157,7 @@ class PublishServiceView(APIView):
             if isok:
                 serviceInfo = None
                 try:
-                    serviceInfo = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                    serviceInfo = ServiceInfo.objects.get(service_key=service_key)
                 except Exception:   
                     pass
                 if serviceInfo is None:
