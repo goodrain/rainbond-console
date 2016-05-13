@@ -432,7 +432,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                                                       dep_app_version=app.app_version,
                                                       dep_app_alias=app.app_alias)
                         relation_list.append(relation)
-                AppServiceRelation.objects.filter(dep_service_key=app.service_key, dep_app_version=app.app_version).delete()
+            AppServiceRelation.objects.filter(dep_service_key=app.service_key, dep_app_version=app.app_version).delete()
             # 保存依赖当前服务的发布服务
             suf_fix_string = post_data.get("suffix")
             logger.info("pre_fix_string={}".format(suf_fix_string))
@@ -448,10 +448,11 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                                                       dep_app_version=suf_version.lstrip().rstrip(),
                                                       dep_app_alias=suf_alias.lstrip().rstrip())
                         relation_list.append(relation)
-                AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version).delete()
+            AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version).delete()
     
             # 批量增加
-            AppServiceRelation.objects.bulk_create(relation_list)
+            if len(relation_list) > 0:
+                AppServiceRelation.objects.bulk_create(relation_list)
             
             app.dest_yb = False
             app.dest_ys = False
