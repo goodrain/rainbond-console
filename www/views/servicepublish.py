@@ -381,7 +381,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
         # 查询基础服务,和当前用户发布的服务publisher in None,self.user.email
-        app_list = AppService.objects.filter(Q(is_base=True) | (Q(tenant_id=self.service.tenant_id) & Q(is_ok=True))).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
+        app_list = AppService.objects.filter(Q(is_ok=True)).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
             
         # app_list = AppService.objects.filter(tenant_id=self.service.tenat_id, is_ok=True).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
             
