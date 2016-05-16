@@ -180,7 +180,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 service_manager['deployed'] = True
                 manager = has_managers[0]
                 service_manager[
-                    'url'] = 'http://{0}.{1}.{2}{3}{4}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, settings.WILD_DOMAIN, http_port_str)
+                    'url'] = 'http://{0}.{1}.{2}{3}:{4}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, settings.WILD_DOMAIN, http_port_str)
             else:
                 service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin'.format(self.tenant.tenant_name)
         return service_manager
@@ -198,6 +198,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
         memory_dict["32768"] = '32G'
         memory_dict["65536"] = '64G'
         return memory_dict
+    
+    def extends_choices(self):
+        extends_dict = {}
+        extends_dict["state"] = u'有状态'
+        extends_dict["stateless"] = u'无状态'
+        extends_dict["state-expend"] = u'有状态可水平扩容'
+        return extends_dict
 
     @never_cache
     @perm_required('view_service')
@@ -252,13 +259,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if len(tsps) > 0:
                     context["hasInnerServices"] = True
                 
-                # relationships password
                 envMap = {}
                 envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"))
-                # logger.debug(len(envVarlist))
                 if len(envVarlist) > 0:
                     for evnVarObj in envVarlist:
-#                        if innerPorts.get(evnVarObj.container_port, False):
                         arr = envMap.get(evnVarObj.service_id)
                         if arr is None:
                             arr = []
@@ -334,6 +338,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["nodeList"] = nodeList
                 context["memoryList"] = memoryList
                 context["memorydict"] = self.memory_choices()
+                context["extends_choices"] = self.extends_choices()
                 if self.service.category == "application" or self.service.category == "manager":
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)

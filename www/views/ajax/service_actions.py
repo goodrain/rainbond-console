@@ -199,8 +199,6 @@ class ServiceManage(AuthedView):
                     logger.exception(e)
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
                     codeRepositoriesService.deleteProject(self.service)
-                if self.service.category == 'app_publish':
-                    self.update_app_service(self.service)
 
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
                 # env/auth/domain/relationship/envVar delete
@@ -243,14 +241,6 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)
         return JsonResponse(result)
 
-    def update_app_service(self, tservice):
-        try:
-            appversion = AppService.objects.only('deploy_num').get(service_key=tservice.service_key, app_version=tservice.version, update_version=tservice.update_version)
-            appversion.deploy_num -= 1
-            appversion.save()
-        except AppService.DoesNotExist:
-            pass
-
 
 class ServiceUpgrade(AuthedView):
 
@@ -269,8 +259,8 @@ class ServiceUpgrade(AuthedView):
                 return JsonResponse(result, status=200)
 
         action = request.POST["action"]
-        if action == "vertical":
-            try:
+        try:
+            if action == "vertical":
                 container_memory = request.POST["memory"]
                 container_cpu = request.POST["cpu"]
                 old_container_cpu = self.service.min_cpu
@@ -304,13 +294,8 @@ class ServiceUpgrade(AuthedView):
                         
                         monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
                 result["status"] = "success"
-            except Exception, e:
-                logger.exception(e)
-                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', False)
-                result["status"] = "failure"
-        elif action == "horizontal":
-            node_num = request.POST["node_num"]
-            try:
+            elif action == "horizontal":
+                node_num = request.POST["node_num"]
                 new_node_num = int(node_num)
                 old_min_node = self.service.min_node
                 if new_node_num >= 0 and new_node_num != old_min_node:
@@ -334,10 +319,24 @@ class ServiceUpgrade(AuthedView):
                     self.service.save()
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', True)
                 result["status"] = "success"
-            except Exception, e:
-                logger.exception(e)
-                result["status"] = "failure"
+            elif action == "extend_method":
+                extend_method = request.POST["extend_method"]
+                if self.service.category=="application":
+                    body = {}
+                    body["extend_method"] = extend_method
+                    regionClient.extendMethodUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                    self.service.extend_method=extend_method
+                    self.service.save()
+                    result["status"] = "success"
+                else:
+                    result["status"] = "no_support"
+        except Exception, e:
+            logger.exception(e)
+            if action == "vertical":
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', False)
+            elif action == "horizontal":
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', False)
+            result["status"] = "failure"
         return JsonResponse(result)
 
 
@@ -805,7 +804,7 @@ class ServicePort(AuthedView):
                 return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 409})
             deal_port.is_inner_service = True
             data.update({"modified_field": "is_inner_service", "current_value": True})
-
+            logger.info(deal_port.mapping_port)
             baseService = BaseTenantService()
             if deal_port.mapping_port <= 1:
                 mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)

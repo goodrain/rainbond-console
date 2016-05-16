@@ -1,4 +1,10 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% block main-content%}
+{% extends 'www/raster.html' %} 
+
+{% load i18n %} 
+
+{% load goodrain_extras %}
+
+{% block main-content%}
 
 <section class="wrapper site-min-height">
 	<!-- page start-->
@@ -35,53 +41,23 @@
 						<label for="create_app_name"
 							class="control-label col-lg-2 app_name">内存大小</label>
 						<div class="col-lg-8">
-							<select class="form-control" style="width: 150px" id="service_memory" name="service_memory"> 
-								{% if service.min_memory == 128 %}
-								<option value="128" selected="selected">128M</option>
-								<option value="256">256M</option>
-								<option value="512">512M</option>
-								<option value="1024">1G</option>
-								<option value="2048">2G</option>
-								<option value="4096">4G</option>	
-								{% endif %}
-								{% if service.min_memory == 256 %}
-								<option value="256" selected="selected">256M</option>
-								<option value="512">512M</option>
-								<option value="1024">1G</option>
-								<option value="2048">2G</option>
-								<option value="4096">4G</option>	
-								{% endif %}
-								{% if service.min_memory == 512 %}
-								<option value="512" selected="selected">512M</option>
-								<option value="1024">1G</option>
-								<option value="2048">2G</option>
-								<option value="4096">4G</option>	
-								{% endif %}
-								{% if service.min_memory == 1024 %}
-								<option value="1024" selected="selected">1G</option>
-								<option value="2048">2G</option>
-								<option value="4096">4G</option>	
-								{% endif %}
-								{% if service.min_memory == 2048 %}
-								<option value="2048" selected="selected">2G</option>
-								<option value="4096">4G</option>	
-								{% endif %}
-								{% if service.min_memory == 4096 %}
-								<option value="4096" selected="selected">4G</option>	
-								{% endif %}
-								{% if service.service_key == "mysql" %}
-								<option value="8192">8G</option>
-								<option value="16384">16G</option>>
-								<option value="32768">32G</option>>
-								<option value="65536">64G</option>>
-								{% endif %}		
+							<select class="form-control" style="width: 150px" id="service_memory" name="service_memory">
+    							{% for cuMemory in memoryList %} 
+                                  {% with curMemory=cuMemory|strToInt %}
+                                  {% if curMemory == service.min_memory %}
+                                  <option value="{{cuMemory}}"  selected="selected">{{memorydict|mkey:cuMemory}}</option>
+                                  {% else %}
+                                  <option value="{{cuMemory}}">{{memorydict|mkey:cuMemory}}</option>
+                                  {% endif %}
+                                  {% endwith %}
+                                {% endfor %}
 							</select>
 						</div>
 					</div>					
 					{% if dependecy_services %}
 						{% for key, deployed_services in dependecy_services.items %}
 						<div class="form-group">
-						  	<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{key.upper}}服务</label>
+						  	<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{dependecy_info|mkey:key}}服务</label>
 						  	<div class="col-lg-10">
 						  		<select class="form-control col-lg-2" style="width: 150px" name="dependency_service">
 						  			<option value="__new__.{{key}}" selected="selected">新建</option>

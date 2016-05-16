@@ -30,7 +30,7 @@
                             <label class="control-label col-lg-2 requiredField">服务节点<span
                                     class="asteriskField">*</span></label>
                             <div class="controls col-lg-8">
-                                <div class="controls col-lg-4">
+                                <div class="controls col-lg-3">
                                     最小节点:
                                     <select name="min_node" id="min_app_node" class="control-label">
                                         {% for curNum in nodeList %}
@@ -42,7 +42,7 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="controls col-lg-4">
+                                <div class="controls col-lg-3">
                                     最大节点:
                                     <select name="max_node" id="max_app_node" class="control-label">
                                         {% for curNum in nodeList %}
@@ -54,11 +54,18 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="controls col-lg-4">
+                                <div class="controls col-lg-3">
                                     步长：
                                     <select name="step_node" id="step_app_node" class="control-label">
                                         <option value="1"  selected="selected">1</option>\
                                         <option value="2">2</option>
+                                    </select>
+                                </div>
+                                <div class="controls col-lg-3">
+                                    节点变化重启：
+                                    <select name="node_is_restart" id="node_is_restart" class="control-label">
+                                        <option value="0"  selected="selected">否</option>\
+                                        <option value="1">是</option>
                                     </select>
                                 </div>
                                 

@@ -71,7 +71,7 @@ class Login(BaseView):
             # 判断是否有跳转参数,有参数跳转到返回页面
             next_url = request.GET.get('next', None)
             if next_url is not None:
-                next_url += '?nick_name={}&email={}'.format(user.nick_name, user.email)
+                # next_url += '?nick_name={}&email={}'.format(user.nick_name, user.email)
                 return self.redirect_to(next_url)
             return self.redirect_view()
 

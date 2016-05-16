@@ -196,8 +196,9 @@ class ServiceInfo(BaseModel):
     """ 服务发布表格 """
     class Meta:
         db_table = 'service'
+        unique_together = ('service_key', 'version')
 
-    service_key = models.CharField(max_length=32, unique=True, help_text=u"服务key")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
     publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
     service_name = models.CharField(max_length=100, help_text=u"服务发布名称")
     pic = models.CharField(max_length=100, null=True, blank=True, help_text=u"logo")
@@ -232,9 +233,6 @@ class ServiceInfo(BaseModel):
 
     def is_image(self):
         return not self.is_slug(self)
-
-    def __unicode__(self):
-        return u"{0}({1})".format(self.service_id, self.service_key)
 
 class TenantServiceInfo(BaseModel):
 

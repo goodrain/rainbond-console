@@ -241,7 +241,6 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._get(url, self.default_headers, body, region=region)
         return body
     
-    
     def createServiceMnt(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/mnt/"
         res, body = self._post(url, self.default_headers, body, region=region)
@@ -256,3 +255,9 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/port-var/"
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
+    
+    def extendMethodUpgrade(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/extend-method/"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return body
+    

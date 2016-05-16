@@ -107,7 +107,9 @@
                             <td>{{env.attr_value}}</td>
                             <td>{{env.name}}</td>
                             <td>
+                               {% if env.is_change %}
                                 <button type="button" class="attr-delete btn btn-danger btn-xs"><i class="fa fa-trash-o"></i></button>
+                               {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
@@ -166,38 +168,59 @@
     <header class="panel-heading">扩容方式</header>
     <div class="panel-body">
         <div class="row">
-            <div class="col-xs-2 control-label">实例数</div>
+            {% ifequal tenantServiceInfo.category "application" %}
+            <div class="col-xs-1 control-label">扩容方式</div>
             <div class="col-xs-2 control-label">
+                <select name="extend_method" id="extend_method" class="form-control m-bot15">
+                    {% for key,extend in extends_choices.iteritems %}
+                        {% if key == tenantServiceInfo.extend_method %}
+                            <option value="{{key}}"  selected="selected">{{extend}}</option>
+                        {% else %}
+                            <option value="{{key}}">{{extend}}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            {% if 'manage_service' in user.actions %}
+            <div class="col-xs-1 control-label">
+              <button type="button" onclick="extends_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+            </div>
+            {% endif %}
+            {% endifequal %}
+            <div class="col-xs-1 control-label">实例数</div>
+            <div class="col-xs-1 control-label">
               <select name="serviceNods" id="serviceNods" class="form-control m-bot15">
                 {% for curNum in nodeList %}
                   {% if curNum == tenantServiceInfo.min_node %}
-                  <option value="{{forloop.counter}}"  selected="selected">{{curNum}}</option>
+                  <option value="{{curNum}}"  selected="selected">{{curNum}}</option>
                   {% else %}
-                  <option value="{{forloop.counter}}">{{curNum}}</option>
+                  <option value="{{curNum}}">{{curNum}}</option>
                   {% endif %}
                 {% endfor %}
               </select>
             </div>
             {% if 'manage_service' in user.actions %}
-            <div class="col-xs-2 control-label">
+            <div class="col-xs-1 control-label">
               <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
             </div>
             {% endif %}
                 
-            <div class="col-xs-2 control-label">内存调整</div>
+            <div class="col-xs-1 control-label">内存调整</div>
             <div class="col-xs-2 control-label">
               <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
-                {% for cuMemory in memoryList %}
-                  {% if cuMemory == tenantServiceInfo.min_memory %}
+                {% for cuMemory in memoryList %} 
+                  {% with curMemory=cuMemory|strToInt %}
+                  {% if curMemory == tenantServiceInfo.min_memory %}
                   <option value="{{cuMemory}}"  selected="selected">{{memorydict|mkey:cuMemory}}</option>
                   {% else %}
                   <option value="{{cuMemory}}">{{memorydict|mkey:cuMemory}}</option>
                   {% endif %}
+                  {% endwith %}
                 {% endfor %}
               </select>
             </div>
             {% if 'manage_service' in user.actions %}
-            <div class="col-xs-2 control-label">
+            <div class="col-xs-1 control-label">
               <button type="button"  onclick="service_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
             </div>
             {% endif %}

@@ -23,6 +23,11 @@ REGION_SERVICE_API = [{
     'region_name': 'ucloud_bj_1'
 }]
 
+APP_SERVICE_API = {
+    'url': 'http://app.goodrain.com:80',
+    'apitype': 'app service'
+}
+
 WEBSOCKET_URL = {
     'ucloud_bj_1': 'ws://123.59.40.70:6060/websocket'
 }
@@ -60,3 +65,6 @@ SESSION_COOKIE_AGE = 3600
 
 # logo path
 MEDIA_ROOT = '/data/media'
+
+# cloud market url
+CLOUD_ASSISTANT = 'goodrain'

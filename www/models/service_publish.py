@@ -8,6 +8,8 @@ from .fields import GrOptionsCharField
 from .main import BaseModel, extend_method, app_pay_choices
 from www.utils.crypt import make_uuid
 from django.conf import settings
+from datetime import date, datetime
+import json
 # Create your models here.
 
 
@@ -25,7 +27,7 @@ def logo_path(instance, filename):
 class AppService(BaseModel):
     """ 服务发布表格 """
     class Meta:
-        db_table = 'app_service_bak'
+        db_table = 'app_service'
         unique_together = ('service_key', 'app_version')
 
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
@@ -37,11 +39,11 @@ class AppService(BaseModel):
     info = models.CharField(max_length=100, null=True, blank=True, help_text=u"简介")
     desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"描述")
     status = models.CharField(max_length=15, choices=app_status, help_text=u"服务状态：发布后显示还是隐藏")
-    category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
+    category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store,app_publish")
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
     image = models.CharField(max_length=100, help_text=u"镜像")
-    slug = models.CharField(max_length=200, help_text=u"slug包路径",default="")
+    slug = models.CharField(max_length=200, help_text=u"slug包路径", default="")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
     env = models.CharField(max_length=200, null=True, blank=True, help_text=u"环境变量")
@@ -55,26 +57,37 @@ class AppService(BaseModel):
     is_base = models.BooleanField(default=False, blank=True, help_text=u"是否基础服务")
     is_outer = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
     is_ok = models.BooleanField(help_text=u'发布是否成功', default=False)
-    dest_yb=models.BooleanField(help_text=u'云帮发布是否成功', default=False)
-    dest_ys=models.BooleanField(help_text=u'云市发布是否成功', default=False)
+    dest_yb = models.BooleanField(help_text=u'云帮发布是否成功', default=False)
+    dest_ys = models.BooleanField(help_text=u'云市发布是否成功', default=False)
     creater = models.IntegerField(null=True, help_text=u"创建人")
     publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
+    show_category = models.CharField(max_length=15, help_text=u"服务分类")
     
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
-        return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
+        return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
 
     def is_image(self):
-        return not self.is_slug(self)
+        return not self.is_slug()
 
     def __unicode__(self):
         return u"{0}({1})".format(self.service_id, self.service_key)
+    
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
 
 
 class AppServiceEnv(BaseModel):
     """ 服务环境配置 """
     class Meta:
-        db_table = 'app_service_env_var_bak'
+        db_table = 'app_service_env_var'
         unique_together = ('service_key', 'app_version', 'attr_name')
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
@@ -88,14 +101,21 @@ class AppServiceEnv(BaseModel):
     options = GrOptionsCharField(max_length=100, help_text=u"参数选项", default="readonly")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
-    def __unicode__(self):
-        return self.name
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
 
 
 class AppServicePort(BaseModel):
     """ 服务端口配置 """
     class Meta:
-        db_table = 'app_service_port_bak'
+        db_table = 'app_service_port'
         unique_together = ('service_key', 'app_version', 'container_port')
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
@@ -106,11 +126,21 @@ class AppServicePort(BaseModel):
     is_inner_service = models.BooleanField(default=False, blank=True, help_text=u"是否内部服务；0:不绑定；1:绑定")
     is_outer_service = models.BooleanField(default=False, blank=True, help_text=u"是否外部服务；0:不绑定；1:绑定")
 
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
+
 
 class AppServiceRelation(BaseModel):
     """ 服务依赖关系 """
     class Meta:
-        db_table = 'app_service_relation_bak'
+        db_table = 'app_service_relation'
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
@@ -118,6 +148,17 @@ class AppServiceRelation(BaseModel):
     dep_service_key = models.CharField(max_length=32, help_text=u"服务key")
     dep_app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     dep_app_alias = models.CharField(max_length=100, help_text=u"服务发布名称")
+
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
+
 
 level_choice = (
     ('end', 'end'), ('secondary', 'secondary'), ('root', 'root')
@@ -138,7 +179,7 @@ class AppServiceCategory(BaseModel):
 class ServiceExtendMethod(BaseModel):
 
     class Meta:
-        db_table = 'app_service_extend_method_bak'
+        db_table = 'app_service_extend_method'
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
@@ -148,3 +189,14 @@ class ServiceExtendMethod(BaseModel):
     min_memory = models.IntegerField(default=1, help_text=u"最小内存")
     max_memory = models.IntegerField(default=20, help_text=u"最大内存")
     step_memory = models.IntegerField(default=1, help_text=u"内存步长")
+    is_restart = models.BooleanField(default=False, blank=True, help_text=u"是否重启")
+
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
