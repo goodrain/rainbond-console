@@ -804,7 +804,7 @@ class ServicePort(AuthedView):
                 return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 409})
             deal_port.is_inner_service = True
             data.update({"modified_field": "is_inner_service", "current_value": True})
-
+            logger.info(deal_port.mapping_port)
             baseService = BaseTenantService()
             if deal_port.mapping_port <= 1:
                 mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
