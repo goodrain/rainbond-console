@@ -179,7 +179,10 @@ class RemoteServiceMarketAjax(AuthedView):
                     AppServiceRelation.objects.bulk_create(relation_data)
                 logger.debug('---add app service relation---ok---')
                 # 跳转到页面
-                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                if action != "update":
+                    return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                else:
+                    return redirect('/apps/{0}/service/'.format(self.tenantName))
             else:
                 logger.error(' error !')
                 return redirect('/apps/{0}/service/'.format(self.tenantName))
