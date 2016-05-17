@@ -12,6 +12,7 @@ from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
+from www.app_http import AppServiceApi
 
 import logging
 logger = logging.getLogger('default')
@@ -21,6 +22,7 @@ baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
 monitorhook = MonitorHook()
 tenantAccountService = TenantAccountService()
+appClient = AppServiceApi()
 
 
 class ServiceMarket(LeftSideBarMixin, AuthedView):
@@ -44,6 +46,16 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             context["tenantName"] = self.tenantName
             fr = request.GET.get("fr", "local")
             context["fr"] = fr
+            res, resp = appClient.getRemoteServices()
+            if res.status == 200:
+                appService={}
+                appVersion={}
+                appdata = resp.data
+                for appda in appdata:
+                    appService[appda.service_key]=appda.update_version
+                    appVersion[appda.service_key]=appda.version
+                context["appService"] = appService
+                context["appVersion"] = appVersion      
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_market.html", context)

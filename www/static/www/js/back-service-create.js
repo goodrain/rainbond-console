@@ -3,6 +3,13 @@ function service_create(tenantName, service_key) {
 	window.location.href = "/apps/" + tenantName
 			+ "/service-deploy/?service_key=" + service_key
 }
+
+function service_update(service_key, app_version, update_version) {
+    window.location.href = '/ajax/{{tenantName}}/remote/market?service_key='
+            + service_key + '&app_version=' + app_version+'&update_version='+update_version+'&action=update';
+}
+
+
 //创建应用
 $(function(){
     $('#create_service_name').blur(function(){
