@@ -268,7 +268,7 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
                                           env.attr_name, env.attr_value, source_env.is_change, source_env.scope)
 
-        for sys_env in AppServiceEnv.objects.filter(service_key=s.service_key, app_version=s.version, container_port__lt=0):
+        for sys_env in AppServiceEnv.objects.filter(service_key=s.service_key, app_version=s.version):
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, sys_env.container_port, sys_env.name,
                                           sys_env.attr_name, sys_env.attr_value, sys_env.is_change, sys_env.scope)
 
