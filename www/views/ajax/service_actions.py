@@ -321,11 +321,11 @@ class ServiceUpgrade(AuthedView):
                 result["status"] = "success"
             elif action == "extend_method":
                 extend_method = request.POST["extend_method"]
-                if self.service.category=="application":
+                if self.service.category == "application":
                     body = {}
                     body["extend_method"] = extend_method
                     regionClient.extendMethodUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
-                    self.service.extend_method=extend_method
+                    self.service.extend_method = extend_method
                     self.service.save()
                     result["status"] = "success"
                 else:
@@ -594,6 +594,12 @@ class ServiceDomainManager(AuthedView):
             tenantService = self.service
             domain_name = request.POST["domain_name"]
             action = request.POST["action"]
+            zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
+            match = zhPattern.search(domain_name.decode('utf-8'))
+            if match:
+                result["status"] = "failure"
+                return JsonResponse(result)
+    
             if action == "start":
                 domainNum = ServiceDomain.objects.filter(domain_name=domain_name).count()
                 if domainNum > 0:
@@ -840,7 +846,7 @@ class ServicePort(AuthedView):
                 deal_port.port_alias = new_port_alias
                 envs = TenantServiceEnvVar.objects.only('attr_name').filter(service_id=deal_port.service_id, container_port=deal_port.container_port)
                 for env in envs:
-                    new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias,'')
+                    new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias, '')
                     env.attr_name = new_attr_name
                     env.save()
                 port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).values(
@@ -985,7 +991,7 @@ class ServiceNewPort(AuthedView):
                 return JsonResponse({"success": False, "code": 409, "info": u"容器端口冲突"})
             
             mapping_port = 0
-            if port_inner == 1 and port_protocol=="stream":
+            if port_inner == 1 and port_protocol == "stream":
                  mapping_port = baseService.prepare_mapping_port(self.service, port_port)
             port = {
                 "tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
@@ -997,7 +1003,7 @@ class ServiceNewPort(AuthedView):
             regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"创建成功"})
         elif action == 'del_port':
-            if TenantServicesPort.objects.filter(service_id=self.service.service_id).count()==1:
+            if TenantServicesPort.objects.filter(service_id=self.service.service_id).count() == 1:
                 return JsonResponse({"success": False, "code": 409, "info": u"服务至少保留一个端口"})
             
             port_port = request.POST.get("port_port")
