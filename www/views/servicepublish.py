@@ -1,14 +1,10 @@
 # -*- coding: utf8 -*-
 import json
-from addict import Dict
-# from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
-from django.http.response import HttpResponse, JsonResponse
-from django.core import serializers
-from django.db import transaction
+from django.http.response import HttpResponse
 from django.db.models import Q
 from django import forms
-
+from django.conf import settings
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
@@ -159,6 +155,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         is_service=self.service.is_service,
                         is_web_service=self.service.is_web_service,
                         image=self.service.image,
+                        namespace=settings.CLOUD_ASSISTANT,
                         slug='',
                         extend_method=self.service.extend_method,
                         cmd=self.service.cmd,

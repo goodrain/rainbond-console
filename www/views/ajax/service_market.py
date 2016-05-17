@@ -93,6 +93,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 base_info.volume_mount_path = service_data.get("volume_mount_path")
                 base_info.service_type = service_data.get("service_type")
                 base_info.is_init_accout = service_data.get("is_init_accout")
+                base_info.namespace = service_data.get("namespace")
                 base_info.save()
                 logger.debug('---add app service---ok---')
                 # 保存service_env

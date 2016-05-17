@@ -92,6 +92,7 @@ class PublishServiceView(APIView):
         data["service_type"] = app.service_type
         data["is_init_accout"] = app.is_init_accout
         data["creater"] = app.creater
+        data["namespace"] = app.namespace
         return data
     
     
@@ -196,6 +197,7 @@ class PublishServiceView(APIView):
                 serviceInfo.service_type = app.service_type
                 serviceInfo.is_init_accout = app.is_init_accout
                 serviceInfo.creater = app.creater
+                serviceInfo.namespace = app.namespace
                 serviceInfo.save()
                 data = self.init_data(app, slug, image)
             app.is_ok = isok
