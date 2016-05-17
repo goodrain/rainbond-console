@@ -43,6 +43,7 @@ class AppService(BaseModel):
     is_service = models.BooleanField(default=False, blank=True, help_text=u"是否inner服务")
     is_web_service = models.BooleanField(default=False, blank=True, help_text=u"是否web服务")
     image = models.CharField(max_length=100, help_text=u"镜像")
+    namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
     slug = models.CharField(max_length=200, help_text=u"slug包路径", default="")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")

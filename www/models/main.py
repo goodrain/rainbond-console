@@ -211,6 +211,7 @@ class ServiceInfo(BaseModel):
     version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     image = models.CharField(max_length=100, help_text=u"镜像")
+    namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
     slug = models.CharField(max_length=200, help_text=u"slug包路径", default="")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
