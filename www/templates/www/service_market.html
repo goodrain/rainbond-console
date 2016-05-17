@@ -35,6 +35,10 @@
                         window.location.href = '/ajax/{{tenantName}}/remote/market?service_key='
                                 + service_key + '&app_version=' + app_version;
                     }
+                    function updateservice(service_key, app_version){
+                        window.location.href = '/ajax/{{tenantName}}/remote/market?service_key='
+                                + service_key + '&app_version=' + app_version+'&action=update';
+                    }
                     $(document).ready(function(){
                         $.ajax({
                             type: "POST",
@@ -55,9 +59,16 @@
                                                 $("<h5/>").text(tmpdata[i].version)
                                         ).append(
                                                 $("<button/>").attr("type", "button")
-                                                        .addClass("btn btn-success")
+                                                        .addClass("btn")
                                                         .attr("onclick", "remoteservice('"+tmpdata[i].service_key+"','" + tmpdata[i].version + "')")
                                                         .text("部署")
+                                        ).append(
+                                            "   "
+                                        ).append(
+                                               $("<button/>").attr("type", "button")
+                                                        .addClass("btn")
+                                                        .attr("onclick", "updateservice('"+tmpdata[i].service_key+"','" + tmpdata[i].version + "')")
+                                                        .text("更新")
                                         ).appendTo($("#servicepanel"))
                                     }
                                 }

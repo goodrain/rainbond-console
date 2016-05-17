@@ -38,17 +38,15 @@ class RemoteServiceMarketAjax(AuthedView):
             logger.exception(e)
             return JsonResponse({"success": True, "info": u"查询数据失败"})
 
-
-
-
-
     def get(self, request, *args, **kwargs):
         """安装远程服务"""
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
+        action = request.GET.get('action', '')
         num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
         if num > 0:
-            return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+            if action != "update":
+                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
         else:
             # 请求云市数据
             all_data = {
@@ -66,7 +64,13 @@ class RemoteServiceMarketAjax(AuthedView):
                     logger.error("no service data!")
                     return redirect('/apps/{0}/service/'.format(self.tenantName))
                 # add service
-                base_info = ServiceInfo()
+                base_info = None
+                try:
+                   base_info = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                except Exception: 
+                    pass 
+                if base_info is None:
+                    base_info = ServiceInfo()
                 base_info.service_key = service_data.get("service_key")
                 base_info.publisher = service_data.get("publisher")
                 base_info.service_name = service_data.get("service_name")
