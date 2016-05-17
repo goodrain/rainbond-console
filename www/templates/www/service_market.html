@@ -1,5 +1,6 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
+{% load goodrain_extras %}
 
 {% block main-content %}
 
@@ -23,6 +24,16 @@
                         <button type="button" class="btn btn-success"
                                 onclick="service_create('{{tenantName}}','{{cache.service_key}}')">部署
                         </button>
+                        {% with update_version=appService|mkey:cache.service_key %}
+                            {% if update_version %}
+                                {% if update_version == cache.update_version %}
+                                {% else %}
+                                    <button type="button" class="btn"
+                                        onclick="service_update('{{tenantName}}','{{appVersion|mkey:cache.service_key}}','{{update_version}}')">部署
+                                    </button>
+                                {% if %}
+                            {% endif %}
+                        {% endwith %}
                     </div>
                     {% endfor %}
                     {% endif %}
@@ -34,10 +45,6 @@
                     function remoteservice(service_key, app_version) {
                         window.location.href = '/ajax/{{tenantName}}/remote/market?service_key='
                                 + service_key + '&app_version=' + app_version;
-                    }
-                    function updateservice(service_key, app_version){
-                        window.location.href = '/ajax/{{tenantName}}/remote/market?service_key='
-                                + service_key + '&app_version=' + app_version+'&action=update';
                     }
                     $(document).ready(function(){
                         $.ajax({
@@ -62,13 +69,6 @@
                                                         .addClass("btn")
                                                         .attr("onclick", "remoteservice('"+tmpdata[i].service_key+"','" + tmpdata[i].version + "')")
                                                         .text("部署")
-                                        ).append(
-                                            "   "
-                                        ).append(
-                                               $("<button/>").attr("type", "button")
-                                                        .addClass("btn")
-                                                        .attr("onclick", "updateservice('"+tmpdata[i].service_key+"','" + tmpdata[i].version + "')")
-                                                        .text("更新")
                                         ).appendTo($("#servicepanel"))
                                     }
                                 }

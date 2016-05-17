@@ -43,6 +43,7 @@ class RemoteServiceMarketAjax(AuthedView):
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
         action = request.GET.get('action', '')
+        update_version = request.GET.get('update_version', 1)
         num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
         if num > 0:
             if action != "update":
@@ -82,7 +83,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 base_info.is_service = service_data.get("is_service")
                 base_info.is_web_service = service_data.get("is_web_service")
                 base_info.version = service_data.get("version")
-                base_info.update_version = service_data.get("update_version")
+                base_info.update_version = update_version
                 base_info.image = service_data.get("image")
                 base_info.slug = service_data.get("slug")
                 base_info.extend_method = service_data.get("extend_method")

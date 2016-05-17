@@ -174,7 +174,7 @@ class PublishServiceView(APIView):
                 serviceInfo.is_service = app.is_service
                 serviceInfo.is_web_service = app.is_web_service
                 serviceInfo.version = app.app_version
-                serviceInfo.update_version = 1
+                serviceInfo.update_version =  serviceInfo.update_version + 1
                 if image != "":
                     serviceInfo.image = image
                 else:
