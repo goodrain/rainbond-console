@@ -279,6 +279,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             maxmemory = post_data.get('max_memory')
             stepnode = post_data.get('step_node')
             stepmemory = post_data.get('step_memory')
+            node_is_restart = post_data.get('node_is_restart')
             
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
             if minnode == self.service.min_node and minmemory == self.service.min_memory:
@@ -348,6 +349,10 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             extendMethod["min_memory"] = minmemory
             extendMethod["max_memory"] = maxmemory
             extendMethod["step_memory"] = stepmemory
+            if node_is_restart == "0":
+                extendMethod["is_restart"] = False
+            else:
+                extendMethod["is_restart"] = True
             ServiceExtendMethod(**extendMethod).save()
             return self.redirect_to('/apps/{0}/{1}/publish/relation/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
         except Exception as e:
@@ -376,7 +381,7 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
         # 查询基础服务,和当前用户发布的服务publisher in None,self.user.email
-        app_list = AppService.objects.filter(Q(is_base=True) | (Q(tenant_id=self.service.tenant_id) & Q(is_ok=True))).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
+        app_list = AppService.objects.filter(Q(is_ok=True)).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
             
         # app_list = AppService.objects.filter(tenant_id=self.service.tenat_id, is_ok=True).values('tenant_id', 'service_id', 'app_alias', 'service_key', 'app_version')
             
@@ -420,14 +425,14 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                 for pre_fix in pre_fix_list:
                     if pre_fix:
                         pre_key, pre_version, pre_alias = pre_fix.split(",")
-                        relation = AppServiceRelation(service_key=pre_key,
-                                                      app_version=pre_version,
-                                                      app_alias=pre_alias,
+                        relation = AppServiceRelation(service_key=pre_key.lstrip().rstrip(),
+                                                      app_version=pre_version.lstrip().rstrip(),
+                                                      app_alias=pre_alias.lstrip().rstrip(),
                                                       dep_service_key=app.service_key,
                                                       dep_app_version=app.app_version,
                                                       dep_app_alias=app.app_alias)
                         relation_list.append(relation)
-                AppServiceRelation.objects.filter(dep_service_key=app.service_key, dep_app_version=app.app_version).delete()
+            AppServiceRelation.objects.filter(dep_service_key=app.service_key, dep_app_version=app.app_version).delete()
             # 保存依赖当前服务的发布服务
             suf_fix_string = post_data.get("suffix")
             logger.info("pre_fix_string={}".format(suf_fix_string))
@@ -439,14 +444,15 @@ class PublishServiceRelationView(LeftSideBarMixin, AuthedView):
                         relation = AppServiceRelation(service_key=app.service_key,
                                                       app_version=app.app_version,
                                                       app_alias=app.app_alias,
-                                                      dep_service_key=suf_key,
-                                                      dep_app_version=suf_version,
-                                                      dep_app_alias=suf_alias)
+                                                      dep_service_key=suf_key.lstrip().rstrip(),
+                                                      dep_app_version=suf_version.lstrip().rstrip(),
+                                                      dep_app_alias=suf_alias.lstrip().rstrip())
                         relation_list.append(relation)
-                AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version).delete()
+            AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version).delete()
     
             # 批量增加
-            AppServiceRelation.objects.bulk_create(relation_list)
+            if len(relation_list) > 0:
+                AppServiceRelation.objects.bulk_create(relation_list)
             
             app.dest_yb = False
             app.dest_ys = False

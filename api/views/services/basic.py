@@ -528,7 +528,8 @@ class QueryServiceView(APIView):
                                                        step_node=extend.get("step_node"),
                                                        min_memory=extend.get("min_memory"),
                                                        max_memory=extend.get("max_memory"),
-                                                       step_memory=extend.get("step_memory"))
+                                                       step_memory=extend.get("step_memory"),
+                                                       is_restart=extend.get("is_restart"))
                         extend_data.append(app_port)
                     ServiceExtendMethod.objects.bulk_create(extend_data)
                 logger.debug('---add app service extend---ok---')
