@@ -38,17 +38,16 @@ class RemoteServiceMarketAjax(AuthedView):
             logger.exception(e)
             return JsonResponse({"success": True, "info": u"查询数据失败"})
 
-
-
-
-
     def get(self, request, *args, **kwargs):
         """安装远程服务"""
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
+        action = request.GET.get('action', '')
+        update_version = request.GET.get('update_version', 1)
         num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
         if num > 0:
-            return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+            if action != "update":
+                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
         else:
             # 请求云市数据
             all_data = {
@@ -66,7 +65,13 @@ class RemoteServiceMarketAjax(AuthedView):
                     logger.error("no service data!")
                     return redirect('/apps/{0}/service/'.format(self.tenantName))
                 # add service
-                base_info = ServiceInfo()
+                base_info = None
+                try:
+                   base_info = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                except Exception: 
+                    pass 
+                if base_info is None:
+                    base_info = ServiceInfo()
                 base_info.service_key = service_data.get("service_key")
                 base_info.publisher = service_data.get("publisher")
                 base_info.service_name = service_data.get("service_name")
@@ -78,7 +83,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 base_info.is_service = service_data.get("is_service")
                 base_info.is_web_service = service_data.get("is_web_service")
                 base_info.version = service_data.get("version")
-                base_info.update_version = service_data.get("update_version")
+                base_info.update_version = update_version
                 base_info.image = service_data.get("image")
                 base_info.slug = service_data.get("slug")
                 base_info.extend_method = service_data.get("extend_method")
@@ -174,7 +179,10 @@ class RemoteServiceMarketAjax(AuthedView):
                     AppServiceRelation.objects.bulk_create(relation_data)
                 logger.debug('---add app service relation---ok---')
                 # 跳转到页面
-                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                if action != "update":
+                    return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                else:
+                    return redirect('/apps/{0}/service/'.format(self.tenantName))
             else:
                 logger.error(' error !')
                 return redirect('/apps/{0}/service/'.format(self.tenantName))

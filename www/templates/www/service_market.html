@@ -1,5 +1,6 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
+{% load goodrain_extras %}
 
 {% block main-content %}
 
@@ -23,6 +24,16 @@
                         <button type="button" class="btn btn-success"
                                 onclick="service_create('{{tenantName}}','{{cache.service_key}}')">部署
                         </button>
+                        {% with update_version=appService|mkey:cache.service_key %}
+                            {% if update_version %}
+                                {% if update_version = cache.update_version %}
+                                {% else %}
+                                    <button type="button" class="btn"
+                                        onclick="service_update('{{tenantName}}','{{appVersion|mkey:cache.service_key}}','{{update_version}}')">更新
+                                    </button>
+                                {% endif %}
+                            {% endif %}
+                        {% endwith %}
                     </div>
                     {% endfor %}
                     {% endif %}
