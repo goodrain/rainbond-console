@@ -382,7 +382,7 @@ class TenantServiceInfoDelete(BaseModel):
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
     is_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否inner服务")
-
+    namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
 class TenantServiceLog(BaseModel):
 
