@@ -29,7 +29,7 @@
                                 {% if update_version = cache.update_version %}
                                 {% else %}
                                     <button type="button" class="btn"
-                                        onclick="service_update('{{tenantName}}','{{appVersion|mkey:cache.service_key}}','{{update_version}}')">更新
+                                        onclick="service_update('{{tenantName}}','{{cache.service_key}}','{{appVersion|mkey:cache.service_key}}','{{update_version}}')">更新
                                     </button>
                                 {% endif %}
                             {% endif %}
