@@ -26,12 +26,12 @@
                         </button>
                         {% with update_version=appService|mkey:cache.service_key %}
                             {% if update_version %}
-                                {% if update_version == cache.update_version %}
+                                {% if update_version = cache.update_version %}
                                 {% else %}
                                     <button type="button" class="btn"
-                                        onclick="service_update('{{tenantName}}','{{appVersion|mkey:cache.service_key}}','{{update_version}}')">部署
+                                        onclick="service_update('{{tenantName}}','{{appVersion|mkey:cache.service_key}}','{{update_version}}')">更新
                                     </button>
-                                {% if %}
+                                {% endif %}
                             {% endif %}
                         {% endwith %}
                     </div>
@@ -66,7 +66,7 @@
                                                 $("<h5/>").text(tmpdata[i].version)
                                         ).append(
                                                 $("<button/>").attr("type", "button")
-                                                        .addClass("btn")
+                                                        .addClass("btn btn-success")
                                                         .attr("onclick", "remoteservice('"+tmpdata[i].service_key+"','" + tmpdata[i].version + "')")
                                                         .text("部署")
                                         ).appendTo($("#servicepanel"))
