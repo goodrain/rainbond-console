@@ -34,7 +34,7 @@
         <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;" id="port_open">
             <thead>
                 <tr>
-                    <th> {% if user.is_sys_admin %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}</th>
+                    <th> {% if user.is_sys_admin or add_port %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}</th>
                     <th> 端口号([0-9])</th>
                     <th> 协议类型</th>
                     <th> 别名(^[A-Z][A-Z0-9_])</th>

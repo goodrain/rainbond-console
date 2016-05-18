@@ -172,7 +172,8 @@ MODULES = {
     "Sms_Check": True,
     "Email_Invite": True,
     "Package_Show": True,
-    "RegionToken": True
+    "RegionToken": True,
+    "Add_Port": False,
 }
 
 REGIONS = (
