@@ -19,7 +19,7 @@ EMAIL_USE_SSL = True
 
 DISCOURSE_SECRET_KEY = 'c2GZHIg8pcF2Pg5M'
 
-ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io']
+ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io', '.goodrain.me']
 
 REGION_TOKEN = "Token 5ca196801173be06c7e6ce41d5f7b3b8071e680a"
 
