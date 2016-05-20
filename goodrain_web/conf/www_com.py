@@ -1,8 +1,8 @@
 import os
 
-DEBUG = False
+DEBUG = True
 
-TEMPLATE_DEBUG = False
+TEMPLATE_DEBUG = True
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
