@@ -349,19 +349,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         context["serviceDomain"] = domain
                     except Exception as e:
                         pass
-                if self.service.is_service:
-                    sids = [self.service.service_id]
-                    envMap = {}
-                    envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
-                    for evnVarObj in envVarlist:
-                        arr = envMap.get(evnVarObj.service_id)
-                        if arr is None:
-                            arr = []
-                        arr.append(evnVarObj)
-                        envMap[evnVarObj.service_id] = arr
-                    context["envMap"] = envMap
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner")
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
