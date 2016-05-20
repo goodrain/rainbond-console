@@ -307,7 +307,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
                                             attr_value=attr_value.lstrip().rstrip(),
                                             scope=scope,
                                             is_change=is_change,
-                                            container_port=0)
+                                            container_port=0 if is_change else -1)
                     env_data.append(app_env)
                 # 批量增加
                 AppServiceEnv.objects.bulk_create(env_data)

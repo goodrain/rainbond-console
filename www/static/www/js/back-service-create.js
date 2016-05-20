@@ -82,6 +82,7 @@ $(function(){
 
     $('#back_service_finished').click(function() {
         envs = []
+        var flag = false
         $('tbody tr').each(function() {
             env = {};
             $(this).find('[name^=attr]').each(function(event) {
@@ -92,11 +93,14 @@ $(function(){
                     env[name] = value;
                 } else {
                     showMessage("有未填写的内容");
-                    return;
+                    flag = true
                 }
             });
             envs.push(env);
         });
+        if (flag) {
+            return false;
+        }
         var csrftoken = $.cookie('csrftoken');
         data = {"envs": envs};
         $.ajax({
