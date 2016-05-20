@@ -92,7 +92,7 @@ $(function(){
                 if (value) {
                     env[name] = value;
                 } else {
-                    alert("有未填写的内容");
+                    showMessage("有未填写的内容");
                     flag = true
                 }
             });
