@@ -21,6 +21,7 @@
 <div class="container">
     <form class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
         <h2 class="form-signin-heading">用户登录</h2>
+        <input type="hidden" name="next" value="{{next_url}}">
         {% crispy form %}
 
     </form>
