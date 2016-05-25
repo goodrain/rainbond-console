@@ -586,7 +586,7 @@ class QueryTenantView(APIView):
               type: string
               paramType: form
         """
-        email = request.POST.get('email')
+        email = request.data['email']
         logger.debug('---user email:{}---'.format(email))
         # 获取用户对应的
         try:

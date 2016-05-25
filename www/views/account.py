@@ -689,3 +689,36 @@ class AccountView(BaseView):
             return JsonResponse({"success": False, "nick_name": "Anonymous"})
         else:
             return JsonResponse({"success": True, "nick_name": user_info.nick_name})
+
+
+class AppLogin(BaseView):
+
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        logger.info(request.get_host())
+
+        username = request.POST.get('email')
+        password = request.POST.get('password')
+        if password:
+            if len(password) < 8:
+                return JsonResponse({"success": False, "msg": "password error!"})
+
+        if username and password:
+            try:
+                if username.find("@") > 0:
+                    user = Users.objects.get(email=username)
+                else:
+                    user = Users.objects.get(phone=username)
+                if not user.check_password(password):
+                    logger.info('form_valid.login', 'password is not correct for user {0}'.format(email))
+                    return JsonResponse({"success": False, "msg": "password error!"})
+            except Users.DoesNotExist:
+                return JsonResponse({"success": False, "msg": "username error!"})
+        else:
+            return JsonResponse({"success": False, "msg": "username or password cannot be null!"})
+
+        user = authenticate(username=username, password=password)
+        login(request, user)
+        logger.info('account.login', "user {0} success login in".format(user.nick_name))
+
+        return JsonResponse({"success": True, "nick_name": user.nick_name})
