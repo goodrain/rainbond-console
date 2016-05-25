@@ -176,12 +176,12 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
 
-            cacheServiceList = ServiceInfo.objects.filter(status="published", category__in=["cache", "store"])
+            cacheServiceList = ServiceInfo.objects.filter(status="published")
             context["cacheServiceList"] = cacheServiceList
 
             tenant_id = self.tenant.tenant_id
             deployTenantServices = TenantServiceInfo.objects.filter(
-                tenant_id=tenant_id, service_region=self.response_region, category__in=["cache", "store"])
+                tenant_id=tenant_id, service_region=self.response_region)
             context["deployTenantServices"] = deployTenantServices
         except Exception as e:
             logger.exception(e)
