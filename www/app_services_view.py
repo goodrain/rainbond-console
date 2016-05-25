@@ -181,7 +181,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             tenant_id = self.tenant.tenant_id
             deployTenantServices = TenantServiceInfo.objects.filter(
-                tenant_id=tenant_id, service_region=self.response_region)
+                tenant_id=tenant_id, service_region=self.response_region).exclude(category='application')
             context["deployTenantServices"] = deployTenantServices
         except Exception as e:
             logger.exception(e)
