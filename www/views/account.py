@@ -710,12 +710,12 @@ class AppLogin(BaseView):
                 else:
                     user = Users.objects.get(phone=username)
                 if not user.check_password(password):
-                    logger.info('form_valid.login', 'password is not correct for user {0}'.format(email))
+                    logger.info('form_valid.login', 'password is not correct for user {0}'.format(username))
                     return JsonResponse({"success": False, "msg": "password error!"})
             except Users.DoesNotExist:
-                return JsonResponse({"success": False, "msg": "username error!"})
+                return JsonResponse({"success": False, "msg": "email error!"})
         else:
-            return JsonResponse({"success": False, "msg": "username or password cannot be null!"})
+            return JsonResponse({"success": False, "msg": "email or password cannot be null!"})
 
         user = authenticate(username=username, password=password)
         login(request, user)
