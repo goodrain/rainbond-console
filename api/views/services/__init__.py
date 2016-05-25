@@ -3,4 +3,5 @@ from basic import SelectedServiceView, PublishServiceView, ReceiveServiceView, Q
 __all__ = ('SelectedServiceView',
            'PublishServiceView',
            'ReceiveServiceView',
-           'QueryServiceView')
+           'QueryServiceView',
+           'QueryTenantView')

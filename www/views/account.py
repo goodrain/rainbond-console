@@ -71,7 +71,11 @@ class Login(BaseView):
             # 判断是否有跳转参数,有参数跳转到返回页面
             next_url = request.GET.get('next', None)
             if next_url is not None:
-                # next_url += '?nick_name={}&email={}'.format(user.nick_name, user.email)
+                index_num = next_url.find("?")
+                if "nick_name" in next_url:
+                    next_url = next_url[:index_num] + "?nick_name={}&email={}".format(user.nick_name, user.email)
+                else:
+                    next_url += ("?" if index_num == -1 else "&") + "nick_name={}&email={}".format(user.nick_name, user.email)
                 return self.redirect_to(next_url)
             return self.redirect_view()
 
@@ -98,7 +102,11 @@ class Login(BaseView):
             return self.redirect_to("/autodeploy?fr=www_app")
 
         if next_url is not None:
-            next_url += '?nick_name={}&email={}'.format(user.nick_name, user.email)
+            index_num = next_url.find("?")
+            if "nick_name" in next_url and index_num > -1:
+                next_url = next_url[:index_num] + "?nick_name={}&email={}".format(user.nick_name, user.email)
+            else:
+                next_url += ("?" if index_num == -1 else "&") + "nick_name={}&email={}".format(user.nick_name, user.email)
             return self.redirect_to(next_url)
         else:
             return self.redirect_view()

@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from django.http.response import JsonResponse
 from api.views.base import APIView
 from www.models import TenantServiceInfo, AppService, ServiceInfo, \
-    AppServiceRelation, AppServicePort, AppServiceEnv, ServiceExtendMethod
+    AppServiceRelation, AppServicePort, AppServiceEnv, ServiceExtendMethod, \
+    Tenants, Users, PermRelTenant
 from www.service_http import RegionServiceApi
 import json
 from api.views.services.sendapp import AppSendUtil
@@ -93,6 +94,8 @@ class PublishServiceView(APIView):
         data["is_init_accout"] = app.is_init_accout
         data["creater"] = app.creater
         data["namespace"] = app.namespace
+        # 租户信息
+        data["tenant_id"] = app.tenant_id
         return data
     
     
@@ -217,6 +220,12 @@ class PublishServiceView(APIView):
             if data.get("pic") is not None:
                 data.pop('pic')
             data["show_category"] = app.show_category
+            # 添加租户信息
+            try:
+                tenant = Tenants.objects.get(tenant_id=data["tenant_id"])
+                data["tenant_name"] = tenant.tenant_name
+            except Tenants.DoesNotExists:
+                logger.error("tenant is not exists,tenant_id={}".format(data["tenant_id"]))
             apputil.send_services(data)
             # 发送图片
             logger.debug('send service logo:{}'.format(app.logo))
@@ -560,5 +569,45 @@ class QueryServiceView(APIView):
         except Exception as e:
             logger.exception(e)
         return Response({"ok": True}, status=200)
+
+
+class QueryTenantView(APIView):
+    """根据用户email查询用户所有的租户信息"""
+    allowed_methods = ('post',)
+
+    def post(self, request, format=None):
+        """
+        根据用户的email获取当前用户的所有租户信息
+        ---
+        parameters:
+            - name: email
+              description: email
+              required: true
+              type: string
+              paramType: form
+        """
+        email = request.POST.get('email')
+        logger.debug('---user email:{}---'.format(email))
+        # 获取用户对应的
+        try:
+            user_info = Users.objects.get(email=email)
+            user_id = user_info.user_id
+            nick_name = user_info.nick_name
+            data = {"nick_name": nick_name}
+
+            # 获取所有的租户信息
+            prt_list = PermRelTenant.objects.filter(user_id=user_id)
+            tenant_id_list = [x.tenant_id for x in prt_list]
+            # 查询租户信息
+            tenant_list = Tenants.objects.filer(pk__in=tenant_id_list)
+            tenant_map_list = []
+            for tenant in list(tenant_list):
+                tenant_map_list.append({"tenant_id": tenant.tenant_id,
+                                        "tenant_name": tenant.tenant_name})
+            data["tenant_list"] = tenant_map_list
+            return Response({'data': data}, status=200)
+        except Users.DoesNotExists:
+            logger.error("---no user info for:{}".format(email))
+        return Response(status=500)
 
 
