@@ -224,7 +224,7 @@ class PublishServiceView(APIView):
             try:
                 tenant = Tenants.objects.get(tenant_id=data["tenant_id"])
                 data["tenant_name"] = tenant.tenant_name
-            except Tenants.DoesNotExists:
+            except Tenants.DoesNotExist:
                 logger.error("tenant is not exists,tenant_id={}".format(data["tenant_id"]))
             apputil.send_services(data)
             # 发送图片
@@ -599,14 +599,14 @@ class QueryTenantView(APIView):
             prt_list = PermRelTenant.objects.filter(user_id=user_id)
             tenant_id_list = [x.tenant_id for x in prt_list]
             # 查询租户信息
-            tenant_list = Tenants.objects.filer(pk__in=tenant_id_list)
+            tenant_list = Tenants.objects.filter(pk__in=tenant_id_list)
             tenant_map_list = []
             for tenant in list(tenant_list):
                 tenant_map_list.append({"tenant_id": tenant.tenant_id,
                                         "tenant_name": tenant.tenant_name})
             data["tenant_list"] = tenant_map_list
             return Response({'data': data}, status=200)
-        except Users.DoesNotExists:
+        except Users.DoesNotExist:
             logger.error("---no user info for:{}".format(email))
         return Response(status=500)
 
