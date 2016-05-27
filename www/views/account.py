@@ -689,7 +689,7 @@ class TenantSelectView(BaseView):
             service_key = get_paras.get('service_key')
             version = get_paras.get("version")
             callback = get_paras.get("callback")
-            next_url = '/ajax/{0}/remote/market?service_key={1}&app_version={2}&callback={}'.format(tenant, service_key, version, callback)
+            next_url = '/ajax/{0}/remote/market?service_key={1}&app_version={2}&callback={3}'.format(tenant, service_key, version, callback)
             response = self.redirect_to(next_url)
             response.set_cookie('region', region)
             return response
