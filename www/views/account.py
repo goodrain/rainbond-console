@@ -74,11 +74,13 @@ class Login(BaseView):
             if next_url is not None:
                 if typ == "app":
                     # 这时候来源于app.goodrain.com
+                    ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
                     index_num = next_url.find("?")
                     if "nick_name" in next_url:
-                        next_url = next_url[:index_num] + "?nick_name={}&email={}".format(user.nick_name, user.email)
+                        # 成成 ticket
+                        next_url = next_url[:index_num] + "?ticket={}".format(ticket)
                     else:
-                        next_url += ("?" if index_num == -1 else "&") + "nick_name={}&email={}".format(user.nick_name, user.email)
+                        next_url += ("?" if index_num == -1 else "&") + "ticket={}".format(ticket)
                 return self.redirect_to(next_url)
             return self.redirect_view()
 
@@ -107,11 +109,12 @@ class Login(BaseView):
         typ = request.GET.get('typ', None)
         if next_url is not None:
             if typ == "app":
+                ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
                 index_num = next_url.find("?")
                 if "nick_name" in next_url and index_num > -1:
-                    next_url = next_url[:index_num] + "?nick_name={}&email={}".format(user.nick_name, user.email)
+                    next_url = next_url[:index_num] + "?ticket={}".format(ticket)
                 else:
-                    next_url += ("?" if index_num == -1 else "&") + "nick_name={}&email={}".format(user.nick_name, user.email)
+                    next_url += ("?" if index_num == -1 else "&") + "ticket={}".format(ticket)
             return self.redirect_to(next_url)
         else:
             return self.redirect_view()
@@ -707,6 +710,25 @@ class AccountView(BaseView):
 
 class AppLogin(BaseView):
 
+    def get_context(self):
+        context = super(AppLogin, self).get_context()
+        context.update({
+            'form': self.form,
+        })
+        return context
+
+    def get_media(self):
+        media = super(AppLogin, self).get_media(
+        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
+        return media
+
+    def get_response(self):
+        return TemplateResponse(self.request, 'www/account/app_login.html', self.get_context())
+
+    def get(self, request, *args, **kwargs):
+        self.form = UserLoginForm()
+        return self.get_response()
+
     @never_cache
     def post(self, request, *args, **kwargs):
         logger.info(request.get_host())
@@ -735,4 +757,5 @@ class AppLogin(BaseView):
         login(request, user)
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
 
-        return JsonResponse({"success": True, "nick_name": user.nick_name})
+        ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
+        return JsonResponse({"success": True, "ticket": ticket})
