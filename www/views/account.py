@@ -70,12 +70,15 @@ class Login(BaseView):
         else:
             # 判断是否有跳转参数,有参数跳转到返回页面
             next_url = request.GET.get('next', None)
+            typ = request.GET.get('typ', None)
             if next_url is not None:
-                index_num = next_url.find("?")
-                if "nick_name" in next_url:
-                    next_url = next_url[:index_num] + "?nick_name={}&email={}".format(user.nick_name, user.email)
-                else:
-                    next_url += ("?" if index_num == -1 else "&") + "nick_name={}&email={}".format(user.nick_name, user.email)
+                if typ == "app":
+                    # 这时候来源于app.goodrain.com
+                    index_num = next_url.find("?")
+                    if "nick_name" in next_url:
+                        next_url = next_url[:index_num] + "?nick_name={}&email={}".format(user.nick_name, user.email)
+                    else:
+                        next_url += ("?" if index_num == -1 else "&") + "nick_name={}&email={}".format(user.nick_name, user.email)
                 return self.redirect_to(next_url)
             return self.redirect_view()
 
@@ -101,12 +104,14 @@ class Login(BaseView):
         if app_ty is not None:
             return self.redirect_to("/autodeploy?fr=www_app")
 
+        typ = request.GET.get('typ', None)
         if next_url is not None:
-            index_num = next_url.find("?")
-            if "nick_name" in next_url and index_num > -1:
-                next_url = next_url[:index_num] + "?nick_name={}&email={}".format(user.nick_name, user.email)
-            else:
-                next_url += ("?" if index_num == -1 else "&") + "nick_name={}&email={}".format(user.nick_name, user.email)
+            if typ == "app":
+                index_num = next_url.find("?")
+                if "nick_name" in next_url and index_num > -1:
+                    next_url = next_url[:index_num] + "?nick_name={}&email={}".format(user.nick_name, user.email)
+                else:
+                    next_url += ("?" if index_num == -1 else "&") + "nick_name={}&email={}".format(user.nick_name, user.email)
             return self.redirect_to(next_url)
         else:
             return self.redirect_view()
@@ -676,6 +681,15 @@ class TenantSelectView(BaseView):
             service_key = get_paras.get('service_key')
             next_url = '/apps/{0}/service-deploy/?service_key={2}&region={1}'.format(tenant, region, service_key)
             return self.redirect_to(next_url)
+        elif action == 'remote_install':
+            # 远程服务安装
+            service_key = get_paras.get('service_key')
+            version = get_paras.get("version")
+            callback = get_paras.get("callback")
+            next_url = '/ajax/{0}/remote/market?service_key={1}&app_version={2}&callback={}'.format(tenant, service_key, version, callback)
+            response = self.redirect_to(next_url)
+            response.set_cookie('region', region)
+            return response
 
 
 class AccountView(BaseView):

@@ -36,7 +36,7 @@ urlpatterns = patterns(
     url(r'^huodong', include('www.urls.activity')),
     url(r'^partners/', include('www.partners.urls')),
     url(r'^Ea7e1ps5.html$', views.ssl_crv),
-    url(r'^select$', views.TenantSelectView.as_view()),
+    url(r'^select$', login_required(views.TenantSelectView.as_view())),
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.urls.payedpackage')),
     url(r'^tests/(?P<templateName>[\w\-]+)/', TestView.as_view()),
     url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),

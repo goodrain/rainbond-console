@@ -42,10 +42,14 @@ class RemoteServiceMarketAjax(AuthedView):
         """安装远程服务"""
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
+        callback = request.GET.get('callback', "0")
         action = request.GET.get('action', '')
         update_version = request.GET.get('update_version', 1)
         num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
         if num > 0:
+            # 回写到云市
+            if callback != "0":
+                appClient.post_statics_tenant(self.tenant.tenant_id, callback)
             if action != "update":
                 return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
         else:
@@ -179,6 +183,10 @@ class RemoteServiceMarketAjax(AuthedView):
                     AppServiceRelation.objects.bulk_create(relation_data)
                 logger.debug('---add app service relation---ok---')
                 # 跳转到页面
+                # 回写数据
+                if callback != "0":
+                    appClient.post_statics_tenant(self.tenant.tenant_id, callback)
+
                 if action != "update":
                     return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
                 else:
