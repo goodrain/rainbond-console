@@ -29,12 +29,12 @@ class BaseTenantService(object):
         else:
             my_tenant_identity = PermRelTenant.objects.get(tenant_id=tenant_pk, user_id=user_pk).identity
             if my_tenant_identity in ('admin', 'developer', 'viewer', 'gray'):
-                services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
+                services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by('service_alias')
             else:
                 dsn = BaseConnection()
                 query_sql = '''
                     select s.* from tenant_service s, service_perms sp where s.tenant_id = "{tenant_id}"
-                    and sp.user_id = {user_id} and sp.service_id = s.ID and s.service_region = "{region}";
+                    and sp.user_id = {user_id} and sp.service_id = s.ID and s.service_region = "{region}" order by s.service_alias
                     '''.format(tenant_id=tenant_id, user_id=user_pk, region=region)
                 services = dsn.query(query_sql)
         return services
