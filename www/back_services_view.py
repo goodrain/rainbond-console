@@ -330,7 +330,7 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             context['envs'] = envs
             return TemplateResponse(request, 'www/back_service_create_step_2.html', context)
         else:
-            source_service = ServiceInfo.objects.get(service_key=self.service.service_key)
+            source_service = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
             self.copy_envs(source_service, [])
             self.copy_ports(source_service)
             baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
@@ -341,7 +341,7 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
         try:
             data = json.loads(request.body)
             data = Dict(data)
-            source_service = ServiceInfo.objects.get(service_key=self.service.service_key)
+            source_service = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
             self.copy_envs(source_service, data.envs)
             self.copy_ports(source_service)
             # create region tenantservice
