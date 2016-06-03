@@ -157,6 +157,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["dependecy_info"] = dependecy_info
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
+            context["app_version"] = app_version
             context["service_name"] = serviceObj.service_name
             sem = ServiceExtendMethod.objects.get(service_key=serviceObj.service_key, app_version=serviceObj.version)
             memoryList = []
@@ -190,6 +191,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             if service_key is None:
                 result["status"] = "notexist"
                 return JsonResponse(result, status=200)
+            app_version = request.POST.get("app_version", None)
+            if app_version is None:
+                result["status"] = "notexist"
+                return JsonResponse(result, status=200)
 
             service_alias = request.POST.get("create_service_name", None)
             if service_alias is None:
@@ -202,7 +207,20 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "exist"
                 return JsonResponse(result, status=200)
 
-            service = ServiceInfo.objects.get(service_key=service_key)
+            service = None
+            if app_version:
+                try:
+                    service = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                except ServiceInfo.DoesNotExist:
+                    pass
+            else:
+                service_list = ServiceInfo.objects.filter(service_key=service_key)
+                if len(service_list) > 0:
+                    service = list(service_list)[0]
+            if service is None:
+                result["status"] = "notexist"
+                return JsonResponse(result, status=200)
+
             service_memory = request.POST.get("service_memory", "")
             if service_memory != "":
                 cm = int(service_memory)
