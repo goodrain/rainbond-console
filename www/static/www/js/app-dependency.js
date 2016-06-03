@@ -6,11 +6,11 @@ $(function() {
 		$("input[name='inlineCheckbox1']:checkbox").each(function() {
 			if ($(this).is(":checked")) {
 				var str = $(this).val().split("_");
-				if (str.length == 2) {
+				if (str.length == 3) {
 					if (serviceKey != "") {
 						serviceKey = serviceKey + ","
 					}
-					serviceKey = serviceKey + str[0]
+					serviceKey = serviceKey + str[0]+":"+str[2]
 				}
 			}
 		});

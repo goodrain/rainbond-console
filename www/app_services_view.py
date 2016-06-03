@@ -32,11 +32,11 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js', )
+            'www/js/respond.min.js',)
         if settings.MODULES["Git_Code_Manual"]:
-            media = media +  self.vendor("www/js/app-create-manual.js")
+            media = media + self.vendor("www/js/app-create-manual.js")
         else:
-            media = media +  self.vendor("www/js/app-create.js")
+            media = media + self.vendor("www/js/app-create.js")
         return media
 
     @never_cache
@@ -213,10 +213,11 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 # create service
                 for skey in serviceKeys:
                     try:
-                        dep_service = ServiceInfo.objects.get(service_key=skey)
-                        dep_service_id = make_uuid(skey)
+                        service_key, app_version = skey.split(':', 1)
+                        dep_service = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                        dep_service_id = make_uuid(service_key)
                         depTenantService = baseService.create_service(
-                            dep_service_id, tenant_id, dep_service.service_key + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                            dep_service_id, tenant_id, dep_service.service_name.lower() + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
