@@ -74,6 +74,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key, app_version=serviceObj.version)
         dependecy_keys = []
         dependecy_info = {}
+        dependecy_version = []
         dependecy_services={}
         if len(asrlist) > 0:
             for asr in asrlist:
