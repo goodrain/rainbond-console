@@ -149,11 +149,12 @@ $(document).ready(
 				cache: false,
 				success: function (data) {
 					for (var i in data.branchs) {
-						el = '<option value="'+ data.branchs[i] + '">' + data.branchs[i] + '</option>'
-						$('#git_branch').prepend(el)
+						var opt = $("<option/>").val(data.branchs[i]).html(data.branchs[i])
+						if (data.branchs[i] == data.current) {
+							opt.prop('selected', true)
+						}
+						$('#git_branch').prepend(opt)
 					}
-
-					$('#git_branch option[value='+ data.current +']').prop('selected', true)
 				}
 			})
 		}
