@@ -42,12 +42,16 @@ class RemoteServiceMarketAjax(AuthedView):
         """安装远程服务"""
         service_key = request.GET.get('service_key')
         app_version = request.GET.get('app_version')
+        callback = request.GET.get('callback', "0")
         action = request.GET.get('action', '')
         update_version = request.GET.get('update_version', 1)
         if action != "update":
             num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
             if num > 0:
-                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                # 回写到云市
+                if callback != "0":
+                    appClient.post_statics_tenant(self.tenant.tenant_id, callback)
+                return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
         # 请求云市数据
         all_data = {
             'service_key': service_key,
@@ -177,9 +181,12 @@ class RemoteServiceMarketAjax(AuthedView):
                 AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version).delete()
                 AppServiceRelation.objects.bulk_create(relation_data)
             logger.debug('---add app service relation---ok---')
+            # 回写数据
+            if callback != "0":
+                appClient.post_statics_tenant(self.tenant.tenant_id, callback)
             # 跳转到页面
             if action != "update":
-                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
             else:
                 return redirect('/apps/{0}/service/'.format(self.tenantName))
         else:
