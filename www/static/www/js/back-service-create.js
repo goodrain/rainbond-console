@@ -1,7 +1,7 @@
 //服务创建
-function service_create(tenantName, service_key) {
+function service_create(tenantName, service_key, app_version) {
 	window.location.href = "/apps/" + tenantName
-			+ "/service-deploy/?service_key=" + service_key
+			+ "/service-deploy/?service_key=" + service_key + "&app_version=" + app_version
 }
 
 function service_update(tenantName, service_key, app_version, update_version) {

@@ -682,7 +682,8 @@ class TenantSelectView(BaseView):
             return self.get(request, *args, **kwargs)
         elif action == 'app_install':
             service_key = get_paras.get('service_key')
-            next_url = '/apps/{0}/service-deploy/?service_key={2}&region={1}'.format(tenant, region, service_key)
+            version = get_paras.get("version")
+            next_url = '/apps/{0}/service-deploy/?service_key={2}&region={1}&app_version={3}'.format(tenant, region, service_key, version)
             return self.redirect_to(next_url)
         elif action == 'remote_install':
             # 远程服务安装

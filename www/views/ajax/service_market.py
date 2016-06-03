@@ -51,7 +51,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 # 回写到云市
                 if callback != "0":
                     appClient.post_statics_tenant(self.tenant.tenant_id, callback)
-                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
         # 请求云市数据
         all_data = {
             'service_key': service_key,
@@ -186,7 +186,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 appClient.post_statics_tenant(self.tenant.tenant_id, callback)
             # 跳转到页面
             if action != "update":
-                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
             else:
                 return redirect('/apps/{0}/service/'.format(self.tenantName))
         else:

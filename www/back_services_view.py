@@ -133,10 +133,24 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             service_key = request.GET.get("service_key", "")
             if service_key == "":
                 return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
+            app_version = request.GET.get("app_version", "")
 
             context["serviceMarketStatus"] = "active"
 
-            serviceObj = ServiceInfo.objects.get(service_key=service_key)
+            serviceObj = None
+            if app_version:
+                try:
+                    serviceObj = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                except ServiceInfo.DoesNotExist:
+                    pass
+            else:
+                service_list = ServiceInfo.objects.filter(service_key=service_key)
+                if len(service_list) > 0:
+                    serviceObj = list(service_list)[0]
+
+            if serviceObj is None:
+                return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
+
             context["service"] = serviceObj
             dependecy_services, dependecy_info = self.find_dependecy_services(serviceObj)
             context["dependecy_services"] = dependecy_services
