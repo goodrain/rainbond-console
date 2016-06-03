@@ -52,7 +52,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                 appVersion={}
                 appdata = json.loads(resp.data)
                 for appda in appdata:
-                    appService[appda["service_key"]]=appda["update_version"]
+                    appService[appda["service_key"]+"_"+appda["version"]]=appda["update_version"]
                     appVersion[appda["service_key"]]=appda["version"]
                 context["appService"] = appService
                 context["appVersion"] = appVersion      
