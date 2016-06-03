@@ -217,7 +217,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                         dep_service = ServiceInfo.objects.get(service_key=service_key, version=app_version)
                         dep_service_id = make_uuid(service_key)
                         depTenantService = baseService.create_service(
-                            dep_service_id, tenant_id, dep_service.service_name + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                            dep_service_id, tenant_id, dep_service.service_name.lower() + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
