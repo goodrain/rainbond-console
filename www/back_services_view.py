@@ -157,6 +157,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["dependecy_info"] = dependecy_info
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
+            context["app_version"] = app_version
             context["service_name"] = serviceObj.service_name
             sem = ServiceExtendMethod.objects.get(service_key=serviceObj.service_key, app_version=serviceObj.version)
             memoryList = []
