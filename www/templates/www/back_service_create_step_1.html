@@ -60,10 +60,10 @@
 						  	<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">依赖{{dependecy_info|mkey:key}}服务</label>
 						  	<div class="col-lg-10">
 						  		<select class="form-control col-lg-2" style="width: 150px" name="dependency_service">
-						  			<option value="__new__.{{key}}" selected="selected">新建</option>
+						  			<option value="__new__.{{key}}.{{dependecy_version|mkey:key}}" selected="selected">新建</option>
 						  			{% if deployed_services %}
 						  			{% for d_service in deployed_services %}
-						  			<option value="{{d_service.service_alias}}.{{key}}">{{d_service.service_alias}}</option>
+						  			<option value="{{d_service.service_alias}}.{{key}}.{{d_service.version}}">{{d_service.service_alias}}</option>
 						  			{% endfor %}
 						  			{% endif %}
 						  		</select>

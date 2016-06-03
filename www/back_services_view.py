@@ -79,6 +79,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             for asr in asrlist:
                 dependecy_keys.append(asr.dep_service_key)
                 dependecy_info[asr.dep_service_key]=asr.dep_app_alias
+                dependecy_version[asr.dep_service_key]=asr.dep_app_version
                 
         if len(dependecy_keys) > 0:
             dependecy_services = dict((el, []) for el in dependecy_keys)
@@ -87,17 +88,17 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             if len(deployTenantServices)>0:
                 for s in deployTenantServices:
                     dependecy_services[s.service_key].append(s)
-        return dependecy_services, dependecy_info
+        return dependecy_services, dependecy_info, dependecy_version
 
     def parse_dependency_service(self, dependency_service):
         new_services = []
         exist_t_services = []
         exist_new_services = []
         for string in dependency_service:
-            service_alias, service_key = string.split('.', 1)
+            service_alias, service_key, app_version = string.split('.', 2)
             if service_alias == '__new__':
-                if ServiceInfo.objects.filter(service_key=service_key).count() > 0:
-                    new_s = ServiceInfo.objects.get(service_key=service_key)
+                if ServiceInfo.objects.filter(service_key=service_key, version=app_version).count() > 0:
+                    new_s = ServiceInfo.objects.get(service_key=service_key, version=app_version)
                     new_services.append(new_s)
                 else:
                     exist_new_services.append(service_key)
@@ -147,14 +148,16 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 service_list = ServiceInfo.objects.filter(service_key=service_key)
                 if len(service_list) > 0:
                     serviceObj = list(service_list)[0]
+                    app_version = serviceObj.version
 
             if serviceObj is None:
                 return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
 
             context["service"] = serviceObj
-            dependecy_services, dependecy_info = self.find_dependecy_services(serviceObj)
+            dependecy_services, dependecy_info, dependecy_version = self.find_dependecy_services(serviceObj)
             context["dependecy_services"] = dependecy_services
             context["dependecy_info"] = dependecy_info
+            context["dependecy_version"] = dependecy_version
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
             context["app_version"] = app_version
@@ -217,6 +220,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 service_list = ServiceInfo.objects.filter(service_key=service_key)
                 if len(service_list) > 0:
                     service = list(service_list)[0]
+                    app_version = service.version
             if service is None:
                 result["status"] = "notexist"
                 return JsonResponse(result, status=200)
