@@ -96,7 +96,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         exist_t_services = []
         exist_new_services = []
         for string in dependency_service:
-            service_alias, service_key, app_version = string.split('.', 2)
+            service_alias, service_key, app_version = string.split(':', 2)
             if service_alias == '__new__':
                 if ServiceInfo.objects.filter(service_key=service_key, version=app_version).count() > 0:
                     new_s = ServiceInfo.objects.get(service_key=service_key, version=app_version)
