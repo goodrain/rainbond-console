@@ -24,7 +24,7 @@
                         <button type="button" class="btn btn-success"
                                 onclick="service_create('{{tenantName}}','{{cache.service_key}}', '{{cache.version}}')">部署
                         </button>
-                        {% with tkey=cache.service_key+"_"+cache.version %}
+                        {% with tkey=cache.service_key|add:"_"|add:cache.version %}
                         {% with update_version=appService|mkey:tkey %}
                             {% if update_version %}
                                 {% if update_version = cache.update_version %}
