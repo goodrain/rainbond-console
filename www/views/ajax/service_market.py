@@ -124,8 +124,8 @@ class RemoteServiceMarketAjax(AuthedView):
                                                 is_change=env.get("is_change"),
                                                 container_port=env.get("container_port"))
                         env_data.append(app_env)
-                    AppServiceEnv.objects.filter(service_key=service_key, app_version=app_version).delete()
-                    AppServiceEnv.objects.bulk_create(env_data)
+                AppServiceEnv.objects.filter(service_key=service_key, app_version=app_version).delete()
+                AppServiceEnv.objects.bulk_create(env_data)
                 logger.debug('---add app service env---ok---')
                 # 端口信息
                 if port_list:
@@ -139,8 +139,8 @@ class RemoteServiceMarketAjax(AuthedView):
                                                   is_inner_service=port.get("is_inner_service"),
                                                   is_outer_service=port.get("is_outer_service"))
                         port_data.append(app_port)
-                    AppServicePort.objects.filter(service_key=service_key, app_version=app_version).delete()
-                    AppServicePort.objects.bulk_create(port_data)
+                AppServicePort.objects.filter(service_key=service_key, app_version=app_version).delete()
+                AppServicePort.objects.bulk_create(port_data)
                 logger.debug('---add app service port---ok---')
                 # 扩展信息
                 if extend_list:
@@ -156,8 +156,8 @@ class RemoteServiceMarketAjax(AuthedView):
                                                        step_memory=extend.get("step_memory"),
                                                        is_restart=extend.get("is_restart"))
                         extend_data.append(app_port)
-                    ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
-                    ServiceExtendMethod.objects.bulk_create(extend_data)
+                ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
+                ServiceExtendMethod.objects.bulk_create(extend_data)
                 logger.debug('---add app service extend---ok---')
                 # 服务依赖关系
                 relation_data = []
@@ -179,9 +179,8 @@ class RemoteServiceMarketAjax(AuthedView):
                                                           dep_app_version=relation.get("dep_app_version"),
                                                           dep_app_alias=relation.get("dep_app_alias"))
                         relation_data.append(app_relation)
-                    AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version).delete()
-                    logger.debug(relation_data)
-                    AppServiceRelation.objects.bulk_create(relation_data)
+                AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version).delete()
+                AppServiceRelation.objects.bulk_create(relation_data)
                 logger.debug('---add app service relation---ok---')
                 # 回写数据
                 if callback != "0":
