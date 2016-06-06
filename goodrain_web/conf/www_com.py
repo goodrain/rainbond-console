@@ -174,6 +174,7 @@ MODULES = {
     "Package_Show": True,
     "RegionToken": True,
     "Add_Port": False,
+    "License_Center":True,
 }
 
 REGIONS = (

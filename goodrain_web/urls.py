@@ -39,5 +39,9 @@ urlpatterns = patterns(
     url(r'^select$', login_required(views.TenantSelectView.as_view())),
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.urls.payedpackage')),
     url(r'^tests/(?P<templateName>[\w\-]+)/', TestView.as_view()),
+    
+     # license service
+     url(r'^license/list$', views.LicenseViews.as_view()),
+     url(r'^license/detail$', views.LicenseDetailViews.as_view()),
     url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
 ) + staticfiles_urlpatterns()
