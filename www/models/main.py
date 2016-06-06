@@ -688,4 +688,4 @@ class ServiceLicense(BaseModel):
     end_time = models.DateTimeField(help_text=u"结束时间")
     public_pem = models.CharField(max_length=1000, help_text=u"公钥")
     private_pem = models.CharField(max_length=1000, help_text=u"私钥")
-    ciphertext = models.CharField(max_length=600, help_text=u"私钥")
+    ciphertext = models.CharField(max_length=1000, help_text=u"加密串")

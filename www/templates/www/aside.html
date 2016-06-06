@@ -54,11 +54,11 @@
         {% if MODULES.License_Center %}        
         <li class="sub-menu">
             <a href="javascript:;" class="{{myLicenseStatus}}">
-            <i class="fa fa-th"></i>
+            <i class="fa fa-glass"></i>
             <span>授权中心</span></a>            
             <ul class="sub">
-                <li class="{{licenseList}}"><a href="/apps/license/list">License列表</a></li>         
-                <li class="{{createLicense}}"><a href="/apps/license/create">新建License</a></li>                              
+                <li class="{{licenseListStatus}}"><a href="/apps/{{tenantName}}/license-list">License列表</a></li>         
+                <li class="{{licenseDetailStatus}}"><a href="/apps/{{tenantName}}/license-detail">新建License</a></li>                              
             </ul>
         </li>
         {% endif %}
