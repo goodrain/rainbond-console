@@ -1,12 +1,12 @@
 import os
 
-DEBUG = False
+DEBUG = True
 
 TEMPLATE_DEBUG = False
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
-DEFAULT_HANDLERS = ['zmq_handler']
+DEFAULT_HANDLERS = ['file_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
