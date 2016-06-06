@@ -18,4 +18,3 @@ django-rest-swagger
 requests
 python-dateutil
 rsa
-base64
