@@ -52,7 +52,7 @@ class LicenseDetailViews(LeftSideBarMixin, AuthedView):
         context["licenseDetailStatus"] = "active"
         id = request.GET.get("id", "")
         action = request.GET.get("action", "")
-        if action == "delete":
+        if action == "delete" and self.user.is_sys_admin:
             ServiceLicense.objects.filter(ID=id).delete()
             return self.redirect_to('/apps/' + self.tenantName + '/license-list')
         return TemplateResponse(self.request, 'www/license_detail.html', context)
