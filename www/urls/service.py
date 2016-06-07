@@ -10,7 +10,7 @@ from www import alipay_view
 from django.views.decorators.csrf import csrf_exempt
 # from www.views.service import ServicePublishView, ServicePublishExtraView
 from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
-from www.views.license import LicenseViews, LicenseDetailViews
+from www.views.license import LicenseViews, LicenseDetailViews, LicenseShow
 
 
 urlpatterns = patterns(
@@ -54,6 +54,7 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/extra/?$', PublishServiceView.as_view()),
     
     # license service
-    url(r'^/license-list$', LicenseViews.as_view()),
-    url(r'^/license-detail$', LicenseDetailViews.as_view()),
+    url(r'^/license-list$', login_required(LicenseViews.as_view())),
+    url(r'^/license-detail$', login_required(LicenseDetailViews.as_view())),
+    url(r'^/license-show$', LicenseShow.as_view()),
 )
