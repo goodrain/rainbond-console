@@ -38,7 +38,7 @@
                 <span>团队</span>
             </a>
         </li>
-        {% if MODULES.Finance_Center %}        
+        {% if MODULES.Finance_Center and user.is_sys_admin %}        
         <li class="sub-menu">
         	<a href="javascript:;" class="{{myFinanceStatus}}">
             <i class="fa fa-jpy"></i>
