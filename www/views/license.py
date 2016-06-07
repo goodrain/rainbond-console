@@ -41,7 +41,7 @@ class LicenseDetailViews(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(LicenseDetailViews, self).get_media() + \
-                self.vendor('www/css/jquery-ui.css', 'www/css/owl.carousel.css', 'www/css/jquery-ui-timepicker-addon.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+                self.vendor('www/css/jquery-ui.css', 'www/css/jquery-ui-timepicker-addon.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
                             'www/js/jquery.scrollTo.min.js', 'www/js/jquery-ui.js', 'www/js/jquery-ui-timepicker-addon.js', 'www/js/jquery-ui-timepicker-addon-i18n.min.js',
                             'www/js/jquery-ui-sliderAccess.js')
         return media
@@ -103,10 +103,10 @@ class LicenseShow(BaseView):
             license = ServiceLicense.objects.get(ID=id)
             if action == "private":
                 result = license.private_pem
-                fileName = "goodrain.pem"
+                fileName = "goodrain_" + license.code + ".pem"
             elif action == "key":
                 result = license.ciphertext
-                fileName = "goodrain.cert"
+                fileName = "goodrain_" + license.code + ".cert"
             context["result"] = result
         except Exception as e:
             logger.exception(e)
