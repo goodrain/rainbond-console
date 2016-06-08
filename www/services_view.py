@@ -287,6 +287,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     if TenantServicesPort.objects.filter(service_id=tenantService.service_id, is_inner_service=True).exists():
                         sids.append(tenantService.service_id)
                         map[tenantService.service_id] = tenantService
+                    if tenantService.service_id in relationsids:
+                        map[tenantService.service_id] = tenantService
                 context["serviceMap"] = map
                 # env map
                 envMap = {}
