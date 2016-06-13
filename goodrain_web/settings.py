@@ -28,7 +28,7 @@ DEBUG = False
 if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
     REGION_TAG = "www_com"
 
-conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG)
+conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG.replace('-', '_'))
 __import__(conf_name)
 conf_mod = sys.modules[conf_name]
 
