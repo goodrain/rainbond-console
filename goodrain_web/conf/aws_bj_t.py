@@ -144,3 +144,6 @@ MEDIA_ROOT = '/data/media'
 
 # cloud market url
 CLOUD_ASSISTANT = 'goodrain'
+
+# log domain
+LOG_DOMAIN = 'goodrain.com'
