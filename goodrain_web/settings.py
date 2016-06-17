@@ -59,21 +59,36 @@ AUTHENTICATION_BACKENDS = ('www.auth.backends.ModelBackend', 'www.auth.backends.
 LOGIN_URL = '/login'
 
 # Application definition
-
-INSTALLED_APPS = (
-    # 'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'crispy_forms',
-    'rest_framework',
-    'rest_framework.authtoken',
-    'rest_framework_swagger',
-    'www',
-    'api',
-)
+if IS_OPEN_API:
+    INSTALLED_APPS = (
+        'django.contrib.admin',
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.sessions',
+        'django.contrib.messages',
+        'django.contrib.staticfiles',
+        'crispy_forms',
+        'rest_framework',
+        'rest_framework.authtoken',
+        'rest_framework_swagger',
+        'www',
+        'api',
+        'openapi'
+    )
+else:
+    INSTALLED_APPS = (
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.sessions',
+        'django.contrib.messages',
+        'django.contrib.staticfiles',
+        'crispy_forms',
+        'rest_framework',
+        'rest_framework.authtoken',
+        'rest_framework_swagger',
+        'www',
+        'api'
+    )
 
 MIDDLEWARE_CLASSES = (
     'goodrain_web.middleware.ErrorPage',
