@@ -200,11 +200,6 @@ class RegionServiceApi(BaseHttpClient):
             logger.info('tsdb_query', "response: {0} ====== {1}".format(res, body))
             return None
 
-    def get_tenants(self, region):
-        url = self.region_map[region]['url'] + '/v1/tenants'
-        res, body = self._get(url, self.default_headers, region=region)
-        return res, body
-
     def create_tenant(self, region, tenant_name, tenant_id):
         url = self.region_map[region]['url'] + '/v1/tenants'
         data = {"tenant_id": tenant_id, "tenant_name": tenant_name}

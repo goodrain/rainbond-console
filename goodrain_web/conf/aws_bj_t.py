@@ -127,7 +127,7 @@ MODULES = {
     "Finance_Center": True,
     "Team_Invite": True,
     "Monitor_Control": True,
-    "User_Register": False,
+    "User_Register": True,
     "Sms_Check": False,
     "Email_Invite": True,
     "Package_Show": True,
