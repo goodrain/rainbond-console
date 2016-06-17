@@ -750,16 +750,18 @@ class ServiceBranch(AuthedView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         parsed_git_url = git_url_parse(self.service.git_url)
-        if parsed_git_url.host == 'code.goodrain.com':
-            branchs = self.get_gitlab_branchs(parsed_git_url)
-        elif parsed_git_url.host.endswith('github.com'):
-            branchs = self.get_github_branchs(parsed_git_url)
+        host = parsed_git_url.host
+        if host is not None:
+            if parsed_git_url.host == 'code.goodrain.com':
+                branchs = self.get_gitlab_branchs(parsed_git_url)
+            elif parsed_git_url.host.endswith('github.com'):
+                branchs = self.get_github_branchs(parsed_git_url)
+            else:
+                branchs = [self.service.code_version]
+            result = {"current": self.service.code_version, "branchs": branchs}
+            return JsonResponse(result, status=200)
         else:
-            branchs = [self.service.code_version]
-        # if len(branchs) > 0:
-        #    branchs.sort(reverse=True)
-        result = {"current": self.service.code_version, "branchs": branchs}
-        return JsonResponse(result, status=200)
+            return JsonResponse({}, status=200)
 
     @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):

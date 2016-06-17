@@ -53,7 +53,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                 appdata = json.loads(resp.data)
                 for appda in appdata:
                     appService[appda["service_key"]+"_"+appda["version"]]=appda["update_version"]
-                    appVersion[appda["service_key"]]=appda["version"]
+                    appVersion[appda["service_key"]+"_"+appda["version"]]=appda["version"]
                 context["appService"] = appService
                 context["appVersion"] = appVersion      
         except Exception as e:
