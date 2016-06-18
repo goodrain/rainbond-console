@@ -336,6 +336,14 @@ class ServiceUpgrade(AuthedView):
                     result["status"] = "success"
                 else:
                     result["status"] = "no_support"
+            elif action == "imageUpgrade":
+                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key,version=self.service.version)
+                if baseservice.update_version != self.service.update_version:
+                    regionClient.update_service(self.service.service_region, self.service.service_id, {"image": baseservice.image})
+                    self.service.image=baseservice.image
+                    self.service.update_version=baseservice.update_version
+                    self.service.save()
+                result["status"] = "success"    
         except Exception, e:
             logger.exception(e)
             if action == "vertical":
