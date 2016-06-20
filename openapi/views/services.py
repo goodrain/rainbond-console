@@ -19,17 +19,18 @@ logger = logging.getLogger("default")
 
 class CreateServiceView(BaseAPIView):
 
-    allowed_methods = 'POST'
+    allowed_methods = ('POST', )
 
     def post(self, request, service_name, *args, **kwargs):
         """
         服务创建接口
+        ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
               description: 租户名称
               required: true
@@ -183,17 +184,18 @@ class CreateServiceView(BaseAPIView):
 
 
 class DeleteServiceView(BaseAPIView):
-    allowed_methods = 'DELETE'
+    allowed_methods = ('DELETE', )
 
     def delete(self, request, service_name, *args, **kwargs):
         """
         删除服务接口
+        ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
               description: 租户名称
               required: true
@@ -217,17 +219,18 @@ class DeleteServiceView(BaseAPIView):
 
 
 class StartServiceView(BaseAPIView):
-    allowed_methods = 'POST'
+    allowed_methods = ('POST', )
 
     def post(self, request, service_name, *args, **kwargs):
         """
         启动服务接口
+        ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
               description: 租户名称
               required: true
@@ -262,17 +265,18 @@ class StartServiceView(BaseAPIView):
 
 
 class StopServiceView(BaseAPIView):
-    allowed_methods = 'POST'
+    allowed_methods = ('POST', )
 
     def post(self, request, service_name, *args, **kwargs):
         """
         停止服务接口
+        ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
               description: 租户名称
               required: true
@@ -306,17 +310,18 @@ class StopServiceView(BaseAPIView):
 
 
 class StatusServiceView(BaseAPIView):
-    allowed_methods = 'GET'
+    allowed_methods = ('GET', )
 
     def get(self, request, service_name, *args, **kwargs):
         """
         服务状态查询接口
+        ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
               description: 租户名称
               required: true

@@ -32,6 +32,7 @@ urlpatterns = patterns(
     url(r'^service/codecheck/$', csrf_exempt(GitCheckCode.as_view())),
     url(r'^autodeploy$', csrf_exempt(ServiceAutoDeploy.as_view())),
     url(r'^api/', include('api.urls')),
+    url(r'^openapi/', include('openapi.urls')),
     url(r'^auth/', include('www.urls.auth')),
     url(r'^huodong', include('www.urls.activity')),
     url(r'^partners/', include('www.partners.urls')),

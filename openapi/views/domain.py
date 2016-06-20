@@ -17,12 +17,13 @@ class DomainController(BaseAPIView):
     def get(self, request, service_name, *args, **kwargs):
         """
         获取当前服务的域名
+        ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
               description: 租户名称
               required: true
@@ -50,12 +51,13 @@ class DomainController(BaseAPIView):
     def post(self, request, service_name, *args, **kwargs):
         """
         当前服务添加域名
+        ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
               description: 租户名称
               required: true
@@ -109,12 +111,13 @@ class DomainController(BaseAPIView):
     def delete(self, request, service_name, *args, **kwargs):
         """
         当前服务删除域名
+        ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
               description: 租户名称
               required: true
