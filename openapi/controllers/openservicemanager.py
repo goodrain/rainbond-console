@@ -203,7 +203,7 @@ class OpenTenantServiceManager(object):
             try:
                 regionClient.delete(service.service_region, service.service_id)
             except Exception as e:
-                logger.exception(e)
+                logger.exception("openapi.services", e)
             # 删除gitlab代码,api中不需要
             # if self.service.code_from == 'gitlab_new' and service.git_project_id > 0:
             #     codeRepositoriesService.deleteProject(service)
@@ -221,7 +221,7 @@ class OpenTenantServiceManager(object):
             logger.debug("openapi.services", "delete service.result:success")
             return 200, True, u"删除成功"
         except Exception as e:
-            logger.exception(e)
+            logger.exception("openapi.services", e)
             logger.debug("openapi.services", "delete service.result:failure")
             return 409, False, u"删除失败"
 
@@ -251,7 +251,7 @@ class OpenTenantServiceManager(object):
                 data["service_id"] = service.service_id
                 data["new_domain"] = domain_name
                 data["old_domain"] = old_domain_name
-                data["pool_name"] = tenant_name + "@" + service.serviceAlias + ".Pool"
+                data["pool_name"] = tenant_name + "@" + service.service_alias + ".Pool"
                 regionClient.addUserDomain(service.service_region, json.dumps(data))
                 monitorhook.serviceMonitor(username, service, 'domain_add', True)
             elif action == "close":
@@ -259,13 +259,13 @@ class OpenTenantServiceManager(object):
                 data = {}
                 data["service_id"] = servicerDomain.service_id
                 data["domain"] = servicerDomain.domain_name
-                data["pool_name"] = tenant_name + "@" + service.serviceAlias + ".Pool"
+                data["pool_name"] = tenant_name + "@" + service.service_alias + ".Pool"
                 regionClient.deleteUserDomain(service.service_region, json.dumps(data))
                 ServiceDomain.objects.filter(service_id=service.service_id).delete()
                 monitorhook.serviceMonitor(username, service, 'domain_delete', True)
             return 200, True, "success"
         except Exception as e:
-            logger.exception(e)
+            logger.exception("openapi.services", e)
             monitorhook.serviceMonitor(username, service, 'domain_manage', False)
             return 201, False, "failure"
 
@@ -284,7 +284,7 @@ class OpenTenantServiceManager(object):
             monitorhook.serviceMonitor(username, service, 'app_stop', True)
             return 200, True, "success"
         except Exception as e:
-            logger.exception(e)
+            logger.exception("openapi.services", e)
             monitorhook.serviceMonitor(username, service, 'app_stop', False)
             return 201, False, "failure"
 
@@ -306,7 +306,7 @@ class OpenTenantServiceManager(object):
             monitorhook.serviceMonitor(username, service, 'app_start', True)
             return 200, True, "success"
         except Exception as e:
-            logger.exception(e)
+            logger.exception("openapi.services", e)
             monitorhook.serviceMonitor(username, service, 'app_start', False)
             return 203, False, "failed"
     
@@ -327,7 +327,7 @@ class OpenTenantServiceManager(object):
                 result["status"] = status
             return 200, True, result
         except Exception as e:
-            logger.exception(e)
+            logger.exception("openapi.services", e)
             logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
             result["totalMemory"] = 0
             result['status'] = "failure"
@@ -384,7 +384,7 @@ class OpenTenantServiceManager(object):
                 self._saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"密码", env_prefix + "_PASS", password, False, scope="both")
             port.save()
         except Exception as e:
-            logger.exception(e)
+            logger.exception("openapi.services", e)
 
     def _saveServiceEnvVar(self, tenant_id, service_id, container_port, name, attr_name, attr_value, isChange, scope="outer"):
         tenantServiceEnvVar = {}
@@ -406,7 +406,7 @@ class OpenTenantServiceManager(object):
             if status != "running":
                 memory = cur_service.min_node * cur_service.min_memory
         except Exception as e:
-            logger.exception(e)
+            logger.exception("openapi.services", e)
         return memory
 
     def _calculate_real_used_resource(self, tenant):

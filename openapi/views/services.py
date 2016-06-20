@@ -1,6 +1,4 @@
 # -*- coding: utf8 -*-
-from django.conf import settings
-from django.db.models import Q
 from rest_framework.response import Response
 
 from www.models import Tenants, TenantServiceInfo, ServiceInfo, \
@@ -8,11 +6,9 @@ from www.models import Tenants, TenantServiceInfo, ServiceInfo, \
 from www.utils import crypt
 
 from openapi.views.base import BaseAPIView
-from openapi.controllers.openservicemanager import OpenTenantServiceManager as manager
+from openapi.controllers.openservicemanager import OpenTenantServiceManager
+manager = OpenTenantServiceManager()
 
-
-import string
-import random
 import logging
 logger = logging.getLogger("default")
 
@@ -58,12 +54,12 @@ class CreateServiceView(BaseAPIView):
               paramType: form
             - name: uid
               description: 创建人id
-              required: false
+              required: true
               type: int
               paramType: form
             - name: username
               description: 创建人姓名
-              required: false
+              required: true
               type: string
               paramType: form
             - name: service_memory
@@ -237,7 +233,7 @@ class StartServiceView(BaseAPIView):
               type: string
               paramType: form
             - name: username
-              description: 删除服务人名称
+              description: 启动服务人名称
               required: true
               type: string
               paramType: form
@@ -283,7 +279,7 @@ class StopServiceView(BaseAPIView):
               type: string
               paramType: form
             - name: username
-              description: 删除服务人名称
+              description: 停止服务人名称
               required: true
               type: string
               paramType: form
@@ -326,10 +322,10 @@ class StatusServiceView(BaseAPIView):
               description: 租户名称
               required: true
               type: string
-              paramType: form
+              paramType: query
 
         """
-        tenant_name = request.POST.get("tenant_name")
+        tenant_name = request.GET.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})

@@ -4,11 +4,13 @@ from rest_framework.response import Response
 
 from www.models import Tenants, TenantServiceInfo
 from openapi.views.base import BaseAPIView
-from openapi.controllers.openservicemanager import OpenTenantServiceManager as manager
+from openapi.controllers.openservicemanager import OpenTenantServiceManager
 
 import re
 import logging
 logger = logging.getLogger("default")
+manager = OpenTenantServiceManager()
+
 
 class DomainController(BaseAPIView):
     """域名管理模块"""
@@ -28,10 +30,10 @@ class DomainController(BaseAPIView):
               description: 租户名称
               required: true
               type: string
-              paramType: form
+              paramType: query
 
         """
-        tenant_name = request.POST.get("tenant_name")
+        tenant_name = request.GET.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
@@ -134,16 +136,16 @@ class DomainController(BaseAPIView):
               type: string
               paramType: form
         """
-        tenant_name = request.POST.get("tenant_name")
+        tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-        domain_name = request.POST["domain_name"]
+        domain_name = request.data["domain_name"]
         if domain_name is None:
             logger.error("openapi.services", "域名称为空!")
             return Response(status=405, data={"success": False, "msg": u"域名称为空"})
         # 名称
-        username = request.POST["username"]
+        username = request.data["username"]
         # 汉字校验
         zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
         match = zhPattern.search(domain_name.decode('utf-8'))
