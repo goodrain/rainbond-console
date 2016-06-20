@@ -94,6 +94,7 @@ class BaseTenantService(object):
         tenantServiceInfo["inner_port"] = service.inner_port
         tenantServiceInfo["version"] = service.version
         tenantServiceInfo["namespace"] = service.namespace
+        tenantServiceInfo["update_version"] = service.update_version
         volume_path = ""
         host_path = ""
         if bool(service.volume_mount_path):
