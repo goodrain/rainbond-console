@@ -1,28 +1,23 @@
 # -*- coding: utf8 -*-
-from openapi.views.base import BaseAPIView
 from django.conf import settings
 from django.db.models import Q
 from rest_framework.response import Response
 
-from www.models import Tenants, TenantServiceInfo, ServiceInfo, TenantServiceAuth, \
-    TenantServiceEnvVar, TenantServiceRelation, AppServiceRelation
-from www.tenantservice.baseservice import TenantAccountService, \
-    TenantUsedResource, BaseTenantService
-from www.views import CopyPortAndEnvMixin
-
-
+from www.models import Tenants, TenantServiceInfo, ServiceInfo, \
+    TenantServiceAuth, TenantServiceEnvVar, TenantServiceRelation
 from www.utils import crypt
+
+from openapi.views.base import BaseAPIView
+from openapi.controllers.openservicemanager import OpenTenantServiceManager as manager
+
+
 import string
 import random
 import logging
 logger = logging.getLogger("default")
 
-tenantAccountService = TenantAccountService()
-tenantUsedResource = TenantUsedResource()
-baseService = BaseTenantService()
 
-
-class CreateServiceView(BaseAPIView, CopyPortAndEnvMixin):
+class CreateServiceView(BaseAPIView):
 
     allowed_methods = 'POST'
 
@@ -97,7 +92,8 @@ class CreateServiceView(BaseAPIView, CopyPortAndEnvMixin):
         username = request.POST.get("username")
         service_memory = request.POST.get("service_memory")
 
-        logger.debug("openapi.services", "now create service: service_name:{0}, tenant_name:{1}, region:{2}, images_name:{3}".format(service_name, tenant_name, region, image_name))
+        logger.debug("openapi.services", "now create service: service_name:{0}, tenant_name:{1}, region:{2}, key:{3}, version:{4}".format(service_name, tenant_name, region, service_key, version))
+
         # 根据租户名称获取租户信息
         try:
             tenant = Tenants.objects.get(tenant_name=tenant_name)
@@ -106,9 +102,7 @@ class CreateServiceView(BaseAPIView, CopyPortAndEnvMixin):
             return Response(status=406, data={"success": False, "msg": u"查询不到租户"})
 
         # 检查租户是否欠费
-        if tenantAccountService.isOwnedMoney(tenant, region):
-            logger.error("openapi.services", "Tenant {0} region {1} is now own fee!".format(tenant_name, region))
-            return Response(status=407, data={"success": False, "msg": u"用户欠费停机"})
+        # if tenantAccountService.isOwnedMoney(tenant, region):
 
         # 检查服务名称是否存在
         num = TenantServiceInfo.objects.filter(tenant_id=tenant.tenant_id,
@@ -135,23 +129,14 @@ class CreateServiceView(BaseAPIView, CopyPortAndEnvMixin):
                 service.min_memory = cm
 
         # 查询服务的依赖信息
-        all_dep_list = AppServiceRelation.objects.filter(service_key=service_key, app_version=version)
-        dep_query = Q()
-        new_required_memory = 0
-        if len(all_dep_list) > 0:
-            for dep in all_dep_list:
-                dep_query = dep_query | (Q(service_key=dep.service_key) & Q(version=dep.version))
-            all_dep_services = ServiceInfo.objects.filter(dep_query)
-            # 计算依赖服务的资源
-            new_required_memory = reduce(lambda x, y: x + y, [s.min_memory for s in dep_services])
 
-        # calculate resource
+        # 计算服务资源
         tenant_service_info = TenantServiceInfo()
         tenant_service_info.min_memory = service.min_memory
-        tenant_service_info.service_region = self.response_region
+        tenant_service_info.service_region = region
         tenant_service_info.min_node = service.min_node
-        diffMemory = new_required_memory + service.min_node * service.min_memory
-        rt_type, flag = tenantUsedResource.predict_next_memory(tenant, tenant_service_info, diffMemory, False)
+        diffMemory = service.min_node * service.min_memory
+        rt_type, flag = manager.predict_next_memory(tenant, tenant_service_info, diffMemory, False)
         if not flag:
             if rt_type == "memory":
                 logger.error("openapi.services", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
@@ -161,57 +146,21 @@ class CreateServiceView(BaseAPIView, CopyPortAndEnvMixin):
                 return Response(status=409, data={"success": False, "msg": u"内存已经到最大值"})
 
         # 创建依赖的服务
-        if len(all_dep_list) > 0:
-            for dep_service in all_dep_services:
-                dep_service_id = crypt.make_uuid(dep_service.service_key)
-                try:
-                    randomstr = string.join(random.sample('zyxwvutsrqponmlkjihgfedcba',5)).replace(' ', '')
-                    # 这里添加随机字符防止出现依赖多个服务,一次创建失败后,下次创建时依赖服务已经存在
-                    dep_service_name = dep_service.service_name.lower() + "_" + service_name + randomstr
-                    depTenantService = baseService.create_service(
-                        dep_service_id,
-                        tenant.tenant_id,
-                        dep_service_name,
-                        dep_service,
-                        uid,
-                        region=region)
-                    #
-                    self.copy_port_and_env(dep_service, depTenantService)
-                    baseService.create_region_service(
-                        depTenantService,
-                        tenant_name,
-                        region,
-                        username)
-
-                    # 在region上创建依赖服务
-                    baseService.create_service_dependency(
-                        tenant.tenant_id,
-                        service_id,
-                        dep_service_id,
-                        region)
-                except Exception as e:
-                    logger.exception(e)
-                    logger.error("openapi.services", "create dependency service failed!", e)
-                    TenantServiceInfo.objects.filter(service_id=dep_service_id).delete()
-                    TenantServiceAuth.objects.filter(service_id=dep_service_id).delete()
-                    TenantServiceEnvVar.objects.filter(service_id=dep_service_id).delete()
-                    TenantServiceRelation.objects.filter(service_id=dep_service_id).delete()
-                    return Response(status=406, data={"success": False, "msg": u"创建依赖服务失败!"})
 
         # create console service
         try:
-            newTenantService = baseService.create_service(service_id,
-                                                          tenant.tenant_id,
-                                                          service_name,
-                                                          service,
-                                                          uid,
-                                                          region=region)
-            baseService.addServicePort(newTenantService, False,
-                                       container_port=5000,
-                                       protocol='http',
-                                       port_alias='',
-                                       is_inner_service=False,
-                                       is_outer_service=True)
+            newTenantService = manager.create_service(service_id,
+                                                      tenant.tenant_id,
+                                                      service_name,
+                                                      service,
+                                                      uid,
+                                                      region=region)
+            manager.addServicePort(newTenantService, False,
+                                   container_port=5000,
+                                   protocol='http',
+                                   port_alias='',
+                                   is_inner_service=False,
+                                   is_outer_service=True)
         except Exception as e:
             logger.error("openapi.services", "create console service failed!", e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
@@ -222,10 +171,10 @@ class CreateServiceView(BaseAPIView, CopyPortAndEnvMixin):
 
         # create region service
         try:
-            baseService.create_region_service(newTenantService,
-                                              tenant_name,
-                                              region,
-                                              username)
+            manager.create_region_service(newTenantService,
+                                          tenant_name,
+                                          region,
+                                          username)
         except Exception as e:
             logger.error("openapi.services", "create region service failed!", e)
             return Response(status=406, data={"success": False, "msg": u"创建region服务失败!"})
@@ -250,13 +199,21 @@ class DeleteServiceView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: username
+              description: 删除服务人名称
+              required: true
+              type: string
+              paramType: form
 
         """
         tenant_name = request.POST.get("tenant_name")
         if tenant_name is None:
+            logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-
-        return Response(status=200, data={"success": True})
+        username = request.POST.get("username")
+        # 删除用户
+        status, success, msg = manager.delete_service(tenant_name, service_name, username)
+        return Response(status=status, data={"success": success, "msg": msg})
 
 
 class StartServiceView(BaseAPIView):
@@ -276,13 +233,32 @@ class StartServiceView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: username
+              description: 删除服务人名称
+              required: true
+              type: string
+              paramType: form
 
         """
         tenant_name = request.POST.get("tenant_name")
         if tenant_name is None:
+            logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
 
-        return Response(status=200, data={"success": True})
+        username = request.POST.get("username")
+
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
+            return Response(status=405, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
+            return Response(status=405, data={"success": False, "msg": u"服务名称不存在"})
+        # 启动服务
+        status, success, msg = manager.start_service(tenant, service, username)
+        return Response(status=status, data={"success": success, "msg": msg})
 
 
 class StopServiceView(BaseAPIView):
@@ -302,16 +278,34 @@ class StopServiceView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: username
+              description: 删除服务人名称
+              required: true
+              type: string
+              paramType: form
 
         """
         tenant_name = request.POST.get("tenant_name")
         if tenant_name is None:
+            logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
+        username = request.POST.get("username")
 
-        return Response(status=200, data={"success": True})
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
+            return Response(status=405, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
+            return Response(status=405, data={"success": False, "msg": u"服务名称不存在"})
+        # 停止服务
+        status, success, msg = manager.stop_service(service, username)
+        return Response(status=status, data={"success": success, "msg": msg})
 
 
-class StstusServiceView(BaseAPIView):
+class StatusServiceView(BaseAPIView):
     allowed_methods = 'GET'
 
     def get(self, request, service_name, *args, **kwargs):
@@ -332,8 +326,19 @@ class StstusServiceView(BaseAPIView):
         """
         tenant_name = request.POST.get("tenant_name")
         if tenant_name is None:
+            logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-
-        return Response(status=200, data={"success": True})
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
+            return Response(status=405, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
+            return Response(status=405, data={"success": False, "msg": u"服务名称不存在"})
+        # 查询服务状态服务
+        status, success, msg = manager.status_service(service)
+        return Response(status=status, data={"success": success, "msg": msg})
 
 

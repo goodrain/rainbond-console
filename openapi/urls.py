@@ -1,10 +1,10 @@
 from django.conf.urls import patterns, url, include
-from rest_framework.authtoken import views
 from django.contrib import admin
+from rest_framework.authtoken import views
 
-from openapi.controllers.domain import DomainController
-from openapi.controllers.services import CreateServiceView, DeleteServiceView, \
-    StartServiceView, StopServiceView, StstusServiceView
+from openapi.views.domain import DomainController
+from openapi.views.services import CreateServiceView, DeleteServiceView, \
+    StartServiceView, StopServiceView, StatusServiceView
 
 urlpatterns = patterns(
     '',
@@ -17,7 +17,7 @@ urlpatterns = patterns(
     url(r'^v1/services/(?P<service_name>[\w\-]+)/delete', DeleteServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/start', StartServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/stop', StopServiceView.as_view()),
-    url(r'^v1/services/(?P<service_name>[\w\-]+)/status', StstusServiceView.as_view()),
+    url(r'^v1/services/(?P<service_name>[\w\-]+)/status', StatusServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/domain', DomainController.as_view()),
 
 )
