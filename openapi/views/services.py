@@ -15,7 +15,7 @@ logger = logging.getLogger("default")
 
 class CreateServiceView(BaseAPIView):
 
-    allowed_methods = ('POST', )
+    allowed_methods = ('POST',)
 
     def post(self, request, service_name, *args, **kwargs):
         """
@@ -180,7 +180,7 @@ class CreateServiceView(BaseAPIView):
 
 
 class DeleteServiceView(BaseAPIView):
-    allowed_methods = ('DELETE', )
+    allowed_methods = ('DELETE',)
 
     def delete(self, request, service_name, *args, **kwargs):
         """
@@ -215,7 +215,7 @@ class DeleteServiceView(BaseAPIView):
 
 
 class StartServiceView(BaseAPIView):
-    allowed_methods = ('POST', )
+    allowed_methods = ('POST',)
 
     def post(self, request, service_name, *args, **kwargs):
         """
@@ -261,7 +261,7 @@ class StartServiceView(BaseAPIView):
 
 
 class StopServiceView(BaseAPIView):
-    allowed_methods = ('POST', )
+    allowed_methods = ('POST',)
 
     def post(self, request, service_name, *args, **kwargs):
         """
@@ -306,7 +306,7 @@ class StopServiceView(BaseAPIView):
 
 
 class StatusServiceView(BaseAPIView):
-    allowed_methods = ('GET', )
+    allowed_methods = ('GET',)
 
     def get(self, request, service_name, *args, **kwargs):
         """

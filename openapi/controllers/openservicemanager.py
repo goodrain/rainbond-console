@@ -10,16 +10,12 @@ from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
-from www.gitlab_http import GitlabApi
-from www.github_http import GitHubApi
 
 import logging
 logger = logging.getLogger('default')
 
 monitorhook = MonitorHook()
 regionClient = RegionServiceApi()
-gitClient = GitlabApi()
-gitHubClient = GitHubApi()
 
 
 class OpenTenantServiceManager(object):
@@ -204,9 +200,6 @@ class OpenTenantServiceManager(object):
                 regionClient.delete(service.service_region, service.service_id)
             except Exception as e:
                 logger.exception("openapi.services", e)
-            # 删除gitlab代码,api中不需要
-            # if self.service.code_from == 'gitlab_new' and service.git_project_id > 0:
-            #     codeRepositoriesService.deleteProject(service)
             # 删除console服务
             TenantServiceInfo.objects.get(service_id=service.service_id).delete()
             # env/auth/domain/relationship/envVar delete

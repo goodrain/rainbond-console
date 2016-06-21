@@ -59,7 +59,6 @@ AUTHENTICATION_BACKENDS = ('www.auth.backends.ModelBackend', 'www.auth.backends.
 LOGIN_URL = '/login'
 
 # Application definition
-IS_OPEN_API = False
 if IS_OPEN_API:
     INSTALLED_APPS = (
         'django.contrib.admin',
