@@ -204,11 +204,11 @@ class DeleteServiceView(BaseAPIView):
               paramType: form
 
         """
-        tenant_name = request.POST.get("tenant_name")
+        tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-        username = request.POST.get("username")
+        username = request.data.get("username")
         # 删除用户
         status, success, msg = manager.delete_service(tenant_name, service_name, username)
         return Response(status=status, data={"success": success, "msg": msg})
