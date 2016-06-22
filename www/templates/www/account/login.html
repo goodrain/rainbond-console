@@ -8,21 +8,42 @@
 {% block extracss %}
     <link rel="stylesheet" href="{% static "www/css/style.css" %}">
     <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/login.css" %}">
 {% endblock %}
 
 {% block bodyclass %}login-body{% endblock %}
 
 {% block body %}
+<!-- 
 <header class="header white-bg">
-    <!--logo start-->
     <a href="/" class="logo">好雨<span>云平台</span></a>
-    <!--logo end-->
-</header>
-<div class="container">
-    <form class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
-        <h2 class="form-signin-heading">用户登录</h2>
-        {% crispy form %}
+</header> 
+-->
+<div class="mainbox">
+    <!-- logo start -->
+    <h1 class="yblogo"><img src="www/images/yunbanglogo.png"></h1>
+    <!-- logo end -->
 
+    <form class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
+        <!-- <h2 class="form-signin-heading">用户登录</h2>
+        {% crispy form %} -->
+        <div class="form-group">
+             <input type="text" class="form-control" id="" placeholder="邮箱/手机号/用户名">
+        </div>
+        <div class="form-group">
+            <input type="password" class="form-control" id="" placeholder="密码">
+        </div>
+        <div class="checkbox clearfix">
+            <label>
+                <input type="checkbox">下次自动登录
+            </label>
+            <a href="" class="pull-right">忘记密码了？</a>
+        </div>
+        <button type="submit" class="btn btn-success btn-block">登&nbsp;&nbsp;录</button>
+        <p class="text-center">或使用以下账号登录</p>
+        <a href="" class="weixin"><img src="images/weixin.png">&nbsp;微信</a>
+        <div class="linkregister text-center">没有云帮公有云版账户，现在<a href="register.html">注册</a></div>
+        <a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>
     </form>
 </div>
 
