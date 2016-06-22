@@ -22,7 +22,7 @@ from www.views import BaseView, RegionOperateMixin
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
 
-import hashlib
+from django.views.decorators.clickjacking import xframe_options_exempt
 
 import logging
 logger = logging.getLogger('default')
@@ -711,24 +711,12 @@ class AccountView(BaseView):
 
 class AppLogin(BaseView):
 
-    def get_context(self):
-        context = super(AppLogin, self).get_context()
-        context.update({
-            'form': self.form,
-        })
-        return context
-
-    def get_media(self):
-        media = super(AppLogin, self).get_media(
-        ) + self.vendor('www/css/goodrainstyle.css', 'www/js/jquery.cookie.js')
-        return media
-
-    def get_response(self):
-        return TemplateResponse(self.request, 'www/account/app_login.html', self.get_context())
-
+    @xframe_options_exempt
     def get(self, request, *args, **kwargs):
-        self.form = UserLoginForm()
-        return self.get_response()
+        context = self.get_context()
+        return TemplateResponse(self.request,
+                                'www/account/proxy.html',
+                                context)
 
     @never_cache
     def post(self, request, *args, **kwargs):

@@ -10,6 +10,15 @@ from www.captcha.CodeImage import ChekcCodeImage
 from www.tests import TestView
 from django.conf import settings
 
+def openapi_urlpatterns():
+    """
+    Helper function to return a URL pattern for serving static files.
+    """
+    if settings.IS_OPEN_API:
+        return [url(r'^openapi/', include('openapi.urls')),]
+    else:
+        return []
+
 urlpatterns = patterns(
     '',
     url(r'^$', views.Index.as_view()), url(r'^favicon\.ico$', GrRedirectView.as_view(url='/static/www/favicon.ico')),
@@ -40,4 +49,4 @@ urlpatterns = patterns(
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.urls.payedpackage')),
     url(r'^tests/(?P<templateName>[\w\-]+)/', TestView.as_view()),
     url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
-) + staticfiles_urlpatterns()
+) + staticfiles_urlpatterns() + openapi_urlpatterns()

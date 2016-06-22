@@ -272,6 +272,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                     context["hasHttpServices"] = True
+                    
+                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key,version=self.service.version)
+                if baseservice.update_version != self.service.update_version:
+                    context["updateService"] = True
+                
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)

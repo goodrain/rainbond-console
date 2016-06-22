@@ -12,7 +12,7 @@ logger = logging.getLogger('default')
 class TenantFeeService(object):
     
     def dateToTimeStamp(self, date):
-        timeArray = time.strptime(a, "%Y-%m-%d %H:%M:%S")
+        timeArray = time.strptime(date, "%Y-%m-%d %H:%M:%S")
         timeStamp = int(time.mktime(timeArray))
         return timeStamp
     

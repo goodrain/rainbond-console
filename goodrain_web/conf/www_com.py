@@ -186,9 +186,9 @@ REGIONS = (
 
 # logo path
 MEDIA_ROOT = '/data/media'
-
 # cloud market url
 CLOUD_ASSISTANT = 'goodrain'
-
 # log domain
 LOG_DOMAIN = 'goodrain.com'
+# open api
+IS_OPEN_API = False
