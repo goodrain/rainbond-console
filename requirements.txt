@@ -17,3 +17,4 @@ django-filter
 django-rest-swagger
 requests
 python-dateutil
+rsa

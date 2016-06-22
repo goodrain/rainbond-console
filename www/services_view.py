@@ -272,6 +272,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                     context["hasHttpServices"] = True
+                    
+                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key,version=self.service.version)
+                if baseservice.update_version != self.service.update_version:
+                    context["updateService"] = True
+                
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
@@ -286,6 +291,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 for tenantService in tenantServiceList:
                     if TenantServicesPort.objects.filter(service_id=tenantService.service_id, is_inner_service=True).exists():
                         sids.append(tenantService.service_id)
+                        map[tenantService.service_id] = tenantService
+                    if tenantService.service_id in relationsids:
                         map[tenantService.service_id] = tenantService
                 context["serviceMap"] = map
                 # env map
@@ -339,6 +346,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["memoryList"] = memoryList
                 context["memorydict"] = self.memory_choices()
                 context["extends_choices"] = self.extends_choices()
+                context["add_port"] = settings.MODULES["Add_Port"]
                 if self.service.category == "application" or self.service.category == "manager":
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
@@ -348,19 +356,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         context["serviceDomain"] = domain
                     except Exception as e:
                         pass
-                if self.service.is_service:
-                    sids = [self.service.service_id]
-                    envMap = {}
-                    envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids)
-                    for evnVarObj in envVarlist:
-                        arr = envMap.get(evnVarObj.service_id)
-                        if arr is None:
-                            arr = []
-                        arr.append(evnVarObj)
-                        envMap[evnVarObj.service_id] = arr
-                    context["envMap"] = envMap
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner")
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
@@ -433,6 +430,7 @@ class ServiceHistoryLog(AuthedView):
             body = regionClient.history_log(self.service.service_region, self.service.service_id)
             context["log_paths"] = body["log_path"]
             context["tenantService"] = self.service
+            context["log_domain"] = settings.LOG_DOMAIN
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)

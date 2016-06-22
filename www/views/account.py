@@ -22,7 +22,7 @@ from www.views import BaseView, RegionOperateMixin
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
 
-import hashlib
+from django.views.decorators.clickjacking import xframe_options_exempt
 
 import logging
 logger = logging.getLogger('default')
@@ -70,8 +70,17 @@ class Login(BaseView):
         else:
             # 判断是否有跳转参数,有参数跳转到返回页面
             next_url = request.GET.get('next', None)
+            typ = request.GET.get('typ', None)
             if next_url is not None:
-                # next_url += '?nick_name={}&email={}'.format(user.nick_name, user.email)
+                if typ == "app":
+                    # 这时候来源于app.goodrain.com
+                    ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
+                    index_num = next_url.find("?")
+                    if "nick_name" in next_url:
+                        # 成成 ticket
+                        next_url = next_url[:index_num] + "?ticket={}".format(ticket)
+                    else:
+                        next_url += ("?" if index_num == -1 else "&") + "ticket={}".format(ticket)
                 return self.redirect_to(next_url)
             return self.redirect_view()
 
@@ -97,8 +106,15 @@ class Login(BaseView):
         if app_ty is not None:
             return self.redirect_to("/autodeploy?fr=www_app")
 
+        typ = request.GET.get('typ', None)
         if next_url is not None:
-            next_url += '?nick_name={}&email={}'.format(user.nick_name, user.email)
+            if typ == "app":
+                ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
+                index_num = next_url.find("?")
+                if "nick_name" in next_url and index_num > -1:
+                    next_url = next_url[:index_num] + "?ticket={}".format(ticket)
+                else:
+                    next_url += ("?" if index_num == -1 else "&") + "ticket={}".format(ticket)
             return self.redirect_to(next_url)
         else:
             return self.redirect_view()
@@ -666,8 +682,18 @@ class TenantSelectView(BaseView):
             return self.get(request, *args, **kwargs)
         elif action == 'app_install':
             service_key = get_paras.get('service_key')
-            next_url = '/apps/{0}/service-deploy/?service_key={2}&region={1}'.format(tenant, region, service_key)
+            version = get_paras.get("version")
+            next_url = '/apps/{0}/service-deploy/?service_key={2}&region={1}&app_version={3}'.format(tenant, region, service_key, version)
             return self.redirect_to(next_url)
+        elif action == 'remote_install':
+            # 远程服务安装
+            service_key = get_paras.get('service_key')
+            version = get_paras.get("version")
+            callback = get_paras.get("callback")
+            next_url = '/ajax/{0}/remote/market?service_key={1}&app_version={2}&callback={3}'.format(tenant, service_key, version, callback)
+            response = self.redirect_to(next_url)
+            response.set_cookie('region', region)
+            return response
 
 
 class AccountView(BaseView):
@@ -681,3 +707,44 @@ class AccountView(BaseView):
             return JsonResponse({"success": False, "nick_name": "Anonymous"})
         else:
             return JsonResponse({"success": True, "nick_name": user_info.nick_name})
+
+
+class AppLogin(BaseView):
+
+    @xframe_options_exempt
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        return TemplateResponse(self.request,
+                                'www/account/proxy.html',
+                                context)
+
+    @never_cache
+    def post(self, request, *args, **kwargs):
+        logger.info(request.get_host())
+
+        username = request.POST.get('email')
+        password = request.POST.get('password')
+        if password:
+            if len(password) < 8:
+                return JsonResponse({"success": False, "msg": "password error!"})
+
+        if username and password:
+            try:
+                if username.find("@") > 0:
+                    user = Users.objects.get(email=username)
+                else:
+                    user = Users.objects.get(phone=username)
+                if not user.check_password(password):
+                    logger.info('form_valid.login', 'password is not correct for user {0}'.format(username))
+                    return JsonResponse({"success": False, "msg": "password error!"})
+            except Users.DoesNotExist:
+                return JsonResponse({"success": False, "msg": "email error!"})
+        else:
+            return JsonResponse({"success": False, "msg": "email or password cannot be null!"})
+
+        user = authenticate(username=username, password=password)
+        login(request, user)
+        logger.info('account.login', "user {0} success login in".format(user.nick_name))
+
+        ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
+        return JsonResponse({"success": True, "ticket": ticket})

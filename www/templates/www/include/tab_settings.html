@@ -34,7 +34,7 @@
         <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;" id="port_open">
             <thead>
                 <tr>
-                    <th> {% if user.is_sys_admin %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}</th>
+                    <th> {% if user.is_sys_admin or add_port %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}</th>
                     <th> 端口号([0-9])</th>
                     <th> 协议类型</th>
                     <th> 别名(^[A-Z][A-Z0-9_])</th>
@@ -71,7 +71,7 @@
                         <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if tenant.pay_type == "free" and tenantServiceInfo.service_key != 'mysql' %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
-                        {% if user.is_sys_admin %}<button type="button" class="port-delete btn btn-danger btn-xs" "><i class="fa fa-times"></i></button>{% endif %}
+                        {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" "><i class="fa fa-times"></i></button>{% endif %}
                     </td>
                 </tr>
                 <tr>

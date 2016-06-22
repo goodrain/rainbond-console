@@ -38,18 +38,21 @@ class RemoteServiceMarketAjax(AuthedView):
             logger.exception(e)
             return JsonResponse({"success": True, "info": u"查询数据失败"})
 
-
-
-
-
     def get(self, request, *args, **kwargs):
         """安装远程服务"""
-        service_key = request.GET.get('service_key')
-        app_version = request.GET.get('app_version')
-        num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
-        if num > 0:
-            return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
-        else:
+        try:
+            service_key = request.GET.get('service_key')
+            app_version = request.GET.get('app_version')
+            callback = request.GET.get('callback', "0")
+            action = request.GET.get('action', '')
+            update_version = request.GET.get('update_version', 1)
+            if action != "update":
+                num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
+                if num > 0:
+                    # 回写到云市
+                    if callback != "0":
+                        appClient.post_statics_tenant(self.tenant.tenant_id, callback)
+                    return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
             # 请求云市数据
             all_data = {
                 'service_key': service_key,
@@ -66,7 +69,13 @@ class RemoteServiceMarketAjax(AuthedView):
                     logger.error("no service data!")
                     return redirect('/apps/{0}/service/'.format(self.tenantName))
                 # add service
-                base_info = ServiceInfo()
+                base_info = None
+                try:
+                   base_info = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                except Exception: 
+                    pass 
+                if base_info is None:
+                    base_info = ServiceInfo()
                 base_info.service_key = service_data.get("service_key")
                 base_info.publisher = service_data.get("publisher")
                 base_info.service_name = service_data.get("service_name")
@@ -78,7 +87,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 base_info.is_service = service_data.get("is_service")
                 base_info.is_web_service = service_data.get("is_web_service")
                 base_info.version = service_data.get("version")
-                base_info.update_version = service_data.get("update_version")
+                base_info.update_version = update_version
                 base_info.image = service_data.get("image")
                 base_info.slug = service_data.get("slug")
                 base_info.extend_method = service_data.get("extend_method")
@@ -93,6 +102,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 base_info.volume_mount_path = service_data.get("volume_mount_path")
                 base_info.service_type = service_data.get("service_type")
                 base_info.is_init_accout = service_data.get("is_init_accout")
+                base_info.namespace = service_data.get("namespace")
                 base_info.save()
                 logger.debug('---add app service---ok---')
                 # 保存service_env
@@ -102,8 +112,8 @@ class RemoteServiceMarketAjax(AuthedView):
                 port_list = json_data.get('port_list', None)
                 extend_list = json_data.get('extend_list', None)
                 # 新增环境参数
+                env_data = []
                 if env_list:
-                    env_data = []
                     for env in env_list:
                         app_env = AppServiceEnv(service_key=env.get("service_key"),
                                                 app_version=env.get("app_version"),
@@ -114,11 +124,13 @@ class RemoteServiceMarketAjax(AuthedView):
                                                 is_change=env.get("is_change"),
                                                 container_port=env.get("container_port"))
                         env_data.append(app_env)
+                AppServiceEnv.objects.filter(service_key=service_key, app_version=app_version).delete()
+                if len(env_data) > 0:
                     AppServiceEnv.objects.bulk_create(env_data)
                 logger.debug('---add app service env---ok---')
                 # 端口信息
+                port_data = []
                 if port_list:
-                    port_data = []
                     for port in port_list:
                         app_port = AppServicePort(service_key=port.get("service_key"),
                                                   app_version=port.get("app_version"),
@@ -128,11 +140,13 @@ class RemoteServiceMarketAjax(AuthedView):
                                                   is_inner_service=port.get("is_inner_service"),
                                                   is_outer_service=port.get("is_outer_service"))
                         port_data.append(app_port)
+                AppServicePort.objects.filter(service_key=service_key, app_version=app_version).delete()
+                if len(port_data) > 0:
                     AppServicePort.objects.bulk_create(port_data)
                 logger.debug('---add app service port---ok---')
                 # 扩展信息
+                extend_data = []
                 if extend_list:
-                    extend_data = []
                     for extend in extend_list:
                         app_port = ServiceExtendMethod(service_key=extend.get("service_key"),
                                                        app_version=extend.get("app_version"),
@@ -144,6 +158,8 @@ class RemoteServiceMarketAjax(AuthedView):
                                                        step_memory=extend.get("step_memory"),
                                                        is_restart=extend.get("is_restart"))
                         extend_data.append(app_port)
+                ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
+                if len(extend_data) > 0:
                     ServiceExtendMethod.objects.bulk_create(extend_data)
                 logger.debug('---add app service extend---ok---')
                 # 服务依赖关系
@@ -166,10 +182,21 @@ class RemoteServiceMarketAjax(AuthedView):
                                                           dep_app_version=relation.get("dep_app_version"),
                                                           dep_app_alias=relation.get("dep_app_alias"))
                         relation_data.append(app_relation)
-                AppServiceRelation.objects.bulk_create(relation_data)
+                AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version).delete()
+                if len(relation_data) > 0:
+                    AppServiceRelation.objects.bulk_create(relation_data)
                 logger.debug('---add app service relation---ok---')
+                # 回写数据
+                if callback != "0":
+                    appClient.post_statics_tenant(self.tenant.tenant_id, callback)
                 # 跳转到页面
-                return redirect('/apps/{0}/service-deploy/?service_key={1}'.format(self.tenantName, service_key))
+                if action != "update":
+                    return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
+                else:
+                    return redirect('/apps/{0}/service/'.format(self.tenantName))
             else:
                 logger.error(' error !')
                 return redirect('/apps/{0}/service/'.format(self.tenantName))
+        except Exception as e:
+            logger.exception(e)
+        return redirect('/apps/{0}/service/'.format(self.tenantName))

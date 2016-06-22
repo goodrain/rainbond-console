@@ -34,3 +34,11 @@ class AppServiceApi(BaseHttpClient):
         url = self.url + "/api/v0/services/published"
         res, body = self._get(url, self.default_headers)
         return res, body
+
+    def post_statics_tenant(self, tenant_id, statics_id):
+        try:
+            url = self.url + "/api/v0/services/statics/{}/{}/".format(tenant_id, statics_id)
+            res, body = self._post(url, self.default_headers)
+            return res, body
+        except Exception:
+            pass

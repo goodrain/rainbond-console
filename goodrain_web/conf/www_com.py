@@ -19,7 +19,7 @@ EMAIL_USE_SSL = True
 
 DISCOURSE_SECRET_KEY = 'c2GZHIg8pcF2Pg5M'
 
-ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io', '.goodrain.net']
+ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io', '.goodrain.me']
 
 REGION_TOKEN = "Token 5ca196801173be06c7e6ce41d5f7b3b8071e680a"
 
@@ -172,7 +172,9 @@ MODULES = {
     "Sms_Check": True,
     "Email_Invite": True,
     "Package_Show": True,
-    "RegionToken": True
+    "RegionToken": True,
+    "Add_Port": False,
+    "License_Center":True,
 }
 
 REGIONS = (
@@ -184,6 +186,9 @@ REGIONS = (
 
 # logo path
 MEDIA_ROOT = '/data/media'
-
 # cloud market url
 CLOUD_ASSISTANT = 'goodrain'
+# log domain
+LOG_DOMAIN = 'goodrain.com'
+# open api
+IS_OPEN_API = False

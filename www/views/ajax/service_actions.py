@@ -88,6 +88,12 @@ class AppDeploy(AuthedView):
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             body["operator"] = str(self.user.nick_name)
 
+            envs = {}
+            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
+            for benv in buildEnvs:
+                envs[benv.attr_name] = benv.attr_value
+            body["envs"] = json.dumps(envs)
+
             regionClient.build_service(self.service.service_region, service_id, json.dumps(body))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_deploy', True)
 
@@ -105,7 +111,7 @@ class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        
+
         if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
@@ -139,7 +145,7 @@ class ServiceManage(AuthedView):
                     else:
                         result["status"] = "over_money"
                     return JsonResponse(result, status=200)
-                
+
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
@@ -157,7 +163,7 @@ class ServiceManage(AuthedView):
                     result["status"] = "failure"
                     result["info"] = u"关联了已发布服务, 不可删除"
                     return JsonResponse(result)
-                
+
                 dependSids = TenantServiceRelation.objects.filter(dep_service_id=self.service.service_id).values("service_id")
                 if len(dependSids) > 0:
                     sids = []
@@ -173,7 +179,7 @@ class ServiceManage(AuthedView):
                         result["dep_service"] = depalias
                         result["status"] = "evn_dependency"
                         return JsonResponse(result)
-                    
+
                 dependSids = TenantServiceMountRelation.objects.filter(dep_service_id=self.service.service_id).values("service_id")
                 if len(dependSids) > 0:
                     sids = []
@@ -189,7 +195,7 @@ class ServiceManage(AuthedView):
                         result["dep_service"] = depalias
                         result["status"] = "mnt_dependency"
                         return JsonResponse(result)
-                
+
                 data = self.service.toJSON()
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
                 newTenantServiceDelete.save()
@@ -247,11 +253,11 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        
+
         if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
-        
+
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
             if not baseService.is_user_click(self.service.service_region, self.service.service_id):
@@ -278,20 +284,20 @@ class ServiceUpgrade(AuthedView):
                             else:
                                 result["status"] = "over_money"
                             return JsonResponse(result, status=200)
-    
+
                         upgrade_container_cpu = upgrade_container_memory / 128 * 20
-                        
+
                         body = {}
                         body["container_memory"] = upgrade_container_memory
                         body["deploy_version"] = self.service.deploy_version
                         body["container_cpu"] = upgrade_container_cpu
                         body["operator"] = str(self.user.nick_name)
                         regionClient.verticalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
-                        
+
                         self.service.min_cpu = upgrade_container_cpu
                         self.service.min_memory = upgrade_container_memory
                         self.service.save()
-                        
+
                         monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
                 result["status"] = "success"
             elif action == "horizontal":
@@ -314,22 +320,30 @@ class ServiceUpgrade(AuthedView):
                     body["deploy_version"] = self.service.deploy_version
                     body["operator"] = str(self.user.nick_name)
                     regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
-                    
+
                     self.service.min_node = new_node_num
                     self.service.save()
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', True)
                 result["status"] = "success"
             elif action == "extend_method":
                 extend_method = request.POST["extend_method"]
-                if self.service.category=="application":
+                if self.service.category == "application":
                     body = {}
                     body["extend_method"] = extend_method
                     regionClient.extendMethodUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
-                    self.service.extend_method=extend_method
+                    self.service.extend_method = extend_method
                     self.service.save()
                     result["status"] = "success"
                 else:
                     result["status"] = "no_support"
+            elif action == "imageUpgrade":
+                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key,version=self.service.version)
+                if baseservice.update_version != self.service.update_version:
+                    regionClient.update_service(self.service.service_region, self.service.service_id, {"image": baseservice.image})
+                    self.service.image=baseservice.image
+                    self.service.update_version=baseservice.update_version
+                    self.service.save()
+                result["status"] = "success"    
         except Exception, e:
             logger.exception(e)
             if action == "vertical":
@@ -594,6 +608,12 @@ class ServiceDomainManager(AuthedView):
             tenantService = self.service
             domain_name = request.POST["domain_name"]
             action = request.POST["action"]
+            zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
+            match = zhPattern.search(domain_name.decode('utf-8'))
+            if match:
+                result["status"] = "failure"
+                return JsonResponse(result)
+
             if action == "start":
                 domainNum = ServiceDomain.objects.filter(domain_name=domain_name).count()
                 if domainNum > 0:
@@ -738,16 +758,18 @@ class ServiceBranch(AuthedView):
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         parsed_git_url = git_url_parse(self.service.git_url)
-        if parsed_git_url.host == 'code.goodrain.com':
-            branchs = self.get_gitlab_branchs(parsed_git_url)
-        elif parsed_git_url.host.endswith('github.com'):
-            branchs = self.get_github_branchs(parsed_git_url)
+        host = parsed_git_url.host
+        if host is not None:
+            if parsed_git_url.host == 'code.goodrain.com':
+                branchs = self.get_gitlab_branchs(parsed_git_url)
+            elif parsed_git_url.host.endswith('github.com'):
+                branchs = self.get_github_branchs(parsed_git_url)
+            else:
+                branchs = [self.service.code_version]
+            result = {"current": self.service.code_version, "branchs": branchs}
+            return JsonResponse(result, status=200)
         else:
-            branchs = [self.service.code_version]
-        # if len(branchs) > 0:
-        #    branchs.sort(reverse=True)
-        result = {"current": self.service.code_version, "branchs": branchs}
-        return JsonResponse(result, status=200)
+            return JsonResponse({}, status=200)
 
     @perm_required('deploy_service')
     def post(self, request, *args, **kwargs):
@@ -804,7 +826,7 @@ class ServicePort(AuthedView):
                 return JsonResponse({"success": False, "info": u"请先为端口设置别名", "code": 409})
             deal_port.is_inner_service = True
             data.update({"modified_field": "is_inner_service", "current_value": True})
-
+            logger.info(deal_port.mapping_port)
             baseService = BaseTenantService()
             if deal_port.mapping_port <= 1:
                 mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
@@ -840,7 +862,7 @@ class ServicePort(AuthedView):
                 deal_port.port_alias = new_port_alias
                 envs = TenantServiceEnvVar.objects.only('attr_name').filter(service_id=deal_port.service_id, container_port=deal_port.container_port)
                 for env in envs:
-                    new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias,'')
+                    new_attr_name = new_port_alias + env.attr_name.replace(old_port_alias, '')
                     env.attr_name = new_attr_name
                     env.save()
                 port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id, container_port=deal_port.container_port).values(
@@ -883,7 +905,7 @@ class ServicePort(AuthedView):
                 domain = "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region)
                 if settings.STREAM_DOMAIN:
                     domain = settings.STREAM_DOMAIN_URL
-                    
+
                 data["outer_service"] = {
                     "domain": domain,
                     "port": body["port"],
@@ -952,8 +974,8 @@ class ServiceMnt(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
-    
-    
+
+
 class ServiceNewPort(AuthedView):
 
     @perm_required("manage_service")
@@ -966,27 +988,27 @@ class ServiceNewPort(AuthedView):
             port_alias = request.POST.get('port_alias', "")
             port_inner = request.POST.get('port_inner', "0")
             port_outter = request.POST.get('port_outter', "0")
-            
+
             if not re.match(r'^[0-9]*$', port_port):
                 return JsonResponse({"success": False, "code": 400, "info": u"端口不合法"})
-            
+
             port_port = int(port_port)
             port_inner = int(port_inner)
             port_outter = int(port_outter)
-            
+
             if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
                 return JsonResponse({"success": False, "code": 400, "info": u"别名不合法"})
-            
+
             if port_outter == 1:
-                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=1).count() > 0:
-                     return JsonResponse({"success": False, "code": 409, "info": u"只能开启一个对外端口"})
-            
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=1).count() > 0:
+                    return JsonResponse({"success": False, "code": 409, "info": u"只能开启一个对外端口"})
+
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).exists():
                 return JsonResponse({"success": False, "code": 409, "info": u"容器端口冲突"})
-            
+
             mapping_port = 0
-            if port_inner == 1 and port_protocol=="stream":
-                 mapping_port = baseService.prepare_mapping_port(self.service, port_port)
+            if port_inner == 1 and port_protocol == "stream":
+                mapping_port = baseService.prepare_mapping_port(self.service, port_port)
             port = {
                 "tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                 "container_port": port_port, "mapping_port": mapping_port, "protocol": port_protocol, "port_alias": port_alias,
@@ -997,9 +1019,9 @@ class ServiceNewPort(AuthedView):
             regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"创建成功"})
         elif action == 'del_port':
-            if TenantServicesPort.objects.filter(service_id=self.service.service_id).count()==1:
+            if TenantServicesPort.objects.filter(service_id=self.service.service_id).count() == 1:
                 return JsonResponse({"success": False, "code": 409, "info": u"服务至少保留一个端口"})
-            
+
             port_port = request.POST.get("port_port")
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()

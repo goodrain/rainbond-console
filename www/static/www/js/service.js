@@ -149,11 +149,12 @@ $(document).ready(
 				cache: false,
 				success: function (data) {
 					for (var i in data.branchs) {
-						el = '<option value="'+ data.branchs[i] + '">' + data.branchs[i] + '</option>'
-						$('#git_branch').prepend(el)
+						var opt = $("<option/>").val(data.branchs[i]).html(data.branchs[i])
+						if (data.branchs[i] == data.current) {
+							opt.prop('selected', true)
+						}
+						$('#git_branch').prepend(opt)
 					}
-
-					$('#git_branch option[value='+ data.current +']').prop('selected', true)
 				}
 			})
 		}
@@ -572,6 +573,39 @@ function buid_mnt(action, curServiceName, depServiceName, tenantName) {
         },
         error : function() {
             // swal("系统异常");
+        }
+    })
+}
+
+function service_image(service_id, service_alias, tenantName) {
+    $.ajax({
+        type : "POST",
+        url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade",
+        data : "service_id=" + service_id + "&action=imageUpgrade",
+        cache : false,
+        beforeSend : function(xhr, settings) {
+            var csrftoken = $.cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success : function(msg) {
+            var dataObj = msg;
+            if (dataObj["status"] == "success") {
+                swal("操作成功,重启后生效")
+                window.location.href = window.location.href
+            } else if (dataObj["status"] == "owed") {
+                swal("余额不足请及时充值")
+            } else if (dataObj["status"] == "often") {
+                swal("操作正在进行中，请稍后")
+            } else if (dataObj["status"] == "over_memory") {
+                swal("资源已达上限，不能升级")
+            } else if (dataObj["status"] == "over_money") {
+                swal("余额不足，不能升级")
+            } else {
+                swal("设置失败")
+            }
+        },
+        error : function() {
+            swal("系统异常");
         }
     })
 }

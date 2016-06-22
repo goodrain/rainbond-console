@@ -211,6 +211,7 @@ class ServiceInfo(BaseModel):
     version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
     update_version = models.IntegerField(default=1, help_text=u"内部发布次数")
     image = models.CharField(max_length=100, help_text=u"镜像")
+    namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
     slug = models.CharField(max_length=200, help_text=u"slug包路径", default="")
     extend_method = models.CharField(max_length=15, choices=extend_method, default='stateless', help_text=u"伸缩方式")
     cmd = models.CharField(max_length=100, null=True, blank=True, help_text=u"启动参数")
@@ -294,6 +295,7 @@ class TenantServiceInfo(BaseModel):
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
     is_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否inner服务")
+    namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
     def __unicode__(self):
         return self.service_alias
@@ -380,7 +382,7 @@ class TenantServiceInfoDelete(BaseModel):
     total_memory = models.IntegerField(help_text=u"内存使用M", default=0)
     is_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否inner服务")
-
+    namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
 class TenantServiceLog(BaseModel):
 
@@ -670,3 +672,20 @@ class TenantServiceMountRelation(BaseModel):
     mnt_name = models.CharField(max_length=100, help_text=u"mnt name")
     mnt_dir = models.CharField(max_length=400, help_text=u"mnt dir")
     
+class ServiceLicense(BaseModel):
+
+    class Meta:
+        db_table = 'service_license'
+        unique_together = ('code', 'region')
+    company = models.CharField(max_length=100, help_text=u"公司名")
+    code = models.CharField(max_length=40, help_text=u"公司代码")
+    region = models.CharField(max_length=32, help_text=u"数据中心")
+    hub_account = models.CharField(max_length=60, help_text=u"hub_帐号")
+    allow_node = models.IntegerField(default=0, help_text=u"节点数")
+    allow_cpu = models.IntegerField(default=0, help_text=u"cpu数")
+    allow_memory = models.IntegerField(default=0, help_text=u"内存数")
+    start_time = models.DateTimeField(help_text=u"开始时间")
+    end_time = models.DateTimeField(help_text=u"结束时间")
+    public_pem = models.CharField(max_length=2000, help_text=u"公钥")
+    private_pem = models.CharField(max_length=4000, help_text=u"私钥")
+    ciphertext = models.CharField(max_length=2000, help_text=u"加密串")

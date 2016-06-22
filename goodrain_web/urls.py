@@ -10,12 +10,22 @@ from www.captcha.CodeImage import ChekcCodeImage
 from www.tests import TestView
 from django.conf import settings
 
+def openapi_urlpatterns():
+    """
+    Helper function to return a URL pattern for serving static files.
+    """
+    if settings.IS_OPEN_API:
+        return [url(r'^openapi/', include('openapi.urls')),]
+    else:
+        return []
+
 urlpatterns = patterns(
     '',
     url(r'^$', views.Index.as_view()), url(r'^favicon\.ico$', GrRedirectView.as_view(url='/static/www/favicon.ico')),
 
     url(r'^monitor$', views.monitor),
     url(r'^login$', views.Login.as_view()),
+    url(r'^app_login$', csrf_exempt(views.AppLogin.as_view())),
     url(r'^logout$', views.Logout.as_view()),
     # url(r'^send_invite', views.SendInviteView.as_view()),
     url(r'^phone_code', views.PhoneCodeView.as_view()),
@@ -35,8 +45,8 @@ urlpatterns = patterns(
     url(r'^huodong', include('www.urls.activity')),
     url(r'^partners/', include('www.partners.urls')),
     url(r'^Ea7e1ps5.html$', views.ssl_crv),
-    url(r'^select$', views.TenantSelectView.as_view()),
+    url(r'^select$', login_required(views.TenantSelectView.as_view())),
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.urls.payedpackage')),
     url(r'^tests/(?P<templateName>[\w\-]+)/', TestView.as_view()),
     url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
-) + staticfiles_urlpatterns()
+) + staticfiles_urlpatterns() + openapi_urlpatterns()

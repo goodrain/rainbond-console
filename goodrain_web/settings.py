@@ -28,7 +28,7 @@ DEBUG = False
 if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
     REGION_TAG = "www_com"
 
-conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG)
+conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG.replace('-', '_'))
 __import__(conf_name)
 conf_mod = sys.modules[conf_name]
 
@@ -59,21 +59,36 @@ AUTHENTICATION_BACKENDS = ('www.auth.backends.ModelBackend', 'www.auth.backends.
 LOGIN_URL = '/login'
 
 # Application definition
-
-INSTALLED_APPS = (
-    # 'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'crispy_forms',
-    'rest_framework',
-    'rest_framework.authtoken',
-    'rest_framework_swagger',
-    'www',
-    'api',
-)
+if IS_OPEN_API:
+    INSTALLED_APPS = (
+        'django.contrib.admin',
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.sessions',
+        'django.contrib.messages',
+        'django.contrib.staticfiles',
+        'crispy_forms',
+        'rest_framework',
+        'rest_framework.authtoken',
+        'rest_framework_swagger',
+        'www',
+        'api',
+        'openapi'
+    )
+else:
+    INSTALLED_APPS = (
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.sessions',
+        'django.contrib.messages',
+        'django.contrib.staticfiles',
+        'crispy_forms',
+        'rest_framework',
+        'rest_framework.authtoken',
+        'rest_framework_swagger',
+        'www',
+        'api'
+    )
 
 MIDDLEWARE_CLASSES = (
     'goodrain_web.middleware.ErrorPage',

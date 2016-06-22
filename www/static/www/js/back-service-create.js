@@ -1,8 +1,15 @@
 //服务创建
-function service_create(tenantName, service_key) {
+function service_create(tenantName, service_key, app_version) {
 	window.location.href = "/apps/" + tenantName
-			+ "/service-deploy/?service_key=" + service_key
+			+ "/service-deploy/?service_key=" + service_key + "&app_version=" + app_version
 }
+
+function service_update(tenantName, service_key, app_version, update_version) {
+    window.location.href = '/ajax/'+tenantName+'/remote/market?service_key='
+            + service_key + '&app_version=' + app_version+'&update_version='+update_version+'&action=update';
+}
+
+
 //创建应用
 $(function(){
     $('#create_service_name').blur(function(){
@@ -75,6 +82,7 @@ $(function(){
 
     $('#back_service_finished').click(function() {
         envs = []
+        var flag = false
         $('tbody tr').each(function() {
             env = {};
             $(this).find('[name^=attr]').each(function(event) {
@@ -85,11 +93,14 @@ $(function(){
                     env[name] = value;
                 } else {
                     showMessage("有未填写的内容");
-                    return;
+                    flag = true
                 }
             });
             envs.push(env);
         });
+        if (flag) {
+            return false;
+        }
         var csrftoken = $.cookie('csrftoken');
         data = {"envs": envs};
         $.ajax({
