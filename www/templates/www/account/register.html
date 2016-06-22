@@ -8,6 +8,7 @@
 {% block extracss %}
     <link rel="stylesheet" href="{% static "www/css/style.css" %}">
     <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+    <link rel="stylesheet" href="{% static "www/css/login.css" %}">
 {% endblock %}
 
 {% block bodyclass %}login-body{% endblock %}
@@ -19,7 +20,7 @@
 </header>
 -->
 <div class="mainbox">
-    <h1 class="yblogo"><img src="images/yunbanglogo.png"></h1>
+    <h1 class="yblogo"><img src="static/www/images/yunbanglogo.png"></h1>
 
   <form id="reg_form" class="form-signin-w form-signin-reg-w" enctype="multipart/form-data" action="" method="post">
     
@@ -46,7 +47,7 @@
     <div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>
     <button type="submit" class="btn btn-success btn-block">注&nbsp;&nbsp;册</button>
     <p class="text-center">或使用以下账号注册</p>
-    <a href="" class="weixin"><img src="images/weixin.png">&nbsp;微信</a>
+    <a href="" class="weixin"><img src="static/www/images/weixin.png">&nbsp;微信</a>
     <div class="linkregister text-center">已有云帮公有云版账户，直接<a href="login.html">登录</a></div>
     <a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>
 
