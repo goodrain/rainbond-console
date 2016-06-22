@@ -191,4 +191,4 @@ CLOUD_ASSISTANT = 'goodrain'
 # log domain
 LOG_DOMAIN = 'goodrain.com'
 # open api
-IS_OPEN_API = False
+IS_OPEN_API = True
