@@ -19,7 +19,7 @@ EXPOSE $PORT
 RUN mkdir -pv $WORK_DIR
 
 ADD requirments_release.txt $WORK_DIR/requirements.txt
-RUN pip install -r $WORK_DIR/requirements.txt -i https://pypi.doubanio.com/simple
+RUN pip install -r $WORK_DIR/requirements.txt -i  https://pypi.doubanio.com/simple
 
 COPY . $WORK_DIR
 RUN python -c "import compileall;compileall.compile_dir('$WORK_DIR')" \
