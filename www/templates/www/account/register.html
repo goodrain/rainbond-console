@@ -13,16 +13,16 @@
 {% block bodyclass %}login-body{% endblock %}
 
 {% block body %}
-<header class="header white-bg">
-    <!--logo start-->
+ <!--
+ <header class="header white-bg">
     <a href="/" class="logo">好雨<span>云平台</span></a>
-    <!--logo end-->
 </header>
+-->
+<div class="mainbox">
+    <h1 class="yblogo"><img src="images/yunbanglogo.png"></h1>
 
-<div class="container">
-  <form id="reg_form" class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
-    <h2 class="form-signin-heading">用户注册</h2>
-
+  <form id="reg_form" class="form-signin-w form-signin-reg-w" enctype="multipart/form-data" action="" method="post">
+    
     {% if errors %}
     <div class="alert alert-danger alert-dismissable">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -30,10 +30,25 @@
     </div>
     {{ form.non_field_errors }}
     {% endif %}
-
-    <div class="row">
-     	{% crispy form %}
+    <!-- 	{% crispy form %} -->
+    <div class="form-group">
+        <input type="text" class="form-control" id="" placeholder="请输入团队名">
     </div>
+    <div class="form-group">
+        <input type="text" class="form-control" id="" placeholder="请输入用户名">
+    </div>
+    <div class="form-group">
+        <input type="email" class="form-control" id="" placeholder="请输入邮箱(选填)">
+    </div>
+    <div class="form-group">
+        <input type="password" class="form-control" id="" placeholder="请设置密码，至少包含8位字符">
+    </div>
+    <div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>
+    <button type="submit" class="btn btn-success btn-block">注&nbsp;&nbsp;册</button>
+    <p class="text-center">或使用以下账号注册</p>
+    <a href="" class="weixin"><img src="images/weixin.png">&nbsp;微信</a>
+    <div class="linkregister text-center">已有云帮公有云版账户，直接<a href="login.html">登录</a></div>
+    <a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>
 
   </form>
   
