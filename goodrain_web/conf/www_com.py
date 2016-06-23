@@ -194,6 +194,11 @@ MEDIA_ROOT = '/data/media'
 # cloud market url
 CLOUD_ASSISTANT = 'goodrain'
 # log domain
-LOG_DOMAIN = 'goodrain.com'
+LOG_DOMAIN = {
+    "ali-sh": "ali-sh.download.goodrain.com",
+    "aws-bj-1": "aws-bj-1.download.goodrain.com",
+    "aws-jp-1": "aws-jp-1.download.goodrain.com",
+    "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com"               
+}
 # open api
 IS_OPEN_API = False
