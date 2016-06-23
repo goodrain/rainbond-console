@@ -347,6 +347,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["memorydict"] = self.memory_choices()
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
+                context["git_tag"] = settings.MODULES["GitLab_Project"]
+                
                 if self.service.category == "application" or self.service.category == "manager":
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
@@ -430,7 +432,7 @@ class ServiceHistoryLog(AuthedView):
             body = regionClient.history_log(self.service.service_region, self.service.service_id)
             context["log_paths"] = body["log_path"]
             context["tenantService"] = self.service
-            context["log_domain"] = settings.LOG_DOMAIN
+            context["log_domain"] = settings.LOG_DOMAIN[self.service.service_region]
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)

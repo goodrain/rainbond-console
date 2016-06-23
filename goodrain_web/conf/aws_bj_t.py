@@ -27,7 +27,9 @@ WILD_DOMAIN = ".goodrain.net"
 
 STREAM_DOMAIN = False
 
-STREAM_DOMAIN_URL = ""
+STREAM_DOMAIN_URL = {
+    "aws-bj-t": ""              
+}
 
 WILD_DOMAINS = {
     "aws-bj-t": ".aws-bj-t.goodrain.net",
@@ -146,4 +148,6 @@ MEDIA_ROOT = '/data/media'
 CLOUD_ASSISTANT = 'goodrain'
 
 # log domain
-LOG_DOMAIN = 'goodrain.com'
+LOG_DOMAIN = {
+    "aws-bj-t": "aws-bj-t.download.goodrain.com"            
+}
