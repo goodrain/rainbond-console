@@ -6,7 +6,7 @@
         <div class="row">
             <label class="col-xs-2 control-label">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_alias}}</label>
         </div>
-        {% if tenantServiceInfo.category == "application" %}
+        {% if tenantServiceInfo.category == "application" and git_tag %}
             <div class="row">
                 <label class="col-xs-2 control-label">Git仓库</label>
                 <label class="col-xs-4 control-label">
