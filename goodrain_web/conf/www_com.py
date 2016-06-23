@@ -27,7 +27,12 @@ WILD_DOMAIN = ".goodrain.net"
 
 STREAM_DOMAIN = False
 
-STREAM_DOMAIN_URL = ""
+STREAM_DOMAIN_URL = {
+    "ali-sh": "",
+    "aws-bj-1": "",
+    "aws-jp-1": "",
+    "ucloud-bj-1": ""               
+}
 
 WILD_DOMAINS = {
     "ali-sh": ".ali-sh.goodrain.net",
