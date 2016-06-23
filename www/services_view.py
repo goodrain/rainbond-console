@@ -347,6 +347,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["memorydict"] = self.memory_choices()
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
+                context["git_tag"] = settings.MODULES["GitLab_Project"]
+                
                 if self.service.category == "application" or self.service.category == "manager":
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
