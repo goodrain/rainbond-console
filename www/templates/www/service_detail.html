@@ -18,7 +18,7 @@
 	     {% endif  %}
 	     {% if MODULES.Monitor_Control %}
              <li class="dropdown {% if fr == "statistic" %} active {% endif %}">
-             	{% if hasHttpServices or tenantServiceInfo.service_key == 'mysql' %}
+             	{% if hasHttpServices or tenantServiceInfo.service_type == 'mysql' %}
                   <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic" class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b></a>
                   <ul class="dropdown-menu">
                       <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime">实时分析</a></li>

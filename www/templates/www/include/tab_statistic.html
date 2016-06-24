@@ -13,7 +13,7 @@
        </select>
      </div>
    </div>
-   {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
+   {% if hasHttpServices %}
    <div class="row">
      <div class="col-md-6">
        <section class="panel">
@@ -58,7 +58,7 @@
 
    </div>
    {% endif %}<!--end http_history-->
-   {% if tenantServiceInfo.service_key == "mysql" %}
+   {% if tenantServiceInfo.service_type == "mysql" %}
    <div class="row">
      <div class="col-md-6">
        <section class="panel">
