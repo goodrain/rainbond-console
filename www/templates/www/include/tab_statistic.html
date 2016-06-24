@@ -131,7 +131,7 @@
 
   {% endif %}<!--end statistic_history-->
   {% if statistic_type == 'realtime' %}
-    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
+    {% if hasHttpServices %}
     <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-3">
       <ul>
         <li>
@@ -172,7 +172,7 @@
     </div>
     {% endif %}<!--finish http_realtime-->
 
-    {% if tenantServiceInfo.service_key == 'mysql' %}
+    {% if tenantServiceInfo.service_type == 'mysql' %}
     <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-2">
       <ul>
         <li>
