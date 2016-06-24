@@ -77,6 +77,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'second': second if second else 0,
                 'thrid': third if third else 0,
                 'logo': pre_app.logo,
+                'service_type':pre_app.service_type,
             })
         else:
             init_data.update({
@@ -90,9 +91,12 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'desc': self.service.desc if self.service.desc else '',
                 'is_init_accout': False,
                 'is_outer': False,
+                'service_type':self.service.service_type,
             })
         # 查询对应服务的名称等信息
         context.update({'app': init_data})
+        service_types = ["application", "rdbs", 'nosql']
+        context["service_types"] = service_types
         root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
         root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
         context['root_category_list'] = root_category_list
@@ -122,6 +126,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 app_type_third = detail_form.cleaned_data['app_type_third']
                 is_outer = detail_form.cleaned_data['is_outer']
                 is_init_accout = detail_form.cleaned_data['is_init_accout']
+                app_service_type = detail_form.cleaned_data['app_service_type']
                 
                 # 获取保存的服务信息
                 app = AppService.objects.filter(service_key=service_key, app_version=app_version)
@@ -165,7 +170,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         min_memory=self.service.min_memory,
                         inner_port=self.service.inner_port,
                         volume_mount_path=self.service.volume_mount_path,
-                        service_type=self.service.service_type,
+                        service_type=app_service_type,
                         is_init_accout=is_init_accout,
                         show_category='{},{},{}'.format(app_type_first, app_type_second, app_type_third),
                         is_base=False,
@@ -546,3 +551,4 @@ class ServiceDetailForm(forms.Form):
                                   initial=False)
     is_init_accout = forms.BooleanField(required=False,
                                   initial=False)
+    app_service_type = forms.CharField(required=False)
