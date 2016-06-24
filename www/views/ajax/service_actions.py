@@ -932,7 +932,9 @@ class ServiceEnv(AuthedView):
             attr_name = request.POST.get('attr_name')
             attr_value = request.POST.get('attr_value')
             scope = request.POST.get('scope', 'inner')
-
+            attr_name = attr_name.lstrip().rstrip()
+            attr_value = attr_value.lstrip().rstrip()
+            
             form = EnvCheckForm(request.POST)
             if not form.is_valid():
                 return JsonResponse({"success": False, "code": 400, "info": u"变量名不合法"})
