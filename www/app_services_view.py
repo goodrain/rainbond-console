@@ -84,6 +84,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             if service_code_from is None or service_code_from == "":
                 data["status"] = "code_from"
                 return JsonResponse(data, status=200)
+            service_alias=service_alias.rstrip().lstrip()
             if service_alias is None or service_alias == "":
                 data["status"] = "empty"
                 return JsonResponse(data, status=200)

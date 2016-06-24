@@ -700,18 +700,20 @@ class ServiceEnvVarManager(AuthedView):
                     # update and save env
                     for index, cname in enumerate(name_arr):
                         tmpId = attr_id_arr[index]
+                        attr_name = attr_name_arr[index]
+                        attr_value = attr_value_arr[index]
                         if int(tmpId) > 0:
                             tsev = TenantServiceEnvVar.objects.get(ID=int(tmpId))
-                            tsev.attr_name = attr_name_arr[index]
-                            tsev.attr_value = attr_value_arr[index]
+                            tsev.attr_name = attr_name.lstrip().rstrip()
+                            tsev.attr_value = attr_value.lstrip().rstrip()
                             tsev.save()
                         else:
                             tenantServiceEnvVar = {}
                             tenantServiceEnvVar["tenant_id"] = self.service.tenant_id
                             tenantServiceEnvVar["service_id"] = self.service.service_id
                             tenantServiceEnvVar["name"] = cname
-                            tenantServiceEnvVar["attr_name"] = attr_name_arr[index]
-                            tenantServiceEnvVar["attr_value"] = attr_value_arr[index]
+                            tenantServiceEnvVar["attr_name"] = attr_name.lstrip().rstrip()
+                            tenantServiceEnvVar["attr_value"] = attr_value.lstrip().rstrip()
                             tenantServiceEnvVar["is_change"] = True
                             TenantServiceEnvVar(**tenantServiceEnvVar).save()
             else:
