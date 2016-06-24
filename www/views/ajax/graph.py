@@ -92,12 +92,16 @@ class ServiceGraph(AuthedView):
             return None
 
     def add_tags(self, graph_key, result):
-        if result['data'] is not None and len(result['data'])>0:
-            test_value = result['data'][0]['values'][0][1]
-            if isinstance(test_value, int):
-                result['yAxisFormat'] = ',.0f'
-    
-            result['yAxisLabel'] = self.metric_map.get(graph_key, None).get('unit', '')
+        if result['data'] is not None and len(result['data']) > 0:
+            tmpdata = result['data'][0]['values']
+            if tmpdata is not None and len(tmpdata) > 0:
+                tem = tmpdata[0]
+                if tem is not None and len(tem) > 0:
+                    test_value = tem[1]
+                    if isinstance(test_value, int):
+                        result['yAxisFormat'] = ',.0f'
+            
+                    result['yAxisLabel'] = self.metric_map.get(graph_key, None).get('unit', '')
 
     @perm_required('view_service')
     def post(self, request, *args, **kwargs):
