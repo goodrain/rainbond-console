@@ -108,6 +108,19 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-group clearfix">
+                        <label for="app_type_first" class="col-sm-2 col-lg-2 control-label text-right">服务类型</label>
+                        <div class="col-sm-10 col-lg-10">
+                            <select class="col-sm-2 col-lg-3" id="app_service_type" name="app_service_type">
+                                {% for service_type in service_types %}
+                                {% if app.service_type == service_type %}
+                                  <option value="{{service_type}}"  selected="selected">{{service_type}}</option>
+                                  {% else %}
+                                  <option value="{{service_type}}">{{service_type}}</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
                     
                     <div id="div_id_app_dest" class="form-group">
                         <label for="id_app_logo" class="control-label col-lg-2 requiredField">是否发布到云端<span
