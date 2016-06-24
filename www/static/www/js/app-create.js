@@ -35,6 +35,9 @@ $(function(){
             $('#create_codestore_notice').slideDown();
             return;
         }
+        if(appName.length>30) {
+            swal("服务名太长");
+        }
         var service_code_id = $("#service_code_id").val()
         var gitValue = $("#git_version_"+service_code_id).val();
         $("#service_code_version").val(gitValue);        
