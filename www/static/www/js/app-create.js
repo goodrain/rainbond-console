@@ -36,7 +36,9 @@ $(function(){
             return;
         }
         if(appName.length>30) {
-            swal("服务名太长");
+            swal("服务名太长,不能超过30个字符");
+            $("#first_step").attr('disabled', false);
+            return;
         }
         var service_code_id = $("#service_code_id").val()
         var gitValue = $("#git_version_"+service_code_id).val();
