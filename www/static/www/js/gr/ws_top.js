@@ -5,6 +5,7 @@
         var serviceAlias = $('#mytags').attr('service');
         var region = $.cookie('region');
         var topic = $('#mytags').attr('ws-topic');
+        var websocketUrl = $("#websocketUrl").val()
 
         extPushWebSocketClient.prototype = {
             onMessage : function(msg) {
@@ -13,7 +14,7 @@
             }
         }
 
-        var connect = new extPushWebSocketConnect('wss://mpush-' + region + '.goodrain.com:6060/websocket');
+        var connect = new extPushWebSocketConnect(websocketUrl);
         connect.init(new extPushWebSocketClient(), topic, "submsg", "submsg","123456789","987654321");
 
         function update_table (event) {
