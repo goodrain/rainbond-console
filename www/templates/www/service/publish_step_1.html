@@ -113,11 +113,12 @@
                         <div class="col-sm-10 col-lg-10">
                             <select class="col-sm-2 col-lg-3" id="app_service_type" name="app_service_type">
                                 {% for service_type in service_types %}
-                                {% if app.service_type == service_type %}
-                                  <option value="{{service_type}}"  selected="selected">{{service_type}}</option>
-                                  {% else %}
-                                  <option value="{{service_type}}">{{service_type}}</option>
-                                {% endif %}
+                                    {% if app.service_type == service_type %}
+                                      <option value="{{service_type}}"  selected="selected">{{service_type}}</option>
+                                      {% else %}
+                                      <option value="{{service_type}}">{{service_type}}</option>
+                                    {% endif %}
+                                 {% endfor %}
                             </select>
                         </div>
                     </div>
