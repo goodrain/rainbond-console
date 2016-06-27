@@ -337,11 +337,11 @@ class ServiceUpgrade(AuthedView):
                 else:
                     result["status"] = "no_support"
             elif action == "imageUpgrade":
-                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key,version=self.service.version)
+                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
                     regionClient.update_service(self.service.service_region, self.service.service_id, {"image": baseservice.image})
-                    self.service.image=baseservice.image
-                    self.service.update_version=baseservice.update_version
+                    self.service.image = baseservice.image
+                    self.service.update_version = baseservice.update_version
                     self.service.save()
                 result["status"] = "success"    
         except Exception, e:
@@ -1032,3 +1032,33 @@ class ServiceNewPort(AuthedView):
             data = {"action": "delete", "port_ports": [port_port]}
             regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"删除成功"})
+
+
+class ServiceDockerContainer(AuthedView):
+    
+    @perm_required('manage_service')
+    def get(self, request, *args, **kwargs):
+        data = {}
+        try:
+            data = regionClient.history_log(self.service.service_region, self.service.service_id)
+            logger.info(data)
+        except Exception, e:
+            logger.exception(e)
+        return JsonResponse(data)
+
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        context = self.get_context()
+        try:
+            c_id = request.POST.get("c_id", "")
+            h_id = request.POST.get("h_id", "")
+            response = redirect(get_redirect_url("/apps/{0}/{1}/docker/?ctn_id={2}", self.tenantName, self.serviceAlias))
+            if c_id != "" and h_id != "":
+                response.set_cookie('docker_c_id', c_id)
+                response.set_cookie('docker_h_id', h_id)
+                response.set_cookie('docker_s_id', self.service.service_id)
+            return response
+        except Exception as e:
+            logger.exception(e)
+            response = redirect(get_redirect_url("/apps/{0}/{1}/detail/", self.tenantName, self.serviceAlias))
+            return response

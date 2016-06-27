@@ -24,6 +24,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/custom-env', ajax.ServiceEnv.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/custom-port', ajax.ServiceNewPort.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/mnt', ajax.ServiceMnt.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/docker', ajax.ServiceDockerContainer.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/invite', ajax.InviteTenantUser.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/perms', ajax.TenantIdentity.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/serviceinfo', ajax.AllServiceInfo.as_view()),

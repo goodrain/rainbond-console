@@ -256,3 +256,7 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
     
+    def serviceContainerIds(self, region, service_id):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/containerIds/"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return body
