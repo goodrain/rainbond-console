@@ -696,21 +696,8 @@ class TenantSelectView(BaseView):
             return response
 
 
-class AccountView(BaseView):
-    """用户信息视图"""
-    def post(self, request, *args, **kwargs):
-        email = request.POST.get('email', None)
-        if email is None:
-            return JsonResponse({"success": False, "nick_name": "Anonymous"})
-        user_info = Users.objects.get(email=email)
-        if user_info is None:
-            return JsonResponse({"success": False, "nick_name": "Anonymous"})
-        else:
-            return JsonResponse({"success": True, "nick_name": user_info.nick_name})
-
-
 class AppLogin(BaseView):
-
+    """app 用户登录接口"""
     @xframe_options_exempt
     def get(self, request, *args, **kwargs):
         context = self.get_context()

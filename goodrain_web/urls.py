@@ -27,6 +27,7 @@ urlpatterns = patterns(
     url(r'^login$', views.Login.as_view()),
     url(r'^app_login$', csrf_exempt(views.AppLogin.as_view())),
     url(r'^logout$', views.Logout.as_view()),
+    url(r'^wechat/', include('www.urls.wechat')),
     # url(r'^send_invite', views.SendInviteView.as_view()),
     url(r'^phone_code', views.PhoneCodeView.as_view()),
     url(r'^captcha', ChekcCodeImage.as_view()),

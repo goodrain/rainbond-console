@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from www.models import Users
+from www.models import Users, WeChatUser
 
 
 class ModelBackend(object):
@@ -40,3 +40,22 @@ class PartnerModelBackend(ModelBackend):
                 return user
         except Users.DoesNotExist:
             pass
+
+
+class WeChatModelBackend(object):
+    """微信用户登录拦截"""
+    def authenticate(self, union_id=None, **kwargs):
+        # user登录失败,微信登录
+        try:
+            return Users.objects.get(union_id=union_id)
+        except Users.DoesNotExist:
+            pass
+
+    def get_user(self, union_id):
+        # 用户user_id不存在 or 微信用户登录, 检查微信用户信息
+        try:
+            return Users.objects.get(union_id=union_id)
+        except Users.DoesNotExist:
+            pass
+        return None
+

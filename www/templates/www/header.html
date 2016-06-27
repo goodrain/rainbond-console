@@ -45,9 +45,26 @@
                 <span class="username">{% if user.is_authenticated %}{{ user.nick_name }}{% else %}匿名用户{% endif %}</span>
                 <b class="caret"></b>
             </a>
-            
+
             <ul class="dropdown-menu">
                 <div class="log-arrow-up"></div>
+                {% if user.status == 0 %}
+                    <!--# 0:普通注册,未绑定微信-->
+                    <li><a href="/wechat/bind"><i class="fa fa-usd"></i>绑定微信</a></li>
+                {% elseif user.status == 1 %}
+                    <!--# 1:普通注册,绑定微信-->
+                    <li><a href="/wechat/unbind"><i class="fa fa-usd"></i>解绑微信</a></li>
+                {% elseif user.status == 2 %}
+                    <!--# 2:微信注册,绑定微信,未补充信息-->
+                    <li><a href="/wechat/reset"><i class="fa fa-usd"></i>设置用户信息</a></li>
+                {% elseif user.status == 3 %}
+                    <!--# 3:微信注册,绑定微信,已补充信息-->
+                    <li><a href="/wechat/unbind"><i class="fa fa-usd"></i>解绑微信</a></li>
+                {% elseif user.status == 4 %}
+                    <!--# 4:微信注册,解除微信绑定,已补充信息-->
+                    <li><a href="/wechat/bind"><i class="fa fa-usd"></i>绑定微信</a></li>
+                {% endif %}
+
                 {% if MODULES.Finance_Center %}
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
                 <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
