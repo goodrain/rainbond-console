@@ -14,7 +14,7 @@ urlpatterns = patterns(
     url(r'^callback$', WeChatCallBack.as_view()),
     url(r'^callbackbind$', WeChatCallBackBind.as_view()),
 
-    url(r'^reset$', WeChatInfoView.as_view()),
+    url(r'^info$', WeChatInfoView.as_view()),
     url(r'^unbind$', UnbindView.as_view()),
     url(r'^bind$', BindView.as_view()),
 )

@@ -50,19 +50,23 @@
                 <div class="log-arrow-up"></div>
                 {% if user.status == 0 %}
                     <!--# 0:普通注册,未绑定微信-->
-                    <li><a href="/wechat/bind"><i class="fa fa-usd"></i>绑定微信</a></li>
-                {% elseif user.status == 1 %}
+                    <li name="wechat_li"><a target="_blank" href="/wechat/bind" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
+                {% endif %}
+                {% if user.status == 1 %}
                     <!--# 1:普通注册,绑定微信-->
-                    <li><a href="/wechat/unbind"><i class="fa fa-usd"></i>解绑微信</a></li>
-                {% elseif user.status == 2 %}
+                    <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
+                {% endif %}
+                {% if user.status == 2 %}
                     <!--# 2:微信注册,绑定微信,未补充信息-->
-                    <li><a href="/wechat/reset"><i class="fa fa-usd"></i>设置用户信息</a></li>
-                {% elseif user.status == 3 %}
+                    <li name="wechat_li"><a href="/wechat/info"><i class="fa fa-usd"></i>设置用户信息</a></li>
+                {% endif %}
+                {% if user.status == 3 %}
                     <!--# 3:微信注册,绑定微信,已补充信息-->
-                    <li><a href="/wechat/unbind"><i class="fa fa-usd"></i>解绑微信</a></li>
-                {% elseif user.status == 4 %}
+                    <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
+                {% endif %}
+                {% if user.status == 4 %}
                     <!--# 4:微信注册,解除微信绑定,已补充信息-->
-                    <li><a href="/wechat/bind"><i class="fa fa-usd"></i>绑定微信</a></li>
+                    <li name="wechat_li"><a target="_blank" href="/wechat/bind"><i class="fa fa-usd"></i>绑定微信</a></li>
                 {% endif %}
 
                 {% if MODULES.Finance_Center %}
@@ -78,3 +82,39 @@
     </ul>
     <!--search & user info end-->
 </div>
+<script type="text/javascript">
+    function unbindwechat() {
+        $.ajax({
+            type : "POST",
+            url : "/wechat/unbind",
+            dataType: "json",
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                console.log(msg);
+                var jsondata = eval(msg);
+                if (!jsondata.success) {
+                    showMessage(jsondata.msg);
+                    if (jsondata.code == 201) {
+                        location.href='/wechat/reset'
+                    }
+                } else {
+                    showMessage("解绑成功");
+                    // 清理页面逻辑
+                    $("li[name=wechat_li]").empty();
+                    $("<a/>").attr("href", "/wechat/bind")
+                            .attr("target", "_blank")
+                            .append($("<i/>").addClass("fa fa-usd"))
+                            .append("绑定微信").appendTo($("li[name=wechat_li]"));
+                }
+            },
+            error : function(err) {
+                console.log(err);
+                showMessage("解绑失败");
+            }
+        });
+    }
+</script>

@@ -85,7 +85,7 @@ class WeChatLogin(BaseView):
               "&redirect_uri={1}" \
               "&response_type=code" \
               "&scope=snsapi_login" \
-              "&state={3}#wechat_redirect".format(app_id, redirect_url, csrftoken)
+              "&state={2}#wechat_redirect".format(app_id, redirect_url, csrftoken)
         return self.redirect_to(url)
 
 
@@ -203,6 +203,44 @@ class WeChatInfoView(BaseView):
         user.phone = request.POST.get("phone")
         user.client_ip = get_client_ip(request)
         password = request.POST.get("password")
+        password_repeat = request.POST.get("password_repeat")
+        success = True
+        err = {}
+        # 校验
+        try:
+            Users.objects.get(email=user.email)
+            success = False
+            err['email'] = "邮件地址已经存在"
+        except Users.DoesNotExist:
+            pass
+
+        try:
+            Users.objects.get(nick_name=user.nick_name)
+            success = False
+            err['name'] = "用户名已经存在"
+        except Users.DoesNotExist:
+            pass
+
+        if password_repeat != password:
+            success = False
+            err['password'] = "两次输入的密码不一致"
+
+        if user.phone is not None and user.phone != "":
+            phoneNumber = Users.objects.filter(phone=user.phone).count()
+            logger.debug('form_valid.register', phoneNumber)
+            if phoneNumber > 0:
+                success = False
+                err['phone'] = "手机号已存在"
+        # 参数错误,返回原页面
+        if not success:
+            context = self.get_context()
+            context['error'] = err.values()
+            page = "www/account/wechatinfo.html"
+            context["user"] = self.user
+            logger.error(err)
+            return TemplateResponse(self.request, page, context)
+
+        logger.debug("now update user...")
         user.set_password(password)
         user.status = 3  # 微信注册,补充信息
         user.save()
@@ -212,7 +250,7 @@ class WeChatInfoView(BaseView):
                                            password,
                                            user.nick_name,
                                            user.nick_name)
-        return JsonResponse(status=200, data={"success": True, "msg": "SUCCESS"})
+        return self.redirect_to("/")
 
 
 class UnbindView(BaseView):
@@ -232,18 +270,23 @@ class UnbindView(BaseView):
             else:
                 # 判断用户信息是否完善
                 union_id = user.union_id
-                begin_index = len(union_id)-8
-                tenant_name = union_id[begin_index:]
-                email = tenant_name + "@wechat.com"
-                if user.email == email:
-                    success = False
-                    msg = "解绑后无法微信登录系统,请先完善信息后在解绑微信"
-                    # 页面接受需要跳转到信息完善页面
-                    code = 201
-                else:
+                if union_id is None or union_id == '':
                     user.status = 4  # 微信注册,解除绑定
                     user.union_id = ''
                     user.save()
+                else:
+                    begin_index = len(union_id)-8
+                    tenant_name = union_id[begin_index:]
+                    email = tenant_name + "@wechat.com"
+                    if user.email == email:
+                        success = False
+                        msg = "解绑后无法微信登录系统,请先完善信息后在解绑微信"
+                        # 页面接受需要跳转到信息完善页面
+                        code = 201
+                    else:
+                        user.status = 4  # 微信注册,解除绑定
+                        user.union_id = ''
+                        user.save()
         except Users.DoesNotExist:
             success = False
             msg = "用户不存在"
@@ -271,49 +314,21 @@ class BindView(BaseView):
         """正常注册用户绑定微信"""
         # 获取cookie中的corf
         csrftoken = request.COOKIES.get('csrftoken')
-        user_id = self.user.pk
+        user_id = str(self.user.pk)
         state = AuthCode.encode(','.join([csrftoken, user_id]), 'goodrain')
         # 获取user对应的微信配置
         config = WeChatConfig.objects.get(config=WECHAT_USER)
         app_id = config.app_id
         # 扫码后微信的回跳页面
         redirect_url = "https://user.goodrain.com/wechat/callbackbind"
-        redirect_url = urllib.urlencode(redirect_url)
+        redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
         url = "https://open.weixin.qq.com/connect/qrconnect?appid={0}" \
               "&redirect_uri={1}" \
               "&response_type=code" \
               "&scope=snsapi_login" \
-              "&state={3}#wechat_redirect".format(app_id, redirect_url, state)
+              "&state={2}#wechat_redirect".format(app_id, redirect_url, state)
         return self.redirect_to(url)
-
-    def post(self, request, *args, **kwargs):
-        success = True
-        msg = "绑定成功"
-        code = 200
-        try:
-            user = Users.objects.get(pk=self.user.pk)
-            user.status = 4  # 微信注册,解除绑定
-            user.union_id = ''
-            user.save()
-        except Users.DoesNotExist:
-            success = False
-            msg = "用户不存在"
-            code = 201
-        except Exception as e:
-            success = False
-            msg = "绑定失败"
-            code = 202
-            logger.error("绑定失败!")
-            logger.exception(e)
-        # 返回数据
-        status = 200 if success else 500
-        data = {
-            "success": success,
-            "msg": msg,
-            "code": code
-        }
-        return JsonResponse(status=status, data=data)
 
 
 class WeChatCallBackBind(BaseView):
@@ -350,7 +365,10 @@ class WeChatCallBackBind(BaseView):
             wechat_user = open_api.query_userinfo(open_id, access_token)
         # 根据微信的union_id判断用户是否已经注册
         user = Users.objects.get(pk=user_id)
-        user.status = 1
+        if user.status == 0:
+            user.status = 1
+        elif user.status == 4:
+            user.status = 3
         user.union_id = wechat_user.union_id
         user.save()
 

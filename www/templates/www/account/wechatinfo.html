@@ -6,9 +6,9 @@
 {% block title %}好雨云平台 用户设置{% endblock %}
 
 {% block extracss %}
-    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
-    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
-    <link rel="stylesheet" href="{% static "www/css/login.css" %}">
+<link rel="stylesheet" href='{% static "www/css/style.css" %}'>
+<link rel="stylesheet" href='{% static "www/css/style-responsive.css" %}'>
+<link rel="stylesheet" href='{% static "www/css/login.css" %}'>
 {% endblock %}
 
 {% block bodyclass %}login-body{% endblock %}
@@ -16,36 +16,50 @@
 {% block body %}
 
 <div class="mainbox">
-  <h1 class="yblogo"><img src="static/www/images/yunbanglogo.png"></h1>
-
-  <form enctype="multipart/form-data" action="" method="post">
-    <div class="form-group">
-      <input type="text" class="form-control" id="" placeholder="请设置新用户名">
-    </div>
-    <div class="form-group">
-      <input type="password" class="form-control" id="" placeholder="请设置密码，至少包含8位字符">
-    </div>
-    <div class="form-group">
-      <input type="password" class="form-control" id="" placeholder="再次输入登录密码">
-    </div>
-    <div class="form-group">
-      <input type="email" class="form-control" id="" placeholder="请输入邮箱(选填)">
-    </div>
-    <div class="form-group">
-      <input type="tel" class="form-control" id="" placeholder="请输入手机号(选填)">
-    </div>
-    <div class="clearfix littlebtn">
-      <button type="submit" class="btn btn-success pull-left">保&nbsp;&nbsp;存</button>
-      <button type="submit" class="btn  pull-right">取&nbsp;&nbsp;消</button>
-    </div>
-    <a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>
-
-  </form>
+    <h1 class="yblogo">
+        <img src='{% static "www/images/yunbanglogo.png" %}' />
+    </h1>
+    {% if error %}
+        <ul>
+        {% for err in error.values() %}
+            <li>{{err}}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    <form enctype="multipart/form-data" action="" method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <input type="text" class="form-control" name="nick_name"
+                   placeholder="请设置新用户名" maxlength="24"
+                   value="{{user.nick_name}}"/>
+        </div>
+        <div class="form-group">
+            <input type="password" class="form-control" name="password"
+                   placeholder="请设置密码，至少包含8位字符" minlength="8"
+                   maxlength="16" />
+        </div>
+        <div class="form-group">
+            <input type="password" class="form-control" name="password_repeat"
+                   placeholder="再次输入登录密码" minlength="8" maxlength="16"/>
+        </div>
+        <div class="form-group">
+            <input type="email" class="form-control" name="email"
+                   placeholder="请输入邮箱(选填)" maxlength="30"
+                   value="{{user.email}}"/>
+        </div>
+        <div class="form-group">
+            <input type="tel" class="form-control" name="phone"
+                   placeholder="请输入手机号(选填)" maxlength="11" minlength="11"
+                   value="{{user.phone}}"/>
+        </div>
+        <div class="clearfix littlebtn">
+            <button type="submit" class="btn btn-success pull-left">保&nbsp;&nbsp;存</button>
+            <button type="cancel" class="btn pull-right">取&nbsp;&nbsp;消</button>
+        </div>
+        <a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>
+    </form>
 </div>
 {% endblock %}
 
 {% block extrajs %}
-  <!--script type="text/javascript">
-    $('#reg_form').validator();
-  </script-->
 {% endblock %}

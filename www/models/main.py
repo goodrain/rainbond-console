@@ -111,11 +111,12 @@ class WeChatUser(models.Model):
         db_table = "wechat_user_info"
 
     open_id = models.CharField(primary_key=True, max_length=200, help_text=u'微信用户open_id')
-    nick_name = models.CharField(max_length=24, help_text=u"微信用户昵称")
+    nick_name = models.CharField(max_length=100, help_text=u"微信用户昵称")
     sex = models.IntegerField(help_text=u'性别')
-    city = models.IntegerField(help_text=u'城市')
-    country = models.IntegerField(help_text=u'国家')
-    headimgurl = models.IntegerField(help_text=u'头像')
+    city = models.CharField(max_length=100, help_text=u'城市')
+    province = models.CharField(max_length=100, help_text=u'省地区')
+    country = models.CharField(max_length=100, help_text=u'国家')
+    headimgurl = models.CharField(max_length=200, help_text=u'头像')
     union_id = models.CharField(max_length=200, help_text=u'微信用户union_id')
     config = models.CharField(max_length=100, help_text=u'所属的微信应用')
 
