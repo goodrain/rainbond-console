@@ -135,6 +135,8 @@ MODULES = {
     "Package_Show": True,
     "RegionToken": False,
     "Add_Port": True,
+    "License_Center":False,
+    "Docker_Console": True,
 }
 
 REGIONS = (

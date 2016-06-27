@@ -180,6 +180,7 @@ MODULES = {
     "RegionToken": True,
     "Add_Port": False,
     "License_Center":True,
+    "Docker_Console": False,
 }
 
 REGIONS = (
