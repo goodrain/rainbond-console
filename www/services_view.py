@@ -21,6 +21,7 @@ from django.conf import settings
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.url import get_redirect_url
+from www.utils.md5Util import md5fun
 
 logger = logging.getLogger('default')
 regionClient = RegionServiceApi()
@@ -273,7 +274,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                     context["hasHttpServices"] = True
                     
-                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key,version=self.service.version)
+                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
                     context["updateService"] = True
                 
@@ -618,3 +619,26 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
                 response.set_cookie('app_an', app_an)
                 response.set_cookie('app_sd', app_sd)
         return response
+
+class ServiceDockerContainer(AuthedView):
+
+    def get_media(self):
+        media = super(ServiceHistoryLog, self).get_media()
+        return media
+    
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        try:
+            ctn_id = request.GET.get("ctn_id", "")
+            context = self.get_context()
+            body = regionClient.history_log(self.service.service_region, self.service.service_id)
+            context["tenant_id"] = self.service.tenant_id
+            context["service_id"] = self.service.service_id
+            context["ctn_id"] = ctn_id
+            context["host_id"] = "54.222.220.142:6060"
+            context["md5"] = md5fun(self.service.tenant_id + self.service.tenant_id + ctn_id)
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/console.html", context)
+
+

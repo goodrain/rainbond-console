@@ -38,6 +38,7 @@ urlpatterns = patterns(
 
     url(r'^/(?P<serviceAlias>[\w\-]+)/latest-log/$', login_required(ServiceLatestLog.as_view())),
     url(r'^/(?P<serviceAlias>[\w\-]+)/history-log/$', login_required(ServiceHistoryLog.as_view())),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/docker/$', login_required(ServiceDockerContainer.as_view())),
 
     url(r'^/recharge/$', login_required(Recharging.as_view())),
     url(r'^/consume/$', login_required(Account.as_view())),
