@@ -277,6 +277,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
                     context["updateService"] = True
+                    
+                context["docker_console"] = settings.MODULES["Docker_Console"]
                 
             elif fr == "relations":
                 # service relationships
@@ -629,7 +631,7 @@ class ServiceDockerContainer(AuthedView):
     @never_cache
     def get(self, request, *args, **kwargs):
         context = self.get_context()
-        response = redirect(get_redirect_url("/apps/{0}/{1}/detail/", self.tenantName, self.serviceAlias))
+        response = redirect(get_redirect_url("/apps/{0}/{1}/detail/".format(self.tenantName, self.serviceAlias), request))
         try:
             docker_c_id = request.COOKIES.get('docker_c_id', '')
             docker_h_id = request.COOKIES.get('docker_h_id', '')

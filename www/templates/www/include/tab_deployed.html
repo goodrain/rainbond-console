@@ -69,10 +69,11 @@
     </div>
   </div>
   
+  {% if user.is_sys_admin or docker_console %}
   <div class="row">
     <div class="col-lg-6 text-left">
        <section class="panel">
-         <header class="panel-heading">容器信息 <button name="join_container" id="join_container" value="管理容器" onclick="join_container();"/> </header>
+         <header class="panel-heading"><button name="join_container" id="join_container" onclick="join_container();"/> 管理容器 </header>
          <table class="table table-hover">
            <thead>
              <tr>
@@ -80,20 +81,15 @@
                <th>操作</th>
              </tr>
            </thead>
-           <tbody>
-            {% for curServiceEnvVar in curServiceEnvVarList %}
-                {% if curServiceEnvVar.name != "" %}
-                 <tr>
-                   <td>{{curServiceEnvVar.name}}</td>
-                   <td>{{curServiceEnvVar.attr_name}}</td>
-                 </tr>
-                 {% endif %}
-            {% endfor %}
+           <tbody id="cur_container_content">
+            
            </tbody>
+           <a href="/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/" target="_blank" id="_to_redirect"></a>
          </table>
        </section>
      </div>
   </div>
+  {% fi %}
   
   {% if 'manage_service' in user.actions %}
   {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
@@ -389,16 +385,52 @@
             },
             success : function(dataObj) {
                 var msg=""
-                for(var key in dataObj){  
-                    alert(key);
-                    alert(dataObj[key])
+                var tindex=1
+                for(var key in dataObj){
+                    if(key != "split"){
+                        var ip = dataObj[key].split(".")[3]
+                        msg+="<tr>";
+                        msg+="<td>container:";
+                        msg+=tindex;
+                        msg+="</td>"
+                        msg+="<td><a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+ip+"\")'> 进入控制台</a></td>"
+                        msg+="</tr>";
+                        tindex+=1;
+                    }
                 } 
+                if(msg!=""){
+                    $("#cur_container_content").html(msg)
+                }
             },
             error : function() {
                 swal("系统异常");
-                $("#operate_"+service_id).removeAttr("disabled")
             }
         });
+    }
+    
+    function join_in(ctn_id,host_ip){
+        if(ctn_id !="" && host_ip !=""){
+            $.ajax({
+                type : "POST",
+                url : "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker",
+                data : "c_id=" + ctn_id + "&h_id="+host_ip,
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(dataObj) {
+                    if (dataObj["success"]) {
+                      window.location.href="/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/"
+                    }else{
+                       swal("操作失败")
+                    }
+                },
+                error : function() {
+                    swal("系统异常");
+                }
+            });
+        }
     }
     
 </script>

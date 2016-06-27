@@ -181,6 +181,7 @@ MODULES = {
     "Add_Port": False,
     "License_Center": True,
     "WeChat_Module": True,
+    "Docker_Console": False,
 }
 
 REGIONS = (

@@ -1040,7 +1040,7 @@ class ServiceDockerContainer(AuthedView):
     def get(self, request, *args, **kwargs):
         data = {}
         try:
-            data = regionClient.history_log(self.service.service_region, self.service.service_id)
+            data = regionClient.serviceContainerIds(self.service.service_region, self.service.service_id)
             logger.info(data)
         except Exception, e:
             logger.exception(e)
@@ -1048,11 +1048,10 @@ class ServiceDockerContainer(AuthedView):
 
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
-        context = self.get_context()
+        response = JsonResponse({"success": True})
         try:
             c_id = request.POST.get("c_id", "")
             h_id = request.POST.get("h_id", "")
-            response = redirect(get_redirect_url("/apps/{0}/{1}/docker/?ctn_id={2}", self.tenantName, self.serviceAlias))
             if c_id != "" and h_id != "":
                 response.set_cookie('docker_c_id', c_id)
                 response.set_cookie('docker_h_id', h_id)
@@ -1060,5 +1059,5 @@ class ServiceDockerContainer(AuthedView):
             return response
         except Exception as e:
             logger.exception(e)
-            response = redirect(get_redirect_url("/apps/{0}/{1}/detail/", self.tenantName, self.serviceAlias))
-            return response
+            response = JsonResponse({"success": False})
+        return response
