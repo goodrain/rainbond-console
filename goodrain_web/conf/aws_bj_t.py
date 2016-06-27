@@ -151,3 +151,6 @@ CLOUD_ASSISTANT = 'goodrain'
 LOG_DOMAIN = {
     "aws-bj-t": "aws-bj-t.download.goodrain.com"            
 }
+
+# open api
+IS_OPEN_API = False

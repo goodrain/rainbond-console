@@ -623,22 +623,27 @@ class ServiceAutoDeploy(BaseView, CopyPortAndEnvMixin):
 class ServiceDockerContainer(AuthedView):
 
     def get_media(self):
-        media = super(ServiceHistoryLog, self).get_media()
+        media = super(ServiceDockerContainer, self).get_media()
         return media
     
     @never_cache
     def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        response = redirect(get_redirect_url("/apps/{0}/{1}/detail/", self.tenantName, self.serviceAlias))
         try:
-            ctn_id = request.GET.get("ctn_id", "")
-            context = self.get_context()
-            body = regionClient.history_log(self.service.service_region, self.service.service_id)
-            context["tenant_id"] = self.service.tenant_id
-            context["service_id"] = self.service.service_id
-            context["ctn_id"] = ctn_id
-            context["host_id"] = "54.222.220.142:6060"
-            context["md5"] = md5fun(self.service.tenant_id + self.service.tenant_id + ctn_id)
+            docker_c_id = request.COOKIES.get('docker_c_id', '')
+            docker_h_id = request.COOKIES.get('docker_h_id', '')
+            docker_s_id = request.COOKIES.get('docker_s_id', '')
+            if docker_c_id != "" and docker_h_id != "" and docker_s_id != "" and docker_s_id == self.service.service_id:
+                context["tenant_id"] = self.service.tenant_id
+                context["service_id"] = docker_s_id
+                context["ctn_id"] = docker_c_id
+                context["host_id"] = docker_h_id
+                context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
+                response = TemplateResponse(self.request, "www/console.html", context)
+            response.delete_cookie('docker_c_id')
+            response.delete_cookie('docker_h_id')
+            response.delete_cookie('docker_s_id')
         except Exception as e:
             logger.exception(e)
-        return TemplateResponse(self.request, "www/console.html", context)
-
-
+        return response

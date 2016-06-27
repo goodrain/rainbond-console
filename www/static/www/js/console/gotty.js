@@ -1,9 +1,9 @@
 (function() {
-    var t_id=document.getElementById("t_id").value();
-    var s_id=document.getElementById("s_id").value();
-    var c_id=document.getElementById("c_id").value();
-    var md5=document.getElementById("md5").value();
-    var h_id=document.getElementById("h_id").value();
+    var t_id=document.getElementById("t_id").value;
+    var s_id=document.getElementById("s_id").value;
+    var c_id=document.getElementById("c_id").value;
+    var md5=document.getElementById("md5").value;
+    var h_id=document.getElementById("h_id").value;
     var url = 'ws://54.222.220.142:6060/ws';
     var autoReconnect = -1;
     var openWs = function() {
