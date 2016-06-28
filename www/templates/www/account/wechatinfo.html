@@ -21,7 +21,7 @@
     </h1>
     {% if error %}
         <ul>
-        {% for err in error.values() %}
+        {% for err in error %}
             <li>{{err}}</li>
         {% endfor %}
         </ul>
@@ -44,7 +44,7 @@
         </div>
         <div class="form-group">
             <input type="email" class="form-control" name="email"
-                   placeholder="请输入邮箱(选填)" maxlength="30"
+                   placeholder="请输入邮箱" maxlength="30"
                    value="{{user.email}}"/>
         </div>
         <div class="form-group">
@@ -53,8 +53,8 @@
                    value="{{user.phone}}"/>
         </div>
         <div class="clearfix littlebtn">
-            <button type="submit" class="btn btn-success pull-left">保&nbsp;&nbsp;存</button>
-            <button type="cancel" class="btn pull-right">取&nbsp;&nbsp;消</button>
+            <button type="submit" class="btn btn-success pull-right">保&nbsp;&nbsp;存</button>
+            <!--<button type="reset" class="btn pull-right">取&nbsp;&nbsp;消</button>-->
         </div>
         <a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>
     </form>

@@ -586,12 +586,11 @@ class QueryTenantView(APIView):
               type: string
               paramType: form
         """
-        email = request.data['email']
-        logger.debug('---user email:{}---'.format(email))
+        user_id = request.data['user_id']
+        logger.debug('---user user_id:{}---'.format(user_id))
         # 获取用户对应的
         try:
-            user_info = Users.objects.get(email=email)
-            user_id = user_info.user_id
+            user_info = Users.objects.get(user_id=user_id)
             nick_name = user_info.nick_name
             data = {"nick_name": nick_name}
 
@@ -607,7 +606,7 @@ class QueryTenantView(APIView):
             data["tenant_list"] = tenant_map_list
             return Response({'data': data}, status=200)
         except Users.DoesNotExist:
-            logger.error("---no user info for:{}".format(email))
+            logger.error("---no user info for:{}".format(user_id))
         return Response(status=500)
 
 

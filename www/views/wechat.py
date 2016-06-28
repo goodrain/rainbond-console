@@ -24,7 +24,6 @@ monitorhook = MonitorHook()
 codeRepositoriesService = CodeRepositoriesService()
 # 微信开放平台API
 WECHAT_USER = "user"
-open_api = OpenWeChatAPI(WECHAT_USER)
 WECHAT_GOODRAIN = "goodrain"
 
 
@@ -179,7 +178,6 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         # 添加wechatuser
         if need_new:
             jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
-            logger.debug(jsondata)
             union_id = jsondata.get("unionid")
             begin_index = len(union_id)-8
             tenant_name = union_id[begin_index:]
@@ -209,9 +207,8 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
             tenant_name = union_id[begin_index:]
             email = tenant_name + "@wechat.com"
             logger.debug("new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
-            # 创建用户,邮箱为openid后8位@wechat.com
-            user = Users(email=email,
-                         nick_name=tenant_name,
+            # 创建用户,邮箱为openid后8位@wechat.comemail=email,
+            user = Users(nick_name=tenant_name,
                          phone=0,
                          client_ip=get_client_ip(request),
                          rf="open_wx",
@@ -246,15 +243,17 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         user = authenticate(union_id=user.union_id)
         login(request, user)
 
+        # 回跳到云市
+        if tye == "market":
+            ticket = AuthCode.encode(','.join([user.nick_name, user.user_id]), 'goodrain')
+            url = 'http://app.goodrain.com/login/goodrain/success/?ticket=' + ticket;
+            return self.redirect_to(url)
+
         return self.redirect_view()
 
     def redirect_view(self):
         tenants_has = PermRelTenant.objects.filter(user_id=self.user.pk)
         if tenants_has:
-            # 拦截到完善信息页面
-            if self.email is None or self.email == "":
-                self.redirect_to("/wechat/info")
-
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)
             tenant_name = tenant.tenant_name
@@ -430,7 +429,11 @@ class WeChatCallBackBind(BaseView):
         if code is None:
             return JsonResponse(status=500)
         # 根据code获取access_token
-        access_token, open_id = open_api.access_token_oauth2(code)
+        wechat_config = WeChatConfig.objects.get(config=WECHAT_GOODRAIN)
+        access_token, open_id = OpenWeChatAPI.access_token_oauth2_static(
+            wechat_config.app_id,
+            wechat_config.app_secret,
+            code)
         if access_token is None:
             # 登录失败,重新跳转到授权页面
             return JsonResponse(status=500)

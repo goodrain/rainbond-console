@@ -18,7 +18,7 @@ class OpenWeChatAPI(object):
             self.config = WeChatConfig.objects.get(config=config)
 
     def __save_to_db(self, access_token, refresh_token, access_token_expires_at):
-        if not settings.WECHAT_ENABLE:
+        if not settings.MODULES["WeChat_Module"]:
             return
         self.config.access_token = access_token
         self.config.access_token_expires_at = access_token_expires_at
@@ -41,7 +41,7 @@ class OpenWeChatAPI(object):
     def access_token_refresh(self):
         """ 根据fresh_token刷新token, 返回None需要跳转到授权页面进行重新授权 """
         # 查询oauth2接口
-        if not settings.WECHAT_ENABLE:
+        if not settings.MODULES["WeChat_Module"]:
             return None, None
         payload = {'grant_type': 'refresh_token',
                    'appid': self.config.app_id,
@@ -91,7 +91,7 @@ class OpenWeChatAPI(object):
 
     def access_token_check(self, open_id, access_token=None):
         """检查token是否有效"""
-        if not settings.WECHAT_ENABLE:
+        if not settings.MODULES["WeChat_Module"]:
             return False
         payload = {'access_token': access_token or self.config.access_token,
                    'openid': open_id}
@@ -140,7 +140,7 @@ class OpenWeChatAPI(object):
 
     @staticmethod
     def access_token_oauth2_static(app_id, app_secret, code):
-        if not settings.WECHAT_ENABLE:
+        if not settings.MODULES["WeChat_Module"]:
             return None, None
         payload = {'grant_type': 'authorization_code',
                    'appid': app_id,
