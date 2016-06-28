@@ -13,7 +13,6 @@ from www.views import BaseView, RegionOperateMixin
 from www.monitorservice.monitorhook import MonitorHook
 
 from www.wechat.openapi import OpenWeChatAPI
-from www.wechat.api import WeChatAPI
 from www.tenantservice.baseservice import CodeRepositoriesService
 
 import logging
