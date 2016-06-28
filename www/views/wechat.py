@@ -1,31 +1,20 @@
 # -*- coding: utf8 -*-
-from django.conf import settings
 import urllib
 import hashlib
-from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
-from django.http import HttpResponse, Http404
+from django.http import Http404
 
 from www.auth import authenticate, login, logout
-from www.forms.account import UserLoginForm, RegisterForm, PasswordResetForm, PasswordResetBeginForm
 from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo
 from www.utils.crypt import AuthCode
-from www.utils.mail import send_reset_pass_mail
-from www.sms_service import send_phone_message
-from www.db import BaseConnection
-import datetime
-import time
-import random
-import re
 
-from www.region import RegionInfo
 from www.views import BaseView, RegionOperateMixin
 from www.monitorservice.monitorhook import MonitorHook
 
 from www.wechat.openapi import OpenWeChatAPI
+from www.wechat.api import WeChatAPI
 from www.tenantservice.baseservice import CodeRepositoriesService
-from django.views.decorators.clickjacking import xframe_options_exempt
 
 import logging
 logger = logging.getLogger('default')
@@ -37,7 +26,30 @@ codeRepositoriesService = CodeRepositoriesService()
 # 微信开放平台API
 WECHAT_USER = "user"
 open_api = OpenWeChatAPI(WECHAT_USER)
-# 微信公众平台API
+WECHAT_GOODRAIN = "goodrain"
+
+
+# def get_access_token_function():
+#     try:
+#         at = WeChatConfig.objects.get(config=WECHAT_GOODRAIN)
+#         return at.access_token, at.access_token_expires_at
+#     except WeChatConfig.DoesNotExist:
+#         # 调用wechat接口获取access_token
+#         return None, 0
+#
+#
+# def set_access_token_function(access_token, access_token_expires_at):
+#     # 此处通过你自己的方式设置 access_token
+#     try:
+#         at = WeChatConfig.objects.get(config=WECHAT_GOODRAIN)
+#         at.access_token = access_token
+#         at.access_token_expires_at = access_token_expires_at
+#         at.save()
+#     except WeChatConfig.DoesNotExist:
+#         logger.error("WeChatAPI", "config is not exists!")
+#
+# # 初始化公众平台
+# mp_api = WeChatAPI(WECHAT_GOODRAIN, get_access_token_function, set_access_token_function)
 
 
 def get_client_ip(request):
@@ -50,14 +62,15 @@ def get_client_ip(request):
 
 
 class WeChatCheck(BaseView):
-    """check wechat"""
+    """微信公众平台检测"""
     def get(self, request, *args, **kwargs):
         signature = request.GET.get("signature")
         timestamp = request.GET.get("timestamp")
         nonce = request.GET.get("nonce")
         echostr = request.GET.get("echostr")
 
-        token = settings.WECHAT_CONFIG.get("TOKEN")
+        config = WeChatConfig.objects.get(config=WECHAT_GOODRAIN)
+        token = config.token
         wx_array = [token, timestamp, nonce]
         wx_array.sort()
         wx_string = ''.join(wx_array)
@@ -74,18 +87,34 @@ class WeChatLogin(BaseView):
         """点击微信按钮,跳转到微信二维码页面"""
         # 获取cookie中的corf
         csrftoken = request.COOKIES.get('csrftoken')
+        # 判断登录来源,默认从微信上登录
+        tye = request.GET.get('type', '')
+        state = AuthCode.encode(','.join([csrftoken, tye]), 'goodrain')
+
+        config = WECHAT_GOODRAIN
+        oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
+        scope = 'snsapi_userinfo'
+        if tye == 'wechat':
+            config = WECHAT_USER
+            oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
+            scope = 'snsapi_login'
+
         # 获取user对应的微信配置
-        config = WeChatConfig.objects.get(config=WECHAT_USER)
+        config = WeChatConfig.objects.get(config=config)
         app_id = config.app_id
         # 扫码后微信的回跳页面
         redirect_url = "https://user.goodrain.com/wechat/callback"
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
-        url = "https://open.weixin.qq.com/connect/qrconnect?appid={0}" \
-              "&redirect_uri={1}" \
+        url = "{0}?appid={1}" \
+              "&redirect_uri={2}" \
               "&response_type=code" \
-              "&scope=snsapi_login" \
-              "&state={2}#wechat_redirect".format(app_id, redirect_url, csrftoken)
+              "&scope={3}" \
+              "&state={4}#wechat_redirect".format(oauth2,
+                                                  app_id,
+                                                  redirect_url,
+                                                  scope,
+                                                  state)
         return self.redirect_to(url)
 
 
@@ -97,18 +126,30 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         # 获取cookie中的csrf
         csrftoken = request.COOKIES.get('csrftoken')
         # 获取statue
-        oldtoken = request.GET.get("state")
-        if csrftoken != oldtoken:
-            return self.redirect_to("/wechat/login")
+        state = request.GET.get("state")
+        # 解码toke, type
+        oldcsrftoken, tye = AuthCode.decode(state, 'goodrain').split(',')
+        config = WECHAT_GOODRAIN
+        err_url = "/"
+        if tye == 'wechat':
+            config = WECHAT_USER
+            err_url = "/wechat/login?type=wechat"
+
+        if csrftoken != oldcsrftoken:
+            return self.redirect_to(err_url)
         # 获取的code
         code = request.GET.get("code")
         if code is None:
-            return self.redirect_to("/wechat/login")
+            return self.redirect_to(err_url)
         # 根据code获取access_token
-        access_token, open_id = open_api.access_token_oauth2(code)
+        wechat_config = WeChatConfig.objects.get(config=config)
+        access_token, open_id = OpenWeChatAPI.access_token_oauth2_static(
+            wechat_config.app_id,
+            wechat_config.app_secret,
+            code)
         if access_token is None:
-            # 登录失败,重新跳转到授权页面
-            return self.redirect_to("/wechat/login")
+            # 登录失败,跳转到失败页面
+            return self.redirect_to(err_url)
         # 检查用户的open_id是否已经存在
         need_new = False
         wechat_user = None
@@ -117,9 +158,21 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         except WeChatUser.DoesNotExist:
             logger.warning("open_id is first to access console. now regist...")
             need_new = True
+
         # 添加wechatuser
         if need_new:
-            wechat_user = open_api.query_userinfo(open_id, access_token)
+            jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
+            wechat_user = WeChatUser(user_id=jsondata.openid,
+                                     nick_name=jsondata.nickname,
+                                     unionid=jsondata.unionid,
+                                     sex=jsondata.sex,
+                                     city=jsondata.city,
+                                     province=jsondata.province,
+                                     country=jsondata.country,
+                                     headimgurl=jsondata.headimgurl,
+                                     config=config)
+            wechat_user.save()
+
         # 根据微信的union_id判断用户是否已经注册
         need_new = False
         user = None
@@ -167,7 +220,7 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
 
         if user is None:
             logger.error("微信用户登录失败!")
-            return self.redirect_to("/wechat/login")
+            return self.redirect_to(err_url)
         # 微信用户登录
         user = authenticate(union_id=user.union_id, open_id=open_id)
         login(request, user)

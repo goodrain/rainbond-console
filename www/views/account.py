@@ -65,6 +65,10 @@ class Login(BaseView):
     def get(self, request, *args, **kwargs):
         user = request.user
         if isinstance(user, AnonymousUser):
+            agent = request.META.get("HTTP_USER_AGENT", "")
+            # 判断是否MicroMessenger
+            if "micromessenger" in agent.lower():
+                return self.redirect_to("/wechat/login")
             self.form = UserLoginForm()
             return self.get_response()
         else:

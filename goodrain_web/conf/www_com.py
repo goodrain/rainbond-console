@@ -192,3 +192,6 @@ CLOUD_ASSISTANT = 'goodrain'
 LOG_DOMAIN = 'goodrain.com'
 # open api
 IS_OPEN_API = False
+# wechat enable
+WECHAT_ENABLE = True
+

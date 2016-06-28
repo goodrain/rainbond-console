@@ -4,6 +4,7 @@ import time
 import logging
 import requests
 
+from django.conf import settings
 from www.models.main import WeChatConfig, WeChatUser
 
 logger = logging.getLogger('default')
@@ -12,10 +13,13 @@ logger = logging.getLogger('default')
 class OpenWeChatAPI(object):
     """user.goodrain.com对应的开放平台API"""
     def __init__(self, config, *args, **kwargs):
-        logger.debug("OpenWeChatAPI", "now init wechat config.config is " + config)
-        self.config = WeChatConfig.objects.get(config=config)
+        if settings.WECHAT_ENABLE:
+            logger.debug("OpenWeChatAPI", "now init wechat config.config is " + config)
+            self.config = WeChatConfig.objects.get(config=config)
 
     def __save_to_db(self, access_token, refresh_token, access_token_expires_at):
+        if not settings.WECHAT_ENABLE:
+            return
         self.config.access_token = access_token
         self.config.access_token_expires_at = access_token_expires_at
         self.config.refresh_token = refresh_token
@@ -24,6 +28,8 @@ class OpenWeChatAPI(object):
     @property
     def access_token(self):
         # 从当前内存中读取
+        if not settings.WECHAT_ENABLE:
+            return None
         now = time.time()
         access_token = self.config.access_token
         access_token_expires_at = self.config.access_token_expires_at
@@ -35,6 +41,8 @@ class OpenWeChatAPI(object):
     def access_token_refresh(self):
         """ 根据fresh_token刷新token, 返回None需要跳转到授权页面进行重新授权 """
         # 查询oauth2接口
+        if not settings.WECHAT_ENABLE:
+            return None, None
         payload = {'grant_type': 'refresh_token',
                    'appid': self.config.app_id,
                    'refresh_token': self.config.refresh_token}
@@ -57,6 +65,8 @@ class OpenWeChatAPI(object):
         return None, None
 
     def access_token_oauth2(self, code):
+        if not settings.WECHAT_ENABLE:
+            return None, None
         payload = {'grant_type': 'authorization_code',
                    'appid': self.config.app_id,
                    'secret': self.config.app_secret,
@@ -81,6 +91,8 @@ class OpenWeChatAPI(object):
 
     def access_token_check(self, open_id, access_token=None):
         """检查token是否有效"""
+        if not settings.WECHAT_ENABLE:
+            return False
         payload = {'access_token': access_token or self.config.access_token,
                    'openid': open_id}
         url = "https://api.weixin.qq.com/sns/auth"
@@ -99,6 +111,8 @@ class OpenWeChatAPI(object):
         return False
 
     def query_userinfo(self, open_id, access_token=None):
+        if not settings.WECHAT_ENABLE:
+            return None
         """snsapi_userinfo"""
         payload = {'access_token': access_token or self.config.access_token,
                    'openid': open_id}
@@ -117,6 +131,44 @@ class OpenWeChatAPI(object):
                                          config=self.config.config)
                 wechat_user.save()
                 return wechat_user
+            except Exception as e:
+                logger.exception("wechatapi", e)
+                logger.error("wechatapi", "object json failed! res: " + res.content)
+        else:
+            return None
+
+    @staticmethod
+    def access_token_oauth2_static(app_id, app_secret, code):
+        if not settings.WECHAT_ENABLE:
+            return None, None
+        payload = {'grant_type': 'authorization_code',
+                   'appid': app_id,
+                   'secret': app_secret,
+                   'code': code}
+        url = "https://api.weixin.qq.com/sns/oauth2/access_token"
+        res = requests.get(url, params=payload)
+        if res.status_code == 200:
+            try:
+                jd = res.json()
+                return jd.access_token, jd.openid
+            except Exception as e:
+                logger.exception("wechatapi", e)
+                logger.error("wechatapi", "save data error. res: " + res.content)
+        else:
+            logger.error("wechatapi", "query access_token failed. result:" + res.content)
+        return None, None
+
+    @staticmethod
+    def query_userinfo_static(open_id, access_token):
+        if not settings.WECHAT_ENABLE:
+            return None
+        payload = {'access_token': access_token,
+                   'openid': open_id}
+        url = "https://api.weixin.qq.com/sns/userinfo"
+        res = requests.get(url, params=payload)
+        if res.status_code == 200:
+            try:
+                return res.json()
             except Exception as e:
                 logger.exception("wechatapi", e)
                 logger.error("wechatapi", "object json failed! res: " + res.content)
