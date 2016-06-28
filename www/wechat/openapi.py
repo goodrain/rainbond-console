@@ -13,7 +13,7 @@ logger = logging.getLogger('default')
 class OpenWeChatAPI(object):
     """user.goodrain.com对应的开放平台API"""
     def __init__(self, config, *args, **kwargs):
-        if settings.WECHAT_ENABLE:
+        if settings.MODULES["WeChat_Module"]:
             logger.debug("OpenWeChatAPI", "now init wechat config.config is " + config)
             self.config = WeChatConfig.objects.get(config=config)
 
@@ -28,7 +28,7 @@ class OpenWeChatAPI(object):
     @property
     def access_token(self):
         # 从当前内存中读取
-        if not settings.WECHAT_ENABLE:
+        if not settings.MODULES["WeChat_Module"]:
             return None
         now = time.time()
         access_token = self.config.access_token
@@ -52,9 +52,9 @@ class OpenWeChatAPI(object):
             try:
                 now = int(time.time())
                 jd = res.json()
-                access_token = jd.access_token
-                access_token_expires_at = now + jd.expires_in
-                refresh_token = jd.refresh_token
+                access_token = jd.get("access_token")
+                access_token_expires_at = now + jd.get("expires_in")
+                refresh_token = jd.get("refresh_token")
                 self.__save_to_db(access_token, refresh_token, access_token_expires_at)
                 return access_token, jd.openid
             except Exception as e:
@@ -65,7 +65,7 @@ class OpenWeChatAPI(object):
         return None, None
 
     def access_token_oauth2(self, code):
-        if not settings.WECHAT_ENABLE:
+        if not settings.MODULES["WeChat_Module"]:
             return None, None
         payload = {'grant_type': 'authorization_code',
                    'appid': self.config.app_id,
@@ -77,11 +77,11 @@ class OpenWeChatAPI(object):
             try:
                 now = int(time.time())
                 jd = res.json()
-                access_token = jd.access_token
-                access_token_expires_at = now + jd.expires_in
-                refresh_token = jd.refresh_token
+                access_token = jd.get("access_token")
+                access_token_expires_at = now + jd.get("expires_in")
+                refresh_token = jd.get("refresh_token")
                 self.__save_to_db(access_token, refresh_token, access_token_expires_at)
-                return access_token, jd.openid
+                return access_token, jd.get("openid")
             except Exception as e:
                 logger.exception("wechatapi", e)
                 logger.error("wechatapi", "save data error. res: " + res.content)
@@ -100,7 +100,7 @@ class OpenWeChatAPI(object):
         if res.status_code == 200:
             try:
                 jd = res.json()
-                errcode = jd.errcode
+                errcode = jd.get("errcode")
                 if errcode == 0:
                     return True
             except Exception as e:
@@ -111,7 +111,7 @@ class OpenWeChatAPI(object):
         return False
 
     def query_userinfo(self, open_id, access_token=None):
-        if not settings.WECHAT_ENABLE:
+        if not settings.MODULES["WeChat_Module"]:
             return None
         """snsapi_userinfo"""
         payload = {'access_token': access_token or self.config.access_token,
@@ -121,13 +121,14 @@ class OpenWeChatAPI(object):
         if res.status_code == 200:
             try:
                 jd = res.json()
-                wechat_user = WeChatUser(user_id=jd.openid,
-                                         nick_name=jd.nickname,
-                                         unionid=jd.unionid,
-                                         sex=jd.sex,
-                                         city=jd.city,
-                                         country=jd.country,
-                                         headimgurl=jd.headimgurl,
+                wechat_user = WeChatUser(open_id=jd.get("openid"),
+                                         nick_name=jd.get("nickname"),
+                                         union_id=jd.get("unionid"),
+                                         sex=jd.get("sex"),
+                                         city=jd.get("city"),
+                                         province=jd.get("province"),
+                                         country=jd.get("country"),
+                                         headimgurl=jd.get("headimgurl"),
                                          config=self.config.config)
                 wechat_user.save()
                 return wechat_user
@@ -150,7 +151,7 @@ class OpenWeChatAPI(object):
         if res.status_code == 200:
             try:
                 jd = res.json()
-                return jd.access_token, jd.openid
+                return jd.get("access_token"), jd.get("openid")
             except Exception as e:
                 logger.exception("wechatapi", e)
                 logger.error("wechatapi", "save data error. res: " + res.content)
@@ -160,7 +161,7 @@ class OpenWeChatAPI(object):
 
     @staticmethod
     def query_userinfo_static(open_id, access_token):
-        if not settings.WECHAT_ENABLE:
+        if not settings.MODULES["WeChat_Module"]:
             return None
         payload = {'access_token': access_token,
                    'openid': open_id}

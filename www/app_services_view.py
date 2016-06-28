@@ -42,6 +42,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
+        # 检查用户邮箱是否完善,跳转到邮箱完善页面
+        if self.email is None or self.email == "":
+            self.redirect_to("/wechat/info")
         context = self.get_context()
         if settings.MODULES["Git_Code_Manual"]:
             response = TemplateResponse(self.request, "www/app_create_manual_code_step_1.html", context)

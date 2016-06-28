@@ -174,7 +174,8 @@ MODULES = {
     "Package_Show": True,
     "RegionToken": True,
     "Add_Port": False,
-    "License_Center":True,
+    "License_Center": True,
+    "WeChat_Module": True,
 }
 
 REGIONS = (
@@ -192,6 +193,4 @@ CLOUD_ASSISTANT = 'goodrain'
 LOG_DOMAIN = 'goodrain.com'
 # open api
 IS_OPEN_API = False
-# wechat enable
-WECHAT_ENABLE = True
 

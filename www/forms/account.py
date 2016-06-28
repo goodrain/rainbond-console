@@ -124,19 +124,31 @@ class UserLoginForm(forms.Form):
         self.helper.form_tag = False
         self.helper.form_show_labels = False
         if settings.MODULES["User_Register"]:
-            self.helper.layout = Div(
-                Field('email', css_class="form-control", placeholder='邮箱/手机号/用户名'),
-                Field('password', css_class="form-control", placeholder='密码'),
-                HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
-                FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
-                HTML("""<p class="text-center">或使用以下账号登录</p><a href="/wechat/login?type=wechat" class="weixin"><img src='/static/www/images/weixin.png'>&nbsp;微信</a>"""),
-                HTML("""<div class="linkregister text-center">没有云帮公有云版账户，现在<a href="/register">注册</a></div>"""),
-                HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
-                # HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
-                # HTML(u'''<div class="forgetpass" style="float: right;"><a class="" href="/account/begin_password_reset">忘记密码?</a></div>'''),
-                css_class='login-wrap',
-                style="background: #FFFFFF;",
-            )
+            if settings.MODULES["WeChat_Module"]:
+                self.helper.layout = Div(
+                    Field('email', css_class="form-control", placeholder='邮箱/手机号/用户名'),
+                    Field('password', css_class="form-control", placeholder='密码'),
+                    HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
+                    FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
+                    HTML("""<p class="text-center">或使用以下账号登录</p><a href="/wechat/login?type=wechat" class="weixin"><img src='/static/www/images/weixin.png'>&nbsp;微信</a>"""),
+                    HTML("""<div class="linkregister text-center">没有云帮公有云版账户，现在<a href="/register">注册</a></div>"""),
+                    HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                    # HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
+                    # HTML(u'''<div class="forgetpass" style="float: right;"><a class="" href="/account/begin_password_reset">忘记密码?</a></div>'''),
+                    css_class='login-wrap',
+                    style="background: #FFFFFF;",
+                )
+            else:
+                self.helper.layout = Div(
+                    Field('email', css_class="form-control", placeholder='邮箱/手机号/用户名'),
+                    Field('password', css_class="form-control", placeholder='密码'),
+                    HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
+                    FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
+                    HTML("""<div class="linkregister text-center">没有云帮公有云版账户，现在<a href="/register">注册</a></div>"""),
+                    HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                    css_class='login-wrap',
+                    style="background: #FFFFFF;",
+                )
         else:
             self.helper.layout = Div(
                 Field('email', css_class="form-control", placeholder='邮箱/手机号/用户名'),
@@ -395,53 +407,80 @@ class RegisterForm(forms.Form):
             self.fields['machine_region'].initial = selected_region
 
         if settings.MODULES["Sms_Check"]:
-            self.helper.layout = Layout(
-                Div(
-                    AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="form-control"),
-                    Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
-                    Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
-                    HTML("<hr/>"),
-                    # 默认为ali-sh
-                    # Field('machine_region', type="hidden", value="ali-sh"),
-                    # AppendedText('tenant', settings.WILD_DOMAIN, placeholder=text_tenant, css_class='teamdomain'),
-                    # AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
-                    Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
-                    Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
-                    # AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
-                    #              css_class='input-xlarge', placeholder='验证码'),
-                    # Field('phone', css_class="form-control", placeholder=text_phone),
-                    # AppendedText('phone_code', '<button class="btn btn-primary" id="PhoneCodeBtn" onclick="getPhoneCode();return false;">发送验证码</button>',
-                    #              css_class='input-xlarge', placeholder='手机验证码'),
-                    HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
-                    FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
-                    HTML("""<p class="text-center">或使用以下账号注册</p>"""),
-                    HTML("""<a href="/wechat/login?type=wechat" class="weixin"><img src="static/www/images/weixin.png">微信</a>"""),
-                    HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
-                    HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
-                    # HTML("<hr/>"),
-                    # HTML(u'''<div style="font-size: 14px">已经有帐号，请<a class="" href="/login">登录</a></div>'''),
-                    css_class="login-wrap"
+            if settings.MODULES["WeChat_Module"]:
+                self.helper.layout = Layout(
+                    Div(
+                        AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="form-control"),
+                        Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                        Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
+                        HTML("<hr/>"),
+                        # 默认为ali-sh
+                        Field('machine_region', type="hidden", value="ali-sh"),
+                        Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
+                        Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                        HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
+                        FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
+                        HTML("""<p class="text-center">或使用以下账号注册</p>"""),
+                        HTML("""<a href="/wechat/login?type=wechat" class="weixin"><img src="static/www/images/weixin.png">微信</a>"""),
+                        HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
+                        HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                        css_class="login-wrap"
+                    )
                 )
-            )
+            else:
+                self.helper.layout = Layout(
+                    Div(
+                        AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="form-control"),
+                        Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                        Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
+                        HTML("<hr/>"),
+                        Field('machine_region', type="hidden", value="ali-sh"),
+                        Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
+                        Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                        HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
+                        FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
+                        HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
+                        HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                        css_class="login-wrap"
+                    )
+                )
         else:
-            self.helper.layout = Layout(
-                Div(
-                    Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
-                    Field('email', css_class="form-control", placeholder=text_email),
-                    HTML("<hr/>"),
-                    AppendedText('tenant', settings.WILD_DOMAIN, placeholder=text_tenant, css_class='teamdomain'),
-                    AppendedText('machine_region', '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据中心 &nbsp;&nbsp;', css_class='teamdomain'),
-                    Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
-                    Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
-                    AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
-                                 css_class='input-xlarge', placeholder='验证码'),
-                    Field('phone', css_class="form-control", placeholder=text_phone),
-                    FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
-                    HTML("<hr/>"),
-                    HTML(u'''<div style="font-size: 14px">已经有帐号，请<a class="" href="/login">登录</a></div>'''),
-                    css_class="login-wrap"
+            if settings.MODULES["WeChat_Module"]:
+                self.helper.layout = Layout(
+                    Div(
+                        AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="teamdomain"),
+                        Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                        Field('email', css_class="form-control", placeholder=text_email),
+                        HTML("<hr/>"),
+                        Field('machine_region', type="hidden", value="ali-sh"),
+                        Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
+                        Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                        HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
+                        FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
+                        HTML("""<p class="text-center">或使用以下账号注册</p>"""),
+                        HTML("""<a href="/wechat/login?type=wechat" class="weixin"><img src="static/www/images/weixin.png">微信</a>"""),
+                        HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
+                        HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                        css_class="login-wrap"
+                    )
                 )
-            )
+            else:
+                self.helper.layout = Layout(
+                    Div(
+                        AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="teamdomain"),
+                        Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                        Field('email', css_class="form-control", placeholder=text_email),
+                        HTML("<hr/>"),
+                        Field('machine_region', type="hidden", value="ali-sh"),
+                        Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
+                        Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                        HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
+                        FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
+                        HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
+                        HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                        css_class="login-wrap"
+                    )
+                )
         self.helper.form_id = 'form-normal-reg'
         self.helper.form_class = 'form-horizontal'
 

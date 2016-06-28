@@ -103,7 +103,8 @@ class Login(BaseView):
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
 
         # create git user
-        codeRepositoriesService.createUser(user, username, password, user.nick_name, user.nick_name)
+        if user.email is not None and user.email != "":
+            codeRepositoriesService.createUser(user, user.email, password, user.nick_name, user.nick_name)
         
         # to judge from www create servcie
         app_ty = request.COOKIES.get('app_ty')
@@ -433,7 +434,8 @@ class Registation(BaseView, RegionOperateMixin):
             init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
             monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
             # create gitlab user
-            codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
+            if user.email is not None and user.email != "":
+                codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
 
             # wei xin user need to add 100
             if rf == "wx":

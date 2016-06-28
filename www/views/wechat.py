@@ -2,7 +2,7 @@
 import urllib
 import hashlib
 from django.template.response import TemplateResponse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.http import Http404
 
 from www.auth import authenticate, login, logout
@@ -74,10 +74,18 @@ class WeChatCheck(BaseView):
         wx_array.sort()
         wx_string = ''.join(wx_array)
         wx_string = hashlib.sha1(wx_string).hexdigest()
+
+        logger.debug("signature:"+signature)
+        logger.debug("timestamp:"+timestamp)
+        logger.debug("nonce:"+nonce)
+        logger.debug("echostr:"+echostr)
+        logger.debug("token:"+token)
+        logger.debug("wx_string:"+wx_string)
+        logger.debug(signature == wx_string)
         if signature == wx_string:
-            return echostr
+            return HttpResponse(echostr)
         else:
-            return ""
+            return HttpResponse("")
 
 
 class WeChatLogin(BaseView):
@@ -86,9 +94,12 @@ class WeChatLogin(BaseView):
         """点击微信按钮,跳转到微信二维码页面"""
         # 获取cookie中的corf
         csrftoken = request.COOKIES.get('csrftoken')
+        if csrftoken is None:
+            csrftoken = "csrf"
         # 判断登录来源,默认从微信上登录
-        tye = request.GET.get('type', '')
-        state = AuthCode.encode(','.join([csrftoken, tye]), 'goodrain')
+        tye = request.GET.get('type', 'x')
+        # state = AuthCode.encode(','.join([csrftoken, tye]), 'wechat')
+        state = ','.join([csrftoken, tye])
 
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
@@ -102,7 +113,7 @@ class WeChatLogin(BaseView):
         config = WeChatConfig.objects.get(config=config)
         app_id = config.app_id
         # 扫码后微信的回跳页面
-        redirect_url = "https://user.goodrain.com/wechat/callback"
+        redirect_url = "https://dev.goodrain.com/wechat/callback"
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
         url = "{0}?appid={1}" \
@@ -114,6 +125,7 @@ class WeChatLogin(BaseView):
                                                   redirect_url,
                                                   scope,
                                                   state)
+        logger.debug(url)
         return self.redirect_to(url)
 
 
@@ -124,15 +136,21 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         """微信返回路径"""
         # 获取cookie中的csrf
         csrftoken = request.COOKIES.get('csrftoken')
+        if csrftoken is None:
+            csrftoken = "csrf"
         # 获取statue
         state = request.GET.get("state")
+        logger.debug(state)
         # 解码toke, type
-        oldcsrftoken, tye = AuthCode.decode(state, 'goodrain').split(',')
+        # oldcsrftoken, tye = AuthCode.decode(state, "wechat").split(",")
+        oldcsrftoken, tye = state.split(",")
+        logger.debug(oldcsrftoken)
+        logger.debug(tye)
         config = WECHAT_GOODRAIN
-        err_url = "/"
+        err_url = "http://www.goodrain.com/product/"
         if tye == 'wechat':
             config = WECHAT_USER
-            err_url = "/wechat/login?type=wechat"
+            err_url = "http://www.goodrain.com/product/"
 
         if csrftoken != oldcsrftoken:
             return self.redirect_to(err_url)
@@ -161,14 +179,18 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         # 添加wechatuser
         if need_new:
             jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
-            wechat_user = WeChatUser(user_id=jsondata.openid,
-                                     nick_name=jsondata.nickname,
-                                     unionid=jsondata.unionid,
-                                     sex=jsondata.sex,
-                                     city=jsondata.city,
-                                     province=jsondata.province,
-                                     country=jsondata.country,
-                                     headimgurl=jsondata.headimgurl,
+            logger.debug(jsondata)
+            union_id = jsondata.get("unionid")
+            begin_index = len(union_id)-8
+            tenant_name = union_id[begin_index:]
+            wechat_user = WeChatUser(open_id=jsondata.get("openid"),
+                                     nick_name=tenant_name,
+                                     union_id=jsondata.get("unionid"),
+                                     sex=jsondata.get("sex"),
+                                     city=jsondata.get("city"),
+                                     province=jsondata.get("province"),
+                                     country=jsondata.get("country"),
+                                     headimgurl=jsondata.get("headimgurl"),
                                      config=config)
             wechat_user.save()
 
@@ -189,7 +211,7 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
             logger.debug("new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
             # 创建用户,邮箱为openid后8位@wechat.com
             user = Users(email=email,
-                         nick_name=wechat_user.nick_name,
+                         nick_name=tenant_name,
                          phone=0,
                          client_ip=get_client_ip(request),
                          rf="open_wx",
@@ -221,7 +243,7 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
             logger.error("微信用户登录失败!")
             return self.redirect_to(err_url)
         # 微信用户登录
-        user = authenticate(union_id=user.union_id, open_id=open_id)
+        user = authenticate(union_id=user.union_id)
         login(request, user)
 
         return self.redirect_view()
@@ -229,13 +251,17 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
     def redirect_view(self):
         tenants_has = PermRelTenant.objects.filter(user_id=self.user.pk)
         if tenants_has:
+            # 拦截到完善信息页面
+            if self.email is None or self.email == "":
+                self.redirect_to("/wechat/info")
+
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)
             tenant_name = tenant.tenant_name
             return self.redirect_to('/apps/{0}/'.format(tenant_name))
         else:
             logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
-                self.user.nick_name, self.user.pk))
+                self.user, self.user.pk))
             return Http404
 
 
@@ -366,8 +392,10 @@ class BindView(BaseView):
         """正常注册用户绑定微信"""
         # 获取cookie中的corf
         csrftoken = request.COOKIES.get('csrftoken')
+        if csrftoken is None:
+            csrftoken = "csrf"
         user_id = str(self.user.pk)
-        state = AuthCode.encode(','.join([csrftoken, user_id]), 'goodrain')
+        state = AuthCode.encode(','.join([csrftoken, user_id]), 'wechat')
         # 获取user对应的微信配置
         config = WeChatConfig.objects.get(config=WECHAT_USER)
         app_id = config.app_id
@@ -389,10 +417,12 @@ class WeChatCallBackBind(BaseView):
         """正常注册用户绑定微信返回路径"""
         # 获取cookie中的csrf
         csrftoken = request.COOKIES.get('csrftoken')
+        if csrftoken is None:
+            csrftoken = "csrf"
         # 获取statue
         state = request.GET.get("state")
         # 解码
-        oldcsrftoken, user_id = AuthCode.decode(state, 'goodrain').split(',')
+        oldcsrftoken, user_id = AuthCode.decode(state, 'wechat').split(',')
         if csrftoken != oldcsrftoken:
             return JsonResponse(status=500)
         # 获取的code
@@ -414,7 +444,22 @@ class WeChatCallBackBind(BaseView):
             need_new = True
         # 添加wechatuser
         if need_new:
-            wechat_user = open_api.query_userinfo(open_id, access_token)
+            jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
+            union_id = jsondata.get("unionid")
+            begin_index = len(union_id)-8
+            tenant_name = union_id[begin_index:]
+            wechat_user = WeChatUser(open_id=jsondata.get("openid"),
+                                     nick_name=tenant_name,
+                                     union_id=union_id,
+                                     sex=jsondata.get("sex"),
+                                     city=jsondata.get("city"),
+                                     province=jsondata.get("province"),
+                                     country=jsondata.get("country"),
+                                     headimgurl=jsondata.get("headimgurl"),
+                                     config=WECHAT_GOODRAIN)
+            wechat_user.save()
+        # 判断union_id是否已经绑定user
+        Users.objects.filter(union_id=union_id).update(union_id="")
         # 根据微信的union_id判断用户是否已经注册
         user = Users.objects.get(pk=user_id)
         if user.status == 0:

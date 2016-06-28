@@ -48,25 +48,27 @@
 
             <ul class="dropdown-menu">
                 <div class="log-arrow-up"></div>
-                {% if user.status == 0 %}
-                    <!--# 0:普通注册,未绑定微信-->
-                    <li name="wechat_li"><a target="_blank" href="/wechat/bind" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
-                {% endif %}
-                {% if user.status == 1 %}
-                    <!--# 1:普通注册,绑定微信-->
-                    <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
-                {% endif %}
-                {% if user.status == 2 %}
-                    <!--# 2:微信注册,绑定微信,未补充信息-->
-                    <li name="wechat_li"><a href="/wechat/info"><i class="fa fa-usd"></i>设置用户信息</a></li>
-                {% endif %}
-                {% if user.status == 3 %}
-                    <!--# 3:微信注册,绑定微信,已补充信息-->
-                    <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
-                {% endif %}
-                {% if user.status == 4 %}
-                    <!--# 4:微信注册,解除微信绑定,已补充信息-->
-                    <li name="wechat_li"><a target="_blank" href="/wechat/bind"><i class="fa fa-usd"></i>绑定微信</a></li>
+                {% if MODULES.WeChat_Module %}
+                    {% if user.status == 0 %}
+                        <!--# 0:普通注册,未绑定微信-->
+                        <li name="wechat_li"><a target="_blank" href="/wechat/bind" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
+                    {% endif %}
+                    {% if user.status == 1 %}
+                        <!--# 1:普通注册,绑定微信-->
+                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
+                    {% endif %}
+                    {% if user.status == 2 %}
+                        <!--# 2:微信注册,绑定微信,未补充信息-->
+                        <li name="wechat_li"><a href="/wechat/info"><i class="fa fa-usd"></i>设置用户信息</a></li>
+                    {% endif %}
+                    {% if user.status == 3 %}
+                        <!--# 3:微信注册,绑定微信,已补充信息-->
+                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
+                    {% endif %}
+                    {% if user.status == 4 %}
+                        <!--# 4:微信注册,解除微信绑定,已补充信息-->
+                        <li name="wechat_li"><a target="_blank" href="/wechat/bind"><i class="fa fa-usd"></i>绑定微信</a></li>
+                    {% endif %}
                 {% endif %}
 
                 {% if MODULES.Finance_Center %}
