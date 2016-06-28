@@ -96,16 +96,17 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         exist_t_services = []
         exist_new_services = []
         for string in dependency_service:
-            service_alias, service_key, app_version = string.split(':', 2)
-            if service_alias == '__new__':
-                if ServiceInfo.objects.filter(service_key=service_key, version=app_version).count() > 0:
-                    new_s = ServiceInfo.objects.get(service_key=service_key, version=app_version)
-                    new_services.append(new_s)
+            if string !="":
+                service_alias, service_key, app_version = string.split(':', 2)
+                if service_alias == '__new__':
+                    if ServiceInfo.objects.filter(service_key=service_key, version=app_version).count() > 0:
+                        new_s = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                        new_services.append(new_s)
+                    else:
+                        exist_new_services.append(service_key)
                 else:
-                    exist_new_services.append(service_key)
-            else:
-                exist_t_s = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=service_alias)
-                exist_t_services.append(exist_t_s)
+                    exist_t_s = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=service_alias)
+                    exist_t_services.append(exist_t_s)
 
         return new_services, exist_t_services, exist_new_services
 

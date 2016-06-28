@@ -447,11 +447,6 @@ class Registation(BaseView, RegionOperateMixin):
 
             user = authenticate(username=nick_name, password=password)
             login(request, user)
-
-            # to judge from www create servcie
-            app_ty = request.COOKIES.get('app_ty')
-            if app_ty is not None:
-                return self.redirect_to("/autodeploy?fr=www_app")
             
             url = '/apps/{0}'.format(tenant_name)
             if settings.MODULES["Package_Show"]:
