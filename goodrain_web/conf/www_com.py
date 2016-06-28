@@ -181,6 +181,8 @@ MODULES = {
     "Add_Port": False,
     "License_Center":True,
     "Docker_Console": False,
+    "Publish_YunShi": True,
+    "Publish_Service": False,
 }
 
 REGIONS = (

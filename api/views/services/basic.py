@@ -8,6 +8,7 @@ from www.models import TenantServiceInfo, AppService, ServiceInfo, \
 from www.service_http import RegionServiceApi
 import json
 from api.views.services.sendapp import AppSendUtil
+from django.conf import settings
 
 import logging
 logger = logging.getLogger('default')
@@ -202,7 +203,6 @@ class PublishServiceView(APIView):
                 serviceInfo.creater = app.creater
                 serviceInfo.namespace = app.namespace
                 serviceInfo.save()
-                data = self.init_data(app, slug, image)
             app.is_ok = isok
             if slug != "":
                 app.slug = slug
@@ -214,7 +214,8 @@ class PublishServiceView(APIView):
             logger.exception(e)
 
         # 发布到云市,调用http接口发送数据
-        if isok and isys:
+        if isok and isys and settings.MODULES["Publish_YunShi"]:
+            data = self.init_data(app, slug, image)
             apputil = AppSendUtil(service_key, app_version)
             # 发送服务参数不发送图片参数
             if data.get("pic") is not None:

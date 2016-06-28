@@ -279,6 +279,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["updateService"] = True
                     
                 context["docker_console"] = settings.MODULES["Docker_Console"]
+                context["publish_service"] = settings.MODULES["Publish_Service"]
                 
             elif fr == "relations":
                 # service relationships
