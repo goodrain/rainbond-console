@@ -100,11 +100,6 @@ class Login(BaseView):
 
         # create git user
         codeRepositoriesService.createUser(user, username, password, user.nick_name, user.nick_name)
-        
-        # to judge from www create servcie
-        app_ty = request.COOKIES.get('app_ty')
-        if app_ty is not None:
-            return self.redirect_to("/autodeploy?fr=www_app")
 
         typ = request.GET.get('typ', None)
         if next_url is not None:
@@ -437,11 +432,6 @@ class Registation(BaseView, RegionOperateMixin):
 
             user = authenticate(username=email, password=password)
             login(request, user)
-
-            # to judge from www create servcie
-            app_ty = request.COOKIES.get('app_ty')
-            if app_ty is not None:
-                return self.redirect_to("/autodeploy?fr=www_app")
             
             url = '/apps/{0}'.format(tenant_name)
             if settings.MODULES["Package_Show"]:

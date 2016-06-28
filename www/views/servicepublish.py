@@ -11,6 +11,7 @@ from www.decorator import perm_required
 from www.models import TenantServicesPort, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
+from www.servicetype import ServiceType
 
 from www.models import AppService, AppServiceEnv, AppServicePort, AppServiceCategory, AppServiceRelation, ServiceExtendMethod
 
@@ -95,8 +96,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             })
         # 查询对应服务的名称等信息
         context.update({'app': init_data})
-        service_types = ["application", "rdbs", 'nosql']
-        context["service_types"] = service_types
+        context["service_types"] = ServiceType.type_maps
         root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
         root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
         context['root_category_list'] = root_category_list

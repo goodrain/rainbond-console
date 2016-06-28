@@ -15,6 +15,7 @@ from www.utils.language import is_redirect
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 from django.conf import settings
+from www.servicetype import ServiceType
 
 logger = logging.getLogger('default')
 
@@ -176,8 +177,9 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["myAppStatus"] = "active"
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
-
-            cacheServiceList = ServiceInfo.objects.filter(status="published")
+            
+            types=ServiceType.type_lists()
+            cacheServiceList = ServiceInfo.objects.filter(status="published", service_type__in=types)
             context["cacheServiceList"] = cacheServiceList
 
             tenant_id = self.tenant.tenant_id
