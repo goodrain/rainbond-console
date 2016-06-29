@@ -48,6 +48,8 @@ class WeChatModelBackend(ModelBackend):
     """微信用户登录拦截"""
     def authenticate(self, union_id=None, **kwargs):
         # user登录失败,微信登录
+        if union_id is None or union_id == "":
+            return None
         try:
             return Users.objects.get(union_id=union_id)
         except Users.DoesNotExist:

@@ -46,14 +46,14 @@ class TenantServiceView(BaseAPIView):
         if region is None:
             return Response(status=405, data={"success": False, "msg": u"数据中心名称为空"})
         # 创建人
-        user_id = request.POST.get("uid")
+        user_id = request.POST.get("user_id")
         if user_id is None:
             return Response(status=405, data={"success": False, "msg": u"创建人不能为空"})
         username = request.POST.get("username")
         if username is None:
             return Response(status=405, data={"success": False, "msg": u"创建人不能为空"})
         # 参数log
-        logger.debug("openapi.services", "now create tenant: tenant_name:{1}, region:{2}, user_id:{3}, username:{4}".format(tenant_name, region, user_id, username))
+        logger.debug("openapi.services", "now create tenant: tenant_name:{0}, region:{1}, user_id:{2}, username:{3}".format(tenant_name, region, user_id, username))
 
         # 根据租户名称获取租户信息
         try:

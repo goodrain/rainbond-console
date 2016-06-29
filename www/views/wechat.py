@@ -72,6 +72,9 @@ class WeChatLogin(BaseView):
     type=market来自微信端云市登录
     type=''来自微信端云帮登录"""
     def get(self, request, *args, **kwargs):
+        if not settings.MODULES["WeChat_Module"]:
+            index_url = settings.WECHAT_CALLBACK.get("index")
+            return self.redirect_to(index_url)
         # 获取cookie中的corf
         csrftoken = request.COOKIES.get('csrftoken')
         if csrftoken is None:
