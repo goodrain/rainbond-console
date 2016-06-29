@@ -6,7 +6,7 @@ from django.utils.encoding import force_unicode
 from django.utils.html import escape, conditional_escape
 
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Div, Fieldset, ButtonHolder, HTML, Row
+from crispy_forms.layout import Layout, Div, Fieldset, ButtonHolder, HTML, Hidden
 from crispy_forms.bootstrap import (AppendedText, FieldWithButtons, StrictButton, InlineField,
                                     PrependedText, FormActions, AccordionGroup, InlineCheckboxes)
 from www.models import Users, Tenants, PhoneCode
@@ -114,7 +114,7 @@ class UserLoginForm(forms.Form):
     )
 
     error_messages = {
-        'wrong_email': u"未注册的邮箱或手机号",
+        'wrong_email': u"未注册的邮箱或手机号或用户名",
         'wrong_password': u"密码错误",
     }
 
@@ -176,8 +176,10 @@ class UserLoginForm(forms.Form):
             try:
                 if email.find("@") > 0:
                     user = Users.objects.get(email=email)
-                else:
+                elif email.isdigit():
                     user = Users.objects.get(phone=email)
+                else:
+                    user = Users.objects.get(nick_name=email)
                 if not user.check_password(password):
                     logger.info('form_valid.login', 'password is not correct for user {0}'.format(email))
                     raise forms.ValidationError(
@@ -289,7 +291,7 @@ class RegisterForm(forms.Form):
     邀请注册表单
     '''
     email = forms.EmailField(
-        required=True, max_length=32, label="",
+        required=False, max_length=32, label="",
         # ajax_check=True,
         # widget=widgets.EmailInput(attrs={"data-remote-error": u"邮件地址已存在"})
     )
@@ -316,13 +318,13 @@ class RegisterForm(forms.Form):
         validators=[password_len]
     )
     phone = forms.CharField(
-        required=True, label='',
+        required=False, label='',
         validators=[is_phone]
     )
     
     if settings.MODULES["Sms_Check"]:
         phone_code = forms.CharField(
-            required=True, label='',
+            required=False, label='',
         )
         
     captcha_code = forms.CharField(
@@ -415,9 +417,11 @@ class RegisterForm(forms.Form):
                         Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                         HTML("<hr/>"),
                         # 默认为ali-sh
-                        Field('machine_region', type="hidden", value="ali-sh"),
+                        Hidden('machine_region', value="ali-sh"),
                         Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                        AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
+                                     css_class='input-xlarge', placeholder='验证码'),
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                         HTML("""<p class="text-center">或使用以下账号注册</p>"""),
@@ -434,9 +438,11 @@ class RegisterForm(forms.Form):
                         Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                         Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                         HTML("<hr/>"),
-                        Field('machine_region', type="hidden", value="ali-sh"),
+                        Hidden('machine_region', value="ali-sh"),
                         Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                        AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
+                                     css_class='input-xlarge', placeholder='验证码'),
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                         HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
@@ -452,9 +458,11 @@ class RegisterForm(forms.Form):
                         Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                         Field('email', css_class="form-control", placeholder=text_email),
                         HTML("<hr/>"),
-                        Field('machine_region', type="hidden", value="ali-sh"),
+                        Hidden('machine_region', value="ali-sh"),
                         Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                        AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
+                                     css_class='input-xlarge', placeholder='验证码'),
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                         HTML("""<p class="text-center">或使用以下账号注册</p>"""),
@@ -471,9 +479,11 @@ class RegisterForm(forms.Form):
                         Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                         Field('email', css_class="form-control", placeholder=text_email),
                         HTML("<hr/>"),
-                        Field('machine_region', type="hidden", value="ali-sh"),
+                        Hidden('machine_region', value="ali-sh"),
                         Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
+                        AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
+                                     css_class='input-xlarge', placeholder='验证码'),
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                         HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
@@ -496,16 +506,20 @@ class RegisterForm(forms.Form):
         real_captcha_code = self.cleaned_data.get('real_captcha_code')
         invite_tag = self.cleaned_data.get('invite_tag')
         machine_region = self.cleaned_data.get('machine_region')
-        try:
-            Users.objects.get(email=email)
-            raise forms.ValidationError(
-                self.error_messages['email_used'],
-                code='email_used',
-                params={'email': email}
-            )
-        except Users.DoesNotExist:
-            pass
 
+        # 校验邮箱,为空不做校验
+        if email is not None and email != "":
+            try:
+                Users.objects.get(email=email)
+                raise forms.ValidationError(
+                    self.error_messages['email_used'],
+                    code='email_used',
+                    params={'email': email}
+                )
+            except Users.DoesNotExist:
+                pass
+
+        # 判断是否邀请注册,邀请注册不校验租户
         if invite_tag is None or invite_tag == "":
             try:
                 Tenants.objects.get(tenant_name=tenant)
@@ -517,11 +531,13 @@ class RegisterForm(forms.Form):
             except Tenants.DoesNotExist:
                 pass
 
+        # 数据中心不做校验,默认为ali-sh
         if machine_region is None or machine_region == "" or machine_region == "1":
-            raise forms.ValidationError(
-                self.error_messages['machine_region_error'],
-                code='machine_region_error',
-            )
+            machine_region = "ali-sh"
+            # raise forms.ValidationError(
+            #     self.error_messages['machine_region_error'],
+            #     code='machine_region_error',
+            # )
 
         try:
             Users.objects.get(nick_name=nick_name)
@@ -538,6 +554,7 @@ class RegisterForm(forms.Form):
                 code='password_repeat',
             )
 
+        # 手机号码为空不做校验,不为空校验是否已经存在
         if phone is not None and phone != "":
             phoneNumber = Users.objects.filter(phone=phone).count()
             logger.debug('form_valid.register', phoneNumber)
@@ -547,10 +564,11 @@ class RegisterForm(forms.Form):
                     code='phone_used'
                 )
         else:
-            raise forms.ValidationError(
-                self.error_messages['phone_empty'],
-                code='phone_empty'
-            )
+            pass
+            # raise forms.ValidationError(
+            #     self.error_messages['phone_empty'],
+            #     code='phone_empty'
+            # )
 
         if phone is not None and phone != "":
             if settings.MODULES["Sms_Check"]:
@@ -577,13 +595,14 @@ class RegisterForm(forms.Form):
                         code='phone_code_error'
                     )
         else:
-            logger.info('form_valid.register', phone + " is None")
-            raise forms.ValidationError(
-                self.error_messages['phone_empty'],
-                code='phone_empty'
-            )
+            logger.info('form_valid.register', " phone is None")
+            pass
+            # raise forms.ValidationError(
+            #     self.error_messages['phone_empty'],
+            #     code='phone_empty'
+            # )
 
-        if real_captcha_code.lower() != captcha_code.lower():
+        if real_captcha_code is None or captcha_code is None or real_captcha_code.lower() != captcha_code.lower():
             raise forms.ValidationError(
                 self.error_messages['captcha_code_error'],
                 code='captcha_code_error'

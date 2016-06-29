@@ -11,8 +11,10 @@ class ModelBackend(object):
         try:
             if username.find("@") > 0:
                 user = Users.objects.get(email=username)
-            else:
+            elif username.isdigit():
                 user = Users.objects.get(phone=username)
+            else:
+                user = Users.objects.get(nick_name=username)
             if user.check_password(password):
                 return user
         except Users.DoesNotExist:

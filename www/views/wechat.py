@@ -5,7 +5,7 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse, HttpResponse
 from django.http import Http404
 
-from www.auth import authenticate, login, logout
+from www.auth import authenticate, login
 from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo
 from www.utils.crypt import AuthCode
 
@@ -25,29 +25,6 @@ codeRepositoriesService = CodeRepositoriesService()
 # 微信开放平台API
 WECHAT_USER = "user"
 WECHAT_GOODRAIN = "goodrain"
-
-
-# def get_access_token_function():
-#     try:
-#         at = WeChatConfig.objects.get(config=WECHAT_GOODRAIN)
-#         return at.access_token, at.access_token_expires_at
-#     except WeChatConfig.DoesNotExist:
-#         # 调用wechat接口获取access_token
-#         return None, 0
-#
-#
-# def set_access_token_function(access_token, access_token_expires_at):
-#     # 此处通过你自己的方式设置 access_token
-#     try:
-#         at = WeChatConfig.objects.get(config=WECHAT_GOODRAIN)
-#         at.access_token = access_token
-#         at.access_token_expires_at = access_token_expires_at
-#         at.save()
-#     except WeChatConfig.DoesNotExist:
-#         logger.error("WeChatAPI", "config is not exists!")
-#
-# # 初始化公众平台
-# mp_api = WeChatAPI(WECHAT_GOODRAIN, get_access_token_function, set_access_token_function)
 
 
 def get_client_ip(request):
@@ -88,18 +65,19 @@ class WeChatCheck(BaseView):
 
 
 class WeChatLogin(BaseView):
-    """微信用户登录,转到二维码页面,需要微信开放平台"""
+    """微信用户登录
+    type=wechat来自pc端微信登录
+    type=market来自微信端云市登录
+    type=''来自微信端云帮登录"""
     def get(self, request, *args, **kwargs):
-        """点击微信按钮,跳转到微信二维码页面"""
         # 获取cookie中的corf
         csrftoken = request.COOKIES.get('csrftoken')
         if csrftoken is None:
             csrftoken = "csrf"
         # 判断登录来源,默认从微信上登录
-        tye = request.GET.get('type', 'x')
-        # state = AuthCode.encode(','.join([csrftoken, tye]), 'wechat')
-        state = ','.join([csrftoken, tye])
-
+        tye = request.GET.get("type", "uu")
+        state = AuthCode.encode(','.join([csrftoken, tye]), 'we_chat_login')
+        logger.debug("here is encode:" + state)
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
         scope = 'snsapi_userinfo'
@@ -128,21 +106,25 @@ class WeChatLogin(BaseView):
         return self.redirect_to(url)
 
 
+class WeChatLogout(BaseView):
+    def get(self, request, *args, **kwargs):
+        logger.debug("out wechat")
+        return self.redirect_to("http://www.goodrain.com/product/")
+
+
 class WeChatCallBack(BaseView, RegionOperateMixin):
-    """开放平台登录后返回"""
+    """微信登录后返回"""
 
     def get(self, request, *args, **kwargs):
-        """微信返回路径"""
         # 获取cookie中的csrf
         csrftoken = request.COOKIES.get('csrftoken')
         if csrftoken is None:
             csrftoken = "csrf"
         # 获取statue
         state = request.GET.get("state")
-        logger.debug(state)
         # 解码toke, type
-        # oldcsrftoken, tye = AuthCode.decode(state, "wechat").split(",")
-        oldcsrftoken, tye = state.split(",")
+        logger.debug("here is decode:" + state)
+        oldcsrftoken, tye = AuthCode.decode(str(state), 'we_chat_login').split(',')
         logger.debug(oldcsrftoken)
         logger.debug(tye)
         config = WECHAT_GOODRAIN
@@ -245,8 +227,9 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
 
         # 回跳到云市
         if tye == "market":
-            ticket = AuthCode.encode(','.join([user.nick_name, user.user_id]), 'goodrain')
-            url = 'http://app.goodrain.com/login/goodrain/success/?ticket=' + ticket;
+            logger.debug("now return to cloud market login..")
+            ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id)]), 'goodrain')
+            url = 'http://app.goodrain.com/login/goodrain/success/?ticket=' + ticket
             return self.redirect_to(url)
 
         return self.redirect_view()
@@ -269,6 +252,8 @@ class WeChatInfoView(BaseView):
     def get(self, request, *args, **kwargs):
         page = "www/account/wechatinfo.html"
         context = self.get_context()
+        if self.user.phone == None:
+            self.user.phone = ""
         context["user"] = self.user
         return TemplateResponse(self.request, page, context)
 
@@ -352,10 +337,7 @@ class UnbindView(BaseView):
                     user.union_id = ''
                     user.save()
                 else:
-                    begin_index = len(union_id)-8
-                    tenant_name = union_id[begin_index:]
-                    email = tenant_name + "@wechat.com"
-                    if user.email == email:
+                    if user.email is None or user.email == "":
                         success = False
                         msg = "解绑后无法微信登录系统,请先完善信息后在解绑微信"
                         # 页面接受需要跳转到信息完善页面
