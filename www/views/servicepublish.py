@@ -210,6 +210,10 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
                             'www/js/validator.min.js',
                             'www/js/gr/app_publish.js')
         return media
+    
+    def getServicePort(self, service_id):
+        port_list = TenantServicesPort.objects.filter(service_id=service_id).values('container_port', flat=True)
+        return list(port_list)
 
     @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
@@ -250,7 +254,8 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         if len(env_list) < 1 and pre_num == 1:
             env_list = AppServiceEnv.objects.filter(service_key=pre_app.service_key, app_version=pre_app.app_version).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if len(env_list) < 1:
-            env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).exclude(container_port=self.service.inner_port).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+            ports = self.getServicePort(self.service.service_id)
+            env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).exclude(container_port__in=ports).values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
 
         context.update({'port_list': list(port_list),
                         'env_list': list(env_list), })
