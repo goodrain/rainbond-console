@@ -135,7 +135,8 @@ MODULES = {
     "Package_Show": True,
     "RegionToken": False,
     "Add_Port": True,
-    "License_Center":False,
+    "License_Center": False,
+    "WeChat_Module": False,
     "Docker_Console": True,
 }
 
@@ -156,3 +157,10 @@ LOG_DOMAIN = {
 
 # open api
 IS_OPEN_API = False
+
+WECHAT_CALLBACK = {
+    "console": "",
+    "console_bind": "",
+    "console_test": "",
+    "index": "http://www.goodrain.com/product/",
+}
