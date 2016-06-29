@@ -202,4 +202,4 @@ LOG_DOMAIN = {
     "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com"               
 }
 # open api
-IS_OPEN_API = False
+IS_OPEN_API = True
