@@ -77,7 +77,7 @@ class WeChatLogin(BaseView):
             csrftoken = "csrf"
         # 判断登录来源,默认从微信上登录
         tye = request.GET.get("type", "uu")
-        next_url = request.GET.get("next", "next_url")
+        next_url = request.GET.get("next_url", "next_url")
         state = AuthCode.encode(','.join([csrftoken, tye, next_url]), 'we_chat_login')
         logger.debug("here is encode:" + state)
         config = WECHAT_GOODRAIN
