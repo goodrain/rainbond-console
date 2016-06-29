@@ -212,7 +212,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         return media
     
     def getServicePort(self, service_id):
-        port_list = TenantServicesPort.objects.filter(service_id=service_id).values('container_port', flat=True)
+        port_list = TenantServicesPort.objects.filter(service_id=service_id).values_list('container_port', flat=True)
         return list(port_list)
 
     @perm_required('app_publish')
