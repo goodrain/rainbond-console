@@ -4,6 +4,7 @@ import hashlib
 from django.template.response import TemplateResponse
 from django.http import JsonResponse, HttpResponse
 from django.http import Http404
+from django.shortcuts import redirect
 
 from www.auth import authenticate, login
 from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo
@@ -196,7 +197,7 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
                          rf="open_wx",
                          status=2,
                          union_id=union_id)
-            user.set_password("wechat")
+            user.set_password("wechatpwd")
             user.save()
             monitorhook.registerMonitor(user, 'register')
             # 创建租户,默认为alish
@@ -229,8 +230,8 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         if tye == "market":
             logger.debug("now return to cloud market login..")
             ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id)]), 'goodrain')
-            url = 'http://app.goodrain.com/login/goodrain/success/?ticket=' + ticket
-            return self.redirect_to(url)
+            url = 'https://app.goodrain.com/login/goodrain/success?ticket=' + ticket
+            return redirect(url)
 
         return self.redirect_view()
 
