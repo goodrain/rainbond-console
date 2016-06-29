@@ -204,3 +204,10 @@ LOG_DOMAIN = {
 }
 # open api
 IS_OPEN_API = True
+
+WECHAT_CALLBACK = {
+    "console": "https://user.goodrain.com/wechat/callback",
+    "console_bind": "https://user.goodrain.com/wechat/callbackbind",
+    "console_test": "https://dev.goodrain.com/wechat/callback",
+    "index": "http://www.goodrain.com/product/",
+}

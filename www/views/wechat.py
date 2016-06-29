@@ -5,6 +5,7 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse, HttpResponse
 from django.http import Http404
 from django.shortcuts import redirect
+from django.conf import settings
 
 from www.auth import authenticate, login
 from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo
@@ -92,7 +93,12 @@ class WeChatLogin(BaseView):
         config = WeChatConfig.objects.get(config=config)
         app_id = config.app_id
         # 扫码后微信的回跳页面
-        redirect_url = "https://dev.goodrain.com/wechat/callback"
+        # test bug
+        if tye == 'wechat':
+            redirect_url = settings.WECHAT_CALLBACK.get("console")
+        else:
+            redirect_url = settings.WECHAT_CALLBACK.get("console_test")
+
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
         url = "{0}?appid={1}" \
@@ -111,7 +117,8 @@ class WeChatLogin(BaseView):
 class WeChatLogout(BaseView):
     def get(self, request, *args, **kwargs):
         logger.debug("out wechat")
-        return self.redirect_to("http://www.goodrain.com/product/")
+        index_url = settings.WECHAT_CALLBACK.get("index")
+        return self.redirect_to(index_url)
 
 
 class WeChatCallBack(BaseView, RegionOperateMixin):
@@ -130,10 +137,9 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         logger.debug(oldcsrftoken)
         logger.debug(tye)
         config = WECHAT_GOODRAIN
-        err_url = "http://www.goodrain.com/product/"
+        err_url = settings.WECHAT_CALLBACK.get("index")
         if tye == 'wechat':
             config = WECHAT_USER
-            err_url = "http://www.goodrain.com/product/"
 
         if csrftoken != oldcsrftoken:
             return self.redirect_to(err_url)
@@ -231,7 +237,7 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         if tye == "market":
             logger.debug("now return to cloud market login..")
             ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-            url = 'https://app.goodrain.com/login/goodrain/success?ticket=' + ticket
+            url = settings.APP_SERVICE_API.get("url") + '/login/goodrain/success?ticket=' + ticket
             return redirect(url)
 
         return self.redirect_view()
@@ -383,7 +389,8 @@ class BindView(BaseView):
         config = WeChatConfig.objects.get(config=WECHAT_USER)
         app_id = config.app_id
         # 扫码后微信的回跳页面
-        redirect_url = "https://user.goodrain.com/wechat/callbackbind"
+        settings.WECHAT_CALLBACK.get("console")
+        redirect_url = settings.WECHAT_CALLBACK.get("console_bind")
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
         url = "https://open.weixin.qq.com/connect/qrconnect?appid={0}" \
