@@ -77,7 +77,8 @@ class WeChatLogin(BaseView):
             csrftoken = "csrf"
         # 判断登录来源,默认从微信上登录
         tye = request.GET.get("type", "uu")
-        state = AuthCode.encode(','.join([csrftoken, tye]), 'we_chat_login')
+        next_url = request.GET.get("next", "next_url")
+        state = AuthCode.encode(','.join([csrftoken, tye, next_url]), 'we_chat_login')
         logger.debug("here is encode:" + state)
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
@@ -125,7 +126,7 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         state = request.GET.get("state")
         # 解码toke, type
         logger.debug("here is decode:" + state)
-        oldcsrftoken, tye = AuthCode.decode(str(state), 'we_chat_login').split(',')
+        oldcsrftoken, tye, next_url = AuthCode.decode(str(state), 'we_chat_login').split(',')
         logger.debug(oldcsrftoken)
         logger.debug(tye)
         config = WECHAT_GOODRAIN
@@ -229,7 +230,7 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
         # 回跳到云市
         if tye == "market":
             logger.debug("now return to cloud market login..")
-            ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id)]), 'goodrain')
+            ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
             url = 'https://app.goodrain.com/login/goodrain/success?ticket=' + ticket
             return redirect(url)
 

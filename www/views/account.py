@@ -78,7 +78,7 @@ class Login(BaseView):
             if next_url is not None:
                 if typ == "app":
                     # 这时候来源于app.goodrain.com
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id)]), 'goodrain')
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "next_url"]), 'goodrain')
                     index_num = next_url.find("?")
                     if "nick_name" in next_url:
                         # 成成 ticket
@@ -114,7 +114,7 @@ class Login(BaseView):
         typ = request.GET.get('typ', None)
         if next_url is not None:
             if typ == "app":
-                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id)]), 'goodrain')
+                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "next_url"]), 'goodrain')
                 index_num = next_url.find("?")
                 if "nick_name" in next_url and index_num > -1:
                     next_url = next_url[:index_num] + "?ticket={}".format(ticket)
@@ -721,6 +721,7 @@ class AppLogin(BaseView):
 
         username = request.POST.get('email')
         password = request.POST.get('password')
+        next_url = request.POST.get('next_url', "next_url")
         if password:
             if len(password) < 8:
                 return JsonResponse({"success": False, "msg": "password error!"})
@@ -743,5 +744,5 @@ class AppLogin(BaseView):
         login(request, user)
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
 
-        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id)]), 'goodrain')
+        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
         return JsonResponse({"success": True, "ticket": ticket})
