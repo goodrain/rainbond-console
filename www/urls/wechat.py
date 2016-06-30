@@ -9,7 +9,6 @@ from www.views.wechat import WeChatLogin, WeChatCallBack, WeChatLogout,\
 
 urlpatterns = patterns(
     '',
-    url(r'^$', WeChatCheck.as_view()),
     url(r'^login$', WeChatLogin.as_view()),
     url(r'^logout$', WeChatLogout.as_view()),
     url(r'^callback$', WeChatCallBack.as_view()),

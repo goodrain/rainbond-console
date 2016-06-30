@@ -50,10 +50,10 @@ def is_weixin(request):
 class WeChatCheck(BaseView):
     """微信公众平台检测"""
     def get(self, request, *args, **kwargs):
-        signature = request.GET.get("signature")
-        timestamp = request.GET.get("timestamp")
-        nonce = request.GET.get("nonce")
-        echostr = request.GET.get("echostr")
+        signature = request.GET.get("signature", "")
+        timestamp = request.GET.get("timestamp", "")
+        nonce = request.GET.get("nonce", "")
+        echostr = request.GET.get("echostr", "")
         logger.info("signature:" + signature)
         logger.info("timestamp:" + timestamp)
         logger.info("nonce:" + nonce)
