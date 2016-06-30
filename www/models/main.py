@@ -138,7 +138,7 @@ class WeChatUnBind(models.Model):
     class Meta:
         db_table = 'wechat_unbind'
 
-    user_id = models.Integer(help_text=u"用户的user_id")
+    user_id = models.IntegerField(help_text=u"用户的user_id")
     union_id = models.CharField(max_length=200, help_text=u'微信用户union_id')
 
 
