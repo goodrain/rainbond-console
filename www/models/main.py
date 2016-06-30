@@ -303,8 +303,8 @@ class ServiceInfo(BaseModel):
     creater = models.IntegerField(null=True, help_text=u"创建人")
 
     def is_slug(self):
-        # return bool(self.image.startswith('goodrain.me/runner'))
-        return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
+        return bool(self.image.startswith('goodrain.me/runner'))
+        #return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
 
     def is_image(self):
         return not self.is_slug(self)
