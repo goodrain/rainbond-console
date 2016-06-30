@@ -95,20 +95,21 @@ class WeChatLogin(BaseView):
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
         scope = 'snsapi_userinfo'
-        if tye == 'wechat':
-            config = WECHAT_USER
-            oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
-            scope = 'snsapi_login'
+        # 判断是否微信浏览器
+        if not is_weixin(request):
+            if tye == 'wechat':
+                config = WECHAT_USER
+                oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
+                scope = 'snsapi_login'
 
         # 获取user对应的微信配置
         config = WeChatConfig.objects.get(config=config)
         app_id = config.app_id
         # 扫码后微信的回跳页面
-        # test bug
-        if tye == 'wechat':
-            redirect_url = settings.WECHAT_CALLBACK.get("console")
-        else:
-            redirect_url = settings.WECHAT_CALLBACK.get("console_test")
+        redirect_url = settings.WECHAT_CALLBACK.get("console_goodrain")
+        if not is_weixin(request):
+            if tye == 'wechat':
+                redirect_url = settings.WECHAT_CALLBACK.get("console")
 
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
@@ -206,6 +207,8 @@ class WeChatCallBack(BaseView):
             try:
                 binding = WeChatUnBind.objects.get(union_id=wechat_user.union_id)
                 user = Users.objects.get(pk=binding.user_id)
+                user.union_id = wechat_user.union_id
+                user.save()
                 need_new = False
             except WeChatUnBind.DoesNotExist:
                 pass
@@ -457,14 +460,16 @@ class BindView(BaseView):
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
         scope = 'snsapi_userinfo'
+        redirect_url = settings.WECHAT_CALLBACK.get("console_bind_goodrain")
         if not is_weixin(request):
             config = WECHAT_USER
             oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
             scope = 'snsapi_login'
+            redirect_url = settings.WECHAT_CALLBACK.get("console_bind")
         wechat_config = WeChatConfig.objects.get(config=config)
         app_id = wechat_config.app_id
         # 微信的回跳页面
-        redirect_url = settings.WECHAT_CALLBACK.get("console_bind")
+
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
         url = "{0}?appid={1}" \
@@ -493,7 +498,7 @@ class WeChatCallBackBind(BaseView):
         oldcsrftoken, user_id, next_url = AuthCode.decode(str(state), 'wechat').split(',')
         # 判断是否微信浏览器
         if next_url == "next_url":
-            next_url = settings.WECHAT_CALLBACK.get("index")
+            next_url = "/"
         if csrftoken != oldcsrftoken:
             logger.error("csrftoken check error!")
             return self.redirect_to(next_url)
@@ -540,7 +545,7 @@ class WeChatCallBackBind(BaseView):
                                      config=config)
             wechat_user.save()
         # 判断union_id是否已经绑定user
-        Users.objects.filter(union_id=union_id).update(union_id="")
+        Users.objects.filter(union_id=wechat_user.union_id).update(union_id="")
         # 根据微信的union_id判断用户是否已经注册
         user = Users.objects.get(pk=user_id)
         if user.status == 0:
