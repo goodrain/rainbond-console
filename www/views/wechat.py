@@ -547,7 +547,7 @@ class WeChatCallBackBind(BaseView):
 
         # 根据微信的union_id判断用户是否已经注册
         try:
-            old_user = Users.obects.get(union_id=wechat_user.union_id)
+            old_user = Users.objects.get(union_id=wechat_user.union_id)
             num = WeChatUnBind.objects.filter(union_id=wechat_user.union_id,
                                               user_id=old_user.pk).count()
             if num == 0:
