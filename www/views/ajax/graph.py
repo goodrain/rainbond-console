@@ -121,7 +121,11 @@ class ServiceGraph(AuthedView):
         data = self.get_tsdb_data(graph_key, start)
         if data is not None:
             if get_last:
-                result['value'] = data[0]['values'][-1][1]
+                tmp = data[0]['values']
+                if len(tmp) > 0:
+                    tmp1 = tmp[-1]
+                    if len(tmp1) > 0:
+                        result['value'] = tmp1[1]
             else:
                 result['data'] = data
                 self.add_tags(graph_key, result)
