@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import Users, TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
+from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -397,7 +397,10 @@ class TenantRegionService(object):
                 tenantRegion.is_active = True
                 tenantRegion.is_init = True
                 tenantRegion.save()
-            monitorhook.tenantMonitor(tenantRegion, user, "init_tenant", success)
+            tenant = Tenants()
+            tenant.tenant_id = tenant_id
+            tenant.tenant_name = tenant_name
+            monitorhook.tenantMonitor(tenant, user, "init_tenant", success)
         return success
 
 
