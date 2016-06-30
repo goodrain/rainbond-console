@@ -239,6 +239,7 @@ class TenantRegionInfo(BaseModel):
     tenant_id = models.CharField(max_length=33, db_index=True, help_text=u"租户id")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
     is_active = models.BooleanField(default=True, help_text=u"是否已激活")
+    is_init = models.BooleanField(default=False, help_text=u'是否创建租户网络')
     service_status = models.IntegerField(help_text=u"服务状态0:暂停，1:运行，2:关闭", default=1)
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
