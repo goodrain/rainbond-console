@@ -545,8 +545,19 @@ class WeChatCallBackBind(BaseView):
                                      config=config)
             wechat_user.save()
         # 判断union_id是否已经绑定user
-        Users.objects.filter(union_id=wechat_user.union_id).update(union_id="")
         # 根据微信的union_id判断用户是否已经注册
+        try:
+            old_user = Users.obects.get(union_id=wechat_user.union_id)
+            num = WeChatUnBind.objects.filter(union_id=wechat_user.union_id,
+                                              user_id=old_user.pk).count()
+            if num == 0:
+                count = WeChatUnBind.objects.filter(union_id=wechat_user.union_id).count()
+                WeChatUnBind.objects.create(user_id=old_user.pk,
+                                            union_id=wechat_user.union_id,
+                                            status=count)
+        except Exception as e:
+            pass
+
         user = Users.objects.get(pk=user_id)
         if user.status == 0:
             user.status = 1
