@@ -162,6 +162,7 @@ class WeChatCallBack(BaseView):
             return self.redirect_to(err_url)
         # 获取的code
         code = request.GET.get("code")
+        logger.info(code)
         if code is None:
             return self.redirect_to(err_url)
         # 根据code获取access_token
@@ -170,6 +171,7 @@ class WeChatCallBack(BaseView):
             wechat_config.app_id,
             wechat_config.app_secret,
             code)
+        logger.info(access_token)
         if access_token is None:
             # 登录失败,跳转到失败页面
             return self.redirect_to(err_url)
@@ -257,7 +259,7 @@ class WeChatCallBack(BaseView):
             TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
             # create gitlab user 微信注册默认不支持
             # codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
-
+        logger.info(user)
         if user is None:
             logger.error("微信用户登录失败!")
             return self.redirect_to(err_url)

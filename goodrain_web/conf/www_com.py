@@ -208,9 +208,9 @@ LOG_DOMAIN = {
 IS_OPEN_API = False
 
 WECHAT_CALLBACK = {
-    "console": "https://user.goodrain.com/wechat/callback",
-    "console_bind": "https://user.goodrain.com/wechat/callbackbind",
-    "console_goodrain": "https://user.goodrain.com/wechat/callback",
-    "console_bind_goodrain": "https://user.goodrain.com/wechat/callbackbind",
+    "console": "http://user.goodrain.com/wechat/callback",
+    "console_bind": "http://user.goodrain.com/wechat/callbackbind",
+    "console_goodrain": "http://user.goodrain.com/wechat/callback",
+    "console_bind_goodrain": "http://user.goodrain.com/wechat/callbackbind",
     "index": "http://www.goodrain.com/product/",
 }
