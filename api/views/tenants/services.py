@@ -239,10 +239,10 @@ class AllTenantView(APIView):
                 if diff_day != 0:
                     end_time = datetime.datetime.now() + datetime.timedelta(days=-1 * diff_day)
                     str_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
-                    query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}" and tr.update_time <= "{end_time}"
+                    query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.is_init=1 and tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}" and tr.update_time <= "{end_time}"
                         '''.format(service_status=service_status, pay_type=pay_type, region=region, end_time=str_time)
                 else:
-                    query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}"
+                    query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.is_init=1 and tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}"
                         '''.format(service_status=service_status, pay_type=pay_type, region=region)
                 if query_sql != "":
                     sqlobjs = dsn.query(query_sql)
