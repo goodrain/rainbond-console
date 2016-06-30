@@ -201,7 +201,11 @@ class WeChatCallBack(BaseView):
             email = tenant_name + "@wechat.com"
             logger.debug("new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
             # 创建用户,邮箱为openid后8位@wechat.comemail=email,
-            user = Users(nick_name=tenant_name,
+            # 统计当前wx数量
+            count = Users.objects.filter(rf="open_wx").count()
+            count += 1989
+            nick_name = "wxgd0" + str(count)
+            user = Users(nick_name=nick_name,
                          phone=0,
                          client_ip=get_client_ip(request),
                          rf="open_wx",
@@ -303,13 +307,17 @@ class WeChatInfoView(BaseView):
         # 如果是正常用户,用户名不做修改
         # 微信用户,用户名称校验唯一性
         if self.user.rf == "open_wx":
-            try:
-                Users.objects.get(nick_name=nick_name)
+            if nick_name is None or nick_name == "":
                 success = False
-                err['name'] = "用户名已经存在"
-            except Users.DoesNotExist:
-                pass
-            self.user.nick_name = nick_name
+                err['name'] = "用户名不能为空"
+            else:
+                try:
+                    Users.objects.get(nick_name=nick_name)
+                    success = False
+                    err['name'] = "用户名已经存在"
+                except Users.DoesNotExist:
+                    pass
+                self.user.nick_name = nick_name
 
             if password_repeat != password:
                 success = False
