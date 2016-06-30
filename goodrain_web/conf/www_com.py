@@ -6,7 +6,7 @@ TEMPLATE_DEBUG = False
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
-DEFAULT_HANDLERS = ['file_handler']
+DEFAULT_HANDLERS = ['zmq_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
@@ -210,6 +210,6 @@ IS_OPEN_API = True
 WECHAT_CALLBACK = {
     "console": "https://user.goodrain.com/wechat/callback",
     "console_bind": "https://user.goodrain.com/wechat/callbackbind",
-    "console_test": "https://dev.goodrain.com/wechat/callback",
+    "console_test": "https://user.goodrain.com/wechat/callback",
     "index": "http://www.goodrain.com/product/",
 }
