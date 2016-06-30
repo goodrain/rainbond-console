@@ -61,12 +61,12 @@ class WeChatCheck(BaseView):
         wx_string = ''.join(wx_array)
         wx_string = hashlib.sha1(wx_string).hexdigest()
 
-        logger.debug("signature:"+signature)
-        logger.debug("timestamp:"+timestamp)
-        logger.debug("nonce:"+nonce)
-        logger.debug("echostr:"+echostr)
-        logger.debug("token:"+token)
-        logger.debug("wx_string:"+wx_string)
+        logger.debug("signature:" + signature)
+        logger.debug("timestamp:" + timestamp)
+        logger.debug("nonce:" + nonce)
+        logger.debug("echostr:" + echostr)
+        logger.debug("token:" + token)
+        logger.debug("wx_string:" + wx_string)
         logger.debug(signature == wx_string)
         if signature == wx_string:
             return HttpResponse(echostr)
@@ -181,7 +181,7 @@ class WeChatCallBack(BaseView):
         if need_new:
             jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
             union_id = jsondata.get("unionid")
-            begin_index = len(union_id)-8
+            begin_index = len(union_id) - 8
             tenant_name = union_id[begin_index:]
             wechat_user = WeChatUser(open_id=jsondata.get("openid"),
                                      nick_name=tenant_name,
@@ -217,7 +217,7 @@ class WeChatCallBack(BaseView):
         # 创建租户
         if need_new:
             union_id = wechat_user.union_id
-            begin_index = len(union_id)-8
+            begin_index = len(union_id) - 8
             tenant_name = union_id[begin_index:]
             email = tenant_name + "@wechat.com"
             logger.debug("new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
@@ -532,9 +532,9 @@ class WeChatCallBackBind(BaseView):
         if need_new:
             jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
             union_id = jsondata.get("unionid")
-            begin_index = len(union_id)-8
+            begin_index = len(union_id) - 8
             tenant_name = union_id[begin_index:]
-            wechat_user = WeChatUser(open_id=jsondata.get("openid"),
+            WeChatUser(open_id=jsondata.get("openid"),
                                      nick_name=tenant_name,
                                      union_id=union_id,
                                      sex=jsondata.get("sex"),
@@ -542,24 +542,23 @@ class WeChatCallBackBind(BaseView):
                                      province=jsondata.get("province"),
                                      country=jsondata.get("country"),
                                      headimgurl=jsondata.get("headimgurl"),
-                                     config=config)
-            wechat_user.save()
+                                     config=config).save()
         # 判断union_id是否已经绑定user
 
         # 根据微信的union_id判断用户是否已经注册
         try:
             old_user = Users.obects.get(union_id=wechat_user.union_id)
-            if old_user.union_id != "":
-                Users.objects.filter(union_id=wechat_user.union_id).update(union_id="")
-                num = WeChatUnBind.objects.filter(union_id=wechat_user.union_id,
-                                                  user_id=old_user.pk).count()
-                if num == 0:
-                    count = WeChatUnBind.objects.filter(union_id=wechat_user.union_id).count()
-                    WeChatUnBind.objects.create(user_id=old_user.pk,
-                                                union_id=wechat_user.union_id,
-                                                status=count)
+            num = WeChatUnBind.objects.filter(union_id=wechat_user.union_id,
+                                              user_id=old_user.pk).count()
+            if num == 0:
+                count = WeChatUnBind.objects.filter(union_id=wechat_user.union_id).count()
+                WeChatUnBind.objects.create(user_id=old_user.pk,
+                                            union_id=wechat_user.union_id,
+                                            status=count)
+            old_user.union_id = ""
+            old_user.save()
         except Exception as e:
-            pass
+            logger.exception(e)
 
         user = Users.objects.get(pk=user_id)
         if user.status == 0:
