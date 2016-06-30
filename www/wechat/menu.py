@@ -71,13 +71,13 @@ if __name__ == "__main__":
             "sub_button": [
                 {
                     "type": "view",
-                    "name": "免费体验",
-                    "url": "http://www.goodrain.com/product/goodrain.html"
+                    "name": "云帮2.0",
+                    "url": "http://www.goodrain.com/product/"
                 },
                 {
                     "type": "view",
-                    "name": "云帮2.0",
-                    "url": "http://www.goodrain.com/product/"
+                    "name": "免费体验",
+                    "url": "http://www.goodrain.com/product/goodrain.html"
                 }
             ]
         },

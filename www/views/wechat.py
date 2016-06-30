@@ -8,7 +8,7 @@ from django.shortcuts import redirect
 from django.conf import settings
 
 from www.auth import authenticate, login
-from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo
+from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo, WeChatUnBind
 from www.utils.crypt import AuthCode
 
 from www.views import BaseView
@@ -36,6 +36,14 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+
+def is_weixin(request):
+    agent = request.META.get("HTTP_USER_AGENT", "")
+    # 判断是否MicroMessenger
+    if "micromessenger" in agent.lower():
+        return True
+    return False
 
 
 class WeChatCheck(BaseView):
@@ -87,20 +95,21 @@ class WeChatLogin(BaseView):
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
         scope = 'snsapi_userinfo'
-        if tye == 'wechat':
-            config = WECHAT_USER
-            oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
-            scope = 'snsapi_login'
+        # 判断是否微信浏览器
+        if not is_weixin(request):
+            if tye == 'wechat':
+                config = WECHAT_USER
+                oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
+                scope = 'snsapi_login'
 
         # 获取user对应的微信配置
         config = WeChatConfig.objects.get(config=config)
         app_id = config.app_id
         # 扫码后微信的回跳页面
-        # test bug
-        if tye == 'wechat':
-            redirect_url = settings.WECHAT_CALLBACK.get("console")
-        else:
-            redirect_url = settings.WECHAT_CALLBACK.get("console_test")
+        redirect_url = settings.WECHAT_CALLBACK.get("console_goodrain")
+        if not is_weixin(request):
+            if tye == 'wechat':
+                redirect_url = settings.WECHAT_CALLBACK.get("console")
 
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
@@ -193,6 +202,17 @@ class WeChatCallBack(BaseView):
         except Users.DoesNotExist:
             logger.warning("union id is first to access console. now create user...")
             need_new = True
+        # 用户表中不存在对应用户,判断是否已经解绑
+        if need_new:
+            try:
+                binding = WeChatUnBind.objects.get(union_id=wechat_user.union_id)
+                user = Users.objects.get(pk=binding.user_id)
+                user.union_id = wechat_user.union_id
+                user.save()
+                need_new = False
+            except WeChatUnBind.DoesNotExist:
+                pass
+
         # 创建租户
         if need_new:
             union_id = wechat_user.union_id
@@ -201,7 +221,11 @@ class WeChatCallBack(BaseView):
             email = tenant_name + "@wechat.com"
             logger.debug("new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
             # 创建用户,邮箱为openid后8位@wechat.comemail=email,
-            user = Users(nick_name=tenant_name,
+            # 统计当前wx数量
+            count = Users.objects.filter(rf="open_wx").count()
+            count += 1989
+            nick_name = "wxgd0" + str(count)
+            user = Users(nick_name=nick_name,
                          phone=0,
                          client_ip=get_client_ip(request),
                          rf="open_wx",
@@ -264,78 +288,79 @@ class WeChatInfoView(BaseView):
         if self.user.phone == None:
             self.user.phone = ""
         context["user"] = self.user
-        context["disable_nick_name"] = self.user.rf != "open_wx"
+        if self.user.rf == "open_wx":
+            self.user.nick_name = ""  # 默认不现实微信名称
+            context["disable_nick_name"] = False
+        else:
+            context["disable_nick_name"] = True
         return TemplateResponse(self.request, page, context)
 
     def post(self, request, *args, **kwargs):
         # 获取用户信息
         email = request.POST.get("email")
-        nick_name = request.POST.get("nick_name")
         phone = request.POST.get("phone")
         password = request.POST.get("password")
-        password_repeat = request.POST.get("password_repeat")
+
+        err_info = {}
         success = True
-        err = {}
-        # 校验
+        # 校验邮箱
         if email is None or email == "":
             success = False
-            err['email'] = "邮件地址不能为空"
+            err_info['email'] = "邮件地址不能为空"
         else:
-            try:
-                Users.objects.get(email=email)
+            count = Users.objects.filter(email=email).count()
+            if count > 0:
                 success = False
-                err['email'] = "邮件地址已经存在"
-            except Users.DoesNotExist:
-                pass
-
-        if password is None or password == "":
-            success = False
-            err['password'] = "密码不能为空"
-
-        if self.user.rf != "open_wx":
-            # 校验密码是否正确
-            if self.user.check_password(password):
-                pass
-            else:
+                err_info['email'] = "邮件地址已经存在"
+        # 校验手机号码
+        if phone is not None and phone != "":
+            count = Users.objects.filter(phone=phone).count()
+            if count > 0:
                 success = False
-                err['password'] = "密码错误"
+                err_info['phone'] = "手机号已存在"
 
-        # 如果是正常用户,用户名不做修改
-        # 微信用户,用户名称校验唯一性
         if self.user.rf == "open_wx":
-            try:
-                Users.objects.get(nick_name=nick_name)
+            # 重置用户名、密码、邮箱、手机号
+            # nick_name
+            nick_name = request.POST.get("nick_name")
+            if nick_name is None or nick_name == "":
                 success = False
-                err['name'] = "用户名已经存在"
-            except Users.DoesNotExist:
-                pass
-            self.user.nick_name = nick_name
+                err_info['name'] = "用户名不能为空"
+            else:
+                count = Users.objects.filter(nick_name=nick_name).count()
+                if count > 0:
+                    success = False
+                    err_info['name'] = "用户名已经存在"
+            # password
+            if password is None or password == "":
+                success = False
+                err_info['password'] = "密码不能为空"
 
+            password_repeat = request.POST.get("password_repeat")
             if password_repeat != password:
                 success = False
-                err['password'] = "两次输入的密码不一致"
+                err_info['password'] = "两次输入的密码不一致"
 
-        if phone is not None and phone != "":
-            phoneNumber = Users.objects.filter(phone=phone).count()
-            logger.debug('form_valid.register', phoneNumber)
-            if phoneNumber > 0:
+            self.user.nick_name = nick_name
+        else:
+            # 根据用户名、密码重新设置邮箱,手机号
+            if not self.user.check_password(password):
                 success = False
-                err['phone'] = "手机号已存在"
-            self.user.phone = phone
+                err_info['password'] = "密码错误"
 
         # 参数错误,返回原页面
         if not success:
             context = self.get_context()
-            context['error'] = err.values()
+            context['error'] = err_info.values()
             page = "www/account/wechatinfo.html"
+            self.user.email = email
             context["user"] = self.user
             context["disable_nick_name"] = self.user.rf != "open_wx"
-            logger.error(err)
             return TemplateResponse(self.request, page, context)
 
         logger.debug("now update user...")
-        self.user.set_password(password)
         self.user.email = email
+        self.user.set_password(password)
         self.user.client_ip = get_client_ip(request)
         if self.user.rf == "open_wx":
             self.user.status = 3
@@ -360,30 +385,45 @@ class UnbindView(BaseView):
         msg = "解绑成功"
         code = 200
         try:
-            user = Users.objects.get(pk=self.user.pk)
             # 判断用户当前status
-            if user.status == 1 or user.status == 0:
+            if self.user.status == 1 or self.user.status == 0:
+                # 记录user_id union_id关系
+                try:
+                    WeChatUnBind.objects.get(union_id=self.user.union_id)
+                except WeChatUnBind.DoesNotExist:
+                    WeChatUnBind.objects.create(user_id=self.user.pk,
+                                                union_id=self.user.union_id)
                 # 1:普通注册,绑定微信
-                user.status = 0
-                user.union_id = ''
-                user.save()
+                self.user.status = 0
+                self.user.union_id = ''
+                self.user.save()
             else:
                 # 判断用户信息是否完善
-                union_id = user.union_id
+                union_id = self.user.union_id
                 if union_id is None or union_id == '':
-                    user.status = 4  # 微信注册,解除绑定
-                    user.union_id = ''
-                    user.save()
+                    try:
+                        WeChatUnBind.objects.get(union_id=self.user.union_id)
+                    except WeChatUnBind.DoesNotExist:
+                        WeChatUnBind.objects.create(user_id=self.user.pk,
+                                                    union_id=self.user.union_id)
+                    self.user.status = 4  # 微信注册,解除绑定
+                    self.user.union_id = ''
+                    self.user.save()
                 else:
-                    if user.email is None or user.email == "":
+                    if self.user.email is None or self.user.email == "":
                         success = False
                         msg = "解绑后无法微信登录系统,请先完善信息后在解绑微信"
                         # 页面接受需要跳转到信息完善页面
                         code = 201
                     else:
-                        user.status = 4  # 微信注册,解除绑定
-                        user.union_id = ''
-                        user.save()
+                        try:
+                            WeChatUnBind.objects.get(union_id=self.user.union_id)
+                        except WeChatUnBind.DoesNotExist:
+                            WeChatUnBind.objects.create(user_id=self.user.pk,
+                                                        union_id=self.user.union_id)
+                        self.user.status = 4  # 微信注册,解除绑定
+                        self.user.union_id = ''
+                        self.user.save()
         except Users.DoesNotExist:
             success = False
             msg = "用户不存在"
@@ -414,20 +454,33 @@ class BindView(BaseView):
         if csrftoken is None:
             csrftoken = "csrf"
         user_id = str(self.user.pk)
-        state = AuthCode.encode(','.join([csrftoken, user_id]), 'wechat')
+        next_url = request.GET.get('next_url', "next_url")
+        state = AuthCode.encode(','.join([csrftoken, user_id, next_url]), 'wechat')
         # 获取user对应的微信配置
-        config = WeChatConfig.objects.get(config=WECHAT_USER)
-        app_id = config.app_id
-        # 扫码后微信的回跳页面
-        settings.WECHAT_CALLBACK.get("console")
-        redirect_url = settings.WECHAT_CALLBACK.get("console_bind")
+        config = WECHAT_GOODRAIN
+        oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
+        scope = 'snsapi_userinfo'
+        redirect_url = settings.WECHAT_CALLBACK.get("console_bind_goodrain")
+        if not is_weixin(request):
+            config = WECHAT_USER
+            oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
+            scope = 'snsapi_login'
+            redirect_url = settings.WECHAT_CALLBACK.get("console_bind")
+        wechat_config = WeChatConfig.objects.get(config=config)
+        app_id = wechat_config.app_id
+        # 微信的回跳页面
+
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
-        url = "https://open.weixin.qq.com/connect/qrconnect?appid={0}" \
-              "&redirect_uri={1}" \
+        url = "{0}?appid={1}" \
+              "&redirect_uri={2}" \
               "&response_type=code" \
-              "&scope=snsapi_login" \
-              "&state={2}#wechat_redirect".format(app_id, redirect_url, state)
+              "&scope={3}" \
+              "&state={4}#wechat_redirect".format(oauth2,
+                                                  app_id,
+                                                  redirect_url,
+                                                  scope,
+                                                  state)
         return self.redirect_to(url)
 
 
@@ -442,22 +495,31 @@ class WeChatCallBackBind(BaseView):
         # 获取statue
         state = request.GET.get("state")
         # 解码
-        oldcsrftoken, user_id = AuthCode.decode(state, 'wechat').split(',')
+        oldcsrftoken, user_id, next_url = AuthCode.decode(str(state), 'wechat').split(',')
+        # 判断是否微信浏览器
+        if next_url == "next_url":
+            next_url = "/"
         if csrftoken != oldcsrftoken:
-            return JsonResponse(status=500)
+            logger.error("csrftoken check error!")
+            return self.redirect_to(next_url)
         # 获取的code
         code = request.GET.get("code")
         if code is None:
-            return JsonResponse(status=500)
+            logger.error("wechat donot return code! you do not permissioned!")
+            return self.redirect_to(next_url)
         # 根据code获取access_token
-        wechat_config = WeChatConfig.objects.get(config=WECHAT_GOODRAIN)
+        config = WECHAT_GOODRAIN
+        if not is_weixin(request):
+            config = WECHAT_USER
+        wechat_config = WeChatConfig.objects.get(config=config)
         access_token, open_id = OpenWeChatAPI.access_token_oauth2_static(
             wechat_config.app_id,
             wechat_config.app_secret,
             code)
         if access_token is None:
             # 登录失败,重新跳转到授权页面
-            return JsonResponse(status=500)
+            logger.error("wechat oauth access token error!")
+            return self.redirect_to(next_url)
         # 检查用户的open_id是否已经存在
         need_new = False
         wechat_user = None
@@ -480,10 +542,10 @@ class WeChatCallBackBind(BaseView):
                                      province=jsondata.get("province"),
                                      country=jsondata.get("country"),
                                      headimgurl=jsondata.get("headimgurl"),
-                                     config=WECHAT_GOODRAIN)
+                                     config=config)
             wechat_user.save()
         # 判断union_id是否已经绑定user
-        Users.objects.filter(union_id=union_id).update(union_id="")
+        Users.objects.filter(union_id=wechat_user.union_id).update(union_id="")
         # 根据微信的union_id判断用户是否已经注册
         user = Users.objects.get(pk=user_id)
         if user.status == 0:
@@ -493,5 +555,5 @@ class WeChatCallBackBind(BaseView):
         user.union_id = wechat_user.union_id
         user.save()
 
-        return JsonResponse(status=200)
+        return self.redirect_to(next_url)
 

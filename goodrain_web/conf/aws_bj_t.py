@@ -161,6 +161,7 @@ IS_OPEN_API = False
 WECHAT_CALLBACK = {
     "console": "",
     "console_bind": "",
-    "console_test": "",
+    "console_goodrain": "",
+    "console_bind_goodrain": "",
     "index": "http://www.goodrain.com/product/",
 }

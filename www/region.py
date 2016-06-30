@@ -20,3 +20,12 @@ class RegionInfo(object):
                 choices.append((item['name'], item['label']))
 
         return choices
+    
+    @classmethod
+    def valid_regions(cls):
+        choices = []
+        for item in cls.region_list:
+            if item['enable']:
+                choices.append(item['name'])
+
+        return choices

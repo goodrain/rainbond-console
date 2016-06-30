@@ -11,6 +11,7 @@ from django.conf import settings
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from www.monitorservice.monitorhook import MonitorHook
 from django.shortcuts import redirect
+from www.region import RegionInfo
 
 import logging
 logger = logging.getLogger('default')
@@ -187,6 +188,8 @@ class RemoteServiceMarketAjax(AuthedView):
                 if len(relation_data) > 0:
                     AppServiceRelation.objects.bulk_create(relation_data)
                 logger.debug('---add app service relation---ok---')
+                
+                self.downloadImage(base_info)
                 # 回写数据
                 if callback != "0":
                     appClient.post_statics_tenant(self.tenant.tenant_id, callback)
@@ -204,3 +207,19 @@ class RemoteServiceMarketAjax(AuthedView):
         except Exception as e:
             logger.exception(e)
         return redirect('/apps/{0}/service/'.format(self.tenantName))
+    
+    def downloadImage(self, base_info):
+        try:
+            download_task = {}
+            if base_info.is_slug():
+                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key, "app_version":base_info.version, "namespace":base_info.namespace}
+                for region in RegionInfo.valid_regions():
+                    logger.info(region)
+                    regionClient.send_task(region, 'app_slug', json.dumps(download_task))
+            else:
+                download_task = {"action": "download_and_deploy", "image": base_info.image, "namespace":base_info.namespace}            
+                for region in RegionInfo.valid_regions():
+                    regionClient.send_task(region, 'app_image', json.dumps(download_task))
+        except Exception as e:  
+            logger.exception(e)
+        

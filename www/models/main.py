@@ -133,6 +133,15 @@ class WeChatUser(models.Model):
         return salted_hmac(key_salt, self.user_id).hexdigest()
 
 
+class WeChatUnBind(models.Model):
+    """解绑用户的映射关系"""
+    class Meta:
+        db_table = 'wechat_unbind'
+
+    user_id = models.IntegerField(help_text=u"用户的user_id")
+    union_id = models.CharField(max_length=200, help_text=u'微信用户union_id')
+
+
 class Users(models.Model):
 
     class Meta:
@@ -294,8 +303,8 @@ class ServiceInfo(BaseModel):
     creater = models.IntegerField(null=True, help_text=u"创建人")
 
     def is_slug(self):
-        # return bool(self.image.startswith('goodrain.me/runner'))
-        return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
+        return bool(self.image.startswith('goodrain.me/runner'))
+        #return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
 
     def is_image(self):
         return not self.is_slug(self)

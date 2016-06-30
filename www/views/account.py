@@ -21,6 +21,7 @@ from www.region import RegionInfo
 from www.views import BaseView
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
+from www.views.wechat import is_weixin
 
 from django.views.decorators.clickjacking import xframe_options_exempt
 
@@ -65,9 +66,8 @@ class Login(BaseView):
     def get(self, request, *args, **kwargs):
         user = request.user
         if isinstance(user, AnonymousUser):
-            agent = request.META.get("HTTP_USER_AGENT", "")
             # 判断是否MicroMessenger
-            if "micromessenger" in agent.lower():
+            if is_weixin(request):
                 return self.redirect_to("/wechat/login")
             self.form = UserLoginForm()
             return self.get_response()
@@ -164,9 +164,8 @@ class Logout(BaseView):
         else:
             logout(request)
             logger.info('account.login', 'user {0} logout'.format(user.nick_name))
-            agent = request.META.get("HTTP_USER_AGENT", "")
             # 判断是否MicroMessenger
-            if "micromessenger" in agent.lower():
+            if is_weixin(request):
                 return self.redirect_to("/wechat/logout")
             return self.redirect_to(settings.LOGIN_URL)
 

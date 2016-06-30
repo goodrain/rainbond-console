@@ -1,6 +1,6 @@
 import os
 
-DEBUG = False
+DEBUG = True
 
 TEMPLATE_DEBUG = False
 
@@ -205,11 +205,12 @@ LOG_DOMAIN = {
     "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com"               
 }
 # open api
-IS_OPEN_API = True
+IS_OPEN_API = False
 
 WECHAT_CALLBACK = {
     "console": "https://user.goodrain.com/wechat/callback",
     "console_bind": "https://user.goodrain.com/wechat/callbackbind",
-    "console_test": "https://user.goodrain.com/wechat/callback",
+    "console_goodrain": "https://dev.goodrain.com/wechat/callback",
+    "console_bind_goodrain": "https://dev.goodrain.com/wechat/callbackbind",
     "index": "http://www.goodrain.com/product/",
 }

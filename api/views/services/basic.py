@@ -160,9 +160,11 @@ class PublishServiceView(APIView):
             if slug != "" and not slug.startswith("/"):
                 slug = "/" + slug
             if isok:
+                update_version = 1
                 serviceInfo = None
                 try:
                     serviceInfo = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                    update_version = serviceInfo.update_version + 1
                 except Exception:   
                     pass
                 if serviceInfo is None:
@@ -178,7 +180,7 @@ class PublishServiceView(APIView):
                 serviceInfo.is_service = app.is_service
                 serviceInfo.is_web_service = app.is_web_service
                 serviceInfo.version = app.app_version
-                serviceInfo.update_version =  serviceInfo.update_version + 1
+                serviceInfo.update_version = update_version
                 if image != "":
                     serviceInfo.image = image
                 else:
