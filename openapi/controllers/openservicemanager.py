@@ -454,5 +454,5 @@ class OpenTenantServiceManager(object):
         # 发送请求到对应的数据中心创建租户
         tenantRegionService.init_for_region(tenant.region,
                                             tenant_name,
-                                            tenant.tenant_id)
+                                            tenant.tenant_id, user)
         return tenant

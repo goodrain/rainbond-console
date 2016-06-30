@@ -190,7 +190,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         result = {}
         try:
             #judge region tenant is init
-            success = tenantRegionService.init_for_region(self.response_region,self.tenantName,tenant_id)
+            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
             if not success:
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)

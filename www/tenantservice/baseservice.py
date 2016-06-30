@@ -366,6 +366,7 @@ class TenantUsedResource(object):
             pass
         return memory
 
+
 class TenantAccountService(object):
     def __init__(self):
         self.MODULES = settings.MODULES
@@ -377,9 +378,10 @@ class TenantAccountService(object):
                 return True
         return False
 
+
 class TenantRegionService(object):
 
-    def init_for_region(self, region, tenant_name, tenant_id):
+    def init_for_region(self, region, tenant_name, tenant_id, user):
         success = True
         tenantRegion = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region)
         if not tenantRegion.is_init:
@@ -395,8 +397,9 @@ class TenantRegionService(object):
                 tenantRegion.is_active = True
                 tenantRegion.is_init = True
                 tenantRegion.save()
-            monitorhook.tenantMonitor(tenant, user, "init_tenant", success)
+            monitorhook.tenantMonitor(tenantRegion, user, "init_tenant", success)
         return success
+
 
 class CodeRepositoriesService(object):
     
