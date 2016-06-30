@@ -264,63 +264,92 @@ class WeChatInfoView(BaseView):
         if self.user.phone == None:
             self.user.phone = ""
         context["user"] = self.user
+        context["disable_nick_name"] = self.user.rf != "open_wx"
         return TemplateResponse(self.request, page, context)
 
     def post(self, request, *args, **kwargs):
         # 获取用户信息
-        user = Users.objects.get(pk=self.user.pk)
-        user.email = request.POST.get("email")
-        user.nick_name = request.POST.get("nick_name")
-        user.phone = request.POST.get("phone")
-        user.client_ip = get_client_ip(request)
+        email = request.POST.get("email")
+        nick_name = request.POST.get("nick_name")
+        phone = request.POST.get("phone")
         password = request.POST.get("password")
         password_repeat = request.POST.get("password_repeat")
         success = True
         err = {}
         # 校验
-        try:
-            Users.objects.get(email=user.email)
+        if email is None or email == "":
             success = False
-            err['email'] = "邮件地址已经存在"
-        except Users.DoesNotExist:
-            pass
+            err['email'] = "邮件地址不能为空"
+        else:
+            try:
+                Users.objects.get(email=email)
+                success = False
+                err['email'] = "邮件地址已经存在"
+            except Users.DoesNotExist:
+                pass
 
-        try:
-            Users.objects.get(nick_name=user.nick_name)
+        if password is None or password == "":
             success = False
-            err['name'] = "用户名已经存在"
-        except Users.DoesNotExist:
-            pass
+            err['password'] = "密码不能为空"
 
-        if password_repeat != password:
-            success = False
-            err['password'] = "两次输入的密码不一致"
+        if self.user.rf != "open_wx":
+            # 校验密码是否正确
+            if self.user.check_password(password):
+                pass
+            else:
+                success = False
+                err['password'] = "密码错误"
 
-        if user.phone is not None and user.phone != "":
-            phoneNumber = Users.objects.filter(phone=user.phone).count()
+        # 如果是正常用户,用户名不做修改
+        # 微信用户,用户名称校验唯一性
+        if self.user.rf == "open_wx":
+            try:
+                Users.objects.get(nick_name=nick_name)
+                success = False
+                err['name'] = "用户名已经存在"
+            except Users.DoesNotExist:
+                pass
+            self.user.nick_name = nick_name
+
+            if password_repeat != password:
+                success = False
+                err['password'] = "两次输入的密码不一致"
+
+        if phone is not None and phone != "":
+            phoneNumber = Users.objects.filter(phone=phone).count()
             logger.debug('form_valid.register', phoneNumber)
             if phoneNumber > 0:
                 success = False
                 err['phone'] = "手机号已存在"
+            self.user.phone = phone
+
         # 参数错误,返回原页面
         if not success:
             context = self.get_context()
             context['error'] = err.values()
             page = "www/account/wechatinfo.html"
             context["user"] = self.user
+            context["disable_nick_name"] = self.user.rf != "open_wx"
             logger.error(err)
             return TemplateResponse(self.request, page, context)
 
         logger.debug("now update user...")
-        user.set_password(password)
-        user.status = 3  # 微信注册,补充信息
-        user.save()
+        self.user.set_password(password)
+        self.user.email = email
+        self.user.client_ip = get_client_ip(request)
+        if self.user.rf == "open_wx":
+            self.user.status = 3
+        self.user.save()
         # 创建git用户
-        codeRepositoriesService.createUser(user,
-                                           user.email,
+        codeRepositoriesService.createUser(self.user,
+                                           email,
                                            password,
-                                           user.nick_name,
-                                           user.nick_name)
+                                           self.user.nick_name,
+                                           self.user.nick_name)
+        # 获取next_url
+        next_url = request.GET.get("next_url")
+        if next_url:
+            return self.redirect_to(next_url)
         return self.redirect_to("/")
 
 

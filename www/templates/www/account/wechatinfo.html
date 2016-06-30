@@ -31,21 +31,22 @@
         <div class="form-group">
             <input type="text" class="form-control" name="nick_name"
                    placeholder="请设置新用户名" maxlength="24"
-                   value="{{user.nick_name}}"/>
+                   value="{{user.nick_name}}" required
+                   {% if disable_nick_name %}disabled{% endif %}/>
         </div>
         <div class="form-group">
             <input type="password" class="form-control" name="password"
-                   placeholder="请设置密码，至少包含8位字符" minlength="8"
-                   maxlength="16" />
+                   placeholder="请输入密码，至少包含8位字符" minlength="8"
+                   maxlength="16" required/>
         </div>
-        <div class="form-group">
+        <div class="form-group" {% if disable_nick_name %}style="display: none;"{% endif %}>
             <input type="password" class="form-control" name="password_repeat"
                    placeholder="再次输入登录密码" minlength="8" maxlength="16"/>
         </div>
         <div class="form-group">
             <input type="email" class="form-control" name="email"
                    placeholder="请输入邮箱" maxlength="30"
-                   value="{{user.email}}"/>
+                   value="{{user.email}}" required/>
         </div>
         <div class="form-group">
             <input type="tel" class="form-control" name="phone"

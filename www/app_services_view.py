@@ -45,13 +45,13 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         # 检查用户邮箱是否完善,跳转到邮箱完善页面
+        next_url = request.path
         if self.user.email is None or self.user.email == "":
-            return self.redirect_to("/wechat/info")
+            return self.redirect_to("/wechat/info?next_url={0}".format(next_url))
         # 判断系统中是否有初始化的application数据
         count = ServiceInfo.objects.filter(service_key="application").count()
         if count == 0:
             # 跳转到云市引用市场下在application模版
-            next_url = request.path
             redirect_url = "/ajax/{0}/remote/market?service_key=application&app_version=81701&next_url={1}".format(self.tenantName, next_url)
             logger.debug("now init application record")
             return self.redirect_to(redirect_url)
