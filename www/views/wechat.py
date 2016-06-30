@@ -14,6 +14,7 @@ from www.utils.crypt import AuthCode
 from www.views import BaseView
 from www.monitorservice.monitorhook import MonitorHook
 
+from www.utils.md5Util import md5fun
 from www.wechat.openapi import OpenWeChatAPI
 from www.tenantservice.baseservice import CodeRepositoriesService
 
@@ -53,6 +54,10 @@ class WeChatCheck(BaseView):
         timestamp = request.GET.get("timestamp")
         nonce = request.GET.get("nonce")
         echostr = request.GET.get("echostr")
+        logger.info("signature:" + signature)
+        logger.info("timestamp:" + timestamp)
+        logger.info("nonce:" + nonce)
+        logger.info("echostr:" + echostr)
 
         config = WeChatConfig.objects.get(config=WECHAT_GOODRAIN)
         token = config.token
@@ -61,13 +66,13 @@ class WeChatCheck(BaseView):
         wx_string = ''.join(wx_array)
         wx_string = hashlib.sha1(wx_string).hexdigest()
 
-        logger.debug("signature:" + signature)
-        logger.debug("timestamp:" + timestamp)
-        logger.debug("nonce:" + nonce)
-        logger.debug("echostr:" + echostr)
-        logger.debug("token:" + token)
-        logger.debug("wx_string:" + wx_string)
-        logger.debug(signature == wx_string)
+        logger.info("signature:" + signature)
+        logger.info("timestamp:" + timestamp)
+        logger.info("nonce:" + nonce)
+        logger.info("echostr:" + echostr)
+        logger.info("token:" + token)
+        logger.info("wx_string:" + wx_string)
+        logger.info(signature == wx_string)
         if signature == wx_string:
             return HttpResponse(echostr)
         else:
@@ -217,8 +222,9 @@ class WeChatCallBack(BaseView):
         # 创建租户
         if need_new:
             union_id = wechat_user.union_id
-            begin_index = len(union_id) - 8
-            tenant_name = union_id[begin_index:]
+            tmp_union_id = md5fun(union_id)
+            begin_index = len(tmp_union_id) - 8
+            tenant_name = tmp_union_id[begin_index:]
             email = tenant_name + "@wechat.com"
             logger.debug("new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
             # 创建用户,邮箱为openid后8位@wechat.comemail=email,
