@@ -133,6 +133,15 @@ class WeChatUser(models.Model):
         return salted_hmac(key_salt, self.user_id).hexdigest()
 
 
+class WeChatUnBind(models.Model):
+    """解绑用户的映射关系"""
+    class Meta:
+        db_table = 'wechat_unbind'
+
+    user_id = models.Integer(help_text=u"用户的user_id")
+    union_id = models.CharField(max_length=200, help_text=u'微信用户union_id')
+
+
 class Users(models.Model):
 
     class Meta:

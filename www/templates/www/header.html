@@ -51,7 +51,7 @@
                 {% if MODULES.WeChat_Module %}
                     {% if user.status == 0 %}
                         <!--# 0:普通注册,未绑定微信-->
-                        <li name="wechat_li"><a target="_blank" href="/wechat/bind" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
                     {% endif %}
                     {% if user.status == 1 %}
                         <!--# 1:普通注册,绑定微信-->
@@ -67,7 +67,7 @@
                     {% endif %}
                     {% if user.status == 4 %}
                         <!--# 4:微信注册,解除微信绑定,已补充信息-->
-                        <li name="wechat_li"><a target="_blank" href="/wechat/bind"><i class="fa fa-usd"></i>绑定微信</a></li>
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
                     {% endif %}
                 {% endif %}
 
@@ -118,5 +118,10 @@
                 showMessage("解绑失败");
             }
         });
+    }
+
+    function bindwechat() {
+        var next_url = location.href;
+        location.href = "/wechat/bind?next_url" + next_url;
     }
 </script>

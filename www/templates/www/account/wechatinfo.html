@@ -31,7 +31,7 @@
         <div class="form-group">
             <input type="text" class="form-control" name="nick_name"
                    placeholder="请设置新用户名" maxlength="24"
-                   value="{% if disable_nick_name %}{{user.nick_name}}{% endif %}" required
+                   value="{{user.nick_name}}" required
                    {% if disable_nick_name %}disabled{% endif %}/>
         </div>
         <div class="form-group">
