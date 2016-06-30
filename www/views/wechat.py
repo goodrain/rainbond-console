@@ -389,10 +389,10 @@ class UnbindView(BaseView):
             # 判断用户当前status
             if self.user.status == 1 or self.user.status == 0:
                 # 记录user_id union_id关系
-                num = WeChatUnBind.objects.get(union_id=self.user.union_id,
-                                               user_id=self.user.pk).count()
+                num = WeChatUnBind.objects.filter(union_id=self.user.union_id,
+                                                  user_id=self.user.pk).count()
                 if num == 0:
-                    count = WeChatUnBind.objects.get(union_id=self.user.union_id).count()
+                    count = WeChatUnBind.objects.filter(union_id=self.user.union_id).count()
                     WeChatUnBind.objects.create(user_id=self.user.pk,
                                                 union_id=self.user.union_id,
                                                 status=count)
