@@ -18,9 +18,10 @@ import random
 import re
 
 from www.region import RegionInfo
-from www.views import BaseView, RegionOperateMixin
+from www.views import BaseView
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
+from www.views.wechat import is_weixin
 
 from django.views.decorators.clickjacking import xframe_options_exempt
 
@@ -65,6 +66,9 @@ class Login(BaseView):
     def get(self, request, *args, **kwargs):
         user = request.user
         if isinstance(user, AnonymousUser):
+            # 判断是否MicroMessenger
+            if is_weixin(request):
+                return self.redirect_to("/wechat/login")
             self.form = UserLoginForm()
             return self.get_response()
         else:
@@ -74,7 +78,7 @@ class Login(BaseView):
             if next_url is not None:
                 if typ == "app":
                     # 这时候来源于app.goodrain.com
-                    ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "next_url"]), 'goodrain')
                     index_num = next_url.find("?")
                     if "nick_name" in next_url:
                         # 成成 ticket
@@ -99,12 +103,18 @@ class Login(BaseView):
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
 
         # create git user
-        codeRepositoriesService.createUser(user, username, password, user.nick_name, user.nick_name)
+        if user.email is not None and user.email != "":
+            codeRepositoriesService.createUser(user, user.email, password, user.nick_name, user.nick_name)
+        
+        # to judge from www create servcie
+        app_ty = request.COOKIES.get('app_ty')
+        if app_ty is not None:
+            return self.redirect_to("/autodeploy?fr=www_app")
 
         typ = request.GET.get('typ', None)
         if next_url is not None:
             if typ == "app":
-                ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
+                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "next_url"]), 'goodrain')
                 index_num = next_url.find("?")
                 if "nick_name" in next_url and index_num > -1:
                     next_url = next_url[:index_num] + "?ticket={}".format(ticket)
@@ -154,6 +164,9 @@ class Logout(BaseView):
         else:
             logout(request)
             logger.info('account.login', 'user {0} logout'.format(user.nick_name))
+            # 判断是否MicroMessenger
+            if is_weixin(request):
+                return self.redirect_to("/wechat/logout")
             return self.redirect_to(settings.LOGIN_URL)
 
     @never_cache
@@ -329,7 +342,7 @@ class PasswordReset(BaseView):
         return self.get_response()
 
 
-class Registation(BaseView, RegionOperateMixin):
+class Registation(BaseView):
 
     def get_context(self):
         context = super(Registation, self).get_context()
@@ -421,16 +434,15 @@ class Registation(BaseView, RegionOperateMixin):
                 "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(nick_name, tenant_name, region, tenant.tenant_id))
 
             TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
-            init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
-            monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
             # create gitlab user
-            codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
+            if user.email is not None and user.email != "":
+                codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
 
             # wei xin user need to add 100
             if rf == "wx":
                 self.weixinRegister(tenant.tenant_id, user.pk, user.nick_name, rf)
 
-            user = authenticate(username=email, password=password)
+            user = authenticate(username=nick_name, password=password)
             login(request, user)
             
             url = '/apps/{0}'.format(tenant_name)
@@ -686,21 +698,8 @@ class TenantSelectView(BaseView):
             return response
 
 
-class AccountView(BaseView):
-    """用户信息视图"""
-    def post(self, request, *args, **kwargs):
-        email = request.POST.get('email', None)
-        if email is None:
-            return JsonResponse({"success": False, "nick_name": "Anonymous"})
-        user_info = Users.objects.get(email=email)
-        if user_info is None:
-            return JsonResponse({"success": False, "nick_name": "Anonymous"})
-        else:
-            return JsonResponse({"success": True, "nick_name": user_info.nick_name})
-
-
 class AppLogin(BaseView):
-
+    """app 用户登录接口"""
     @xframe_options_exempt
     def get(self, request, *args, **kwargs):
         context = self.get_context()
@@ -714,6 +713,7 @@ class AppLogin(BaseView):
 
         username = request.POST.get('email')
         password = request.POST.get('password')
+        next_url = request.POST.get('next_url', "next_url")
         if password:
             if len(password) < 8:
                 return JsonResponse({"success": False, "msg": "password error!"})
@@ -736,5 +736,5 @@ class AppLogin(BaseView):
         login(request, user)
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
 
-        ticket = AuthCode.encode(','.join([user.nick_name, user.email, user.password]), 'goodrain')
+        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
         return JsonResponse({"success": True, "ticket": ticket})

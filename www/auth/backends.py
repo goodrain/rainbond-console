@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-from www.models import Users
+from www.models import Users, WeChatUser
 
 
 class ModelBackend(object):
@@ -11,8 +11,10 @@ class ModelBackend(object):
         try:
             if username.find("@") > 0:
                 user = Users.objects.get(email=username)
-            else:
+            elif username.isdigit():
                 user = Users.objects.get(phone=username)
+            else:
+                user = Users.objects.get(nick_name=username)
             if user.check_password(password):
                 return user
         except Users.DoesNotExist:
@@ -40,3 +42,17 @@ class PartnerModelBackend(ModelBackend):
                 return user
         except Users.DoesNotExist:
             pass
+
+
+class WeChatModelBackend(ModelBackend):
+    """微信用户登录拦截"""
+    def authenticate(self, union_id=None, **kwargs):
+        # user登录失败,微信登录
+        if union_id is None or union_id == "":
+            return None
+        try:
+            return Users.objects.get(union_id=union_id)
+        except Users.DoesNotExist:
+            pass
+
+

@@ -2,7 +2,7 @@
     <div class="fa fa-bars tooltips" data-placement="right" data-original-title="切换导航"></div>
 </div>
 <!--logo start-->
-<a href="/" class="logo">好雨<span>云平台</span></a>
+<a href="/" class="logo hidden-xs">好雨<span>云平台</span></a>
 <!--logo end-->
 {% block region_zone %}
 <div class="nav notify-row" id="top_menu">
@@ -24,14 +24,14 @@
             <button type="button" class="btn btn-round btn-primary" onclick="window.open('https://goodrain.kf5.com/request/new/')">提交工单</button>
         </li>
          -->
-         <li>
+         <li class="hidden-xs">
            <a href="https://t.goodrain.com/" target="_blank">
              <i class="fa fa-comment"></i>
              <span>社区</span>
            </a>
          </li>
 
-         <li>
+         <li class="hidden-xs">
            <a href="http://docs.goodrain.com/" target="_blank">
              <i class="fa fa-file-text-o"></i>
              <span>文档</span>
@@ -45,9 +45,32 @@
                 <span class="username">{% if user.is_authenticated %}{{ user.nick_name }}{% else %}匿名用户{% endif %}</span>
                 <b class="caret"></b>
             </a>
-            
+
             <ul class="dropdown-menu">
                 <div class="log-arrow-up"></div>
+                {% if MODULES.WeChat_Module %}
+                    {% if user.status == 0 %}
+                        <!--# 0:普通注册,未绑定微信-->
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
+                    {% endif %}
+                    {% if user.status == 1 %}
+                        <!--# 1:普通注册,绑定微信-->
+                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
+                    {% endif %}
+                    {% if user.status == 2 %}
+                        <!--# 2:微信注册,绑定微信,未补充信息-->
+                        <li name="wechat_li"><a href="/wechat/info"><i class="fa fa-usd"></i>设置用户信息</a></li>
+                    {% endif %}
+                    {% if user.status == 3 %}
+                        <!--# 3:微信注册,绑定微信,已补充信息-->
+                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
+                    {% endif %}
+                    {% if user.status == 4 %}
+                        <!--# 4:微信注册,解除微信绑定,已补充信息-->
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
+                    {% endif %}
+                {% endif %}
+
                 {% if MODULES.Finance_Center %}
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
                 <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
@@ -61,3 +84,44 @@
     </ul>
     <!--search & user info end-->
 </div>
+<script type="text/javascript">
+    function unbindwechat() {
+        $.ajax({
+            type : "POST",
+            url : "/wechat/unbind",
+            dataType: "json",
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                console.log(msg);
+                var jsondata = eval(msg);
+                if (!jsondata.success) {
+                    showMessage(jsondata.msg);
+                    if (jsondata.code == 201) {
+                        location.href='/wechat/reset'
+                    }
+                } else {
+                    showMessage("解绑成功");
+                    // 清理页面逻辑
+                    $("li[name=wechat_li]").empty();
+                    $("<a/>").attr("href", "/wechat/bind")
+                            .attr("target", "_blank")
+                            .append($("<i/>").addClass("fa fa-usd"))
+                            .append("绑定微信").appendTo($("li[name=wechat_li]"));
+                }
+            },
+            error : function(err) {
+                console.log(err);
+                showMessage("解绑失败");
+            }
+        });
+    }
+
+    function bindwechat() {
+        var next_url = location.href;
+        location.href = "/wechat/bind?next_url" + next_url;
+    }
+</script>

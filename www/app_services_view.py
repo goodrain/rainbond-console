@@ -10,7 +10,7 @@ from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixi
 from www.decorator import perm_required
 from www.models import Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService, TenantRegionService
 from www.utils.language import is_redirect
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
@@ -25,6 +25,7 @@ tenantAccountService = TenantAccountService()
 tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 codeRepositoriesService = CodeRepositoriesService()
+tenantRegionService = TenantRegionService()
 
 
 class AppCreateView(LeftSideBarMixin, AuthedView):
@@ -43,6 +44,18 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
+        # 检查用户邮箱是否完善,跳转到邮箱完善页面
+        next_url = request.path
+        if self.user.email is None or self.user.email == "":
+            return self.redirect_to("/wechat/info?next_url={0}".format(next_url))
+        # 判断系统中是否有初始化的application数据
+        count = ServiceInfo.objects.filter(service_key="application").count()
+        if count == 0:
+            # 跳转到云市引用市场下在application模版
+            redirect_url = "/ajax/{0}/remote/market?service_key=application&app_version=81701&next_url={1}".format(self.tenantName, next_url)
+            logger.debug("now init application record")
+            return self.redirect_to(redirect_url)
+
         context = self.get_context()
         if settings.MODULES["Git_Code_Manual"]:
             response = TemplateResponse(self.request, "www/app_create_manual_code_step_1.html", context)
@@ -72,10 +85,16 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         service_id = make_uuid(tenant_id)
         data = {}
         try:
+            #judge region tenant is init
+            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
+            if not success:
+                data["status"] = "failure"
+                return JsonResponse(data, status=200)
+            
             if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
-
+            
             service_desc = ""
             service_alias = request.POST.get("create_app_name", "")
             service_code_from = request.POST.get("service_code_from", "")

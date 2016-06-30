@@ -3,7 +3,7 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import Users, TenantServiceInfo, PermRelTenant, TenantServiceLog, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
+from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -366,6 +366,7 @@ class TenantUsedResource(object):
             pass
         return memory
 
+
 class TenantAccountService(object):
     def __init__(self):
         self.MODULES = settings.MODULES
@@ -376,6 +377,32 @@ class TenantAccountService(object):
             if tenant_region.service_status == 2 and tenant.pay_type == "payed":
                 return True
         return False
+
+
+class TenantRegionService(object):
+
+    def init_for_region(self, region, tenant_name, tenant_id, user):
+        success = True
+        tenantRegion = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region)
+        if not tenantRegion.is_init:
+            api = RegionServiceApi()
+            logger.info("account.register", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
+            try:
+                res, body = api.create_tenant(region, tenant_name, tenant_id)
+            except api.CallApiError, e:
+                logger.error("account.register", "create tenant {0} failed".format(tenant_name))
+                logger.exception("account.register", e)
+                success = False
+            if success:
+                tenantRegion.is_active = True
+                tenantRegion.is_init = True
+                tenantRegion.save()
+            tenant = Tenants()
+            tenant.tenant_id = tenant_id
+            tenant.tenant_name = tenant_name
+            monitorhook.tenantMonitor(tenant, user, "init_tenant", success)
+        return success
+
 
 class CodeRepositoriesService(object):
     
@@ -446,7 +473,7 @@ class CodeRepositoriesService(object):
     def showGitUrl(self, service):
         httpGitUrl = service.git_url
         if settings.MODULES["Git_Code_Manual"]:
-                httpGitUrl=service.git_url
+                httpGitUrl = service.git_url
         else:
             if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
                 cur_git_url = service.git_url.split("/")

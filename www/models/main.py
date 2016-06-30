@@ -76,6 +76,72 @@ class AnonymousUser(object):
         return False
 
 
+class WeChatConfig(models.Model):
+    """微信的accesstoken"""
+    class Meta:
+        db_table = "wechat_config"
+
+    MOBILE = "mobile"
+    WEB = "web"
+    BIZ = "biz"
+    BIZPLUGIN = "bizplugin"
+
+    OPEN_TYPE = (
+        (MOBILE, "移动应用"),
+        (WEB, "网站应用"),
+        (BIZ, "公众帐号"),
+        (BIZPLUGIN, "公众号第三方平台")
+    )
+
+    config = models.CharField(unique=True, max_length=100, help_text=u'微信应用的名称')
+    app_id = models.CharField(max_length=200, help_text=u'app_id')
+    app_secret = models.CharField(max_length=200, help_text=u'app_secret')
+    token = models.CharField(max_length=200, help_text=u'token')
+    encrypt_mode = models.CharField(max_length=200, help_text=u'encrypt_mode')
+    encoding_aes_key = models.CharField(max_length=200, help_text=u'aes_key')
+    access_token = models.CharField(max_length=200, help_text=u'access_token')
+    access_token_expires_at = models.IntegerField(max_length=10, help_text=u"token过期时间")
+    refresh_token = models.CharField(max_length=200, help_text=u'refresh_token,只对网页授权有效')
+    app_type = models.CharField(max_length=200, choices=OPEN_TYPE, help_text=u'公众平台or网站')
+
+
+class WeChatUser(models.Model):
+    """微信用户表格"""
+    class Meta:
+        db_table = "wechat_user_info"
+
+    open_id = models.CharField(primary_key=True, max_length=200, help_text=u'微信用户open_id')
+    nick_name = models.CharField(max_length=100, help_text=u"微信用户昵称")
+    sex = models.IntegerField(help_text=u'性别')
+    city = models.CharField(max_length=100, help_text=u'城市')
+    province = models.CharField(max_length=100, help_text=u'省地区')
+    country = models.CharField(max_length=100, help_text=u'国家')
+    headimgurl = models.CharField(max_length=200, help_text=u'头像')
+    union_id = models.CharField(max_length=200, help_text=u'微信用户union_id')
+    config = models.CharField(max_length=100, help_text=u'所属的微信应用')
+
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_sys_admin(self):
+        admins = ('ertyuiofghjklasdfas', )
+        return bool(self.unionid in admins)
+
+    def get_session_auth_hash(self):
+        key_salt = "goodrain.com.models.get_session_auth_hash"
+        return salted_hmac(key_salt, self.user_id).hexdigest()
+
+
+class WeChatUnBind(models.Model):
+    """解绑用户的映射关系"""
+    class Meta:
+        db_table = 'wechat_unbind'
+
+    user_id = models.IntegerField(help_text=u"用户的user_id")
+    union_id = models.CharField(max_length=200, help_text=u'微信用户union_id')
+
+
 class Users(models.Model):
 
     class Meta:
@@ -97,6 +163,13 @@ class Users(models.Model):
     github_token = models.CharField(max_length=60, help_text=u"github token")
     client_ip = models.CharField(max_length=20, help_text=u"注册ip")
     rf = models.CharField(max_length=60, help_text=u"register from")
+    # 0:普通注册,未绑定微信
+    # 1:普通注册,绑定微信
+    # 2:微信注册,绑定微信,未补充信息
+    # 3:微信注册,绑定微信,已补充信息
+    # 4:微信注册,解除微信绑定,已补充信息
+    status = models.IntegerField(max_length=2, default=0, help_text=u'用户类型 0:普通注册,未绑定微信')
+    union_id = models.CharField(max_length=100, help_text=u'绑定微信的union_id')
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
@@ -175,6 +248,7 @@ class TenantRegionInfo(BaseModel):
     tenant_id = models.CharField(max_length=33, db_index=True, help_text=u"租户id")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
     is_active = models.BooleanField(default=True, help_text=u"是否已激活")
+    is_init = models.BooleanField(default=False, help_text=u'是否创建租户网络')
     service_status = models.IntegerField(help_text=u"服务状态0:暂停，1:运行，2:关闭", default=1)
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
@@ -229,8 +303,8 @@ class ServiceInfo(BaseModel):
     creater = models.IntegerField(null=True, help_text=u"创建人")
 
     def is_slug(self):
-        # return bool(self.image.startswith('goodrain.me/runner'))
-        return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
+        return bool(self.image.startswith('goodrain.me/runner'))
+        #return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
 
     def is_image(self):
         return not self.is_slug(self)

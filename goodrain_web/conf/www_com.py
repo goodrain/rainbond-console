@@ -179,7 +179,8 @@ MODULES = {
     "Package_Show": True,
     "RegionToken": True,
     "Add_Port": False,
-    "License_Center":True,
+    "License_Center": True,
+    "WeChat_Module": True,
     "Docker_Console": False,
     "Publish_YunShi": True,
     "Publish_Service": False,
@@ -205,3 +206,11 @@ LOG_DOMAIN = {
 }
 # open api
 IS_OPEN_API = False
+
+WECHAT_CALLBACK = {
+    "console": "https://user.goodrain.com/wechat/callback",
+    "console_bind": "https://user.goodrain.com/wechat/callbackbind",
+    "console_goodrain": "https://user.goodrain.com/wechat/callback",
+    "console_bind_goodrain": "https://user.goodrain.com/wechat/callbackbind",
+    "index": "http://www.goodrain.com/product/",
+}

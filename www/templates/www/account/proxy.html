@@ -7,13 +7,14 @@
     <script type="text/javascript" src="/static/www/js/jquery.cookie.js"></script>
     <script type="text/javascript">
         document.domain = 'goodrain.com';
-        function remote_submit(email, password) {
+        function remote_submit(email, password, next_url) {
             $.ajax({
                 type : "POST",
                 url : "/app_login",
                 data : {
                     "email": email,
-                    "password": password
+                    "password": password,
+                    "next_url": next_url
                 },
                 dataType: "json",
                 cache : false,

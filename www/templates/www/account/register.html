@@ -6,23 +6,22 @@
 {% block title %}好雨云平台 用户注册{% endblock %}
 
 {% block extracss %}
-    <link rel="stylesheet" href="{% static "www/css/style.css" %}">
-    <link rel="stylesheet" href="{% static "www/css/style-responsive.css" %}">
+    <link rel="stylesheet" href='{% static "www/css/style.css" %}'>
+    <link rel="stylesheet" href='{% static "www/css/style-responsive.css" %}'>
+    <link rel="stylesheet" href='{% static "www/css/login.css" %}'>
 {% endblock %}
 
 {% block bodyclass %}login-body{% endblock %}
 
 {% block body %}
-<header class="header white-bg">
-    <!--logo start-->
-    <a href="/" class="logo">好雨<span>云平台</span></a>
-    <!--logo end-->
-</header>
 
-<div class="container">
-  <form id="reg_form" class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
-    <h2 class="form-signin-heading">用户注册</h2>
+<div class="mainbox">
+    <h1 class="yblogo">
+		<img src='{% static "www/images/yunbanglogo.png" %}' />
+    </h1>
 
+    <form id="reg_form" class="form-signin-w form-signin-reg-w" enctype="multipart/form-data" action="" method="post">
+    
     {% if errors %}
     <div class="alert alert-danger alert-dismissable">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -30,12 +29,8 @@
     </div>
     {{ form.non_field_errors }}
     {% endif %}
-
-    <div class="row">
-     	{% crispy form %}
-    </div>
-
-  </form>
+    {% crispy form %}
+    </form>
   
   <script>
    var InterValObj; //timer变量，控制时间
@@ -65,7 +60,7 @@
     			xhr.setRequestHeader("X-CSRFToken", csrftoken);
     		},
     		success : function(msg) {
-    			var dataObj = msg
+    			var dataObj = msg;
     			if (dataObj["status"] == "success") {
     				swal("发送成功")
     				InterValObj = window.setInterval(SetRemainTime, 1000);

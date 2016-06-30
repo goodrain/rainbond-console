@@ -19,7 +19,7 @@ $(function() {
 		$("input[name='delineCheckbox1']:checkbox").each(function() {
 			if ($(this).is(":checked")) {
 				var str = $(this).val().split("_");
-				if (str.length == 2) {
+				if (str.length == 3) {
 					if (serviceId != "") {
 						serviceId = serviceId + ","
 					}

@@ -11,6 +11,7 @@ from django.conf import settings
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from www.monitorservice.monitorhook import MonitorHook
 from django.shortcuts import redirect
+from www.region import RegionInfo
 
 import logging
 logger = logging.getLogger('default')
@@ -45,6 +46,7 @@ class RemoteServiceMarketAjax(AuthedView):
             app_version = request.GET.get('app_version')
             callback = request.GET.get('callback', "0")
             action = request.GET.get('action', '')
+            next_url = request.GET.get("next_url")
             update_version = request.GET.get('update_version', 1)
             if action != "update":
                 num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
@@ -186,10 +188,15 @@ class RemoteServiceMarketAjax(AuthedView):
                 if len(relation_data) > 0:
                     AppServiceRelation.objects.bulk_create(relation_data)
                 logger.debug('---add app service relation---ok---')
+                
+                self.downloadImage(base_info)
                 # 回写数据
                 if callback != "0":
                     appClient.post_statics_tenant(self.tenant.tenant_id, callback)
                 # 跳转到页面
+                if next_url:
+                    # 如果有回跳页面, 直接返回
+                    return self.redirect_to(next_url)
                 if action != "update":
                     return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
                 else:
@@ -200,3 +207,19 @@ class RemoteServiceMarketAjax(AuthedView):
         except Exception as e:
             logger.exception(e)
         return redirect('/apps/{0}/service/'.format(self.tenantName))
+    
+    def downloadImage(self, base_info):
+        try:
+            download_task = {}
+            if base_info.is_slug():
+                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key, "app_version":base_info.version, "namespace":base_info.namespace}
+                for region in RegionInfo.valid_regions():
+                    logger.info(region)
+                    regionClient.send_task(region, 'app_slug', json.dumps(download_task))
+            else:
+                download_task = {"action": "download_and_deploy", "image": base_info.image, "namespace":base_info.namespace}            
+                for region in RegionInfo.valid_regions():
+                    regionClient.send_task(region, 'app_image', json.dumps(download_task))
+        except Exception as e:  
+            logger.exception(e)
+        

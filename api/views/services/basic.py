@@ -160,9 +160,11 @@ class PublishServiceView(APIView):
             if slug != "" and not slug.startswith("/"):
                 slug = "/" + slug
             if isok:
+                update_version = 1
                 serviceInfo = None
                 try:
                     serviceInfo = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                    update_version = serviceInfo.update_version + 1
                 except Exception:   
                     pass
                 if serviceInfo is None:
@@ -178,7 +180,7 @@ class PublishServiceView(APIView):
                 serviceInfo.is_service = app.is_service
                 serviceInfo.is_web_service = app.is_web_service
                 serviceInfo.version = app.app_version
-                serviceInfo.update_version =  serviceInfo.update_version + 1
+                serviceInfo.update_version = update_version
                 if image != "":
                     serviceInfo.image = image
                 else:
@@ -229,8 +231,10 @@ class PublishServiceView(APIView):
                 logger.error("tenant is not exists,tenant_id={}".format(data["tenant_id"]))
             apputil.send_services(data)
             # 发送图片
-            logger.debug('send service logo:{}'.format(app.logo))
-            apputil.send_image('app_logo', app.logo)
+            if app.logo is not None and app.logo != "":
+                image_url = app.logo.url
+                logger.debug('send service logo:{}'.format(app.logo))
+                apputil.send_image('app_logo', image_url)
             
         return Response({"ok": True}, status=200)
 
@@ -587,12 +591,11 @@ class QueryTenantView(APIView):
               type: string
               paramType: form
         """
-        email = request.data['email']
-        logger.debug('---user email:{}---'.format(email))
+        user_id = request.data['user_id']
+        logger.debug('---user user_id:{}---'.format(user_id))
         # 获取用户对应的
         try:
-            user_info = Users.objects.get(email=email)
-            user_id = user_info.user_id
+            user_info = Users.objects.get(user_id=user_id)
             nick_name = user_info.nick_name
             data = {"nick_name": nick_name}
 
@@ -608,7 +611,7 @@ class QueryTenantView(APIView):
             data["tenant_list"] = tenant_map_list
             return Response({'data': data}, status=200)
         except Users.DoesNotExist:
-            logger.error("---no user info for:{}".format(email))
+            logger.error("---no user info for:{}".format(user_id))
         return Response(status=500)
 
 

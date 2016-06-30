@@ -4,3 +4,19 @@
     margin-right: auto;
     margin-top: 40px;
 }
+
+/* ww--登录注册重置修改 -- 2016-06-22 */
+a:link,a:visited,a:hover,a:active{text-decoration:none;}
+
+.yblogo{width: 200px; height: 50px; margin-right: auto; margin-left: auto; margin-top: 40px; margin-bottom: 40px;}
+.yblogo img{width: 200px; height: 50px; }
+.mainbox{width: 80%; max-width: 400px; margin:20px auto;}
+.weixin{width:80px; text-align: center; color: #333;  margin:10px auto; display: block; height: 30px; border: 1px #ccc solid; border-radius: 4px;}
+.weixin img{width:30px; height:30px; display: inline-block;}
+a.weixin:link,a.weixin:visited,a.weixin:hover,a.weixin:active{color: #333;}
+.linkgood{display: block; margin-top: 10px;}
+.linkregister{margin-top: 20px;}
+.linkfw{margin-bottom: 10px;}
+.btn-success{background: #28cb75; border: 0 none; margin-bottom: 20px;  padding: 7px 0;}
+
+.littlebtn .btn{width: 48%;}

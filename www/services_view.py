@@ -10,7 +10,7 @@ from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.shortcuts import redirect
 from django.http import Http404
-from www.views import BaseView, AuthedView, LeftSideBarMixin, RegionOperateMixin, CopyPortAndEnvMixin
+from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant,
                         TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation,
@@ -32,7 +32,7 @@ tenantUsedResource = TenantUsedResource()
 codeRepositoriesService = CodeRepositoriesService()
 
 
-class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
+class TenantServiceAll(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
         media = super(TenantServiceAll, self).get_media() + self.vendor(
@@ -57,11 +57,6 @@ class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
         try:
             t_region, created = TenantRegionInfo.objects.get_or_create(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             self.tenant_region = t_region
-            if created or not t_region.is_active:
-                logger.info("tenant.region_init", "init region {0} for tenant {1}".format(self.response_region, self.tenant.tenant_name))
-                success = self.init_for_region(self.response_region, self.tenant.tenant_name, self.tenant.tenant_id)
-                t_region.is_active = True if success else False
-                t_region.save()
         except Exception, e:
             logger.error(e)
 
@@ -73,8 +68,8 @@ class TenantServiceAll(LeftSideBarMixin, RegionOperateMixin, AuthedView):
         context = self.get_context()
         try:
             num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
-            if num < 1:
-                return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
+            # if num < 1:
+            #     return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
             tenantServiceList = context["tenantServiceList"]
             context["totalAppStatus"] = "active"
             context["totalFlow"] = 0
