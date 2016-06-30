@@ -342,8 +342,8 @@ class WeChatInfoView(BaseView):
             return TemplateResponse(self.request, page, context)
 
         logger.debug("now update user...")
-        self.user.set_password(password)
         self.user.email = email
+        self.user.set_password(password)
         self.user.client_ip = get_client_ip(request)
         if self.user.rf == "open_wx":
             self.user.status = 3
