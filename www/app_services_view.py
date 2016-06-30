@@ -46,6 +46,15 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         # 检查用户邮箱是否完善,跳转到邮箱完善页面
         if self.user.email is None or self.user.email == "":
             return self.redirect_to("/wechat/info")
+        # 判断系统中是否有初始化的application数据
+        count = ServiceInfo.objects.filter(service_key="application").count()
+        if count == 0:
+            # 跳转到云市引用市场下在application模版
+            next_url = request.path
+            redirect_url = "/ajax/{0}/remote/market?service_key=application&app_version=81701&next_url={1}".format(self.tenantName, next_url)
+            logger.debug("now init application record")
+            return self.redirect_to(redirect_url)
+
         context = self.get_context()
         if settings.MODULES["Git_Code_Manual"]:
             response = TemplateResponse(self.request, "www/app_create_manual_code_step_1.html", context)

@@ -45,6 +45,7 @@ class RemoteServiceMarketAjax(AuthedView):
             app_version = request.GET.get('app_version')
             callback = request.GET.get('callback', "0")
             action = request.GET.get('action', '')
+            next_url = request.GET.get("next_url")
             update_version = request.GET.get('update_version', 1)
             if action != "update":
                 num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
@@ -190,6 +191,9 @@ class RemoteServiceMarketAjax(AuthedView):
                 if callback != "0":
                     appClient.post_statics_tenant(self.tenant.tenant_id, callback)
                 # 跳转到页面
+                if next_url:
+                    # 如果有回跳页面, 直接返回
+                    return self.redirect_to(next_url)
                 if action != "update":
                     return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
                 else:
