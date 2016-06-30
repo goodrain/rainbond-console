@@ -9,7 +9,7 @@ from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod)
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 from www.app_http import AppServiceApi
@@ -23,6 +23,7 @@ tenantUsedResource = TenantUsedResource()
 monitorhook = MonitorHook()
 tenantAccountService = TenantAccountService()
 appClient = AppServiceApi()
+tenantRegionService = TenantRegionService()
 
 
 class ServiceMarket(LeftSideBarMixin, AuthedView):
@@ -188,6 +189,12 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         service_id = make_uuid(tenant_id)
         result = {}
         try:
+            #judge region tenant is init
+            success = tenantRegionService.init_for_region(self.response_region,self.tenantName,tenant_id)
+            if not success:
+                data["status"] = "failure"
+                return JsonResponse(data, status=200)
+            
             if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)

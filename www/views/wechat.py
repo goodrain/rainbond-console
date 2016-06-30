@@ -11,7 +11,7 @@ from www.auth import authenticate, login
 from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo
 from www.utils.crypt import AuthCode
 
-from www.views import BaseView, RegionOperateMixin
+from www.views import BaseView
 from www.monitorservice.monitorhook import MonitorHook
 
 from www.wechat.openapi import OpenWeChatAPI
@@ -124,7 +124,7 @@ class WeChatLogout(BaseView):
         return self.redirect_to(index_url)
 
 
-class WeChatCallBack(BaseView, RegionOperateMixin):
+class WeChatCallBack(BaseView):
     """微信登录后返回"""
 
     def get(self, request, *args, **kwargs):
@@ -224,8 +224,6 @@ class WeChatCallBack(BaseView, RegionOperateMixin):
             logger.info("account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(email, tenant_name, region, tenant.tenant_id))
             # 租户与区域中心绑定
             TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
-            # init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
-            # monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
             # create gitlab user 微信注册默认不支持
             # codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
 

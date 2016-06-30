@@ -18,7 +18,7 @@ import random
 import re
 
 from www.region import RegionInfo
-from www.views import BaseView, RegionOperateMixin
+from www.views import BaseView
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
 
@@ -343,7 +343,7 @@ class PasswordReset(BaseView):
         return self.get_response()
 
 
-class Registation(BaseView, RegionOperateMixin):
+class Registation(BaseView):
 
     def get_context(self):
         context = super(Registation, self).get_context()
@@ -435,8 +435,6 @@ class Registation(BaseView, RegionOperateMixin):
                 "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(nick_name, tenant_name, region, tenant.tenant_id))
 
             TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
-            init_result = self.init_for_region(tenant.region, tenant_name, tenant.tenant_id)
-            monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
             # create gitlab user
             if user.email is not None and user.email != "":
                 codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)

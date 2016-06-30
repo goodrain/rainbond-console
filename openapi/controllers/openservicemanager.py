@@ -10,12 +10,14 @@ from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
+from www.tenantservice.baseservice import TenantRegionService
 
 import logging
 logger = logging.getLogger('default')
 
 monitorhook = MonitorHook()
 regionClient = RegionServiceApi()
+tenantRegionService = TenantRegionService()
 
 
 class OpenTenantServiceManager(object):
@@ -450,18 +452,7 @@ class OpenTenantServiceManager(object):
                                         region_name=tenant.region)
 
         # 发送请求到对应的数据中心创建租户
-        init_result = self._init_for_region(tenant.region,
+        tenantRegionService.init_for_region(tenant.region,
                                             tenant_name,
                                             tenant.tenant_id)
-        monitorhook.tenantMonitor(tenant, user, "init_tenant", init_result)
         return tenant
-
-    def _init_for_region(self, region, tenant_name, tenant_id):
-        logger.info("openapi.services", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
-        try:
-            regionClient.create_tenant(region, tenant_name, tenant_id)
-            return True
-        except regionClient.CallApiError as e:
-            logger.error("openapi.services", "create tenant {0} failed".format(tenant_name))
-            logger.exception("openapi.services", e)
-            return False

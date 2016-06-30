@@ -10,7 +10,7 @@ from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixi
 from www.decorator import perm_required
 from www.models import Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService, TenantRegionService
 from www.utils.language import is_redirect
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
@@ -25,6 +25,7 @@ tenantAccountService = TenantAccountService()
 tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 codeRepositoriesService = CodeRepositoriesService()
+tenantRegionService = TenantRegionService()
 
 
 class AppCreateView(LeftSideBarMixin, AuthedView):
@@ -84,10 +85,16 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         service_id = make_uuid(tenant_id)
         data = {}
         try:
+            #judge region tenant is init
+            success = tenantRegionService.init_for_region(self.response_region,self.tenantName,tenant_id)
+            if not success:
+                data["status"] = "failure"
+                return JsonResponse(data, status=200)
+            
             if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
-
+            
             service_desc = ""
             service_alias = request.POST.get("create_app_name", "")
             service_code_from = request.POST.get("service_code_from", "")
