@@ -274,71 +274,63 @@ class WeChatInfoView(BaseView):
     def post(self, request, *args, **kwargs):
         # 获取用户信息
         email = request.POST.get("email")
-        nick_name = request.POST.get("nick_name")
         phone = request.POST.get("phone")
         password = request.POST.get("password")
-        password_repeat = request.POST.get("password_repeat")
+
+        err_info = {}
         success = True
-        err = {}
-        # 校验
+        # 校验邮箱
         if email is None or email == "":
             success = False
-            err['email'] = "邮件地址不能为空"
+            err_info['email'] = "邮件地址不能为空"
         else:
-            try:
-                Users.objects.get(email=email)
+            count = Users.objects.filter(email=email).count()
+            if count > 0:
                 success = False
-                err['email'] = "邮件地址已经存在"
-            except Users.DoesNotExist:
-                pass
-
-        if password is None or password == "":
-            success = False
-            err['password'] = "密码不能为空"
-
-        if self.user.rf != "open_wx":
-            # 校验密码是否正确
-            if self.user.check_password(password):
-                pass
-            else:
+                err_info['email'] = "邮件地址已经存在"
+        # 校验手机号码
+        if phone is not None and phone != "":
+            count = Users.objects.filter(phone=phone).count()
+            if count > 0:
                 success = False
-                err['password'] = "密码错误"
+                err_info['phone'] = "手机号已存在"
 
-        # 如果是正常用户,用户名不做修改
-        # 微信用户,用户名称校验唯一性
         if self.user.rf == "open_wx":
+            # 重置用户名、密码、邮箱、手机号
+            # nick_name
+            nick_name = request.POST.get("nick_name")
             if nick_name is None or nick_name == "":
                 success = False
-                err['name'] = "用户名不能为空"
+                err_info['name'] = "用户名不能为空"
             else:
-                try:
-                    Users.objects.get(nick_name=nick_name)
+                count = Users.objects.filter(nick_name=nick_name).count()
+                if count > 0:
                     success = False
-                    err['name'] = "用户名已经存在"
-                except Users.DoesNotExist:
-                    pass
-                self.user.nick_name = nick_name
+                    err_info['name'] = "用户名已经存在"
+            # password
+            if password is None or password == "":
+                success = False
+                err_info['password'] = "密码不能为空"
 
+            password_repeat = request.POST.get("password_repeat")
             if password_repeat != password:
                 success = False
-                err['password'] = "两次输入的密码不一致"
+                err_info['password'] = "两次输入的密码不一致"
 
-        if phone is not None and phone != "":
-            phoneNumber = Users.objects.filter(phone=phone).count()
-            logger.debug('form_valid.register', phoneNumber)
-            if phoneNumber > 0:
+            self.user.nick_name = nick_name
+        else:
+            # 根据用户名、密码重新设置邮箱,手机号
+            if not self.user.check_password(password):
                 success = False
-                err['phone'] = "手机号已存在"
-            self.user.phone = phone
+                err_info['password'] = "密码错误"
 
         # 参数错误,返回原页面
         if not success:
             context = self.get_context()
-            context['error'] = err.values()
+            context['error'] = err_info.values()
             page = "www/account/wechatinfo.html"
             context["user"] = self.user
             context["disable_nick_name"] = self.user.rf != "open_wx"
-            logger.error(err)
             return TemplateResponse(self.request, page, context)
 
         logger.debug("now update user...")
