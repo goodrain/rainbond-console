@@ -205,7 +205,8 @@ class WeChatCallBack(BaseView):
         # 用户表中不存在对应用户,判断是否已经解绑
         if need_new:
             try:
-                binding = WeChatUnBind.objects.get(union_id=wechat_user.union_id)
+                binding = WeChatUnBind.objects.get(union_id=wechat_user.union_id,
+                                                   status=0)
                 user = Users.objects.get(pk=binding.user_id)
                 user.union_id = wechat_user.union_id
                 user.save()
@@ -226,7 +227,7 @@ class WeChatCallBack(BaseView):
             count += 1989
             nick_name = "wxgd0" + str(count)
             user = Users(nick_name=nick_name,
-                         phone=0,
+                         phone="",
                          client_ip=get_client_ip(request),
                          rf="open_wx",
                          status=2,
@@ -388,11 +389,13 @@ class UnbindView(BaseView):
             # 判断用户当前status
             if self.user.status == 1 or self.user.status == 0:
                 # 记录user_id union_id关系
-                try:
-                    WeChatUnBind.objects.get(union_id=self.user.union_id)
-                except WeChatUnBind.DoesNotExist:
+                num = WeChatUnBind.objects.get(union_id=self.user.union_id,
+                                               user_id=self.user.pk).count()
+                if num == 0:
+                    count = WeChatUnBind.objects.get(union_id=self.user.union_id).count()
                     WeChatUnBind.objects.create(user_id=self.user.pk,
-                                                union_id=self.user.union_id)
+                                                union_id=self.user.union_id,
+                                                status=count)
                 # 1:普通注册,绑定微信
                 self.user.status = 0
                 self.user.union_id = ''
@@ -401,11 +404,6 @@ class UnbindView(BaseView):
                 # 判断用户信息是否完善
                 union_id = self.user.union_id
                 if union_id is None or union_id == '':
-                    try:
-                        WeChatUnBind.objects.get(union_id=self.user.union_id)
-                    except WeChatUnBind.DoesNotExist:
-                        WeChatUnBind.objects.create(user_id=self.user.pk,
-                                                    union_id=self.user.union_id)
                     self.user.status = 4  # 微信注册,解除绑定
                     self.user.union_id = ''
                     self.user.save()
@@ -416,11 +414,13 @@ class UnbindView(BaseView):
                         # 页面接受需要跳转到信息完善页面
                         code = 201
                     else:
-                        try:
-                            WeChatUnBind.objects.get(union_id=self.user.union_id)
-                        except WeChatUnBind.DoesNotExist:
+                        num = WeChatUnBind.objects.get(union_id=self.user.union_id,
+                                                       user_id=self.user.pk).count()
+                        if num == 0:
+                            count = WeChatUnBind.objects.get(union_id=self.user.union_id).count()
                             WeChatUnBind.objects.create(user_id=self.user.pk,
-                                                        union_id=self.user.union_id)
+                                                        union_id=self.user.union_id,
+                                                        status=count)
                         self.user.status = 4  # 微信注册,解除绑定
                         self.user.union_id = ''
                         self.user.save()

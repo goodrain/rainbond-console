@@ -140,6 +140,7 @@ class WeChatUnBind(models.Model):
 
     user_id = models.IntegerField(help_text=u"用户的user_id")
     union_id = models.CharField(max_length=200, help_text=u'微信用户union_id')
+    status = models.IntegerField(help_text=u'用户解绑的状态')
 
 
 class Users(models.Model):
