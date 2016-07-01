@@ -396,14 +396,14 @@ class UnbindView(BaseView):
         try:
             # 判断用户当前status
             if self.user.status == 1 or self.user.status == 0:
-                # 记录user_id union_id关系
-                num = WeChatUnBind.objects.filter(union_id=self.user.union_id,
-                                                  user_id=self.user.pk).count()
-                if num == 0:
-                    count = WeChatUnBind.objects.filter(union_id=self.user.union_id).count()
-                    WeChatUnBind.objects.create(user_id=self.user.pk,
-                                                union_id=self.user.union_id,
-                                                status=count)
+                # pc端注册用户解绑不添加解绑纪录,只修改用户状态
+                # num = WeChatUnBind.objects.filter(union_id=self.user.union_id,
+                #                                   user_id=self.user.pk).count()
+                # if num == 0:
+                #     count = WeChatUnBind.objects.filter(union_id=self.user.union_id).count()
+                #     WeChatUnBind.objects.create(user_id=self.user.pk,
+                #                                 union_id=self.user.union_id,
+                #                                 status=count)
                 # 1:普通注册,绑定微信
                 self.user.status = 0
                 self.user.union_id = ''
