@@ -138,6 +138,8 @@ MODULES = {
     "License_Center": False,
     "WeChat_Module": False,
     "Docker_Console": True,
+    "Publish_YunShi": True,
+    "Publish_Service": False,
 }
 
 REGIONS = (

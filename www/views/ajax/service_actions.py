@@ -1055,7 +1055,7 @@ class ServiceDockerContainer(AuthedView):
             logger.info("c_id=" + c_id)
             logger.info("h_id=" + h_id)
             if c_id != "" and h_id != "":
-                fields = ip.split('.')
+                fields = h_id.split('.')
                 new_fields = map(lambda x: int(x) + int(fields[len(x)]), fields)
                 key = '{:02X}{:02X}{:02X}{:02X}'.format(*new_fields)
                 response.set_cookie('docker_c_id', c_id)

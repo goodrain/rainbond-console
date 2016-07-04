@@ -69,7 +69,7 @@
     </div>
   </div>
   
-  {% if user.is_sys_admin and docker_console %}
+  {% if user.is_sys_admin or docker_console %}
   <div class="row">
     <div class="col-lg-6 text-left">
        <section class="panel">
@@ -391,7 +391,7 @@
                         msg+="<td>container:";
                         msg+=tindex;
                         msg+="</td>"
-                        msg+="<td><a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+key+"\")'> 进入控制台</a></td>"
+                        msg+="<td><a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\")'> 进入控制台</a></td>"
                         msg+="</tr>";
                         tindex+=1;
                     }
