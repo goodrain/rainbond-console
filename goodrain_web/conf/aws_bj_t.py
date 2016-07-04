@@ -165,3 +165,8 @@ WECHAT_CALLBACK = {
     "console_bind_goodrain": "",
     "index": "http://www.goodrain.com/product/",
 }
+
+
+WSS_URL = {
+    'aws-bj-t': '',
+}

@@ -4,7 +4,7 @@
     var c_id=document.getElementById("c_id").value;
     var md5=document.getElementById("md5").value;
     var h_id=document.getElementById("h_id").value;
-    var url = 'ws://54.222.220.142:6060/ws';
+    var url = document.getElementById("wss").value;
     var autoReconnect = -1;
     var openWs = function() {
         var ws = new WebSocket(url);

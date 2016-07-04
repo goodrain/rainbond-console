@@ -214,3 +214,10 @@ WECHAT_CALLBACK = {
     "console_bind_goodrain": "http://user.goodrain.com/wechat/callbackbind",
     "index": "http://www.goodrain.com/product/",
 }
+
+WSS_URL = {
+    'ucloud-bj-1': '',
+    'aws-bj-1': '',
+    'aws-jp-1': '',
+    'ali-sh': '',
+}
