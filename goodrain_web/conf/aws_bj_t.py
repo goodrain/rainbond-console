@@ -168,5 +168,5 @@ WECHAT_CALLBACK = {
 
 
 DOCKER_WSS_URL = {
-    'aws-bj-t': '',
+    'aws-bj-t': '.ws.aws-bj-t.goodrain.com:8080',
 }

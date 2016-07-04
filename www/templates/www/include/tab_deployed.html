@@ -387,12 +387,11 @@
                 var tindex=1
                 for(var key in dataObj){
                     if(key != "split"){
-                        var ip = dataObj[key].split(".")[3]
                         msg+="<tr>";
                         msg+="<td>container:";
                         msg+=tindex;
                         msg+="</td>"
-                        msg+="<td><a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+ip+"\")'> 进入控制台</a></td>"
+                        msg+="<td><a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+key+"\")'> 进入控制台</a></td>"
                         msg+="</tr>";
                         tindex+=1;
                     }
