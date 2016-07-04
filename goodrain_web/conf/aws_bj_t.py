@@ -167,6 +167,6 @@ WECHAT_CALLBACK = {
 }
 
 
-WSS_URL = {
+DOCKER_WSS_URL = {
     'aws-bj-t': '',
 }

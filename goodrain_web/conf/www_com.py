@@ -215,7 +215,7 @@ WECHAT_CALLBACK = {
     "index": "http://www.goodrain.com/product/",
 }
 
-WSS_URL = {
+DOCKER_WSS_URL = {
     'ucloud-bj-1': '',
     'aws-bj-1': '',
     'aws-jp-1': '',
