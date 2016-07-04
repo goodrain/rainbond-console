@@ -456,7 +456,7 @@ class ServiceDockerContainer(AuthedView):
                 context["ctn_id"] = docker_c_id
                 context["host_id"] = docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
-                context["wss"] = host_id+settings.DOCKER_WSS_URL[self.service.service_region]
+                context["wss"] = docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region]
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')
