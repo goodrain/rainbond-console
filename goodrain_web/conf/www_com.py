@@ -187,10 +187,9 @@ MODULES = {
 }
 
 REGIONS = (
-    {"name": "ucloud-bj-1", "label": u'ucloud[\u5317\u4eac]', "enable": True},
-    {"name": "aws-jp-1", "label": u'\u4e9a\u9a6c\u900a[\u65e5\u672c]', "enable": True},
     {"name": "ali-sh", "label": u'\u963f\u91cc\u4e91[\u4e0a\u6d77]', "enable": True},
-    {"name": "aws-bj-1", "label": u'\u4e9a\u9a6c\u900a[\u5317\u4eac]', "enable": False}
+    {"name": "ucloud-bj-1", "label": u'ucloud[\u5317\u4eac]', "enable": True},
+    {"name": "aws-jp-1", "label": u'\u4e9a\u9a6c\u900a[\u65e5\u672c]', "enable": True}
 )
 
 # logo path

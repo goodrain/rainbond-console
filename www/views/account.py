@@ -680,6 +680,16 @@ class TenantSelectView(BaseView):
         tenant = post_data.get('tenant')
         region = post_data.get('region')
 
+        try:
+            tenant_info = Tenants.objects.get(tenant_name=tenant)
+            num = TenantRegionInfo.objects.filter(tenant_id=tenant_info.tenant_id,
+                                                  region_name=region).count()
+            if num == 0:
+                TenantRegionInfo.objects.create(tenant_id=tenant_info.tenant_id,
+                                                region_name=tenant.region)
+        except Exception as e:
+            return self.redirect_to("/")
+
         if action is None:
             return self.get(request, *args, **kwargs)
         elif action == 'app_install':
