@@ -688,6 +688,7 @@ class TenantSelectView(BaseView):
                 TenantRegionInfo.objects.create(tenant_id=tenant_info.tenant_id,
                                                 region_name=tenant.region)
         except Exception as e:
+            logger.exception(e)
             return self.redirect_to("/")
 
         if action is None:
