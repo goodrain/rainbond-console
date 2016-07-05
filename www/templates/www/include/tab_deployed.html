@@ -69,7 +69,7 @@
     </div>
   </div>
   
-  {% if user.is_sys_admin or docker_console %}
+  {% if user.is_sys_admin and docker_console %}
   <div class="row">
     <div class="col-lg-6 text-left">
        <section class="panel">
