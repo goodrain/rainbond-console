@@ -320,14 +320,17 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
     def copy_envs(self, source_service, envs):
         s = self.service
         baseService = BaseTenantService()
+        has_env=[]
         for env in envs:
             source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version, attr_name=env.attr_name)
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
                                           env.attr_name, env.attr_value, source_env.is_change, source_env.scope)
+            has_env.append(env.attr_name)
 
         for sys_env in AppServiceEnv.objects.filter(service_key=s.service_key, app_version=s.version):
-            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, sys_env.container_port, sys_env.name,
-                                          sys_env.attr_name, sys_env.attr_value, sys_env.is_change, sys_env.scope)
+            if sys_env.attr_name not in has_env:
+                baseService.saveServiceEnvVar(s.tenant_id, s.service_id, sys_env.container_port, sys_env.name,
+                                              sys_env.attr_name, sys_env.attr_value, sys_env.is_change, sys_env.scope)
 
     def copy_ports(self, source_service):
         AppPorts = AppServicePort.objects.filter(service_key=self.service.service_key, app_version=self.service.version)
