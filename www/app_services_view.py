@@ -236,7 +236,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             logger.debug(createService)
             if createService is not None and createService != "":
                 # resource check
-                diffMemory = self.service.min_memory + calRelationServiceResource(createService)
+                diffMemory = self.service.min_memory + self.calRelationServiceResource(createService)
                 rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, diffMemory, False)
                 if not flag:
                     if rt_type == "memory":
