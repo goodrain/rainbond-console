@@ -85,7 +85,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         service_id = make_uuid(tenant_id)
         data = {}
         try:
-            #judge region tenant is init
+            # judge region tenant is init
             success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
             if not success:
                 data["status"] = "failure"
@@ -101,7 +101,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             if service_code_from is None or service_code_from == "":
                 data["status"] = "code_from"
                 return JsonResponse(data, status=200)
-            service_alias=service_alias.rstrip().lstrip()
+            service_alias = service_alias.rstrip().lstrip()
             if service_alias is None or service_alias == "":
                 data["status"] = "empty"
                 return JsonResponse(data, status=200)
@@ -197,7 +197,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
             
-            types=ServiceType.type_lists()
+            types = ServiceType.type_lists()
             cacheServiceList = ServiceInfo.objects.filter(status="published", service_type__in=types)
             context["cacheServiceList"] = cacheServiceList
 
@@ -209,6 +209,20 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_2_dependency.html", context)
 
+    def calRelationServiceResource(self, createService):
+        totalmemory = 0
+        if settings.MODULES["Memory_Limit"]:
+            try:
+                serviceKeys = createService.split(",")
+                for skey in serviceKeys:
+                    if skey != "":
+                        service_key, app_version = skey.split(':', 1)
+                        dep_service = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                        totalmemory = totalmemory + dep_service.min_memory
+            except Exception as e:
+                logger.exception(e)
+        return totalmemory
+            
     @never_cache
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
@@ -221,9 +235,8 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             createService = request.POST.get("createService", "")
             logger.debug(createService)
             if createService is not None and createService != "":
-                serviceKeys = createService.split(",")
                 # resource check
-                diffMemory = self.service.min_memory + len(serviceKeys) * 128
+                diffMemory = self.service.min_memory + calRelationServiceResource(createService)
                 rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, diffMemory, False)
                 if not flag:
                     if rt_type == "memory":
@@ -233,6 +246,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     return JsonResponse(data, status=200)
 
                 # create service
+                serviceKeys = createService.split(",")
                 for skey in serviceKeys:
                     try:
                         service_key, app_version = skey.split(':', 1)
