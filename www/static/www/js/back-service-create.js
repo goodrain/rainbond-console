@@ -50,6 +50,7 @@ $(function(){
     		},
     		success : function(msg) {
     			var dataObj = msg;
+                $("#back_service_finished").prop('disabled', false);
     			if (dataObj["status"] == "notexist"){
     				swal("所选的服务类型不存在");
     			} else if (dataObj["status"] == "depend_service_notexit"){
@@ -69,9 +70,7 @@ $(function(){
     				window.location.href = "/apps/" + tenantName + "/" + service_alias + "/setup/extra/";
     			} else {
     				swal("创建失败");
-    				$("#back_service_finished").prop('disabled', false)
                 }
-    			$("#back_service_finished").prop('disabled', false)
     		},
     		error : function() {
     			swal("系统异常,请重试");

@@ -58,6 +58,7 @@ $(function(){
     		},
     		success : function(msg) {
     			var dataObj = msg;
+				$("#first_step").attr('disabled', false);
     			if (dataObj["status"] == "exist") {
     				swal("服务名已存在");
     			} else if (dataObj["status"] == "owed"){
@@ -78,7 +79,6 @@ $(function(){
     			} else {
     				swal("创建失败");
                 }
-    		    $("#first_step").attr('disabled', false);
     		},
     		error : function() {
     			swal("系统异常,请重试");
