@@ -408,7 +408,7 @@ class RegisterForm(forms.Form):
         if selected_region is not None and selected_region != "":
             self.fields['machine_region'].initial = selected_region
 
-        init_region = RegionInfo.register_choices()[0]['name']
+        init_region = RegionInfo.register_choices()[0][0]
         if settings.MODULES["Sms_Check"]:
             if settings.MODULES["WeChat_Module"]:
                 self.helper.layout = Layout(
