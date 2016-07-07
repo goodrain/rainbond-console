@@ -408,6 +408,7 @@ class RegisterForm(forms.Form):
         if selected_region is not None and selected_region != "":
             self.fields['machine_region'].initial = selected_region
 
+        init_region = RegionInfo.register_choices()[0]['name']
         if settings.MODULES["Sms_Check"]:
             if settings.MODULES["WeChat_Module"]:
                 self.helper.layout = Layout(
@@ -417,7 +418,7 @@ class RegisterForm(forms.Form):
                         Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                         HTML("<hr/>"),
                         # 默认为ali-sh
-                        Hidden('machine_region', value="ali-sh"),
+                        Hidden('machine_region', value=init_region),
                         Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                         AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
@@ -438,7 +439,7 @@ class RegisterForm(forms.Form):
                         Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                         Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                         HTML("<hr/>"),
-                        Hidden('machine_region', value="ali-sh"),
+                        Hidden('machine_region', value=init_region),
                         Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                         AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
@@ -458,7 +459,7 @@ class RegisterForm(forms.Form):
                         Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                         Field('email', css_class="form-control", placeholder=text_email),
                         HTML("<hr/>"),
-                        Hidden('machine_region', value="ali-sh"),
+                        Hidden('machine_region', value=init_region),
                         Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                         AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
@@ -479,7 +480,7 @@ class RegisterForm(forms.Form):
                         Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                         Field('email', css_class="form-control", placeholder=text_email),
                         HTML("<hr/>"),
-                        Hidden('machine_region', value="ali-sh"),
+                        Hidden('machine_region', value=init_region),
                         Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                         AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
@@ -533,7 +534,8 @@ class RegisterForm(forms.Form):
 
         # 数据中心不做校验,默认为ali-sh
         if machine_region is None or machine_region == "" or machine_region == "1":
-            machine_region = "ali-sh"
+            pass
+            # machine_region = "ali-sh"
             # raise forms.ValidationError(
             #     self.error_messages['machine_region_error'],
             #     code='machine_region_error',
