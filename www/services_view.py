@@ -194,7 +194,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         memory_dict["32768"] = '32G'
         memory_dict["65536"] = '64G'
         return memory_dict
-    
+
     def extends_choices(self):
         extends_dict = {}
         extends_dict["state"] = u'有状态'
@@ -217,7 +217,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # forbidden blank page
                 if self.service.code_version is None or self.service.code_version == "":
                     if self.service.code_from is None or self.service.code_from == "":
-                       codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
+                        codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)
@@ -237,24 +237,24 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
-            
+
             http_port_str = settings.WILD_PORTS[self.response_region]
             context['http_port_str'] = ":" + http_port_str
-                
+
             if fr == "deployed":
                 if self.service.category == 'store':
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager
-                 
-                # inner service   
+
+                # inner service
                 innerPorts = {}
                 tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
                 for tsp in tsps:
                     innerPorts[tsp.container_port] = True
-                    
+
                 if len(tsps) > 0:
                     context["hasInnerServices"] = True
-                
+
                 envMap = {}
                 envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"))
                 if len(envVarlist) > 0:
@@ -265,17 +265,17 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         arr.append(evnVarObj)
                         envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
-                    
+
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                     context["hasHttpServices"] = True
-                    
+
                 baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
                     context["updateService"] = True
-                    
+
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
-                
+
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
@@ -304,7 +304,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     arr.append(evnVarObj)
                     envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
-                
+
                 # add dir mnt
                 mtsrs = TenantServiceMountRelation.objects.filter(service_id=self.service.service_id)
                 mntsids = []
@@ -312,10 +312,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     for mnt in mtsrs:
                         mntsids.append(mnt.dep_service_id)
                 context["mntsids"] = mntsids
-                
+
             elif fr == "statistic":
                 context['statistic_type'] = self.statistic_type
-                if self.service.service_key in ('mysql',):
+                if self.service.service_type in ('mysql',):
                     context['ws_topic'] = '{0}.{1}.statistic'.format(''.join(list(self.tenant.tenant_id)[1::2]), ''.join(list(self.service.service_id)[::2]))
                 else:
                     context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
@@ -325,20 +325,20 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 nodeList = []
                 memoryList = []
                 try:
-                   sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
-                   nodeList.append(sem.min_node)
-                   next_node = sem.min_node + sem.step_node
-                   while(next_node <= sem.max_node):
-                       nodeList.append(next_node)
-                       next_node = next_node + sem.step_node
-                
-                   num = 1
-                   memoryList.append(str(sem.min_memory))
-                   next_memory = sem.min_memory * pow(2, num)
-                   while(next_memory <= sem.max_memory):
-                       memoryList.append(str(next_memory))
-                       num = num + 1
-                       next_memory = sem.min_memory * pow(2, num)
+                    sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
+                    nodeList.append(sem.min_node)
+                    next_node = sem.min_node + sem.step_node
+                    while(next_node <= sem.max_node):
+                        nodeList.append(next_node)
+                        next_node = next_node + sem.step_node
+
+                    num = 1
+                    memoryList.append(str(sem.min_memory))
+                    next_memory = sem.min_memory * pow(2, num)
+                    while(next_memory <= sem.max_memory):
+                        memoryList.append(str(next_memory))
+                        num = num + 1
+                        next_memory = sem.min_memory * pow(2, num)
                 except Exception as e:
                     pass
                 context["nodeList"] = nodeList
@@ -347,7 +347,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
                 context["git_tag"] = settings.MODULES["GitLab_Project"]
-                
+
                 if self.service.category == "application" or self.service.category == "manager":
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
@@ -358,7 +358,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     except Exception as e:
                         pass
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
 
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
@@ -401,7 +401,7 @@ class ServiceLatestLog(AuthedView):
 
     def get_media(self):
         media = super(ServiceLatestLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
-                'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
+                                                                        'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -421,7 +421,7 @@ class ServiceHistoryLog(AuthedView):
 
     def get_media(self):
         media = super(ServiceHistoryLog, self).get_media() + self.vendor('www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
-                'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
+                                                                         'www/js/jquery.cookie.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
     @never_cache
@@ -436,12 +436,13 @@ class ServiceHistoryLog(AuthedView):
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)
 
+
 class ServiceDockerContainer(AuthedView):
 
     def get_media(self):
         media = super(ServiceDockerContainer, self).get_media()
         return media
-    
+
     @never_cache
     def get(self, request, *args, **kwargs):
         context = self.get_context()
@@ -456,7 +457,7 @@ class ServiceDockerContainer(AuthedView):
                 context["ctn_id"] = docker_c_id
                 context["host_id"] = docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
-                context["wss"] = "ws://"+ docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region]+"/ws"
+                context["wss"] = "ws://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')
