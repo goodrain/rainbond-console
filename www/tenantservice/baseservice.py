@@ -99,7 +99,11 @@ class BaseTenantService(object):
         host_path = ""
         if bool(service.volume_mount_path):
             volume_path = service.volume_mount_path
-            host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
+            logger.debug("region:{0} and service_type:{1}".format(region, service.service_type))
+            if region == "ucloud-bj-1" and service.service_type == "mysql":
+                host_path = "/app-data/tenant/" + tenant_id + "/service/" + service_id
+            else:
+                host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
         tenantServiceInfo["volume_mount_path"] = volume_path
         tenantServiceInfo["host_path"] = host_path
         if service.service_key == 'application':
