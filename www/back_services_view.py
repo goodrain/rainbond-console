@@ -339,10 +339,22 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             baseService.addServicePort(self.service, source_service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
                                        is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
 
+    # add by tanm specify tenant app default env
+    def set_tenant_default_env(self, envs):
+        for env in envs:
+            if env.attr_name == 'SITE_URL':
+                env.options = 'direct_copy'
+                env.attr_value = 'http://{}.{}.{}.goodrain.net:10080'.format(self.serviceAlias, self.tenantName,
+                                                                             self.cookie_region)
+
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version, container_port=0, is_change=True)
+
         if envs:
+            # add by tanm
+            self.set_tenant_default_env(envs)
+            # add end
             context['envs'] = envs
             return TemplateResponse(request, 'www/back_service_create_step_2.html', context)
         else:
