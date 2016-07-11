@@ -683,6 +683,7 @@ class TenantSelectView(BaseView):
 
             # 如果用户只属于一个团队并且有数据中心的选择模式参数
             if region_select is not None and len(tenant_names) == 1:
+                logger.debug("tenant.select.region","regin_select mode is {}".format(region_select))
                 # 系统自动选择机房
                 if region_select == 'auto':
                     select_tenant = tenant_names[0]
@@ -692,6 +693,8 @@ class TenantSelectView(BaseView):
 
                     response = self.redirect_to(next_url)
                     response.set_cookie('region', select_region)
+
+                    logger.debug("tenant.select.region", "install by auto region {}, redirect to {}".format(select_region, next_url))
                     return response
 
                 # 如果指定机房在系统配置机房范围内
@@ -704,12 +707,15 @@ class TenantSelectView(BaseView):
 
                     response = self.redirect_to(next_url)
                     response.set_cookie('region', select_region)
+
+                    logger.debug("tenant.select.region", "install by specify region {}, redirect to {}".format(select_region, next_url))
                     return response
 
         # 用户自己选择团队跟机房
         context = self.get_context()
         context.update({"tenant_names": tenant_names, "regions": regions})
 
+        logger.debug("tenant.select.region", "install by hand!")
         return TemplateResponse(request, 'www/account/select_tenant.html', context)
 
     def post(self, request, *args, **kwargs):
