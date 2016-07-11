@@ -343,9 +343,22 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
     def set_tenant_default_env(self, envs):
         for env in envs:
             if env.attr_name == 'SITE_URL':
-                env.options = 'direct_copy'
-                env.attr_value = 'http://{}.{}.{}.goodrain.net:10080'.format(self.serviceAlias, self.tenantName,
-                                                                             self.cookie_region)
+
+                if self.cookie_region == 'ali-sh':
+                    port = 10080
+                    env.options = 'direct_copy'
+                    env.attr_value = 'http://{}.{}.{}.goodrain.net:{}'.format(self.serviceAlias, self.tenantName,
+                                                                              self.cookie_region, port)
+                elif self.cookie_region == 'ucloud-bj-1':
+                    port = 20212
+                    env.options = 'direct_copy'
+                    env.attr_value = 'http://{}.{}.{}.goodrain.net:{}'.format(self.serviceAlias, self.tenantName,
+                                                                              self.cookie_region, port)
+                elif self.cookie_region == 'aws-jp-1':
+                    port = 80
+                    env.options = 'direct_copy'
+                    env.attr_value = 'http://{}.{}.{}.goodrain.net:{}'.format(self.serviceAlias, self.tenantName,
+                                                                              self.cookie_region, port)
 
     def get(self, request, *args, **kwargs):
         context = self.get_context()

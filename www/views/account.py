@@ -665,9 +665,48 @@ class TenantSelectView(BaseView):
         if isinstance(self.user, AnonymousUser):
             return self.redirect_to('/login')
 
+        # 先获取用户关联的团队
         tenant_names = self.get_tenant_names()
-        # tenant_names = ['testa', 'testb']
+        # 获取配置的可用数据中心列表
         regions = RegionInfo.register_choices()
+        # 获取用户动作
+        action = request.GET.get("action", None)
+        # 远程安装(云市)下,需要看是否指定默认安装选项,如果有匹配选项则直接重定向到安装页,否则跳到选择页
+        if action == 'remote_install':
+            # 远程服务安装
+            service_key = request.GET.get('service_key')
+            version = request.GET.get("version")
+            callback = request.GET.get("callback")
+
+            # 获取数据中心选择模式
+            region_select = request.GET.get('regionSelect', None)
+
+            # 如果用户只属于一个团队并且有数据中心的选择模式参数
+            if region_select is not None and len(tenant_names) == 1:
+                # 系统自动选择机房
+                if region_select == 'auto':
+                    select_tenant = tenant_names[0]
+                    select_region = regions[random.randint(0, len(regions) - 1)]
+                    next_url = '/ajax/{0}/remote/market?service_key={1}&app_version={2}&callback={3}'.format(
+                        select_tenant, service_key, version, callback)
+
+                    response = self.redirect_to(next_url)
+                    response.set_cookie('region', select_region)
+                    return response
+
+                # 如果指定机房在系统配置机房范围内
+                elif region_select in RegionInfo.valid_regions():
+                    select_tenant = tenant_names[0]
+                    select_region = region_select
+
+                    next_url = '/ajax/{0}/remote/market?service_key={1}&app_version={2}&callback={3}'.format(
+                        select_tenant, service_key, version, callback)
+
+                    response = self.redirect_to(next_url)
+                    response.set_cookie('region', select_region)
+                    return response
+
+        # 用户自己选择团队跟机房
         context = self.get_context()
         context.update({"tenant_names": tenant_names, "regions": regions})
 
