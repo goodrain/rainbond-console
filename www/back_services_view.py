@@ -349,7 +349,7 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
                     domain = RegionInfo.region_domain(self.cookie_region)
                     env.options = 'direct_copy'
                     env.attr_value = 'http://{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
-                    logger.debug('tenant_default_env', 'SITE_URL = {} options = {}', env.attr_value, env.options)
+                    logger.debug("SITE_URL = {} options = {}".format(env.attr_value, env.options))
 
     def get(self, request, *args, **kwargs):
         context = self.get_context()

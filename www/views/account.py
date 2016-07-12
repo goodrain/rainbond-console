@@ -681,7 +681,7 @@ class TenantSelectView(BaseView):
             # 获取数据中心选择模式
             region = request.GET.get('region', None)
 
-            logger.debug('tenant.select.region', 'select regin {} from {}'.format(region, regions))
+            logger.debug("select regin {} from {}".format(region, regions))
             # 如果用户只属于一个团队并且有数据中心的选择模式参数
             if region is not None and len(tenant_names) == 1:
                 # 系统自动选择机房
@@ -694,7 +694,7 @@ class TenantSelectView(BaseView):
                     response = self.redirect_to(next_url)
                     response.set_cookie('region', select_region)
 
-                    logger.debug('tenant.select.region', 'install app to region {} , redirect to {}'.format(select_region, next_url))
+                    logger.debug("install app to region {} , redirect to {}".format(select_region, next_url))
                     return response
 
                 # 如果指定机房在系统配置机房范围内
@@ -708,14 +708,14 @@ class TenantSelectView(BaseView):
                     response = self.redirect_to(next_url)
                     response.set_cookie('region', select_region)
 
-                    logger.debug('tenant.select.region', 'install app to region {}, redirect to {}'.format(select_region, next_url))
+                    logger.debug("install app to region {}, redirect to {}".format(select_region, next_url))
                     return response
 
         # 用户自己选择团队跟机房
         context = self.get_context()
         context.update({"tenant_names": tenant_names, "regions": regions})
 
-        logger.debug('enant.select.region', 'install app by user self, response select_tenant.html!')
+        logger.debug("install app by user self, response select_tenant.html!")
         return TemplateResponse(request, 'www/account/select_tenant.html', context)
 
     def post(self, request, *args, **kwargs):
