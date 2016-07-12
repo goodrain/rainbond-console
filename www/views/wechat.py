@@ -447,7 +447,7 @@ class UnbindView(BaseView):
                         num = WeChatUnBind.objects.filter(union_id=self.user.union_id,
                                                           user_id=self.user.pk).count()
                         if num == 0:
-                            count = WeChatUnBind.objects.get(union_id=self.user.union_id).count()
+                            count = WeChatUnBind.objects.filter(union_id=self.user.union_id).count()
                             WeChatUnBind.objects.create(user_id=self.user.pk,
                                                         union_id=self.user.union_id,
                                                         status=count)
