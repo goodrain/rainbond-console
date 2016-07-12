@@ -24,6 +24,8 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 
 REGION_TAG = os.environ.get('REGION_TAG')
 
+IS_OPEN_API = False
+
 DEBUG = False
 if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
     REGION_TAG = "www_com"
@@ -76,8 +78,14 @@ if IS_OPEN_API:
         'rest_framework_swagger',
         'www',
         'api',
-        'openapi'
+        'openapi',
+        'oauth2_provider',
     )
+    OAUTH2_PROVIDER = {
+        'SCOPES': {'read': 'Read scope',
+                   'write': 'Write scope',
+                   'groups': 'Access to your groups'},
+    }
 else:
     INSTALLED_APPS = (
         'django.contrib.auth',

@@ -7,14 +7,21 @@ from openapi.views.services import CreateServiceView, DeleteServiceView, \
     StartServiceView, StopServiceView, StatusServiceView
 from openapi.views.tenants import TenantServiceView
 
+from openapi.views.token import AccessTokenView
+
+
 urlpatterns = patterns(
     '',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api-token-auth', views.obtain_auth_token),
     url(r'^docs/', include('rest_framework_swagger.urls')),
+    url(r'^oauth2/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 
-    url(r'^v1/tenant/(?P<tenant_name>[\w\-]+)/$', TenantServiceView.as_view()),
+    url(r'^oauth2/access_token$', AccessTokenView.as_view()),
+
+    url(r'^v1/register$', TenantServiceView.as_view()),
+
     url(r'^v1/services/(?P<service_name>[\w\-]+)/create', CreateServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/delete', DeleteServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/start', StartServiceView.as_view()),

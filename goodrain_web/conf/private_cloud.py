@@ -166,3 +166,8 @@ WECHAT_CALLBACK = {
 DOCKER_WSS_URL = {
     'dev': '',
 }
+
+OAUTH2_APP = {
+    'CLIENT_ID': '',
+    'CLIENT_SECRET': '',
+}

@@ -6,7 +6,7 @@ from www.db import BaseConnection
 from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
-    TenantServiceEnv, ServiceDomain, Tenants, AppService, Users
+    TenantServiceEnv, ServiceDomain, Tenants, AppService, Users, PermRelTenant
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -152,17 +152,17 @@ class OpenTenantServiceManager(object):
             service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
         except Tenants.DoesNotExist:
             logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
-            return 405, False, u"租户不存在,请检查租户名称"
+            return 406, False, u"租户不存在,请检查租户名称"
         except TenantServiceInfo.DoesNotExist:
             logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
-            return 405, False, u"服务名称不存在"
+            return 408, False, u"服务不存在"
 
         try:
             # 检查服务关联
             published = AppService.objects.filter(service_id=service.service_id).count()
             if published:
                 logger.debug("openapi.services", "services has related published!".format(tenant_name, service_name))
-                return 406, False, u"关联了已发布服务, 不可删除"
+                return 409, False, u"关联了已发布服务, 不可删除"
             # 检查服务依赖
             dep_service_ids = TenantServiceRelation.objects.filter(dep_service_id=service.service_id).values("service_id")
             if len(dep_service_ids) > 0:
@@ -177,7 +177,7 @@ class OpenTenantServiceManager(object):
                             dep_alias += ","
                         dep_alias = dep_alias + alias["service_alias"]
                     logger.debug("openapi.services", "{0} depended current services, cannot delete!".format(dep_alias))
-                    return 407, False, u"{0} 依赖当前服务,不可删除".format(dep_alias)
+                    return 410, False, u"{0} 依赖当前服务,不可删除".format(dep_alias)
             # 检查挂载依赖
             dep_service_ids = TenantServiceMountRelation.objects.filter(dep_service_id=service.service_id).values("service_id")
             if len(dep_service_ids) > 0:
@@ -192,7 +192,7 @@ class OpenTenantServiceManager(object):
                             dep_alias += ","
                         dep_alias = dep_alias + alias["service_alias"]
                     logger.debug("openapi.services", "{0} mnt depended current services, cannot delete!".format(dep_alias))
-                    return 408, False, u"{0} 挂载依赖当前服务,不可删除".format(dep_alias)
+                    return 411, False, u"{0} 挂载依赖当前服务,不可删除".format(dep_alias)
             # 删除服务
             # 备份删除数据
             data = service.toJSON()
@@ -219,14 +219,14 @@ class OpenTenantServiceManager(object):
         except Exception as e:
             logger.exception("openapi.services", e)
             logger.debug("openapi.services", "delete service.result:failure")
-            return 409, False, u"删除失败"
+            return 412, False, u"删除失败"
 
     def domain_service(self, action, service, domain_name, tenant_name, username):
         try:
             if action == "start":
                 domainNum = ServiceDomain.objects.filter(domain_name=domain_name).count()
                 if domainNum > 0:
-                    return 201, False, "domain name exists"
+                    return 410, False, "域名已经存在"
 
                 num = ServiceDomain.objects.filter(service_id=service.service_id).count()
                 old_domain_name = "goodrain"
@@ -263,7 +263,7 @@ class OpenTenantServiceManager(object):
         except Exception as e:
             logger.exception("openapi.services", e)
             monitorhook.serviceMonitor(username, service, 'domain_manage', False)
-            return 201, False, "failure"
+            return 411, False, "操作失败"
 
     def query_domain(self, service):
         domain_list = ServiceDomain.objects.filter(service_id=service.service_id)
@@ -282,7 +282,7 @@ class OpenTenantServiceManager(object):
         except Exception as e:
             logger.exception("openapi.services", e)
             monitorhook.serviceMonitor(username, service, 'app_stop', False)
-            return 201, False, "failure"
+            return 409, False, "停止服务失败"
 
     def start_service(self, tenant, service, username):
         try:
@@ -291,9 +291,9 @@ class OpenTenantServiceManager(object):
             rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, False)
             if not flag:
                 if rt_type == "memory":
-                    return 201, False, "over_memory"
+                    return 410, False, "内存不足"
                 else:
-                    return 202, False, "over_money"
+                    return 411, False, "余额不足"
 
             body = {}
             body["deploy_version"] = service.deploy_version
@@ -304,14 +304,14 @@ class OpenTenantServiceManager(object):
         except Exception as e:
             logger.exception("openapi.services", e)
             monitorhook.serviceMonitor(username, service, 'app_start', False)
-            return 203, False, "failed"
+            return 412, False, "启动失败"
     
     def status_service(self, service):
         result = {}
         try:
             if service.deploy_version is None or service.deploy_version == "":
                 result["totalMemory"] = 0
-                result["status"] = "Undeployed"
+                result["status"] = "undeploy"
                 return 200, True, result
             else:
                 body = regionClient.check_service_status(service.service_region, service.service_id)
@@ -327,7 +327,7 @@ class OpenTenantServiceManager(object):
             logger.debug(service.service_region + "-" + service.service_id + " check_service_status is error")
             result["totalMemory"] = 0
             result['status'] = "failure"
-            return 201, False, result
+            return 409, False, result
 
     def predict_next_memory(self, tenant, cur_service, newAddMemory, ischeckStatus):
         result = True
@@ -447,9 +447,18 @@ class OpenTenantServiceManager(object):
         user.user_id = user_id
         monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 
-        # 租户数据中心关联
-        TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id,
-                                        region_name=tenant.region)
+        try:
+            PermRelTenant.objects.create(user_id=user.pk,
+                                         tenant_id=tenant.pk,
+                                         identity='admin')
+        except Exception as e:
+            logger.exception("openapi.services", e)
+
+        try:
+            TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id,
+                                            region_name=tenant.region)
+        except Exception as e:
+            logger.exception("openapi.services", e)
 
         # 发送请求到对应的数据中心创建租户
         tenantRegionService.init_for_region(tenant.region,

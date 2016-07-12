@@ -220,3 +220,8 @@ DOCKER_WSS_URL = {
     'aws-jp-1': '',
     'ali-sh': '',
 }
+
+OAUTH2_APP = {
+    'CLIENT_ID': 'goodrain',
+    'CLIENT_SECRET': 'fMnql3q1UAiR',
+}
