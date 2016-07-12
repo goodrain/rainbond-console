@@ -444,8 +444,8 @@ class UnbindView(BaseView):
                         # 页面接受需要跳转到信息完善页面
                         code = 201
                     else:
-                        num = WeChatUnBind.objects.get(union_id=self.user.union_id,
-                                                       user_id=self.user.pk).count()
+                        num = WeChatUnBind.objects.filter(union_id=self.user.union_id,
+                                                          user_id=self.user.pk).count()
                         if num == 0:
                             count = WeChatUnBind.objects.get(union_id=self.user.union_id).count()
                             WeChatUnBind.objects.create(user_id=self.user.pk,
