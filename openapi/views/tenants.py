@@ -98,6 +98,7 @@ class TenantServiceView(BaseAPIView):
             # 添加auth_user
             oauth_user = OAuthUser.objects.create(username=username)
             oauth_user.set_password(password)
+            oauth_user.is_staff = True
             oauth_user.save()
 
         # 处理租户逻辑
