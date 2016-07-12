@@ -14,3 +14,4 @@ django-rest-swagger
 requests
 python-dateutil
 rsa
+django-oauth-toolkit
