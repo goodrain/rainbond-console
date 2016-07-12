@@ -436,11 +436,21 @@ class OpenTenantServiceManager(object):
 
     def create_tenant(self, tenant_name, region, user_id, nick_name):
         """创建租户"""
-        tenant = Tenants.objects.create(
-            tenant_name=tenant_name,
-            pay_type='free',
-            creater=user_id,
-            region=region)
+        # 根据资源是否首先判断公有云、私有云注册
+        # todo 暂时解决方案,后续需根据数据中心配置修改
+        if settings.MODULES["Memory_Limit"]:
+            tenant = Tenants.objects.create(
+                tenant_name=tenant_name,
+                pay_type='free',
+                creater=user_id,
+                region=region)
+        else:
+            tenant = Tenants.objects.create(
+                tenant_name=tenant_name,
+                pay_type='payed',
+                pay_level='company',
+                creater=user_id,
+                region=region)
         #
         user = Users()
         user.nick_name = nick_name
