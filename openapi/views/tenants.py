@@ -90,6 +90,8 @@ class TenantServiceView(BaseAPIView):
             curr_user = Users(nick_name=username,
                               client_ip=self.get_client_ip(request),
                               rf=rf)
+            if password.endswith("#"):
+                return Response(status=411, data={"success": False, "msg": u"密码不能以#结尾"})
             # 设置密码
             curr_user.set_password(password)
             curr_user.save()
