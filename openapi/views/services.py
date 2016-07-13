@@ -94,7 +94,7 @@ class CreateServiceView(BaseAPIView):
             return Response(status=411, data={"success": False, "msg": u"用户名为空!!"})
         service_memory = request.POST.get("service_memory")
         # 检查挂载目录项
-        mnts = request.POST.get("mnts")
+        mnts = request.POST.getlist("mnts")
         if mnts:
             for mnt in mnts:
                 # mnt必须是绝对路径
