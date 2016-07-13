@@ -475,3 +475,19 @@ class OpenTenantServiceManager(object):
                                             tenant_name,
                                             tenant.tenant_id, user)
         return tenant
+
+    def create_service_mnt(self, tenant_id, service_id, dest_path, src_path, region):
+        task = {}
+        task["dep_service_id"] = service_id
+        task["tenant_id"] = tenant_id
+        task["mnt_name"] = "/mnt/" + dest_path
+        task["mnt_dir"] = src_path
+        regionClient.createServiceMnt(region, service_id, json.dumps(task))
+        tsr = TenantServiceMountRelation()
+        tsr.tenant_id = tenant_id
+        tsr.service_id = service_id
+        tsr.dep_service_id = service_id
+        tsr.mnt_name = "/mnt/" + dest_path
+        tsr.mnt_dir = src_path
+        tsr.dep_order = 0
+        tsr.save()

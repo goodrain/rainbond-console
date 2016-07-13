@@ -93,6 +93,13 @@ class CreateServiceView(BaseAPIView):
         if username is None:
             return Response(status=411, data={"success": False, "msg": u"用户名为空!!"})
         service_memory = request.POST.get("service_memory")
+        # 检查挂载目录项
+        mnts = request.POST.get("mnts")
+        if mnts:
+            for mnt in mnts:
+                # mnt必须是绝对路径
+                if not mnt.startswith("/"):
+                    return Response(status=420, data={"success": False, "msg": u"挂载目录必须是绝对路径!"})
 
         logger.debug("openapi.services", "now create service: service_name:{0}, tenant_name:{1}, region:{2}, key:{3}, version:{4}".format(service_name, tenant_name, region, service_key, version))
         r = re.compile("^[a-z][a-z0-9-]*[a-z0-9]$")
@@ -172,6 +179,15 @@ class CreateServiceView(BaseAPIView):
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
             return Response(status=418, data={"success": False, "msg": u"创建控制台服务失败!"})
+
+        # mnt code
+        for mnt in mnts:
+            src_path, dest_path = mnt.split(":")
+            manager.create_service_mnt(tenant.tenant_id,
+                                       service_id,
+                                       dest_path,
+                                       src_path,
+                                       region)
 
         # create region service
         try:
