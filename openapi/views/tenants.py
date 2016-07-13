@@ -53,10 +53,10 @@ class TenantServiceView(APIView):
               paramType: form
         """
         # 数据中心
-        region = request.POST.get("region")
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        tenant_name = request.POST.get("tenant_name")
+        region = request.data.get("region")
+        username = request.data.get("username")
+        password = request.data.get("password")
+        tenant_name = request.data.get("tenant_name")
         if region is None:
             return Response(status=405, data={"success": False, "msg": u"数据中心名称为空"})
         if username is None:

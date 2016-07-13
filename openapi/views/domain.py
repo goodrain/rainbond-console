@@ -33,7 +33,7 @@ class DomainController(BaseAPIView):
               paramType: query
 
         """
-        tenant_name = request.GET.get("tenant_name")
+        tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
@@ -76,16 +76,16 @@ class DomainController(BaseAPIView):
               type: string
               paramType: form
         """
-        tenant_name = request.POST.get("tenant_name")
+        tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-        domain_name = request.POST["domain_name"]
+        domain_name = request.data.get("domain_name")
         if domain_name is None:
             logger.error("openapi.services", "域名称为空!")
             return Response(status=406, data={"success": False, "msg": u"域名称为空"})
         # 名称
-        username = request.POST["username"]
+        username = request.data.get("username")
         # 汉字校验
         zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
         match = zhPattern.search(domain_name.decode('utf-8'))
@@ -140,12 +140,12 @@ class DomainController(BaseAPIView):
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-        domain_name = request.data["domain_name"]
+        domain_name = request.data.get("domain_name")
         if domain_name is None:
             logger.error("openapi.services", "域名称为空!")
             return Response(status=406, data={"success": False, "msg": u"域名称为空"})
         # 名称
-        username = request.data["username"]
+        username = request.data.get("username")
         # 汉字校验
         zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
         match = zhPattern.search(domain_name.decode('utf-8'))
