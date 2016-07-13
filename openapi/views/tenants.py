@@ -112,8 +112,16 @@ class TenantServiceView(APIView):
             tenant = manager.create_tenant(tenant_name, region, curr_user.user_id, username)
         if tenant:
             return Response(status=200, data={"success": True,
-                                              "tenant": tenant,
-                                              "user": curr_user})
+                                              "tenant": {
+                                                  "tenant_id": tenant.tenant_id,
+                                                  "tenant_name": tenant.tenant_name,
+                                                  "region": tenant.region
+                                              },
+                                              "user": {
+                                                  "user_id": curr_user.user_id,
+                                                  "nick_name": curr_user.nick_name,
+                                                  "email": curr_user.email
+                                              }})
         else:
             return Response(status=500, data={"success": False,
                                               "msg": "操作失败!"})
