@@ -6,7 +6,7 @@ from django.contrib.auth.models import User as OAuthUser
 from www.models import Tenants, Users
 from www.forms.account import is_standard_word, is_sensitive
 
-from openapi.views.base import BaseAPIView
+from rest_framework.views import APIView
 from openapi.controllers.openservicemanager import OpenTenantServiceManager
 import logging
 
@@ -14,7 +14,7 @@ logger = logging.getLogger("default")
 manager = OpenTenantServiceManager()
 
 
-class TenantServiceView(BaseAPIView):
+class TenantServiceView(APIView):
 
     allowed_methods = ('POST',)
 
