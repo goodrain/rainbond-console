@@ -4,6 +4,9 @@ from django.http import HttpResponse
 from django.conf import settings
 from django.contrib.auth.models import User as OAuthUser
 
+import requests
+
+from www.models import Users
 
 from rest_framework.views import APIView
 import logging
@@ -54,12 +57,12 @@ class AccessTokenView(APIView, OAuthLibMixin):
               paramType: form
         """
         # 数据中心
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        client_id = request.POST.get("client_id")
-        client_secret = request.POST.get("client_secret")
-        grant_type = request.POST.get("grant_type")
-        if grant_type != "client_credentials":
+        username = request.data.get("username")
+        password = request.data.get("password")
+        client_id = request.data.get("client_id")
+        client_secret = request.data.get("client_secret")
+        grant_type = request.data.get("grant_type")
+        if grant_type != "password":
             return Response(status=405, data={"success": False, "msg": u"授权类型不支持!"})
         config_client_id = settings.OAUTH2_APP.get("CLIENT_ID")
         config_client_secret = settings.OAUTH2_APP.get("CLIENT_SECRET")
@@ -72,7 +75,8 @@ class AccessTokenView(APIView, OAuthLibMixin):
             return Response(status=409, data={"success": False, "msg": u"无效客户端!"})
         # 根据用户名密码查询用户是否存在
         try:
-            oauth_user = OAuthUser.objects.get(username=username)
+            oauth_user = Users.objects.get(nick_name=username)
+            # oauth_user = OAuthUser.objects.get(username=username)
             if not oauth_user.check_password(password):
                 return Response(status=410, data={"success": False, "msg": u"密码不正确!"})
         except Exception as e:
@@ -81,24 +85,39 @@ class AccessTokenView(APIView, OAuthLibMixin):
         num = Application.objects.filter(client_id=client_id).count()
         if num == 0:
             # 创建auth_user
-            oauth_user = OAuthUser.objects.create(username=client_id)
-            oauth_user.set_password(client_secret)
-            oauth_user.is_staff = True
-            oauth_user.is_superuser = True
-            oauth_user.save()
+            app_user = OAuthUser.objects.create(username=client_id)
+            app_user.set_password(client_secret)
+            app_user.is_staff = True
+            app_user.is_superuser = True
+            app_user.save()
             # 创建application
             Application.objects.create(client_id=client_id,
-                                       user=oauth_user,
+                                       user=app_user,
                                        client_type=Application.CLIENT_CONFIDENTIAL,
-                                       authorization_grant_type=Application.GRANT_CLIENT_CREDENTIALS,
+                                       authorization_grant_type=Application.GRANT_PASSWORD,
                                        client_secret=client_secret,
                                        name="console")
+        # 使用httplib查询token
+        tdata = {
+            'username': username + "_token",
+            'password': password,
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'grant_type': grant_type
+        }
+        scheme = request.scheme
+        host = request.get_host()
+        path = "/openapi/oauth2/token/"
+        token_url = "{0}://{1}{2}".format(scheme, host, path)
+        logger.debug(token_url)
+        r = requests.post(token_url, data=tdata)
+        return Response(data=r.json(), status=200)
+        # # 跳转到api/oauth2/token/
+        # url, headers, body, status = self.create_token_response(request)
+        # response = HttpResponse(content=body, status=status)
+        #
+        # for k, v in headers.items():
+        #     response[k] = v
+        # return response
 
-        # 跳转到api/oauth2/token/
-        url, headers, body, status = self.create_token_response(request)
-        response = HttpResponse(content=body, status=status)
-
-        for k, v in headers.items():
-            response[k] = v
-        return response
 
