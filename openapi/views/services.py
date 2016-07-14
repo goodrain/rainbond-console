@@ -69,30 +69,37 @@ class CreateServiceView(BaseAPIView):
               type: int
               paramType: form
         """
-        tenant_name = request.POST.get("tenant_name")
+        tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
         # 数据中心
-        region = request.POST.get("region")
+        region = request.data.get("region")
         if region is None:
             return Response(status=406, data={"success": False, "msg": u"数据中心名称为空"})
         # 根据service_key, version创建服务
-        service_key = request.POST.get("service_key")
+        service_key = request.data.get("service_key")
         if service_key is None:
             return Response(status=408, data={"success": False, "msg": u"镜像key为空!"})
         # 服务描述
-        version = request.POST.get("version")
+        version = request.data.get("version")
         if version is None:
             return Response(status=409, data={"success": False, "msg": u"镜像version为空!"})
         # 非必填字段
-        service_desc = request.POST.get("service_desc")
-        user_id = request.POST.get("user_id")
+        service_desc = request.data.get("service_desc")
+        user_id = request.data.get("user_id")
         if user_id is None:
             return Response(status=410, data={"success": False, "msg": u"用户id为空!"})
-        username = request.POST.get("username")
+        username = request.data.get("username")
         if username is None:
             return Response(status=411, data={"success": False, "msg": u"用户名为空!!"})
-        service_memory = request.POST.get("service_memory")
+        service_memory = request.data.get("service_memory")
+        # 检查挂载目录项
+        mnts = request.data.get("mnts")
+        if mnts:
+            for mnt in mnts:
+                # mnt必须是绝对路径
+                if not mnt.startswith("/"):
+                    return Response(status=420, data={"success": False, "msg": u"挂载目录必须是绝对路径!"})
 
         logger.debug("openapi.services", "now create service: service_name:{0}, tenant_name:{1}, region:{2}, key:{3}, version:{4}".format(service_name, tenant_name, region, service_key, version))
         r = re.compile("^[a-z][a-z0-9-]*[a-z0-9]$")
@@ -173,6 +180,15 @@ class CreateServiceView(BaseAPIView):
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
             return Response(status=418, data={"success": False, "msg": u"创建控制台服务失败!"})
 
+        # mnt code
+        if mnts:
+            for mnt in mnts:
+                src_path, dest_path = mnt.split(":")
+                manager.create_service_mnt(tenant.tenant_id,
+                                           service_id,
+                                           src_path,
+                                           region)
+
         # create region service
         try:
             manager.create_region_service(newTenantService,
@@ -246,12 +262,12 @@ class StartServiceView(BaseAPIView):
               paramType: form
 
         """
-        tenant_name = request.POST.get("tenant_name")
+        tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
 
-        username = request.POST.get("username")
+        username = request.data.get("username")
 
         try:
             tenant = Tenants.objects.get(tenant_name=tenant_name)
@@ -292,11 +308,11 @@ class StopServiceView(BaseAPIView):
               paramType: form
 
         """
-        tenant_name = request.POST.get("tenant_name")
+        tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-        username = request.POST.get("username")
+        username = request.data.get("username")
 
         try:
             tenant = Tenants.objects.get(tenant_name=tenant_name)
@@ -332,7 +348,7 @@ class StatusServiceView(BaseAPIView):
               paramType: query
 
         """
-        tenant_name = request.GET.get("tenant_name")
+        tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})

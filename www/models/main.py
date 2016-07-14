@@ -149,7 +149,7 @@ class Users(models.Model):
         db_table = 'user_info'
 
     user_id = models.AutoField(primary_key=True, max_length=10)
-    email = models.EmailField(max_length=35, unique=True, help_text=u"邮件地址")
+    email = models.EmailField(max_length=35, help_text=u"邮件地址")
     nick_name = models.CharField(
         max_length=24, unique=True, null=True, blank=True, help_text=u"用户昵称")
     password = models.CharField(max_length=16, help_text=u"密码")

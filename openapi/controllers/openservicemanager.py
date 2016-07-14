@@ -436,11 +436,21 @@ class OpenTenantServiceManager(object):
 
     def create_tenant(self, tenant_name, region, user_id, nick_name):
         """创建租户"""
-        tenant = Tenants.objects.create(
-            tenant_name=tenant_name,
-            pay_type='free',
-            creater=user_id,
-            region=region)
+        # 根据资源是否首先判断公有云、私有云注册
+        # todo 暂时解决方案,后续需根据数据中心配置修改
+        if settings.MODULES["Memory_Limit"]:
+            tenant = Tenants.objects.create(
+                tenant_name=tenant_name,
+                pay_type='free',
+                creater=user_id,
+                region=region)
+        else:
+            tenant = Tenants.objects.create(
+                tenant_name=tenant_name,
+                pay_type='payed',
+                pay_level='company',
+                creater=user_id,
+                region=region)
         #
         user = Users()
         user.nick_name = nick_name
@@ -465,3 +475,19 @@ class OpenTenantServiceManager(object):
                                             tenant_name,
                                             tenant.tenant_id, user)
         return tenant
+
+    def create_service_mnt(self, tenant_id, service_id, dest_path, src_path, region):
+        task = {}
+        task["dep_service_id"] = service_id
+        task["tenant_id"] = tenant_id
+        task["mnt_name"] = "/mnt/" + dest_path
+        task["mnt_dir"] = src_path
+        regionClient.createServiceMnt(region, service_id, json.dumps(task))
+        tsr = TenantServiceMountRelation()
+        tsr.tenant_id = tenant_id
+        tsr.service_id = service_id
+        tsr.dep_service_id = service_id
+        tsr.mnt_name = "/mnt/" + dest_path
+        tsr.mnt_dir = src_path
+        tsr.dep_order = 0
+        tsr.save()

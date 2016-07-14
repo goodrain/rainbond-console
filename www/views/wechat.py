@@ -17,6 +17,7 @@ from www.monitorservice.monitorhook import MonitorHook
 from www.utils.md5Util import md5fun
 from www.wechat.openapi import OpenWeChatAPI
 from www.tenantservice.baseservice import CodeRepositoriesService
+from www.forms.account import is_standard_word, is_sensitive, password_len, is_phone, is_email
 
 import logging
 logger = logging.getLogger('default')
@@ -321,12 +322,22 @@ class WeChatInfoView(BaseView):
             if count > 0:
                 success = False
                 err_info['email'] = "邮件地址已经存在"
+        try:
+            is_email(email)
+        except Exception as e:
+            success = False
+            err_info['email'] = "邮件地址不合法"
         # 校验手机号码
         if phone is not None and phone != "":
             count = Users.objects.filter(phone=phone).count()
             if count > 0:
                 success = False
                 err_info['phone'] = "手机号已存在"
+            try:
+                is_phone(phone)
+            except Exception as e:
+                success = False
+                err_info['phone'] = "手机号码不合法"
 
         if self.user.rf == "open_wx":
             # 重置用户名、密码、邮箱、手机号
@@ -340,7 +351,18 @@ class WeChatInfoView(BaseView):
                 if count > 0:
                     success = False
                     err_info['name'] = "用户名已经存在"
+            try:
+                is_standard_word(nick_name)
+                is_sensitive(nick_name)
+            except Exception as e:
+                success = False
+                err_info['name'] = "用户名格式错误"
             # password
+            try:
+                password_len(password)
+            except Exception as e:
+                success = False
+                err_info['password'] = "密码长度至少8位"
             if password is None or password == "":
                 success = False
                 err_info['password'] = "密码不能为空"
@@ -422,10 +444,10 @@ class UnbindView(BaseView):
                         # 页面接受需要跳转到信息完善页面
                         code = 201
                     else:
-                        num = WeChatUnBind.objects.get(union_id=self.user.union_id,
-                                                       user_id=self.user.pk).count()
+                        num = WeChatUnBind.objects.filter(union_id=self.user.union_id,
+                                                          user_id=self.user.pk).count()
                         if num == 0:
-                            count = WeChatUnBind.objects.get(union_id=self.user.union_id).count()
+                            count = WeChatUnBind.objects.filter(union_id=self.user.union_id).count()
                             WeChatUnBind.objects.create(user_id=self.user.pk,
                                                         union_id=self.user.union_id,
                                                         status=count)

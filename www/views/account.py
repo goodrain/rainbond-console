@@ -423,8 +423,21 @@ class Registation(BaseView):
             user.save()
             monitorhook.registerMonitor(user, 'register')
 
-            tenant = Tenants.objects.create(
-                tenant_name=tenant_name, pay_type='free', creater=user.pk, region=region)
+            # 根据资源是否首先判断公有云、私有云注册
+            # todo 暂时解决方案,后续需根据数据中心配置修改
+            if settings.MODULES["Memory_Limit"]:
+                tenant = Tenants.objects.create(
+                    tenant_name=tenant_name,
+                    pay_type='free',
+                    creater=user.pk,
+                    region=region)
+            else:
+                tenant = Tenants.objects.create(
+                    tenant_name=tenant_name,
+                    pay_type='payed',
+                    pay_level='company',
+                    creater=user.pk,
+                    region=region)
 
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 

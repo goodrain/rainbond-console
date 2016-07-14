@@ -6,7 +6,7 @@ from django.contrib.auth.models import User as OAuthUser
 from www.models import Tenants, Users
 from www.forms.account import is_standard_word, is_sensitive
 
-from openapi.views.base import BaseAPIView
+from rest_framework.views import APIView
 from openapi.controllers.openservicemanager import OpenTenantServiceManager
 import logging
 
@@ -14,7 +14,7 @@ logger = logging.getLogger("default")
 manager = OpenTenantServiceManager()
 
 
-class TenantServiceView(BaseAPIView):
+class TenantServiceView(APIView):
 
     allowed_methods = ('POST',)
 
@@ -53,10 +53,10 @@ class TenantServiceView(BaseAPIView):
               paramType: form
         """
         # 数据中心
-        region = request.POST.get("region")
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        tenant_name = request.POST.get("tenant_name")
+        region = request.data.get("region")
+        username = request.data.get("username")
+        password = request.data.get("password")
+        tenant_name = request.data.get("tenant_name")
         if region is None:
             return Response(status=405, data={"success": False, "msg": u"数据中心名称为空"})
         if username is None:
@@ -90,6 +90,8 @@ class TenantServiceView(BaseAPIView):
             curr_user = Users(nick_name=username,
                               client_ip=self.get_client_ip(request),
                               rf=rf)
+            if password.endswith("#"):
+                return Response(status=411, data={"success": False, "msg": u"密码不能以#结尾"})
             # 设置密码
             curr_user.set_password(password)
             curr_user.save()
@@ -110,8 +112,16 @@ class TenantServiceView(BaseAPIView):
             tenant = manager.create_tenant(tenant_name, region, curr_user.user_id, username)
         if tenant:
             return Response(status=200, data={"success": True,
-                                              "tenant": tenant,
-                                              "user": curr_user})
+                                              "tenant": {
+                                                  "tenant_id": tenant.tenant_id,
+                                                  "tenant_name": tenant.tenant_name,
+                                                  "region": tenant.region
+                                              },
+                                              "user": {
+                                                  "user_id": curr_user.user_id,
+                                                  "nick_name": curr_user.nick_name,
+                                                  "email": curr_user.email
+                                              }})
         else:
             return Response(status=500, data={"success": False,
                                               "msg": "操作失败!"})
