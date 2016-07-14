@@ -20,6 +20,6 @@ a.weixin:link,a.weixin:visited,a.weixin:hover,a.weixin:active{color: #333;}
 .btn-success{background: #28cb75; border: 0 none; margin-bottom: 20px;  padding: 7px 0;}
 
 .littlebtn .btn{width: 48%;}
-.tipstit{ font-size:14px; color: #999; font-weight: bold; text-align: center; clear: both;}
+.tipstit{ font-size:16px; color: #999; text-align: center; clear: both; max-width: 400px; padding-top: 10px; margin-left: auto; margin-right: auto; }
 .tipstext{font-size:14px; color: #999; text-align: center; width: 90%;  max-width: 400px; margin-left: auto; margin-right: auto; } 
-.tipstext span{color: #333;}
+.tipstext span{color: #666;}
