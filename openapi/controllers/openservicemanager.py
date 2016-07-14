@@ -6,7 +6,7 @@ from www.db import BaseConnection
 from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
-    TenantServiceEnv, ServiceDomain, Tenants, AppService, Users, PermRelTenant
+    TenantServiceEnv, ServiceDomain, Tenants, AppService, Users
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -456,13 +456,6 @@ class OpenTenantServiceManager(object):
         user.nick_name = nick_name
         user.user_id = user_id
         monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
-
-        try:
-            PermRelTenant.objects.create(user_id=user.pk,
-                                         tenant_id=tenant.pk,
-                                         identity='admin')
-        except Exception as e:
-            logger.exception("openapi.services", e)
 
         try:
             TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id,
