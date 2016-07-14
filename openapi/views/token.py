@@ -58,7 +58,7 @@ class AccessTokenView(APIView, OAuthLibMixin):
         password = request.POST.get("password")
         client_id = request.POST.get("client_id")
         client_secret = request.POST.get("client_secret")
-        grant_type = request.POST.get("client_credentials")
+        grant_type = request.POST.get("grant_type")
         if grant_type != "client_credentials":
             return Response(status=405, data={"success": False, "msg": u"授权类型不支持!"})
         config_client_id = settings.OAUTH2_APP.get("CLIENT_ID")
