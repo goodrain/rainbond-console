@@ -54,12 +54,12 @@ class AccessTokenView(APIView, OAuthLibMixin):
               paramType: form
         """
         # 数据中心
-        username = request.data.get("username")
-        password = request.data.get("password")
-        client_id = request.data.get("client_id")
-        client_secret = request.data.get("client_secret")
-        grant_type = request.data.get("grant_type", "password")
-        if grant_type != "password":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        client_id = request.POST.get("client_id")
+        client_secret = request.POST.get("client_secret")
+        grant_type = request.POST.get("client_credentials")
+        if grant_type != "client_credentials":
             return Response(status=405, data={"success": False, "msg": u"授权类型不支持!"})
         config_client_id = settings.OAUTH2_APP.get("CLIENT_ID")
         config_client_secret = settings.OAUTH2_APP.get("CLIENT_SECRET")
@@ -90,7 +90,7 @@ class AccessTokenView(APIView, OAuthLibMixin):
             Application.objects.create(client_id=client_id,
                                        user=oauth_user,
                                        client_type=Application.CLIENT_CONFIDENTIAL,
-                                       authorization_grant_type=Application.GRANT_PASSWORD,
+                                       authorization_grant_type=Application.GRANT_CLIENT_CREDENTIALS,
                                        client_secret=client_secret,
                                        name="console")
 
