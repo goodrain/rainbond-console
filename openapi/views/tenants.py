@@ -98,7 +98,8 @@ class TenantServiceView(APIView):
             logger.debug("openapi.services", "now create user success")
 
             # 添加auth_user
-            oauth_user = OAuthUser.objects.create(username=username)
+            tmpname = username + "_token"
+            oauth_user = OAuthUser.objects.create(username=tmpname)
             oauth_user.set_password(password)
             oauth_user.is_staff = True
             oauth_user.save()
