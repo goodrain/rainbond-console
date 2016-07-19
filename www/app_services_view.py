@@ -138,7 +138,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             # code repos
             if service_code_from == "gitlab_new":
                 codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, "", "", "")
-            elif service_code_from == "gitlab_exit":
+            elif service_code_from == "gitlab_exit" or service_code_from == "gitlab_manual":
                 code_clone_url = request.POST.get("service_code_clone_url", "")
                 code_id = request.POST.get("service_code_id", "")
                 code_version = request.POST.get("service_code_version", "master")

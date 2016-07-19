@@ -134,7 +134,7 @@ $(function(){
             _url = "/ajax/"+tenantName+"/code_repos?action=github";
             loadRepos(_url);
         } else if (selOption == 'option4') {
-            $('#service_code_from').val("gitlab_exit");
+            $('#service_code_from').val("gitlab_manual");
             $('#code_store_list').slideUp();
             $('#wait_loading').hide();
             $('div[data-action="manual"]').show();

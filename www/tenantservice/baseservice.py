@@ -472,7 +472,7 @@ class CodeRepositoriesService(object):
                     ts.code_from = service_code_from
                     ts.code_version = "master"
                     ts.save()
-        elif service_code_from == "gitlab_exit":
+        elif service_code_from == "gitlab_exit" or service_code_from == "gitlab_manual":
             ts = TenantServiceInfo.objects.get(service_id=service.service_id)
             ts.git_project_id = code_id
             ts.git_url = code_url
@@ -523,6 +523,8 @@ class CodeRepositoriesService(object):
             if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
                 cur_git_url = service.git_url.split("/")
                 httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+            elif service.code_from == "gitlab_manual":
+                httpGitUrl = service.git_url
         return httpGitUrl
     
     def deleteProject(self, service):
