@@ -215,6 +215,7 @@ WECHAT_CALLBACK = {
 }
 
 DOCKER_WSS_URL = {
+    'type': 'wss',
     'ucloud-bj-1': '.ucloud-bj-1.ws.goodrain.com:8088',
     'aws-bj-1': '',
     'aws-jp-1': '.aws-jp-1.ws.goodrain.com:8088',
