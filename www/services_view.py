@@ -215,7 +215,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         try:
             if self.service.category == "application":
                 # forbidden blank page
-                if self.service.code_version is None or self.service.code_version == "" or (self.service.project_id == 0 and self.service.git_url is None):
+                if self.service.code_version is None or self.service.code_version == "" or (self.service.git_project_id == 0 and self.service.git_url is None):
                     codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
