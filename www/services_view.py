@@ -215,9 +215,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
         try:
             if self.service.category == "application":
                 # forbidden blank page
-                if self.service.code_version is None or self.service.code_version == "":
-                    if self.service.code_from is None or self.service.code_from == "":
-                        codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
+                if self.service.code_version is None or self.service.code_version == "" or (self.service.project_id == 0 and self.service.git_url is None):
+                    codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)
@@ -357,7 +356,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     except Exception as e:
                         pass
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
