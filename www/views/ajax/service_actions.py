@@ -3,19 +3,17 @@ import datetime
 import json
 import re
 
-from django.db.models import Sum
-from django.db.models import Max
-from django.views.decorators.cache import never_cache
 from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import (ServiceInfo, AppService, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation,
-                        TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain,
-                        TenantServiceEnvVar, TenantServicesPort, TenantServiceMountRelation)
+from www.models import (ServiceInfo, AppService, TenantServiceInfo,
+                        TenantRegionInfo, PermRelService, TenantServiceRelation,
+                        TenantServiceInfoDelete, Users, TenantServiceEnv,
+                        TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
+                        TenantServicesPort, TenantServiceMountRelation)
 from www.service_http import RegionServiceApi
 from django.conf import settings
-from www.db import BaseConnection
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from goodrain_web.decorator import method_perf_time
 from www.monitorservice.monitorhook import MonitorHook
@@ -23,7 +21,6 @@ from www.utils.giturlparse import parse as git_url_parse
 from www.forms.services import EnvCheckForm
 
 import logging
-from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
@@ -1066,3 +1063,54 @@ class ServiceDockerContainer(AuthedView):
             logger.exception(e)
             response = JsonResponse({"success": False})
         return response
+
+
+class ServicePersistent(AuthedView):
+    """添加,删除持久化数据目录"""
+
+    def __init__(self):
+        self.sys_dirs = ["/", "/bin", "/boot", "/dev", "/etc", "/home",
+                         "/lib", "/lib64", "/opt", "/proc", "/root", "/sbin",
+                         "/srv", "/sys", "/tmp", "/usr", "/var",
+                         "/usr/local", "/usr/sbin", "/usr/bin",
+                         ]
+
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        action = request.POST["action"]
+        try:
+            if action == "add":
+                volume_path = request.POST.get("dest_path")
+                service_type = self.service.service_type
+                if service_type == "application":
+                    # dest为相对路径
+                    if volume_path.startswith("/"):
+                        volume_path = "/app" + volume_path
+                    else:
+                        volume_path = "/app/" + volume_path
+                else:
+                    if not volume_path.startswith("/"):
+                        result["status"] = "failure"
+                        result["code"] = "303"
+                        return JsonResponse(result)
+                    if volume_path in self.sys_dirs:
+                        result["status"] = "failure"
+                        result["code"] = "304"
+                        return JsonResponse(result)
+                result = baseService.create_service_volume(self.service, volume_path)
+            elif action == "cancel":
+                volume_id = request.POST.get("volume_id")
+                result = baseService.cancel_service_volume(self.service, volume_id)
+
+            if result:
+                result["status"] = "success"
+                result["code"] = "200"
+            else:
+                result["status"] = "failure"
+                result["code"] = "500"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+            result["code"] = "500"
+        return JsonResponse(result)

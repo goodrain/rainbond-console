@@ -37,12 +37,32 @@ $(function(){
         }
         if(appName.length>30) {
             swal("服务名太长,不能超过30个字符");
-            $("#first_step").attr('disabled', false);
             return;
         }
-        var service_code_id = $("#service_code_id").val()
-        var gitValue = $("#git_version_"+service_code_id).val();
-        $("#service_code_version").val(gitValue);        
+
+        // manual git check
+        if (codeStoreSel == 'option4') {
+            var service_code_clone_url = $('#service_code_clone_url_manual').val()
+            if(service_code_clone_url==""){
+                $("#service_code_clone_url_manual").focus()
+                scrollOffset($("#service_code_clone_url_manual").offset());
+                $('#create_git_notice').slideDown();
+                return;
+            }
+            var service_code_version = $('#service_code_version_manual').val()
+            if(service_code_version==""){
+                $("#service_code_version_manual").focus()
+                scrollOffset($("#service_code_version_manual").offset());
+                $('#create_version_notice').slideDown();
+                return;
+            }
+            $("#service_code_clone_url").val(service_code_clone_url);
+            $("#service_code_version").val(service_code_version);
+        } else {
+            var service_code_id = $("#service_code_id").val()
+            var gitValue = $("#git_version_"+service_code_id).val();
+            $("#service_code_version").val(gitValue);
+        }
         $("#first_step").attr('disabled', true);
     	var _data = $("form").serialize();
         var tenantName= $('#currentTeantName').val();
@@ -92,12 +112,14 @@ $(function(){
         	$('#service_code_from').val("gitlab_new");
             $('#code_store_list').slideUp();
             $('#wait_loading').hide();
+            $('div[data-action="manual"]').hide();
         }else if(selOption == 'option2'){
             BranchLocalData = {};
         	$('#service_code_from').val("gitlab_exit");
             $('#code_store_list').hide();
             $('#create_codestore_notice').hide();
             $('#wait_loading').slideDown();
+            $('div[data-action="manual"]').hide();
             var tenantName= $('#currentTeantName').val();
             _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
             loadRepos(_url);
@@ -107,9 +129,15 @@ $(function(){
             $('#code_store_list').hide();
             $('#create_codestore_notice').hide();
             $('#wait_loading').slideDown();
+            $('div[data-action="manual"]').hide();
             var tenantName= $('#currentTeantName').val();
             _url = "/ajax/"+tenantName+"/code_repos?action=github";
             loadRepos(_url);
+        } else if (selOption == 'option4') {
+            $('#service_code_from').val("gitlab_exit");
+            $('#code_store_list').slideUp();
+            $('#wait_loading').hide();
+            $('div[data-action="manual"]').show();
         }
     });
 });

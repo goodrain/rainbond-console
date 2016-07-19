@@ -1,20 +1,18 @@
 # -*- coding: utf8 -*-
 import logging
-import uuid
-import hashlib
-import datetime
 import json
 
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
-from django.http.response import HttpResponse
 from django.shortcuts import redirect
 from django.http import Http404
-from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
+from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import (Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant,
-                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation,
-                        ServiceExtendMethod)
+from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
+                        ServiceDomain, PermRelService, PermRelTenant,
+                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv,
+                        TenantServiceEnvVar, TenantServiceMountRelation,
+                        ServiceExtendMethod, TenantServiceVolume)
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from django.conf import settings
@@ -360,6 +358,25 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
                 context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
 
+                # 获取挂载信息,查询
+                volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
+                result_list = []
+                if self.service.service_type == "application":
+                    for volume in list(volume_list):
+                        tmp_path = volume.volume_path
+                        if tmp_path:
+                            volume.volume_path = tmp_path.replace("/app", "", 1)
+                        tmp_path = volume.host_path
+                        if tmp_path:
+                            volume.host_path = tmp_path.split(self.service.service_id)[1]
+                        result_list.append(volume)
+                else:
+                    for volume in list(volume_list):
+                        tmp_path = volume.host_path
+                        if tmp_path:
+                            volume.host_path = tmp_path.split(self.service.service_id)[1]
+                        result_list.append(volume)
+                context["volume_list"] = result_list
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 

@@ -3,7 +3,10 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
+from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
+    TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
+    TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
+    TenantServiceVolume
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -275,6 +278,44 @@ class BaseTenantService(object):
         regionClient.cancelServiceMnt(region, service_id, json.dumps(task))
         TenantServiceMountRelation.objects.get(service_id=service_id, dep_service_id=dependS.service_id).delete()
 
+    def create_service_volume(self, service, volume_path):
+        service_type = service.service_type
+        region = service.service_region
+        tenant_id = service.tenant_id
+        service_id = service.service_id
+        persistent = TenantServiceVolume(service_id=service_id,
+                                         service_type=service_type)
+        # 确定host_path
+        if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
+            host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+        else:
+            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+        persistent.host_path = host_path
+        persistent.volume_path = volume_path
+        persistent.save()
+        # 发送到region进行处理
+        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(persistent))
+        if res.status == 200:
+            return True
+        else:
+            TenantServiceVolume.objects.filter(pk=persistent.ID).delete()
+            return False
+
+    def cancel_service_volume(self, service, volume_id):
+        # 发送到region进行删除
+        region = service.service_region
+        service_id = service.service_id
+        try:
+            persistent = TenantServiceVolume.objects.get(pk=volume_id)
+        except TenantServiceVolume.DoesNotExist:
+            return True
+        res, body = regionClient.cancelServiceVolume(region, service_id, json.dumps(persistent))
+        if res.status == 200:
+            TenantServiceVolume.objects.filter(pk=volume_id).delete()
+            return True
+        else:
+            return False
+
 
 class TenantUsedResource(object):
 
@@ -520,7 +561,7 @@ class CodeRepositoriesService(object):
             return gitClient.listProjectMembers(git_project_id)
         return ""
     
-    def deleteProjectMember(project_id, git_user_id):
+    def deleteProjectMember(self, project_id, git_user_id):
         if self.MODULES["GitLab_Project"]:
             gitClient.deleteProjectMember(project_id, git_user_id)
         
