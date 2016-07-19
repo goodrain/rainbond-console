@@ -235,8 +235,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
+            service_domain = False
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
+                service_domain = True
 
             http_port_str = settings.WILD_PORTS[self.response_region]
             context['http_port_str'] = ":" + http_port_str
@@ -265,10 +267,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         arr.append(evnVarObj)
                         envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
-
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
-                    context["hasHttpServices"] = True
-
+                
                 baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
                     context["updateService"] = True
@@ -348,7 +347,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["add_port"] = settings.MODULES["Add_Port"]
                 context["git_tag"] = settings.MODULES["GitLab_Project"]
 
-                if self.service.category == "application" or self.service.category == "manager":
+                if service_domain:
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
                     # service domain
