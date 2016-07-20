@@ -11,7 +11,7 @@ from www.models import (ServiceInfo, AppService, TenantServiceInfo,
                         TenantRegionInfo, PermRelService, TenantServiceRelation,
                         TenantServiceInfoDelete, Users, TenantServiceEnv,
                         TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
-                        TenantServicesPort, TenantServiceMountRelation)
+                        TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume)
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
@@ -340,7 +340,7 @@ class ServiceUpgrade(AuthedView):
                     self.service.image = baseservice.image
                     self.service.update_version = baseservice.update_version
                     self.service.save()
-                result["status"] = "success"    
+                result["status"] = "success"
         except Exception, e:
             logger.exception(e)
             if action == "vertical":
@@ -931,7 +931,7 @@ class ServiceEnv(AuthedView):
             scope = request.POST.get('scope', 'inner')
             attr_name = attr_name.lstrip().rstrip()
             attr_value = attr_value.lstrip().rstrip()
-            
+
             form = EnvCheckForm(request.POST)
             if not form.is_valid():
                 return JsonResponse({"success": False, "code": 400, "info": u"变量名不合法"})
@@ -1032,7 +1032,7 @@ class ServiceNewPort(AuthedView):
 
 
 class ServiceDockerContainer(AuthedView):
-    
+
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
         data = {}
@@ -1068,12 +1068,11 @@ class ServiceDockerContainer(AuthedView):
 class ServiceVolumeView(AuthedView):
     """添加,删除持久化数据目录"""
 
-    def __init__(self):
-        self.sys_dirs = ["/", "/bin", "/boot", "/dev", "/etc", "/home",
-                         "/lib", "/lib64", "/opt", "/proc", "/root", "/sbin",
-                         "/srv", "/sys", "/tmp", "/usr", "/var",
-                         "/usr/local", "/usr/sbin", "/usr/bin",
-                         ]
+    SYSDIRS = ["/", "/bin", "/boot", "/dev", "/etc", "/home",
+               "/lib", "/lib64", "/opt", "/proc", "/root", "/sbin",
+               "/srv", "/sys", "/tmp", "/usr", "/var",
+               "/usr/local", "/usr/sbin", "/usr/bin",
+               ]
 
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
@@ -1082,9 +1081,9 @@ class ServiceVolumeView(AuthedView):
         try:
             if action == "add":
                 volume_path = request.POST.get("volume_path")
+                old_volume_path = volume_path
                 service_type = self.service.service_type
                 if service_type == "application":
-                    # dest为相对路径
                     if volume_path.startswith("/"):
                         volume_path = "/app" + volume_path
                     else:
@@ -1094,13 +1093,34 @@ class ServiceVolumeView(AuthedView):
                         result["status"] = "failure"
                         result["code"] = "303"
                         return JsonResponse(result)
-                    if volume_path in self.sys_dirs:
+                    if volume_path in self.SYSDIRS:
                         result["status"] = "failure"
                         result["code"] = "304"
                         return JsonResponse(result)
-                volume = baseService.create_service_volume(self.service, volume_path)
-                if volume:
-                    result["volume"] = volume
+                # volume_path不能重复
+                all_volume_path = TenantServiceVolume.objects.filter(service_id=self.service.service_id).values("volume_path")
+                if len(all_volume_path):
+                    for path in list(all_volume_path):
+                        if path["volume_path"] == volume_path:
+                            result["status"] = "failure"
+                            result["code"] = "305"
+                            return JsonResponse(result)
+                        if path["volume_path"].startswith(volume_path):
+                            result["status"] = "failure"
+                            result["code"] = "307"
+                            return JsonResponse(result)
+                        if volume_path.startswith(path["volume_path"]):
+                            result["status"] = "failure"
+                            result["code"] = "306"
+                            return JsonResponse(result)
+
+                volume_id = baseService.create_service_volume(self.service, volume_path)
+                if volume_id:
+                    result["volume"] = {
+                        "ID": volume_id,
+                        "host_path": "/data" + volume_path,
+                        "volume_path": old_volume_path,
+                    }
                     result["status"] = "success"
                     result["code"] = "200"
                 else:

@@ -368,13 +368,21 @@ class TenantService(LeftSideBarMixin, AuthedView):
                             volume.volume_path = tmp_path.replace("/app", "", 1)
                         tmp_path = volume.host_path
                         if tmp_path:
-                            volume.host_path = tmp_path.split(self.service.service_id)[1]
+                            tmp_array = tmp_path.split(self.service.service_id)
+                            if len(tmp_array) == 2:
+                                volume.host_path = "/data" + tmp_array[1]
+                            else:
+                                volume.host_path = "/data" + tmp_path
                         result_list.append(volume)
                 else:
                     for volume in list(volume_list):
                         tmp_path = volume.host_path
                         if tmp_path:
-                            volume.host_path = tmp_path.split(self.service.service_id)[1]
+                            tmp_array = tmp_path.split(self.service.service_id)
+                            if len(tmp_array) == 2:
+                                volume.host_path = "/data" + tmp_array[1]
+                            else:
+                                volume.host_path = "/data" + tmp_path
                         result_list.append(volume)
                 context["volume_list"] = result_list
             else:

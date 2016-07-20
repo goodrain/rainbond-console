@@ -127,7 +127,7 @@
 
   
 <section class="panel">
-    <header class="panel-heading">持久化数据设置</header>
+    <header class="panel-heading">持久化数据设置(设置后需要重启服务)</header>
     <div class="panel-body">
         <div class="row">
             <div class="col-xs-12">
@@ -390,6 +390,7 @@
             url: "/ajax/{{tenantName}}/{{serviceAlias}}/volume",
             cache: false,
             data: {
+                "action": "add",
                 "volume_path": volume_path
             },
             beforeSend: function(xhr, settings){
@@ -410,13 +411,21 @@
                             .append($("<i/>").addClass("fa fa-trash-o"));
                     $("<td/>").append(button).appendTo(tr);
                     $("#volume_table").append(tr);
+
+                    clear_volume();
                     swal("添加成功");
                 } else if (json_data.code == 303) {
                     swal("挂载路径必须为绝对路径");
                 } else if (json_data.code == 304) {
-                    swal("挂载路径不能为系统目录!")
+                    swal("挂载路径不能为系统目录!");
                 } else if (json_data.code == 305) {
-                    swal("挂载路径的父路径已经挂载!")
+                    swal("挂载路径已存在!");
+                } else if (json_data.code == 306) {
+                    swal("挂载路径的根路径已挂载!");
+                } else if (json_data.code == 307) {
+                    swal("挂载路径的子路径已挂载, 请先删除自路径后挂载!")
+                } else {
+                    swal("添加失败!");
                 }
             },
             error: function(){
@@ -431,10 +440,11 @@
         var volume_id = $(event).attr("data-id");
         alert(volume_id);
         $.ajax({
-            type: "PUT",
+            type: "POST",
             url: "/ajax/{{tenantName}}/{{serviceAlias}}/volume",
             cache: false,
             data: {
+                "action": "cancel",
                 "volume_id": volume_id
             },
             beforeSend: function(xhr, settings){

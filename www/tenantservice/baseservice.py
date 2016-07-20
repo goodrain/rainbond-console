@@ -296,7 +296,7 @@ class BaseTenantService(object):
         # 发送到region进行处理
         res, body = regionClient.createServiceVolume(region, service_id, json.dumps(volume))
         if res.status == 200:
-            return volume
+            return volume.ID
         else:
             TenantServiceVolume.objects.filter(pk=volume.ID).delete()
             return None
