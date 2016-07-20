@@ -285,6 +285,7 @@ class BaseTenantService(object):
         service_id = service.service_id
         volume = TenantServiceVolume(service_id=service_id,
                                      service_type=service_type)
+
         # 确定host_path
         if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
             host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
@@ -294,7 +295,13 @@ class BaseTenantService(object):
         volume.volume_path = volume_path
         volume.save()
         # 发送到region进行处理
-        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(volume))
+        json_data = {
+            "service_id": service_id,
+            "service_type": service_type,
+            "host_path": host_path,
+            "volume_path": volume_path
+        }
+        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(json_data))
         if res.status == 200:
             return volume.ID
         else:
@@ -309,7 +316,13 @@ class BaseTenantService(object):
             volume = TenantServiceVolume.objects.get(pk=volume_id)
         except TenantServiceVolume.DoesNotExist:
             return True
-        res, body = regionClient.cancelServiceVolume(region, service_id, json.dumps(volume))
+        json_data = {
+            "service_id": service_id,
+            "service_type": volume.service_type,
+            "host_path": volume.host_path,
+            "volume_path": volume.volume_path
+        }
+        res, body = regionClient.cancelServiceVolume(region, service_id, json.dumps(json_data))
         if res.status == 200:
             TenantServiceVolume.objects.filter(pk=volume_id).delete()
             return True

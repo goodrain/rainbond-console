@@ -52,7 +52,7 @@
                 <tr port="{{port.container_port}}">
                     <td class="port-arrow"><a fold="yes" port="port_show_{{port.container_port}}"><i class="fa fa-chevron-circle-right fa-lg"></i></a></td>
                     <td>
-                        {% if tenantServiceInfo.category="application" %}
+                        {% if tenantServiceInfo.category == "application" %}
                             <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
                         {% else %}
                             {{port.container_port}}
@@ -129,7 +129,8 @@
     </div>
 </section>
 
-  
+
+{% if tenantServiceInfo.category == "application" %}
 <section class="panel">
     <header class="panel-heading">持久化数据设置(设置后需要重启服务)</header>
     <div class="panel-body">
@@ -139,7 +140,6 @@
                     <thead>
                         <tr>
                             <th>挂载路径</th>
-                            <th>持久化路径</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -147,7 +147,6 @@
                         {% for volume in volume_list %}
                         <tr>
                             <td>{{volume.volume_path}}</td>
-                            <td>{{volume.host_path}}</td>
                             <td>
                                 <button type="button" class="btn btn-danger btn-xs"
                                         data-id="{{volume.ID}}" onclick="cancel_volume(this);">
@@ -165,6 +164,7 @@
         </div>
     </div>
 </section>
+{% endif %}
 
 
     <section class="panel">
@@ -406,7 +406,6 @@
                     var volume = json_data.volume;
                     var tr = $("<tr/>");
                     $("<td/>").html(volume.volume_path).appendTo(tr);
-                    $("<td/>").html(volume.host_path).appendTo(tr);
                     var button = $("<button/>").attr("type", "button")
                             .attr("data-id", volume.ID)
                             .attr("onclick", "cancel_volume(this);")

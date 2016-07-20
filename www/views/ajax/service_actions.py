@@ -1119,7 +1119,6 @@ class ServiceVolumeView(AuthedView):
                 if volume_id:
                     result["volume"] = {
                         "ID": volume_id,
-                        "host_path": "/data" + volume_path,
                         "volume_path": old_volume_path,
                     }
                     result["status"] = "success"
