@@ -204,7 +204,7 @@ class ServiceManage(AuthedView):
                     codeRepositoriesService.deleteProject(self.service)
 
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
-                # env/auth/domain/relationship/envVar delete
+                # env/auth/domain/relationship/envVar/volume delete
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
                 ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
@@ -212,6 +212,7 @@ class ServiceManage(AuthedView):
                 TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServicesPort.objects.filter(service_id=self.service.service_id).delete()
+                TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
