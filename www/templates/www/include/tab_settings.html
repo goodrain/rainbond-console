@@ -379,7 +379,6 @@
 
     // 添加持久化记录
     function post_volume() {
-        alert("post volume");
         var volume_path = $("#edit_volume_div_input").val();
         if (volume_path == "") {
             swal("路径不能为空!");
@@ -436,9 +435,7 @@
 
     // 删除持久化记录
     function cancel_volume(event) {
-        alert("cancel volume");
         var volume_id = $(event).attr("data-id");
-        alert(volume_id);
         $.ajax({
             type: "POST",
             url: "/ajax/{{tenantName}}/{{serviceAlias}}/volume",
