@@ -186,6 +186,7 @@ class CreateServiceView(BaseAPIView):
                 src_path, dest_path = mnt.split(":")
                 manager.create_service_mnt(tenant.tenant_id,
                                            service_id,
+                                           dest_path,
                                            src_path,
                                            region)
 
