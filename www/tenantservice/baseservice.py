@@ -283,33 +283,33 @@ class BaseTenantService(object):
         region = service.service_region
         tenant_id = service.tenant_id
         service_id = service.service_id
-        persistent = TenantServiceVolume(service_id=service_id,
-                                         service_type=service_type)
+        volume = TenantServiceVolume(service_id=service_id,
+                                     service_type=service_type)
         # 确定host_path
         if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
             host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
         else:
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
-        persistent.host_path = host_path
-        persistent.volume_path = volume_path
-        persistent.save()
+        volume.host_path = host_path
+        volume.volume_path = volume_path
+        volume.save()
         # 发送到region进行处理
-        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(persistent))
+        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(volume))
         if res.status == 200:
-            return True
+            return volume
         else:
-            TenantServiceVolume.objects.filter(pk=persistent.ID).delete()
-            return False
+            TenantServiceVolume.objects.filter(pk=volume.ID).delete()
+            return None
 
     def cancel_service_volume(self, service, volume_id):
         # 发送到region进行删除
         region = service.service_region
         service_id = service.service_id
         try:
-            persistent = TenantServiceVolume.objects.get(pk=volume_id)
+            volume = TenantServiceVolume.objects.get(pk=volume_id)
         except TenantServiceVolume.DoesNotExist:
             return True
-        res, body = regionClient.cancelServiceVolume(region, service_id, json.dumps(persistent))
+        res, body = regionClient.cancelServiceVolume(region, service_id, json.dumps(volume))
         if res.status == 200:
             TenantServiceVolume.objects.filter(pk=volume_id).delete()
             return True

@@ -1065,7 +1065,7 @@ class ServiceDockerContainer(AuthedView):
         return response
 
 
-class ServicePersistent(AuthedView):
+class ServiceVolumeView(AuthedView):
     """添加,删除持久化数据目录"""
 
     def __init__(self):
@@ -1081,7 +1081,7 @@ class ServicePersistent(AuthedView):
         action = request.POST["action"]
         try:
             if action == "add":
-                volume_path = request.POST.get("dest_path")
+                volume_path = request.POST.get("volume_path")
                 service_type = self.service.service_type
                 if service_type == "application":
                     # dest为相对路径
@@ -1098,17 +1098,23 @@ class ServicePersistent(AuthedView):
                         result["status"] = "failure"
                         result["code"] = "304"
                         return JsonResponse(result)
-                result = baseService.create_service_volume(self.service, volume_path)
+                volume = baseService.create_service_volume(self.service, volume_path)
+                if volume:
+                    result["volume"] = volume
+                    result["status"] = "success"
+                    result["code"] = "200"
+                else:
+                    result["status"] = "failure"
+                    result["code"] = "500"
             elif action == "cancel":
                 volume_id = request.POST.get("volume_id")
-                result = baseService.cancel_service_volume(self.service, volume_id)
-
-            if result:
-                result["status"] = "success"
-                result["code"] = "200"
-            else:
-                result["status"] = "failure"
-                result["code"] = "500"
+                flag = baseService.cancel_service_volume(self.service, volume_id)
+                if flag:
+                    result["status"] = "success"
+                    result["code"] = "200"
+                else:
+                    result["status"] = "failure"
+                    result["code"] = "500"
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"

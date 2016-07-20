@@ -10,7 +10,11 @@
             <div class="row">
                 <label class="col-xs-2 control-label">Git仓库</label>
                 <label class="col-xs-4 control-label">
+                    {% if tenantServiceInfo.code_from == "gitlab_manual" %}
+                    <a>{{httpGitUrl}}</a>
+                    {% else %}
                     <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
+                    {% endif %}
                 </label>
                 {% if 'manage_service' in user.actions  and git_tag and tenantServiceInfo.code_from != "gitlab_manual" %}
                 <div class="col-xs-6">
@@ -127,7 +131,7 @@
     <div class="panel-body">
         <div class="row">
             <div class="col-xs-12">
-                <table class="table table-hover">
+                <table class="table table-hover" id="volume_table">
                     <thead>
                         <tr>
                             <th>挂载路径</th>
@@ -141,8 +145,8 @@
                             <td>{{volume.volume_path}}</td>
                             <td>{{volume.host_path}}</td>
                             <td>
-                                <button type="button" class="attr-delete btn btn-danger btn-xs"
-                                        data-id="{{volume.ID}}">
+                                <button type="button" class="btn btn-danger btn-xs"
+                                        data-id="{{volume.ID}}" onclick="cancel_volume(this);">
                                     <i class="fa fa-trash-o"></i>
                                 </button>
                             </td>
@@ -349,31 +353,107 @@
         }
         // 持久化目录
         $("#add_volume_attr").bind("click", function(){
-            var input = $("<input />").addClass("col-xs-12").attr("placeholder", "请输入持久化目录");
+            clear_volume();
+            var input = $("<input />").addClass("col-xs-12")
+                    .attr("id", "edit_volume_div_input")
+                    .attr("placeholder", "请输入持久化目录");
             $("<div />").addClass("col-xs-6").append(input).appendTo($("#edit_volume_div"));
 
             var add_button = $("<button/>").attr("type", "button")
-                    .attr("onclick", "post_volume(this);")
+                    .attr("onclick", "post_volume();")
                     .addClass("btn btn-success btn-xs")
                     .append($("<i/>").addClass("fa fa-check"));
             $("<div/>").addClass("btn-group").attr("role", "group").append(add_button).appendTo($("#edit_volume_div"));
 
             var cancel_button = $("<button/>").attr("type", "button")
-                    .attr("onclick", "cancel_volume(this);")
+                    .attr("onclick", "clear_volume();")
                     .addClass("btn btn-danger btn-xs")
                     .append($("<i/>").addClass("fa fa-times"));
             $("<div/>").addClass("btn-group").attr("role", "group").append(cancel_button).appendTo($("#edit_volume_div"));
         });
     });
 
+    function clear_volume() {
+        $("#edit_volume_div_input").empty();
+    }
+
     // 添加持久化记录
     function post_volume() {
         alert("post volume");
+        var volume_path = $("#edit_volume_div_input").val();
+        if (volume_path == "") {
+            swal("路径不能为空!");
+            return false;
+        }
+        $.ajax({
+            type: "POST",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/volume",
+            cache: false,
+            data: {
+                "volume_path": volume_path
+            },
+            beforeSend: function(xhr, settings){
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function(data) {
+                var json_data = eval(data)
+                if (json_data.code == 200) {
+                    var volume = json_data.volume;
+                    var tr = $("<tr/>");
+                    $("<td/>").html(volume.volume_path).appendTo(tr);
+                    $("<td/>").html(volume.host_path).appendTo(tr);
+                    var button = $("<button/>").attr("type", "button")
+                            .attr("data-id", volume.ID)
+                            .attr("onclick", "cancel_volume(this);")
+                            .addClass("btn btn-danger btn-xs")
+                            .append($("<i/>").addClass("fa fa-trash-o"));
+                    $("<td/>").append(button).appendTo(tr);
+                    $("#volume_table").append(tr);
+                    swal("添加成功");
+                } else if (json_data.code == 303) {
+                    swal("挂载路径必须为绝对路径");
+                } else if (json_data.code == 304) {
+                    swal("挂载路径不能为系统目录!")
+                } else if (json_data.code == 305) {
+                    swal("挂载路径的父路径已经挂载!")
+                }
+            },
+            error: function(){
+                swal("添加失败");
+            }
+        });
     }
 
     // 删除持久化记录
-    function cancel_volume() {
+    function cancel_volume(event) {
         alert("cancel volume");
+        var volume_id = $(event).attr("data-id");
+        alert(volume_id);
+        $.ajax({
+            type: "PUT",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/volume",
+            cache: false,
+            data: {
+                "volume_id": volume_id
+            },
+            beforeSend: function(xhr, settings){
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function(data) {
+                var json_data = eval(data)
+                if (json_data.code == 200) {
+                    $(event).closest("tr").remove();
+                    swal("删除成功");
+                } else {
+                    swal("删除失败!")
+                }
+            },
+            error: function(){
+                swal("删除失败");
+            }
+        });
     }
 
 	function getMappingPort(){
