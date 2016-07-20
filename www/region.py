@@ -3,6 +3,8 @@ from django.conf import settings
 
 class RegionInfo(object):
     region_list = settings.REGIONS
+    region_ports = settings.WILD_PORTS
+    region_domains = settings.WILD_DOMAINS
 
     @classmethod
     def region_names(cls):
@@ -29,3 +31,11 @@ class RegionInfo(object):
                 choices.append(item['name'])
 
         return choices
+
+    @classmethod
+    def region_port(cls, region_name):
+        return cls.region_ports[region_name]
+
+    @classmethod
+    def region_domain(cls, region_name):
+        return cls.region_domains[region_name]

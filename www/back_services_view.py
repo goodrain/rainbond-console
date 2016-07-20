@@ -13,6 +13,7 @@ from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource,
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 from www.app_http import AppServiceApi
+from www.region import RegionInfo
 
 import logging
 logger = logging.getLogger('default')
@@ -343,9 +344,12 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
     def set_tenant_default_env(self, envs):
         for env in envs:
             if env.attr_name == 'SITE_URL':
-                env.options = 'direct_copy'
-                env.attr_value = 'http://{}.{}.{}.goodrain.net:10080'.format(self.serviceAlias, self.tenantName,
-                                                                             self.cookie_region)
+                if self.cookie_region in RegionInfo.valid_regions():
+                    port = RegionInfo.region_port(self.cookie_region)
+                    domain = RegionInfo.region_domain(self.cookie_region)
+                    env.options = 'direct_copy'
+                    env.attr_value = 'http://{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
+                    logger.debug('tenant_default_env', 'SITE_URL = {} options = {}', env.attr_value, env.options)
 
     def get(self, request, *args, **kwargs):
         context = self.get_context()

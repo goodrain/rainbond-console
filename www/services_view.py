@@ -213,9 +213,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
         try:
             if self.service.category == "application":
                 # forbidden blank page
-                if self.service.code_version is None or self.service.code_version == "":
-                    if self.service.code_from is None or self.service.code_from == "":
-                        codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
+                if self.service.code_version is None or self.service.code_version == "" or (self.service.git_project_id == 0 and self.service.git_url is None):
+                    codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)
@@ -233,8 +232,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
+            service_domain = False
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
+                service_domain = True
 
             http_port_str = settings.WILD_PORTS[self.response_region]
             context['http_port_str'] = ":" + http_port_str
@@ -263,10 +264,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         arr.append(evnVarObj)
                         envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
-
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
-                    context["hasHttpServices"] = True
-
+                
                 baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
                     context["updateService"] = True
@@ -346,7 +344,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["add_port"] = settings.MODULES["Add_Port"]
                 context["git_tag"] = settings.MODULES["GitLab_Project"]
 
-                if self.service.category == "application" or self.service.category == "manager":
+                if service_domain:
                     # service git repository
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
                     # service domain
@@ -356,7 +354,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     except Exception as e:
                         pass
                 context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
@@ -472,7 +470,7 @@ class ServiceDockerContainer(AuthedView):
                 context["ctn_id"] = docker_c_id
                 context["host_id"] = docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
-                context["wss"] = "ws://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
+                context["wss"] = settings.DOCKER_WSS_URL.get("type", "ws") + "://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')
