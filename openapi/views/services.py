@@ -200,7 +200,13 @@ class CreateServiceView(BaseAPIView):
             logger.error("openapi.services", "create region service failed!", e)
             return Response(status=419, data={"success": False, "msg": u"创建region服务失败!"})
 
-        return Response(status=200, data={"success": True, "service": service})
+        json_data = {
+            "service_id": newTenantService.service_id,
+            "tenant_id": newTenantService.tenant_id,
+            "service_key": newTenantService.service_key,
+            "service_alias": newTenantService.service_alias
+        }
+        return Response(status=200, data={"success": True, "service": json_data})
 
 
 class DeleteServiceView(BaseAPIView):
