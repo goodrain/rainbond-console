@@ -166,12 +166,8 @@ class CreateServiceView(BaseAPIView):
                                                       service,
                                                       user_id,
                                                       region=region)
-            manager.addServicePort(newTenantService, False,
-                                   container_port=5000,
-                                   protocol='http',
-                                   port_alias='',
-                                   is_inner_service=False,
-                                   is_outer_service=True)
+            manager.add_service_extend(newTenantService, service)
+
         except Exception as e:
             logger.error("openapi.services", "create console service failed!", e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
