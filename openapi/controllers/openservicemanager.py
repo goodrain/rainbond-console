@@ -473,14 +473,20 @@ class OpenTenantServiceManager(object):
         task = {}
         task["dep_service_id"] = "outer"
         task["tenant_id"] = tenant_id
-        task["mnt_name"] = "/mnt/" + dest_path
+        if dest_path:
+            if dest_path.startswith("/"):
+                task["mnt_name"] = "/mnt" + dest_path
+            else:
+                task["mnt_name"] = "/mnt/" + dest_path
+        else:
+            task["mnt_name"] = "/mnt/nodata"
         task["mnt_dir"] = src_path
         regionClient.createServiceMnt(region, service_id, json.dumps(task))
         tsr = TenantServiceMountRelation()
         tsr.tenant_id = tenant_id
         tsr.service_id = service_id
         tsr.dep_service_id = "outer"
-        tsr.mnt_name = "/mnt/" + dest_path
+        tsr.mnt_name = task["mnt_name"]
         tsr.mnt_dir = src_path
         tsr.dep_order = 0
         tsr.save()
