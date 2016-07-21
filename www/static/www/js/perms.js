@@ -103,33 +103,38 @@
         }
       );
 
-      $('button.invite-service').click(
-        function() {
-          identity = $("#ivite_perm").val();
-          email = $("#invite_email").val();
-          
-          if(typeof(serviceAlias) == "undefined" || serviceAlias==""){
-        	  url = '/ajax/' + tenantName +'/invite';
-          }else{
-        	  url = '/ajax/' + tenantName + '/' + serviceAlias + '/invite';
-          }
-          
-          $.ajax({
-            url: url,
-            data: {"csrfmiddlewaretoken":csrftoken,"email":email,"identity":identity},
-            method: "POST",
-            success: function (event) {
-              console.log(event);
-              $.action_report(event);
-            },
-
-            statusCode: {
-              500: function() {
-                swal("服务器错误,请稍后再尝试！");
-              }
+        $('button.invite-service').click(function() {
+            identity = $("#ivite_perm").val();
+            var email = $("#invite_email").val();
+            if (email == "") {
+                swal("邮件地址不能为空!");
+                return;
             }
-          });
 
+            if(typeof(serviceAlias) == "undefined" || serviceAlias==""){
+                url = '/ajax/' + tenantName +'/invite';
+            } else {
+                url = '/ajax/' + tenantName + '/' + serviceAlias + '/invite';
+            }
+
+            $.ajax({
+                url: url,
+                data: {
+                    "csrfmiddlewaretoken":csrftoken,
+                    "email":email,
+                    "identity":identity
+                },
+                method: "POST",
+                success: function (event) {
+                    console.log(event);
+                    $.action_report(event);
+                },
+                statusCode: {
+                    500: function() {
+                        swal("服务器错误,请稍后再尝试！");
+                    }
+                }
+            });
         }
       );
       //option:selected
