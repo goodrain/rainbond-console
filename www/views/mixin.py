@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from django.http import Http404
 from www.service_http import RegionServiceApi
-from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv
+from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv, AppServiceVolume
 from www.tenantservice.baseservice import BaseTenantService
 from www.region import RegionInfo
 
@@ -45,12 +45,16 @@ class CopyPortAndEnvMixin(object):
     def copy_port_and_env(self, service, new_service):
         ports = AppServicePort.objects.filter(service_key=service.service_key, app_version=service.version)
         envs = AppServiceEnv.objects.filter(service_key=service.service_key, app_version=service.version)
+        volumes = AppServiceVolume.objects.filter(service_key=service.service_key, app_version=service.version)
         baseService = BaseTenantService()
         for port in ports:
             baseService.addServicePort(new_service, service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
                                        is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
         for env in envs:
             baseService.saveServiceEnvVar(new_service.tenant_id, new_service.service_id, env.container_port, env.name, env.attr_name, env.attr_value, env.is_change, env.scope)
+
+        for volume in volumes:
+            baseService.add_volume_list(new_service, volume.volume_path)
 
 
 class LeftSideBarMixin(object):

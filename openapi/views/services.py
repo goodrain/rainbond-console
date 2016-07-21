@@ -2,7 +2,8 @@
 from rest_framework.response import Response
 
 from www.models import Tenants, TenantServiceInfo, ServiceInfo, \
-    TenantServiceAuth, TenantServiceEnvVar, TenantServiceRelation
+    TenantServiceAuth, TenantServiceEnvVar, TenantServiceRelation, \
+    TenantServiceVolume
 from www.utils import crypt
 import re
 
@@ -174,17 +175,22 @@ class CreateServiceView(BaseAPIView):
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
+            TenantServiceVolume.objects.filter(service_id=service_id).delete()
             return Response(status=418, data={"success": False, "msg": u"创建控制台服务失败!"})
 
         # mnt code
         if mnts:
             for mnt in mnts:
-                src_path, dest_path = mnt.split(":")
-                manager.create_service_mnt(tenant.tenant_id,
-                                           service_id,
-                                           dest_path,
-                                           src_path,
-                                           region)
+                host_path, volume_path = mnt.split(":")
+                # 添加到持久化目录
+                # manager.create_service_mnt(tenant.tenant_id,
+                #                            service_id,
+                #                            dest_path,
+                #                            src_path,
+                #                            region)
+                volume_id = manager.create_service_volume(newTenantService, volume_path)
+                if volume_id is None:
+                    logger.error("openapi.services", "service volume failed!")
 
         # create region service
         try:

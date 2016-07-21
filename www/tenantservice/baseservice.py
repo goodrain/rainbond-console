@@ -159,7 +159,13 @@ class BaseTenantService(object):
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
             data["extend_info"]["envs"] = list(envs_info)
-    
+
+        # 获取数据持久化数据
+        volume_info = TenantServiceVolume.objects.filter(service_id=newTenantService.service_id).values(
+            'service_id', 'category', 'host_path', 'volume_path')
+        if volume_info:
+            data["extend_info"]["volume"] = list(volume_info)
+
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
@@ -279,33 +285,25 @@ class BaseTenantService(object):
         TenantServiceMountRelation.objects.get(service_id=service_id, dep_service_id=dependS.service_id).delete()
 
     def create_service_volume(self, service, volume_path):
-        service_type = service.service_type
+        category = service.category
         region = service.service_region
-        tenant_id = service.tenant_id
         service_id = service.service_id
-        volume = TenantServiceVolume(service_id=service_id,
-                                     service_type=service_type)
-
-        # 确定host_path
-        if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
-            host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
-        else:
-            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
-        volume.host_path = host_path
-        volume.volume_path = volume_path
-        volume.save()
+        host_path, volume_id = self.add_volume_list(service, volume_path)
+        if volume_id is None:
+            logger.error("add volume error!")
+            return None
         # 发送到region进行处理
         json_data = {
             "service_id": service_id,
-            "service_type": service_type,
+            "category": category,
             "host_path": host_path,
             "volume_path": volume_path
         }
         res, body = regionClient.createServiceVolume(region, service_id, json.dumps(json_data))
         if res.status == 200:
-            return volume.ID
+            return volume_id
         else:
-            TenantServiceVolume.objects.filter(pk=volume.ID).delete()
+            TenantServiceVolume.objects.filter(pk=volume_id).delete()
             return None
 
     def cancel_service_volume(self, service, volume_id):
@@ -318,7 +316,7 @@ class BaseTenantService(object):
             return True
         json_data = {
             "service_id": service_id,
-            "service_type": volume.service_type,
+            "category": volume.category,
             "host_path": volume.host_path,
             "volume_path": volume.volume_path
         }
@@ -328,6 +326,27 @@ class BaseTenantService(object):
             return True
         else:
             return False
+
+    def add_volume_list(self, service, volume_path):
+        try:
+            category = service.category
+            region = service.service_region
+            tenant_id = service.tenant_id
+            service_id = service.service_id
+            volume = TenantServiceVolume(service_id=service_id,
+                                         category=category)
+
+            # 确定host_path
+            if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
+                host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            else:
+                host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            volume.host_path = host_path
+            volume.volume_path = volume_path
+            volume.save()
+            return host_path, volume.ID
+        except Exception as e:
+            logger.exception(e)
 
 
 class TenantUsedResource(object):

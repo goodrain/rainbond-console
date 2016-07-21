@@ -746,7 +746,8 @@ class TenantServiceMountRelation(BaseModel):
     dep_service_id = models.CharField(max_length=32, help_text=u"依赖服务id")
     mnt_name = models.CharField(max_length=100, help_text=u"mnt name")
     mnt_dir = models.CharField(max_length=400, help_text=u"mnt dir")
-    
+
+
 class ServiceLicense(BaseModel):
 
     class Meta:
@@ -771,6 +772,6 @@ class TenantServiceVolume(BaseModel):
     class Meta:
         db_table = 'tenant_service_volume'
     service_id = models.CharField(max_length=32, help_text=u"服务id")
-    service_type = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
+    category = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
     host_path = models.CharField(max_length=400, help_text=u"物理机的路径,绝对路径")
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")

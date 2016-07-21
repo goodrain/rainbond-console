@@ -236,6 +236,33 @@
                         </div>
                     </selection>
 
+                    <!--持久化设置-->
+                    <selection>
+                        <h4>应用的持久化设置</h4>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <table class="table table-hover">
+                                        <thead>
+                                        <tr>
+                                            <th>挂载路径</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for volume in volumeList %}
+                                        <tr>
+                                            <td>
+                                                {{volume.volume_path}}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </selection>
+
                     <div class="form-actions">
                         <input type="submit" name="publish" value="下一步" class="btn btn-lg btn-success btn-block"
                                onclick="return checkdata();"

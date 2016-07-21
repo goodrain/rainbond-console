@@ -1083,8 +1083,8 @@ class ServiceVolumeView(AuthedView):
             if action == "add":
                 volume_path = request.POST.get("volume_path")
                 old_volume_path = volume_path
-                service_type = self.service.service_type
-                if service_type == "application":
+                category = self.service.category
+                if category == "application":
                     if volume_path.startswith("/"):
                         volume_path = "/app" + volume_path
                     else:

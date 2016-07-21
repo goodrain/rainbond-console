@@ -130,7 +130,6 @@
 </section>
 
 
-{% if tenantServiceInfo.category == "application" %}
 <section class="panel">
     <header class="panel-heading">持久化数据设置(设置后需要重启服务)</header>
     <div class="panel-body">
@@ -148,23 +147,26 @@
                         <tr>
                             <td>{{volume.volume_path}}</td>
                             <td>
+                                {% if tenantServiceInfo.category == "application" %}
                                 <button type="button" class="btn btn-danger btn-xs"
                                         data-id="{{volume.ID}}" onclick="cancel_volume(this);">
                                     <i class="fa fa-trash-o"></i>
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if tenantServiceInfo.category == "application" %}
                 <div id="edit_volume_div"></div>
                 <div class="clearfix" style="padding: 8px;"></div>
                 <button type="button" class="btn btn-success btn-xs" id="add_volume_attr">新增持久化设置</button>
+                {% endif %}
             </div>
         </div>
     </div>
 </section>
-{% endif %}
 
 
     <section class="panel">

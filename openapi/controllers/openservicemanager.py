@@ -7,7 +7,7 @@ from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceEnv, ServiceDomain, Tenants, AppService, Users, \
-    AppServicePort, AppServiceEnv
+    AppServicePort, AppServiceEnv, AppServiceVolume, TenantServiceVolume
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -116,7 +116,12 @@ class OpenTenantServiceManager(object):
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
             data["extend_info"]["envs"] = list(envs_info)
-    
+
+        volume_info = TenantServiceVolume.objects.filter(service_id=newTenantService.service_id).values(
+            'service_id', 'category', 'host_path', 'volume_path')
+        if volume_info:
+            data["extend_info"]["volume"] = list(volume_info)
+
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
@@ -469,6 +474,7 @@ class OpenTenantServiceManager(object):
     def add_service_extend(self, new_service, service_info):
         ports = AppServicePort.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
         envs = AppServiceEnv.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
+        volumes = AppServiceVolume.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
         for port in ports:
             self.addServicePort(new_service,
                                 service_info.is_init_accout,
@@ -486,4 +492,68 @@ class OpenTenantServiceManager(object):
                                    env.attr_value,
                                    env.is_change,
                                    env.scope)
+        for volume in volumes:
+            self.add_volume_list(new_service, volume.volume_path)
 
+    def add_volume_list(self, service, volume_path):
+        try:
+            category = service.category
+            region = service.service_region
+            tenant_id = service.tenant_id
+            service_id = service.service_id
+            volume = TenantServiceVolume(service_id=service_id,
+                                         category=category)
+            # 确定host_path
+            if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
+                host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            else:
+                host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            volume.host_path = host_path
+            volume.volume_path = volume_path
+            volume.save()
+            return host_path, volume.ID
+        except Exception as e:
+            logger.exception("openapi.services", e)
+
+    def create_service_volume(self, service, volume_path):
+        category = service.category
+        region = service.service_region
+        service_id = service.service_id
+        host_path, volume_id = self.add_volume_list(service, volume_path)
+        if volume_id is None:
+            logger.error("add volume error!")
+            return None
+        # 发送到region进行处理
+        json_data = {
+            "service_id": service_id,
+            "category": category,
+            "host_path": host_path,
+            "volume_path": volume_path
+        }
+        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(json_data))
+        if res.status == 200:
+            return volume_id
+        else:
+            TenantServiceVolume.objects.filter(pk=volume_id).delete()
+            return None
+
+    def cancel_service_volume(self, service, volume_id):
+        # 发送到region进行删除
+        region = service.service_region
+        service_id = service.service_id
+        try:
+            volume = TenantServiceVolume.objects.get(pk=volume_id)
+        except TenantServiceVolume.DoesNotExist:
+            return True
+        json_data = {
+            "service_id": service_id,
+            "category": volume.category,
+            "host_path": volume.host_path,
+            "volume_path": volume.volume_path
+        }
+        res, body = regionClient.cancelServiceVolume(region, service_id, json.dumps(json_data))
+        if res.status == 200:
+            TenantServiceVolume.objects.filter(pk=volume_id).delete()
+            return True
+        else:
+            return False

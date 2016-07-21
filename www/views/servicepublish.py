@@ -13,7 +13,9 @@ from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 from www.servicetype import ServiceType
 
-from www.models import AppService, AppServiceEnv, AppServicePort, AppServiceCategory, AppServiceRelation, ServiceExtendMethod
+from www.models import AppService, AppServiceEnv, AppServicePort, \
+    AppServiceCategory, AppServiceRelation, ServiceExtendMethod, \
+    TenantServiceVolume, AppServiceVolume
 
 import logging
 
@@ -265,6 +267,17 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
         for value, label in choices:
             choice_list.append({"label": label, "value": value})
         context["memoryList"] = choice_list
+        # 持久化信息
+        result_list = []
+        if self.service.category == "application":
+            volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
+            for volume in list(volume_list):
+                tmp_path = volume.volume_path
+                if tmp_path:
+                    volume.volume_path = tmp_path.replace("/app", "", 1)
+                result_list.append(volume)
+
+        context["volume_list"] = result_list
         # 返回页面
         return TemplateResponse(self.request,
                                 'www/service/publish_step_2.html',
@@ -361,6 +374,23 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             else:
                 extendMethod["is_restart"] = True
             ServiceExtendMethod(**extendMethod).save()
+
+            # 保存持久化设置
+            if self.service.category == "application":
+                volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
+                volume_data = []
+                AppServiceVolume.objects.filter(service_key=app.service_key,
+                                                app_version=app.app_version).delete()
+                for volume in volume_list:
+                    app_volume = AppServiceVolume(service_key=app.service_key,
+                                                  app_version=app.app_version,
+                                                  category=volume.category,
+                                                  volume_path=volume.volume_path)
+                    volume_data.append(app_volume)
+                if len(volume_data) > 0:
+                    AppServiceVolume.objects.bulk_create(volume_data)
+            logger.debug(u'publish.service. now add publish service volume ok')
+
             return self.redirect_to('/apps/{0}/{1}/publish/relation/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
         except Exception as e:
             logger.exception(e)
