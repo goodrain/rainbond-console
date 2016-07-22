@@ -143,6 +143,14 @@ class WeChatUnBind(models.Model):
     status = models.IntegerField(help_text=u'用户解绑的状态')
 
 
+class SuperAdminUser(models.Model):
+    """超级管理员"""
+    class Meta:
+        db_table = "user_administrator"
+
+    email = models.EmailField(max_length=35, unique=True, help_text=u"邮件地址")
+
+
 class Users(models.Model):
 
     class Meta:
@@ -186,9 +194,16 @@ class Users(models.Model):
 
     @property
     def is_sys_admin(self):
-        admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
-                  'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
-        return bool(self.email in admins)
+        # admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
+        #           'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
+        # return bool(self.email in admins)
+        if self.email:
+            try:
+                SuperAdminUser.objects.get(email=self.email)
+                return True
+            except SuperAdminUser.DoesNotExist:
+                pass
+        return False
 
     def get_session_auth_hash(self):
         """
