@@ -7,7 +7,8 @@ from django.http import JsonResponse
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
-                        AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod)
+                        AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
+                        AppServiceVolume)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService
 from www.monitorservice.monitorhook import MonitorHook
@@ -340,6 +341,12 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             baseService.addServicePort(self.service, source_service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
                                        is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
 
+    def copy_volumes(self, source_service):
+        volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key, app_version=source_service.version)
+        for volume in volumes:
+            baseService.add_volume_list(source_service, volume.volume_path)
+
+
     # add by tanm specify tenant app default env
     def set_tenant_default_env(self, envs):
         for env in envs:
@@ -365,6 +372,8 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             source_service = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
             self.copy_envs(source_service, [])
             self.copy_ports(source_service)
+            # add volume
+            self.copy_volumes(source_service)
             baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
             return self.redirect_to('/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias))
@@ -376,6 +385,8 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             source_service = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
             self.copy_envs(source_service, data.envs)
             self.copy_ports(source_service)
+            # add volume
+            self.copy_volumes(source_service)
             # create region tenantservice
             baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)

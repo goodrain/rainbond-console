@@ -274,7 +274,7 @@ class PublishServiceView(LeftSideBarMixin, AuthedView):
             for volume in list(volume_list):
                 tmp_path = volume.volume_path
                 if tmp_path:
-                    volume.volume_path = tmp_path.replace("/app", "", 1)
+                    volume.volume_path = tmp_path.replace("/app/", "", 1)
                 result_list.append(volume)
 
         context["volume_list"] = result_list
