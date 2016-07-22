@@ -231,10 +231,10 @@ class PublishServiceView(APIView):
                 logger.error("tenant is not exists,tenant_id={}".format(data["tenant_id"]))
             apputil.send_services(data)
             # 发送图片
-            if app.logo is not None and app.logo != "":
-                image_url = app.logo.url
-                logger.debug('send service logo:{}'.format(app.logo))
-                apputil.send_image('app_logo', image_url)
+            # if app.logo is not None and app.logo != "":
+            #     image_url = app.logo.url
+            #     logger.debug('send service logo:{}'.format(app.logo))
+            #     apputil.send_image('app_logo', image_url)
             
         return Response({"ok": True}, status=200)
 
