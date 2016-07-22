@@ -359,19 +359,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
                 result_list = []
-                if self.service.category == "application":
-                    for volume in list(volume_list):
-                        tmp_path = volume.volume_path
-                        if tmp_path:
-                            volume.volume_path = tmp_path.replace("/app", "", 1)
-                        # tmp_path = volume.host_path
-                        # if tmp_path:
-                        #     tmp_array = tmp_path.split(self.service.service_id)
-                        #     if len(tmp_array) == 2:
-                        #         volume.host_path = "/data" + tmp_array[1]
-                        #     else:
-                        #         volume.host_path = "/data" + tmp_path
-                        result_list.append(volume)
+                for volume in list(volume_list):
+                    tmp_path = volume.volume_path
+                    if tmp_path:
+                        volume.volume_path = tmp_path.replace("/app", "", 1)
+                    result_list.append(volume)
                 context["volume_list"] = result_list
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
