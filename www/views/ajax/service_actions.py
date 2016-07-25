@@ -1083,13 +1083,9 @@ class ServiceVolumeView(AuthedView):
             if action == "add":
                 volume_path = request.POST.get("volume_path")
                 old_volume_path = volume_path
-                category = self.service.category
-                if category == "application":
-                    if volume_path.startswith("/"):
-                        volume_path = "/app" + volume_path
-                    else:
-                        volume_path = "/app/" + volume_path
-                else:
+                #category = self.service.category
+                language = self.service.language
+                if language == "docker":
                     if not volume_path.startswith("/"):
                         result["status"] = "failure"
                         result["code"] = "303"
@@ -1098,6 +1094,11 @@ class ServiceVolumeView(AuthedView):
                         result["status"] = "failure"
                         result["code"] = "304"
                         return JsonResponse(result)
+                else:
+                    if volume_path.startswith("/"):
+                        volume_path = "/app" + volume_path
+                    else:
+                        volume_path = "/app/" + volume_path
                 # volume_path不能重复
                 all_volume_path = TenantServiceVolume.objects.filter(service_id=self.service.service_id).values("volume_path")
                 if len(all_volume_path):
