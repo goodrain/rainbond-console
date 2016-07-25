@@ -344,9 +344,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["add_port"] = settings.MODULES["Add_Port"]
                 context["git_tag"] = settings.MODULES["GitLab_Project"]
 
-                if service_domain:
-                    # service git repository
+                # service git repository
+                try:
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
+                except Exception as e:
+                    pass
+                if service_domain:
                     # service domain
                     try:
                         domain = ServiceDomain.objects.get(service_id=self.service.service_id)
