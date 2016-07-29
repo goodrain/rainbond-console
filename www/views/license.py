@@ -95,7 +95,7 @@ class LicenseShow(BaseView):
         context = super(LicenseShow, self).get_context()
         return context
     
-    def encode(codestring):  
+    def encode(self, codestring):  
         strorg = codestring.encode('utf-8')  
         strlength = len(strorg)  
         keylength = len(LICENSE_KEY)  
