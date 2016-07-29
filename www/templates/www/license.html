@@ -19,6 +19,7 @@
                     <th><i class="fa "></i> 结束时间</th>
                     <th><i class="fa "></i> 私钥</th>
                     <th><i class="fa "></i> 加密key</th>
+                    <th><i class="fa "></i> license</th>
                     <th><i class="fa fa-edit"></i> 操作</th>
                 </tr>
             </thead>
@@ -36,6 +37,7 @@
                     <td>{{item.end_time}}</td>
                     <td><a href="/apps/{{tenantName}}/license-show?id={{item.ID}}&&action=private" target='_blank'>查看</a></td>
                     <td><a href="/apps/{{tenantName}}/license-show?id={{item.ID}}&&action=key" target='_blank'>查看</a></td>
+                    <td><a href="/apps/{{tenantName}}/license-show?id={{item.ID}}&&action=license" target='_blank'>查看</a></td>
                     <td><a href="/apps/{{tenantName}}/license-detail?id={{item.ID}}&&action=delete">删除</a></td>
                 </tr>
                 {% endfor %}

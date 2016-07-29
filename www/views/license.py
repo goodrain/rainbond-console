@@ -13,7 +13,9 @@ import base64
 logger = logging.getLogger('default')
 
 class LicenseViews(LeftSideBarMixin, AuthedView):
-
+    
+    LICENSE_KEY = "qa123zxswe3532crfvtg123bnhymjukil35435opplmnbv586cxz"
+    
     def get_context(self):
         context = super(LicenseViews, self).get_context()
         return context
@@ -55,8 +57,8 @@ class LicenseDetailViews(LeftSideBarMixin, AuthedView):
         if action == "delete" and self.user.is_sys_admin:
             ServiceLicense.objects.filter(ID=id).delete()
             return self.redirect_to('/apps/' + self.tenantName + '/license-list')
-        return TemplateResponse(self.request, 'www/license_detail.html', context)
-        
+        return TemplateResponse(self.request, 'www/license_detail.html', context)  
+
     def post(self, request, *args, **kwargs):
         # todo 需要添加form表单验证
         try:
@@ -93,6 +95,15 @@ class LicenseShow(BaseView):
         context = super(LicenseShow, self).get_context()
         return context
     
+    def encode(codestring):  
+        strorg = codestring.encode('utf-8')  
+        strlength = len(strorg)  
+        keylength = len(LICENSE_KEY)  
+        hh = []  
+        for i in range(strlength):  
+            hh.append(chr((ord(strorg[i]) + ord(key[i % keylength])) % 256))  
+        return base64.b64encode(''.join(hh))
+    
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         id = request.GET.get("id", "")
@@ -106,6 +117,9 @@ class LicenseShow(BaseView):
                 fileName = "goodrain_" + license.code + ".pem"
             elif action == "key":
                 result = license.ciphertext
+                fileName = "goodrain_" + license.code + ".cert"
+            elif action == "license":
+                result = encode(license.ciphertext) + "\n" + encode(license.private_pem)
                 fileName = "goodrain_" + license.code + ".cert"
             context["result"] = result
         except Exception as e:
