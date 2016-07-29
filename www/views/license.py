@@ -119,7 +119,7 @@ class LicenseShow(BaseView):
                 result = license.ciphertext
                 fileName = "goodrain_" + license.code + ".cert"
             elif action == "license":
-                result = encode(license.ciphertext) + "\n" + encode(license.private_pem)
+                result = self.encode(license.ciphertext) + "\n" + self.encode(license.private_pem)
                 fileName = "goodrain_" + license.code + ".cert"
             context["result"] = result
         except Exception as e:
