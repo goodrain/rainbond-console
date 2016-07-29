@@ -12,9 +12,9 @@ import rsa
 import base64
 logger = logging.getLogger('default')
 
+LICENSE_KEY = "qa123zxswe3532crfvtg123bnhymjukil35435opplmnbv586cxz"
+
 class LicenseViews(LeftSideBarMixin, AuthedView):
-    
-    LICENSE_KEY = "qa123zxswe3532crfvtg123bnhymjukil35435opplmnbv586cxz"
     
     def get_context(self):
         context = super(LicenseViews, self).get_context()
@@ -101,7 +101,7 @@ class LicenseShow(BaseView):
         keylength = len(LICENSE_KEY)  
         hh = []  
         for i in range(strlength):  
-            hh.append(chr((ord(strorg[i]) + ord(key[i % keylength])) % 256))  
+            hh.append(chr((ord(strorg[i]) + ord(LICENSE_KEY[i % keylength])) % 256))  
         return base64.b64encode(''.join(hh))
     
     def get(self, request, *args, **kwargs):
