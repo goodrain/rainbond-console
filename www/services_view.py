@@ -351,11 +351,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     pass
                 if service_domain:
                     # service domain
-                    try:
+                    domain_num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
+                    if domain_num == 1:
                         domain = ServiceDomain.objects.get(service_id=self.service.service_id)
                         context["serviceDomain"] = domain
-                    except Exception as e:
-                        pass
                 port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
                 outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
                 context["ports"] = list(port_list)
@@ -363,7 +362,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # 付费用户或者免费用户的mysql,免费用户的docker
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
-                context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin()) and self.service.service_type == "application"
+                context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
                 context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
                 # 获取挂载信息,查询
