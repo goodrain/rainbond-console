@@ -58,6 +58,7 @@ class SelectedServiceView(APIView):
             regionClient.update_service(service.service_region, serviceId, data)
             # 添加端口
             if port_list:
+                region_port_list = []
                 for port in port_list.keys():
                     num = TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
                                                             service_id=service.service_id,
@@ -67,13 +68,25 @@ class SelectedServiceView(APIView):
                                                    service.is_init_accout,
                                                    container_port=port,
                                                    protocol="http",
-                                                   port_alias=port,
-                                                   is_inner_service=True,
+                                                   port_alias='',
+                                                   is_inner_service=False,
                                                    is_outer_service=False)
-                        data = {"action": "add", "ports": port}
-                        regionClient.createServicePort(service.service_region,
-                                                       service.service_id,
-                                                       json.dumps(data))
+                        port_info = {
+                            "tenant_id": service.tenant_id,
+                            "service_id": service.service_id,
+                            "container_port": port,
+                            "mapping_port": 0,
+                            "protocol": "http",
+                            "port_alias": '',
+                            "is_inner_service": False,
+                            "is_outer_service": False
+                        }
+                        region_port_list.append(port_info)
+                if len(region_port_list) > 0:
+                    data = {"action": "add", "ports": region_port_list}
+                    regionClient.createServicePort(service.service_region,
+                                                   service.service_id,
+                                                   json.dumps(data))
             # 添加持久化记录
             if volume_list:
                 for volume_path in volume_list:
