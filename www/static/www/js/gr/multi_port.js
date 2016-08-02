@@ -14,7 +14,7 @@
           url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
           $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function(res){
             if(res.success){
-                return;
+                window.location.href = window.location.href;
             }else{
                 showMessage(res.info);
                 port_switch.bootstrapSwitch('state', !state, true);

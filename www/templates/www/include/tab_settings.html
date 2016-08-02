@@ -48,35 +48,35 @@
                 </tr>
             </thead>
             <tbody>
-              {% for port in ports %}
+                {% for port in ports %}
                 <tr port="{{port.container_port}}">
                     <td class="port-arrow"><a fold="yes" port="port_show_{{port.container_port}}"><i class="fa fa-chevron-circle-right fa-lg"></i></a></td>
                     <td>
-                        {% if tenantServiceInfo.category == "application" %}
+                        {% if port_auth %}
                             <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
                         {% else %}
                             {{port.container_port}}
                         {% endif %}
                     </td>
                     <td>
-                      {% if tenant.pay_type != "free" or user.is_sys_admin %}
-                        <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
-                      {% else %}
-                        {{port.protocol}}
-                      {% endif %}
+                        {% if port_auth %}
+                            <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
+                        {% else %}
+                            {{port.protocol}}
+                        {% endif %}
                     </td>
                     <td>
-                      {% if tenant.pay_type != "free" or user.is_sys_admin %}
-                        <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}"></a>
-                      {% else %}
-                        {{port.port_alias}}
-                      {% endif %}
+                        {% if port_auth %}
+                            <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}"></a>
+                        {% else %}
+                            {{port.port_alias}}
+                        {% endif %}
                     </td>
                     <td>
                         <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" {% if tenant.pay_type == "free" and not user.is_sys_admin %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
-                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if tenant.pay_type == "free" and tenantServiceInfo.service_key != 'mysql' %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
+                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if outer_auth %}{% if outer_port_exist and not tenantServiceInfo.is_outer_service %}disabled{% endif %}{% else %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
                         {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" "><i class="fa fa-times"></i></button>{% endif %}
@@ -87,7 +87,7 @@
                         
                     </td>
                 </tr>
-              {% endfor %}
+                {% endfor %}
             </tbody>
         </table>
     </div>

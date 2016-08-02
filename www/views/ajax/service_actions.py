@@ -810,6 +810,11 @@ class ServicePort(AuthedView):
             deal_port.protocol = protocol
             data.update({"modified_field": "protocol", "current_value": protocol})
         elif action == 'open_outer':
+            # 检查服务已经存在对外端口
+            outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                               is_outer_service=True).count()
+            if outer_port_num > 0:
+                return JsonResponse({"success": False, "info": u"对外端口暂时只支持一个", "code": 408})
             deal_port.is_outer_service = True
             data.update({"modified_field": "is_outer_service", "current_value": True})
             if deal_port.mapping_port == 0:
@@ -883,7 +888,7 @@ class ServicePort(AuthedView):
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
             deal_port.save()
             return JsonResponse({"success": True, "info": u"更改成功"}, status=200)
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', False)
             return JsonResponse({"success": False, "info": u"更改失败", "code": 500}, status=200)
