@@ -65,7 +65,7 @@ class SelectedServiceView(APIView):
                                                             container_port=port).count()
                     if num == 0:
                         baseService.addServicePort(service,
-                                                   service.is_init_accout,
+                                                   False,
                                                    container_port=port,
                                                    protocol="http",
                                                    port_alias='',
