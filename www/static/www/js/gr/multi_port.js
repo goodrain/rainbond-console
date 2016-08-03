@@ -21,20 +21,18 @@
                     // 其他的open全部设置为disabled
                     $('.switch-box[name="outer"]').each(function () {
                         if ($(this) != port_switch) {
-                            $(this).bootstrapSwitch('setActive', false);
+                            $(this).bootstrapSwitch('disabled', true);
                         }
                     });
-                    // port_switch.bootstrapSwitch('setActive', true);
                 } else {
                     if (port_switch.attr("name") == "inner") {
                         return;
                     }
                     // 全部取消disabled
                     $('.switch-box[name="outer"]').each(function () {
-                        $(this).bootstrapSwitch('setActive', true);
+                        $(this).bootstrapSwitch('disabled', false);
                     });
                 }
-                // window.location.href = window.location.href;
             }else{
                 showMessage(res.info);
                 port_switch.bootstrapSwitch('state', !state, true);
