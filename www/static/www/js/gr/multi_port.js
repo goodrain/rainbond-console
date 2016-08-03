@@ -14,7 +14,15 @@
           url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
           $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function(res){
             if(res.success){
-                window.location.href = window.location.href;
+                if (state) {
+                    // 其他的open全部设置为disabled
+                    $('.switch').bootstrapSwitch('setActive', false);
+                    port_switch.bootstrapSwitch('setActive', true);
+                } else {
+                    // 全部取消disabled
+                    $('.switch').bootstrapSwitch('setActive', true);
+                }
+                // window.location.href = window.location.href;
             }else{
                 showMessage(res.info);
                 port_switch.bootstrapSwitch('state', !state, true);
