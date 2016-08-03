@@ -15,12 +15,24 @@
           $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function(res){
             if(res.success){
                 if (state) {
+                    if (port_switch.attr("name") == "inner") {
+                        return;
+                    }
                     // 其他的open全部设置为disabled
-                    $('.switch').bootstrapSwitch('setActive', false);
-                    port_switch.bootstrapSwitch('setActive', true);
+                    $('.switch-box[name="outer"]').each(function () {
+                        if ($(this) != port_switch) {
+                            $(this).bootstrapSwitch('setActive', false);
+                        }
+                    });
+                    // port_switch.bootstrapSwitch('setActive', true);
                 } else {
+                    if (port_switch.attr("name") == "inner") {
+                        return;
+                    }
                     // 全部取消disabled
-                    $('.switch').bootstrapSwitch('setActive', true);
+                    $('.switch-box[name="outer"]').each(function () {
+                        $(this).bootstrapSwitch('setActive', true);
+                    });
                 }
                 // window.location.href = window.location.href;
             }else{
