@@ -20,10 +20,9 @@
                     }
                     // 其他的open全部设置为disabled
                     $('.switch-box[name="outer"]').each(function () {
-                        if ($(this) != port_switch) {
-                            $(this).bootstrapSwitch('disabled', true);
-                        }
+                        $(this).bootstrapSwitch('disabled', true);
                     });
+                    port_switch.bootstrapSwitch('disabled', false);
                 } else {
                     if (port_switch.attr("name") == "inner") {
                         return;
