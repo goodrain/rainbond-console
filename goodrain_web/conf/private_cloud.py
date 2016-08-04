@@ -164,6 +164,8 @@ WECHAT_CALLBACK = {
 }
 
 DOCKER_WSS_URL = {
+    'is_wide_domain':True,
+    'type': 'wss',
     'dev': '',
 }
 
