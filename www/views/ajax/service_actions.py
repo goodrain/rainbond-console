@@ -1053,11 +1053,14 @@ class ServiceDockerContainer(AuthedView):
             logger.info("c_id=" + c_id)
             logger.info("h_id=" + h_id)
             if c_id != "" and h_id != "":
-                fields = h_id.split('.')
-                new_fields = map(lambda x: int(x) + int(fields[len(x)]), fields)
-                key = '{:02X}{:02X}{:02X}{:02X}'.format(*new_fields)
+                if settings.DOCKER_WSS_URL.get("is_wide_domain", False):
+                    fields = h_id.split('.')
+                    new_fields = map(lambda x: int(x) + int(fields[len(x)]), fields)
+                    key = '{:02X}{:02X}{:02X}{:02X}'.format(*new_fields)
+                    response.set_cookie('docker_h_id', key)
+                else:
+                    response.set_cookie('docker_h_id', h_id)
                 response.set_cookie('docker_c_id', c_id)
-                response.set_cookie('docker_h_id', key)
                 response.set_cookie('docker_s_id', self.service.service_id)
             return response
         except Exception as e:
