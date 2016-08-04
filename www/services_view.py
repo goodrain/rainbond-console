@@ -215,6 +215,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # forbidden blank page
                 if self.service.code_version is None or self.service.code_version == "" or (self.service.git_project_id == 0 and self.service.git_url is None):
                     codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
+                    self.service = TenantServiceInfo.objects.get(service_id=self.service.service_id)
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)
