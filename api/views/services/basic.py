@@ -59,7 +59,11 @@ class SelectedServiceView(APIView):
             # 添加端口
             if port_list:
                 region_port_list = []
+                default_port_del = True
                 for port in port_list.keys():
+                    if port == 5000:
+                        default_port_del = False
+                        continue
                     num = TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
                                                             service_id=service.service_id,
                                                             container_port=port).count()
@@ -82,6 +86,16 @@ class SelectedServiceView(APIView):
                             "is_outer_service": False
                         }
                         region_port_list.append(port_info)
+                if default_port_del:
+                    # 删除region的5000
+                    data = {"action": "delete", "port_ports": [5000]}
+                    regionClient.createServicePort(service.service_region,
+                                                   service.service_id,
+                                                   json.dumps(data))
+                    # 删除console的5000
+                    TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
+                                                      service_id=service.service_id,
+                                                      container_port=5000).delete()
                 if len(region_port_list) > 0:
                     data = {"action": "add", "ports": region_port_list}
                     regionClient.createServicePort(service.service_region,

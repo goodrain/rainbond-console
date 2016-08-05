@@ -14,6 +14,22 @@
 								<img src="/static/www/img/step-4.png" width="80%" style="padding-bottom: 50px;padding-top: 30px;"/>
 						</div>
 					</div>
+                    <!--docker设置内存大小-->
+					<div class="form-group ">
+						<div class="col-lg-2">
+							<label class="control-label"> 内存 </label>
+						</div>
+						<div class="col-lg-4">
+							<select class="form-control" id="service_version" name="service_version">
+                                <select class="form-control" style="width: 150px"
+                                        id="service_memory" name="service_memory">
+                                    {% for item in memorydict.items %}
+                                        <option value="{{item.1}}" {% if item.0 == service.min_memory %}selected="selected"{% endif %} >{{item.0}}</option>
+                                    {% endfor %}
+                                </select>
+							</select>
+						</div>
+					</div>
 					<div class="col-lg-offset-3 col-lg-6 " style="padding-top: 50px;padding-bottom: 20px;">
 						<button type="button" id="language_btn" class="btn btn-lg btn-info btn-block">完成</button>
 					</div>

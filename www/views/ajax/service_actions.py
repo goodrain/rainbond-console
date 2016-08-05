@@ -1112,11 +1112,11 @@ class ServiceVolumeView(AuthedView):
                             result["status"] = "failure"
                             result["code"] = "305"
                             return JsonResponse(result)
-                        if path["volume_path"].startswith(volume_path):
+                        if path["volume_path"].startswith(volume_path + "/"):
                             result["status"] = "failure"
                             result["code"] = "307"
                             return JsonResponse(result)
-                        if volume_path.startswith(path["volume_path"]):
+                        if volume_path.startswith(path["volume_path"] + "/"):
                             result["status"] = "failure"
                             result["code"] = "306"
                             return JsonResponse(result)

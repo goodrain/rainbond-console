@@ -364,8 +364,26 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             self.service.cmd = ''
             self.service.save()
             regionClient.update_service(self.response_region, self.service.service_id, {"cmd": ""})
+            # 设置docker构建显示的内存
+            context["memorydict"] = self.memory_choices(self.tenant.pay_type == "free")
             return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
+
+    def memory_choices(self, free=False):
+        memory_dict = {}
+        memory_dict["128"] = '128M'
+        memory_dict["256"] = '256M'
+        memory_dict["512"] = '512M'
+        memory_dict["1024"] = '1G'
+        if not free:
+            memory_dict["2048"] = '2G'
+            memory_dict["4096"] = '4G'
+            memory_dict["8192"] = '8G'
+            memory_dict["16384"] = '16G'
+            memory_dict["32768"] = '32G'
+            memory_dict["65536"] = '64G'
+        return memory_dict
+
 
     @never_cache
     @perm_required('create_service')
