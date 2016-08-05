@@ -365,24 +365,37 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             self.service.save()
             regionClient.update_service(self.response_region, self.service.service_id, {"cmd": ""})
             # 设置docker构建显示的内存
-            context["memorydict"] = self.memory_choices(self.tenant.pay_type == "free")
+            memdict, keylist = self.memory_choices(self.tenant.pay_type == "free")
+            context["keylist"] = keylist
+            context["memorydict"] = memdict
             return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
 
     def memory_choices(self, free=False):
         memory_dict = {}
+        key_list = []
+        key_list.append("128")
+        key_list.append("256")
+        key_list.append("512")
+        key_list.append("1024")
         memory_dict["128"] = '128M'
         memory_dict["256"] = '256M'
         memory_dict["512"] = '512M'
         memory_dict["1024"] = '1G'
         if not free:
+            key_list.append("2048")
+            key_list.append("4096")
+            key_list.append("8192")
+            key_list.append("16384")
+            key_list.append("32768")
+            key_list.append("65536")
             memory_dict["2048"] = '2G'
             memory_dict["4096"] = '4G'
             memory_dict["8192"] = '8G'
             memory_dict["16384"] = '16G'
             memory_dict["32768"] = '32G'
             memory_dict["65536"] = '64G'
-        return memory_dict
+        return memory_dict, key_list
 
 
     @never_cache
@@ -417,6 +430,22 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             tenantServiceEnv = TenantServiceEnv.objects.get(service_id=self.service.service_id)
             tenantServiceEnv.user_dependency = json.dumps(checkJson)
             tenantServiceEnv.save()
+
+            # docker构建时自定义内存逻辑
+            if self.service.language == 'docker':
+                try:
+                    memory_str = request.POST.get("service_memory", "128")
+                    service_memory = int(memory_str)
+                    if service_memory != 128:
+                        self.service.min_memory = service_memory
+                        self.service.save()
+                        regionClient.update_service(self.response_region,
+                                                    self.service.service_id,
+                                                    {"memory": memory_str})
+                except Exception as e:
+                    logger.error("docker build memory config failed")
+                    logger.exception(e)
+
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)

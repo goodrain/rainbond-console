@@ -1,4 +1,7 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% block main-content%}
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content%}
 <section class="wrapper site-min-height">
 	<!-- page start-->
 	<section class="panel">
@@ -16,18 +19,17 @@
 					</div>
                     <!--docker设置内存大小-->
 					<div class="form-group ">
+                        <div class="col-lg-2"></div>
 						<div class="col-lg-2">
 							<label class="control-label"> 内存 </label>
 						</div>
 						<div class="col-lg-4">
-							<select class="form-control" id="service_version" name="service_version">
-                                <select class="form-control" style="width: 150px"
-                                        id="service_memory" name="service_memory">
-                                    {% for item in memorydict.items %}
-                                        <option value="{{item.1}}" {% if item.0 == service.min_memory %}selected="selected"{% endif %} >{{item.0}}</option>
-                                    {% endfor %}
-                                </select>
-							</select>
+                            <select class="form-control" style="width: 150px"
+                                    id="service_memory" name="service_memory">
+                                {% for key in keylist %}
+                                <option value="{{key}}">{{memorydict|mkey:key}}</option>
+                                {% endfor %}
+                            </select>
 						</div>
 					</div>
 					<div class="col-lg-offset-3 col-lg-6 " style="padding-top: 50px;padding-bottom: 20px;">
