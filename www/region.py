@@ -9,9 +9,7 @@ class RegionInfo(object):
     if hasattr(settings, "PLATFORM_OPEN"):
         is_private = not settings.PLATFORM_OPEN
     if is_private:
-        region_list = region_list[0:1]
-        region_ports = region_ports[0:1]
-        region_domains = region_domains[0:1]
+        region_list = settings.REGIONS[0:1]
 
     @classmethod
     def region_names(cls):
