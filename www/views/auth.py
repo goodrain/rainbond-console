@@ -28,7 +28,7 @@ class DiscourseAuthView(BaseView):
         user = self.user
         if isinstance(user, AnonymousUser):
             logger.info("auth.discourse", "AnonymousUser, redirect to login")
-            return self.redirect_to('/login?next={0}'.format(urllib.quote(request.get_full_path())))
+            return self.redirect_to('/login?next={0}&typ=discourse'.format(urllib.quote(request.get_full_path())))
         else:
             logger.info("auth.discourse", "user %s authed for discourse login" % user.nick_name)
             user_info = {
