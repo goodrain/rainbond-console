@@ -31,9 +31,13 @@ class DiscourseAuthView(BaseView):
             return self.redirect_to('/login?next={0}&typ=discourse'.format(urllib.quote(request.get_full_path())))
         else:
             logger.info("auth.discourse", "user %s authed for discourse login" % user.nick_name)
+            # fix bug: discourse login no email
+            email = user.email
+            if email is None or email == "":
+                email = user.nick_name + "@goodrain.com.cn"
             user_info = {
                 "name": user.nick_name, "external_id": user.nick_name,
-                "username": user.nick_name, "email": user.email,
+                "username": user.nick_name, "email": email,
                 "nonce": payload['nonce']
             }
             url_encoded_sso, sig = s.create_auth(user_info)
