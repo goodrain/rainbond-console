@@ -5,6 +5,13 @@ class RegionInfo(object):
     region_list = settings.REGIONS
     region_ports = settings.WILD_PORTS
     region_domains = settings.WILD_DOMAINS
+    is_private = True
+    if hasattr(settings, "PLATFORM_OPEN"):
+        is_private = not settings.PLATFORM_OPEN
+    if is_private:
+        region_list = region_list[0:1]
+        region_ports = region_ports[0:1]
+        region_domains = region_domains[0:1]
 
     @classmethod
     def region_names(cls):

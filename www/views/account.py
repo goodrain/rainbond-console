@@ -417,6 +417,17 @@ class Registation(BaseView):
             region = request.POST.get('machine_region')
             if region is None or region == "" or region == "1":
                 region = "ucloud_bj_1"
+            # 没有配置项默认为私有云帮,配置项为false为私有云帮
+            is_private = True
+            if hasattr(settings, "PLATFORM_OPEN"):
+                is_private = not settings.PLATFORM_OPEN
+            if is_private:
+                try:
+                    tenant = Tenants.objects.get(tenant_name=tenant_name)
+                except Tenants.DoesNotExist:
+                    logger.info("account.register", "private console only one tenant")
+                    return self.get_response()
+
             user = Users(email=email, nick_name=nick_name,
                          phone=phone, client_ip=self.get_client_ip(request), rf=rf)
             user.set_password(password)
@@ -425,19 +436,20 @@ class Registation(BaseView):
 
             # 根据资源是否首先判断公有云、私有云注册
             # todo 暂时解决方案,后续需根据数据中心配置修改
-            if settings.MODULES["Memory_Limit"]:
-                tenant = Tenants.objects.create(
-                    tenant_name=tenant_name,
-                    pay_type='free',
-                    creater=user.pk,
-                    region=region)
-            else:
-                tenant = Tenants.objects.create(
-                    tenant_name=tenant_name,
-                    pay_type='payed',
-                    pay_level='company',
-                    creater=user.pk,
-                    region=region)
+            if not is_private:
+                if settings.MODULES["Memory_Limit"]:
+                    tenant = Tenants.objects.create(
+                        tenant_name=tenant_name,
+                        pay_type='free',
+                        creater=user.pk,
+                        region=region)
+                else:
+                    tenant = Tenants.objects.create(
+                        tenant_name=tenant_name,
+                        pay_type='payed',
+                        pay_level='company',
+                        creater=user.pk,
+                        region=region)
 
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 
