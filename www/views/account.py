@@ -69,6 +69,7 @@ class Login(BaseView):
             # 判断是否MicroMessenger
             if is_weixin(request):
                 return self.redirect_to("/wechat/login")
+
             self.form = UserLoginForm()
             return self.get_response()
         else:
