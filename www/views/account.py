@@ -68,13 +68,7 @@ class Login(BaseView):
         if isinstance(user, AnonymousUser):
             # 判断是否MicroMessenger
             if is_weixin(request):
-                typ = request.GET.get('typ', None)
-                response = self.redirect_to("/wechat/login")
-                if typ is not None and typ == "discourse":
-                    next_url = request.GET.get("next")
-                    response.set_cookie("discourse_url", next_url)
-                return response
-
+                return self.redirect_to("/wechat/login")
             self.form = UserLoginForm()
             return self.get_response()
         else:
