@@ -31,14 +31,16 @@ STREAM_DOMAIN_URL = {
     "ali-sh": "",
     "aws-bj-1": "",
     "aws-jp-1": "",
-    "ucloud-bj-1": ""               
+    "ucloud-bj-1": "",
+    "xunda-hk": ""
 }
 
 WILD_DOMAINS = {
     "ali-sh": ".ali-sh.goodrain.net",
     "aws-bj-1": ".aws-bj-1.goodrain.net",
     "aws-jp-1": ".aws-jp-1.goodrain.net",
-    "ucloud-bj-1": ".ucloud-bj-1.goodrain.net"
+    "ucloud-bj-1": ".ucloud-bj-1.goodrain.net",
+    "xunda-hk": ".xunda-hk.goodrain.net"
 }
 
 WILD_PORTS = {
@@ -95,6 +97,10 @@ REGION_SERVICE_API = [{
     'url': 'http://api.ali-sh.goodrain.com:8888',
     'apitype': 'region service',
     'region_name': 'ali-sh'
+}, {
+    'url': 'http://api.xunda-hk.goodrain.com:8888',
+    'apitype': 'region service',
+    'region_name': 'xunda-hk'
 }]
 
 APP_SERVICE_API = {
@@ -107,6 +113,7 @@ WEBSOCKET_URL = {
     'aws-bj-1': 'wss://mpush-aws-bj-1.goodrain.com:6060/websocket',
     'aws-jp-1': 'wss://mpush-aws-jp-1.goodrain.com:6060/websocket',
     'ali-sh': 'wss://mpush-ali-sh.goodrain.com:6060/websocket',
+    'xunda-hk': 'wss://mpush-xunda-hk.goodrain.com:6060/websocket',
 }
 
 REGION_RULE = {
@@ -201,7 +208,8 @@ LOG_DOMAIN = {
     "ali-sh": "ali-sh.download.goodrain.com",
     "aws-bj-1": "aws-bj-1.download.goodrain.com",
     "aws-jp-1": "aws-jp-1.download.goodrain.com",
-    "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com"               
+    "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com",
+    "xunda-hk": "xunda-hk.download.goodrain.com",
 }
 # open api
 IS_OPEN_API = False
@@ -215,12 +223,13 @@ WECHAT_CALLBACK = {
 }
 
 DOCKER_WSS_URL = {
-    'is_wide_domain':True,
+    'is_wide_domain': True,
     'type': 'wss',
     'ucloud-bj-1': '-ucloud-bj-1-ws.goodrain.com:8088',
     'aws-bj-1': '',
     'aws-jp-1': '-aws-jp-1-ws.goodrain.com:8088',
     'ali-sh': '-ali-sh-ws.goodrain.com:8088',
+    'xunda-hk': '-xunda-hk-ws.goodrain.com:8088',
 }
 
 OAUTH2_APP = {
