@@ -47,7 +47,8 @@ WILD_PORTS = {
     "ali-sh": "10080",
     "aws-bj-1": "10080",
     "aws-jp-1": "80",
-    "ucloud-bj-1": "10080"
+    "ucloud-bj-1": "10080",
+    "xunda-hk": "80",
 }
 
 REST_FRAMEWORK = {
