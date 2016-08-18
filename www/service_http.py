@@ -272,7 +272,7 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._put(url, self.default_headers, body, region=region)
         return res, body
 
-	# 服务对外端口开启类型
+    # 服务对外端口开启类型
     def mutiPortSupport(self,region,service_id,body):
         url = self.region_map[region]['url']+"/v1/services/lifecycle/"+service_id+"/multi-outer-port/"
         res,body = self._post(url,self.default_headers,body,region=region)

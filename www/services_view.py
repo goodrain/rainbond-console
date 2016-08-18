@@ -204,25 +204,24 @@ class TenantService(LeftSideBarMixin, AuthedView):
         return extends_dict
      
      # 端口开放下拉列表选项
-	def multi_port_choices(self):
-		multi_port = {}
-		multi_port["one_outer"] = u'单一端口开放'
-		multi_port["dif_protocol"] = u'按协议开放'
-		multi_port["multi_outer"] = u'多端口开放'
-		return multi_port
+    def multi_port_choices(self):
+        multi_port = {}
+        multi_port["one_outer"] = u'单一端口开放'
+        multi_port["dif_protocol"] = u'按协议开放'
+        multi_port["multi_outer"] = u'多端口开放'
+        return multi_port
 
-	# 服务挂载卷类型下拉列表选项
-	def mnt_share_choices(self):
-		mnt_share_type = {}
-		mnt_share_type["shared"] = u'共享'
-		mnt_share_type["exclusive"] = u'独享'
-		return mnt_share_type
+    # 服务挂载卷类型下拉列表选项
+    def mnt_share_choices(self):
+        mnt_share_type = {}
+        mnt_share_type["shared"] = u'共享'
+        mnt_share_type["exclusive"] = u'独享'
+        return mnt_share_type
 
-	# 获取所有的开放的http对外端口
-	def get_outer_service_port(self):
-		out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-															  is_outer_service=True, protocol='http')
-		return out_service_port_list
+    # 获取所有的开放的http对外端口
+    def get_outer_service_port(self):
+        out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_outer_service=True, protocol='http')
+        return out_service_port_list
 
     @never_cache
     @perm_required('view_service')
@@ -368,10 +367,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
                 context["git_tag"] = settings.MODULES["GitLab_Project"]
-				context["multi_port_choices"] = self.multi_port_choices()
-				context["mnt_share_choices"] = self.mnt_share_choices()
-				# 对外开放的端口
-				context["http_outer_service_ports"] = self.get_outer_service_port()
+                context["multi_port_choices"] = self.multi_port_choices()
+                context["mnt_share_choices"] = self.mnt_share_choices()
+                context["http_outer_service_ports"] = self.get_outer_service_port()
                 # service git repository
                 try:
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)

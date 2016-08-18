@@ -608,6 +608,7 @@ class ServiceDomainManager(AuthedView):
             action = request.POST["action"]
             zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
             match = zhPattern.search(domain_name.decode('utf-8'))
+            container_port = request.POST.get("multi_port_bind",'0')
             if match:
                 result["status"] = "failure"
                 return JsonResponse(result)
@@ -626,18 +627,21 @@ class ServiceDomainManager(AuthedView):
                     domain["service_name"] = tenantService.service_alias
                     domain["domain_name"] = domain_name
                     domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    domain["container_port"] = int(container_port)
                     domaininfo = ServiceDomain(**domain)
                     domaininfo.save()
                 else:
                     domain = ServiceDomain.objects.get(service_id=self.service.service_id)
                     old_domain_name = domain.domain_name
                     domain.domain_name = domain_name
+                    domain["container_port"] = int(container_port)
                     domain.save()
                 data = {}
                 data["service_id"] = self.service.service_id
                 data["new_domain"] = domain_name
                 data["old_domain"] = old_domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
+                data["container_port"] = int(container_port)
                 regionClient.addUserDomain(self.service.service_region, json.dumps(data))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_add', True)
             elif action == "close":
@@ -813,8 +817,11 @@ class ServicePort(AuthedView):
             # 检查服务已经存在对外端口
             outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
                                                                is_outer_service=True).count()
-            if outer_port_num > 0:
-                return JsonResponse({"success": False, "info": u"对外端口暂时只支持一个", "code": 408})
+            if self.service.port_type == 'one_outer':
+                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                                   is_outer_service=True).count()
+                if outer_port_num > 0:
+                    return JsonResponse({"success": False, "info": u"单一端口开放只能开启一个对外端口", "code": 408})
             deal_port.is_outer_service = True
             data.update({"modified_field": "is_outer_service", "current_value": True})
             if deal_port.mapping_port == 0:
@@ -1148,4 +1155,45 @@ class ServiceVolumeView(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
             result["code"] = "500"
+        return JsonResponse(result)
+
+class MutiOuterPortView(AuthedView):
+
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        port_type = request.POST.get("port_type")
+        result = {}
+
+        # 端口类型
+        if port_type is not None:
+            # 判断在单一端口对外开放的情况下,
+            if port_type == 'one_outer':
+                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                                   is_outer_service=True).count()
+                if outer_port_num > 1:
+                    result["status"] = "408"
+                    result["info"] = u"请先关闭多余端口"
+                    return JsonResponse(result)
+            tenant_service_info = TenantServiceInfo.objects.filter(service_id=self.service.service_id).update(
+                port_type=port_type)
+            flag = baseService.custom_port_type(self.service, port_type)
+            if flag:
+                result["status"] = "ok"
+        return JsonResponse(result)
+
+
+class MntShareTypeView(AuthedView):
+
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        volume_type = request.POST.get("volume_type")
+        result = {}
+        if volume_type is not None:
+            tenantServiceInfo = TenantServiceInfo.objects.filter(service_id=self.service.service_id).update(
+                volume_type=volume_type)
+            flag = baseService.custom_mnt_shar_type(self.service, volume_type)
+            if flag:
+                result["status"] = "ok"
         return JsonResponse(result)

@@ -1,44 +1,52 @@
 (function ($) {
-      //设定端口对内服务和对外服务的开关
-      $('.switch-box').bootstrapSwitch();
-      $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {
-        var port_switch = $(this);
-          port = $(this).closest('tr').attr('port');
-          port_type = $(this).attr('name'); //inner outer
-          if (state) {
-            action = "open_" + port_type;
-          } else {
-            action = 'close_' + port_type;
-          }
-
-          url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
-          $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function(res){
-            if(res.success){
-                if (state) {
-                    if (port_switch.attr("name") == "inner") {
-                        return;
-                    }
-                    // 其他的open全部设置为disabled
-                    $('.switch-box[name="outer"]').each(function () {
-                        $(this).bootstrapSwitch('disabled', true);
-                    });
-                    port_switch.bootstrapSwitch('disabled', false);
-                } else {
-                    if (port_switch.attr("name") == "inner") {
-                        return;
-                    }
-                    // 全部取消disabled
-                    $('.switch-box[name="outer"]').each(function () {
-                        $(this).bootstrapSwitch('disabled', false);
-                    });
-                }
-            }else{
-                showMessage(res.info);
-                port_switch.bootstrapSwitch('state', !state, true);
+    //设定端口对内服务和对外服务的开关
+    $('.switch-box').bootstrapSwitch();
+    $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {
+            var port_switch = $(this);
+            port = $(this).closest('tr').attr('port');
+            port_type = $(this).attr('name'); //inner outer
+            if (state) {
+                action = "open_" + port_type;
+            } else {
+                action = 'close_' + port_type;
             }
-          }, 'json');
+
+            url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
+            $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
+                if(res.success) {
+                    var outer_port_type = $("#outer_port_setting").val();
+                    if (state) {
+                        if (port_switch.attr("name") == "inner") {
+                            return;
+                        }
+                        if (outer_port_type == "one_outer") {
+                            // 其他的open全部设置为disabled
+                            $('.switch-box[name="outer"]').each(function () {
+                                $(this).bootstrapSwitchs('disabled', true);
+                            });
+                            port_switch.bootstrapSwitch('disabled', false);
+                        }
+                        else {
+                            $('.switch-box[name="outer"]').each(function () {
+                                $(this).bootstrapSwitchs('disabled', false);
+                            });
+                        }
+                    } else {
+                        if (port_switch.attr("name") == "inner") {
+                            return;
+                        }
+                        // 全部取消disabled
+                        $('.switch-box[name="outer"]').each(function () {
+                            $(this).bootstrapSwitch('disabled', false);
+                        });
+                    }
+                } else {
+                    showMessage(res.info);
+                    port_switch.bootstrapSwitch('state', !state, true);
+                }
+            }, 'json');
         }
-      );
+    );
 
       //显示端口明细
       $('.port-arrow a').click(function(event) {
