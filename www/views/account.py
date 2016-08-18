@@ -63,6 +63,7 @@ class Login(BaseView):
                 self.user.nick_name, self.user.pk))
             return Http404
 
+	# get 请求会走get方法
     def get(self, request, *args, **kwargs):
         user = request.user
         if isinstance(user, AnonymousUser):

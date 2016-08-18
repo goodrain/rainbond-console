@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Django settings for goodrain_web project.
 
@@ -25,10 +26,13 @@ PROJECT_NAME = SETTING_DIR.split('/')[-1]
 REGION_TAG = os.environ.get('REGION_TAG')
 
 IS_OPEN_API = False
-
-DEBUG = False
+#修改为debug模式
+# DEBUG = False
+DEBUG = True
 if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
     REGION_TAG = "www_com"
+
+REGION_TAG="local"
 
 conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG.replace('-', '_'))
 __import__(conf_name)
