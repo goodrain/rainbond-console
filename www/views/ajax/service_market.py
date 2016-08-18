@@ -4,7 +4,9 @@ import json
 from django.http import JsonResponse
 from www.views import AuthedView
 
-from www.models import (ServiceInfo, AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod)
+from www.models import (ServiceInfo, AppServicePort, AppServiceEnv,
+                        AppServiceRelation, ServiceExtendMethod,
+                        AppServiceVolume)
 from www.service_http import RegionServiceApi
 from www.app_http import AppServiceApi
 from django.conf import settings
@@ -113,6 +115,7 @@ class RemoteServiceMarketAjax(AuthedView):
                 env_list = json_data.get('env_list', None)
                 port_list = json_data.get('port_list', None)
                 extend_list = json_data.get('extend_list', None)
+                volume_list = json_data.get('volume_list', None)
                 # 新增环境参数
                 env_data = []
                 if env_list:
@@ -188,7 +191,21 @@ class RemoteServiceMarketAjax(AuthedView):
                 if len(relation_data) > 0:
                     AppServiceRelation.objects.bulk_create(relation_data)
                 logger.debug('---add app service relation---ok---')
-                
+                # 服务持久化记录
+                volume_data = []
+                if volume_list:
+                    for app_volume in volume_list:
+                        volume = AppServiceVolume(service_key=app_volume.service_key,
+                                                  app_version=app_volume.app_version,
+                                                  category=app_volume.category,
+                                                  volume_path=app_volume.volume_path);
+
+                        volume_data.append(volume)
+                AppServiceVolume.objects.filter(service_key=service_key, app_version=app_version).delete()
+                if len(volume_data) > 0:
+                    AppServiceVolume.objects.bulk_create(volume_data)
+                logger.debug('---add app service volume---ok---')
+
                 self.downloadImage(base_info)
                 # 回写数据
                 if callback != "0":
@@ -222,4 +239,4 @@ class RemoteServiceMarketAjax(AuthedView):
                     regionClient.send_task(region, 'app_image', json.dumps(download_task))
         except Exception as e:  
             logger.exception(e)
-        
+

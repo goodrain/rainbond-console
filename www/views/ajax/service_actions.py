@@ -3,19 +3,17 @@ import datetime
 import json
 import re
 
-from django.db.models import Sum
-from django.db.models import Max
-from django.views.decorators.cache import never_cache
 from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 
-from www.models import (ServiceInfo, AppService, TenantServiceInfo, TenantRegionInfo, TenantServiceLog, PermRelService, TenantServiceRelation,
-                        TenantServiceStatics, TenantServiceInfoDelete, Users, TenantServiceEnv, TenantServiceAuth, ServiceDomain,
-                        TenantServiceEnvVar, TenantServicesPort, TenantServiceMountRelation)
+from www.models import (ServiceInfo, AppService, TenantServiceInfo,
+                        TenantRegionInfo, PermRelService, TenantServiceRelation,
+                        TenantServiceInfoDelete, Users, TenantServiceEnv,
+                        TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
+                        TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume)
 from www.service_http import RegionServiceApi
 from django.conf import settings
-from www.db import BaseConnection
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from goodrain_web.decorator import method_perf_time
 from www.monitorservice.monitorhook import MonitorHook
@@ -23,7 +21,6 @@ from www.utils.giturlparse import parse as git_url_parse
 from www.forms.services import EnvCheckForm
 
 import logging
-from django.template.defaultfilters import length
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
@@ -207,7 +204,7 @@ class ServiceManage(AuthedView):
                     codeRepositoriesService.deleteProject(self.service)
 
                 TenantServiceInfo.objects.get(service_id=self.service.service_id).delete()
-                # env/auth/domain/relationship/envVar delete
+                # env/auth/domain/relationship/envVar/volume delete
                 TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceAuth.objects.filter(service_id=self.service.service_id).delete()
                 ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
@@ -215,6 +212,7 @@ class ServiceManage(AuthedView):
                 TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServicesPort.objects.filter(service_id=self.service.service_id).delete()
+                TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
@@ -343,7 +341,7 @@ class ServiceUpgrade(AuthedView):
                     self.service.image = baseservice.image
                     self.service.update_version = baseservice.update_version
                     self.service.save()
-                result["status"] = "success"    
+                result["status"] = "success"
         except Exception, e:
             logger.exception(e)
             if action == "vertical":
@@ -812,6 +810,11 @@ class ServicePort(AuthedView):
             deal_port.protocol = protocol
             data.update({"modified_field": "protocol", "current_value": protocol})
         elif action == 'open_outer':
+            # 检查服务已经存在对外端口
+            outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                               is_outer_service=True).count()
+            if outer_port_num > 0:
+                return JsonResponse({"success": False, "info": u"对外端口暂时只支持一个", "code": 408})
             deal_port.is_outer_service = True
             data.update({"modified_field": "is_outer_service", "current_value": True})
             if deal_port.mapping_port == 0:
@@ -885,7 +888,7 @@ class ServicePort(AuthedView):
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
             deal_port.save()
             return JsonResponse({"success": True, "info": u"更改成功"}, status=200)
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', False)
             return JsonResponse({"success": False, "info": u"更改失败", "code": 500}, status=200)
@@ -934,7 +937,7 @@ class ServiceEnv(AuthedView):
             scope = request.POST.get('scope', 'inner')
             attr_name = attr_name.lstrip().rstrip()
             attr_value = attr_value.lstrip().rstrip()
-            
+
             form = EnvCheckForm(request.POST)
             if not form.is_valid():
                 return JsonResponse({"success": False, "code": 400, "info": u"变量名不合法"})
@@ -1035,7 +1038,7 @@ class ServiceNewPort(AuthedView):
 
 
 class ServiceDockerContainer(AuthedView):
-    
+
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
         data = {}
@@ -1055,14 +1058,94 @@ class ServiceDockerContainer(AuthedView):
             logger.info("c_id=" + c_id)
             logger.info("h_id=" + h_id)
             if c_id != "" and h_id != "":
-                fields = h_id.split('.')
-                new_fields = map(lambda x: int(x) + int(fields[len(x)]), fields)
-                key = '{:02X}{:02X}{:02X}{:02X}'.format(*new_fields)
+                if settings.DOCKER_WSS_URL.get("is_wide_domain", False):
+                    fields = h_id.split('.')
+                    new_fields = map(lambda x: int(x) + int(fields[len(x)]), fields)
+                    key = '{:02X}{:02X}{:02X}{:02X}'.format(*new_fields)
+                    response.set_cookie('docker_h_id', key)
+                else:
+                    response.set_cookie('docker_h_id', h_id)
                 response.set_cookie('docker_c_id', c_id)
-                response.set_cookie('docker_h_id', key)
                 response.set_cookie('docker_s_id', self.service.service_id)
             return response
         except Exception as e:
             logger.exception(e)
             response = JsonResponse({"success": False})
         return response
+
+
+class ServiceVolumeView(AuthedView):
+    """添加,删除持久化数据目录"""
+
+    SYSDIRS = ["/", "/bin", "/boot", "/dev", "/etc", "/home",
+               "/lib", "/lib64", "/opt", "/proc", "/root", "/sbin",
+               "/srv", "/sys", "/tmp", "/usr", "/var",
+               "/usr/local", "/usr/sbin", "/usr/bin",
+               ]
+
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        action = request.POST["action"]
+        try:
+            if action == "add":
+                volume_path = request.POST.get("volume_path")
+                old_volume_path = volume_path
+                #category = self.service.category
+                language = self.service.language
+                if language == "docker":
+                    if not volume_path.startswith("/"):
+                        result["status"] = "failure"
+                        result["code"] = "303"
+                        return JsonResponse(result)
+                    if volume_path in self.SYSDIRS:
+                        result["status"] = "failure"
+                        result["code"] = "304"
+                        return JsonResponse(result)
+                else:
+                    if volume_path.startswith("/"):
+                        volume_path = "/app" + volume_path
+                    else:
+                        volume_path = "/app/" + volume_path
+                # volume_path不能重复
+                all_volume_path = TenantServiceVolume.objects.filter(service_id=self.service.service_id).values("volume_path")
+                if len(all_volume_path):
+                    for path in list(all_volume_path):
+                        if path["volume_path"] == volume_path:
+                            result["status"] = "failure"
+                            result["code"] = "305"
+                            return JsonResponse(result)
+                        if path["volume_path"].startswith(volume_path + "/"):
+                            result["status"] = "failure"
+                            result["code"] = "307"
+                            return JsonResponse(result)
+                        if volume_path.startswith(path["volume_path"] + "/"):
+                            result["status"] = "failure"
+                            result["code"] = "306"
+                            return JsonResponse(result)
+
+                volume_id = baseService.create_service_volume(self.service, volume_path)
+                if volume_id:
+                    result["volume"] = {
+                        "ID": volume_id,
+                        "volume_path": old_volume_path,
+                    }
+                    result["status"] = "success"
+                    result["code"] = "200"
+                else:
+                    result["status"] = "failure"
+                    result["code"] = "500"
+            elif action == "cancel":
+                volume_id = request.POST.get("volume_id")
+                flag = baseService.cancel_service_volume(self.service, volume_id)
+                if flag:
+                    result["status"] = "success"
+                    result["code"] = "200"
+                else:
+                    result["status"] = "failure"
+                    result["code"] = "500"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
+            result["code"] = "500"
+        return JsonResponse(result)

@@ -22,25 +22,29 @@
 	                </div>
 	            </div>
 	            <div class="form-group">
-	                <label class="col-sm-2 control-label col-lg-2" for="inputSuccess">代码仓库</label>
+	                <label class="col-sm-2 control-label col-lg-2">代码仓库</label>
 	                <div id="sel_code_store" class="col-lg-10">
-	                    <label style="font-size:14px" class="checkbox-inline">
+	                    <label style="font-size:14px" class="checkbox-inline"></label>
 	                    <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
 	                    <input type="hidden" id="service_code_from" name="service_code_from" value="gitlab_new">
 		                <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
 		                <input type="hidden" id="service_code_version" name="service_code_version" value="">
 		                <input type="hidden" id="service_code_id" name="service_code_id" value="">
                         {% if MODULES.GitLab_Project %}
-                            <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" checked> 新建仓库</label>
-                            <label style="font-size:14px" class="checkbox-inline ">
+                            <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" checked> 新建仓库
+                            <label style="font-size:14px" class="checkbox-inline "></label>
                         {% endif %}
 	                    
-	                    <input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2"> 使用已有仓库</label>
-	                    <label style="font-size:14px" class="checkbox-inline select_git">
+	                    <input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2"> 使用已有仓库
+	                    <label style="font-size:14px" class="checkbox-inline select_git"></label>
 	                    
 	                    {% if MODULES.Git_Hub %}
-	                       <input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3"> 连接Github</label>
+							<input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3"> 连接Github
+							<label style="font-size:14px" class="checkbox-inline"></label>
 	                    {% endif %}
+
+                        <input input="" type="radio" value="option4" name="optionsRadios" id="optionsRadios4"> 用户自定义
+                        <label style="font-size:14px" class="checkbox-inline"></label>
 	                </div>
 	            </div>
 	            <h4 id="wait_loading" class="col-lg-offset-2 col-lg-10" style="padding-bottom: 30px; display: none;">仓库连接中，请稍候......</h4>
@@ -80,6 +84,26 @@
 	                    </table>
 	                </div>
 	            </div>
+                <!--用户自定义git路径-->
+                <div class="form-group" data-action="manual" style="display:none;">
+                    <label for="create_app_name" class="control-label col-lg-2 app_name">代码仓库地址</label>
+                    <div class="col-lg-8">
+                        <input class="form-control valid" id="service_code_clone_url_manual"
+                               minlength="2" type="text" placeholder="代码仓库地址" value="">
+                        <div id="create_git_notice" class="alert alert-danger" role="alert"
+                             style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码仓库地址不能为空</div>
+                    </div>
+                </div>
+                <div class="form-group" data-action="manual" style="display: none;">
+                    <label for="create_app_name" class="control-label col-lg-2 app_name">代码版本</label>
+                    <div class="col-lg-8">
+                        <input class="form-control valid" id="service_code_version_manual"
+                               minlength="2" type="text" placeholder="代码版本" value="master">
+                        <div id="create_version_notice" class="alert alert-danger" role="alert"
+                             style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码版本不能为空</div>
+                    </div>
+                </div>
+
 	            <div class="col-lg-offset-3 col-lg-6 " style="padding-top: 50px;padding-bottom: 20px;">
 	                <button id="first_step" type="button" class="btn btn-lg btn-info btn-block">下一步</button>
 	            </div>

@@ -14,7 +14,24 @@
           url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
           $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function(res){
             if(res.success){
-                return;
+                if (state) {
+                    if (port_switch.attr("name") == "inner") {
+                        return;
+                    }
+                    // 其他的open全部设置为disabled
+                    $('.switch-box[name="outer"]').each(function () {
+                        $(this).bootstrapSwitch('disabled', true);
+                    });
+                    port_switch.bootstrapSwitch('disabled', false);
+                } else {
+                    if (port_switch.attr("name") == "inner") {
+                        return;
+                    }
+                    // 全部取消disabled
+                    $('.switch-box[name="outer"]').each(function () {
+                        $(this).bootstrapSwitch('disabled', false);
+                    });
+                }
             }else{
                 showMessage(res.info);
                 port_switch.bootstrapSwitch('state', !state, true);

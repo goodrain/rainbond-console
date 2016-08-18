@@ -163,6 +163,15 @@
 	    		  		$("#service_status_operate").show()
 	    		  		$("#service_visitor").show()
 	    		  		$("#service_status").attr("class","badge badge-sm label-success")
+	    		  	  }else if(obj["status"]=="starting"){
+	    		  	    $("#service_status_value").val("stop")
+                        $("#font"+service_id).html("关闭")
+                        $("#service_status_operate").show()
+                        $("#onekey_deploy").show()
+                        $("#onekey_deploy").removeAttr("disabled")
+                        $("#service_status").html("启动中")
+                        $("#service_status_operate").show()
+                        $("#service_status").attr("class","badge badge-sm label-success")
 		    		  }else if(obj["status"]=="unusual"){
 		    			$("#service_status_value").val("")
 		    		  	$("#font"+service_id).html("启动")
@@ -252,7 +261,7 @@
 	$(document).ready(function () {
     	checkStatus();
     	getLog(); 
-    	setInterval("checkStatus()", 5000);    	
+    	setInterval("checkStatus()", 6000);
     	extPushWebSocketClient.prototype = {
    			onMessage : function(msg) {
    				if(typeof(msg) !="undefined"){

@@ -4,7 +4,7 @@ from django.conf import settings
 import json
 
 from www.models import AppServiceRelation, AppServicePort, \
-    AppServiceEnv, ServiceExtendMethod
+    AppServiceEnv, ServiceExtendMethod, AppServiceVolume
 from www.app_http import AppServiceApi
 appClient = AppServiceApi()
 
@@ -33,6 +33,8 @@ class AppSendUtil:
                                                       app_version=self.app_version)
             extend_list = ServiceExtendMethod.objects.filter(service_key=self.service_key,
                                                              app_version=self.app_version)
+            volume_list = AppServiceVolume.objects.filter(service_key=self.service_key,
+                                                          app_version=self.app_version)
             req_data.update({'cloud_assistant': settings.CLOUD_ASSISTANT})
             all_data = {
                 'pre_list': map(lambda x: x.to_dict(), pre_list),
@@ -40,6 +42,7 @@ class AppSendUtil:
                 'env_list': map(lambda x: x.to_dict(), env_list),
                 'port_list': map(lambda x: x.to_dict(), port_list),
                 'extend_list': map(lambda x: x.to_dict(), extend_list),
+                'volume_list': map(lambda x: x.to_dict(), volume_list),
                 'service': req_data,
             }
             retry = 3

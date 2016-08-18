@@ -1,20 +1,18 @@
 # -*- coding: utf8 -*-
 import logging
-import uuid
-import hashlib
-import datetime
 import json
 
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
-from django.http.response import HttpResponse
 from django.shortcuts import redirect
 from django.http import Http404
-from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
+from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import (Users, ServiceInfo, TenantRegionInfo, Tenants, TenantServiceInfo, ServiceDomain, PermRelService, PermRelTenant,
-                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv, TenantServiceEnvVar, TenantServiceMountRelation,
-                        ServiceExtendMethod)
+from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
+                        ServiceDomain, PermRelService, PermRelTenant,
+                        TenantServiceRelation, TenantServicesPort, TenantServiceEnv,
+                        TenantServiceEnvVar, TenantServiceMountRelation,
+                        ServiceExtendMethod, TenantServiceVolume)
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from django.conf import settings
@@ -49,7 +47,10 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                     raise Http404
                 self.response_region = region
             else:
-                raise Http404
+                if region == 'xunda-hk':
+                    self.response_region = region
+                else:
+                    raise Http404
 
         if self.cookie_region == 'aws-bj-1':
             self.response_region == 'ali-sh'
@@ -215,9 +216,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
         try:
             if self.service.category == "application":
                 # forbidden blank page
-                if self.service.code_version is None or self.service.code_version == "":
-                    if self.service.code_from is None or self.service.code_from == "":
-                        codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
+                if self.service.code_version is None or self.service.code_version == "" or (self.service.git_project_id == 0 and self.service.git_url is None):
+                    codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
+                    self.service = TenantServiceInfo.objects.get(service_id=self.service.service_id)
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)
@@ -235,8 +236,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
+            service_domain = False
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
+                service_domain = True
 
             http_port_str = settings.WILD_PORTS[self.response_region]
             context['http_port_str'] = ":" + http_port_str
@@ -265,9 +268,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         arr.append(evnVarObj)
                         envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
-
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
-                    context["hasHttpServices"] = True
 
                 baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
@@ -348,18 +348,36 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["add_port"] = settings.MODULES["Add_Port"]
                 context["git_tag"] = settings.MODULES["GitLab_Project"]
 
-                if self.service.category == "application" or self.service.category == "manager":
-                    # service git repository
+                # service git repository
+                try:
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
+                except Exception as e:
+                    pass
+                if service_domain:
                     # service domain
-                    try:
+                    domain_num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
+                    if domain_num == 1:
                         domain = ServiceDomain.objects.get(service_id=self.service.service_id)
                         context["serviceDomain"] = domain
-                    except Exception as e:
-                        pass
-                context["ports"] = TenantServicesPort.objects.filter(service_id=self.service.service_id)
+                port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
+                outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+                context["ports"] = list(port_list)
+                context["outer_port_exist"] = outer_port_exist
+                # 付费用户或者免费用户的mysql,免费用户的docker
+                context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
+                # 付费用户,管理员的application类型服务可以修改port
+                context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
                 context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
 
+                # 获取挂载信息,查询
+                volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
+                result_list = []
+                for volume in list(volume_list):
+                    tmp_path = volume.volume_path
+                    if tmp_path:
+                        volume.volume_path = tmp_path.replace("/app", "", 1)
+                    result_list.append(volume)
+                context["volume_list"] = result_list
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
@@ -457,7 +475,7 @@ class ServiceDockerContainer(AuthedView):
                 context["ctn_id"] = docker_c_id
                 context["host_id"] = docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
-                context["wss"] = "ws://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
+                context["wss"] = settings.DOCKER_WSS_URL.get("type", "ws") + "://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')

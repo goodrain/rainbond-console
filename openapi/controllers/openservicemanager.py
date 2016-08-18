@@ -6,7 +6,8 @@ from www.db import BaseConnection
 from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
-    TenantServiceEnv, ServiceDomain, Tenants, AppService, Users, PermRelTenant
+    TenantServiceEnv, ServiceDomain, Tenants, AppService, Users, \
+    AppServicePort, AppServiceEnv, AppServiceVolume, TenantServiceVolume
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -26,33 +27,7 @@ class OpenTenantServiceManager(object):
         self.feerule = settings.REGION_RULE
         self.MODULES = settings.MODULES
 
-    def _getMaxPort(self, tenant_id, service_key, service_alias):
-        cur_service_port = 0
-        dsn = BaseConnection()
-        query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}" and service_alias !="{service_alias}";
-            '''.format(tenant_id=tenant_id, service_key=service_key, service_alias=service_alias)
-        data = dsn.query(query_sql)
-        logger.debug(data)
-        if data is not None:
-            temp = data[0]["service_port"]
-            if temp is not None:
-                cur_service_port = int(temp)
-        return cur_service_port
-    
-    def _getInnerServicePort(self, tenant_id, service_key):
-        cur_service_port = 0
-        dsn = BaseConnection()
-        query_sql = '''select max(service_port) as service_port from tenant_service where tenant_id="{tenant_id}" and service_key="{service_key}";
-            '''.format(tenant_id=tenant_id, service_key=service_key)
-        data = dsn.query(query_sql)
-        logger.debug(data)
-        if data is not None:
-            temp = data[0]["service_port"]
-            if temp is not None:
-                cur_service_port = int(temp)
-        return cur_service_port
-
-    def _prepare_mapping_port(self, service, container_port):
+    def prepare_mapping_port(self, service, container_port):
         port_list = TenantServicesPort.objects.filter(tenant_id=service.tenant_id, mapping_port__gt=container_port).values_list(
             'mapping_port', flat=True).order_by('mapping_port')
 
@@ -141,7 +116,12 @@ class OpenTenantServiceManager(object):
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
             data["extend_info"]["envs"] = list(envs_info)
-    
+
+        volume_info = TenantServiceVolume.objects.filter(service_id=newTenantService.service_id).values(
+            'service_id', 'category', 'host_path', 'volume_path')
+        if volume_info:
+            data["extend_info"]["volume"] = list(volume_info)
+
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
@@ -335,15 +315,15 @@ class OpenTenantServiceManager(object):
         if self.MODULES["Memory_Limit"]:
             result = False
             if ischeckStatus:
-                newAddMemory = newAddMemory + self._curServiceMemory(cur_service)
+                newAddMemory = newAddMemory + self.curServiceMemory(cur_service)
             if tenant.pay_type == "free":
-                tm = self._calculate_real_used_resource(tenant) + newAddMemory
+                tm = self.calculate_real_used_resource(tenant) + newAddMemory
                 logger.debug(tenant.tenant_id + " used memory " + str(tm))
                 if tm <= tenant.limit_memory:
                     result = True
             elif tenant.pay_type == "payed":
-                tm = self._calculate_real_used_resource(tenant) + newAddMemory
-                guarantee_memory = self._calculate_real_used_resource(tenant)
+                tm = self.calculate_real_used_resource(tenant) + newAddMemory
+                guarantee_memory = self.calculate_real_used_resource(tenant)
                 logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
                 if tm - guarantee_memory <= 102400:
                     ruleJson = self.feerule[cur_service.service_region]
@@ -369,20 +349,20 @@ class OpenTenantServiceManager(object):
         try:
             env_prefix = port_alias.upper() if bool(port_alias) else service.service_key.upper()
             if is_inner_service:
-                mapping_port = self._prepare_mapping_port(service, container_port)
+                mapping_port = self.prepare_mapping_port(service, container_port)
                 port.mapping_port = mapping_port
-                self._saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
-                self._saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
             if is_init_account:
                 password = service.service_id[:8]
                 TenantServiceAuth.objects.create(service_id=service.service_id, user="admin", password=password)
-                self._saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"用户名", env_prefix + "_USER", "admin", False, scope="both")
-                self._saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"密码", env_prefix + "_PASS", password, False, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"用户名", env_prefix + "_USER", "admin", False, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"密码", env_prefix + "_PASS", password, False, scope="both")
             port.save()
         except Exception as e:
             logger.exception("openapi.services", e)
 
-    def _saveServiceEnvVar(self, tenant_id, service_id, container_port, name, attr_name, attr_value, isChange, scope="outer"):
+    def saveServiceEnvVar(self, tenant_id, service_id, container_port, name, attr_name, attr_value, isChange, scope="outer"):
         tenantServiceEnvVar = {}
         tenantServiceEnvVar["tenant_id"] = tenant_id
         tenantServiceEnvVar["service_id"] = service_id
@@ -394,7 +374,7 @@ class OpenTenantServiceManager(object):
         tenantServiceEnvVar["scope"] = scope
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
 
-    def _curServiceMemory(self, cur_service):
+    def curServiceMemory(self, cur_service):
         memory = 0
         try:
             body = regionClient.check_service_status(cur_service.service_region, cur_service.service_id)
@@ -405,7 +385,7 @@ class OpenTenantServiceManager(object):
             logger.exception("openapi.services", e)
         return memory
 
-    def _calculate_real_used_resource(self, tenant):
+    def calculate_real_used_resource(self, tenant):
         totalMemory = 0
         tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True)
         running_data = {}
@@ -458,13 +438,6 @@ class OpenTenantServiceManager(object):
         monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 
         try:
-            PermRelTenant.objects.create(user_id=user.pk,
-                                         tenant_id=tenant.pk,
-                                         identity='admin')
-        except Exception as e:
-            logger.exception("openapi.services", e)
-
-        try:
             TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id,
                                             region_name=tenant.region)
         except Exception as e:
@@ -478,16 +451,109 @@ class OpenTenantServiceManager(object):
 
     def create_service_mnt(self, tenant_id, service_id, dest_path, src_path, region):
         task = {}
-        task["dep_service_id"] = service_id
+        task["dep_service_id"] = "outer"
         task["tenant_id"] = tenant_id
-        task["mnt_name"] = "/mnt/" + dest_path
+        if dest_path:
+            if dest_path.startswith("/"):
+                task["mnt_name"] = "/mnt" + dest_path
+            else:
+                task["mnt_name"] = "/mnt/" + dest_path
+        else:
+            task["mnt_name"] = "/mnt/nodata"
         task["mnt_dir"] = src_path
         regionClient.createServiceMnt(region, service_id, json.dumps(task))
         tsr = TenantServiceMountRelation()
         tsr.tenant_id = tenant_id
         tsr.service_id = service_id
-        tsr.dep_service_id = service_id
-        tsr.mnt_name = "/mnt/" + dest_path
+        tsr.dep_service_id = "outer"
+        tsr.mnt_name = task["mnt_name"]
         tsr.mnt_dir = src_path
         tsr.dep_order = 0
         tsr.save()
+
+    def add_service_extend(self, new_service, service_info):
+        ports = AppServicePort.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
+        envs = AppServiceEnv.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
+        volumes = AppServiceVolume.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
+        for port in ports:
+            self.addServicePort(new_service,
+                                service_info.is_init_accout,
+                                container_port=port.container_port,
+                                protocol=port.protocol,
+                                port_alias=port.port_alias,
+                                is_inner_service=port.is_inner_service,
+                                is_outer_service=port.is_outer_service)
+        for env in envs:
+            self.saveServiceEnvVar(new_service.tenant_id,
+                                   new_service.service_id,
+                                   env.container_port,
+                                   env.name,
+                                   env.attr_name,
+                                   env.attr_value,
+                                   env.is_change,
+                                   env.scope)
+        for volume in volumes:
+            self.add_volume_list(new_service, volume.volume_path)
+
+    def add_volume_list(self, service, volume_path):
+        try:
+            category = service.category
+            region = service.service_region
+            tenant_id = service.tenant_id
+            service_id = service.service_id
+            volume = TenantServiceVolume(service_id=service_id,
+                                         category=category)
+            # 确定host_path
+            if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
+                host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            else:
+                host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            volume.host_path = host_path
+            volume.volume_path = volume_path
+            volume.save()
+            return host_path, volume.ID
+        except Exception as e:
+            logger.exception("openapi.services", e)
+
+    def create_service_volume(self, service, volume_path):
+        category = service.category
+        region = service.service_region
+        service_id = service.service_id
+        host_path, volume_id = self.add_volume_list(service, volume_path)
+        if volume_id is None:
+            logger.error("add volume error!")
+            return None
+        # 发送到region进行处理
+        json_data = {
+            "service_id": service_id,
+            "category": category,
+            "host_path": host_path,
+            "volume_path": volume_path
+        }
+        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(json_data))
+        if res.status == 200:
+            return volume_id
+        else:
+            TenantServiceVolume.objects.filter(pk=volume_id).delete()
+            return None
+
+    def cancel_service_volume(self, service, volume_id):
+        # 发送到region进行删除
+        region = service.service_region
+        service_id = service.service_id
+        try:
+            volume = TenantServiceVolume.objects.get(pk=volume_id)
+        except TenantServiceVolume.DoesNotExist:
+            return True
+        json_data = {
+            "service_id": service_id,
+            "category": volume.category,
+            "host_path": volume.host_path,
+            "volume_path": volume.volume_path
+        }
+        res, body = regionClient.cancelServiceVolume(region, service_id, json.dumps(json_data))
+        if res.status == 200:
+            TenantServiceVolume.objects.filter(pk=volume_id).delete()
+            return True
+        else:
+            return False

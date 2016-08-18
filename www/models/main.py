@@ -143,6 +143,14 @@ class WeChatUnBind(models.Model):
     status = models.IntegerField(help_text=u'用户解绑的状态')
 
 
+class SuperAdminUser(models.Model):
+    """超级管理员"""
+    class Meta:
+        db_table = "user_administrator"
+
+    email = models.EmailField(max_length=35, unique=True, help_text=u"邮件地址")
+
+
 class Users(models.Model):
 
     class Meta:
@@ -186,10 +194,16 @@ class Users(models.Model):
 
     @property
     def is_sys_admin(self):
-        admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
-                  'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com',
-                  'tanmin213@gmail.com', 'xujh886@gmail.com')
-        return bool(self.email in admins)
+        # admins = ('liufan@gmail.com', 'messi@goodrain.com', 'elviszhang@163.com', 'rhino@goodrain.com',
+        #           'ethan@goodrain.com', 'fanfan@goodrain.com', 'wangjiajun33wjj@126.com', 'linmu0001@126.com')
+        # return bool(self.email in admins)
+        if self.email:
+            try:
+                SuperAdminUser.objects.get(email=self.email)
+                return True
+            except SuperAdminUser.DoesNotExist:
+                pass
+        return False
 
     def get_session_auth_hash(self):
         """
@@ -747,7 +761,8 @@ class TenantServiceMountRelation(BaseModel):
     dep_service_id = models.CharField(max_length=32, help_text=u"依赖服务id")
     mnt_name = models.CharField(max_length=100, help_text=u"mnt name")
     mnt_dir = models.CharField(max_length=400, help_text=u"mnt dir")
-    
+
+
 class ServiceLicense(BaseModel):
 
     class Meta:
@@ -765,3 +780,13 @@ class ServiceLicense(BaseModel):
     public_pem = models.CharField(max_length=2000, help_text=u"公钥")
     private_pem = models.CharField(max_length=4000, help_text=u"私钥")
     ciphertext = models.CharField(max_length=2000, help_text=u"加密串")
+
+
+class TenantServiceVolume(BaseModel):
+    """数据持久化表格"""
+    class Meta:
+        db_table = 'tenant_service_volume'
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    category = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
+    host_path = models.CharField(max_length=400, help_text=u"物理机的路径,绝对路径")
+    volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")

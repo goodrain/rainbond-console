@@ -130,10 +130,11 @@ class TenantIdentity(AuthedView):
             parsed_git_url = git_url_parse(s.git_url)
             if parsed_git_url.host != 'code.goodrain.com':
                 return
-
-            current_members = codeRepositoriesService.listProjectMembers(project_id)
-            is_member = self.user_exists_in_gitlab(user, current_members)
+            
             try:
+                current_members = codeRepositoriesService.listProjectMembers(project_id)
+                is_member = self.user_exists_in_gitlab(user, current_members)
+            
                 if identity in ('admin', 'developer'):
                     gitlab_identity = gitlab_identity_map.get(identity)
                     if is_member:

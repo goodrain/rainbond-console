@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from django.contrib.auth.models import User as OAuthUser
 
-from www.models import Tenants, Users
+from www.models import Tenants, Users, PermRelTenant
 from www.forms.account import is_standard_word, is_sensitive
 
 from rest_framework.views import APIView
@@ -79,9 +79,11 @@ class TenantServiceView(APIView):
         logger.debug("openapi.services", "now create user tenant: tenant_name:{0}, region:{1}, username:{2}".format(tenant_name, region, username))
 
         # 创建用户
+        user_exists = True
         try:
             curr_user = Users.objects.get(nick_name=username)
         except Users.DoesNotExist:
+            user_exists = False
             rf = "openapi"
             # 用户不存在,检查password
             if password is None:
@@ -98,7 +100,8 @@ class TenantServiceView(APIView):
             logger.debug("openapi.services", "now create user success")
 
             # 添加auth_user
-            oauth_user = OAuthUser.objects.create(username=username)
+            tmpname = username + "_token"
+            oauth_user = OAuthUser.objects.create(username=tmpname)
             oauth_user.set_password(password)
             oauth_user.is_staff = True
             oauth_user.save()
@@ -111,6 +114,15 @@ class TenantServiceView(APIView):
             # 创建tenant
             tenant = manager.create_tenant(tenant_name, region, curr_user.user_id, username)
         if tenant:
+            # 添加user-tenant关系
+            if not user_exists:
+                try:
+                    PermRelTenant.objects.create(user_id=curr_user.pk,
+                                                 tenant_id=tenant.pk,
+                                                 identity='admin')
+                except Exception as e:
+                    logger.exception("openapi.services", e)
+
             return Response(status=200, data={"success": True,
                                               "tenant": {
                                                   "tenant_id": tenant.tenant_id,

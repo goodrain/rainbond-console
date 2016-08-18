@@ -3,7 +3,10 @@ import datetime
 import json
 
 from www.db import BaseConnection
-from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, TenantRegionInfo, TenantServicesPort, TenantRegionPayModel, TenantServiceMountRelation
+from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
+    TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
+    TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
+    TenantServiceVolume
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -100,7 +103,7 @@ class BaseTenantService(object):
         if bool(service.volume_mount_path):
             volume_path = service.volume_mount_path
             logger.debug("region:{0} and service_type:{1}".format(region, service.service_type))
-            if region == "ucloud-bj-1" and service.service_type == "mysql":
+            if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
                 host_path = "/app-data/tenant/" + tenant_id + "/service/" + service_id
             else:
                 host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
@@ -156,7 +159,13 @@ class BaseTenantService(object):
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
             data["extend_info"]["envs"] = list(envs_info)
-    
+
+        # 获取数据持久化数据
+        volume_info = TenantServiceVolume.objects.filter(service_id=newTenantService.service_id).values(
+            'service_id', 'category', 'host_path', 'volume_path')
+        if volume_info:
+            data["extend_info"]["volume"] = list(volume_info)
+
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
@@ -274,6 +283,70 @@ class BaseTenantService(object):
         task["mnt_dir"] = "v"
         regionClient.cancelServiceMnt(region, service_id, json.dumps(task))
         TenantServiceMountRelation.objects.get(service_id=service_id, dep_service_id=dependS.service_id).delete()
+
+    def create_service_volume(self, service, volume_path):
+        category = service.category
+        region = service.service_region
+        service_id = service.service_id
+        host_path, volume_id = self.add_volume_list(service, volume_path)
+        if volume_id is None:
+            logger.error("add volume error!")
+            return None
+        # 发送到region进行处理
+        json_data = {
+            "service_id": service_id,
+            "category": category,
+            "host_path": host_path,
+            "volume_path": volume_path
+        }
+        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(json_data))
+        if res.status == 200:
+            return volume_id
+        else:
+            TenantServiceVolume.objects.filter(pk=volume_id).delete()
+            return None
+
+    def cancel_service_volume(self, service, volume_id):
+        # 发送到region进行删除
+        region = service.service_region
+        service_id = service.service_id
+        try:
+            volume = TenantServiceVolume.objects.get(pk=volume_id)
+        except TenantServiceVolume.DoesNotExist:
+            return True
+        json_data = {
+            "service_id": service_id,
+            "category": volume.category,
+            "host_path": volume.host_path,
+            "volume_path": volume.volume_path
+        }
+        res, body = regionClient.cancelServiceVolume(region, service_id, json.dumps(json_data))
+        if res.status == 200:
+            TenantServiceVolume.objects.filter(pk=volume_id).delete()
+            return True
+        else:
+            return False
+
+    def add_volume_list(self, service, volume_path):
+        try:
+            category = service.category
+            region = service.service_region
+            tenant_id = service.tenant_id
+            service_id = service.service_id
+            volume = TenantServiceVolume(service_id=service_id,
+                                         category=category)
+
+            # 确定host_path
+            if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
+                host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            else:
+                host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            volume.host_path = host_path
+            volume.volume_path = volume_path
+            volume.save()
+            return host_path, volume.ID
+        except Exception as e:
+            logger.exception(e)
 
 
 class TenantUsedResource(object):
@@ -431,7 +504,7 @@ class CodeRepositoriesService(object):
                     ts.code_from = service_code_from
                     ts.code_version = "master"
                     ts.save()
-        elif service_code_from == "gitlab_exit":
+        elif service_code_from == "gitlab_exit" or service_code_from == "gitlab_manual":
             ts = TenantServiceInfo.objects.get(service_id=service.service_id)
             ts.git_project_id = code_id
             ts.git_url = code_url
@@ -482,6 +555,8 @@ class CodeRepositoriesService(object):
             if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
                 cur_git_url = service.git_url.split("/")
                 httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+            elif service.code_from == "gitlab_manual":
+                httpGitUrl = service.git_url
         return httpGitUrl
     
     def deleteProject(self, service):
@@ -520,7 +595,7 @@ class CodeRepositoriesService(object):
             return gitClient.listProjectMembers(git_project_id)
         return ""
     
-    def deleteProjectMember(project_id, git_user_id):
+    def deleteProjectMember(self, project_id, git_user_id):
         if self.MODULES["GitLab_Project"]:
             gitClient.deleteProjectMember(project_id, git_user_id)
         

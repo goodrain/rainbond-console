@@ -74,7 +74,7 @@
                         </div>
 
                         <div id="div_id_app_memory" class="form-group">
-                            <label for="id_app_memory" class="control-label col-lg-2 requiredField">内存调整<span
+                            <label class="control-label col-lg-2 requiredField">内存调整<span
                                     class="asteriskField">*</span></label>
                             <div class="controls col-lg-8">
                                <div class="controls col-lg-4">
@@ -231,6 +231,33 @@
                                         </tbody>
                                     </table>
                                     <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增端口变量</button>
+                                </div>
+                            </div>
+                        </div>
+                    </selection>
+
+                    <!--持久化设置-->
+                    <selection>
+                        <h4>应用的持久化设置</h4>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <table class="table table-hover">
+                                        <thead>
+                                        <tr>
+                                            <th>挂载路径</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for volume in volume_list %}
+                                        <tr>
+                                            <td>
+                                                {{volume.volume_path}}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>

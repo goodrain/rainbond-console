@@ -10,9 +10,13 @@
             <div class="row">
                 <label class="col-xs-2 control-label">Git仓库</label>
                 <label class="col-xs-4 control-label">
+                    {% if tenantServiceInfo.code_from == "gitlab_manual" %}
+                    <a>{{httpGitUrl}}</a>
+                    {% else %}
                     <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
+                    {% endif %}
                 </label>
-                {% if 'manage_service' in user.actions  and git_tag %}
+                {% if 'manage_service' in user.actions  and git_tag and tenantServiceInfo.code_from != "gitlab_manual" %}
                 <div class="col-xs-6">
                   <div class="col-xs-4 control-label">
                     <select name="branch" id="git_branch" class="git-branch-change">
@@ -44,31 +48,35 @@
                 </tr>
             </thead>
             <tbody>
-              {% for port in ports %}
+                {% for port in ports %}
                 <tr port="{{port.container_port}}">
                     <td class="port-arrow"><a fold="yes" port="port_show_{{port.container_port}}"><i class="fa fa-chevron-circle-right fa-lg"></i></a></td>
                     <td>
-                       <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
+                        {% if port_auth %}
+                            <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
+                        {% else %}
+                            {{port.container_port}}
+                        {% endif %}
                     </td>
                     <td>
-                      {% if tenant.pay_type != "free" or user.is_sys_admin %}
-                        <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
-                      {% else %}
-                        {{port.protocol}}
-                      {% endif %}
+                        {% if port_auth %}
+                            <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
+                        {% else %}
+                            {{port.protocol}}
+                        {% endif %}
                     </td>
                     <td>
-                      {% if tenant.pay_type != "free" or user.is_sys_admin %}
-                        <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}"></a>
-                      {% else %}
-                        {{port.port_alias}}
-                      {% endif %}
+                        {% if port_auth %}
+                            <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}"></a>
+                        {% else %}
+                            {{port.port_alias}}
+                        {% endif %}
                     </td>
                     <td>
                         <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" {% if tenant.pay_type == "free" and not user.is_sys_admin %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
-                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if tenant.pay_type == "free" and tenantServiceInfo.service_key != 'mysql' %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
+                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if outer_auth %}{% if outer_port_exist and not port.is_outer_service %}disabled{% else %}data-open="open"{% endif %}{% else %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
                         {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" "><i class="fa fa-times"></i></button>{% endif %}
@@ -79,7 +87,7 @@
                         
                     </td>
                 </tr>
-              {% endfor %}
+                {% endfor %}
             </tbody>
         </table>
     </div>
@@ -121,8 +129,47 @@
     </div>
 </section>
 
-  
+
 <section class="panel">
+    <header class="panel-heading">持久化数据设置(设置后需要重启服务)</header>
+    <div class="panel-body">
+        <div class="row">
+            <div class="col-xs-12">
+                <table class="table table-hover" id="volume_table">
+                    <thead>
+                        <tr>
+                            <th>挂载路径</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for volume in volume_list %}
+                        <tr>
+                            <td>{{volume.volume_path}}</td>
+                            <td>
+                                {% if tenantServiceInfo.category == "application" %}
+                                <button type="button" class="btn btn-danger btn-xs"
+                                        data-id="{{volume.ID}}" onclick="cancel_volume(this);">
+                                    <i class="fa fa-trash-o"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if tenantServiceInfo.category == "application" %}
+                <div id="edit_volume_div"></div>
+                <div class="clearfix" style="padding: 8px;"></div>
+                <button type="button" class="btn btn-success btn-xs" id="add_volume_attr">新增持久化设置</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+
+    <section class="panel">
       <header class="panel-heading">域名绑定</header>
       <div class="panel-body">
        {% if hasHttpServices %}
@@ -310,8 +357,117 @@
         	getMappingPort()
         	setIntertimmer = setInterval("getMappingPort()", 3000);
         }
+        // 持久化目录
+        $("#add_volume_attr").bind("click", function(){
+            clear_volume();
+            var input = $("<input />").addClass("col-xs-12")
+                    .attr("id", "edit_volume_div_input")
+                    .attr("placeholder", "请输入持久化目录");
+            $("<div />").addClass("col-xs-6").append(input).appendTo($("#edit_volume_div"));
+
+            var add_button = $("<button/>").attr("type", "button")
+                    .attr("onclick", "post_volume();")
+                    .addClass("btn btn-success btn-xs")
+                    .append($("<i/>").addClass("fa fa-check"));
+            $("<div/>").addClass("btn-group").attr("role", "group").append(add_button).appendTo($("#edit_volume_div"));
+
+            var cancel_button = $("<button/>").attr("type", "button")
+                    .attr("onclick", "clear_volume();")
+                    .addClass("btn btn-danger btn-xs")
+                    .append($("<i/>").addClass("fa fa-times"));
+            $("<div/>").addClass("btn-group").attr("role", "group").append(cancel_button).appendTo($("#edit_volume_div"));
+        });
     });
-	
+
+    function clear_volume() {
+        $("#edit_volume_div").empty();
+    }
+
+    // 添加持久化记录
+    function post_volume() {
+        var volume_path = $("#edit_volume_div_input").val();
+        if (volume_path == "") {
+            swal("路径不能为空!");
+            return false;
+        }
+        $.ajax({
+            type: "POST",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/volume",
+            cache: false,
+            data: {
+                "action": "add",
+                "volume_path": volume_path
+            },
+            beforeSend: function(xhr, settings){
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function(data) {
+                var json_data = eval(data)
+                if (json_data.code == 200) {
+                    var volume = json_data.volume;
+                    var tr = $("<tr/>");
+                    $("<td/>").html(volume.volume_path).appendTo(tr);
+                    var button = $("<button/>").attr("type", "button")
+                            .attr("data-id", volume.ID)
+                            .attr("onclick", "cancel_volume(this);")
+                            .addClass("btn btn-danger btn-xs")
+                            .append($("<i/>").addClass("fa fa-trash-o"));
+                    $("<td/>").append(button).appendTo(tr);
+                    $("#volume_table").append(tr);
+
+                    clear_volume();
+                    swal("添加成功");
+                } else if (json_data.code == 303) {
+                    swal("挂载路径必须为绝对路径");
+                } else if (json_data.code == 304) {
+                    swal("挂载路径不能为系统目录!");
+                } else if (json_data.code == 305) {
+                    swal("挂载路径已存在!");
+                } else if (json_data.code == 306) {
+                    swal("挂载路径的根路径已挂载!");
+                } else if (json_data.code == 307) {
+                    swal("挂载路径的子路径已挂载, 请先删除自路径后挂载!")
+                } else {
+                    swal("添加失败!");
+                }
+            },
+            error: function(){
+                swal("添加失败");
+            }
+        });
+    }
+
+    // 删除持久化记录
+    function cancel_volume(event) {
+        var volume_id = $(event).attr("data-id");
+        $.ajax({
+            type: "POST",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/volume",
+            cache: false,
+            data: {
+                "action": "cancel",
+                "volume_id": volume_id
+            },
+            beforeSend: function(xhr, settings){
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function(data) {
+                var json_data = eval(data)
+                if (json_data.code == 200) {
+                    $(event).closest("tr").remove();
+                    swal("删除成功");
+                } else {
+                    swal("删除失败!")
+                }
+            },
+            error: function(){
+                swal("删除失败");
+            }
+        });
+    }
+
 	function getMappingPort(){
     	$.ajax({
        	  type: "GET",

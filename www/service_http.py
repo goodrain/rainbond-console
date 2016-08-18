@@ -260,3 +260,13 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/containerIds/"
         res, body = self._post(url, self.default_headers, region=region)
         return body
+
+    def createServiceVolume(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/volume/"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return res, body
+
+    def cancelServiceVolume(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/volume/"
+        res, body = self._put(url, self.default_headers, body, region=region)
+        return res, body

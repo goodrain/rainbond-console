@@ -4,8 +4,9 @@ from django.http.response import JsonResponse
 from api.views.base import APIView
 from www.models import TenantServiceInfo, AppService, ServiceInfo, \
     AppServiceRelation, AppServicePort, AppServiceEnv, ServiceExtendMethod, \
-    Tenants, Users, PermRelTenant
+    Tenants, Users, PermRelTenant, TenantServiceVolume, TenantServicesPort
 from www.service_http import RegionServiceApi
+from www.tenantservice.baseservice import BaseTenantService
 import json
 from api.views.services.sendapp import AppSendUtil
 from django.conf import settings
@@ -14,6 +15,7 @@ import logging
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
+baseService = BaseTenantService()
 
 
 class SelectedServiceView(APIView):
@@ -45,11 +47,79 @@ class SelectedServiceView(APIView):
         """
         try:
             data = request.data
+            # 判断是否有 "port_list、"volume_list"、"env_list"
+            port_list = data.pop("port_list", None)
+            volume_list = data.pop("volume_list", None)
+            logger.debug(port_list)
+            logger.debug(volume_list)
+
             TenantServiceInfo.objects.filter(service_id=serviceId).update(**data)
             service = TenantServiceInfo.objects.get(service_id=serviceId)
             regionClient.update_service(service.service_region, serviceId, data)
+            # 添加端口
+            if port_list:
+                region_port_list = []
+                default_port_del = True
+                for port in port_list.keys():
+                    if port == 5000:
+                        default_port_del = False
+                        continue
+                    num = TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
+                                                            service_id=service.service_id,
+                                                            container_port=port).count()
+                    if num == 0:
+                        baseService.addServicePort(service,
+                                                   False,
+                                                   container_port=port,
+                                                   protocol="http",
+                                                   port_alias='',
+                                                   is_inner_service=False,
+                                                   is_outer_service=False)
+                        port_info = {
+                            "tenant_id": service.tenant_id,
+                            "service_id": service.service_id,
+                            "container_port": port,
+                            "mapping_port": 0,
+                            "protocol": "http",
+                            "port_alias": '',
+                            "is_inner_service": False,
+                            "is_outer_service": False
+                        }
+                        region_port_list.append(port_info)
+                if default_port_del:
+                    # 删除region的5000
+                    data = {"action": "delete", "port_ports": [5000]}
+                    regionClient.createServicePort(service.service_region,
+                                                   service.service_id,
+                                                   json.dumps(data))
+                    # 删除console的5000
+                    TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
+                                                      service_id=service.service_id,
+                                                      container_port=5000).delete()
+                if len(region_port_list) > 0:
+                    data = {"action": "add", "ports": region_port_list}
+                    regionClient.createServicePort(service.service_region,
+                                                   service.service_id,
+                                                   json.dumps(data))
+            # 添加持久化记录
+            if volume_list:
+                for volume_path in volume_list:
+                    num = TenantServiceVolume.objects.filter(service_id=service.service_id,
+                                                             volume_path=volume_path).count()
+                    if num == 0:
+                        host_path, volume_id = baseService.add_volume_list(service, volume_path)
+                        json_data = {
+                            "service_id": service.service_id,
+                            "category": service.category,
+                            "host_path": host_path,
+                            "volume_path": volume_path
+                        }
+                        regionClient.createServiceVolume(service.service_region,
+                                                         service.service_id,
+                                                         json.dumps(json_data))
+
             return Response({"ok": True}, status=201)
-        except TenantServiceInfo.DoesNotExist, e:
+        except TenantServiceInfo.DoesNotExist as e:
             logger.error(e)
             return Response({"ok": False, "reason": e.__str__()}, status=404)
 
@@ -231,10 +301,10 @@ class PublishServiceView(APIView):
                 logger.error("tenant is not exists,tenant_id={}".format(data["tenant_id"]))
             apputil.send_services(data)
             # 发送图片
-            if app.logo is not None and app.logo != "":
-                image_url = app.logo.url
-                logger.debug('send service logo:{}'.format(app.logo))
-                apputil.send_image('app_logo', image_url)
+            # if app.logo is not None and app.logo != "":
+            #     image_url = app.logo.url
+            #     logger.debug('send service logo:{}'.format(app.logo))
+            #     apputil.send_image('app_logo', image_url)
             
         return Response({"ok": True}, status=200)
 
