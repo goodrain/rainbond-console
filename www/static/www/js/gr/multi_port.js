@@ -1,15 +1,15 @@
 (function ($) {
-    //设定端口对内服务和对外服务的开关
-    $('.switch-box').bootstrapSwitch();
-    $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {
-            var port_switch = $(this);
-            port = $(this).closest('tr').attr('port');
-            port_type = $(this).attr('name'); //inner outer
-            if (state) {
-                action = "open_" + port_type;
-            } else {
-                action = 'close_' + port_type;
-            }
+      //设定端口对内服务和对外服务的开关
+      $('.switch-box').bootstrapSwitch();
+      $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {
+        var port_switch = $(this);
+          port = $(this).closest('tr').attr('port');
+          port_type = $(this).attr('name'); //inner outer
+          if (state) {
+            action = "open_" + port_type;
+          } else {
+            action = 'close_' + port_type;
+          }
 
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
             $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
