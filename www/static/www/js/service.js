@@ -192,6 +192,10 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 	var domain_name = $("#service_app_name").val();
 	//绑定端口
 	var multi_port_bind = $("#multi_port_bind").val();
+	if (multi_port_bind == ""){
+		swal("选择有效的端口");
+		return;
+	}
 	if (domain_name == "") {
 		swal("输入有效的域名");
 		return;

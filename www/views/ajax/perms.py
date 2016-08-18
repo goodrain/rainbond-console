@@ -215,7 +215,6 @@ class InviteServiceUser(AuthedView):
         return content
 
     @perm_required('perm_setting')
-
     def post(self, request, *args, **kwargs):
         email = request.POST.get('email')
         identity = request.POST.get('identity')

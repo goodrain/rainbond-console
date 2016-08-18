@@ -56,7 +56,7 @@ class BaseObject(object):
     def get_context(self):
         return {'media': self.media}
 
-    @property #将方法变成属性
+    @property
     def media(self):
         return self.get_media()
 
@@ -89,7 +89,7 @@ class BaseView(BaseObject, View):
         self.user = request.user
         self.init_request(*args, **kwargs)
 
-    @classonlymethod #注解表示只能通过类调用  类方法中self cls都可以被其他字替换,没有影响
+    @classonlymethod
     def as_view(cls):
         def view(request, *args, **kwargs):
             self = cls(request, *args, **kwargs)
@@ -147,7 +147,7 @@ class AuthedView(BaseView):
                     raise http.Http404
 
         BaseView.__init__(self, request, *args, **kwargs)
-    # 租户名作为上下文
+
     def get_context(self):
         context = super(AuthedView, self).get_context()
         context['tenantName'] = self.tenantName
