@@ -307,11 +307,11 @@ class PublishServiceView(APIView):
                 data["publish_flow_type"] = 1
             apputil.send_services(data)
             # 发送图片
-            # if app.logo is not None and app.logo != "":
-            #     image_url = app.logo.url
-            #     logger.debug('send service logo:{}'.format(app.logo))
+            # if str(app.logo) is not None and str(app.logo) != "":
+            #     image_url = str(app.logo)
+            #     logger.debug('send service logo:{}'.format(image_url))
             #     apputil.send_image('app_logo', image_url)
-            
+
         return Response({"ok": True}, status=200)
 
 

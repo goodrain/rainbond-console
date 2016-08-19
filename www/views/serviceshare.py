@@ -60,16 +60,17 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
             .values("service_key", "version", "service_alias", "service_type")
         context["dep_service_list"] = dep_service_list
         # 检查依赖服务是否已经发布
+        context["dep_status"] = True
         if len(dep_service_list) > 0:
             for dep_service in list(dep_service_list):
-                if dep_service.service_key == "application":
-                    context["dep_service_name"] = dep_service.service_alias
+                if dep_service["service_key"] == "application":
+                    context["dep_service_name"] = dep_service["service_alias"]
                     context["dep_status"] = False
                     break
-                count = AppService.objects.filter(service_key=dep_service.service_key, app_version=dep_service.version).count()
+                count = AppService.objects.filter(service_key=dep_service["service_key"], app_version=dep_service["version"]).count()
                 if count == 0:
                     context["dep_status"] = False
-                    context["dep_service_name"] = dep_service.service_alias
+                    context["dep_service_name"] = dep_service["service_alias"]
                     break
 
         # 内存、节点
@@ -316,8 +317,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         # port 1 delete all old info
         AppServicePort.objects.filter(service_key=service_key, app_version=app_version).delete()
         # query new port
-        port_list = AppServicePort.objects.filter(service_key=service_key,
-                                                  app_version=app_version)\
+        port_list = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id,
+                                                      service_id=self.service.service_id)\
             .values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         port_data = []
         for port in list(port_list):
@@ -530,89 +531,9 @@ class ShareServiceImageView(BaseView):
             image_info = AppServiceImages()
             image_info.service_id = service_id
             image_info.logo = logo
-        else :
+        else:
             image_info = AppServiceImages.objects.get(service_id=service_id)
             image_info.logo = logo
         image_info.save()
         data = {"success": True, "code": 200, "pic": image_info.logo.name}
         return JsonResponse(data, status=200)
-
-# class ShareServiceUpdateView(LeftSideBarMixin, AuthedView):
-#     """更新"""
-#     @perm_required('app_publish')
-#     def get(self, request, *args, **kwargs):
-#         # 跳转到服务关系发布页面
-#         context = self.get_context()
-#         app = {
-#             "alias": self.service.service_alias,
-#             "version": self.service.version,
-#             "info": '',
-#             "desc": self.service.desc,
-#             ""
-#         }
-#         # 返回页面
-#         return TemplateResponse(request,
-#                                 'www/service/share_step_3.html',
-#                                 context)
-#
-#     # form提交.
-#     @perm_required('app_publish')
-#     def post(self, request, *args, **kwargs):
-#         # todo 需要添加form表单验证
-#         try:
-#             post_data = request.POST.dict()
-#             service_key = post_data.get('service_key')
-#             app_version = post_data.get('app_version')
-#             logger.debug("service.publish", "post_data is {0}".format(post_data))
-#             app = AppService.objects.get(service_key=service_key, app_version=app_version)
-#             # 保存当前服务依赖的其他服务
-#             relation_list = []
-#             pre_fix_string = post_data.get("prefix")
-#             logger.info("pre_fix_string={}".format(pre_fix_string))
-#             pre_fix_list = pre_fix_string.split(";")
-#             if pre_fix_list:
-#                 for pre_fix in pre_fix_list:
-#                     if pre_fix:
-#                         pre_key, pre_version, pre_alias = pre_fix.split(",")
-#                         relation = AppServiceRelation(service_key=pre_key.lstrip().rstrip(),
-#                                                       app_version=pre_version.lstrip().rstrip(),
-#                                                       app_alias=pre_alias.lstrip().rstrip(),
-#                                                       dep_service_key=app.service_key,
-#                                                       dep_app_version=app.app_version,
-#                                                       dep_app_alias=app.app_alias)
-#                         relation_list.append(relation)
-#             AppServiceRelation.objects.filter(dep_service_key=app.service_key, dep_app_version=app.app_version).delete()
-#             # 保存依赖当前服务的发布服务
-#             suf_fix_string = post_data.get("suffix")
-#             logger.info("pre_fix_string={}".format(suf_fix_string))
-#             suf_fix_list = suf_fix_string.split(";")
-#             if suf_fix_list:
-#                 for suf_fix in suf_fix_list:
-#                     if suf_fix:
-#                         suf_key, suf_version, suf_alias = suf_fix.split(",")
-#                         relation = AppServiceRelation(service_key=app.service_key,
-#                                                       app_version=app.app_version,
-#                                                       app_alias=app.app_alias,
-#                                                       dep_service_key=suf_key.lstrip().rstrip(),
-#                                                       dep_app_version=suf_version.lstrip().rstrip(),
-#                                                       dep_app_alias=suf_alias.lstrip().rstrip())
-#                         relation_list.append(relation)
-#             AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version).delete()
-#
-#             # 批量增加
-#             if len(relation_list) > 0:
-#                 AppServiceRelation.objects.bulk_create(relation_list)
-#
-#             app.dest_yb = False
-#             app.dest_ys = False
-#             app.save()
-#             # 事件
-#             if app.is_slug():
-#                 self.upload_slug(app)
-#             elif app.is_image():
-#                 self.upload_image(app)
-#
-#             return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
-#         except Exception as e:
-#             logger.exception(e)
-#             return HttpResponse(u"发布过程出现异常", status=500)

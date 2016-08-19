@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block main-content %}
-<section class="process">
+<section class="wrapper site-min-height">
     <h2 class="tit">设置应用分享信息</h2>
     <!-- 01 -->
     <div class="tablebox">
@@ -48,6 +48,9 @@
 {% endblock %}
 
 {% block extrajs %}
+<script src='{% static "www/js/jquery.dcjqaccordion.2.7.js" %}'></script>
+<script src='{% static "www/js/jquery.scrollTo.min.js" %}'></script>
+<script src='{% static "www/js/common-scripts.js" %}'></script>
 <script type="text/javascript">
 //    $(function () {});
     function change_checked(obj){

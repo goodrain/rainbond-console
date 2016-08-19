@@ -2,6 +2,8 @@
 import requests
 from django.conf import settings
 import json
+import os
+from urllib import urlencode
 
 from www.models import AppServiceRelation, AppServicePort, \
     AppServiceEnv, ServiceExtendMethod, AppServiceVolume
@@ -81,8 +83,10 @@ class AppSendUtil:
             data = {'service_key': self.service_key,
                     'app_version': self.app_version}
             files = {file_key: open(file_path, 'rb')}
-            res, resp = appClient.uploadFiles(body=data, files=files)
-            logger.debug(res)
+            url = settings.APP_SERVICE_API["url"]
+            # headers = {'content-type': 'multipart/form-data'}
+            resp = requests.post(url, files=files, data=data)
+            logger.debug(resp.content)
             return 0
         except requests.exceptions.RequestException as ce:
             logger.error('send service to app error!', ce)

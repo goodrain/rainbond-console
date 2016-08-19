@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block main-content %}
-<section class="process">
+<section class="wrapper site-min-height">
     <h2 class="tit">应用运行参数总览</h2>
     <!-- 01 -->
     <div class="tablebox">
@@ -113,6 +113,9 @@
 </section>
 {% endblock %}
 
-<!--{% block extrajs %}-->
-<!--{% endblock %}-->
+{% block extrajs %}
+<script src='{% static "www/js/jquery.dcjqaccordion.2.7.js" %}'></script>
+<script src='{% static "www/js/jquery.scrollTo.min.js" %}'></script>
+<script src='{% static "www/js/common-scripts.js" %}'></script>
+{% endblock %}
 
