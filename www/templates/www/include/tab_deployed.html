@@ -54,7 +54,7 @@
                   {% endif %}
                 {% endifequal %}
                 {% if updateService %}
-                    <button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i>服务更新</button>
+                    <button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i>服务更新</button>
                 {% endif %}
                 </div>
                 {% if 'manage_service' in user.actions %}

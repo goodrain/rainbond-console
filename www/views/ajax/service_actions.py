@@ -153,6 +153,35 @@ class ServiceManage(AuthedView):
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', False)
+        elif action == "reboot":
+            try:
+                diff_memory = self.service.min_node * self.service.min_memory
+                rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, diff_memory, False)
+                if not flag:
+                    if rt_type == "memory":
+                        result["status"] = "over_memory"
+                    else:
+                        result["status"] = "over_money"
+                    return JsonResponse(result, status=200)
+
+                # stop service
+                body = {}
+                body["operator"] = str(self.user.nick_name)
+                regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
+
+                # start service
+                body = {}
+                body["deploy_version"] = self.service.deploy_version
+                body["operator"] = str(self.user.nick_name)
+                regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
+
+                result["status"] = "success"
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_reboot', False)
         elif action == "delete":
             try:
                 published = AppService.objects.filter(service_id=self.service.service_id).count()
