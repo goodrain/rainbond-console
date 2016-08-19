@@ -639,7 +639,7 @@ function service_image_reboot(service_id, service_alias, tenantName) {
                     if (dataObj["status"] == "success") {
                         $("#service_image_operate").hide();
                         // 更新应用数据成功后模拟用户点击启动按钮,重启应用
-                        service_reboot(service_id, service_alias, tenant_name);
+                        service_reboot(service_id, service_alias, tenantName);
                     } else if (dataObj["status"] == "owed") {
                         swal("余额不足请及时充值")
                     } else if (dataObj["status"] == "often") {
