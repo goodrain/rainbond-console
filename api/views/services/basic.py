@@ -4,7 +4,8 @@ from django.http.response import JsonResponse
 from api.views.base import APIView
 from www.models import TenantServiceInfo, AppService, ServiceInfo, \
     AppServiceRelation, AppServicePort, AppServiceEnv, ServiceExtendMethod, \
-    Tenants, Users, PermRelTenant, TenantServiceVolume, TenantServicesPort
+    Tenants, Users, PermRelTenant, TenantServiceVolume, TenantServicesPort, \
+    AppServiceExtend
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService
 import json
@@ -299,6 +300,11 @@ class PublishServiceView(APIView):
                 data["tenant_name"] = tenant.tenant_name
             except Tenants.DoesNotExist:
                 logger.error("tenant is not exists,tenant_id={}".format(data["tenant_id"]))
+            # 添加发布类型信息: publish or share
+            # AppServiceExtend存在信息
+            num = AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version).count()
+            if num == 1:
+                data["publish_flow_type"] = 1
             apputil.send_services(data)
             # 发送图片
             # if app.logo is not None and app.logo != "":

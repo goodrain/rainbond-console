@@ -39,7 +39,7 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
             values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         context["port_list"] = list(port_list)
         # 环境变量
-        used_port = [x.container_port for x in port_list]
+        used_port = [x["container_port"] for x in port_list]
         env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
             .exclude(container_port__in=used_port)\
             .values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
@@ -63,11 +63,13 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         if len(dep_service_list) > 0:
             for dep_service in list(dep_service_list):
                 if dep_service.service_key == "application":
+                    context["dep_service_name"] = dep_service.service_alias
                     context["dep_status"] = False
                     break
                 count = AppService.objects.filter(service_key=dep_service.service_key, app_version=dep_service.version).count()
                 if count == 0:
                     context["dep_status"] = False
+                    context["dep_service_name"] = dep_service.service_alias
                     break
 
         # 内存、节点
@@ -92,12 +94,13 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         # 获取服务的环境变量
         context = self.get_context()
+        context["myAppStatus"] = "active"
         port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)\
             .values_list('container_port', flat=True)
         env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
             .exclude(container_port__in=list(port_list))\
             .values('ID', 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        env_ids = [str(x.ID) for x in list(env_list)]
+        env_ids = [str(x["ID"]) for x in list(env_list)]
         if len(env_ids) == 0:
             return self.redirect_to("/apps/{0}/{1}/share/step3".format(self.tenantName, self.serviceAlias))
 
@@ -147,6 +150,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
+        context["myAppStatus"] = "active"
         app = {
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
@@ -199,6 +203,9 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         # path param
         context["tenant_name"] = self.tenantName
         context["service_alias"] = self.serviceAlias
+        state = request.GET.get("state")
+        if state is not None:
+            context["state"] = state
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_3.html',
@@ -209,6 +216,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
     def post(self, request, *args, **kwargs):
         # 获取form表单
         form_data = ShareServiceForm(request.POST, request.FILES)
+        if not form_data.is_valid():
+            self.redirect_to('/apps/{0}/{1}/share/step3?state={2}'.format(self.tenantName, self.serviceAlias, 1))
         # 服务基础信息
         service_key = form_data.cleaned_data['service_key']
         app_version = form_data.cleaned_data['app_version']
@@ -228,7 +237,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                                            url_source=url_source,
                                            url_demo=url_demo,
                                            url_feedback=url_feedback,
-                                           release_note=release_note)
+                                           release_note=release_note.strip())
             extend_info.save()
         else:
             AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version)\
@@ -236,10 +245,16 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                         url_source=url_source,
                         url_demo=url_demo,
                         url_feedback=url_feedback,
-                        release_note=release_note)
+                        release_note=release_note.strip())
         # 基础信息
         app_alias = form_data.cleaned_data['app_alias']
-        logo = form_data.cleaned_data['logo']
+        logo = None
+        try:
+            image = AppServiceImages.objects.get(service_id=self.service.service_id)
+            logo = image.logo
+        except AppServiceImages.DoesNotExist:
+            pass
+
         info = form_data.cleaned_data['info']
         desc = form_data.cleaned_data['desc']
         category_first = form_data.cleaned_data['category_first']
@@ -251,7 +266,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         try:
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
             app.app_alias = app_alias
-            app.logo = logo
+            if logo is not None:
+                app.logo = logo
             app.info = info
             app.desc = desc
             app.show_category = '{},{},{}'.format(category_first, category_second, category_third)
@@ -264,7 +280,6 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                 app_version=app_version,
                 app_alias=app_alias,
                 creater=self.user.pk,
-                logo=logo,
                 info=info,
                 desc=desc,
                 status='',
@@ -289,6 +304,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                 is_outer=is_outer,
                 publisher=self.user.email,
                 is_ok=0)
+            if logo is not None:
+                app.logo = logo
             if app.is_slug():
                 app.slug = '/app_publish/{0}/{1}.tgz'.format(app.service_key, app.app_version)
         # save
@@ -313,32 +330,34 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                                       is_outer_service=port.is_outer_service)
             port_data.append(app_port)
         if len(port_data) > 0:
+            logger.debug(len(port_data))
             AppServicePort.objects.bulk_create(port_data)
         logger.debug(u'share.service. now add shared service port ok')
         # 保存env
         AppServiceEnv.objects.filter(service_key=service_key, app_version=app_version).delete()
-        export = [x.container_port for x in list(port_list)]
+        export = [x["container_port"] for x in list(port_list)]
         env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
             .exclude(container_port__in=export)\
             .values('ID', 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        share_info_list = AppServiceShareInfo.objects.filer(service_id=self.service.service_id)\
+        share_info_list = AppServiceShareInfo.objects.filter(service_id=self.service.service_id)\
             .values("tenant_env_id", "is_change")
-        share_info_map = {x.tenant_env_id: x.is_change for x in list(share_info_list)}
+        share_info_map = {x["tenant_env_id"]: x["is_change"] for x in list(share_info_list)}
         env_data = []
-        for env in env_list:
-            is_change = env.is_change
-            if env.ID in share_info_map.keys():
-                is_change = share_info_map.get(env.ID)
+        for env in list(env_list):
+            is_change = env["is_change"]
+            if env["ID"] in share_info_map.keys():
+                is_change = share_info_map.get(env["ID"])
             app_env = AppServiceEnv(service_key=service_key,
                                     app_version=app_version,
-                                    name=env.name,
-                                    attr_name=env.attr_name,
-                                    attr_value=env.attr_value,
-                                    scope=env.scope,
-                                    is_change=env.is_change,
-                                    container_port=is_change)
+                                    name=env["name"],
+                                    attr_name=env["attr_name"],
+                                    attr_value=env["attr_value"],
+                                    scope=env["scope"],
+                                    is_change=is_change,
+                                    container_port=env["container_port"])
             env_data.append(app_env)
         if len(env_data) > 0:
+            logger.debug(len(env_data))
             AppServiceEnv.objects.bulk_create(env_data)
         logger.debug(u'share.service. now add shared service env ok')
 
@@ -367,20 +386,21 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             volume_data = []
             AppServiceVolume.objects.filter(service_key=service_key,
                                             app_version=app_version).delete()
-            for volume in volume_list:
+            for volume in list(volume_list):
                 app_volume = AppServiceVolume(service_key=service_key,
                                               app_version=app_version,
                                               category=volume.category,
                                               volume_path=volume.volume_path)
                 volume_data.append(app_volume)
             if len(volume_data) > 0:
+                logger.debug(len(volume_data))
                 AppServiceVolume.objects.bulk_create(volume_data)
         logger.debug(u'share.service. now add share service volume ok')
         # 服务依赖关系
         AppServiceRelation.objects.filter(service_key=service_key,
                                           app_version=app_version).delete()
         relation_list = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
-        dep_service_ids = [x.dep_service_id for x in relation_list]
+        dep_service_ids = [x["dep_service_id"] for x in relation_list]
         dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)
         app_relation_list = []
         if len(dep_service_list) > 0:
@@ -396,12 +416,13 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                                               dep_app_alias=dep_service.service_alias)
                 app_relation_list.append(relation)
         if len(app_relation_list) > 0:
+            logger.debug(len(app_relation_list))
             AppServiceRelation.objects.bulk_create(app_relation_list)
         # region发送请求
-        # if app.is_slug():
-        #     self.upload_slug(app)
-        # elif app.is_image():
-        #     self.upload_image(app)
+        if app.is_slug():
+            self.upload_slug(app)
+        elif app.is_image():
+            self.upload_image(app)
         return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
 
     def _create_publish_event(self, info):

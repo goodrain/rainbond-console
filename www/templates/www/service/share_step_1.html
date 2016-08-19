@@ -1,10 +1,10 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
 {% load crispy_forms_tags %}
-
+{% load static %}
 {% block extracss %}
     {{ block.super }}
-    <link rel="stylesheet" href='{% static "www/css/process.css" %}'>
+    <link rel="stylesheet" href='{% static "www/css/process.css" %}'/>
 {% endblock %}
 
 {% block main-content %}
@@ -55,8 +55,8 @@
                 <td>{{env.name}}</td>
                 <td>{{env.attr_name}}</td>
                 <td>{{env.attr_value}}</td>
-                <td><input type="checkbox" {% if env.scope="inner" or env.scope="both" %}checked="checked"{% endif %} disabled="disabled"></td>
-                <td><input type="radio" {% if env.scope="outer" or env.scope="both" %}checked="checked"{% endif %} disabled="disabled"></td>
+                <td><input type="checkbox" {% if env.scope = "inner" or env.scope = "both" %}checked="checked"{% endif %} disabled="disabled"></td>
+                <td><input type="radio" {% if env.scope = "outer" or env.scope = "both" %}checked="checked"{% endif %} disabled="disabled"></td>
             </tr>
             {% endfor %}
             </tbody>
@@ -69,7 +69,7 @@
             <tbody>
             {% for volume in volume_list %}
                 <tr>
-                    <td>{{volume}}</td>
+                    <td>{{volume.volume_path}}</td>
                 </tr>
             {% endfor %}
             </tbody>
@@ -104,7 +104,11 @@
         </div>
     </div>
     <div class="linkbox">
+        {% if dep_status %}
         <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="graybtn">下一步</a>
+        {% else %}
+        依赖服务{{dep_service_name}}未发布, 请先发布该服务
+        {% endif %}
     </div>
 </section>
 {% endblock %}

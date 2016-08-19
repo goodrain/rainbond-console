@@ -12,11 +12,11 @@
     <section class="panel">
         <header class="panel-heading tab-bg-dark-navy-blue ">
             <ul class="nav nav-tabs" id="nav-tabs">
-                <li {% if fr=="deployed" %} class="active" {% endif %}>
+                <li {% if fr = "deployed" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=deployed">概览</a>
                 </li>
                 {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
-                <li {% if fr == "relations" %} class="active" {% endif %}>
+                <li {% if fr = "relations" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=relations">依赖</a>
                 </li>
                 {% endif %}
@@ -35,15 +35,17 @@
                     {% endif %}
                 </li>
                 {% endif %}
-                <li {% if fr=="log" %} class="active" {% endif %}>
+                <li {% if fr = "log" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=log">日志</a>
                 </li>
-                <li {% if fr=="settings" %} class="active" {% endif %}>
+                <li {% if fr = "settings" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=settings">高级</a>
                 </li>
+                {% if tenantServiceInfo.category = "application" %}
                 <li>
-                    <a href="/publish">分享</a>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1">分享</a>
                 </li>
+                {% endif %}
             </ul>
         </header>
 

@@ -1,10 +1,10 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
 {% load crispy_forms_tags %}
-
+{% load static %}
 {% block extracss %}
 {{ block.super }}
-<link rel="stylesheet" href='{% static "www/css/process.css" %}'>
+<link rel="stylesheet" href='{% static "www/css/process.css" %}' />
 {% endblock %}
 
 {% block main-content %}
@@ -12,8 +12,10 @@
     <h2 class="tit">设置应用分享信息</h2>
     <form class="form-horizontal" method="post" id="share_form"
           enctype="multipart/form-data" action="">
+        {% csrf_token %}
         <input type="hidden" name="service_id" value="{{data.service_id}}"/>
-        <input type="hidden" name="image_url" value="/apps/{{tenant_name}}/{{service_alias}}/share/images"/>
+        <input type="hidden" id="image_url" value="/apps/{{tenant_name}}/{{service_alias}}/share/images"/>
+        <input type="hidden" name="service_key" value="{{data.service_key}}"/>
 
         <!--  一开始  -->
         <div class="fm－box">
@@ -23,6 +25,11 @@
                     <em class="glyphicon glyphicon-triangle-top"></em>
                 </span>
             </a>
+            <div class="form-group">
+                {% if state %}
+                <label class="control-label">数据表单错误</label>
+                {% endif %}
+            </div>
             <div class="show-box">
                 <!-- 01 -->
                 <div class="form-group">
@@ -138,7 +145,7 @@
                     <div class="col-sm-8">
                         <div class="checkbox">
                             <label>
-                                <input type="checkbox" {% if data.is_outer %}checked="checked"{% endif %}> 分发到云市
+                                <input type="checkbox" name="is_outer" {% if data.is_outer %}checked="checked"{% endif %}> 分发到云市
                             </label>
                         </div>
                     </div>
@@ -166,12 +173,27 @@
         var category_third = $("#category_third_bak").val();
         // init root category
         getCategoryList(0, 'category_first', category_first);
+        if (category_first == "") {
+            // category_first = $("#category_first").val();
+            category_first = 1;
+        }
         getCategoryList(category_first, 'category_second', category_second);
+        if (category_second == "") {
+            // category_second = $("#category_second").val();
+            category_second = 2;
+        }
         getCategoryList(category_second, 'category_third', category_third);
         // category changed
         $('#category_first').change(function(){
             var cateId = $(this).val();
             getCategoryList(cateId, 'category_second', 0);
+            if (cateId == 1) {
+                cateId = 2;
+            }
+            if (cateId == 4) {
+                cateId = 5;
+            }
+            getCategoryList(cateId, 'category_third', 0);
         });
         $('#category_second').change(function(){
             var cateId = $(this).val();
@@ -180,6 +202,9 @@
     });
     // get remote category
     function getCategoryList(cateId, contId, value_id){
+        if (String(cateId) == "") {
+            return;
+        }
         $.get('https://app.goodrain.com/ajax/category_list/' + cateId + '?callback=?', {flag: 'cross'},
                 function(res){
                     if(res.length) {
@@ -204,15 +229,17 @@
             alert("应用名称不能为空!");
             return;
         }
-        var regex = /^[a-zA-Z0-9]$/;
-        if(!regex.test(app_alias)) {
+        var regex = /^[a-zA-Z0-9]*$/;
+        if(! regex.test(app_alias)) {
             alert("应用名称只能是字母、数字!");
             return;
         }
 //        var category_first = $("#category_first").val();
 //        var category_second = $("#category_second").val();
         var category_third = $("#category_third").val();
-        if (category_third == "") {
+        if (category_third == "" ||
+                category_third == null ||
+                category_third == undefined) {
             alert("应用类型不能为空!");
             return;
         }
@@ -225,12 +252,13 @@
         $("#share_form").submit();
     }
 
-    function progressHandlingFunction() {
-        console.log("xx")
+    function progressHandlingFunction(e) {
+        var percentComplete = Math.round(e.loaded * 100 / e.total);
+        console.log(percentComplete)
     }
-    $("#logoextend").change(function(){
+    $("#logo").change(function(){
         var file = this.files[0];
-        if(file.size > 100000) {
+        if(file.size > 1000000) {
             alert("The file is too big");
         } else if(file.type != 'image/png' &&
                 file.type != 'image/jpg' &&
