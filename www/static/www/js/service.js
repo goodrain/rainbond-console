@@ -660,7 +660,8 @@ function service_image_reboot(service_id, service_alias, tenantName) {
         } else {
             swal.close();
         }
-});
+    });
+}
 
 // 服务重启
 function service_reboot(service_id, service_alias, tenantName) {
