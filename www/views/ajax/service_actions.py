@@ -608,7 +608,7 @@ class ServiceDomainManager(AuthedView):
             action = request.POST["action"]
             zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
             match = zhPattern.search(domain_name.decode('utf-8'))
-            container_port = request.POST.get("multi_port_bind",'0')
+            container_port = request.POST.get("multi_port_bind", '0')
             if match:
                 result["status"] = "failure"
                 return JsonResponse(result)
@@ -1098,7 +1098,7 @@ class ServiceVolumeView(AuthedView):
             if action == "add":
                 volume_path = request.POST.get("volume_path")
                 old_volume_path = volume_path
-                #category = self.service.category
+                # category = self.service.category
                 language = self.service.language
                 if language == "docker":
                     if not volume_path.startswith("/"):
@@ -1161,25 +1161,29 @@ class MutiOuterPortView(AuthedView):
 
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
-        action = request.POST.get("action")
-        port_type = request.POST.get("port_type")
+        port_type = request.POST.get("port_type", "")
         result = {}
 
         # 端口类型
-        if port_type is not None:
-            # 判断在单一端口对外开放的情况下,
-            if port_type == 'one_outer':
-                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                   is_outer_service=True).count()
-                if outer_port_num > 1:
-                    result["status"] = "408"
-                    result["info"] = u"请先关闭多余端口"
-                    return JsonResponse(result)
-            tenant_service_info = TenantServiceInfo.objects.filter(service_id=self.service.service_id).update(
-                port_type=port_type)
-            flag = baseService.custom_port_type(self.service, port_type)
-            if flag:
-                result["status"] = "ok"
+        try:
+            if port_type != "":
+                # 判断在单一端口对外开放的情况下,
+                if port_type == 'one_outer':
+                    outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                                       is_outer_service=True).count()
+                    if outer_port_num > 1:
+                        result["status"] = "mult_port"
+                        result["info"] = u"请先关闭多余端口"
+                        return JsonResponse(result)
+                tenantServiceInfo = TenantServiceInfo.objects.get(service_id=self.service.service_id)
+                if tenantServiceInfo.port_type != port_type:
+                    tenantServiceInfo.port_type = port_type
+                    tenantServiceInfo.save()
+                    baseService.custom_port_type(self.service, port_type)
+            result["status"] = "ok"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
         return JsonResponse(result)
 
 
@@ -1187,13 +1191,17 @@ class MntShareTypeView(AuthedView):
 
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
-        action = request.POST.get("action")
-        volume_type = request.POST.get("volume_type")
+        volume_type = request.POST.get("volume_type", "")
         result = {}
-        if volume_type is not None:
-            tenantServiceInfo = TenantServiceInfo.objects.filter(service_id=self.service.service_id).update(
-                volume_type=volume_type)
-            flag = baseService.custom_mnt_shar_type(self.service, volume_type)
-            if flag:
-                result["status"] = "ok"
+        try:
+            if volume_type != "":
+                tenantServiceInfo = TenantServiceInfo.objects.get(service_id=self.service.service_id)
+                if tenantServiceInfo.volume_type != volume_type:
+                    tenantServiceInfo.volume_type = volume_type
+                    tenantServiceInfo.save()
+                    baseService.custom_mnt_shar_type(self.service, volume_type)
+            result["status"] = "ok"
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "failure"
         return JsonResponse(result)

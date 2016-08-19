@@ -573,7 +573,7 @@
                 var result = msg;
                 if (result["status"] == "ok") {
                     swal("设置成功");
-                }else if(result["status"] == "408"){
+                }else if(result["status"] == "mult_port"){
                     swal(result["info"]);
                 }
                 else {
@@ -581,8 +581,7 @@
                 }
             },
             error: function () {
-                {#                swal("对外端口设置异常,请重试");#}
-                console.log("对外端口设置异常");
+                swal("对外端口设置异常,请重试");
             }
 
 
