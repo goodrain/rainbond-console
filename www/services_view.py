@@ -295,7 +295,18 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
-
+                # get http outer service ports
+                domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                context["serviceDomain"] = domain
+                context["http_outer_service_ports"] = self.get_outer_service_port()
+                # get port type
+                tenantServiceInfo = TenantServiceInfo.objects.get(service_id=self.service.service_id)
+                visit_port_type = tenantServiceInfo.port_type
+                context["visit_port_type"] = visit_port_type
+                # get one_outer port
+                tenant_service_port = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_outer_service=True,protocol='http')
+                if tenant_service_port.count() == 1:
+                    context["one_outer_port"] = tenant_service_port[0].container_port
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
