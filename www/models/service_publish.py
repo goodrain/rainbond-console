@@ -221,3 +221,42 @@ class AppServiceVolume(BaseModel):
                 value = value.strftime('%Y-%m-%d %H:%M:%S')
             data[f.name] = value
         return data
+
+
+class AppServiceShareInfo(BaseModel):
+    """普通发布存储环境是否可修改信息"""
+    class Meta:
+        db_table = 'app_service_share'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+
+    tenant_env_id = models.IntegerField(help_text=u"服务的环境id")
+    is_change = models.BooleanField(default=False, help_text=u"是否可改变")
+
+
+class AppServiceExtend(BaseModel):
+    """发布服务的扩展信息"""
+    class Meta:
+        db_table = 'app_service_extend'
+
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
+    app_version = models.CharField(max_length=20, help_text=u"当前最新版本")
+
+    url_site = models.CharField(max_length=200, help_text=u"官方url")
+    url_source = models.CharField(max_length=200, help_text=u"源码url")
+    url_demo = models.CharField(max_length=200, help_text=u"demo url")
+    url_feedback = models.CharField(max_length=200, help_text=u"反馈url")
+    release_note = models.CharField(max_length=200, help_text=u"更新说明")
+
+
+class AppServiceImages(BaseModel):
+    class Meta:
+        db_table = 'app_service_images'
+
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    logo = models.FileField(upload_to=logo_path, null=True, blank=True, help_text=u"logo")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+
+    def __unicode__(self):
+        return u"{0}-{1}".format(self.app_key, self.app_version)
+

@@ -1,0 +1,70 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% block extracss %}
+    {{ block.super }}
+    <link rel="stylesheet" href='{% static "www/css/process.css" %}' />
+{% endblock %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <h2 class="tit">设置应用分享信息</h2>
+    <!-- 01 -->
+    <div class="tablebox">
+        <h3>环境变量设置</h3>
+        <table class="table table-striped table-bordered">
+            <thead>
+            <tr>
+                <td>名称</td>
+                <td>可修改</td>
+            </tr>
+            </thead>
+            <tbody>
+            {% for env in env_list %}
+            <tr>
+                <td>{{env.name}}</td>
+                <td><input type="checkbox" data-id="{{env.ID}}"
+                           {% if env.is_change %}checked="checked"{% endif %}
+                           onclick="change_checked(this);"></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="linkbox">
+        <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step1" class="graybtn">上一步</a>
+        <a href="#" onclick="submit_button()" class="graybtn">下一步</a>
+    </div>
+    <form method="POST" id="env_form">
+        {% csrf_token %}
+        <input type="hidden" name="env_ids" value="{{env_ids}}">
+        {% for env in env_list %}
+        <input type="hidden" name="{{env.ID}}" value="{{env.is_change}}"></input>
+        {% endfor %}
+    </form>
+</section>
+
+{% endblock %}
+
+{% block extrajs %}
+<script src='{% static "www/js/jquery.dcjqaccordion.2.7.js" %}'></script>
+<script src='{% static "www/js/jquery.scrollTo.min.js" %}'></script>
+<script src='{% static "www/js/common-scripts.js" %}'></script>
+<script type="text/javascript">
+//    $(function () {});
+    function change_checked(obj){
+        var env_id = $(obj).attr("data-id");
+        var result = $(obj).is(':checked');
+        $("#env_form > input[name=" + env_id + "]").value(result)
+    }
+    function submit_button() {
+        $("#env_form").submit();
+    }
+</script>
+{% endblock %}
+
+
+
+
+
