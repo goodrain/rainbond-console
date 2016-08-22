@@ -27,38 +27,37 @@
             <div class="row">
                 <div class="col-lg-6 text-left">
                 {% ifequal tenantServiceInfo.category "application" %}
-                {% if user.is_sys_admin or 'app_publish' in user.actions or publish_service %}
-                <button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
-                {% endif %}
+                    {% if user.is_sys_admin or 'app_publish' in user.actions or publish_service %}
+                        <button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
+                    {% endif %}
+                    
                     {% if 'code_deploy' in user.actions %}
                         <button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-cloud-upload"></i> 一键部署</button>
                     {% endif %}
-
-                        {% if hasHttpServices %}
-							{#   多端口域名绑定  #}
-							{% if visit_port_type == "multi_outer" %}
-								<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px;">
-
-									{% for port in http_outer_service_ports %}
-									{% if port.container_port == serviceDomain.container_port %}
-									<option value="{{ port.container_port }}"
-											selected="selected">{{ port.container_port }}</option>
-									{% else %}
-									<option value="{{ port.container_port }}">{{ port.container_port }}</option>
-									{% endif %}
-									{% endfor %}
-
-								</select>
-							{%endif%}
-                            <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
-                        {% endif  %}
-                 {% else %}
-                        {% if hasHttpServices %}
-                            <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
-                        {% endif  %}
-
+                    
                 {% endifequal %}
-                {% ifequal tenantServiceInfo.service_key "mysql" %}
+
+                {% if hasHttpServices %}
+					{#   多端口域名绑定  #}
+					{{visit_port_type}}
+					{% if visit_port_type == "multi_outer" %}
+						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px;">
+
+							{% for port in http_outer_service_ports %}
+							{% if port.container_port == serviceDomain.container_port %}
+							<option value="{{ port.container_port }}"
+									selected="selected">{{ port.container_port }}</option>
+							{% else %}
+							<option value="{{ port.container_port }}">{{ port.container_port }}</option>
+							{% endif %}
+							{% endfor %}
+
+						</select>
+					{%endif%}
+                    <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
+                {% endif  %}
+                 
+                {% ifequal tenantServiceInfo.service_type "mysql" %}
                   {% if service_manager.deployed %}
                     {% if 'manage_service' in user.actions %}
                       <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>
