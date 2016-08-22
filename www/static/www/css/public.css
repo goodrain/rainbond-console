@@ -1,0 +1,399 @@
+
+/* public */
+
+body {
+	
+	overflow-x: hidden;
+	font-family: "Microsoft YaHei",Arial,STHeiti,sans-serif;
+	line-height: 1.5;
+}
+.leftbox{float: left;}
+.rightbox{float: right;}
+
+cite,em{font-style:normal;}
+a:link{ text-decoration: none;}
+a:visited{ text-decoration: none;}
+a:hover{ text-decoration: none; color: #28cb75;}
+a:active{text-decoration: none;}
+
+a.greenlink:link,a.greenlink:visited,a.greenlink:hover,a.greenlink:hover{color: #28cb75;}
+a.app-down:link,a.app-down:visited,a.app-down:hover,a.app-down:hover{color: #fff;}
+.bg-white{background: #fff;}
+
+.padtop10{padding-top:10px; }
+.martop20{margin-top: 20px;}
+.martop17{margin-top: 17px;}
+
+.martop20{margin-top: 20px;}
+.marright20{margin-right: 20px;}
+.martom20{margin-bottom: 20px; }
+
+/* 字 */
+.fontsize16{
+	font-size: 16px;
+}
+
+.fontsize18{
+	.font-size: 18px;
+}
+
+.fontsize24{
+	font-size: 24px;
+}
+
+.colorgray{
+	color: #999;
+}
+
+.bg-darkest-gray {
+	background-color: #071727;
+}
+
+ul, li {
+	margin: 0;
+	padding: 0;
+}
+
+li{
+    list-style: none;
+}
+
+a,a:hover,a:focus,a:active,a.active {
+	outline: 0;
+
+}
+
+/* 顶部导航 */
+.navbar{ 
+	height: 80px; 
+}
+
+.navbar-default{
+	background: #fff;
+	
+} 
+.navbar-header span{
+	display: inline-block; 
+}
+.navbar-right{
+	margin-top:25px; 
+}
+
+.navbar-header span {
+ 	color: #666;
+}
+
+.navbar-default .navbar-nav>li.register>a{
+  background: #28cb75;
+  color: #fff;
+}
+
+.navbar-default .navbar-nav>li>a{
+	padding-top:5px;
+	padding-bottom:5px;  
+	color: #333;
+}
+
+#rainlogo{
+	width: 94px;
+	height: 38px;
+	margin-top:6px; 
+}
+
+#logo{ 
+	width: 60px;
+	height: 30px;
+	margin-top:8px;
+ }
+
+.navbar-default .navbar-toggle {
+	border-color: #28cb75;
+	background-color: #28cb75;
+}
+
+.navbar-default .navbar-toggle .icon-bar {
+	background-color: #fff;
+}
+
+.navbar-default .navbar-collapse {
+	background: #fff;
+	border-color: rgba(255,255,255,.02);
+}
+
+.navbar-toggle{
+	margin-top:22px; 
+}
+/* 轮播 */
+
+
+/* 底部 */
+footer {
+	padding: 70px 0 30px;
+}
+
+footer ul {
+	padding-bottom: 25px;
+}
+
+footer h4 {
+	margin-bottom: 20px;
+	padding-left: 40px;
+	color: #fff;
+	font-weight: normal;
+	font-size: 16px;
+}
+
+footer li {
+	padding-left: 40px;
+	color: #a7adb3;
+	font-size: 14px;
+	line-height: 30px;
+}
+
+footer li a {
+	color: #a7adb3;
+	text-decoration: none;
+}
+
+footer li a:hover {
+	color: #28cb75;
+	text-decoration: none;
+}
+
+footer li a:active, footer li a:focus {
+	color: #28cb75;
+	text-decoration: none;
+}
+
+.qrcode {
+	padding-left: 40px;
+	width: 150px;
+	text-align: center;
+}
+
+footer .qrcode h4, footer .qrcode li {
+	padding-left: 0px;
+	width: 96px;
+}
+
+.qrcode li img {
+	width: 96px;
+}
+
+@media screen and (min-width:998px) {
+	footer .qrcode_wrap {
+		float: right;
+        padding: 20px 100px 0 0;
+	}
+
+	.qrcode {
+		float: right;
+		padding-left: 0px;
+		width: 96px;
+	}
+}
+
+footer p.copyright {
+	padding-top: 30px;
+	border-top: 1px solid #0b2138;
+	color: #a7adb3;
+	text-align: center;
+	font-size: 16px;
+}
+/* 弹出层 */
+.modal-content{
+	border-radius: 0;
+}
+
+.modal-header{
+	min-height: 40px;
+	border-bottom: 0 none;
+}
+
+.layer-main .pull-left,.layer-main .pull-right{
+	width: 50%;
+}
+
+.close{
+	filter: alpha(opacity=100);
+    opacity: 1;
+}
+.border-r{ 
+	border-right: 1px #ccc  solid; 
+}
+.form-control{
+	border-radius: 0;
+}
+.forget-password{
+	padding-top: 7px;
+	color: #fc0d1b;
+	display: block;
+	text-decoration:underline;
+}
+.goodrain-login .btn{ 
+	width: 130px;
+	height: 40px;
+	background: #28cb75;
+	color: #fff;
+	text-align: center;
+	font-size: 14px;
+	border:0 none;
+}
+.myregister{
+	width: 130px;
+	height: 40px;
+	background: #28cb75;
+	color: #fff;
+	text-align: center;
+	font-size: 14px;
+	border:0 none;
+	display: block;
+	margin:10px auto;
+	border-radius: 4px;
+	line-height: 40px;
+}
+
+.people-icon{
+	width: 100%;
+	text-align: center;
+}
+.people-icon a{
+	display: inline-block;
+    width: 60px;
+    height: 60px;
+    border-radius: 30px;
+    margin: 0 5px;
+    border:1px #cccccc solid;
+}
+
+.people-icon a img{
+	width: 60px;
+    height: 60px;
+    border-radius: 30px;
+    display: block;
+}
+
+
+
+/* 分页 */
+.pagination>li>a, .pagination>li>span{
+	color: #333;
+	background: transparent;
+	border: 0 none;
+	margin: 0 4px;   
+}
+.pagination>.active>a, .pagination>.active>a:focus, .pagination>.active>a:hover, .pagination>.active>span, .pagination>.active>span:focus, .pagination>.active>span:hover {
+    z-index: 2;
+    color: #fff;
+    cursor: default;
+    background-color: #28cb75;
+    border-color: #28cb75;
+    border-radius: 4px;
+}
+.pagination a.next,.pagination  a.prev{
+    background-color: #fff;
+    border: 1px #dcdcdc solid;
+    border-radius: 4px;
+    color: #999;
+}
+
+.pagination .disabled a{
+	border: 1px #e9e9e9 solid;
+	color: #ebebeb;
+}
+/* 尺寸  隐藏 */
+.box-width{
+	width: 77%;
+}
+.box-hide{
+	width: 100%;
+	height: 20px;
+	line-height: 20px;
+	overflow: hidden;
+}
+@media screen and (max-width:768px){
+	.box-width{
+	width: 70%;
+	}
+}
+@media screen and (max-width:360px){
+	.box-width{
+	width: 67%;
+	}
+}
+
+.carousel-control {
+	width: 10%;
+	opacity: .1;
+}
+
+.carousel-control:hover {
+	opacity: .3;
+}
+
+.carousel-control:focus {
+	opacity: .1;
+}
+
+.carousel-control span {
+	position: absolute;
+	top: 45%;
+	left: 38%;
+	font-size: 60px;
+}
+
+/*   信息提示框 */
+.layboxbg{
+	width: 100%; 
+	height: 100%;
+	background: rgba(0,0,0,0.6);
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	z-index: 2000;	
+}
+.boxoutside{
+	width: 80%;
+	padding: 20px;
+	margin-left:100px auto 0;
+	background: #fff;
+	border-radius: 4px;
+	-webkit-box-shadow:0 0 10px rgba(0, 0, 0, .5);  
+    -moz-box-shadow:0 0 10px rgba(0, 0, 0, .5);  
+    box-shadow:0 0 10px rgba(0, 0, 0, .5);  
+    max-width: 360px;
+}
+.boxinside{
+	width: 100%;
+	position: relative;
+	padding-top: 50px;
+	min-height: 150px;
+	text-align: center;
+}
+.closeimg{
+	width: 30px; 
+	height: 30px;
+	position: absolute; 
+	top: 0;
+	right: 0;
+	cursor: pointer;
+}
+.boxinside  p{
+	padding: 0 10px;
+	font-size: 14px;
+	line-height: 25px;
+	text-align: center;
+
+} 
+.boxinside  .title{
+	text-align: center;
+	font-size: 18px; 
+	line-height: 30px;
+}
+
+
+.banner{width: 100%; height: auto; padding-top: 80px;}
+.banner img{width: 100%; height: auto; display: block;}
+
+
