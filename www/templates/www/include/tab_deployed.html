@@ -458,7 +458,7 @@
 
     function visit() {
 		var port = $("#multi_ports").val();
-		if(port=""||port == null){
+		if(port==""||port == null){
 			port =  '{{one_outer_port}}';
 		}
 		var url = "http://{{serviceAlias}}_"+port+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
