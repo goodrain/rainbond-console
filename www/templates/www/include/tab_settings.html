@@ -123,7 +123,7 @@
                         <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" {% if tenant.pay_type == "free" and not user.is_sys_admin %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
-                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if outer_auth %}{% if outer_port_exist and not port.is_outer_service %}disabled{% else %}data-open="open"{% endif %}{% else %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
+                        <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if outer_auth %}data-open="open"{% else %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
                         {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" "><i class="fa fa-times"></i></button>{% endif %}

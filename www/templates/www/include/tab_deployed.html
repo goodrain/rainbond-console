@@ -38,8 +38,6 @@
                 {% endifequal %}
 
                 {% if hasHttpServices %}
-					{#   多端口域名绑定  #}
-					{{visit_port_type}}
 					{% if visit_port_type == "multi_outer" %}
 						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px;">
 

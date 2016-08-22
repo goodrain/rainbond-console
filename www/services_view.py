@@ -207,15 +207,15 @@ class TenantService(LeftSideBarMixin, AuthedView):
     def multi_port_choices(self):
         multi_port = {}
         multi_port["one_outer"] = u'单一端口开放'
-        multi_port["dif_protocol"] = u'按协议开放'
-        multi_port["multi_outer"] = u'多端口开放'
+        #multi_port["dif_protocol"] = u'按协议开放'
+        #multi_port["multi_outer"] = u'多端口开放'
         return multi_port
 
     # 服务挂载卷类型下拉列表选项
     def mnt_share_choices(self):
         mnt_share_type = {}
         mnt_share_type["shared"] = u'共享'
-        mnt_share_type["exclusive"] = u'独享'
+        #mnt_share_type["exclusive"] = u'独享'
         return mnt_share_type
 
     # 获取所有的开放的http对外端口
@@ -295,18 +295,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
-                # get http outer service ports
-                domain = ServiceDomain.objects.get(service_id=self.service.service_id)
-                context["serviceDomain"] = domain
-                context["http_outer_service_ports"] = self.get_outer_service_port()
+                
                 # get port type
-                tenantServiceInfo = TenantServiceInfo.objects.get(service_id=self.service.service_id)
-                visit_port_type = tenantServiceInfo.port_type
-                context["visit_port_type"] = visit_port_type
-                # get one_outer port
-                tenant_service_port = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_outer_service=True,protocol='http')
-                if tenant_service_port.count() == 1:
-                    context["one_outer_port"] = tenant_service_port[0].container_port
+                context["visit_port_type"] = self.service.port_type
+                if self.service.port_type=="multi_outer":
+                    context["http_outer_service_ports"] = self.get_outer_service_port()
+                    
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
