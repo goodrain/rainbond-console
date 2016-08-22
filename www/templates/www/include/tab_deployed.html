@@ -196,6 +196,7 @@
 		    		  	$("#service_status").html("运行异常")
 		    		    $("#service_status_operate").show()
 		    			$("#service_visitor").hide();
+						$("#multi_ports").hide()
 		    			$("#service_status").attr("class","badge badge-sm label-danger")
 		    		  }else if(obj["status"]=="closed" || obj["status"]=="Owed"){
 		    			$("#service_status_value").val("restart")
@@ -212,6 +213,7 @@
 		    		  	}
 		    		  	$("#service_status_operate").show()
 		    		  	$("#service_visitor").hide();
+						$("#multi_ports").hide()
 		    		  }else if(obj["status"]=="undeploy"){
 		    			$("#service_status_value").val("")
 		    			$("#font"+service_id).html("未部署")
@@ -231,6 +233,7 @@
 			    		$("#service_status_operate").hide()
 			    		$("#service_visitor").hide();
 			    		$("#service_status").attr("class","badge badge-sm label-success")
+						$("#multi_ports").hide()
 		    		  }
 		    	  }
     		  },
