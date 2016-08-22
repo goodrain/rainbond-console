@@ -19,17 +19,17 @@
 
         <!--  一开始  -->
         <div class="fm－box">
+            <div class="form-group">
+                {% if state %}
+                <label class="control-label">数据表单错误</label>
+                {% endif %}
+            </div>
             <a href="javascript:;" class="titlink" id="infor">
                 基本信息
                 <span>
                     <em class="glyphicon glyphicon-triangle-top"></em>
                 </span>
             </a>
-            <div class="form-group">
-                {% if state %}
-                <label class="control-label">数据表单错误</label>
-                {% endif %}
-            </div>
             <div class="show-box">
                 <!-- 01 -->
                 <div class="form-group">
