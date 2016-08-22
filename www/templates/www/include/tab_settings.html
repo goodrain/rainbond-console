@@ -32,7 +32,7 @@
           <br/>
           {% if user.is_sys_admin  or add_port %}
           <div class="row">
-              <label class="col-xs-2 control-label">服务对外服务</label>
+              <label class="col-xs-2 control-label">对外端口配置</label>
               <div class="col-xs-2">
                   <select class="form-control" id="outer_port_setting" name="outer_port_setting">
 
@@ -58,7 +58,7 @@
           {% endif %}
           <br/>
           <div class="row">
-              <label class="col-xs-2 control-label">服务持久化方式</label>
+              <label class="col-xs-2 control-label">持久化配置</label>
               <div class="col-xs-2">
                   <select class="form-control" id="mnt_share_type" name="mnt_share_type">
                       {% for key,extend in mnt_share_choices.iteritems %}
