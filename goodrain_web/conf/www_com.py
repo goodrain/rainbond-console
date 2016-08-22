@@ -198,7 +198,7 @@ REGIONS = (
     {"name": "ali-sh", "label": u'\u963f\u91cc\u4e91[\u4e0a\u6d77]', "enable": True},
     {"name": "ucloud-bj-1", "label": u'ucloud[\u5317\u4eac]', "enable": True},
     {"name": "aws-jp-1", "label": u'\u4e9a\u9a6c\u900a[\u65e5\u672c]', "enable": True},
-    {"name": "xunda-hk", "label": u'\u8fc5\u8fbe[\u9999\u6e2f]', "enable": True}
+    {"name": "xunda-hk", "label": u'\u8fc5\u8fbe[\u9999\u6e2f]', "enable": False}
 )
 
 # logo path
