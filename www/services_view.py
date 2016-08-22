@@ -207,15 +207,15 @@ class TenantService(LeftSideBarMixin, AuthedView):
     def multi_port_choices(self):
         multi_port = {}
         multi_port["one_outer"] = u'单一端口开放'
-        #multi_port["dif_protocol"] = u'按协议开放'
-        #multi_port["multi_outer"] = u'多端口开放'
+        multi_port["dif_protocol"] = u'按协议开放'
+        multi_port["multi_outer"] = u'多端口开放'
         return multi_port
 
     # 服务挂载卷类型下拉列表选项
     def mnt_share_choices(self):
         mnt_share_type = {}
         mnt_share_type["shared"] = u'共享'
-        #mnt_share_type["exclusive"] = u'独享'
+        mnt_share_type["exclusive"] = u'独享'
         return mnt_share_type
 
     # 获取所有的开放的http对外端口
