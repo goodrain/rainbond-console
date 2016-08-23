@@ -532,26 +532,27 @@ class OpenTenantServiceManager(object):
             logger.exception("openapi.services", e)
 
     def create_service_volume(self, service, volume_path):
-        category = service.category
-        region = service.service_region
-        service_id = service.service_id
-        host_path, volume_id = self.add_volume_list(service, volume_path)
-        if volume_id is None:
-            logger.error("add volume error!")
-            return None
-        # 发送到region进行处理
-        json_data = {
-            "service_id": service_id,
-            "category": category,
-            "host_path": host_path,
-            "volume_path": volume_path
-        }
-        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(json_data))
-        if res.status == 200:
-            return volume_id
-        else:
-            TenantServiceVolume.objects.filter(pk=volume_id).delete()
-            return None
+        self.add_volume_list(service, volume_path)
+#        category = service.category
+#        region = service.service_region
+#        service_id = service.service_id
+#        host_path, volume_id = self.add_volume_list(service, volume_path)
+#        if volume_id is None:
+#            logger.error("add volume error!")
+#            return None
+#        # 发送到region进行处理
+#        json_data = {
+#            "service_id": service_id,
+#            "category": category,
+#            "host_path": host_path,
+#            "volume_path": volume_path
+#        }
+#        res, body = regionClient.createServiceVolume(region, service_id, json.dumps(json_data))
+#        if res.status == 200:
+#            return volume_id
+#        else:
+#            TenantServiceVolume.objects.filter(pk=volume_id).delete()
+#            return None
 
     def cancel_service_volume(self, service, volume_id):
         # 发送到region进行删除
