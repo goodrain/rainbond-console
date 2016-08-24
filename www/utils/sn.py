@@ -2,10 +2,19 @@
 
 from django.conf import settings
 from crypt import AuthCode
+import json
 
 
 class SNUtil:
     def __init__(self):
+        if hasattr(settings, 'CLOUD_ASSISTANT'):
+            self.cloud_assistant = settings.CLOUD_ASSISTANT
+            self.username = settings.CLOUD_ASSISTANT + "-admin"
+        else:
+            self.cloud_assistant = ""
+            self.username = ""
+        self.password = ''
+        self.pricing = "community"
         if hasattr(settings, 'SN'):
             self.sn = settings.SN
             self.str_key = "goodrain_private_cloud_assistant_sn"
@@ -13,17 +22,13 @@ class SNUtil:
             version = self.sn[-2:]
             if version == "01":
                 key_str = self.sn[:-2]
-                cloud_assistant, username, password, web_type = AuthCode.decode(key_str, self.str_key).split(',')
-            self.cloud_assistant = cloud_assistant
-            self.username = username
-            self.password = password
-            self.web_type = web_type
-        else:
-            # 这里兼容之前的老版本
-            self.cloud_assistant = settings.CLOUD_ASSISTANT
-            self.username = settings.CLOUD_ASSISTANT + "-admin"
-            self.password = ''
-            self.web_type = "community"
+                json_str = AuthCode.decode(key_str, self.str_key)
+                json_dict = json.loads(json_str)
+                self.cloud_assistant = json_dict.get("enterprise", self.cloud_assistant)
+                self.username = json_dict.get("username", self.username)
+                self.password = json_dict.get("password", "")
+                self.pricing = json_dict.get("pricing", "community")
+
 
     @property
     def cloud_assistant(self):
@@ -38,11 +43,11 @@ class SNUtil:
         return self.password
 
     @property
-    def web_type(self):
-        return self.web_type
+    def pricing(self):
+        return self.pricing
 
     def is_private(self):
-        return self.web_type == "community"
+        return self.pricing == "community"
 
 instance = SNUtil()
 
