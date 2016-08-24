@@ -12,6 +12,7 @@ from www.models import TenantServicesPort, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 from www.servicetype import ServiceType
+from www.utils import sn
 
 from www.models import AppService, AppServiceEnv, AppServicePort, \
     AppServiceCategory, AppServiceRelation, ServiceExtendMethod, \
@@ -165,7 +166,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         is_service=self.service.is_service,
                         is_web_service=self.service.is_web_service,
                         image=self.service.image,
-                        namespace=settings.CLOUD_ASSISTANT,
+                        namespace=sn.instance.username,
                         slug='',
                         extend_method=self.service.extend_method,
                         cmd=self.service.cmd,

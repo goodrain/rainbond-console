@@ -12,6 +12,7 @@ from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
 from www.db import BaseConnection
+from www.utils import sn
 import datetime
 import time
 import random
@@ -418,9 +419,7 @@ class Registation(BaseView):
             if region is None or region == "" or region == "1":
                 region = "ucloud_bj_1"
             # 没有配置项默认为私有云帮,配置项为false为私有云帮
-            is_private = True
-            if hasattr(settings, "PLATFORM_OPEN"):
-                is_private = not settings.PLATFORM_OPEN
+            is_private = sn.instance.is_private()
             if is_private:
                 try:
                     tenant = Tenants.objects.get(tenant_name=tenant_name)

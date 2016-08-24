@@ -14,6 +14,7 @@ from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource,
 from www.monitorservice.monitorhook import MonitorHook
 from django.shortcuts import redirect
 from www.region import RegionInfo
+from www.utils import sn
 
 import logging
 logger = logging.getLogger('default')
@@ -61,7 +62,7 @@ class RemoteServiceMarketAjax(AuthedView):
             all_data = {
                 'service_key': service_key,
                 'app_version': app_version,
-                'cloud_assistant': settings.CLOUD_ASSISTANT,
+                'cloud_assistant': sn.instance.cloud_assistant,
             }
             data = json.dumps(all_data)
             logger.debug('post service json data={}'.format(data))

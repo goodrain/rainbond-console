@@ -7,6 +7,7 @@ from urllib import urlencode
 
 from www.models import AppServiceRelation, AppServicePort, \
     AppServiceEnv, ServiceExtendMethod, AppServiceVolume
+from www.utils import sn
 from www.app_http import AppServiceApi
 appClient = AppServiceApi()
 
@@ -37,7 +38,7 @@ class AppSendUtil:
                                                              app_version=self.app_version)
             volume_list = AppServiceVolume.objects.filter(service_key=self.service_key,
                                                           app_version=self.app_version)
-            req_data.update({'cloud_assistant': settings.CLOUD_ASSISTANT})
+            req_data.update({'cloud_assistant': sn.instance.cloud_assistant})
             all_data = {
                 'pre_list': map(lambda x: x.to_dict(), pre_list),
                 'suf_list': map(lambda x: x.to_dict(), suf_list),
@@ -97,7 +98,7 @@ class AppSendUtil:
             all_data = {
                 'service_key': service_key,
                 'app_version': app_version,
-                'cloud_assistant': settings.CLOUD_ASSISTANT,
+                'cloud_assistant': sn.instance.cloud_assistant,
             }
             data = json.dumps(all_data)
             logger.debug('post service json data={}'.format(data))

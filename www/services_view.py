@@ -68,7 +68,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
 
         context = self.get_context()
         try:
-            num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
+            # num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
             # if num < 1:
             #     return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
             tenantServiceList = context["tenantServiceList"]

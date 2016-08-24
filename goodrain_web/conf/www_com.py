@@ -204,8 +204,6 @@ REGIONS = (
 
 # logo path
 MEDIA_ROOT = '/data/media'
-# cloud market url
-CLOUD_ASSISTANT = 'goodrain'
 # log domain
 LOG_DOMAIN = {
     "ali-sh": "ali-sh.download.goodrain.com",
@@ -240,4 +238,4 @@ OAUTH2_APP = {
     'CLIENT_SECRET': 'fMnql3q1UAiR',
 }
 
-PLATFORM_OPEN = True
+SN = '691fPFVfb7KP7cWA74ltjPeiq6-F1AStxvFHl1t6Y4v84h1ucAo-KSc880fxXRQGh_DFMbk2k8e3_opje2TX6LDzsBoZrbEqwqHXTRiI01'
