@@ -447,6 +447,13 @@ class Registation(BaseView):
                         pay_level='company',
                         creater=user.pk,
                         region=region)
+            else:
+                tenant = Tenants.objects.create(
+                    tenant_name=tenant_name,
+                    pay_type='payed',
+                    pay_level='company',
+                    creater=user.pk,
+                    region=region)
 
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 
