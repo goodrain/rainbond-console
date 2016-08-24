@@ -182,13 +182,7 @@ class CreateServiceView(BaseAPIView):
         if mnts:
             for mnt in mnts:
                 host_path, volume_path = mnt.split(":")
-                # 添加到持久化目录
-                # manager.create_service_mnt(tenant.tenant_id,
-                #                            service_id,
-                #                            dest_path,
-                #                            src_path,
-                #                            region)
-                volume_id = manager.add_volume_list(newTenantService, volume_path)
+                volume_id = manager.save_mnt_volume(newTenantService, host_path, volume_path)
                 if volume_id is None:
                     logger.error("openapi.services", "service volume failed!")
 
