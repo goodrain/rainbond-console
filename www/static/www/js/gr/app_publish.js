@@ -1,15 +1,15 @@
 $(function(){
-    var category_first = $('#app_type_first').val();
+    var category_first = $('#category_first_bak').val();
     var category_second = $("#category_second_bak").val();
     var category_third = $("#category_third_bak").val();
 
     // init root category
     getCategoryList(0, 'app_type_first', category_first);
-    if (category_first == "") {
+    if (category_first == "" || category_first == null) {
         category_first = 1;
     }
     getCategoryList(category_first, 'app_type_second', category_second);
-    if (category_second == "") {
+    if (category_second == "" || category_second == null) {
         category_second = 2;
     }
     getCategoryList(category_second, 'app_type_third', category_third);
@@ -33,7 +33,7 @@ $(function(){
 
 //分类列表
 function getCategoryList(cateId, contId, value_id){
-    if (String(cateId) == "") {
+    if (String(cateId) == "" || String(cateId) == "null") {
         return;
     }
     $.get('https://app.goodrain.com/ajax/category_list/' + cateId + '?callback=?', {flag: 'cross'},
