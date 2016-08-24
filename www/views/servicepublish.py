@@ -91,6 +91,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'min_memory': self.service.min_memory,
                 'volume_mount_path': self.service.volume_mount_path,
                 'info': '',
+                'first': 0,
+                'second': 0,
+                'thrid': 0,
                 'desc': self.service.desc if self.service.desc else '',
                 'is_init_accout': False,
                 'is_outer': False,
@@ -99,9 +102,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         # 查询对应服务的名称等信息
         context.update({'app': init_data})
         context["service_types"] = ServiceType.type_maps
-        root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
-        root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
-        context['root_category_list'] = root_category_list
+        # root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
+        # root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
+        # context['root_category_list'] = root_category_list
         # 返回页面
         return TemplateResponse(self.request,
                                 'www/service/publish_step_1.html',
