@@ -225,11 +225,11 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         app_version = form_data.cleaned_data['app_version']
 
         # 获取服务基本信息
-        url_site = form_data.cleaned_data['url_site']
-        url_source = form_data.cleaned_data['url_source']
-        url_demo = form_data.cleaned_data['url_demo']
-        url_feedback = form_data.cleaned_data['url_feedback']
-        release_note = form_data.cleaned_data['release_note']
+        url_site = form_data.cleaned_data.get('url_site', '')
+        url_source = form_data.cleaned_data.get('url_source', '')
+        url_demo = form_data.cleaned_data.get('url_demo', '')
+        url_feedback = form_data.cleaned_data.get('url_feedback', '')
+        release_note = form_data.cleaned_data.get('release_note', '')
         # 判断是否需要重新添加
         count = AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version).count()
         if count == 0:
@@ -257,8 +257,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         except AppServiceImages.DoesNotExist:
             pass
 
-        info = form_data.cleaned_data['info']
-        desc = form_data.cleaned_data['desc']
+        info = form_data.cleaned_data.get('info', '')
+        desc = form_data.cleaned_data.get('desc', '')
         category_first = form_data.cleaned_data['category_first']
         category_second = form_data.cleaned_data['category_second']
         category_third = form_data.cleaned_data['category_third']
@@ -325,11 +325,11 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         for port in list(port_list):
             app_port = AppServicePort(service_key=service_key,
                                       app_version=app_version,
-                                      container_port=port.container_port,
-                                      protocol=port.protocol,
-                                      port_alias=port.port_alias,
-                                      is_inner_service=port.is_inner_service,
-                                      is_outer_service=port.is_outer_service)
+                                      container_port=port["container_port"],
+                                      protocol=port["protocol"],
+                                      port_alias=port["port_alias"],
+                                      is_inner_service=port["is_inner_service"],
+                                      is_outer_service=port["is_outer_service"])
             port_data.append(app_port)
         if len(port_data) > 0:
             logger.debug(len(port_data))
@@ -391,8 +391,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             for volume in list(volume_list):
                 app_volume = AppServiceVolume(service_key=service_key,
                                               app_version=app_version,
-                                              category=volume.category,
-                                              volume_path=volume.volume_path)
+                                              category=volume["category"],
+                                              volume_path=volume["volume_path"])
                 volume_data.append(app_volume)
             if len(volume_data) > 0:
                 logger.debug(len(volume_data))
@@ -457,11 +457,11 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         try:
             # 生成发布事件
             event_id = self._create_publish_event(u"云帮")
-            oss_upload_task.update({"dest" : "yb", "event_id" : event_id})
+            oss_upload_task.update({"dest": "yb", "event_id": event_id})
             regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
             if app.is_outer:
                 event_id = self._create_publish_event(u"云市")
-                oss_upload_task.update({"dest" : "ys", "event_id" : event_id})
+                oss_upload_task.update({"dest": "ys", "event_id": event_id})
                 regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
             logger.error("service.publish",
