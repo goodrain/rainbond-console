@@ -25,10 +25,17 @@ SENSITIVE_WORDS = (
 )
 
 standard_regex_string = "^[a-z0-9][a-z0-9_\-]+[a-z0-9]$"
+standard_regex_string_extend = "^[a-z0-9][a-z0-9\-]+[a-z0-9]$"
 
 
 def is_standard_word(value):
     r = re.compile(standard_regex_string)
+    if not r.match(value):
+        raise forms.ValidationError(u"允许下列字符: 小写字母 数字 _ -")
+
+
+def is_standard_word_extend(value):
+    r = re.compile(standard_regex_string_extend)
     if not r.match(value):
         raise forms.ValidationError(u"允许下列字符: 小写字母 数字 _ -")
 
@@ -297,7 +304,7 @@ class RegisterForm(forms.Form):
     )
     tenant = forms.CharField(
         required=True, max_length=40, label="",
-        validators=[is_standard_word, is_sensitive],
+        validators=[is_standard_word_extend, is_sensitive],
         # min_length=3, ajax_check=True, pattern=standard_regex_string,
         # widget=widgets.TextInput(attrs={"data-remote-error": u"已存在"})
     )
