@@ -72,6 +72,8 @@ $(function(){
             }else{
                 var tenant_name = $("#tenant_name").val();
                 var service_alias = $("#service_alias").val();
+                var service_key = $("#service_key").val();
+                var app_version = $("#app_version").val();
                 var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
                 $.ajax({
 		            url: step4_url,
@@ -84,7 +86,9 @@ $(function(){
 		                "node" : oPNode,
 		                "trial" : oPTime,
 		                "price" : oPPrice,
-		                "total_price" : oPTotal
+		                "total_price" : oPTotal,
+                        "service_key": service_key,
+                        "app_version": app_version
                     },
 		            beforeSend : function(xhr, settings) {
 		                var csrftoken = $.cookie('csrftoken');
@@ -250,6 +254,8 @@ $(function(){
             }
             var tenant_name = $("#tenant_name").val();
             var service_alias = $("#service_alias").val();
+            var service_key = $("#service_key").val();
+            var app_version = $("#app_version").val();
             var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
             $.ajax({
 	            url: step4_url,
@@ -264,6 +270,8 @@ $(function(){
 	                "trial" : oPTime,
 	                "price" : oPPrice,
 	                "total_price" : oPTotal,
+                    "service_key": service_key,
+                    "app_version": app_version
 	            },
 	            beforeSend : function(xhr, settings) {
 	                var csrftoken = $.cookie('csrftoken');
