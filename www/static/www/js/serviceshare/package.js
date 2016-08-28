@@ -126,7 +126,8 @@ $(function(){
 		            success:function(data){
 		                var oData = eval(data);
 		                if(oData.code == 200){
-		                	listaddFn(oData.info.ID, oPName,oPMemory,oPNode,oPTime,oPPrice,oData.info.total_price);
+		                    var info = eval(oData.info);
+		                	listaddFn(info.ID, oPName,oPMemory,oPNode,oPTime,oPPrice,info.total_price);
                             $('#addbox').empty().removeClass('showbox');
                             $('.resivebtn').click(function(){
                                 reFmFn($(this));
