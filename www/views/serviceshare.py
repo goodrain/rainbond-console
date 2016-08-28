@@ -483,11 +483,7 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         # 查询之前是否设置有套餐
         service_key = request.GET.get("service_key")
         app_version = request.GET.get("app_version")
-        service_package = []
-        try:
-            service_package = AppServicePackages.objects.get(service_key=service_key, app_version=app_version)
-        except Exception:
-            pass
+        service_package = AppServicePackages.objects.filter(service_key=service_key, app_version=app_version)
         #
         # path param
         context["tenant_name"] = self.tenantName

@@ -181,6 +181,14 @@ $(function(){
         var oldprice = inforbox.find('p:eq(4) cite').attr("data-value");
         var oldtotal = inforbox.find('div.total span').attr("data-value");
 
+        inforbox.hide();
+        $(oFmName).appendTo(outfmbox);
+        $(oFmMemory).appendTo(outfmbox);
+        $(oFmNode).appendTo(outfmbox);
+        $(oFmTime).appendTo(outfmbox);
+        $(oFmPrice).appendTo(outfmbox);
+        $(oFmReviseBtn).appendTo(outfmbox);
+
         // var tenant_name = $("#tenant_name").val();
         // var service_alias = $("#service_alias").val();
         // var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
