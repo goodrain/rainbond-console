@@ -27,16 +27,42 @@ $(function(){
 
     //新增列表
     // list  内容
-    function listaddFn(TextName,TextMemory,TextNode,TextTime,TextPrice,TextTotal){
+    function listaddFn(id, TextName,TextMemory,TextNode,TextTime,TextPrice,TextTotal){
     	// var unit = TextMemory > 100 ? "M" : "G";
-        var unit = "M"
+        var unit = "M";
+        var old_memory = TextMemory
         var value = TextMemory/1024;
         if (value >= 1) {
             TextMemory = value;
             unit = "G"
         }
-        var oPbox = '<li><div class="textlist"><p><span>应用名称:</span><cite>'+ TextName +'</cite></p><p><span>内存需求:</span><cite>'+ TextMemory + unit +'</cite></p><p><span>节点要求:</span><cite>'+ TextNode +'个</cite></p><p><span>试用时长:</span><cite>'+ TextTime +'天</cite></p><p><span>订价:</span><cite>'+ TextPrice +'元／月</cite></p><div class="total">本套餐在云市的最终价格为<span>'+ TextTotal +'元／月</span></div><div class="litlinkbtn"><a href="javascript:;" class="litbluebtn resivebtn">修改</a><a href="javascript:;" class="litredbtn removebtn">删除</a></div></div><div class="refmbox"></div></li>';
-        $(oPbox).appendTo($('#oldlistbox'));
+        var new_li = $("<li/>").attr("data-id", id);
+        var new_div = $("<div />").addClass("textlist");
+        $("<p/>").append($("<span />").html("应用名称:"))
+                .append($("<cite />").attr("data-value", TextName).html(TextName))
+                .appendTo(new_div);
+        $("<p/>").append($("<span />").html("内存需求:"))
+                .append($("<cite />").attr("data-value", old_memory).html(TextMemory + unit))
+                .appendTo(new_div);
+        $("<p/>").append($("<span />").html("节点要求:"))
+                .append($("<cite />").attr("data-value", TextNode).html(TextNode + "个"))
+                .appendTo(new_div);
+        $("<p/>").append($("<span />").html("试用时长:"))
+                .append($("<cite />").attr("data-value", TextTime).html(TextTime + "天"))
+                .appendTo(new_div);
+        $("<p/>").append($("<span />").html("订价:"))
+                .append($("<cite />").attr("data-value", TextPrice).html(TextPrice + "元／月"))
+                .appendTo(new_div);
+        $("<div/>").addClass("total").append("本套餐在云市的最终价格为")
+                .append($("<span/>").attr("data-value", TextTotal).html(TextTotal + "元／月"))
+                .appendTo(new_div);
+        $("<div/>").addClass("litlinkbtn")
+                .append($("<a/>").addClass("litbluebtn resivebtn").attr("href", "javascript:;").text("修改"))
+                .append($("<a/>").addClass("litredbtn removebtn").attr("href", "javascript:;").text("删除"))
+                .appendTo(new_div);
+        new_div.appendTo(new_li);
+        $("<div />").addClass("refmbox").appendTo(new_li);
+        new_li.appendTo($('#oldlistbox'));
     }
 
     //添加表单函数
@@ -102,7 +128,7 @@ $(function(){
 		            success:function(data){
 		                var oData = eval(data);
 		                if(oData.code == 200){
-		                	listaddFn(oPName,oPMemory,oPNode,oPTime,oPPrice,oPTotal);
+		                	listaddFn(oData.info.ID, oPName,oPMemory,oPNode,oPTime,oPPrice,oData.info.total_price);
                             $('#addbox').empty().removeClass('showbox');
                             $('.resivebtn').click(function(){
                                 reFmFn($(this));

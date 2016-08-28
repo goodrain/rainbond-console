@@ -641,7 +641,7 @@ class ShareServicePackageView(BaseView):
             package.price = price
             package.total_price = total_price
             package.save()
-            return JsonResponse(status=200, data={"code": 200})
+            return JsonResponse(status=200, data={"code": 200, "info": json.dumps(package.to_dict())})
         else:
             try:
                 service_package = AppServicePackages.objects.get(pk=package_id)
