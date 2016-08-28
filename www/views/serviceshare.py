@@ -618,6 +618,7 @@ class ShareServicePackageView(BaseView):
         if action == "delete":
             # delete
             AppServicePackages.objects.filter(pk=package_id).delete()
+            return JsonResponse(status=200, data={"code": 200})
         elif action == "add" or action == "update":
             package = AppServicePackages()
             if package_id is None:

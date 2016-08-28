@@ -31,7 +31,7 @@ $(function(){
     	// var unit = TextMemory > 100 ? "M" : "G";
         var unit = "M"
         var value = TextMemory/1024;
-        if (value > 0) {
+        if (value >= 1) {
             TextMemory = value;
             unit = "G"
         }
@@ -61,14 +61,19 @@ $(function(){
             var oPTotal = (0.069 * 2 * parseInt(oPMemory) * parseInt(oPNode) / 1024 + 0.0082) * 30 * 24 + 0.8 + parseFloat(oPPrice);
             if(oPName == ''){
                 tipsFnbox(tipsArray[0]);
+                return;
             }else if(oPPrice == ''){
                 tipsFnbox(tipsArray[1]);
+                return;
             }else if(!regname.test(oPName)){
                 tipsFnbox(tipsArray[2]);
+                return;
             }else if(!regprice.test(oPPrice)){
                 tipsFnbox(tipsArray[3]);
+                return;
             }else if(oPPrice > 9999999){
                 tipsFnbox(tipsArray[4]);
+                return;
             }else{
                 var tenant_name = $("#tenant_name").val();
                 var service_alias = $("#service_alias").val();
@@ -98,8 +103,49 @@ $(function(){
 		                var oData = eval(data);
 		                if(oData.code == 200){
 		                	listaddFn(oPName,oPMemory,oPNode,oPTime,oPPrice,oPTotal);
-                            $('#addbox').empty().removeClass('showbox'); 
-		                } else {
+                            $('#addbox').empty().removeClass('showbox');
+                            $('.resivebtn').click(function(){
+                                reFmFn($(this));
+                            });
+                            ///
+                            $('.removebtn').click(function(){
+                                $(this).parent().parent().parent('li').remove();
+                                var oId = $(this).parent().parent().parent('li').attr('id');
+                                var oDataId = $(this).parent().parent().parent('li').attr('data-id');
+                                var tenant_name = $("#tenant_name").val();
+                                var service_alias = $("#service_alias").val();
+                                var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
+                                $.ajax({
+                                    url: step4_url,
+                                    type: "POST",
+                                    dataType: "json",
+                                    data: {
+                                        "action": "delete",
+                                        "id" : oDataId
+                                    },
+                                    beforeSend : function(xhr, settings) {
+                                        var csrftoken = $.cookie('csrftoken');
+                                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                                    },
+                                    success:function(data){
+                                        var oData = eval(data);
+                                        if(oData.code == 200){
+                                            $(this).parent().parent().parent('li').remove();
+                                        } else {
+                                            tipsFnbox(oData.msg);
+                                        }
+                                    },
+                                    error: function() {
+                                        tipsFnbox("查询失败!");
+                                    },
+                                    cache: false
+                                    // processData: false
+                                });
+                            });
+                            ///
+                            //////
+
+                        } else {
                             tipsFnbox(oData.msg);
                         }
 		            },
@@ -109,8 +155,8 @@ $(function(){
 		            cache: false
 		            // processData: false
 		   		});
-                
-                ///
+
+                //////////////////////////////////////
                 $('.resivebtn').click(function(){
 			        reFmFn($(this));
 			    });
@@ -147,9 +193,9 @@ $(function(){
 			            },
 			            cache: false
 			            // processData: false
-			        }); 
+			        });
 			   	});
-			    ///
+			    ////////////////////////////////////////////
             }
         });
         ///
@@ -234,24 +280,29 @@ $(function(){
             var oPMemory = $(this).parent().parent().find('select.fmsecmemory').val();
             var unit = "M";
             var value = oPMemory/1024;
-            if (value > 0) {
-                oPMemory = value
-                unit = "G"
-            }
             var oPNode = $(this).parent().parent().find('select.fmsecnode').val();
             var oPTime = $(this).parent().parent().find('select.fmsectime').val();
             var oPPrice = $(this).parent().parent().find('input.fmprice').val();
             var oPTotal = (0.069 * 2 * parseInt(oPMemory) * parseInt(oPNode) / 1024 + 0.0082) * 30 * 24 + 0.8 + parseFloat(oPPrice);
+            if (value >= 1) {
+                oPMemory = value;
+                unit = "G";
+            }
         	if(oPName == ''){
                 tipsFnbox(tipsArray[0]);
+                return;
             }else if(oPPrice == ''){
                 tipsFnbox(tipsArray[1]);
+                return;
             }else if(!regname.test(oPName)){
                 tipsFnbox(tipsArray[2]);
+                return;
             }else if(!regprice.test(oPPrice)){
                 tipsFnbox(tipsArray[3]);
+                return;
             }else if(oPPrice > 9999999){
                 tipsFnbox(tipsArray[4]);
+                return;
             }else{
             	inforbox.find('p:eq(0) cite').html(oPName);
         		inforbox.find('p:eq(1) cite').html(oPMemory + unit);
@@ -306,11 +357,17 @@ $(function(){
         	outfmbox.empty();
         	inforbox.show();
         	inforbox.find('p:eq(0) cite').html(oldname);
-        	inforbox.find('p:eq(1) cite').html(oldmemory);
-        	inforbox.find('p:eq(2) cite').html(oldnode);
-        	inforbox.find('p:eq(3) cite').html(oldtime);
-        	inforbox.find('p:eq(4) cite').html(oldprice);
-        	inforbox.find('div.total span').html(oldtotal);
+            var unit = "M";
+            var value = oldmemory/1024;
+            if (value >= 1) {
+                oldmemory = value
+                unit = "G"
+            }
+        	inforbox.find('p:eq(1) cite').html(oldmemory + unit);
+        	inforbox.find('p:eq(2) cite').html(oldnode + '个');
+        	inforbox.find('p:eq(3) cite').html(oldtime + '天');
+        	inforbox.find('p:eq(4) cite').html(oldprice + '元／月');
+        	inforbox.find('div.total span').html(oldtotal + '元／月');
         });
     }
 
