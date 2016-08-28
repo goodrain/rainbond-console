@@ -11,8 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 # from www.views.service import ServicePublishView, ServicePublishExtraView
 from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
 from www.views.license import LicenseViews, LicenseDetailViews, LicenseShow
-from www.views.serviceshare import ShareServiceImageView, ShareServiceStep1View, \
-    ShareServiceStep2View, ShareServiceStep3View
+from www.views.serviceshare import *
 
 
 urlpatterns = patterns(
@@ -60,6 +59,8 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step1$', ShareServiceStep1View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step2$', ShareServiceStep2View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step3$', ShareServiceStep3View.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/share/step4$', ShareServiceStep4View.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/share/package$', ShareServicePackageView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
 
     # license service

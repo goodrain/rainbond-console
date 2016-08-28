@@ -5,8 +5,7 @@ import json
 import os
 from urllib import urlencode
 
-from www.models import AppServiceRelation, AppServicePort, \
-    AppServiceEnv, ServiceExtendMethod, AppServiceVolume
+from www.models import *
 from www.utils import sn
 from www.app_http import AppServiceApi
 appClient = AppServiceApi()
@@ -38,6 +37,8 @@ class AppSendUtil:
                                                              app_version=self.app_version)
             volume_list = AppServiceVolume.objects.filter(service_key=self.service_key,
                                                           app_version=self.app_version)
+            package_list = AppServicePackages.objects.filter(service_key=self.service_key,
+                                                             app_version=self.app_version)
             req_data.update({'cloud_assistant': sn.instance.cloud_assistant})
             all_data = {
                 'pre_list': map(lambda x: x.to_dict(), pre_list),
@@ -47,6 +48,7 @@ class AppSendUtil:
                 'extend_list': map(lambda x: x.to_dict(), extend_list),
                 'volume_list': map(lambda x: x.to_dict(), volume_list),
                 'service': req_data,
+                'package_list': map(lambda x: x.to_dict(), package_list),
             }
             retry = 3
             while retry > 0:

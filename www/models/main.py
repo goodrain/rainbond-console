@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.crypto import salted_hmac
 from www.utils.crypt import encrypt_passwd, make_tenant_id
 from django.db.models.fields import DateTimeField
-from .fields import GrOptionsCharField
+from datetime import datetime
 
 # Create your models here.
 
@@ -227,6 +227,16 @@ class BaseModel(models.Model):
 
     ID = models.AutoField(primary_key=True, max_length=10)
 
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
+
 
 class Tenants(BaseModel):
 
@@ -324,6 +334,7 @@ class ServiceInfo(BaseModel):
 
     def is_image(self):
         return not self.is_slug(self)
+
 
 class TenantServiceInfo(BaseModel):
 

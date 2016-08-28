@@ -8,16 +8,12 @@ from django.conf import settings
 
 from www.views import AuthedView, LeftSideBarMixin, BaseView
 from www.decorator import perm_required
-from www.models import TenantServicesPort, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 from www.servicetype import ServiceType
 from www.utils import sn
 
-from www.models import AppService, AppServiceEnv, AppServicePort, \
-    TenantServiceRelation, AppServiceRelation, ServiceExtendMethod, \
-    TenantServiceVolume, AppServiceVolume, TenantServiceInfo, \
-    AppServiceExtend, AppServiceShareInfo, AppServiceImages
+from www.models import *
 
 import logging
 
@@ -420,75 +416,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         if len(app_relation_list) > 0:
             logger.debug(len(app_relation_list))
             AppServiceRelation.objects.bulk_create(app_relation_list)
-        # region发送请求
-        if app.is_slug():
-            self.upload_slug(app)
-        elif app.is_image():
-            self.upload_image(app)
-        return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
-
-    def _create_publish_event(self, info):
-        template = {
-            "user_id": self.user.nick_name,
-            "tenant_id": self.service.tenant_id,
-            "service_id": self.service.service_id,
-            "type": "publish",
-            "desc": info + u"应用发布中...",
-            "show": True,
-        }
-        try:
-            body = regionClient.create_event(self.service.service_region, json.dumps(template))
-            return body.event_id
-        except Exception as e:
-            logger.exception("service.publish", e)
-            return None
-
-    def upload_slug(self, app):
-        """ 上传slug包 """
-        oss_upload_task = {
-            "service_key": app.service_key,
-            "app_version": app.app_version,
-            "service_id": self.service.service_id,
-            "deploy_version": self.service.deploy_version,
-            "tenant_id": self.service.tenant_id,
-            "action": "create_new_version",
-            "is_outer": app.is_outer,
-        }
-        try:
-            # 生成发布事件
-            event_id = self._create_publish_event(u"云帮")
-            oss_upload_task.update({"dest" : "yb", "event_id" : event_id})
-            regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
-            if app.is_outer:
-                event_id = self._create_publish_event(u"云市")
-                oss_upload_task.update({"dest" : "ys", "event_id" : event_id})
-                regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
-        except Exception as e:
-            logger.error("service.publish",
-                         "upload_slug for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
-            logger.exception("service.publish", e)
-
-    def upload_image(self, app):
-        """ 上传image镜像 """
-        image_upload_task = {
-            "service_key": app.service_key,
-            "app_version": app.app_version,
-            "action": "create_new_version",
-            "image": self.service.image,
-            "is_outer": app.is_outer,
-        }
-        try:
-            event_id = self._create_publish_event(u"云帮")
-            image_upload_task.update({"dest":"yb", "event_id" : event_id})
-            regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
-            if app.is_outer:
-                event_id = self._create_publish_event(u"云市")
-                image_upload_task.update({"dest":"ys", "event_id" : event_id})
-                regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
-        except Exception as e:
-            logger.error("service.publish",
-                         "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
-            logger.exception("service.publish", e)
+        # 跳转到套餐设置
+        return self.redirect_to('/apps/{0}/{1}/share/step4?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias), service_key, app_version)
 
 
 class ShareServiceForm(forms.Form):
@@ -538,3 +467,198 @@ class ShareServiceImageView(BaseView):
         image_info.save()
         data = {"success": True, "code": 200, "pic": image_info.logo.name}
         return JsonResponse(data, status=200)
+
+
+class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
+    """分享设置套餐"""
+    def get_context(self):
+        context = super(ShareServiceStep4View, self).get_context()
+        return context
+
+    @perm_required('app_publish')
+    def get(self, request, *args, **kwargs):
+        # 跳转到服务关系发布页面
+        context = self.get_context()
+        context["myAppStatus"] = "active"
+        # 查询之前是否设置有套餐
+        service_key = request.GET.get("service_key")
+        app_version = request.GET.get("app_version")
+        try:
+            service_package = AppServicePackages.objects.get(service_key=service_key, app_version=app_version)
+        except Exception as e:
+            logger.exception(e)
+            raise http.Http404
+        #
+        # path param
+        context["tenant_name"] = self.tenantName
+        context["service_alias"] = self.serviceAlias
+        context["service_key"] = service_key
+        context["app_version"] = app_version
+        context["service_package"] = service_package
+        # 返回页面
+        return TemplateResponse(request, 'www/service/share_step_4.html', context)
+
+    # form提交.
+    @perm_required('app_publish')
+    def post(self, request, *args, **kwargs):
+        # 获取form表单
+        service_key = request.POST.get("service_key")
+        app_version = request.POST.get('app_version')
+        try:
+            app = AppService.objects.get(service_key=service_key,
+                                         app_version=app_version)
+        except Exception as e:
+            logger.exception(e)
+            raise http.Http404
+        # region发送请求
+        if app.is_slug():
+            self.upload_slug(app)
+        elif app.is_image():
+            self.upload_image(app)
+        return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+
+    def _create_publish_event(self, info):
+        template = {
+            "user_id": self.user.nick_name,
+            "tenant_id": self.service.tenant_id,
+            "service_id": self.service.service_id,
+            "type": "publish",
+            "desc": info + u"应用发布中...",
+            "show": True,
+        }
+        try:
+            body = regionClient.create_event(self.service.service_region, json.dumps(template))
+            return body.event_id
+        except Exception as e:
+            logger.exception("service.publish", e)
+            return None
+
+    def upload_slug(self, app):
+        """ 上传slug包 """
+        oss_upload_task = {
+            "service_key": app.service_key,
+            "app_version": app.app_version,
+            "service_id": self.service.service_id,
+            "deploy_version": self.service.deploy_version,
+            "tenant_id": self.service.tenant_id,
+            "action": "create_new_version",
+            "is_outer": app.is_outer,
+        }
+        try:
+            # 生成发布事件
+            event_id = self._create_publish_event(u"云帮")
+            oss_upload_task.update({"dest": "yb", "event_id" : event_id})
+            regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
+            if app.is_outer:
+                event_id = self._create_publish_event(u"云市")
+                oss_upload_task.update({"dest": "ys", "event_id" : event_id})
+                regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
+        except Exception as e:
+            logger.error("service.publish",
+                         "upload_slug for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
+            logger.exception("service.publish", e)
+
+    def upload_image(self, app):
+        """ 上传image镜像 """
+        image_upload_task = {
+            "service_key": app.service_key,
+            "app_version": app.app_version,
+            "action": "create_new_version",
+            "image": self.service.image,
+            "is_outer": app.is_outer,
+        }
+        try:
+            event_id = self._create_publish_event(u"云帮")
+            image_upload_task.update({"dest": "yb", "event_id": event_id})
+            regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+            if app.is_outer:
+                event_id = self._create_publish_event(u"云市")
+                image_upload_task.update({"dest": "ys", "event_id": event_id})
+                regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
+        except Exception as e:
+            logger.error("service.publish",
+                         "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
+            logger.exception("service.publish", e)
+
+
+class ShareServicePackageView(BaseView):
+    """添加套餐接口"""
+    def get_context(self):
+        context = super(ShareServicePackageView, self).get_context()
+        return context
+
+    def get(self, request, *args, **kwargs):
+        # 跳转到服务关系发布页面
+        package_id = request.POST.get("id", None)
+        try:
+            service_package = AppServicePackages.objects.get(pk=package_id)
+        except Exception as e:
+            logger.exception(e)
+            return JsonResponse(status=500, data={"code": 500})
+        data = {
+            "code": 200,
+            "data-name": service_package.name,
+            "data-memory": service_package.memory,
+            "data-node": service_package.node,
+            "data-time": service_package.trial,
+            "data-price": service_package.price,
+            "data-total": service_package.total_price,
+        }
+        return JsonResponse(status=200, data=data)
+
+    def post(self, request, *args, **kwargs):
+        # 获取类型
+        action = request.POST.get("action")
+        package_id = request.POST.get("id", None)
+        name = request.POST.get("name", "")
+        memory = request.POST.get("memory", 128)
+        node = request.POST.get("node", 1)
+        trial = request.POST.get("trial", 0)
+        price = request.POST.get("price", 0)
+        total_price = request.POST.get("total_price", 0)
+        service_key = request.POST.get("service_key", None)
+        app_version = request.POST.get("app_version", None)
+
+        if action == "delete":
+            # delete
+            AppServicePackages.objects.filter(pk=package_id).delete()
+        elif action == "add" or action == "update":
+            package = AppServicePackages()
+            if package_id is None:
+                count = AppServicePackages.objects.filter(service_key=service_key,
+                                                          app_version=app_version,
+                                                          name=name).count()
+                if count > 0:
+                    return JsonResponse(status=500, data={"code": 500, "msg": "套餐名称已存在!"})
+            else:
+                try:
+                    package = AppServicePackages.objects.get(pk=package_id)
+                except Exception:
+                    pass
+            package.service_key = service_key
+            package.app_version = app_version
+            package.name = name
+            package.memory = memory
+            package.node = node
+            package.trial = trial
+            package.price = price
+            package.total_price = total_price
+            package.save()
+            return JsonResponse(status=200, data={"code": 200})
+        else:
+            try:
+                service_package = AppServicePackages.objects.get(pk=package_id)
+            except Exception as e:
+                logger.exception(e)
+                return JsonResponse(status=500, data={"code": 500})
+            data = {
+                "code": 200,
+                "data-name": service_package.name,
+                "data-memory": service_package.memory,
+                "data-node": service_package.node,
+                "data-time": service_package.trial,
+                "data-price": service_package.price,
+                "data-total": service_package.total_price,
+            }
+            return JsonResponse(status=200, data=data)
+

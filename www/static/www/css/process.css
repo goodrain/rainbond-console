@@ -7,6 +7,7 @@ a:active{text-decoration: none;}
 
 h2.tit{ font-size: 24px; line-height: 40px; text-align: center;}
 
+.setbox{margin:20px; border: 1px #d9dadb solid; padding: 10px;}
 .process{margin:20px; border: 1px #d9dadb solid; padding: 10px;}
 
 .tablebox{width: 100%; padding-bottom: 10px;}

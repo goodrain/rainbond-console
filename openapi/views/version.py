@@ -39,7 +39,7 @@ class CloudServiceVersionView(BaseAPIView):
         #
         tmp_ids = service_ids.split(",")
         tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=tmp_ids)
-        service_key_list = [x["service_key"] for x in list(tenant_service_list)]
+        service_key_list = [x.service_key for x in list(tenant_service_list)]
         # service_query = Q()
         # for tenant_service in list(tenant_service_list):
         # service_query = service_query|(Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))

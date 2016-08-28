@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db.models import Q
 import re
 import logging
+from www.utils import sn
 from www.monitorservice.monitorhook import MonitorHook
 from openapi.views.base import BaseAPIView
 from openapi.controllers.openservicemanager import OpenTenantServiceManager
@@ -184,7 +185,7 @@ class CreateCloudServiceView(BaseAPIView):
                 except Exception as e:
                     logger.error("openapi.cloudservice", "create region service failed!", e)
                     return Response(status=419, data={"success": False, "msg": u"创建region服务失败!"})
-
+                # 依赖关系 todo 无法处理多层依赖关系,
                 manager.create_service_dependency(tenant.tenant_id,
                                                   service_id,
                                                   dep_service_id,
@@ -199,7 +200,7 @@ class CreateCloudServiceView(BaseAPIView):
                                                       user_id,
                                                       region=region)
             manager.add_service_extend(newTenantService, service)
-            monitorhook.serviceMonitor(username, depTenantService, 'create_service', True)
+            monitorhook.serviceMonitor(username, newTenantService, 'create_service', True)
             tenant_service_list.append(newTenantService)
         except Exception as e:
             logger.error("openapi.cloudservice", "create console service failed!", e)
@@ -216,7 +217,7 @@ class CreateCloudServiceView(BaseAPIView):
                                           tenant_name,
                                           region,
                                           username)
-            monitorhook.serviceMonitor(username, depTenantService, 'init_region_service', True)
+            monitorhook.serviceMonitor(username, newTenantService, 'init_region_service', True)
         except Exception as e:
             logger.error("openapi.cloudservice", "create region service failed!", e)
             return Response(status=419, data={"success": False, "msg": u"创建region服务失败!"})
@@ -233,10 +234,7 @@ class CreateCloudServiceView(BaseAPIView):
                                             wild_domain,
                                             http_port_str)
         json_data = {
-            "service_id": newTenantService.service_id,
-            "tenant_id": newTenantService.tenant_id,
-            "service_key": newTenantService.service_key,
-            "service_alias": newTenantService.service_alias,
+            "cloud_assistant": sn.instance.cloud_assistant,
             "url": url,
         }
         # 依赖服务tenant_service_list
