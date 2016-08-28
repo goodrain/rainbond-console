@@ -221,11 +221,11 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         app_version = form_data.cleaned_data['app_version']
 
         # 获取服务基本信息
-        url_site = form_data.cleaned_data['url_site']
-        url_source = form_data.cleaned_data['url_source']
-        url_demo = form_data.cleaned_data['url_demo']
-        url_feedback = form_data.cleaned_data['url_feedback']
-        release_note = form_data.cleaned_data['release_note']
+        url_site = form_data.cleaned_data.get('url_site', '')
+        url_source = form_data.cleaned_data.get('url_source', '')
+        url_demo = form_data.cleaned_data.get('url_demo', '')
+        url_feedback = form_data.cleaned_data.get('url_feedback', '')
+        release_note = form_data.cleaned_data.get('release_note', '')
         # 判断是否需要重新添加
         count = AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version).count()
         if count == 0:
@@ -253,8 +253,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         except AppServiceImages.DoesNotExist:
             pass
 
-        info = form_data.cleaned_data['info']
-        desc = form_data.cleaned_data['desc']
+        info = form_data.cleaned_data.get('info', '')
+        desc = form_data.cleaned_data.get('desc', '')
         category_first = form_data.cleaned_data['category_first']
         category_second = form_data.cleaned_data['category_second']
         category_third = form_data.cleaned_data['category_third']
@@ -321,11 +321,11 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         for port in list(port_list):
             app_port = AppServicePort(service_key=service_key,
                                       app_version=app_version,
-                                      container_port=port.container_port,
-                                      protocol=port.protocol,
-                                      port_alias=port.port_alias,
-                                      is_inner_service=port.is_inner_service,
-                                      is_outer_service=port.is_outer_service)
+                                      container_port=port["container_port"],
+                                      protocol=port["protocol"],
+                                      port_alias=port["port_alias"],
+                                      is_inner_service=port["is_inner_service"],
+                                      is_outer_service=port["is_outer_service"])
             port_data.append(app_port)
         if len(port_data) > 0:
             logger.debug(len(port_data))
@@ -417,7 +417,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             logger.debug(len(app_relation_list))
             AppServiceRelation.objects.bulk_create(app_relation_list)
         # 跳转到套餐设置
-        return self.redirect_to('/apps/{0}/{1}/share/step4?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias), service_key, app_version)
+        return self.redirect_to('/apps/{0}/{1}/share/step4?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
 
 
 class ShareServiceForm(forms.Form):
@@ -483,11 +483,11 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         # 查询之前是否设置有套餐
         service_key = request.GET.get("service_key")
         app_version = request.GET.get("app_version")
+        service_package = []
         try:
             service_package = AppServicePackages.objects.get(service_key=service_key, app_version=app_version)
-        except Exception as e:
-            logger.exception(e)
-            raise http.Http404
+        except Exception:
+            pass
         #
         # path param
         context["tenant_name"] = self.tenantName

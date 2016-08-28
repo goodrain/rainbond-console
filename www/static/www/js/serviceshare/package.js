@@ -58,7 +58,7 @@ $(function(){
             var oPNode = $('#addbox .fmsecnode').val();
             var oPTime = $('#addbox .fmsectime').val();
             var oPPrice = $('#addbox .fmprice').val();
-            var oPTotal = (0.069*2*oPMemory*oPNode/1024+0.0082)*30*24+0.8+oPPrice;
+            var oPTotal = (0.069 * 2 * parseInt(oPMemory) * parseInt(oPNode) / 1024 + 0.0082) * 30 * 24 + 0.8 + parseFloat(oPPrice);
             if(oPName == ''){
                 tipsFnbox(tipsArray[0]);
             }else if(oPPrice == ''){
@@ -229,7 +229,7 @@ $(function(){
             var oPNode = $(this).parent().parent().find('select.fmsecnode').val();
             var oPTime = $(this).parent().parent().find('select.fmsectime').val();
             var oPPrice = $(this).parent().parent().find('input.fmprice').val();
-            var oPTotal = (0.069*2*oPMemory*oPNode/1024+0.0082)*30*24+0.8+oPPrice;
+            var oPTotal = (0.069 * 2 * parseInt(oPMemory) * parseInt(oPNode) / 1024 + 0.0082) * 30 * 24 + 0.8 + parseFloat(oPPrice);
         	if(oPName == ''){
                 tipsFnbox(tipsArray[0]);
             }else if(oPPrice == ''){
