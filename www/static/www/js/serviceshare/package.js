@@ -36,8 +36,8 @@ $(function(){
             TextMemory = value;
             unit = "G"
         }
-        var new_li = $("<li/>").attr("data-id", id);
-        var new_div = $("<div />").addClass("textlist");
+        var new_li = $("<li/>").attr("data-id", id).appendTo($('#oldlistbox'));
+        var new_div = $("<div />").addClass("textlist").appendTo(new_li);
         $("<p/>").append($("<span />").html("应用名称:"))
                 .append($("<cite />").attr("data-value", TextName).html(TextName))
                 .appendTo(new_div);
@@ -60,9 +60,7 @@ $(function(){
                 .append($("<a/>").addClass("litbluebtn resivebtn").attr("href", "javascript:;").text("修改"))
                 .append($("<a/>").addClass("litredbtn removebtn").attr("href", "javascript:;").text("删除"))
                 .appendTo(new_div);
-        new_div.appendTo(new_li);
         $("<div />").addClass("refmbox").appendTo(new_li);
-        new_li.appendTo($('#oldlistbox'));
     }
 
     //添加表单函数
@@ -154,12 +152,7 @@ $(function(){
                                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                                     },
                                     success:function(data){
-                                        var oData = eval(data);
-                                        if(oData.code == 200){
-                                            $(this).parent().parent().parent('li').remove();
-                                        } else {
-                                            tipsFnbox(oData.msg);
-                                        }
+                                        $("li[data-id="+oDataId+"]").remove()
                                     },
                                     error: function() {
                                         tipsFnbox("查询失败!");
@@ -181,47 +174,6 @@ $(function(){
 		            cache: false
 		            // processData: false
 		   		});
-
-                //////////////////////////////////////
-                $('.resivebtn').click(function(){
-			        reFmFn($(this));
-			    });
-			    ///
-                $('.removebtn').click(function(){
-                    $(this).parent().parent().parent('li').remove();
-                    var oId = $(this).parent().parent().parent('li').attr('id');
-                    var oDataId = $(this).parent().parent().parent('li').attr('data-id');
-                    var tenant_name = $("#tenant_name").val();
-                    var service_alias = $("#service_alias").val();
-                    var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
-                    $.ajax({
-                        url: step4_url,
-			            type: "POST",
-			            dataType: "json",
-			            data: {
-                            "action": "delete",
-			                "id" : oDataId
-                        },
-			            beforeSend : function(xhr, settings) {
-			                var csrftoken = $.cookie('csrftoken');
-			                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-			            },
-			            success:function(data){
-			                var oData = eval(data);
-                            if(oData.code == 200){
-			                   $(this).parent().parent().parent('li').remove();
-                            } else {
-                                tipsFnbox(oData.msg);
-                            }
-			            },
-			            error: function() {
-			                tipsFnbox("查询失败!");
-			            },
-			            cache: false
-			            // processData: false
-			        });
-			   	});
-			    ////////////////////////////////////////////
             }
         });
         ///
@@ -398,15 +350,16 @@ $(function(){
     }
 
    
-   //点击修改
-   $('.resivebtn').click(function(){
+    //点击修改
+    $('.resivebtn').click(function(){
         reFmFn($(this));
-   });
+    });
    
-   $('.removebtn').click(function(){
+    $('.removebtn').click(function(){
         //$(this).parent().parent().parent('li').remove();
         var oId = $(this).parent().parent().parent('li').attr('id');
         var oDataId = $(this).parent().parent().parent('li').attr('data-id');
+        var domli = $(this).parent().parent().parent('li');
         /////
         var tenant_name = $("#tenant_name").val();
         var service_alias = $("#service_alias").val();
@@ -424,8 +377,7 @@ $(function(){
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success:function(data){
-                var oData = eval(data);
-                $(this).parent().parent().parent('li').remove();
+                $("li[data-id="+oDataId+"]").remove()
             },
             error: function() {
                 tipsFnbox(tipsArray[9]);
@@ -440,63 +392,5 @@ $(function(){
     $("#subbtn").bind("click", function () {
         $("#package_form").submit();
     });
-// $('#subbtn').click(function(){
-// 	var oLi=$('#oldlistbox li');
-//     var arrayId = [];
-//     var arrayDataId = [];
-//     var arrayName = [];
-//     var arrayMemory = [];
-//     var arrayNode = [];
-//     var arrayTime = [];
-//     var arrayPrice = [];
-//     var arrayTotal = [];
-//     oLi.each(function(){
-//     	arrayId.push($(this).attr('id'));
-//     	arrayDataId.push($(this).attr('data-id'));
-//     	arrayName.push($(this).find('div.textlist p:eq(0) cite').html());
-//     	arrayMemory.push($(this).find('div.textlist p:eq(1) cite').html());
-//     	arrayNode.push($(this).find('div.textlist p:eq(2) cite').html());
-//     	arrayTime.push($(this).find('div.textlist p:eq(3) cite').html());
-//     	arrayPrice.push($(this).find('div.textlist p:eq(4) cite').html());
-//     	arrayTotal.push($(this).find('div.textlist div.total span').html());
-//     });
-//     var tenant_name = $("#tenant_name").val();
-//     var service_alias = $("#service_alias").val();
-//     var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
-// 	$.ajax({
-//         url: step4_url,
-//         type: "POST",
-//         dataType: "json",
-//         data: {
-//
-//             "id" : arrayId,
-//             "data-id" : arrayDataId,
-//             "name" : arrayName,
-//             "memory" : arrayMemory,
-//             "node" : arrayNode,
-//             "time" : arrayTime,
-//             "price" : arrayPrice,
-//             "total" : arrayTotal
-//             },
-//         beforeSend : function(xhr, settings) {
-//             var csrftoken = $.cookie('csrftoken');
-//             xhr.setRequestHeader("X-CSRFToken", csrftoken);
-//         },
-//         success:function(data){
-//             var oData = eval(data);
-//             if(oData.code == 200){
-//                 alert(oData.msg);
-//             }
-//         },
-//         error: function() {
-//             if(oData.code == 500){
-//                 tipsFnbox(oData.msg);
-//                 window.location.href = oData.next_url;
-//             }
-//         },
-//         cache: false
-//         // processData: false
-//    });
-// });
 
 });
