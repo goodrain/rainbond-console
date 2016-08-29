@@ -391,8 +391,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             for volume in list(volume_list):
                 app_volume = AppServiceVolume(service_key=service_key,
                                               app_version=app_version,
-                                              category=volume["category"],
-                                              volume_path=volume["volume_path"])
+                                              category=volume.category,
+                                              volume_path=volume.volume_path)
                 volume_data.append(app_volume)
             if len(volume_data) > 0:
                 logger.debug(len(volume_data))
