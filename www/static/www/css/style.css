@@ -5540,9 +5540,10 @@ a.guest-on i {
 }
 
 /* ww-2016-8-30*/
-.panel-body .tab-content .applistbox{margin:10px 0; background: #f1f1f1; -moz-box-shadow:10px 0 #fff inset,-10px 0 #fff inset; -webkit-box-shadow:10px 0 #fff inset,-10px 0 #fff inset; box-shadow:10px 0 #fff inset,-10px 0 #fff inset; position: relative;}
-.panel-body .tab-content .applistbox h4,.panel-body .tab-content .applistbox h5{margin-bottom: 5px; padding-left:10px;}
+.panel-body .tab-content .applistbox{margin:10px 0; background: #f1f1f1; -moz-box-shadow:10px 0 #fff inset,-10px 0 #fff inset; -webkit-box-shadow:10px 0 #fff inset,-10px 0 #fff inset; box-shadow:10px 0 #fff inset,-10px 0 #fff inset; position: relative; padding-top: 10px; padding-bottom: 10px;}
+.panel-body .tab-content .applistbox h4,.panel-body .tab-content .applistbox h5{margin-bottom: 5px; padding-left:10px; margin-top: 0;}
 .panel-body .tab-content .applistbox button.btn{margin-left: 10px;}
-@media (max-width: 720px){
-    .panel-body .tab-content .applistbox button.btn{ position: absolute; top: 50%; right: 20px; margin-top: -15px; }
+@media (max-width: 990px){
+    .panel-body .tab-content .applistbox button.btn{ position: absolute; top: 50%; right: 30px; margin-top: -15px; }
+    .panel-body .tab-content .applistbox h4,.panel-body .tab-content .applistbox h5{padding-left: 20px;}
 }
