@@ -131,7 +131,7 @@ class UserLoginForm(forms.Form):
                     HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
                     FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
                     HTML("""<p class="text-center">或使用以下账号登录</p><a href="/wechat/login?type=wechat" class="weixin"><img src='/static/www/images/weixin.png'>&nbsp;微信</a>"""),
-                    HTML("""<div class="linkregister text-center">没有云帮公有云版账户，现在<a href="/register">注册</a></div>"""),
+                    HTML("""<div class="linkregister text-center">现在<a href="/register">注册</a></div>"""),
                     HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                     # HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
                     # HTML(u'''<div class="forgetpass" style="float: right;"><a class="" href="/account/begin_password_reset">忘记密码?</a></div>'''),
@@ -144,7 +144,7 @@ class UserLoginForm(forms.Form):
                     Field('password', css_class="form-control", placeholder='密码'),
                     HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
                     FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
-                    HTML("""<div class="linkregister text-center">没有云帮公有云版账户，现在<a href="/register">注册</a></div>"""),
+                    HTML("""<div class="linkregister text-center">现在<a href="/register">注册</a></div>"""),
                     HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                     css_class='login-wrap',
                     style="background: #FFFFFF;",
@@ -427,7 +427,7 @@ class RegisterForm(forms.Form):
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                         HTML("""<p class="text-center">或使用以下账号注册</p>"""),
                         HTML("""<a href="/wechat/login?type=wechat" class="weixin"><img src="static/www/images/weixin.png">微信</a>"""),
-                        HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
+                        HTML("""<div class="linkregister text-center">直接<a href="/login">登录</a></div>"""),
                         HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                         css_class="login-wrap"
                     )
@@ -446,7 +446,7 @@ class RegisterForm(forms.Form):
                                      css_class='input-xlarge', placeholder='验证码'),
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
-                        HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
+                        HTML("""<div class="linkregister text-center">直接<a href="/login">登录</a></div>"""),
                         HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                         css_class="login-wrap"
                     )
@@ -468,7 +468,7 @@ class RegisterForm(forms.Form):
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                         HTML("""<p class="text-center">或使用以下账号注册</p>"""),
                         HTML("""<a href="/wechat/login?type=wechat" class="weixin"><img src="static/www/images/weixin.png">微信</a>"""),
-                        HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
+                        HTML("""<div class="linkregister text-center">直接<a href="/login">登录</a></div>"""),
                         HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                         css_class="login-wrap"
                     )
@@ -487,7 +487,7 @@ class RegisterForm(forms.Form):
                                      css_class='input-xlarge', placeholder='验证码'),
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
-                        HTML("""<div class="linkregister text-center">已有云帮公有云版账户，直接<a href="/login">登录</a></div>"""),
+                        HTML("""<div class="linkregister text-center">直接<a href="/login">登录</a></div>"""),
                         HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                         css_class="login-wrap"
                     )
