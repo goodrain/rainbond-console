@@ -25,7 +25,7 @@
         <header class="panel-heading">控制</header>
         <div class="panel-body">
             <div class="row">
-                <div class="col-lg-6 text-left">
+                <div class="col-xs-8 text-left">
                 {% ifequal tenantServiceInfo.category "application" %}
                     {% if user.is_sys_admin or 'app_publish' in user.actions or publish_service %}
                         <button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
@@ -71,7 +71,7 @@
                 {% endif %}
                 </div>
                 {% if 'manage_service' in user.actions %}
-                <div class="col-lg-6 text-right">
+                <div class="col-xs-4 text-right">
                     <input type="hidden" id="service_status_value" name="service_status_value" value="" />
                     <button type="button" class="btn btn-danger" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
                 </div>
@@ -84,7 +84,7 @@
   
   {% if user.is_sys_admin or docker_console %}
   <div class="row">
-    <div class="col-lg-6 text-left">
+    <div class="col-lg-12 text-left">
        <section class="panel">
          <header class="panel-heading"><button name="join_container" id="join_container" onclick="join_container();"/> 管理容器 </header>
          <table class="table table-hover">
