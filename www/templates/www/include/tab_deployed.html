@@ -27,22 +27,35 @@
             <div class="row">
                 <div class="col-lg-6 text-left">
                 {% ifequal tenantServiceInfo.category "application" %}
-                {% if user.is_sys_admin or 'app_publish' in user.actions or publish_service %}
-                <button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
-                {% endif %}
+                    {% if user.is_sys_admin or 'app_publish' in user.actions or publish_service %}
+                        <button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
+                    {% endif %}
+                    
                     {% if 'code_deploy' in user.actions %}
                         <button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-cloud-upload"></i> 一键部署</button>
                     {% endif %}
-                        {% if hasHttpServices %}
-                            <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}');"><i class="fa fa-eye"></i>访问</button>
-                        {% endif  %}
-                    {% else %}
-                        {% if hasHttpServices %}
-                            <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('http://{{serviceAlias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}');"><i class="fa fa-eye"></i>访问</button>
-                        {% endif  %}
-
+                    
                 {% endifequal %}
-                {% ifequal tenantServiceInfo.service_key "mysql" %}
+
+                {% if hasHttpServices %}
+					{% if visit_port_type == "multi_outer" %}
+						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px;">
+
+							{% for port in http_outer_service_ports %}
+							{% if port.container_port == serviceDomain.container_port %}
+							<option value="{{ port.container_port }}"
+									selected="selected">{{ port.container_port }}</option>
+							{% else %}
+							<option value="{{ port.container_port }}">{{ port.container_port }}</option>
+							{% endif %}
+							{% endfor %}
+
+						</select>
+					{%endif%}
+                    <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
+                {% endif  %}
+                 
+                {% ifequal tenantServiceInfo.service_type "mysql" %}
                   {% if service_manager.deployed %}
                     {% if 'manage_service' in user.actions %}
                       <button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>
@@ -180,6 +193,7 @@
 		    		  	$("#service_status").html("运行异常")
 		    		    $("#service_status_operate").show()
 		    			$("#service_visitor").hide();
+						$("#multi_ports").hide()
 		    			$("#service_status").attr("class","badge badge-sm label-danger")
 		    		  }else if(obj["status"]=="closed" || obj["status"]=="Owed"){
 		    			$("#service_status_value").val("restart")
@@ -196,6 +210,7 @@
 		    		  	}
 		    		  	$("#service_status_operate").show()
 		    		  	$("#service_visitor").hide();
+						$("#multi_ports").hide()
 		    		  }else if(obj["status"]=="undeploy"){
 		    			$("#service_status_value").val("")
 		    			$("#font"+service_id).html("未部署")
@@ -215,6 +230,7 @@
 			    		$("#service_status_operate").hide()
 			    		$("#service_visitor").hide();
 			    		$("#service_status").attr("class","badge badge-sm label-success")
+						$("#multi_ports").hide()
 		    		  }
 		    	  }
     		  },
@@ -439,6 +455,15 @@
             });
         }
     }
-    
+
+    function visit() {
+		var port = $("#multi_ports").val();
+
+		var url = "http://{{serviceAlias}}_"+port+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
+		if(port==""||port == null){
+			url = "http://{{serviceAlias}}"+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
+		}
+		window.open(url)
+	}
 </script>
 

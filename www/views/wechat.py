@@ -191,6 +191,7 @@ class WeChatCallBack(BaseView):
             union_id = jsondata.get("unionid")
             begin_index = len(union_id) - 8
             tenant_name = union_id[begin_index:]
+            tenant_name = tenant_name.replace("_", "-").lower()
             wechat_user = WeChatUser(open_id=jsondata.get("openid"),
                                      nick_name=tenant_name,
                                      union_id=jsondata.get("unionid"),
@@ -228,6 +229,7 @@ class WeChatCallBack(BaseView):
             tmp_union_id = md5fun(union_id)
             begin_index = len(tmp_union_id) - 8
             tenant_name = tmp_union_id[begin_index:]
+            tenant_name = tenant_name.replace("_", "-").lower()
             email = tenant_name + "@wechat.com"
             logger.debug("new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
             # 创建用户,邮箱为openid后8位@wechat.comemail=email,

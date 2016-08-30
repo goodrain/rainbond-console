@@ -2,9 +2,12 @@
 import requests
 from django.conf import settings
 import json
+import os
+from urllib import urlencode
 
 from www.models import AppServiceRelation, AppServicePort, \
     AppServiceEnv, ServiceExtendMethod, AppServiceVolume
+from www.utils import sn
 from www.app_http import AppServiceApi
 appClient = AppServiceApi()
 
@@ -35,7 +38,7 @@ class AppSendUtil:
                                                              app_version=self.app_version)
             volume_list = AppServiceVolume.objects.filter(service_key=self.service_key,
                                                           app_version=self.app_version)
-            req_data.update({'cloud_assistant': settings.CLOUD_ASSISTANT})
+            req_data.update({'cloud_assistant': sn.instance.cloud_assistant})
             all_data = {
                 'pre_list': map(lambda x: x.to_dict(), pre_list),
                 'suf_list': map(lambda x: x.to_dict(), suf_list),
@@ -81,8 +84,10 @@ class AppSendUtil:
             data = {'service_key': self.service_key,
                     'app_version': self.app_version}
             files = {file_key: open(file_path, 'rb')}
-            res, resp = appClient.uploadFiles(body=data, files=files)
-            logger.debug(res)
+            url = settings.APP_SERVICE_API["url"]
+            # headers = {'content-type': 'multipart/form-data'}
+            resp = requests.post(url, files=files, data=data)
+            logger.debug(resp.content)
             return 0
         except requests.exceptions.RequestException as ce:
             logger.error('send service to app error!', ce)
@@ -93,7 +98,7 @@ class AppSendUtil:
             all_data = {
                 'service_key': service_key,
                 'app_version': app_version,
-                'cloud_assistant': settings.CLOUD_ASSISTANT,
+                'cloud_assistant': sn.instance.cloud_assistant,
             }
             data = json.dumps(all_data)
             logger.debug('post service json data={}'.format(data))

@@ -12,6 +12,7 @@ from www.models import TenantServicesPort, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 from www.servicetype import ServiceType
+from www.utils import sn
 
 from www.models import AppService, AppServiceEnv, AppServicePort, \
     AppServiceCategory, AppServiceRelation, ServiceExtendMethod, \
@@ -76,9 +77,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'desc': pre_app.desc,
                 'is_outer': pre_app.is_outer,
                 'is_init_accout': pre_app.is_init_accout,
-                'first': first if first else 0,
-                'second': second if second else 0,
-                'thrid': third if third else 0,
+                'first': first if first else '',
+                'second': second if second else '',
+                'thrid': third if third else '',
                 'logo': pre_app.logo,
                 'service_type':pre_app.service_type,
             })
@@ -91,6 +92,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'min_memory': self.service.min_memory,
                 'volume_mount_path': self.service.volume_mount_path,
                 'info': '',
+                'first': '',
+                'second': '',
+                'thrid': '',
                 'desc': self.service.desc if self.service.desc else '',
                 'is_init_accout': False,
                 'is_outer': False,
@@ -99,9 +103,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
         # 查询对应服务的名称等信息
         context.update({'app': init_data})
         context["service_types"] = ServiceType.type_maps
-        root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
-        root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
-        context['root_category_list'] = root_category_list
+        # root_categories = AppServiceCategory.objects.only('ID', 'name').filter(parent=0)
+        # root_category_list = [{"id": x.pk, "display_name": x.name} for x in root_categories]
+        # context['root_category_list'] = root_category_list
         # 返回页面
         return TemplateResponse(self.request,
                                 'www/service/publish_step_1.html',
@@ -162,7 +166,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         is_service=self.service.is_service,
                         is_web_service=self.service.is_web_service,
                         image=self.service.image,
-                        namespace=settings.CLOUD_ASSISTANT,
+                        namespace=sn.instance.username,
                         slug='',
                         extend_method=self.service.extend_method,
                         cmd=self.service.cmd,

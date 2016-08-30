@@ -4,6 +4,7 @@ from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from django.http import HttpResponse, Http404
+from django.views.decorators.clickjacking import xframe_options_exempt
 
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, RegisterForm, PasswordResetForm, PasswordResetBeginForm
@@ -12,6 +13,7 @@ from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
 from www.db import BaseConnection
+from www.utils import sn
 import datetime
 import time
 import random
@@ -22,8 +24,8 @@ from www.views import BaseView
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.views.wechat import is_weixin
+from www.utils import sn
 
-from django.views.decorators.clickjacking import xframe_options_exempt
 
 import logging
 logger = logging.getLogger('default')
@@ -31,7 +33,6 @@ logger = logging.getLogger('default')
 codeRepositoriesService = CodeRepositoriesService()
 
 monitorhook = MonitorHook()
-
 
 
 class Login(BaseView):
@@ -105,7 +106,7 @@ class Login(BaseView):
         # create git user
         if user.email is not None and user.email != "":
             codeRepositoriesService.createUser(user, user.email, password, user.nick_name, user.nick_name)
-        
+
         # to judge from www create servcie
         app_ty = request.COOKIES.get('app_ty')
         if app_ty is not None:
@@ -304,7 +305,6 @@ class PasswordReset(BaseView):
     def create_git_user(self, user, password):
         logger.info("account.passwdreset", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
         codeRepositoriesService.createUser(user, user.email, password, user.nick_name, user.nick_name)
-        
 
     def get(self, request, *args, **kwargs):
         self.form = PasswordResetForm()
@@ -417,6 +417,14 @@ class Registation(BaseView):
             region = request.POST.get('machine_region')
             if region is None or region == "" or region == "1":
                 region = "ucloud_bj_1"
+            # 没有配置项默认为私有云帮,配置项为false为私有云帮
+            is_private = sn.instance.is_private()
+            if is_private:
+                tenants_num = Tenants.objects.count()
+                if tenants_num != 0:
+                    logger.info("account.register", "private console only one tenant")
+                    return self.get_response()
+
             user = Users(email=email, nick_name=nick_name,
                          phone=phone, client_ip=self.get_client_ip(request), rf=rf)
             user.set_password(password)
@@ -425,12 +433,20 @@ class Registation(BaseView):
 
             # 根据资源是否首先判断公有云、私有云注册
             # todo 暂时解决方案,后续需根据数据中心配置修改
-            if settings.MODULES["Memory_Limit"]:
-                tenant = Tenants.objects.create(
-                    tenant_name=tenant_name,
-                    pay_type='free',
-                    creater=user.pk,
-                    region=region)
+            if not is_private:
+                if settings.MODULES["Memory_Limit"]:
+                    tenant = Tenants.objects.create(
+                        tenant_name=tenant_name,
+                        pay_type='free',
+                        creater=user.pk,
+                        region=region)
+                else:
+                    tenant = Tenants.objects.create(
+                        tenant_name=tenant_name,
+                        pay_type='payed',
+                        pay_level='company',
+                        creater=user.pk,
+                        region=region)
             else:
                 tenant = Tenants.objects.create(
                     tenant_name=tenant_name,
@@ -457,7 +473,7 @@ class Registation(BaseView):
 
             user = authenticate(username=nick_name, password=password)
             login(request, user)
-            
+
             url = '/apps/{0}'.format(tenant_name)
             if settings.MODULES["Package_Show"]:
                 selected_pay_level = ""
@@ -700,7 +716,7 @@ class TenantSelectView(BaseView):
                 # 系统自动选择机房
                 if region == 'auto':
                     select_tenant = tenant_names[0]
-                    select_region = regions[random.randint(0, len(regions) - 1)][0];
+                    select_region = regions[random.randint(0, len(regions) - 1)][0]
                     next_url = '/ajax/{0}/remote/market?service_key={1}&app_version={2}&callback={3}'.format(
                         select_tenant, service_key, version, callback)
 

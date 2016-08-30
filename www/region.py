@@ -1,10 +1,14 @@
 # -*- coding: utf8 -*-
 from django.conf import settings
+from www.utils import sn
 
 class RegionInfo(object):
     region_list = settings.REGIONS
     region_ports = settings.WILD_PORTS
     region_domains = settings.WILD_DOMAINS
+    is_private = sn.instance.is_private()
+    if is_private:
+        region_list = settings.REGIONS[0:1]
 
     @classmethod
     def region_names(cls):

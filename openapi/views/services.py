@@ -188,7 +188,7 @@ class CreateServiceView(BaseAPIView):
                 #                            dest_path,
                 #                            src_path,
                 #                            region)
-                volume_id = manager.create_service_volume(newTenantService, volume_path)
+                volume_id = manager.save_mnt_volume(newTenantService, host_path, volume_path)
                 if volume_id is None:
                     logger.error("openapi.services", "service volume failed!")
 

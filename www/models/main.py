@@ -387,6 +387,9 @@ class TenantServiceInfo(BaseModel):
         default=False, blank=True, help_text=u"是否inner服务")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
 
+    volume_type = models.CharField(max_length=15, default='shared', help_text=u"共享类型shared、exclusive")
+    port_type = models.CharField(max_length=15, default='one_outer',help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+
     def __unicode__(self):
         return self.service_alias
 
@@ -473,6 +476,8 @@ class TenantServiceInfoDelete(BaseModel):
     is_service = models.BooleanField(
         default=False, blank=True, help_text=u"是否inner服务")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
+    volume_type = models.CharField(max_length=15, default='shared', help_text=u"共享类型shared、exclusive")
+    port_type = models.CharField(max_length=15, default='one_outer',help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
 
 class TenantServiceLog(BaseModel):
 
@@ -539,6 +544,7 @@ class ServiceDomain(BaseModel):
     domain_name = models.CharField(max_length=32, help_text=u"域名")
     create_time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
+    container_port = models.IntegerField(default=0, help_text=u"容器端口")
 
     def __unicode__(self):
         return self.domain_name

@@ -200,10 +200,10 @@ REGIONS = (
     {"name": "aws-jp-1", "label": u'\u4e9a\u9a6c\u900a[\u65e5\u672c]', "enable": True}
 )
 
+# {"name": "xunda-hk", "label": u'\u8fc5\u8fbe[\u9999\u6e2f]', "enable": False}
+
 # logo path
 MEDIA_ROOT = '/data/media'
-# cloud market url
-CLOUD_ASSISTANT = 'goodrain'
 # log domain
 LOG_DOMAIN = {
     "ali-sh": "ali-sh.download.goodrain.com",
@@ -237,3 +237,5 @@ OAUTH2_APP = {
     'CLIENT_ID': 'goodrain',
     'CLIENT_SECRET': 'fMnql3q1UAiR',
 }
+
+SN = '30b2owNzc8rJE-Ncmti1aHddSDjZQ3soGyeQ3grb43pCK8Q8_3FdV80fxpFmWeZeKziCl_a3zZiAdO6pmy9xtzCHTPX73yAEa4KuY6Yvu97mS88ID4R0ZAsksxoBvtfIKc7lxMX4ILh7xQoDn9r8QOsb6PQZFwa08373_nKoiIu6JPAZ8srwnpySkzUQilQ4gQGSuwG-NDGV8zJAHwfLc2zCIWtLvOLMEL-5jkq23rrEgfGmyUKln9yFMvRqyaL8ZO025oi901'

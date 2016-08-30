@@ -68,7 +68,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
 
         context = self.get_context()
         try:
-            num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
+            # num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
             # if num < 1:
             #     return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
             tenantServiceList = context["tenantServiceList"]
@@ -202,6 +202,26 @@ class TenantService(LeftSideBarMixin, AuthedView):
         extends_dict["stateless"] = u'无状态'
         extends_dict["state-expend"] = u'有状态可水平扩容'
         return extends_dict
+     
+     # 端口开放下拉列表选项
+    def multi_port_choices(self):
+        multi_port = {}
+        multi_port["one_outer"] = u'单一端口开放'
+        #multi_port["dif_protocol"] = u'按协议开放'
+        #multi_port["multi_outer"] = u'多端口开放'
+        return multi_port
+
+    # 服务挂载卷类型下拉列表选项
+    def mnt_share_choices(self):
+        mnt_share_type = {}
+        mnt_share_type["shared"] = u'共享'
+        #mnt_share_type["exclusive"] = u'独享'
+        return mnt_share_type
+
+    # 获取所有的开放的http对外端口
+    def get_outer_service_port(self):
+        out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_outer_service=True, protocol='http')
+        return out_service_port_list
 
     @never_cache
     @perm_required('view_service')
@@ -275,7 +295,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
-
+                
+                # get port type
+                context["visit_port_type"] = self.service.port_type
+                if self.service.port_type=="multi_outer":
+                    context["http_outer_service_ports"] = self.get_outer_service_port()
+                    
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
@@ -347,7 +372,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
                 context["git_tag"] = settings.MODULES["GitLab_Project"]
-
+                context["multi_port_choices"] = self.multi_port_choices()
+                context["mnt_share_choices"] = self.mnt_share_choices()
+                context["http_outer_service_ports"] = self.get_outer_service_port()
                 # service git repository
                 try:
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
@@ -367,7 +394,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
                 context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
