@@ -5539,4 +5539,7 @@ a.guest-on i {
    header .notify-row{ display: block; margin-left: 10px;}
 }
 
+/* ww-2016-8-30*/
+.panel-body .col-lg-2 div{background: #fff; margin:10px;}
+
 
