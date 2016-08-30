@@ -88,4 +88,15 @@
 	</section>
 	<!-- page end-->
 </section>
+<script type="text/javascript">
+	$(document).ready(function () {
+		//取消回车事件
+		$("#create_service_name").keydown(function(e){
+			var curKey = e.which;
+			if(curKey == 13){
+				return false;
+			}
+		});
+	});
+</script>
 {% endblock %}

@@ -36,4 +36,6 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/remote/market', ajax.RemoteServiceMarketAjax.as_view()),
     url(r'form_valid', ajax.FormValidView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/volume', ajax.ServiceVolumeView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-outer-port-type', ajax.MutiOuterPortView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-mnt-share-type', ajax.MntShareTypeView.as_view()),
 )

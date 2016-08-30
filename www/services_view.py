@@ -47,7 +47,10 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                     raise Http404
                 self.response_region = region
             else:
-                raise Http404
+                if region == 'xunda-hk':
+                    self.response_region = region
+                else:
+                    raise Http404
 
         if self.cookie_region == 'aws-bj-1':
             self.response_region == 'ali-sh'
@@ -65,7 +68,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
 
         context = self.get_context()
         try:
-            num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
+            # num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
             # if num < 1:
             #     return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
             tenantServiceList = context["tenantServiceList"]
@@ -199,6 +202,26 @@ class TenantService(LeftSideBarMixin, AuthedView):
         extends_dict["stateless"] = u'无状态'
         extends_dict["state-expend"] = u'有状态可水平扩容'
         return extends_dict
+     
+     # 端口开放下拉列表选项
+    def multi_port_choices(self):
+        multi_port = {}
+        multi_port["one_outer"] = u'单一端口开放'
+        #multi_port["dif_protocol"] = u'按协议开放'
+        #multi_port["multi_outer"] = u'多端口开放'
+        return multi_port
+
+    # 服务挂载卷类型下拉列表选项
+    def mnt_share_choices(self):
+        mnt_share_type = {}
+        mnt_share_type["shared"] = u'共享'
+        #mnt_share_type["exclusive"] = u'独享'
+        return mnt_share_type
+
+    # 获取所有的开放的http对外端口
+    def get_outer_service_port(self):
+        out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_outer_service=True, protocol='http')
+        return out_service_port_list
 
     @never_cache
     @perm_required('view_service')
@@ -265,14 +288,19 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         arr.append(evnVarObj)
                         envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
-                
+
                 baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
                     context["updateService"] = True
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
-
+                
+                # get port type
+                context["visit_port_type"] = self.service.port_type
+                if self.service.port_type=="multi_outer":
+                    context["http_outer_service_ports"] = self.get_outer_service_port()
+                    
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
@@ -344,7 +372,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
                 context["git_tag"] = settings.MODULES["GitLab_Project"]
-
+                context["multi_port_choices"] = self.multi_port_choices()
+                context["mnt_share_choices"] = self.mnt_share_choices()
+                context["http_outer_service_ports"] = self.get_outer_service_port()
                 # service git repository
                 try:
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)

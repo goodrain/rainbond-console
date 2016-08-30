@@ -190,6 +190,12 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 		window.location.href = window.location.href;
 	}
 	var domain_name = $("#service_app_name").val();
+	//绑定端口
+	var multi_port_bind = $("#multi_port_bind").val();
+	if (multi_port_bind == ""){
+		swal("选择有效的端口");
+		return;
+	}
 	if (domain_name == "") {
 		swal("输入有效的域名");
 		return;
@@ -198,7 +204,7 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 		type : "POST",
 		url : "/ajax/" + tenantName + "/" + service_alias + "/domain",
 		data : "service_id=" + service_id + "&domain_name=" + domain_name
-				+ "&action=" + action,
+				+ "&action=" + action+"&multi_port_bind="+multi_port_bind,
 		cache : false,
 		beforeSend : function(xhr, settings) {
 			var csrftoken = $.cookie('csrftoken');
@@ -577,6 +583,7 @@ function buid_mnt(action, curServiceName, depServiceName, tenantName) {
     })
 }
 
+//服务更新
 function service_image(service_id, service_alias, tenantName) {
     $.ajax({
         type : "POST",
@@ -591,7 +598,6 @@ function service_image(service_id, service_alias, tenantName) {
             var dataObj = msg;
             if (dataObj["status"] == "success") {
                 swal("操作成功,重启后生效")
-                window.location.href = window.location.href
             } else if (dataObj["status"] == "owed") {
                 swal("余额不足请及时充值")
             } else if (dataObj["status"] == "often") {
@@ -608,4 +614,93 @@ function service_image(service_id, service_alias, tenantName) {
             swal("系统异常");
         }
     })
+}
+
+//服务更新并重新启动
+function service_image_reboot(service_id, service_alias, tenantName) {
+    swal({
+        title : "更新应用会对应用进行重新部署，期间应用可能会暂时无法提供服务，确定要更新吗？",
+        type : "warning",
+        showCancelButton : true,
+        confirmButtonColor : "#DD6B55",
+        confirmButtonText : "更新",
+        cancelButtonText : "取消",
+        closeOnConfirm : false,
+        closeOnCancel : false
+    }, function(isConfirm) {
+        if (isConfirm) {
+            //先使用同步请求更新应用数据
+            $.ajax({
+                type : "POST",
+                url : "/ajax/" + tenantName + "/" + service_alias + "/upgrade",
+                data : "service_id=" + service_id + "&action=imageUpgrade",
+                cache : false,
+                async : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    var dataObj = msg;
+                    if (dataObj["status"] == "success") {
+                        $("#service_image_operate").hide();
+                        // 更新应用数据成功后模拟用户点击启动按钮,重启应用
+                        service_reboot(service_id, service_alias, tenantName);
+                    } else if (dataObj["status"] == "owed") {
+                        swal("余额不足请及时充值")
+                    } else if (dataObj["status"] == "often") {
+                        swal("操作正在进行中，请稍后")
+                    } else if (dataObj["status"] == "over_memory") {
+                        swal("资源已达上限，不能升级")
+                    } else if (dataObj["status"] == "over_money") {
+                        swal("余额不足，不能升级")
+                    } else {
+                        swal("设置失败")
+                    }
+                },
+                error : function() {
+                    swal("系统异常");
+                }
+            });
+
+        } else {
+            swal.close();
+        }
+    });
+}
+
+// 服务重启
+function service_reboot(service_id, service_alias, tenantName) {
+    $("#service_status_operate").attr('disabled', "true")
+     $.ajax({
+        type : "POST",
+        url : "/ajax/" + tenantName + "/" + service_alias + "/manage",
+        data : "service_id=" + service_id + "&action=reboot",
+        cache : false,
+        beforeSend : function(xhr, settings) {
+            var csrftoken = $.cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success : function(msg) {
+            var dataObj = msg
+            if (dataObj["status"] == "success") {
+                swal("操作成功")
+            } else if (dataObj["status"] == "often") {
+                swal("操作正在进行中，请稍后")
+            } else if (dataObj["status"] == "owed") {
+                swal("余额不足请及时充值")
+            } else if (dataObj["status"] == "over_memory") {
+                swal("免费资源已达上限，不能操作")
+            } else if (dataObj["status"] == "over_money") {
+                swal("余额不足，不能操作")
+            } else {
+                swal("操作失败")
+            }
+            $("#service_status_operate").removeAttr("disabled")
+        },
+        error : function() {
+            swal("系统异常");
+            $("#service_status_operate").removeAttr("disabled");
+        }
+    });
 }

@@ -348,6 +348,41 @@ class BaseTenantService(object):
         except Exception as e:
             logger.exception(e)
 
+    # 服务对外端口类型
+    def custom_port_type(self, service, port_type):
+        try:
+            service_id = service.service_id
+            region = service.service_region
+
+            # 发送到region进行处理
+            json_data = {
+                "service_id": service_id,
+                "port_type": port_type
+            }
+            res, body = regionClient.mutiPortSupport(region, service_id, json.dumps(json_data))
+            if res.status == 200:
+                return service_id
+            else:
+                return None
+        except Exception as e:
+            logger.exception(e)
+
+    # 服务挂载卷类型 设置
+    def custom_mnt_shar_type(self,service,volume_type):
+        try:
+            service_id = service.service_id
+            region = service.service_region
+            json_data = {
+                "service_id":service_id,
+                "volume_type":volume_type
+            }
+            res,body = regionClient.mntShareSupport(region,service_id,json.dumps(json_data))
+            if res.status ==200:
+                return True
+            else:
+                return None
+        except Exception as e:
+            logger.exception(e)
 
 class TenantUsedResource(object):
 

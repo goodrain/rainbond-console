@@ -9,6 +9,7 @@ from www.forms.account import is_standard_word, is_sensitive
 from rest_framework.views import APIView
 from openapi.controllers.openservicemanager import OpenTenantServiceManager
 import logging
+from www.utils import sn
 
 logger = logging.getLogger("default")
 manager = OpenTenantServiceManager()
@@ -53,6 +54,9 @@ class TenantServiceView(APIView):
               paramType: form
         """
         # 数据中心
+        if sn.instance.is_private():
+            return Response(status=501, data={"success": False, "msg": u"不允许创建用户!"})
+
         region = request.data.get("region")
         username = request.data.get("username")
         password = request.data.get("password")

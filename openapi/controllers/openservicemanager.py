@@ -496,6 +496,21 @@ class OpenTenantServiceManager(object):
         for volume in volumes:
             self.add_volume_list(new_service, volume.volume_path)
 
+    def save_mnt_volume(self, service, host_path, volume_path):
+        try:
+            category = service.category
+            region = service.service_region
+            tenant_id = service.tenant_id
+            service_id = service.service_id
+            volume = TenantServiceVolume(service_id=service_id,
+                                         category=category)
+            volume.host_path = host_path
+            volume.volume_path = volume_path
+            volume.save()
+            return volume.ID
+        except Exception as e:
+            logger.exception("openapi.services", e)
+
     def add_volume_list(self, service, volume_path):
         try:
             category = service.category

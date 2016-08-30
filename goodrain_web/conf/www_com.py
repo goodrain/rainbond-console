@@ -31,21 +31,24 @@ STREAM_DOMAIN_URL = {
     "ali-sh": "",
     "aws-bj-1": "",
     "aws-jp-1": "",
-    "ucloud-bj-1": ""               
+    "ucloud-bj-1": "",
+    "xunda-hk": ""
 }
 
 WILD_DOMAINS = {
     "ali-sh": ".ali-sh.goodrain.net",
     "aws-bj-1": ".aws-bj-1.goodrain.net",
     "aws-jp-1": ".aws-jp-1.goodrain.net",
-    "ucloud-bj-1": ".ucloud-bj-1.goodrain.net"
+    "ucloud-bj-1": ".ucloud-bj-1.goodrain.net",
+    "xunda-hk": ".xunda-hk.goodrain.net"
 }
 
 WILD_PORTS = {
     "ali-sh": "10080",
     "aws-bj-1": "10080",
     "aws-jp-1": "80",
-    "ucloud-bj-1": "10080"
+    "ucloud-bj-1": "10080",
+    "xunda-hk": "80",
 }
 
 REST_FRAMEWORK = {
@@ -95,6 +98,10 @@ REGION_SERVICE_API = [{
     'url': 'http://api.ali-sh.goodrain.com:8888',
     'apitype': 'region service',
     'region_name': 'ali-sh'
+}, {
+    'url': 'http://api.xunda-hk.goodrain.com:8888',
+    'apitype': 'region service',
+    'region_name': 'xunda-hk'
 }]
 
 APP_SERVICE_API = {
@@ -107,6 +114,7 @@ WEBSOCKET_URL = {
     'aws-bj-1': 'wss://mpush-aws-bj-1.goodrain.com:6060/websocket',
     'aws-jp-1': 'wss://mpush-aws-jp-1.goodrain.com:6060/websocket',
     'ali-sh': 'wss://mpush-ali-sh.goodrain.com:6060/websocket',
+    'xunda-hk': 'wss://mpush-xunda-hk.goodrain.com:6060/websocket',
 }
 
 REGION_RULE = {
@@ -192,16 +200,17 @@ REGIONS = (
     {"name": "aws-jp-1", "label": u'\u4e9a\u9a6c\u900a[\u65e5\u672c]', "enable": True}
 )
 
+# {"name": "xunda-hk", "label": u'\u8fc5\u8fbe[\u9999\u6e2f]', "enable": False}
+
 # logo path
 MEDIA_ROOT = '/data/media'
-# cloud market url
-CLOUD_ASSISTANT = 'goodrain'
 # log domain
 LOG_DOMAIN = {
     "ali-sh": "ali-sh.download.goodrain.com",
     "aws-bj-1": "aws-bj-1.download.goodrain.com",
     "aws-jp-1": "aws-jp-1.download.goodrain.com",
-    "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com"               
+    "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com",
+    "xunda-hk": "xunda-hk.download.goodrain.com",
 }
 # open api
 IS_OPEN_API = False
@@ -215,15 +224,18 @@ WECHAT_CALLBACK = {
 }
 
 DOCKER_WSS_URL = {
-    'is_wide_domain':True,
+    'is_wide_domain': True,
     'type': 'wss',
     'ucloud-bj-1': '-ucloud-bj-1-ws.goodrain.com:8088',
     'aws-bj-1': '',
     'aws-jp-1': '-aws-jp-1-ws.goodrain.com:8088',
     'ali-sh': '-ali-sh-ws.goodrain.com:8088',
+    'xunda-hk': '-xunda-hk-ws.goodrain.com:8088',
 }
 
 OAUTH2_APP = {
     'CLIENT_ID': 'goodrain',
     'CLIENT_SECRET': 'fMnql3q1UAiR',
 }
+
+SN = '30b2owNzc8rJE-Ncmti1aHddSDjZQ3soGyeQ3grb43pCK8Q8_3FdV80fxpFmWeZeKziCl_a3zZiAdO6pmy9xtzCHTPX73yAEa4KuY6Yvu97mS88ID4R0ZAsksxoBvtfIKc7lxMX4ILh7xQoDn9r8QOsb6PQZFwa08373_nKoiIu6JPAZ8srwnpySkzUQilQ4gQGSuwG-NDGV8zJAHwfLc2zCIWtLvOLMEL-5jkq23rrEgfGmyUKln9yFMvRqyaL8ZO025oi901'
