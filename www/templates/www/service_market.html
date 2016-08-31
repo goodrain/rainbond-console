@@ -18,7 +18,7 @@
                 {% if fr == "local" %}
                     {% if cacheServiceList %}
                     {% for cache in cacheServiceList %}
-                    <div class="col-lg-2">
+                    <div class="col-lg-3  col-md-6 applistbox">
                         <h4>{{cache.service_name}}</h4>
                         <h5>{{cache.version}}</h5>
                         <button type="button" class="btn btn-success"
@@ -62,7 +62,7 @@
                                     var dataObj = msg.data
                                     tmpdata = eval(dataObj)
                                     for (var i = 0; i < tmpdata.length; i++) {
-                                        $("<div/>").addClass("col-lg-2").append(
+                                        $("<div/>").addClass("col-lg-3  col-md-6 applistbox").append(
                                                 $("<h4/>").text(tmpdata[i].service_name)
                                         ).append(
                                                 $("<h5/>").text(tmpdata[i].version)
