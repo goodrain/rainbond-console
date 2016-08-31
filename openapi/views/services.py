@@ -287,6 +287,16 @@ class StartServiceView(BaseAPIView):
         except TenantServiceInfo.DoesNotExist:
             logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
             return Response(status=408, data={"success": False, "msg": u"服务不存在"})
+        # 判断是否云市服务
+        if service.service_origin == "cloud":
+            # 查询并启动依赖服务
+            relation_list = TenantServiceRelation.objects.filter(service_id=service.service_id)
+            dep_id_list = [x.dep_service_id for x in list(relation_list)]
+            dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_id_list)
+            for dep_service in list(dep_service_list):
+                status, success, msg = manager.start_service(tenant, dep_service, username)
+                logger.debug("openapi.services", "dep service:{0} status:{1},{2},{3}".format(dep_service.service_alias, status, success, msg))
+
         # 启动服务
         status, success, msg = manager.start_service(tenant, service, username)
         return Response(status=status, data={"success": success, "msg": msg})
@@ -334,6 +344,15 @@ class StopServiceView(BaseAPIView):
             return Response(status=408, data={"success": False, "msg": u"服务名称不存在"})
         # 停止服务
         status, success, msg = manager.stop_service(service, username)
+        # 判断是否云市服务
+        if service.service_origin == "cloud":
+            # 查询并停止依赖服务
+            relation_list = TenantServiceRelation.objects.filter(service_id=service.service_id)
+            dep_id_list = [x.dep_service_id for x in list(relation_list)]
+            dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_id_list)
+            for dep_service in list(dep_service_list):
+                status, success, msg = manager.stop_service(dep_service, username)
+                logger.debug("openapi.services", "dep service:{0} status:{1},{2},{3}".format(dep_service.service_alias, status, success, msg))
         return Response(status=status, data={"success": success, "msg": msg})
 
 
@@ -379,21 +398,16 @@ class RestartServiceView(BaseAPIView):
     """重启服务"""
     allowed_methods = ('POST',)
 
-    def post(self, request, service_name, *args, **kwargs):
+    def post(self, request, service_id, *args, **kwargs):
         """
         启动服务接口
         ---
         parameters:
-            - name: service_name
-              description: 服务名称
+            - name: service_id
+              description: 服务ID
               required: true
               type: string
               paramType: path
-            - name: tenant_name
-              description: 租户名称
-              required: true
-              type: string
-              paramType: form
             - name: username
               description: 启动服务人名称
               required: true
@@ -401,18 +415,21 @@ class RestartServiceView(BaseAPIView):
               paramType: form
 
         """
-        tenant_name = request.data.get("tenant_name")
-        if tenant_name is None:
-            logger.error("openapi.services", "租户名称为空!")
-            return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.error("openapi.services", "service_id不存在!")
+            return Response(status=405, data={"success": False, "msg": u"service_id不存在"})
+        tenant_id = service.tenant_id
+        try:
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "租户不存在!")
+            return Response(status=405, data={"success": False, "msg": u"租户不存在"})
+        service_name = service.service_alias
         username = request.data.get("username")
         try:
-            tenant = Tenants.objects.get(tenant_name=tenant_name)
             service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
-        except Tenants.DoesNotExist:
-            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
-            return Response(status=406, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
         except TenantServiceInfo.DoesNotExist:
             logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
             return Response(status=408, data={"success": False, "msg": u"服务不存在"})
@@ -522,7 +539,66 @@ class QueryServiceView(BaseAPIView):
 
     def post(self, request, service_id, *args, **kwargs):
         status = 200
-        success = True
-        msg = "success"
-        return Response(status=status, data={"success": success, "msg": msg})
+        service = TenantServiceInfo.objects.get(service_id=service_id)
+        service_key = service.service_key
+        service_list = ServiceInfo.objects.filter(service_key=service_key).order_by("-ID")
+        data = {
+            "new_version": service.version,
+        }
+        if len(service_list) > 0:
+            new_service = list(service_list)[-1]
+            data["new_version"] = new_service
+        return Response(status=status, data=data)
 
+
+class RemoveServiceView(BaseAPIView):
+    allowed_methods = ('DELETE',)
+
+    def delete(self, request, service_id, *args, **kwargs):
+        """
+        删除服务接口
+        ---
+        parameters:
+            - name: service_id
+              description: 服务ID
+              required: true
+              type: string
+              paramType: path
+            - name: username
+              description: 删除服务人名称
+              required: true
+              type: string
+              paramType: form
+
+        """
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.error("openapi.services", "service_id不存在!")
+            return Response(status=405, data={"success": False, "msg": u"service_id不存在"})
+        tenant_id = service.tenant_id
+        try:
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "租户不存在!")
+            return Response(status=405, data={"success": False, "msg": u"租户不存在"})
+        service_name = service.service_alias
+        tenant_name = tenant.tenant_name
+        username = request.data.get("username")
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
+            return Response(status=406, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
+            return Response(status=408, data={"success": False, "msg": u"服务不存在"})
+
+        if service.service_origin == "cloud":
+            # 删除依赖服务
+            status, success, msg = manager.remove_service(tenant, service, username)
+        else:
+            # 删除用户
+            status, success, msg = manager.delete_service(tenant_name, service_name, username)
+        return Response(status=status, data={"success": success, "msg": msg})

@@ -207,6 +207,61 @@ class OpenTenantServiceManager(object):
             logger.debug("openapi.services", "delete service.result:failure")
             return 412, False, u"删除失败"
 
+    def remove_service(self, tenant, service, username):
+        try:
+            # 检查服务依赖
+            dep_service_ids = TenantServiceRelation.objects.filter(dep_service_id=service.service_id).values("service_id")
+            if len(dep_service_ids) > 0:
+                # 删除依赖服务
+                dep_service_list = TenantServiceInfo.objects.filter(service_id__in=list(dep_service_ids))
+                for dep_service in list(dep_service_list):
+                    try:
+                        regionClient.delete(service.service_region, service.service_id)
+                        TenantServiceInfo.objects.filter(pk=dep_service.ID).delete()
+                        TenantServiceEnv.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceAuth.objects.filter(service_id=dep_service.service_id).delete()
+                        ServiceDomain.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceRelation.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceEnvVar.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceMountRelation.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServicesPort.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceVolume.objects.filter(service_id=dep_service.service_id).delete()
+                        monitorhook.serviceMonitor(username, dep_service, 'app_delete', True)
+                    except Exception as e:
+                        logger.exception("openapi.services", e)
+            # 检查挂载依赖
+            dep_service_ids = TenantServiceMountRelation.objects.filter(dep_service_id=service.service_id).values("service_id")
+            if len(dep_service_ids) > 0:
+                # 删除挂载
+                TenantServiceMountRelation.objects.filter(dep_service_id=service.service_id).delete()
+
+            data = service.toJSON()
+            tenant_service_info_delete = TenantServiceInfoDelete(**data)
+            tenant_service_info_delete.save()
+            # 删除region服务
+            try:
+                regionClient.delete(service.service_region, service.service_id)
+            except Exception as e:
+                logger.exception("openapi.services", e)
+            # 删除console服务
+            TenantServiceInfo.objects.filter(service_id=service.service_id).delete()
+            # env/auth/domain/relationship/envVar delete
+            TenantServiceEnv.objects.filter(service_id=service.service_id).delete()
+            TenantServiceAuth.objects.filter(service_id=service.service_id).delete()
+            ServiceDomain.objects.filter(service_id=service.service_id).delete()
+            TenantServiceRelation.objects.filter(service_id=service.service_id).delete()
+            TenantServiceEnvVar.objects.filter(service_id=service.service_id).delete()
+            TenantServiceMountRelation.objects.filter(service_id=service.service_id).delete()
+            TenantServicesPort.objects.filter(service_id=service.service_id).delete()
+            TenantServiceVolume.objects.filter(service_id=service.service_id).delete()
+            monitorhook.serviceMonitor(username, service, 'app_delete', True)
+            logger.debug("openapi.services", "delete service.result:success")
+            return 200, True, u"删除成功"
+        except Exception as e:
+            logger.exception("openapi.services", e)
+            logger.debug("openapi.services", "delete service.result:failure")
+            return 412, False, u"删除失败"
+
     def domain_service(self, action, service, domain_name, tenant_name, username):
         try:
             if action == "start":

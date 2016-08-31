@@ -18,7 +18,7 @@ monitorhook = MonitorHook()
 logger = logging.getLogger("default")
 
 
-class CreateCloudServiceView(BaseAPIView):
+class CloudServiceInstallView(BaseAPIView):
 
     allowed_methods = ('POST',)
 
@@ -242,12 +242,12 @@ class CreateCloudServiceView(BaseAPIView):
         tenant_service_list.pop(newTenantService)
         json_data["dep_service"] = tenant_service_list
         # 服务env+依赖服务env
-        dep_service_ids = [x.service_id for x in tenant_service_list]
-        env_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids)
-        json_data["env_list"] = env_list
+        # dep_service_ids = [x.service_id for x in tenant_service_list]
+        # env_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids)
+        # json_data["env_list"] = env_list
         # 服务port+依赖服务port
-        port_list = TenantServicesPort.objects.filter(service_id__in=dep_service_ids)
-        json_data["port_list"] = port_list
+        # port_list = TenantServicesPort.objects.filter(service_id__in=dep_service_ids)
+        # json_data["port_list"] = port_list
         # 服务volume+依赖服务
         # TenantServiceVolume.objects.filter(service_id__in=dep_service_ids)
         return Response(status=200, data={"success": True, "service": json_data})
