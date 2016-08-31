@@ -45,6 +45,8 @@
 
                         <input input="" type="radio" value="option4" name="optionsRadios" id="optionsRadios4"> 用户自定义
                         <label style="font-size:14px" class="checkbox-inline"></label>
+                        <input input="" type="radio" value="option5" name="optionsRadios" id="optionsRadios5"> Demo
+                        <label style="font-size:14px" class="checkbox-inline"></label>
 	                </div>
 	            </div>
 	            <h4 id="wait_loading" class="col-lg-offset-2 col-lg-10" style="padding-bottom: 30px; display: none;">仓库连接中，请稍候......</h4>
@@ -103,7 +105,35 @@
                              style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码版本不能为空</div>
                     </div>
                 </div>
-
+				<!-- demo -->
+				<div class="form-group" data-action="manual" style="display:none;">
+                    <label for="create_app_name" class="control-label col-lg-2 app_name">代码仓库地址</label>
+                    <div class="col-lg-8">
+                        <select name="">
+                        	<option value="">http://code.goodrain.com/demo/2048.git</option>
+                        	<option value="">http://code.goodrain.com/demo/static-hello.git</option>
+                        	<option value="">http://code.goodrain.com/demo/php-hello.git</option>
+                        	<option value="">http://code.goodrain.com/demo/python-hello.git</option>
+                        	<option value="">http://code.goodrain.com/demo/nodejs-hello.git</option>
+                        	<option value="">http://code.goodrain.com/demo/go-hello.git</option>
+                        	<option value="">http://code.goodrain.com/demo/java-spring-boot-demo.git</option>
+                        </select>
+                        <!--
+                        <div id="create_git_notice" class="alert alert-danger" role="alert"
+                             style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码仓库地址不能为空</div>
+                        -->
+                    </div>
+                </div>
+                <div class="form-group" data-action="manual" style="display: none;">
+                    <label for="create_app_name" class="control-label col-lg-2 app_name">代码版本</label>
+                    <div class="col-lg-8">
+                        <input class="form-control valid" id="service_code_version_manual"
+                               minlength="2" type="text" placeholder="代码版本" value="master">
+                        <div id="create_version_notice" class="alert alert-danger" role="alert"
+                             style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码版本不能为空</div>
+                    </div>
+                </div>
+				<!-- demo -->
 	            <div class="col-lg-offset-3 col-lg-6 " style="padding-top: 50px;padding-bottom: 20px;">
 	                <button id="first_step" type="button" class="btn btn-lg btn-info btn-block">下一步</button>
 	            </div>
