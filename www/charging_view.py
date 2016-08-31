@@ -13,6 +13,7 @@ from www.views import AuthedView, LeftSideBarMixin
 from www.models import TenantFeeBill, TenantRegionPayModel
 from www.region import RegionInfo
 from django.conf import settings
+from www.utils import sn
 
 from goodrain_web.tools import JuncheePaginator
 
@@ -115,3 +116,13 @@ class PayModelView(LeftSideBarMixin, AuthedView):
         context["PeriodMap"] = PeriodMap        
         context["REGION_FEE_RULE"] = settings.REGION_FEE_RULE   
         return TemplateResponse(self.request, "www/paymodel.html", context)
+
+
+class AssistantView(LeftSideBarMixin, AuthedView):
+    """获取云帮自助授权信息"""
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        enterprise = sn.instance.cloud_assistant
+        context.update("enterprise", enterprise)
+
+        return TemplateResponse(self.request, "www/ser.html", context)

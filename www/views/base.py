@@ -19,6 +19,7 @@ from www.perms import check_perm
 from www.models import Tenants, TenantServiceInfo
 from www.version import STATIC_VERSION
 from www.utils.url import get_redirect_url
+from www.utils import sn
 
 import logging
 
@@ -153,6 +154,7 @@ class AuthedView(BaseView):
         context['tenantName'] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
         context['MODULES'] = settings.MODULES
+        context['is_private'] = sn.instance.is_private()
         return context
 
     def has_perm(self, perm):

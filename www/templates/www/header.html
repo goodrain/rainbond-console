@@ -77,6 +77,9 @@
                 <li><a href="/payed/{{tenantName}}/upgrade"><i class="fa fa-flag"></i> 我的套餐</a></li>
                 <li class="divider"></li>
                 {% endif %}
+                {% if is_private %}
+                <li><a href="/apps/{{tenantName}}/license"><i class="fa fa-sign-out"></i> 关于</a></li>
+                {% endif %}
                 <li><a href="/logout"><i class="fa fa-sign-out"></i> 退出</a></li>
             </ul>
         </li>
