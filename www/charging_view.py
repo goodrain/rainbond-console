@@ -123,6 +123,6 @@ class AssistantView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         enterprise = sn.instance.cloud_assistant
-        context.update("enterprise", enterprise)
+        context["enterprise"]=enterprise
 
         return TemplateResponse(self.request, "www/ser.html", context)

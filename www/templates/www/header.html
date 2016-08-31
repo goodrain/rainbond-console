@@ -75,10 +75,10 @@
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
                 <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
                 <li><a href="/payed/{{tenantName}}/upgrade"><i class="fa fa-flag"></i> 我的套餐</a></li>
+                    {% if is_private %}
+                        <li><a href="/apps/{{tenantName}}/license"><i class="fa fa-exclamation-circle"></i> 关于</a></li>
+                    {% endif %}
                 <li class="divider"></li>
-                {% endif %}
-                {% if is_private %}
-                <li><a href="/apps/{{tenantName}}/license"><i class="fa fa-sign-out"></i> 关于</a></li>
                 {% endif %}
                 <li><a href="/logout"><i class="fa fa-sign-out"></i> 退出</a></li>
             </ul>
