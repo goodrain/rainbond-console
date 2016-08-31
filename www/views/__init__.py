@@ -2,7 +2,6 @@ from django.http import HttpResponse
 from base import BaseView, AuthedView, GrRedirectView
 from mixin import RegionOperateMixin, LoginRedirectMixin, LeftSideBarMixin, CopyPortAndEnvMixin
 from account import *
-from license import *
 
 __all__ = ('BaseView', 'AuthedView', 'LeftSideBarMixin', 'RegionOperateMixin', 'GrRedirectView',
            'LoginRedirectMixin', 'CopyPortAndEnvMixin')
