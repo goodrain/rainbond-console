@@ -52,7 +52,7 @@ class CloudServiceInstallView(BaseAPIView):
               required: true
               type: string
               paramType: form
-            - name: uid
+            - name: user_id
               description: 创建人id
               required: true
               type: int
@@ -67,31 +67,31 @@ class CloudServiceInstallView(BaseAPIView):
               required: false
               type: int
               paramType: form
-            - env_list: env_list
+            - name: env_list
               description: 服务的环境参数
               required: false
               type: array
               paramType: form
-            - limit: limit
+            - name: limit
               description: 是否检查资源限制
               required: false
               type: bool
               paramType: form
         """
         logger.debug("openapi.cloudservice", request.data)
-        tenant_name = request.data.get("tenant_name")
+        tenant_name = request.data.get("tenant_name", None)
         if tenant_name is None:
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
         # 数据中心
-        region = request.data.get("region")
+        region = request.data.get("region", None)
         if region is None:
             return Response(status=406, data={"success": False, "msg": u"数据中心名称为空"})
         # 根据service_key, version创建服务
-        service_key = request.data.get("service_key")
+        service_key = request.data.get("service_key", None)
         if service_key is None:
             return Response(status=408, data={"success": False, "msg": u"镜像key为空!"})
         # 服务描述
-        version = request.data.get("version")
+        version = request.data.get("version", None)
         if version is None:
             return Response(status=409, data={"success": False, "msg": u"镜像version为空!"})
         # 非必填字段
@@ -223,7 +223,6 @@ class CloudServiceInstallView(BaseAPIView):
                                                       region=region)
             manager.add_service_extend(newTenantService, service)
             monitorhook.serviceMonitor(username, newTenantService, 'create_service', True)
-            tenant_service_list.append(newTenantService)
         except Exception as e:
             logger.error("openapi.cloudservice", "create console service failed!", e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
@@ -256,23 +255,23 @@ class CloudServiceInstallView(BaseAPIView):
         logger.debug("openapi.cloudservice", "install region service {0} success!".format(region))
 
         wild_domain = ""
-        if hasattr(settings.WILD_DOMAINS, region):
+        if region in settings.WILD_DOMAINS.keys():
             wild_domain = settings.WILD_DOMAINS[newTenantService.service_region]
         http_port_str = ""
-        if hasattr(settings.WILD_PORTS, region):
+        if region in settings.WILD_PORTS.keys*():
             http_port_str = settings.WILD_PORTS[region]
         http_port_str = ":" + http_port_str
-        access_url = "http://{0}.{1}{2}{3}".format(newTenantService.service_alias,
-                                            tenant_name,
-                                            wild_domain,
-                                            http_port_str)
+        access_url = "http://{0}.{1}{2}{3}".format(
+            newTenantService.service_alias,
+            tenant_name,
+            wild_domain,
+            http_port_str)
         logger.debug("openapi.cloudservice", "service access url {0}".format(access_url))
         json_data = {}
         json_data["cloud_assistant"] = sn.instance.cloud_assistant
         json_data["url"] = access_url
-        json_data["service"] = newTenantService
-        tenant_service_list.pop(newTenantService)
-        json_data["dep_service"] = tenant_service_list
+        json_data["service"] = newTenantService.to_dict()
+        json_data["dep_service"] = map(lambda x: x.to_dict(), tenant_service_list)
         # 服务env+依赖服务env
         # dep_service_ids = [x.service_id for x in tenant_service_list]
         # env_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids)

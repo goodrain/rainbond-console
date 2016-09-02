@@ -425,10 +425,11 @@ class RestartServiceView(BaseAPIView):
               paramType: form
 
         """
+        logger.debug("openapi.services", request.data)
         try:
             service = TenantServiceInfo.objects.get(service_id=service_id)
         except TenantServiceInfo.DoesNotExist:
-            logger.error("openapi.services", "service_id不存在!")
+            logger.error("openapi.services", "服务不存在!")
             return Response(status=405, data={"success": False, "msg": u"service_id不存在"})
         tenant_id = service.tenant_id
         try:
@@ -437,11 +438,11 @@ class RestartServiceView(BaseAPIView):
             logger.error("openapi.services", "租户不存在!")
             return Response(status=405, data={"success": False, "msg": u"租户不存在"})
         service_name = service.service_alias
-        username = request.data.get("username")
+        username = request.data.get("username", "system")
         try:
             service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
         except TenantServiceInfo.DoesNotExist:
-            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
+            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant.tenant_name, service_name))
             return Response(status=408, data={"success": False, "msg": u"服务不存在"})
         # 启动服务
         status, success, msg = manager.restart_service(tenant, service, username)
@@ -468,7 +469,7 @@ class UpdateServiceView(BaseAPIView):
               type: string
               paramType: form
             - name: version
-              description: 启动服务人名称
+              description: 更新服务的版本
               required: true
               type: string
               paramType: form
@@ -482,7 +483,13 @@ class UpdateServiceView(BaseAPIView):
               required: true
               type: string
               paramType: form
+            - name: limit
+              description: 是否限制资源
+              required: false
+              type: string
+              paramType: form
         """
+        logger.debug("openapi.services", request.data)
         try:
             service = TenantServiceInfo.objects.get(service_id=service_id)
         except TenantServiceInfo.DoesNotExist:
@@ -496,6 +503,7 @@ class UpdateServiceView(BaseAPIView):
             return Response(status=405, data={"success": False, "msg": u"租户不存在"})
 
         action = request.data.get("action", None)
+        limit = request.data.get("limit", True)
         username = request.data.get("username", "system")
         if action is None:
             logger.error("openapi.services", "操作类型不能为空!")
@@ -520,9 +528,9 @@ class UpdateServiceView(BaseAPIView):
                 logger.error("openapi.services", "设置节点不能为空!")
                 return Response(status=405, data={"success": False, "msg": u"设置节点不能为空"})
             # 先更改内存,在修改节点
-            status, success, msg = manager.update_service_memory(tenant, service, username, memory)
+            status, success, msg = manager.update_service_memory(tenant, service, username, memory, limit)
             if status == 200:
-                status, success, msg = manager.update_service_node(tenant, service, username, node)
+                status, success, msg = manager.update_service_node(tenant, service, username, node, limit)
                 return Response(status=status, data={"success": success, "msg": msg})
             else:
                 return Response(status=status, data={"success": success, "msg": msg})
@@ -532,15 +540,17 @@ class UpdateServiceView(BaseAPIView):
             if memory is None:
                 logger.error("openapi.services", "设置内存不能为空!")
                 return Response(status=405, data={"success": False, "msg": u"设置内存不能为空"})
-            status, success, msg = manager.update_service_memory(tenant, service, username, memory)
+            status, success, msg = manager.update_service_memory(tenant, service, username, memory, limit)
             return Response(status=status, data={"success": success, "msg": msg})
         elif action == "node":
             node = request.data.get("node", None)
             if node is None:
                 logger.error("openapi.services", "设置节点不能为空!")
                 return Response(status=405, data={"success": False, "msg": u"设置节点不能为空"})
-            status, success, msg = manager.update_service_node(tenant, service, username, node)
+            status, success, msg = manager.update_service_node(tenant, service, username, node, limit)
             return Response(status=status, data={"success": success, "msg": msg})
+        else:
+            return Response(status=200, data={"success": True, "msg": "you do nothing!"})
 
 
 class QueryServiceView(BaseAPIView):
@@ -552,7 +562,7 @@ class QueryServiceView(BaseAPIView):
         try:
             service = TenantServiceInfo.objects.get(service_id=service_id)
         except Exception as e:
-            logger.exception("openapi.service", e)
+            logger.exception("openapi.services", e)
             return Response(status=405, data={"success": False, "msg": u"服务不存在"})
         service_key = service.service_key
         service_list = ServiceInfo.objects.filter(service_key=service_key).order_by("-ID")
@@ -585,6 +595,7 @@ class RemoveServiceView(BaseAPIView):
               paramType: form
 
         """
+        logger.debug("openapi.services", request.data)
         try:
             service = TenantServiceInfo.objects.get(service_id=service_id)
         except TenantServiceInfo.DoesNotExist:
@@ -598,6 +609,7 @@ class RemoveServiceView(BaseAPIView):
             return Response(status=408, data={"success": False, "msg": u"租户不存在"})
         username = request.data.get("username", "system")
         if service.service_origin == "cloud":
+            logger.debug("openapi.services", "now remove cloud service")
             # 删除依赖服务
             status, success, msg = manager.remove_service(tenant, service, username)
         else:

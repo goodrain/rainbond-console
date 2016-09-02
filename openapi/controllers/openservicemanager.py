@@ -41,7 +41,7 @@ class OpenTenantServiceManager(object):
         max_port = reduce(lambda x, y: y if (y - x) == 1 else x, port_list)
         return max_port + 1
 
-    def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
+    def create_service(self, service_id, tenant_id, service_alias, service, creater, region, service_origin='assistant'):
         """创建console服务"""
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
@@ -79,6 +79,7 @@ class OpenTenantServiceManager(object):
         tenantServiceInfo["service_type"] = service.service_type
         tenantServiceInfo["creater"] = creater
         tenantServiceInfo["total_memory"] = service.min_node * service.min_memory
+        tenantServiceInfo["service_origin"] = service_origin
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
@@ -136,7 +137,7 @@ class OpenTenantServiceManager(object):
             # 检查服务关联
             published = AppService.objects.filter(service_id=service.service_id).count()
             if published:
-                logger.debug("openapi.services", "services has related published!".format(tenant_name, service_name))
+                logger.debug("openapi.services", "services has related published!".format(tenant.tenant_name, service.service_name))
                 return 409, False, u"关联了已发布服务, 不可删除"
             # 检查服务依赖
             dep_service_ids = TenantServiceRelation.objects.filter(dep_service_id=service.service_id).values("service_id")
@@ -199,14 +200,16 @@ class OpenTenantServiceManager(object):
 
     def remove_service(self, tenant, service, username):
         try:
-            # 检查服务依赖
-            dep_service_ids = TenantServiceRelation.objects.filter(dep_service_id=service.service_id).values("service_id")
-            if len(dep_service_ids) > 0:
+            # 检查当前服务的依赖服务
+            dep_service_relation = TenantServiceRelation.objects.filter(service_id=service.service_id)
+            if len(dep_service_relation) > 0:
+                dep_service_ids = [x.dep_service_id for x in list(dep_service_relation)]
+                logger.debug(dep_service_ids)
                 # 删除依赖服务
                 dep_service_list = TenantServiceInfo.objects.filter(service_id__in=list(dep_service_ids))
                 for dep_service in list(dep_service_list):
                     try:
-                        regionClient.delete(service.service_region, service.service_id)
+                        regionClient.delete(dep_service.service_region, dep_service.service_id)
                         TenantServiceInfo.objects.filter(pk=dep_service.ID).delete()
                         TenantServiceEnv.objects.filter(service_id=dep_service.service_id).delete()
                         TenantServiceAuth.objects.filter(service_id=dep_service.service_id).delete()
@@ -219,20 +222,22 @@ class OpenTenantServiceManager(object):
                         monitorhook.serviceMonitor(username, dep_service, 'app_delete', True)
                     except Exception as e:
                         logger.exception("openapi.services", e)
-            # 检查挂载依赖
-            dep_service_ids = TenantServiceMountRelation.objects.filter(dep_service_id=service.service_id).values("service_id")
-            if len(dep_service_ids) > 0:
-                # 删除挂载
-                TenantServiceMountRelation.objects.filter(dep_service_id=service.service_id).delete()
-
+            logger.debug("openapi.services", "dep service delete!")
+            # 删除挂载关系
+            TenantServiceMountRelation.objects.filter(service_id=service.service_id).delete()
+            # 删除被挂载关系
+            TenantServiceMountRelation.objects.filter(dep_service_id=service.service_id).delete()
+            logger.debug("openapi.services", "dep mnt delete!")
             data = service.toJSON()
             tenant_service_info_delete = TenantServiceInfoDelete(**data)
             tenant_service_info_delete.save()
+            logger.debug("openapi.services", "add delete record!")
             # 删除region服务
             try:
                 regionClient.delete(service.service_region, service.service_id)
             except Exception as e:
                 logger.exception("openapi.services", e)
+            logger.debug("openapi.services", "delete region service!")
             # 删除console服务
             TenantServiceInfo.objects.filter(service_id=service.service_id).delete()
             # env/auth/domain/relationship/envVar delete
@@ -630,7 +635,7 @@ class OpenTenantServiceManager(object):
             base_info = None
             update_version = 1
             try:
-                base_info = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                base_info = ServiceInfo.objects.get(service_key=service_key, version=version)
                 update_version = base_info.update_version
             except Exception:
                 pass
@@ -685,7 +690,7 @@ class OpenTenantServiceManager(object):
                                             is_change=env.get("is_change"),
                                             container_port=env.get("container_port"))
                     env_data.append(app_env)
-            AppServiceEnv.objects.filter(service_key=service_key, app_version=app_version).delete()
+            AppServiceEnv.objects.filter(service_key=service_key, app_version=version).delete()
             if len(env_data) > 0:
                 AppServiceEnv.objects.bulk_create(env_data)
             logger.debug('---add app service env---ok---')
@@ -701,7 +706,7 @@ class OpenTenantServiceManager(object):
                                               is_inner_service=port.get("is_inner_service"),
                                               is_outer_service=port.get("is_outer_service"))
                     port_data.append(app_port)
-            AppServicePort.objects.filter(service_key=service_key, app_version=app_version).delete()
+            AppServicePort.objects.filter(service_key=service_key, app_version=version).delete()
             if len(port_data) > 0:
                 AppServicePort.objects.bulk_create(port_data)
             logger.debug('---add app service port---ok---')
@@ -719,7 +724,7 @@ class OpenTenantServiceManager(object):
                                                    step_memory=extend.get("step_memory"),
                                                    is_restart=extend.get("is_restart"))
                     extend_data.append(app_port)
-            ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).delete()
+            ServiceExtendMethod.objects.filter(service_key=service_key, app_version=version).delete()
             if len(extend_data) > 0:
                 ServiceExtendMethod.objects.bulk_create(extend_data)
             logger.debug('---add app service extend---ok---')
@@ -743,7 +748,7 @@ class OpenTenantServiceManager(object):
                                                       dep_app_version=relation.get("dep_app_version"),
                                                       dep_app_alias=relation.get("dep_app_alias"))
                     relation_data.append(app_relation)
-            AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version).delete()
+            AppServiceRelation.objects.filter(service_key=service_key, app_version=version).delete()
             if len(relation_data) > 0:
                 AppServiceRelation.objects.bulk_create(relation_data)
             logger.debug('---add app service relation---ok---')
@@ -757,7 +762,7 @@ class OpenTenantServiceManager(object):
                                               volume_path=app_volume.volume_path);
 
                     volume_data.append(volume)
-            AppServiceVolume.objects.filter(service_key=service_key, app_version=app_version).delete()
+            AppServiceVolume.objects.filter(service_key=service_key, app_version=version).delete()
             if len(volume_data) > 0:
                 AppServiceVolume.objects.bulk_create(volume_data)
             logger.debug('---add app service volume---ok---')
@@ -797,7 +802,7 @@ class OpenTenantServiceManager(object):
             code, is_success, msg = self.start_service(tenant, service, username)
         return code, is_success, msg
 
-    def update_service_memory(self, tenant, service, username, memory):
+    def update_service_memory(self, tenant, service, username, memory, limit=True):
         cpu = 20 * (int(memory) / 128)
         old_cpu = service.min_cpu
         old_memory = service.min_memory
@@ -806,12 +811,13 @@ class OpenTenantServiceManager(object):
             if memory > 0 and left <= 65536 and left == 0:
                 # calculate resource
                 diff_memory = memory - int(old_memory)
-                rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, True)
-                if not flag:
-                    if rt_type == "memory":
-                        return 410, False, "内存不足"
-                    else:
-                        return 411, False, "余额不足"
+                if limit:
+                    rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, True)
+                    if not flag:
+                        if rt_type == "memory":
+                            return 410, False, "内存不足"
+                        else:
+                            return 411, False, "余额不足"
 
                 body = {
                     "container_memory": memory,
@@ -834,18 +840,19 @@ class OpenTenantServiceManager(object):
                 monitorhook.serviceMonitor(username, service, 'app_vertical', True)
         return 200, True, "success"
 
-    def update_service_node(self, tenant, service, username, node_num):
+    def update_service_node(self, tenant, service, username, node_num, limit=True):
         new_node_num = int(node_num)
         old_min_node = service.min_node
         if new_node_num >= 0 and new_node_num != old_min_node:
             # calculate resource
             diff_memory = (new_node_num - old_min_node) * service.min_memory
-            rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, True)
-            if not flag:
-                if rt_type == "memory":
-                    return 410, False, "内存不足"
-                else:
-                    return 411, False, "余额不足"
+            if limit:
+                rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, True)
+                if not flag:
+                    if rt_type == "memory":
+                        return 410, False, "内存不足"
+                    else:
+                        return 411, False, "余额不足"
             body = {
                 "node_num": new_node_num,
                 "deploy_version": service.deploy_version,
