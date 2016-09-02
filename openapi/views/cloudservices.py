@@ -67,7 +67,18 @@ class CloudServiceInstallView(BaseAPIView):
               required: false
               type: int
               paramType: form
+            - env_list: env_list
+              description: 服务的环境参数
+              required: false
+              type: array
+              paramType: form
+            - limit: limit
+              description: 是否检查资源限制
+              required: false
+              type: bool
+              paramType: form
         """
+        logger.debug("openapi.cloudservice", request.data)
         tenant_name = request.data.get("tenant_name")
         if tenant_name is None:
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
@@ -86,7 +97,7 @@ class CloudServiceInstallView(BaseAPIView):
         # 非必填字段
         user_id = request.data.get("user_id", "1")
         username = request.data.get("username", "system")
-        service_memory = request.data.get("service_memory")
+        service_memory = request.data.get("service_memory", "")
 
         logger.debug("openapi.cloudservice", "now create service: service_name:{0}, tenant_name:{1}, region:{2}, key:{3}, version:{4}".format(service_name, tenant_name, region, service_key, version))
         r = re.compile("^[a-z][a-z0-9-]*[a-z0-9]$")
@@ -142,14 +153,18 @@ class CloudServiceInstallView(BaseAPIView):
         tenant_service_info.service_region = region
         tenant_service_info.min_node = service.min_node
         diffMemory = dep_required_memory + service.min_node * service.min_memory
-        rt_type, flag = manager.predict_next_memory(tenant, tenant_service_info, diffMemory, False)
-        if not flag:
-            if rt_type == "memory":
-                logger.error("openapi.cloudservice", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
-                return Response(status=416, data={"success": False, "msg": u"内存已经到最大值"})
-            else:
-                logger.error("openapi.cloudservice", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
-                return Response(status=417, data={"success": False, "msg": u"资源已经到最大值"})
+        # 是否检查资源限制
+        limit = request.data.get("limit", True)
+        if limit:
+            rt_type, flag = manager.predict_next_memory(tenant, tenant_service_info, diffMemory, False)
+            if not flag:
+                if rt_type == "memory":
+                    logger.error("openapi.cloudservice", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
+                    return Response(status=416, data={"success": False, "msg": u"内存已经到最大值"})
+                else:
+                    logger.error("openapi.cloudservice", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
+                    return Response(status=417, data={"success": False, "msg": u"资源已经到最大值"})
+        logger.debug("openapi.cloudservice", "now install dep service and service,memory:{0}".format(diffMemory))
 
         # 创建依赖的服务
         tenant_service_list = []
@@ -158,6 +173,7 @@ class CloudServiceInstallView(BaseAPIView):
             dep_service_list.reverse()
             for dep_service in dep_service_list:
                 dep_service_id = crypt.make_uuid(dep_service.service_key)
+                logger.debug("openapi.cloudservice", "install dep service:{0}".format(dep_service_id))
                 try:
                     depTenantService = manager.create_service(dep_service_id,
                                                               tenant.tenant_id,
@@ -169,13 +185,15 @@ class CloudServiceInstallView(BaseAPIView):
                     monitorhook.serviceMonitor(username, depTenantService, 'create_service', True)
                     tenant_service_list.append(depTenantService)
                 except Exception as e:
-                    logger.exception(e)
+                    logger.exception("openapi.cloudservice", e)
                     TenantServiceInfo.objects.filter(service_id=service_id).delete()
                     TenantServiceAuth.objects.filter(service_id=service_id).delete()
                     TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
                     TenantServiceRelation.objects.filter(service_id=service_id).delete()
                     TenantServiceVolume.objects.filter(service_id=service_id).delete()
                     return Response(status=418, data={"success": False, "msg": u"创建控制台依赖服务失败!"})
+                logger.debug("openapi.cloudservice", "install dep service:{0} over".format(dep_service_id))
+                logger.debug("openapi.cloudservice", "install dep region service,region:{0}".format(region))
                 try:
                     manager.create_region_service(depTenantService,
                                                   tenant_name,
@@ -185,13 +203,17 @@ class CloudServiceInstallView(BaseAPIView):
                 except Exception as e:
                     logger.error("openapi.cloudservice", "create region service failed!", e)
                     return Response(status=419, data={"success": False, "msg": u"创建region服务失败!"})
+                logger.debug("openapi.cloudservice", "install dep region service,region:{0} over".format(region))
+                logger.debug("openapi.cloudservice", "install dep relation")
                 # 依赖关系 todo 无法处理多层依赖关系,
                 manager.create_service_dependency(tenant.tenant_id,
                                                   service_id,
                                                   dep_service_id,
                                                   region)
+                logger.debug("openapi.cloudservice", "install dep relation over")
 
         # create console service
+        logger.debug("openapi.cloudservice", "install current service now")
         try:
             newTenantService = manager.create_service(service_id,
                                                       tenant.tenant_id,
@@ -210,8 +232,18 @@ class CloudServiceInstallView(BaseAPIView):
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
             TenantServiceVolume.objects.filter(service_id=service_id).delete()
             return Response(status=418, data={"success": False, "msg": u"创建控制台服务失败!"})
-
+        logger.debug("openapi.cloudservice", "install current service now success!")
+        env_list = request.data.get("env_list", None)
+        if env_list is not None:
+            env_var_list = TenantServiceEnvVar.objects.filter(service_id=service_id, tenant_id=tenant.tenant_id, is_change=True)
+            env_var_map = {x.attr_name: x for x in list(env_var_list)}
+            for env_var in env_list:
+                env = env_var_map.get(env_var.attr_name, None)
+                env.attr_value = env_var.attr_value
+                env.save()
+        logger.debug("openapi.cloudservice", "install service env success!")
         # create region service
+        logger.debug("openapi.cloudservice", "install region service {0}!".format(region))
         try:
             manager.create_region_service(newTenantService,
                                           tenant_name,
@@ -221,6 +253,7 @@ class CloudServiceInstallView(BaseAPIView):
         except Exception as e:
             logger.error("openapi.cloudservice", "create region service failed!", e)
             return Response(status=419, data={"success": False, "msg": u"创建region服务失败!"})
+        logger.debug("openapi.cloudservice", "install region service {0} success!".format(region))
 
         wild_domain = ""
         if hasattr(settings.WILD_DOMAINS, region):
@@ -229,15 +262,14 @@ class CloudServiceInstallView(BaseAPIView):
         if hasattr(settings.WILD_PORTS, region):
             http_port_str = settings.WILD_PORTS[region]
         http_port_str = ":" + http_port_str
-        url = "http://{0}.{1}{2}{3}".format(newTenantService.service_alias,
+        access_url = "http://{0}.{1}{2}{3}".format(newTenantService.service_alias,
                                             tenant_name,
                                             wild_domain,
                                             http_port_str)
-        json_data = {
-            "cloud_assistant": sn.instance.cloud_assistant,
-            "url": url,
-        }
-        # 依赖服务tenant_service_list
+        logger.debug("openapi.cloudservice", "service access url {0}".format(access_url))
+        json_data = {}
+        json_data["cloud_assistant"] = sn.instance.cloud_assistant
+        json_data["url"] = access_url
         json_data["service"] = newTenantService
         tenant_service_list.pop(newTenantService)
         json_data["dep_service"] = tenant_service_list

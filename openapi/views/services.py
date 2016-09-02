@@ -543,11 +543,11 @@ class QueryServiceView(BaseAPIView):
         service_key = service.service_key
         service_list = ServiceInfo.objects.filter(service_key=service_key).order_by("-ID")
         data = {
-            "new_version": service.version,
+            "new_version": service.update_version,
         }
         if len(service_list) > 0:
             new_service = list(service_list)[-1]
-            data["new_version"] = new_service
+            data["new_version"] = new_service.update_version
         return Response(status=status, data=data)
 
 
