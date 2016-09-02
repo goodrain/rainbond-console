@@ -131,17 +131,7 @@ class OpenTenantServiceManager(object):
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
     
-    def delete_service(self, tenant_name, service_name, username):
-        try:
-            tenant = Tenants.objects.get(tenant_name=tenant_name)
-            service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
-        except Tenants.DoesNotExist:
-            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
-            return 406, False, u"租户不存在,请检查租户名称"
-        except TenantServiceInfo.DoesNotExist:
-            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
-            return 408, False, u"服务不存在"
-
+    def delete_service(self, tenant, service, username):
         try:
             # 检查服务关联
             published = AppService.objects.filter(service_id=service.service_id).count()
