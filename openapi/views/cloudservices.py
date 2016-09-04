@@ -180,7 +180,8 @@ class CloudServiceInstallView(BaseAPIView):
                                                               dep_service.service_name.lower() + "_" + service_name,
                                                               dep_service,
                                                               user_id,
-                                                              region=region)
+                                                              region=region,
+                                                              service_origin='cloud')
                     manager.add_service_extend(depTenantService, dep_service)
                     monitorhook.serviceMonitor(username, depTenantService, 'create_service', True)
                     tenant_service_list.append(depTenantService)
@@ -220,7 +221,8 @@ class CloudServiceInstallView(BaseAPIView):
                                                       service_name,
                                                       service,
                                                       user_id,
-                                                      region=region)
+                                                      region=region,
+                                                      service_origin='cloud')
             manager.add_service_extend(newTenantService, service)
             monitorhook.serviceMonitor(username, newTenantService, 'create_service', True)
         except Exception as e:
@@ -237,8 +239,22 @@ class CloudServiceInstallView(BaseAPIView):
             env_var_list = TenantServiceEnvVar.objects.filter(service_id=service_id, tenant_id=tenant.tenant_id, is_change=True)
             env_var_map = {x.attr_name: x for x in list(env_var_list)}
             for env_var in env_list:
-                env = env_var_map.get(env_var.attr_name, None)
-                env.attr_value = env_var.attr_value
+                attr_name = env_var.get("attr_name")
+                attr_value = env_var.get("attr_value")
+                env = env_var_map.get(attr_name, None)
+                if env is not None:
+                    env.attr_value = attr_value
+                else:
+                    env = TenantServiceEnvVar(
+                        tenant_id=tenant.tenant_id,
+                        service_id=service_id,
+                        container_port=env_var.get("container_port"),
+                        name=env_var.get("name"),
+                        attr_name=attr_name,
+                        attr_value=attr_value,
+                        is_change=env_var.get("is_change"),
+                        scope=env_var.get("scope"),
+                    )
                 env.save()
         logger.debug("openapi.cloudservice", "install service env success!")
         # create region service
@@ -258,7 +274,7 @@ class CloudServiceInstallView(BaseAPIView):
         if region in settings.WILD_DOMAINS.keys():
             wild_domain = settings.WILD_DOMAINS[newTenantService.service_region]
         http_port_str = ""
-        if region in settings.WILD_PORTS.keys*():
+        if region in settings.WILD_PORTS.keys():
             http_port_str = settings.WILD_PORTS[region]
         http_port_str = ":" + http_port_str
         access_url = "http://{0}.{1}{2}{3}".format(
