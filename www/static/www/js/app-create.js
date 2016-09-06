@@ -65,14 +65,14 @@ $(function(){
         }
       // option5 start 
       if (codeStoreSel == 'option5') {
-            var service_code_demo_url = $('#service_code_demo_url').val()
+            var service_code_demo_url = $('#service_code_demo_url option:selected').val();
             /*if(service_code_clone_url==""){
                 $("#service_code_clone_url_manual").focus()
                 scrollOffset($("#service_code_clone_url_manual").offset());
                 $('#create_git_notice').slideDown();
                 return;
             }*/
-            var service_code_demo_manual = $('#service_code_demo_manual').val()
+            var service_code_demo_manual = $('#service_code_demo_manual').val();
             if(service_code_version==""){
                 $("#service_code_demo_manual").focus()
                 scrollOffset($("#service_code_demo_url").offset());
