@@ -32,7 +32,7 @@ STREAM_DOMAIN_URL = {
     "aws-bj-1": "",
     "aws-jp-1": "",
     "ucloud-bj-1": "",
-    "xunda-hk": ""
+    "xunda-bj": ""
 }
 
 WILD_DOMAINS = {
@@ -40,7 +40,7 @@ WILD_DOMAINS = {
     "aws-bj-1": ".aws-bj-1.goodrain.net",
     "aws-jp-1": ".aws-jp-1.goodrain.net",
     "ucloud-bj-1": ".ucloud-bj-1.goodrain.net",
-    "xunda-hk": ".xunda-hk.goodrain.net"
+    "xunda-bj": ".xunda-bj.goodrain.net"
 }
 
 WILD_PORTS = {
@@ -48,7 +48,7 @@ WILD_PORTS = {
     "aws-bj-1": "10080",
     "aws-jp-1": "80",
     "ucloud-bj-1": "10080",
-    "xunda-hk": "80",
+    "xunda-bj": "10080",
 }
 
 REST_FRAMEWORK = {
@@ -99,9 +99,9 @@ REGION_SERVICE_API = [{
     'apitype': 'region service',
     'region_name': 'ali-sh'
 }, {
-    'url': 'http://api.xunda-hk.goodrain.com:8888',
+    'url': 'http://api.xunda-bj.goodrain.com:8888',
     'apitype': 'region service',
-    'region_name': 'xunda-hk'
+    'region_name': 'xunda-bj'
 }]
 
 APP_SERVICE_API = {
@@ -114,7 +114,7 @@ WEBSOCKET_URL = {
     'aws-bj-1': 'wss://mpush-aws-bj-1.goodrain.com:6060/websocket',
     'aws-jp-1': 'wss://mpush-aws-jp-1.goodrain.com:6060/websocket',
     'ali-sh': 'wss://mpush-ali-sh.goodrain.com:6060/websocket',
-    'xunda-hk': 'wss://mpush-xunda-hk.goodrain.com:6060/websocket',
+    'xunda-bj': 'wss://mpush-xunda-bj.goodrain.com:6060/websocket',
 }
 
 REGION_RULE = {
@@ -210,7 +210,7 @@ LOG_DOMAIN = {
     "aws-bj-1": "aws-bj-1.download.goodrain.com",
     "aws-jp-1": "aws-jp-1.download.goodrain.com",
     "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com",
-    "xunda-hk": "xunda-hk.download.goodrain.com",
+    "xunda-bj": "xunda-bj.download.goodrain.com",
 }
 # open api
 IS_OPEN_API = False
@@ -230,7 +230,7 @@ DOCKER_WSS_URL = {
     'aws-bj-1': '',
     'aws-jp-1': '-aws-jp-1-ws.goodrain.com:8088',
     'ali-sh': '-ali-sh-ws.goodrain.com:8088',
-    'xunda-hk': '-xunda-hk-ws.goodrain.com:8088',
+    'xunda-bj': '-xunda-bj-ws.goodrain.com:8088',
 }
 
 OAUTH2_APP = {
