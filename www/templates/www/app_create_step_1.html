@@ -1,6 +1,28 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
 
+{% block extracss %}
+{{ block.super }}
+<style>
+    code {
+        text-indent:0;
+        border-color:#000;
+        border-style:dashed;
+        border-width:1px;
+        display:block;
+        font-size:12px;
+        font-family:Courier, Calibri,"宋体";
+        margin:10px 0 0 0;
+        padding:10px 0 10px 5px;
+        -moz-border-radius:5px;
+        background:#f5f5f5;
+        color:#000;
+        word-wrap: break-word;
+        word-break: break-all;
+    }
+</style>
+{% endblock %}
+
 {% block main-content%}
 
 <section class="wrapper site-min-height">
@@ -105,6 +127,18 @@
                              style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码版本不能为空</div>
                     </div>
                 </div>
+				<div class="form-group" data-action="manual" style="display: none;">
+					<label for="create_app_name" class="control-label col-lg-2 app_name">使用提示：</label>
+					<div class="col-lg-8">
+						<div class="alert alert-danger" role="alert">
+							代码仓库为公有仓库，可以忽略改设置。
+							<br/>
+							私有代码仓库，需将下列添加到git用户的ssh列表中：
+							<br/>
+							<code>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1 builder</code>
+						</div>
+					</div>
+				</div>
 				<!-- demo -->
 				<div class="form-group" data-action="demobox" style="display:none;">
                     <label for="create_app_name" class="control-label col-lg-2 app_name">代码仓库地址</label>
