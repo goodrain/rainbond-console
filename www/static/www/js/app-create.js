@@ -143,7 +143,7 @@ $(function(){
             $('div[data-action="demobox"]').hide();
             $('div[data-action="manual"]').show();
         }else if(selOption == 'option5'){
-            $('#service_code_from').val("gitlab_manual");
+            $('#service_code_from').val("gitlab_demo");
             $('#code_store_list').slideUp();
             $('#wait_loading').hide();
             $('div[data-action="manual"]').hide();
