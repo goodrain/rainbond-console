@@ -27,18 +27,28 @@ class BaseTenantService(object):
 
     def get_service_list(self, tenant_pk, user, tenant_id, region):
         user_pk = user.pk
+        tmp = TenantServiceInfo()
         if user.is_sys_admin:
-            services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
+            if hasattr(tmp, 'service_origin'):
+                services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region, service_origin='assistant')
+            else:
+                services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
         else:
             my_tenant_identity = PermRelTenant.objects.get(tenant_id=tenant_pk, user_id=user_pk).identity
             if my_tenant_identity in ('admin', 'developer', 'viewer', 'gray'):
-                services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by('service_alias')
+                if hasattr(tmp, 'service_origin'):
+                    services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region, service_origin='assistant').order_by('service_alias')
+                else:
+                    services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by('service_alias')
             else:
                 dsn = BaseConnection()
+                add_sql = ''
+                if hasattr(tmp, 'service_origin'):
+                    add_sql = """ and service_origin="assistant" """
                 query_sql = '''
                     select s.* from tenant_service s, service_perms sp where s.tenant_id = "{tenant_id}"
-                    and sp.user_id = {user_id} and sp.service_id = s.ID and s.service_region = "{region}" order by s.service_alias
-                    '''.format(tenant_id=tenant_id, user_id=user_pk, region=region)
+                    and sp.user_id = {user_id} and sp.service_id = s.ID and s.service_region = "{region}" {add_sql} order by s.service_alias
+                    '''.format(tenant_id=tenant_id, user_id=user_pk, region=region, add_sql=add_sql)
                 services = dsn.query(query_sql)
         return services
 

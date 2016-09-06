@@ -415,8 +415,16 @@ class AllServiceInfo(AuthedView):
         result = {}
         service_ids = []
         try:
-            service_list = TenantServiceInfo.objects.filter(
-                tenant_id=self.tenant.tenant_id, service_region=self.cookie_region).values('ID', 'service_id', 'deploy_version')
+            tmp = TenantServiceInfo()
+            if hasattr(tmp, 'service_origin'):
+                service_list = TenantServiceInfo.objects.filter(
+                    tenant_id=self.tenant.tenant_id,
+                    service_region=self.cookie_region,
+                    service_origin='assistant').values('ID', 'service_id', 'deploy_version')
+            else:
+                service_list = TenantServiceInfo.objects.filter(
+                    tenant_id=self.tenant.tenant_id,
+                    service_region=self.cookie_region).values('ID', 'service_id', 'deploy_version')
             if self.has_perm('tenant.list_all_services'):
                 for s in service_list:
                     if s['deploy_version'] is None or s['deploy_version'] == "":
@@ -1186,6 +1194,7 @@ class ServiceVolumeView(AuthedView):
             result["status"] = "failure"
             result["code"] = "500"
         return JsonResponse(result)
+
 
 class MutiOuterPortView(AuthedView):
 

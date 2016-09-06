@@ -15,6 +15,8 @@ class SNUtil:
             self.username = ""
         self.password = ''
         self.pricing = "community"
+        self.client_id = ''
+        self.client_secret = ''
         if hasattr(settings, 'SN'):
             self.sn = settings.SN
             self.str_key = "goodrain_private_cloud_assistant_sn"
@@ -28,7 +30,8 @@ class SNUtil:
                 self.username = json_dict.get("username", self.username)
                 self.password = json_dict.get("password", "")
                 self.pricing = json_dict.get("pricing", "community")
-
+                self.client_id = json_dict.get("client_id", "")
+                self.client_secret = json_dict.get("client_secret", "")
 
     @property
     def cloud_assistant(self):
@@ -45,6 +48,14 @@ class SNUtil:
     @property
     def pricing(self):
         return self.pricing
+
+    @property
+    def client_id(self):
+        return self.client_id
+
+    @property
+    def client_secret(self):
+        return self.client_secret
 
     def is_private(self):
         return self.pricing == "community"

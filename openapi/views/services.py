@@ -240,9 +240,19 @@ class DeleteServiceView(BaseAPIView):
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-        username = request.data.get("username")
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "租户不存在!")
+            return Response(status=408, data={"success": False, "msg": u"租户不存在"})
+        try:
+            service = TenantServiceInfo.objects.get(service_alias=service_name, tenant_id=tenant.tenant_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.error("openapi.services", "service_id不存在!")
+            return Response(status=406, data={"success": False, "msg": u"服务不存在"})
+        username = request.data.get("username", "system")
         # 删除用户
-        status, success, msg = manager.delete_service(tenant_name, service_name, username)
+        status, success, msg = manager.delete_service(tenant, service, username)
         return Response(status=status, data={"success": success, "msg": msg})
 
 
@@ -287,6 +297,16 @@ class StartServiceView(BaseAPIView):
         except TenantServiceInfo.DoesNotExist:
             logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
             return Response(status=408, data={"success": False, "msg": u"服务不存在"})
+        # 判断是否云市服务
+        if service.service_origin == "cloud":
+            # 查询并启动依赖服务
+            relation_list = TenantServiceRelation.objects.filter(service_id=service.service_id)
+            dep_id_list = [x.dep_service_id for x in list(relation_list)]
+            dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_id_list)
+            for dep_service in list(dep_service_list):
+                status, success, msg = manager.start_service(tenant, dep_service, username)
+                logger.debug("openapi.services", "dep service:{0} status:{1},{2},{3}".format(dep_service.service_alias, status, success, msg))
+
         # 启动服务
         status, success, msg = manager.start_service(tenant, service, username)
         return Response(status=status, data={"success": success, "msg": msg})
@@ -334,6 +354,15 @@ class StopServiceView(BaseAPIView):
             return Response(status=408, data={"success": False, "msg": u"服务名称不存在"})
         # 停止服务
         status, success, msg = manager.stop_service(service, username)
+        # 判断是否云市服务
+        if service.service_origin == "cloud":
+            # 查询并停止依赖服务
+            relation_list = TenantServiceRelation.objects.filter(service_id=service.service_id)
+            dep_id_list = [x.dep_service_id for x in list(relation_list)]
+            dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_id_list)
+            for dep_service in list(dep_service_list):
+                status, success, msg = manager.stop_service(dep_service, username)
+                logger.debug("openapi.services", "dep service:{0} status:{1},{2},{3}".format(dep_service.service_alias, status, success, msg))
         return Response(status=status, data={"success": success, "msg": msg})
 
 
@@ -375,3 +404,214 @@ class StatusServiceView(BaseAPIView):
         return Response(status=status, data={"success": success, "msg": msg})
 
 
+class RestartServiceView(BaseAPIView):
+    """重启服务"""
+    allowed_methods = ('POST',)
+
+    def post(self, request, service_id, *args, **kwargs):
+        """
+        启动服务接口
+        ---
+        parameters:
+            - name: service_id
+              description: 服务ID
+              required: true
+              type: string
+              paramType: path
+            - name: username
+              description: 启动服务人名称
+              required: true
+              type: string
+              paramType: form
+
+        """
+        logger.debug("openapi.services", request.data)
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.error("openapi.services", "服务不存在!")
+            return Response(status=405, data={"success": False, "msg": u"service_id不存在"})
+        tenant_id = service.tenant_id
+        try:
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "租户不存在!")
+            return Response(status=405, data={"success": False, "msg": u"租户不存在"})
+        service_name = service.service_alias
+        username = request.data.get("username", "system")
+        try:
+            service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant.tenant_name, service_name))
+            return Response(status=408, data={"success": False, "msg": u"服务不存在"})
+        # 启动服务
+        status, success, msg = manager.restart_service(tenant, service, username)
+        return Response(status=status, data={"success": success, "msg": msg})
+
+
+class UpdateServiceView(BaseAPIView):
+    """更新服务"""
+    allowed_methods = ('POST',)
+
+    def post(self, request, service_id, *args, **kwargs):
+        """
+        更新服务接口
+        ---
+        parameters:
+            - name: service_id
+              description: 服务ID
+              required: true
+              type: string
+              paramType: path
+            - name: action
+              description: 更新类型
+              required: true
+              type: string
+              paramType: form
+            - name: version
+              description: 更新服务的版本
+              required: true
+              type: string
+              paramType: form
+            - name: memory
+              description: 服务内存
+              required: true
+              type: string
+              paramType: form
+            - name: node
+              description: 服务节点数
+              required: true
+              type: string
+              paramType: form
+            - name: limit
+              description: 是否限制资源
+              required: false
+              type: string
+              paramType: form
+        """
+        logger.debug("openapi.services", request.data)
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.error("openapi.services", "service_id不存在!")
+            return Response(status=405, data={"success": False, "msg": u"service_id不存在"})
+        tenant_id = service.tenant_id
+        try:
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "租户不存在!")
+            return Response(status=405, data={"success": False, "msg": u"租户不存在"})
+
+        action = request.data.get("action", None)
+        limit = request.data.get("limit", True)
+        username = request.data.get("username", "system")
+        if action is None:
+            logger.error("openapi.services", "操作类型不能为空!")
+            return Response(status=405, data={"success": False, "msg": u"操作类型不能为空"})
+        if action == "version":
+            # 版本更新
+            version = request.data.get("version", None)
+            if version is None:
+                logger.error("openapi.services", "更新版本不能为空!")
+                return Response(status=405, data={"success": False, "msg": u"更新版本不能为空"})
+            # todo update
+            status, success, msg = manager.update_service_version(service)
+            return Response(status=status, data={"success": success, "msg": msg})
+        elif action == "extend":
+            # 更新内存
+            memory = request.data.get("memory", None)
+            node = request.data.get("node", None)
+            if memory is None:
+                logger.error("openapi.services", "设置内存不能为空!")
+                return Response(status=405, data={"success": False, "msg": u"设置内存不能为空"})
+            if node is None:
+                logger.error("openapi.services", "设置节点不能为空!")
+                return Response(status=405, data={"success": False, "msg": u"设置节点不能为空"})
+            # 先更改内存,在修改节点
+            status, success, msg = manager.update_service_memory(tenant, service, username, memory, limit)
+            if status == 200:
+                status, success, msg = manager.update_service_node(tenant, service, username, node, limit)
+                return Response(status=status, data={"success": success, "msg": msg})
+            else:
+                return Response(status=status, data={"success": success, "msg": msg})
+
+        elif action == "memory":
+            memory = request.data.get("memory", None)
+            if memory is None:
+                logger.error("openapi.services", "设置内存不能为空!")
+                return Response(status=405, data={"success": False, "msg": u"设置内存不能为空"})
+            status, success, msg = manager.update_service_memory(tenant, service, username, memory, limit)
+            return Response(status=status, data={"success": success, "msg": msg})
+        elif action == "node":
+            node = request.data.get("node", None)
+            if node is None:
+                logger.error("openapi.services", "设置节点不能为空!")
+                return Response(status=405, data={"success": False, "msg": u"设置节点不能为空"})
+            status, success, msg = manager.update_service_node(tenant, service, username, node, limit)
+            return Response(status=status, data={"success": success, "msg": msg})
+        else:
+            return Response(status=200, data={"success": True, "msg": "you do nothing!"})
+
+
+class QueryServiceView(BaseAPIView):
+    """查询服务信息"""
+    allowed_methods = ('POST',)
+
+    def post(self, request, service_id, *args, **kwargs):
+        status = 200
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except Exception as e:
+            logger.exception("openapi.services", e)
+            return Response(status=405, data={"success": False, "msg": u"服务不存在"})
+        service_key = service.service_key
+        service_list = ServiceInfo.objects.filter(service_key=service_key).order_by("-ID")
+        data = {
+            "new_version": service.update_version,
+        }
+        if len(service_list) > 0:
+            new_service = list(service_list)[-1]
+            data["new_version"] = new_service.update_version
+        return Response(status=status, data=data)
+
+
+class RemoveServiceView(BaseAPIView):
+    allowed_methods = ('DELETE',)
+
+    def delete(self, request, service_id, *args, **kwargs):
+        """
+        删除服务接口
+        ---
+        parameters:
+            - name: service_id
+              description: 服务ID
+              required: true
+              type: string
+              paramType: path
+            - name: username
+              description: 删除服务人名称
+              required: true
+              type: string
+              paramType: form
+
+        """
+        logger.debug("openapi.services", request.data)
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.error("openapi.services", "service_id不存在!")
+            return Response(status=406, data={"success": False, "msg": u"服务不存在"})
+        tenant_id = service.tenant_id
+        try:
+            tenant = Tenants.objects.get(tenant_id=tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "租户不存在!")
+            return Response(status=408, data={"success": False, "msg": u"租户不存在"})
+        username = request.data.get("username", "system")
+        if service.service_origin == "cloud":
+            logger.debug("openapi.services", "now remove cloud service")
+            # 删除依赖服务
+            status, success, msg = manager.remove_service(tenant, service, username)
+        else:
+            status, success, msg = manager.delete_service(tenant, service, username)
+        return Response(status=status, data={"success": success, "msg": msg})
