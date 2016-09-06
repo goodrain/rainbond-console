@@ -138,6 +138,12 @@ $(function(){
             $('#code_store_list').slideUp();
             $('#wait_loading').hide();
             $('div[data-action="manual"]').show();
+        }else if(selOption == 'option5'){
+            $('#service_code_from').val("gitlab_manual");
+            $('#code_store_list').slideUp();
+            $('#wait_loading').hide();
+            $('div[data-action="manual"]').hide();
+            $('div[data-action="demobox"]').show();
         }
     });
 });
