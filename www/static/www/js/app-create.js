@@ -80,7 +80,7 @@ $(function(){
                 return;
             }
             $("#service_code_clone_url").val(service_code_demo_url);
-            $("#sservice_code_version").val(service_code_demo_manual);
+            $("#service_code_version").val(service_code_demo_manual);
         } else {
             var service_code_id = $("#service_code_id").val()
             var gitValue = $("#git_version_"+service_code_id).val();
@@ -167,7 +167,7 @@ $(function(){
             $('div[data-action="demobox"]').hide();
             $('div[data-action="manual"]').show();
         }else if(selOption == 'option5'){
-            $('#service_code_from').val("gitlab_demo");
+            $('#service_code_from').val("gitlab_manual");
             $('#code_store_list').slideUp();
             $('#wait_loading').hide();
             $('div[data-action="manual"]').hide();
