@@ -63,9 +63,33 @@ $(function(){
             var gitValue = $("#git_version_"+service_code_id).val();
             $("#service_code_version").val(gitValue);
         }
+      // option5 start 
+      if (codeStoreSel == 'option5') {
+            var service_code_demo_url = $('#service_code_demo_url').val()
+            /*if(service_code_clone_url==""){
+                $("#service_code_clone_url_manual").focus()
+                scrollOffset($("#service_code_clone_url_manual").offset());
+                $('#create_git_notice').slideDown();
+                return;
+            }*/
+            var service_code_demo_manual = $('#service_code_demo_manual').val()
+            if(service_code_version==""){
+                $("#service_code_demo_manual").focus()
+                scrollOffset($("#service_code_demo_url").offset());
+                $('#create_demo_notice').slideDown();
+                return;
+            }
+            $("#service_code_demo_url").val(service_code_demo_url);
+            $("#service_code_demo_manual").val(service_code_demo_manual);
+        } else {
+            var service_code_id = $("#service_code_id").val()
+            var gitValue = $("#git_version_"+service_code_id).val();
+            $("#service_code_version").val(gitValue);
+        }
+      // option5 end 
         $("#first_step").attr('disabled', true);
     	var _data = $("form").serialize();
-        var tenantName= $('#currentTeantName').val();
+      var tenantName= $('#currentTeantName').val();
     	$.ajax({
     		type : "post",
     		url : "/apps/" + tenantName + "/app-create/",
