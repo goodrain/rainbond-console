@@ -45,7 +45,7 @@
 
                         <input input="" type="radio" value="option4" name="optionsRadios" id="optionsRadios4"> 用户自定义
                         <label style="font-size:14px" class="checkbox-inline"></label>
-                        <input input="" type="radio" value="option5" name="optionsRadios" > Demo
+                        <input input="" type="radio" value="option5" name="optionsRadios" id="optionsRadios5"> Demo
                         <label style="font-size:14px" class="checkbox-inline"></label>
 	                </div>
 	            </div>
@@ -106,25 +106,21 @@
                     </div>
                 </div>
 				<!-- demo -->
-				<div class="form-group" data-action="manual" >
+				<div class="form-group" data-action="manual" style="display:none;">
                     <label for="create_app_name" class="control-label col-lg-2 app_name">代码仓库地址</label>
                     <div class="col-lg-8">
                         <select name="" class="form-control">
-                        	<option value="">http://code.goodrain.com/demo/2048.git</option>
-                        	<option value="">http://code.goodrain.com/demo/static-hello.git</option>
-                        	<option value="">http://code.goodrain.com/demo/php-hello.git</option>
-                        	<option value="">http://code.goodrain.com/demo/python-hello.git</option>
-                        	<option value="">http://code.goodrain.com/demo/nodejs-hello.git</option>
-                        	<option value="">http://code.goodrain.com/demo/go-hello.git</option>
-                        	<option value="">http://code.goodrain.com/demo/java-spring-boot-demo.git</option>
+                        	<option value="http://code.goodrain.com/demo/2048.git">http://code.goodrain.com/demo/2048.git</option>
+                        	<option value="http://code.goodrain.com/demo/static-hello.git">http://code.goodrain.com/demo/static-hello.git</option>
+                        	<option value="http://code.goodrain.com/demo/php-hello.git">http://code.goodrain.com/demo/php-hello.git</option>
+                        	<option value="http://code.goodrain.com/demo/python-hello.git">http://code.goodrain.com/demo/python-hello.git</option>
+                        	<option value="http://code.goodrain.com/demo/nodejs-hello.git">http://code.goodrain.com/demo/nodejs-hello.git</option>
+                        	<option value="http://code.goodrain.com/demo/go-hello.git">http://code.goodrain.com/demo/go-hello.git</option>
+                        	<option value="http://code.goodrain.com/demo/java-spring-boot-demo.git">http://code.goodrain.com/demo/java-spring-boot-demo.git</option>
                         </select>
-                        <!--
-                        <div id="create_git_notice" class="alert alert-danger" role="alert"
-                             style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">代码仓库地址不能为空</div>
-                        -->
                     </div>
                 </div>
-                <div class="form-group" data-action="manual" >
+                <div class="form-group" data-action="manual" style="display:none;">
                     <label for="create_app_name" class="control-label col-lg-2 app_name">代码版本</label>
                     <div class="col-lg-8">
                         <input class="form-control valid" 
