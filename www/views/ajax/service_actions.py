@@ -186,7 +186,7 @@ class ServiceManage(AuthedView):
             try:
                 published = AppService.objects.filter(service_id=self.service.service_id).count()
                 if published:
-                    result["status"] = "failure"
+                    result["status"] = "success"
                     result["info"] = u"关联了已发布服务, 不可删除"
                     return JsonResponse(result)
 
