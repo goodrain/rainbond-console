@@ -73,7 +73,7 @@ $(function(){
                 return;
             }*/
             var service_code_demo_manual = $('#service_code_demo_manual').val();
-            if(service_code_version==""){
+            if(service_code_demo_manual==""){
                 $("#service_code_demo_manual").focus()
                 scrollOffset($("#service_code_demo_url").offset());
                 $('#create_demo_notice').slideDown();
