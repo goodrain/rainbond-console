@@ -113,6 +113,7 @@ $(function(){
             $('#code_store_list').slideUp();
             $('#wait_loading').hide();
             $('div[data-action="manual"]').hide();
+            $('div[data-action="demobox"]').hide();
         }else if(selOption == 'option2'){
             BranchLocalData = {};
         	$('#service_code_from').val("gitlab_exit");
@@ -120,6 +121,7 @@ $(function(){
             $('#create_codestore_notice').hide();
             $('#wait_loading').slideDown();
             $('div[data-action="manual"]').hide();
+            $('div[data-action="demobox"]').hide();
             var tenantName= $('#currentTeantName').val();
             _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
             loadRepos(_url);
@@ -130,6 +132,7 @@ $(function(){
             $('#create_codestore_notice').hide();
             $('#wait_loading').slideDown();
             $('div[data-action="manual"]').hide();
+            $('div[data-action="demobox"]').hide();
             var tenantName= $('#currentTeantName').val();
             _url = "/ajax/"+tenantName+"/code_repos?action=github";
             loadRepos(_url);
@@ -137,6 +140,7 @@ $(function(){
             $('#service_code_from').val("gitlab_manual");
             $('#code_store_list').slideUp();
             $('#wait_loading').hide();
+            $('div[data-action="demobox"]').hide();
             $('div[data-action="manual"]').show();
         }else if(selOption == 'option5'){
             $('#service_code_from').val("gitlab_manual");
