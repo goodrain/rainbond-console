@@ -79,8 +79,8 @@ $(function(){
                 $('#create_demo_notice').slideDown();
                 return;
             }
-            $("#service_code_demo_url").val(service_code_demo_url);
-            $("#service_code_demo_manual").val(service_code_demo_manual);
+            $("#service_code_clone_url").val(service_code_demo_url);
+            $("#sservice_code_version").val(service_code_demo_manual);
         } else {
             var service_code_id = $("#service_code_id").val()
             var gitValue = $("#git_version_"+service_code_id).val();
