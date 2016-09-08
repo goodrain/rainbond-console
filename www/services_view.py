@@ -215,7 +215,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
     def mnt_share_choices(self):
         mnt_share_type = {}
         mnt_share_type["shared"] = u'共享'
-        #mnt_share_type["exclusive"] = u'独享'
+        # mnt_share_type["exclusive"] = u'独享'
         return mnt_share_type
 
     # 获取所有的开放的http对外端口
@@ -394,7 +394,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
                 context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
@@ -502,7 +502,12 @@ class ServiceDockerContainer(AuthedView):
                 context["ctn_id"] = docker_c_id
                 context["host_id"] = docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
-                context["wss"] = settings.DOCKER_WSS_URL.get("type", "ws") + "://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
+                pro = settings.DOCKER_WSS_URL.get("type", "ws")
+                if pro == "ws":
+                    context["wss"] = pro + "://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
+                else:
+                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + docker_h_id
+                
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')

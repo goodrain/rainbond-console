@@ -215,10 +215,10 @@ WECHAT_CALLBACK = {
 DOCKER_WSS_URL = {
     'is_wide_domain': True,
     'type': 'wss',
-    'ucloud-bj-1': '-ucloud-bj-1-ws.goodrain.com:8088',
-    'aws-jp-1': '-aws-jp-1-ws.goodrain.com:8088',
-    'ali-sh': '-ali-sh-ws.goodrain.com:8088',
-    'xunda-bj': '-xunda-bj-ws.goodrain.com:8088',
+    'ucloud-bj-1': 'ucloud-bj-1-ws.goodrain.com:8088',
+    'aws-jp-1': 'aws-jp-1-ws.goodrain.com:8088',
+    'ali-sh': 'ali-sh-ws.goodrain.com:8088',
+    'xunda-bj': 'xunda-bj-ws.goodrain.com:8088',
 }
 
 OAUTH2_APP = {
