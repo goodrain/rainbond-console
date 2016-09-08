@@ -318,11 +318,16 @@ class CloudServiceInstallView(BaseAPIView):
         if region in settings.WILD_PORTS.keys():
             http_port_str = settings.WILD_PORTS[region]
         http_port_str = ":" + http_port_str
-        access_url = "http://{0}.{1}{2}{3}".format(
-            newTenantService.service_alias,
-            tenant_name,
-            wild_domain,
-            http_port_str)
+        # 只有http服务返回url
+        access_url = ""
+        if TenantServicesPort.objects.filter(service_id=newTenantService.service_id,
+                                             is_outer_service=True,
+                                             protocol='http').exists():
+            access_url = "http://{0}.{1}{2}{3}".format(
+                newTenantService.service_alias,
+                tenant_name,
+                wild_domain,
+                http_port_str)
         logger.debug("openapi.cloudservice", "service access url {0}".format(access_url))
         json_data = {}
         json_data["cloud_assistant"] = sn.instance.cloud_assistant
