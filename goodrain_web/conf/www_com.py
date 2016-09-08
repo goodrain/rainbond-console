@@ -29,7 +29,6 @@ STREAM_DOMAIN = False
 
 STREAM_DOMAIN_URL = {
     "ali-sh": "",
-    "aws-bj-1": "",
     "aws-jp-1": "",
     "ucloud-bj-1": "",
     "xunda-bj": ""
@@ -37,7 +36,6 @@ STREAM_DOMAIN_URL = {
 
 WILD_DOMAINS = {
     "ali-sh": ".ali-sh.goodrain.net",
-    "aws-bj-1": ".aws-bj-1.goodrain.net",
     "aws-jp-1": ".aws-jp-1.goodrain.net",
     "ucloud-bj-1": ".ucloud-bj-1.goodrain.net",
     "xunda-bj": ".xunda-bj.goodrain.net"
@@ -45,7 +43,6 @@ WILD_DOMAINS = {
 
 WILD_PORTS = {
     "ali-sh": "10080",
-    "aws-bj-1": "10080",
     "aws-jp-1": "80",
     "ucloud-bj-1": "10080",
     "xunda-bj": "10080",
@@ -85,15 +82,9 @@ REGION_SERVICE_API = [{
     'apitype': 'region service',
     'region_name': 'ucloud-bj-1'
 }, {
-    'url': 'http://api.aws-bj-1.goodrain.com:8888',
-    'apitype': 'region service',
-    'region_name': 'aws-bj-1'
-}, {
     'url': 'http://api.aws-jp-1.goodrain.com:8888',
     'apitype': 'region service',
-    'region_name': 'aws-jp-1',
-    # 'proxy': HTTP_PROXY['ali_hk_proxy'],
-    # 'proxy_priority': True,
+    'region_name': 'aws-jp-1'
 }, {
     'url': 'http://api.ali-sh.goodrain.com:8888',
     'apitype': 'region service',
@@ -111,7 +102,6 @@ APP_SERVICE_API = {
 
 WEBSOCKET_URL = {
     'ucloud-bj-1': 'wss://mpush-ucloud-bj-1.goodrain.com:6060/websocket',
-    'aws-bj-1': 'wss://mpush-aws-bj-1.goodrain.com:6060/websocket',
     'aws-jp-1': 'wss://mpush-aws-jp-1.goodrain.com:6060/websocket',
     'ali-sh': 'wss://mpush-ali-sh.goodrain.com:6060/websocket',
     'xunda-bj': 'wss://mpush-xunda-bj.goodrain.com:6060/websocket',
@@ -119,16 +109,16 @@ WEBSOCKET_URL = {
 
 REGION_RULE = {
     'ucloud-bj-1': {'personal_money': 0.083, 'company_money': 0.332, 'personal_month_money': 60, 'company_month_money': 120},
-    'aws-bj-1': {'personal_money': 0.243, 'company_money': 0.972, 'personal_month_money': 175, 'company_month_money': 350},
     'aws-jp-1': {'personal_money': 0.173, 'company_money': 0.692, 'personal_month_money': 125, 'company_month_money': 250},
     'ali-sh': {'personal_money': 0.069, 'company_money': 0.276, 'personal_month_money': 50, 'company_month_money': 100},
+    'xunda-bj': {'personal_money': 0.069, 'company_money': 0.276, 'personal_month_money': 50, 'company_month_money': 100},
 }
 
 REGION_FEE_RULE = {
     'ucloud-bj-1': {'memory_money': 0.083, 'disk_money': 0.0069, 'net_money': 0.8},
-    'aws-bj-1': {'memory_money': 0.243, 'disk_money': 0.0041, 'net_money': 0.93},
     'aws-jp-1': {'memory_money': 0.173, 'disk_money': 0.0041, 'net_money': 0.89},
     'ali-sh': {'memory_money': 0.069, 'disk_money': 0.0041, 'net_money': 0.8},
+    'xunda-bj': {'memory_money': 0.069, 'disk_money': 0.0041, 'net_money': 0.8},
 }
 
 GITLAB_SERVICE_API = {
@@ -200,14 +190,13 @@ REGIONS = (
     {"name": "aws-jp-1", "label": u'\u4e9a\u9a6c\u900a[\u65e5\u672c]', "enable": True}
 )
 
-# {"name": "xunda-hk", "label": u'\u8fc5\u8fbe[\u9999\u6e2f]', "enable": False}
+# {"name": "xunda-bj", "label": u'\u8fc5\u8fbe[\u5317\u4eac]', "enable": False}
 
 # logo path
 MEDIA_ROOT = '/data/media'
 # log domain
 LOG_DOMAIN = {
     "ali-sh": "ali-sh.download.goodrain.com",
-    "aws-bj-1": "aws-bj-1.download.goodrain.com",
     "aws-jp-1": "aws-jp-1.download.goodrain.com",
     "ucloud-bj-1": "ucloud-bj-1.download.goodrain.com",
     "xunda-bj": "xunda-bj.download.goodrain.com",
@@ -227,7 +216,6 @@ DOCKER_WSS_URL = {
     'is_wide_domain': True,
     'type': 'wss',
     'ucloud-bj-1': '-ucloud-bj-1-ws.goodrain.com:8088',
-    'aws-bj-1': '',
     'aws-jp-1': '-aws-jp-1-ws.goodrain.com:8088',
     'ali-sh': '-ali-sh-ws.goodrain.com:8088',
     'xunda-bj': '-xunda-bj-ws.goodrain.com:8088',
