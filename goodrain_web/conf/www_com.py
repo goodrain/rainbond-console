@@ -213,7 +213,7 @@ LOG_DOMAIN = {
     "xunda-hk": "xunda-hk.download.goodrain.com",
 }
 # open api
-IS_OPEN_API = False
+IS_OPEN_API = True
 
 WECHAT_CALLBACK = {
     "console": "http://user.goodrain.com/wechat/callback",
