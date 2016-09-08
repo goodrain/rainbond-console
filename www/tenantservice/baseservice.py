@@ -505,7 +505,14 @@ class TenantRegionService(object):
 
     def init_for_region(self, region, tenant_name, tenant_id, user):
         success = True
-        tenantRegion = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region)
+        try:
+            tenantRegion = TenantRegionInfo.objects.get(tenant_id=tenant_id, region_name=region)
+        except Exception:
+            tenantRegion = TenantRegionInfo()
+            tenantRegion.tenant_id = tenant_id
+            tenantRegion.region_name = region
+            tenantRegion.save()
+
         if not tenantRegion.is_init:
             api = RegionServiceApi()
             logger.info("account.register", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
