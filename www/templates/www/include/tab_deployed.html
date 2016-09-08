@@ -112,7 +112,7 @@
 				<table class="table table-hover">
 					<thead>
 					<tr>
-						<th>pod_name</th>
+						<th>容器名</th>
 						<th>已使用内存</th>
 						<th>最大内存</th>
 						<th>内存百分比</th>
@@ -506,7 +506,8 @@
 				var content = "";
 				$("#container_stats").html(content);
 				for(var i=0;i<list.length;i++){
-					content += "<tr><td>" + list[i].pod_name + "</td>>" + "<td>" + list[i].used_memory + " M</td>" + "<td>" + list[i].memory_limit + " M</td>" + "<td>" + list[i].memory_percent + " %</td>" + "<td>" + list[i].cpu_percent + " %</td></tr>";
+					var index = i+1;
+					content += "<tr><td> 容器" + index + "</td>>" + "<td>" + list[i].used_memory + " M</td>" + "<td>" + list[i].memory_limit + " M</td>" + "<td>" + list[i].memory_percent + " %</td>" + "<td>" + list[i].cpu_percent + " %</td></tr>";
 				}
 				$("#container_stats").append(content);
 			},
