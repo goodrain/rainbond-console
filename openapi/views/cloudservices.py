@@ -8,6 +8,7 @@ from www.utils import crypt
 from django.conf import settings
 from django.db.models import Q
 import re
+import json
 import logging
 from www.utils import sn
 from www.monitorservice.monitorhook import MonitorHook
@@ -67,6 +68,16 @@ class CloudServiceInstallView(BaseAPIView):
               required: false
               type: int
               paramType: form
+            - name: service_node
+              description: 节点个数
+              required: false
+              type: int
+              paramType: form
+            - name: dep_info
+              description: 套餐依赖服务的设置(json)
+              required: false
+              type: string
+              paramType: form
             - name: env_list
               description: 服务的环境参数
               required: false
@@ -98,6 +109,10 @@ class CloudServiceInstallView(BaseAPIView):
         user_id = request.data.get("user_id", "1")
         username = request.data.get("username", "system")
         service_memory = request.data.get("service_memory", "")
+        service_node = request.data.get("service_node", 1)
+        dep_info = request.data.get("dep_info", "[]")
+        dep_info_json = json.loads(dep_info)
+        dep_service_info = {"{0}-{1}".format(x.get("service_key"), x.get("app_version")):x for x in dep_info_json}
 
         logger.debug("openapi.cloudservice", "now create service: service_name:{0}, tenant_name:{1}, region:{2}, key:{3}, version:{4}".format(service_name, tenant_name, region, service_key, version))
         r = re.compile("^[a-z][a-z0-9-]*[a-z0-9]$")
@@ -134,7 +149,15 @@ class CloudServiceInstallView(BaseAPIView):
                 dep_query = dep_query | (Q(service_key=tmp_key) & Q(version=tmp_version))
             dep_service_list = ServiceInfo.objects.filter(dep_query)
             if len(dep_service_list) > 0:
-                dep_required_memory = reduce(lambda x, y: x + y, [s.min_memory for s in dep_service_list])
+                # 计算依赖服务需要的资源
+                for dep_service_tmp in list(dep_service_list):
+                    tmp_key = "{0}-{1}".format(dep_service_tmp.service_key, dep_service_tmp.version)
+                    dep_info = dep_service_info.get(tmp_key)
+                    if dep_info is not None:
+                        dep_required_memory += int(dep_info.memory) * int(dep_info.node)
+                    else:
+                        dep_required_memory += int(dep_service_tmp.min_memory)
+                # dep_required_memory = reduce(lambda x, y: x + y, [s.min_memory for s in dep_service_list])
 
         # 生成随机service_id
         service_id = crypt.make_uuid(tenant.tenant_id)
@@ -152,6 +175,8 @@ class CloudServiceInstallView(BaseAPIView):
         tenant_service_info.min_memory = service.min_memory
         tenant_service_info.service_region = region
         tenant_service_info.min_node = service.min_node
+        if int(service_node) > 1:
+            tenant_service_info.min_node = int(service_node)
         diffMemory = dep_required_memory + service.min_node * service.min_memory
         # 是否检查资源限制
         limit = request.data.get("limit", True)
@@ -182,6 +207,13 @@ class CloudServiceInstallView(BaseAPIView):
                                                               user_id,
                                                               region=region,
                                                               service_origin='cloud')
+                    # 更新服务节点、内存
+                    tmp_key = "{0}-{1}".format(dep_service_tmp.service_key, dep_service_tmp.version)
+                    dep_info = dep_service_info.get(tmp_key)
+                    if dep_info is not None:
+                        depTenantService.min_node = int(dep_info.node)
+                        depTenantService.min_memory = int(dep_info.memory)
+                        depTenantService.save()
                     manager.add_service_extend(depTenantService, dep_service)
                     monitorhook.serviceMonitor(username, depTenantService, 'create_service', True)
                     tenant_service_list.append(depTenantService)
@@ -223,6 +255,15 @@ class CloudServiceInstallView(BaseAPIView):
                                                       user_id,
                                                       region=region,
                                                       service_origin='cloud')
+            need_update = False
+            if service_memory != "" and int(service_memory) > 128:
+                newTenantService.min_memory = int(service_memory)
+                need_update = True
+            if int(service_node) > 1:
+                newTenantService.min_node = int(dep_info.node)
+                need_update = True
+            if need_update:
+                newTenantService.save()
             manager.add_service_extend(newTenantService, service)
             monitorhook.serviceMonitor(username, newTenantService, 'create_service', True)
         except Exception as e:
