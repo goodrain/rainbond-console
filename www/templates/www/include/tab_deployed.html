@@ -484,7 +484,7 @@
     function visit() {
 		var port = $("#multi_ports").val();
 
-		var url = "http://{{serviceAlias}}_"+port+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
+		var url = "http://{{serviceAlias}}-"+port+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
 		if(port==""||port == null){
 			url = "http://{{serviceAlias}}"+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
 		}
