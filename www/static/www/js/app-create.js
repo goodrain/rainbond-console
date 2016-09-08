@@ -16,26 +16,26 @@ $(function(){
         }
     });
     //第一步
-    $('#first_step').click(function(){
+    $('#first_step').click(function() {
         var appName = $('#create_app_name').val(),
-            checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
-            result = true;
-            
-        if(!checkReg.test(appName)){
-        	$("#create_app_name").focus()
-        	scrollOffset($("#create_app_name").offset()); 
+                checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
+                result = true;
+
+        if (!checkReg.test(appName)) {
+            $("#create_app_name").focus()
+            scrollOffset($("#create_app_name").offset());
             $('#create_appname_notice').slideDown();
             return;
-        }else{
+        } else {
             $('#create_appname_notice').slideUp();
         }
         var codeStoreSel = $(':radio:checked', $('#sel_code_store')).val();
-        if((codeStoreSel == 'option2' || codeStoreSel == 'option3') && !$('.duigou_icon', $('#code_store_list')).length){
+        if ((codeStoreSel == 'option2' || codeStoreSel == 'option3') && !$('.duigou_icon', $('#code_store_list')).length) {
             // $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').slideDown();
             $('#create_codestore_notice').slideDown();
             return;
         }
-        if(appName.length>30) {
+        if (appName.length > 30) {
             swal("服务名太长,不能超过30个字符");
             return;
         }
@@ -43,14 +43,14 @@ $(function(){
         // manual git check
         if (codeStoreSel == 'option4') {
             var service_code_clone_url = $('#service_code_clone_url_manual').val()
-            if(service_code_clone_url==""){
+            if (service_code_clone_url == "") {
                 $("#service_code_clone_url_manual").focus()
                 scrollOffset($("#service_code_clone_url_manual").offset());
                 $('#create_git_notice').slideDown();
                 return;
             }
             var service_code_version = $('#service_code_version_manual').val()
-            if(service_code_version==""){
+            if (service_code_version == "") {
                 $("#service_code_version_manual").focus()
                 scrollOffset($("#service_code_version_manual").offset());
                 $('#create_version_notice').slideDown();
@@ -58,20 +58,8 @@ $(function(){
             }
             $("#service_code_clone_url").val(service_code_clone_url);
             $("#service_code_version").val(service_code_version);
-        } else {
-            var service_code_id = $("#service_code_id").val()
-            var gitValue = $("#git_version_"+service_code_id).val();
-            $("#service_code_version").val(gitValue);
-        }
-      // option5 start 
-      if (codeStoreSel == 'option5') {
+        } else if (codeStoreSel == 'option5') {
             var service_code_demo_url = $('#service_code_demo_url option:selected').val();
-            /*if(service_code_clone_url==""){
-                $("#service_code_clone_url_manual").focus()
-                scrollOffset($("#service_code_clone_url_manual").offset());
-                $('#create_git_notice').slideDown();
-                return;
-            }*/
             var service_code_demo_manual = $('#service_code_demo_manual').val();
             if(service_code_demo_manual==""){
                 $("#service_code_demo_manual").focus()
@@ -86,10 +74,9 @@ $(function(){
             var gitValue = $("#git_version_"+service_code_id).val();
             $("#service_code_version").val(gitValue);
         }
-      // option5 end 
         $("#first_step").attr('disabled', true);
     	var _data = $("form").serialize();
-      var tenantName= $('#currentTeantName').val();
+        var tenantName= $('#currentTeantName').val();
     	$.ajax({
     		type : "post",
     		url : "/apps/" + tenantName + "/app-create/",
