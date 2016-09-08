@@ -2,6 +2,7 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
 {% load static %}
+{% load goodrain_extras %}
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/setbox.css" %}' />
@@ -17,6 +18,7 @@
             <input type="hidden" id="service_alias" name="service_alias" value="{{service_alias}}"/>
             <input type="hidden" id="service_key" name="service_key" value="{{service_key}}"/>
             <input type="hidden" id="app_version" name="app_version" value="{{app_version}}"/>
+            <input type="hidden" id="dep_service_model" name="dep_service_model" value="{{dep_service_model}}"/>
             <!--  已有列表-->
             <ul class="oldlist" id="oldlistbox">
                 {% for package in service_package %}
@@ -33,6 +35,22 @@
                             <cite data-value="{{package.trial}}">{{package.trial}}天</cite></p>
                         <p><span>订价:</span>
                             <cite data-value="{{package.price}}">{{package.price}}元／月</cite></p>
+
+                        {% with service_package_map|mkey:package.ID as dep_service_list %}
+                            {% for dep_service in dep_service_list %}
+                            <p><span>依赖服务{{dep_service.service_alias}}:</span>
+                                <cite data-memory="{{dep_service.memory}}"
+                                      data-node="{{dep_service.node}}"
+                                      data-version="{{dep_service.app_version}}"
+                                      data-alias="{{dep_service.service_alias}}"
+                                      data-key="{{dep_service.service_key}}"
+                                      data-dep="dep">
+                                    内存: {{dep_service.memory}}M,
+                                    节点: {{dep_service.node}}个</cite>
+                            </p>
+                            {% endfor %}
+                        {% endwith %}
+
                         <div class="total">
                             本套餐在云市的最终价格为
                             <span data-value="{{package.total_price}}">{{package.total_price}}元／月</span>

@@ -25,8 +25,8 @@ h2.tit{ font-size: 24px; line-height: 40px; text-align: center;}
 .oldlist{padding:20px 0 0; font-size: 14px; border-bottom: 1px #d9dadb dashed;}
 .oldlist li{padding:10px 0 20px; }
 .oldlist li p{width: 100%; margin-bottom: 0; line-height: 40px;}
-.oldlist li p span{width: 40%; display: inline-block; text-align: right; padding-right: 10px;}
-.oldlist li p cite{width: 56%; display: inline-block; text-align: left;}
+.oldlist li p span{width: 50%; display: inline-block; text-align: right; padding-right: 10px;}
+.oldlist li p cite{width: 49%; display: inline-block; text-align: left;}
 .oldlist li:nth-child(2n){background: #f8f8f8;}
 .litlinkbtn{text-align: center;}
 .litlinkbtn a{margin:0 10px; display: inline-block;}

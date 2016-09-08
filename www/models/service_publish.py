@@ -265,12 +265,11 @@ class AppServicePackages(BaseModel):
 
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     app_version = models.CharField(max_length=20, null=False, help_text=u"当前最新版本")
-
     name = models.CharField(max_length=100, help_text=u"套餐名称")
     memory = models.IntegerField(help_text=u"内存数")
     node = models.IntegerField(help_text=u"节点数")
     trial = models.IntegerField(help_text=u"试用时长")
-
     price = models.FloatField(help_text=u"定价元/月")
     total_price = models.FloatField(help_text=u"定价元/月")
+    dep_info = models.CharField(max_length=2000, default='[]', help_text=u"依赖服务内存、节点信息")
 

@@ -483,13 +483,66 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         # 查询之前是否设置有套餐
         service_key = request.GET.get("service_key")
         app_version = request.GET.get("app_version")
-        service_package = AppServicePackages.objects.filter(service_key=service_key, app_version=app_version)
-        #
-        # path param
-        context["tenant_name"] = self.tenantName
-        context["service_alias"] = self.serviceAlias
         context["service_key"] = service_key
         context["app_version"] = app_version
+        context["tenant_name"] = self.tenantName
+        context["service_alias"] = self.serviceAlias
+        service_package = AppServicePackages.objects.filter(service_key=service_key, app_version=app_version)
+        # 兼容之前数据
+        dep_service_list = AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version)
+        if len(dep_service_list) > 0:
+            service_package_map = {}
+            for package in list(service_package):
+                dep_info = package.dep_info
+                dep_service_json = json.loads(dep_info)
+                package.price = round(package.price, 2)
+                package.total_price = round(package.total_price, 2)
+                dep_service_map = {}
+                if len(dep_service_json) > 0:
+                    dep_service_map = {'{0}-{1}'.format(x.get("service_key"), x.get("app_version")): x for x in dep_service_json}
+                for dep_service in list(dep_service_list):
+                    service_key = dep_service.dep_service_key
+                    app_version = dep_service.dep_app_version
+                    service_alias = dep_service.dep_app_alias
+
+                    key = '{0}-{1}'.format(service_key, app_version)
+                    if key in dep_service_map.keys():
+                        pass
+                    else:
+                        memory = 128
+                        node = 1
+                        try:
+                            service_info = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                            memory = service_info.min_memory
+                            node = service_info.min_node
+                        except Exception:
+                            pass
+                        dep_service_map[key] = {
+                            "service_key": service_key,
+                            "app_version": app_version,
+                            "memory": memory,
+                            "node": node,
+                            "service_alias": service_alias,
+                        }
+                service_package_map[package.ID] = dep_service_map.values()
+            context["service_package_map"] = service_package_map
+            dep_service_model = []
+            for dep_service in list(dep_service_list):
+                service_key = dep_service.dep_service_key
+                app_version = dep_service.dep_app_version
+                service_alias = dep_service.dep_app_alias
+                tmp_map = {
+                    "service_key": service_key,
+                    "app_version": app_version,
+                    "memory": 128,
+                    "node": 1,
+                    "service_alias": service_alias,
+                }
+                dep_service_model.append(tmp_map)
+            context["dep_service_model"] = json.dumps(dep_service_model)
+        else:
+            context["service_package_map"] = {}
+            context["dep_service_model"] = "[]"
         context["service_package"] = service_package
         # 返回页面
         return TemplateResponse(request, 'www/service/share_step_4.html', context)
@@ -597,8 +650,8 @@ class ShareServicePackageView(BaseView):
             "data-memory": service_package.memory,
             "data-node": service_package.node,
             "data-time": service_package.trial,
-            "data-price": service_package.price,
-            "data-total": service_package.total_price,
+            "data-price": round(service_package.price, 2),
+            "data-total": round(service_package.total_price, 2),
         }
         return JsonResponse(status=200, data=data)
 
@@ -614,6 +667,8 @@ class ShareServicePackageView(BaseView):
         total_price = request.POST.get("total_price", 0)
         service_key = request.POST.get("service_key", None)
         app_version = request.POST.get("app_version", None)
+        dep_info = request.POST.get("dep_info", "[]")
+        logger.debug(request.POST)
 
         if action == "delete":
             # delete
@@ -638,8 +693,9 @@ class ShareServicePackageView(BaseView):
             package.memory = memory
             package.node = node
             package.trial = trial
-            package.price = price
-            package.total_price = total_price
+            package.price = round(float(price), 2)
+            package.total_price = round(float(total_price), 2)
+            package.dep_info = dep_info
             package.save()
             return JsonResponse(status=200, data={"code": 200, "info": json.dumps(package.to_dict())})
         else:
