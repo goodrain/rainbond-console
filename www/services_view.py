@@ -207,7 +207,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
     def multi_port_choices(self):
         multi_port = {}
         multi_port["one_outer"] = u'单一端口开放'
-        multi_port["dif_protocol"] = u'按协议开放'
+        # multi_port["dif_protocol"] = u'按协议开放'
         multi_port["multi_outer"] = u'多端口开放'
         return multi_port
 
