@@ -47,7 +47,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                     raise Http404
                 self.response_region = region
             else:
-                if region == 'xunda-hk':
+                if region == 'xunda-bj':
                     self.response_region = region
                 else:
                     raise Http404
@@ -202,7 +202,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         extends_dict["stateless"] = u'无状态'
         extends_dict["state-expend"] = u'有状态可水平扩容'
         return extends_dict
-     
+
      # 端口开放下拉列表选项
     def multi_port_choices(self):
         multi_port = {}
@@ -220,7 +220,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
     # 获取所有的开放的http对外端口
     def get_outer_service_port(self):
-        out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_outer_service=True, protocol='http')
+        out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http')
         return out_service_port_list
 
     @never_cache
@@ -295,12 +295,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
-                
+
                 # get port type
                 context["visit_port_type"] = self.service.port_type
-                if self.service.port_type=="multi_outer":
+                if self.service.port_type == "multi_outer":
                     context["http_outer_service_ports"] = self.get_outer_service_port()
-                    
+
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
@@ -394,7 +394,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
                 context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
