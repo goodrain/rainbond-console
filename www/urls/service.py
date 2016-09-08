@@ -1,5 +1,4 @@
 from django.conf.urls import patterns, url
-# from www.tests import *
 from www.services_view import *
 from www.app_services_view import *
 from www.back_services_view import *
@@ -8,10 +7,8 @@ from www.views.service import TeamInfo
 from django.contrib.auth.decorators import login_required
 from www import alipay_view
 from django.views.decorators.csrf import csrf_exempt
-# from www.views.service import ServicePublishView, ServicePublishExtraView
 from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
-from www.views.serviceshare import ShareServiceImageView, ShareServiceStep1View, \
-    ShareServiceStep2View, ShareServiceStep3View
+from www.views.serviceshare import *
 
 
 urlpatterns = patterns(
@@ -60,5 +57,7 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step1$', ShareServiceStep1View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step2$', ShareServiceStep2View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step3$', ShareServiceStep3View.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/share/step4$', ShareServiceStep4View.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/share/package$', ShareServicePackageView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
 )

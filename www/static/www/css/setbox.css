@@ -1,0 +1,86 @@
+cite,em{font-style:normal;}
+a{cursor: pointer;}
+a:link{ text-decoration: none;}
+a:visited{ text-decoration: none;}
+a:hover{ text-decoration: none;}
+a:active{text-decoration: none;}
+ul,ul li{list-style: none;}
+
+h2.tit{ font-size: 24px; line-height: 40px; text-align: center;}
+
+.setbox{margin:10px; border: 1px #d9dadb solid;}
+.unit{font-size: 16px; line-height: 34px; margin-bottom: 0;}
+
+.fmBox{}
+.showbox{border-bottom: 1px #b9b9b9 dashed; padding:10px;}
+.readyBox{border-bottom: 1px #b9b9b9 dashed; margin-bottom: 30px; padding-bottom: 10px; line-height: 30px; font-size: 14px;}
+.readyBox .col-sm-2{text-align: right; padding-right: 0;}
+.readyBox .col-sm-6{text-align: left;}
+
+.linkbox{width: 100%; text-align: center;}
+.litlinkbox{width: 100%; text-align: center;}
+
+
+/* old  list  */
+.oldlist{padding:20px 0 0; font-size: 14px; border-bottom: 1px #d9dadb dashed;}
+.oldlist li{padding:10px 0 20px; }
+.oldlist li p{width: 100%; margin-bottom: 0; line-height: 40px;}
+.oldlist li p span{width: 50%; display: inline-block; text-align: right; padding-right: 10px;}
+.oldlist li p cite{width: 49%; display: inline-block; text-align: left;}
+.oldlist li:nth-child(2n){background: #f8f8f8;}
+.litlinkbtn{text-align: center;}
+.litlinkbtn a{margin:0 10px; display: inline-block;}
+.total{line-height: 30px; font-size: 14px; text-align: center; padding:10px 0;}
+.total span{color: #ff6f62; font-size: 18px; }
+
+/* big btn */
+.graybtn{ background: #c7c7c7; color: #ffffff; font-size: 14px; height: 34px; width: 150px; border-radius: 4px; margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
+.graybtn:link,.graybtn:visited,.graybtn:hover,.graybtn:active{color: #ffffff;}
+.greenbtn{ background: #28cb75; color: #ffffff; font-size: 14px; height: 34px; width: 150px; border-radius: 4px; margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
+.greenbtn:link,.greenbtn:visited,.greenbtn:hover,.greenbtn:active{color: #ffffff;}
+.redbtn{ background: #e74635; color: #ffffff; font-size: 14px; height: 34px; width: 150px; border-radius: 4px; margin:10px 0 0; display:inline-block; text-align: center; line-height: 34px;}
+.redbtn:link,.greenbtn:visited,.greenbtn:hover,.greenbtn:active{color: #ffffff;}
+.bluebtn{ background: #1a7ccf; color: #ffffff; font-size: 14px; height: 34px; width: 150px; border-radius: 4px; margin:10px 0 0; display:inline-block; text-align: center; line-height: 34px;}
+.bluebtn:link,.bluebtn:visited,.bluebtn:hover,.bluebtn:active{color: #ffffff;}
+
+/* little btn */
+.litgraybtn{ background: #c7c7c7; color: #ffffff; font-size: 14px; height: 34px; width: 100px; border-radius: 4px; margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
+.litgraybtn:link,.litgraybtn:visited,.litgraybtn:hover,.litgraybtn:active{color: #ffffff;}
+.litgreenbtn{ background: #28cb75; color: #ffffff; font-size: 14px; height: 34px; width: 100px; border-radius: 4px; margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
+.litgreenbtn:link,.litgreenbtn:visited,.litgreenbtn:hover,.litgreenbtn:active{color: #ffffff;}
+.litredbtn{ background: #e74635; color: #ffffff; font-size: 14px; height: 34px; width: 100px; border-radius: 4px; margin:10px 0 0; display:inline-block; text-align: center; line-height: 34px;}
+.litredbtn:link,.litredbtn:visited,.litredbtn:hover,.litredbtn:active{color: #ffffff;}
+.litbluebtn{ background: #1a7ccf; color: #ffffff; font-size: 14px; height: 34px; width: 100px; border-radius: 4px; margin:10px 0 0; display:inline-block; text-align: center; line-height: 34px;}
+.litbluebtn:link,.litbluebtn:visited,.litbluebtn:hover,.litbluebtn:active{color: #ffffff;}
+
+
+
+/* 弹出层 */
+.litlayer{width: 100%; height: 100%; background: rgba(0,0,0,.6); position: fixed; z-index: 9999; top: 0; left: 0; bottom: 0;}
+.layerbox{width: 80%; min-height: 200px; background: #fff; border: 1px #ccc solid; border-radius: 4px; margin:250px auto 0; max-width: 350px; position: relative; cursor: pointer;}
+.closeicon{width:30px; height: 30px; background: url('../images/bigclose.png'); background-size: 30px 30px; position: absolute; top: 10px; right: 10px; }
+.bigsuccessicon{width: 30px; height: 30px; background: url('../images/bigsuccess.png'); background-size: 30px 30px; display:inline-block; }
+.rewhite{width: 60%; height: 30px; background: #28cb75; color: #fff; line-height: 30px; border-radius: 4px; text-align: center;margin:10px auto; display: block; font-size: 16px;}
+.rewhite:hover{color: #fff; cursor: pointer;}
+.laytiptext{width: 90%; margin:70px auto 40px; font-size: 18px; color: #666; line-height: 30px; text-align: center;}
+.warnicon{width: 30px; height: 30px; background: url('../images/bigwarn.png'); background-size: 30px 30px; display:inline-block; }
+.laytiptext cite{display: inline-block;  padding-left: 10px; position: relative; top: -8px;}
+
+
+
+/* buy */
+
+.buybox{padding: 20px;}
+
+.buybox .leftbox{width:45%; float: left;}
+.buybox .leftbox h4{font-size: 18px; text-align: center; line-height: 40px;}
+.buybox .leftbox .col-sm-4{padding-right: 0;}
+
+.buybox .rightbox{ width: 50%; border-left: 1px #ccc dashed; min-height: 300px; float: right; }
+.buybox .rightbox .greenbtn{margin-left:50px; }
+.buybox .rightbox ul{padding-left: 50px; padding-top: 30px;}
+.buybox .rightbox ul li{font-size: 16px; line-height: 50px;}
+.buybox .rightbox ul li.payment cite{line-height: 30px;}
+.payment span,.payment cite{display: block;}
+.payment cite{color: #28cb75; font-size: 24px; }
+

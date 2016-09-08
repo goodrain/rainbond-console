@@ -94,8 +94,8 @@ a.exitlogin{width: 100%; height: 60px; display: block; color: #fff; background: 
 .laytiptext cite{display: inline-block;  padding-left: 10px; position: relative; top: -8px;}
 
 @media screen and (max-width:920px){
-   .inforbox{ width: 35% }
-   .authorization{width: 62%;}
+	.inforbox{ width: 35% }
+	.authorization{width: 62%;}
 }
 
 @media screen and (max-width:640px){
@@ -104,7 +104,7 @@ a.exitlogin{width: 100%; height: 60px; display: block; color: #fff; background: 
    .errortips{padding-left:0; width: 95%;}
    .texttips{display: block;}
    .yzmsx{ width:35%;}
-
+   
    .inforbox{ width: 100%; float: none;}
    .authorization{width: 100%; float: none;}
    .inforbox p {height: 40px; line-height: 40px; margin-bottom: 0;}
@@ -119,14 +119,14 @@ a.exitlogin{width: 100%; height: 60px; display: block; color: #fff; background: 
 
 @media screen and (max-width:540px){
    .fm-input input {width: 92%;}
-   .errortips{width: 92%;}
+   errortips{width: 92%;}
    .inforbox ul li{width: 100%; float: none;}
-
+   
 }
 @media screen and (max-width:360px){
    .fm-input input {width: 90%;}
-   .errortips{width: 90%;}
-
+   errortips{width: 90%;}
+   
 }
 
 

@@ -7,8 +7,12 @@ from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceEnv, ServiceDomain, Tenants, AppService, Users, \
-    AppServicePort, AppServiceEnv, AppServiceVolume, TenantServiceVolume
+    AppServicePort, AppServiceEnv, AppServiceVolume, TenantServiceVolume, \
+    ServiceInfo, ServiceExtendMethod, AppServiceRelation
 from www.service_http import RegionServiceApi
+from www.app_http import AppServiceApi
+from www.region import RegionInfo
+from www.utils import sn
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import TenantRegionService
@@ -19,6 +23,7 @@ logger = logging.getLogger('default')
 monitorhook = MonitorHook()
 regionClient = RegionServiceApi()
 tenantRegionService = TenantRegionService()
+appClient = AppServiceApi()
 
 
 class OpenTenantServiceManager(object):
@@ -36,7 +41,7 @@ class OpenTenantServiceManager(object):
         max_port = reduce(lambda x, y: y if (y - x) == 1 else x, port_list)
         return max_port + 1
 
-    def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
+    def create_service(self, service_id, tenant_id, service_alias, service, creater, region, service_origin='assistant'):
         """创建console服务"""
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
@@ -74,6 +79,7 @@ class OpenTenantServiceManager(object):
         tenantServiceInfo["service_type"] = service.service_type
         tenantServiceInfo["creater"] = creater
         tenantServiceInfo["total_memory"] = service.min_node * service.min_memory
+        tenantServiceInfo["service_origin"] = service_origin
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
@@ -126,22 +132,12 @@ class OpenTenantServiceManager(object):
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
     
-    def delete_service(self, tenant_name, service_name, username):
-        try:
-            tenant = Tenants.objects.get(tenant_name=tenant_name)
-            service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
-        except Tenants.DoesNotExist:
-            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
-            return 406, False, u"租户不存在,请检查租户名称"
-        except TenantServiceInfo.DoesNotExist:
-            logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
-            return 408, False, u"服务不存在"
-
+    def delete_service(self, tenant, service, username):
         try:
             # 检查服务关联
             published = AppService.objects.filter(service_id=service.service_id).count()
             if published:
-                logger.debug("openapi.services", "services has related published!".format(tenant_name, service_name))
+                logger.debug("openapi.services", "services has related published!".format(tenant.tenant_name, service.service_name))
                 return 409, False, u"关联了已发布服务, 不可删除"
             # 检查服务依赖
             dep_service_ids = TenantServiceRelation.objects.filter(dep_service_id=service.service_id).values("service_id")
@@ -185,6 +181,65 @@ class OpenTenantServiceManager(object):
                 logger.exception("openapi.services", e)
             # 删除console服务
             TenantServiceInfo.objects.get(service_id=service.service_id).delete()
+            # env/auth/domain/relationship/envVar delete
+            TenantServiceEnv.objects.filter(service_id=service.service_id).delete()
+            TenantServiceAuth.objects.filter(service_id=service.service_id).delete()
+            ServiceDomain.objects.filter(service_id=service.service_id).delete()
+            TenantServiceRelation.objects.filter(service_id=service.service_id).delete()
+            TenantServiceEnvVar.objects.filter(service_id=service.service_id).delete()
+            TenantServiceMountRelation.objects.filter(service_id=service.service_id).delete()
+            TenantServicesPort.objects.filter(service_id=service.service_id).delete()
+            TenantServiceVolume.objects.filter(service_id=service.service_id).delete()
+            monitorhook.serviceMonitor(username, service, 'app_delete', True)
+            logger.debug("openapi.services", "delete service.result:success")
+            return 200, True, u"删除成功"
+        except Exception as e:
+            logger.exception("openapi.services", e)
+            logger.debug("openapi.services", "delete service.result:failure")
+            return 412, False, u"删除失败"
+
+    def remove_service(self, tenant, service, username):
+        try:
+            # 检查当前服务的依赖服务
+            dep_service_relation = TenantServiceRelation.objects.filter(service_id=service.service_id)
+            if len(dep_service_relation) > 0:
+                dep_service_ids = [x.dep_service_id for x in list(dep_service_relation)]
+                logger.debug(dep_service_ids)
+                # 删除依赖服务
+                dep_service_list = TenantServiceInfo.objects.filter(service_id__in=list(dep_service_ids))
+                for dep_service in list(dep_service_list):
+                    try:
+                        regionClient.delete(dep_service.service_region, dep_service.service_id)
+                        TenantServiceInfo.objects.filter(pk=dep_service.ID).delete()
+                        TenantServiceEnv.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceAuth.objects.filter(service_id=dep_service.service_id).delete()
+                        ServiceDomain.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceRelation.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceEnvVar.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceMountRelation.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServicesPort.objects.filter(service_id=dep_service.service_id).delete()
+                        TenantServiceVolume.objects.filter(service_id=dep_service.service_id).delete()
+                        monitorhook.serviceMonitor(username, dep_service, 'app_delete', True)
+                    except Exception as e:
+                        logger.exception("openapi.services", e)
+            logger.debug("openapi.services", "dep service delete!")
+            # 删除挂载关系
+            TenantServiceMountRelation.objects.filter(service_id=service.service_id).delete()
+            # 删除被挂载关系
+            TenantServiceMountRelation.objects.filter(dep_service_id=service.service_id).delete()
+            logger.debug("openapi.services", "dep mnt delete!")
+            data = service.toJSON()
+            tenant_service_info_delete = TenantServiceInfoDelete(**data)
+            tenant_service_info_delete.save()
+            logger.debug("openapi.services", "add delete record!")
+            # 删除region服务
+            try:
+                regionClient.delete(service.service_region, service.service_id)
+            except Exception as e:
+                logger.exception("openapi.services", e)
+            logger.debug("openapi.services", "delete region service!")
+            # 删除console服务
+            TenantServiceInfo.objects.filter(service_id=service.service_id).delete()
             # env/auth/domain/relationship/envVar delete
             TenantServiceEnv.objects.filter(service_id=service.service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service.service_id).delete()
@@ -566,3 +621,311 @@ class OpenTenantServiceManager(object):
             return True
         else:
             return False
+
+    def download_remote_service(self, service_key, version):
+        """获取远程服务信息"""
+        # 请求云市数据
+        all_data = {
+            'service_key': service_key,
+            'app_version': version,
+            'cloud_assistant': sn.instance.cloud_assistant,
+        }
+        data = json.dumps(all_data)
+        logger.debug('post service json data={}'.format(data))
+        res, resp = appClient.getServiceData(body=data)
+        if res.status == 200:
+            json_data = json.loads(resp.data)
+            service_data = json_data.get("service", None)
+            if not service_data:
+                logger.error("no service data!")
+                return 500
+            # 模版信息
+            base_info = None
+            update_version = 1
+            try:
+                base_info = ServiceInfo.objects.get(service_key=service_key, version=version)
+                update_version = base_info.update_version
+            except Exception:
+                pass
+            if base_info is None:
+                base_info = ServiceInfo()
+            base_info.service_key = service_data.get("service_key")
+            base_info.publisher = service_data.get("publisher")
+            base_info.service_name = service_data.get("service_name")
+            base_info.pic = service_data.get("pic")
+            base_info.info = service_data.get("info")
+            base_info.desc = service_data.get("desc")
+            base_info.status = service_data.get("status")
+            base_info.category = service_data.get("category")
+            base_info.is_service = service_data.get("is_service")
+            base_info.is_web_service = service_data.get("is_web_service")
+            base_info.version = service_data.get("version")
+            base_info.update_version = update_version
+            base_info.image = service_data.get("image")
+            base_info.slug = service_data.get("slug")
+            base_info.extend_method = service_data.get("extend_method")
+            base_info.cmd = service_data.get("cmd")
+            base_info.setting = service_data.get("setting")
+            base_info.env = service_data.get("env")
+            base_info.dependecy = service_data.get("dependecy")
+            base_info.min_node = service_data.get("min_node")
+            base_info.min_cpu = service_data.get("min_cpu")
+            base_info.min_memory = service_data.get("min_memory")
+            base_info.inner_port = service_data.get("inner_port")
+            base_info.volume_mount_path = service_data.get("volume_mount_path")
+            base_info.service_type = service_data.get("service_type")
+            base_info.is_init_accout = service_data.get("is_init_accout")
+            base_info.namespace = service_data.get("namespace")
+            base_info.save()
+            logger.debug('---add app service---ok---')
+            # 保存service_env
+            pre_list = json_data.get('pre_list', None)
+            suf_list = json_data.get('suf_list', None)
+            env_list = json_data.get('env_list', None)
+            port_list = json_data.get('port_list', None)
+            extend_list = json_data.get('extend_list', None)
+            volume_list = json_data.get('volume_list', None)
+            # 新增环境参数
+            env_data = []
+            if env_list:
+                for env in env_list:
+                    app_env = AppServiceEnv(service_key=env.get("service_key"),
+                                            app_version=env.get("app_version"),
+                                            name=env.get("name"),
+                                            attr_name=env.get("attr_name"),
+                                            attr_value=env.get("attr_value"),
+                                            scope=env.get("scope"),
+                                            is_change=env.get("is_change"),
+                                            container_port=env.get("container_port"))
+                    env_data.append(app_env)
+            AppServiceEnv.objects.filter(service_key=service_key, app_version=version).delete()
+            if len(env_data) > 0:
+                AppServiceEnv.objects.bulk_create(env_data)
+            logger.debug('---add app service env---ok---')
+            # 端口信息
+            port_data = []
+            if port_list:
+                for port in port_list:
+                    app_port = AppServicePort(service_key=port.get("service_key"),
+                                              app_version=port.get("app_version"),
+                                              container_port=port.get("container_port"),
+                                              protocol=port.get("protocol"),
+                                              port_alias=port.get("port_alias"),
+                                              is_inner_service=port.get("is_inner_service"),
+                                              is_outer_service=port.get("is_outer_service"))
+                    port_data.append(app_port)
+            AppServicePort.objects.filter(service_key=service_key, app_version=version).delete()
+            if len(port_data) > 0:
+                AppServicePort.objects.bulk_create(port_data)
+            logger.debug('---add app service port---ok---')
+            # 扩展信息
+            extend_data = []
+            if extend_list:
+                for extend in extend_list:
+                    app_port = ServiceExtendMethod(service_key=extend.get("service_key"),
+                                                   app_version=extend.get("app_version"),
+                                                   min_node=extend.get("min_node"),
+                                                   max_node=extend.get("max_node"),
+                                                   step_node=extend.get("step_node"),
+                                                   min_memory=extend.get("min_memory"),
+                                                   max_memory=extend.get("max_memory"),
+                                                   step_memory=extend.get("step_memory"),
+                                                   is_restart=extend.get("is_restart"))
+                    extend_data.append(app_port)
+            ServiceExtendMethod.objects.filter(service_key=service_key, app_version=version).delete()
+            if len(extend_data) > 0:
+                ServiceExtendMethod.objects.bulk_create(extend_data)
+            logger.debug('---add app service extend---ok---')
+            # 服务依赖关系
+            relation_data = []
+            if pre_list:
+                for relation in pre_list:
+                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                      app_version=relation.get("app_version"),
+                                                      app_alias=relation.get("app_alias"),
+                                                      dep_service_key=relation.get("dep_service_key"),
+                                                      dep_app_version=relation.get("dep_app_version"),
+                                                      dep_app_alias=relation.get("dep_app_alias"))
+                    relation_data.append(app_relation)
+            if suf_list:
+                for relation in suf_list:
+                    app_relation = AppServiceRelation(service_key=relation.get("service_key"),
+                                                      app_version=relation.get("app_version"),
+                                                      app_alias=relation.get("app_alias"),
+                                                      dep_service_key=relation.get("dep_service_key"),
+                                                      dep_app_version=relation.get("dep_app_version"),
+                                                      dep_app_alias=relation.get("dep_app_alias"))
+                    relation_data.append(app_relation)
+            AppServiceRelation.objects.filter(service_key=service_key, app_version=version).delete()
+            if len(relation_data) > 0:
+                AppServiceRelation.objects.bulk_create(relation_data)
+            logger.debug('---add app service relation---ok---')
+            # 服务持久化记录
+            volume_data = []
+            if volume_list:
+                for app_volume in volume_list:
+                    volume = AppServiceVolume(service_key=app_volume.service_key,
+                                              app_version=app_volume.app_version,
+                                              category=app_volume.category,
+                                              volume_path=app_volume.volume_path);
+
+                    volume_data.append(volume)
+            AppServiceVolume.objects.filter(service_key=service_key, app_version=version).delete()
+            if len(volume_data) > 0:
+                AppServiceVolume.objects.bulk_create(volume_data)
+            logger.debug('---add app service volume---ok---')
+
+            self.downloadImage(base_info)
+            return 200
+        else:
+            return 501
+
+    def downloadImage(self, base_info):
+        try:
+            download_task = {}
+            if base_info.is_slug():
+                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key, "app_version":base_info.version, "namespace":base_info.namespace}
+                for region in RegionInfo.valid_regions():
+                    logger.info(region)
+                    regionClient.send_task(region, 'app_slug', json.dumps(download_task))
+            else:
+                download_task = {"action": "download_and_deploy", "image": base_info.image, "namespace":base_info.namespace}
+                for region in RegionInfo.valid_regions():
+                    regionClient.send_task(region, 'app_image', json.dumps(download_task))
+        except Exception as e:
+            logger.exception(e)
+
+    def restart_service(self, tenant, service, username):
+        diff_memory = service.min_node * service.min_memory
+        rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, False)
+        if not flag:
+            if rt_type == "memory":
+                return 410, False, "内存不足"
+            else:
+                return 411, False, "余额不足"
+
+        # stop service
+        code, is_success, msg = self.stop_service(service, username)
+        if code == 200:
+            code, is_success, msg = self.start_service(tenant, service, username)
+        return code, is_success, msg
+
+    def update_service_memory(self, tenant, service, username, memory, limit=True):
+        cpu = 20 * (int(memory) / 128)
+        old_cpu = service.min_cpu
+        old_memory = service.min_memory
+        if int(memory) != old_memory or cpu != old_cpu:
+            left = memory % 128
+            if memory > 0 and left <= 65536 and left == 0:
+                # calculate resource
+                diff_memory = memory - int(old_memory)
+                if limit:
+                    rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, True)
+                    if not flag:
+                        if rt_type == "memory":
+                            return 410, False, "内存不足"
+                        else:
+                            return 411, False, "余额不足"
+
+                body = {
+                    "container_memory": memory,
+                    "deploy_version": service.deploy_version,
+                    "container_cpu": cpu,
+                    "operator": username,
+                }
+                # body["container_memory"] = memory
+                # body["deploy_version"] = service.deploy_version
+                # body["container_cpu"] = cpu
+                # body["operator"] = username
+                regionClient.verticalUpgrade(service.service_region,
+                                             service.service_id,
+                                             json.dumps(body))
+                # 更新console记录
+                service.min_cpu = cpu
+                service.min_memory = memory
+                service.save()
+                # 添加记录
+                monitorhook.serviceMonitor(username, service, 'app_vertical', True)
+        return 200, True, "success"
+
+    def update_service_node(self, tenant, service, username, node_num, limit=True):
+        new_node_num = int(node_num)
+        old_min_node = service.min_node
+        if new_node_num >= 0 and new_node_num != old_min_node:
+            # calculate resource
+            diff_memory = (new_node_num - old_min_node) * service.min_memory
+            if limit:
+                rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, True)
+                if not flag:
+                    if rt_type == "memory":
+                        return 410, False, "内存不足"
+                    else:
+                        return 411, False, "余额不足"
+            body = {
+                "node_num": new_node_num,
+                "deploy_version": service.deploy_version,
+                "operator": username,
+            }
+            regionClient.horizontalUpgrade(service.service_region,
+                                           service.service_id,
+                                           json.dumps(body))
+            service.min_node = new_node_num
+            service.save()
+            monitorhook.serviceMonitor(username, service, 'app_horizontal', True)
+        return 200, True, "success"
+
+    def update_service_version(self, service):
+        service_key = service.service_key
+        version = service.version
+        base_service = ServiceInfo.objects.get(service_key=service_key, version=version)
+        if base_service.update_version != service.update_version:
+            regionClient.update_service(service.service_region,
+                                        service.service_id,
+                                        {"image": base_service.image})
+            service.image = base_service.image
+            service.update_version = base_service.update_version
+            service.save()
+        return 200, True, "success"
+
+    def download_service(self, service_key, version):
+        # 从服务模版中查询依赖信息
+        num = ServiceInfo.objects.filter(service_key=service_key, version=version).count()
+        if num == 0:
+            # 下载模版
+            dep_code = self.download_remote_service(service_key, version)
+            if dep_code == 500 or dep_code == 501:
+                return 500, False, None, "下载{0}:{1}失败".format(service_key, version)
+        # 下载依赖服务
+        relation_list = AppServiceRelation.objects.filter(service_key=service_key, app_version=version)
+        result_list = list(relation_list)
+        dep_map = {}
+        for relation in result_list:
+            dep_key = relation.dep_service_key
+            dep_version = relation.dep_app_version
+            dep_map[dep_key] = dep_version
+            num = ServiceInfo.objects.filter(service_key=dep_key, version=dep_version).count()
+            if num == 0:
+                status, success, tmp_map, msg = self.download_service(dep_key, dep_version)
+                # 检查返回的数据
+                if tmp_map is not None:
+                    dep_map = dict(dep_map, **tmp_map)
+                if status == 500:
+                    return 500, False, None, "下载{0}:{1}失败".format(service_key, version)
+
+        return 200, True, dep_map, "success"
+
+    def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
+        dependS = TenantServiceInfo.objects.get(service_id=dep_service_id)
+        task = {}
+        task["dep_service_id"] = dep_service_id
+        task["tenant_id"] = tenant_id
+        task["dep_service_type"] = dependS.service_type
+        regionClient.createServiceDependency(region, service_id, json.dumps(task))
+        tsr = TenantServiceRelation()
+        tsr.tenant_id = tenant_id
+        tsr.service_id = service_id
+        tsr.dep_service_id = dep_service_id
+        tsr.dep_service_type = dependS.service_type
+        tsr.dep_order = 0
+        tsr.save()
+

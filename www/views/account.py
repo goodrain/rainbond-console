@@ -474,6 +474,13 @@ class Registation(BaseView):
             user = authenticate(username=nick_name, password=password)
             login(request, user)
 
+            # 检测是否论坛请求
+            discourse_url = request.COOKIES.get('discourse_url', None)
+            if discourse_url is not None:
+                response = self.redirect_to(discourse_url)
+                response.delete_cookie("discourse_url")
+                return response
+
             url = '/apps/{0}'.format(tenant_name)
             if settings.MODULES["Package_Show"]:
                 selected_pay_level = ""

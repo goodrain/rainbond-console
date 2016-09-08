@@ -8,16 +8,12 @@ from django.conf import settings
 
 from www.views import AuthedView, LeftSideBarMixin, BaseView
 from www.decorator import perm_required
-from www.models import TenantServicesPort, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 from www.servicetype import ServiceType
 from www.utils import sn
 
-from www.models import AppService, AppServiceEnv, AppServicePort, \
-    TenantServiceRelation, AppServiceRelation, ServiceExtendMethod, \
-    TenantServiceVolume, AppServiceVolume, TenantServiceInfo, \
-    AppServiceExtend, AppServiceShareInfo, AppServiceImages
+from www.models import *
 
 import logging
 
@@ -420,6 +416,149 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         if len(app_relation_list) > 0:
             logger.debug(len(app_relation_list))
             AppServiceRelation.objects.bulk_create(app_relation_list)
+        # 跳转到套餐设置
+        return self.redirect_to('/apps/{0}/{1}/share/step4?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
+
+
+class ShareServiceForm(forms.Form):
+    """ 服务发布详情页form """
+    app_alias = forms.CharField(help_text=u"应用名称")
+    info = forms.CharField(help_text=u"一句话介绍")
+    desc = forms.CharField(help_text=u"应用简介")
+    category_first = forms.CharField(required=True, help_text=u"分类1")
+    category_second = forms.CharField(required=True, help_text=u"分类2")
+    category_third = forms.CharField(required=True, help_text=u"分类3")
+
+    url_site = forms.CharField(help_text=u"网站url")
+    url_source = forms.CharField(help_text=u"源码url")
+    url_demo = forms.CharField(help_text=u"样例代码url")
+    url_feedback = forms.CharField(help_text=u"反馈url")
+
+    service_key = forms.CharField(help_text=u"服务发布key")
+    app_version = forms.CharField(help_text=u"版本")
+    release_note = forms.CharField(help_text=u"更新说明")
+    is_outer = forms.BooleanField(required=False, initial=False, help_text=u"是否发布到云市")
+
+
+class ShareServiceImageForm(forms.Form):
+    """服务截图上传form表单"""
+    logo = forms.FileField(help_text=u"应用logo")
+    service_id = forms.CharField(help_text=u"服务发布key")
+
+
+class ShareServiceImageView(BaseView):
+
+    def post(self, request, *args, **kwargs):
+        # 获取表单信息
+        service_id = request.POST['service_id']
+        logo = request.FILES['logo']
+        # 更新图片路径
+        count = AppServiceImages.objects.filter(service_id=service_id).count()
+        if count > 1:
+            AppServiceImages.objects.filter(service_id=service_id).delete()
+            count = 0
+        if count == 0:
+            image_info = AppServiceImages()
+            image_info.service_id = service_id
+            image_info.logo = logo
+        else:
+            image_info = AppServiceImages.objects.get(service_id=service_id)
+            image_info.logo = logo
+        image_info.save()
+        data = {"success": True, "code": 200, "pic": image_info.logo.name}
+        return JsonResponse(data, status=200)
+
+
+class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
+    """分享设置套餐"""
+    def get_context(self):
+        context = super(ShareServiceStep4View, self).get_context()
+        return context
+
+    @perm_required('app_publish')
+    def get(self, request, *args, **kwargs):
+        # 跳转到服务关系发布页面
+        context = self.get_context()
+        context["myAppStatus"] = "active"
+        # 查询之前是否设置有套餐
+        service_key = request.GET.get("service_key")
+        app_version = request.GET.get("app_version")
+        context["service_key"] = service_key
+        context["app_version"] = app_version
+        context["tenant_name"] = self.tenantName
+        context["service_alias"] = self.serviceAlias
+        service_package = AppServicePackages.objects.filter(service_key=service_key, app_version=app_version)
+        # 兼容之前数据
+        dep_service_list = AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version)
+        if len(dep_service_list) > 0:
+            service_package_map = {}
+            for package in list(service_package):
+                dep_info = package.dep_info
+                dep_service_json = json.loads(dep_info)
+                package.price = round(package.price, 2)
+                package.total_price = round(package.total_price, 2)
+                dep_service_map = {}
+                if len(dep_service_json) > 0:
+                    dep_service_map = {'{0}-{1}'.format(x.get("service_key"), x.get("app_version")): x for x in dep_service_json}
+                for dep_service in list(dep_service_list):
+                    service_key = dep_service.dep_service_key
+                    app_version = dep_service.dep_app_version
+                    service_alias = dep_service.dep_app_alias
+
+                    key = '{0}-{1}'.format(service_key, app_version)
+                    if key in dep_service_map.keys():
+                        pass
+                    else:
+                        memory = 128
+                        node = 1
+                        try:
+                            service_info = ServiceInfo.objects.get(service_key=service_key, version=app_version)
+                            memory = service_info.min_memory
+                            node = service_info.min_node
+                        except Exception:
+                            pass
+                        dep_service_map[key] = {
+                            "service_key": service_key,
+                            "app_version": app_version,
+                            "memory": memory,
+                            "node": node,
+                            "service_alias": service_alias,
+                        }
+                service_package_map[package.ID] = dep_service_map.values()
+            context["service_package_map"] = service_package_map
+            dep_service_model = []
+            for dep_service in list(dep_service_list):
+                service_key = dep_service.dep_service_key
+                app_version = dep_service.dep_app_version
+                service_alias = dep_service.dep_app_alias
+                tmp_map = {
+                    "service_key": service_key,
+                    "app_version": app_version,
+                    "memory": 128,
+                    "node": 1,
+                    "service_alias": service_alias,
+                }
+                dep_service_model.append(tmp_map)
+            context["dep_service_model"] = json.dumps(dep_service_model)
+        else:
+            context["service_package_map"] = {}
+            context["dep_service_model"] = "[]"
+        context["service_package"] = service_package
+        # 返回页面
+        return TemplateResponse(request, 'www/service/share_step_4.html', context)
+
+    # form提交.
+    @perm_required('app_publish')
+    def post(self, request, *args, **kwargs):
+        # 获取form表单
+        service_key = request.POST.get("service_key")
+        app_version = request.POST.get('app_version')
+        try:
+            app = AppService.objects.get(service_key=service_key,
+                                         app_version=app_version)
+        except Exception as e:
+            logger.exception(e)
+            raise http.Http404
         # region发送请求
         if app.is_slug():
             self.upload_slug(app)
@@ -479,11 +618,11 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         }
         try:
             event_id = self._create_publish_event(u"云帮")
-            image_upload_task.update({"dest":"yb", "event_id" : event_id})
+            image_upload_task.update({"dest": "yb", "event_id": event_id})
             regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
                 event_id = self._create_publish_event(u"云市")
-                image_upload_task.update({"dest":"ys", "event_id" : event_id})
+                image_upload_task.update({"dest": "ys", "event_id": event_id})
                 regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
             logger.error("service.publish",
@@ -491,50 +630,88 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             logger.exception("service.publish", e)
 
 
-class ShareServiceForm(forms.Form):
-    """ 服务发布详情页form """
-    app_alias = forms.CharField(help_text=u"应用名称")
-    info = forms.CharField(help_text=u"一句话介绍")
-    desc = forms.CharField(help_text=u"应用简介")
-    category_first = forms.CharField(required=True, help_text=u"分类1")
-    category_second = forms.CharField(required=True, help_text=u"分类2")
-    category_third = forms.CharField(required=True, help_text=u"分类3")
+class ShareServicePackageView(BaseView):
+    """添加套餐接口"""
+    def get_context(self):
+        context = super(ShareServicePackageView, self).get_context()
+        return context
 
-    url_site = forms.CharField(help_text=u"网站url")
-    url_source = forms.CharField(help_text=u"源码url")
-    url_demo = forms.CharField(help_text=u"样例代码url")
-    url_feedback = forms.CharField(help_text=u"反馈url")
-
-    service_key = forms.CharField(help_text=u"服务发布key")
-    app_version = forms.CharField(help_text=u"版本")
-    release_note = forms.CharField(help_text=u"更新说明")
-    is_outer = forms.BooleanField(required=False, initial=False, help_text=u"是否发布到云市")
-
-
-class ShareServiceImageForm(forms.Form):
-    """服务截图上传form表单"""
-    logo = forms.FileField(help_text=u"应用logo")
-    service_id = forms.CharField(help_text=u"服务发布key")
-
-
-class ShareServiceImageView(BaseView):
+    def get(self, request, *args, **kwargs):
+        # 跳转到服务关系发布页面
+        package_id = request.POST.get("id", None)
+        try:
+            service_package = AppServicePackages.objects.get(pk=package_id)
+        except Exception as e:
+            logger.exception(e)
+            return JsonResponse(status=500, data={"code": 500})
+        data = {
+            "code": 200,
+            "data-name": service_package.name,
+            "data-memory": service_package.memory,
+            "data-node": service_package.node,
+            "data-time": service_package.trial,
+            "data-price": round(service_package.price, 2),
+            "data-total": round(service_package.total_price, 2),
+        }
+        return JsonResponse(status=200, data=data)
 
     def post(self, request, *args, **kwargs):
-        # 获取表单信息
-        service_id = request.POST['service_id']
-        logo = request.FILES['logo']
-        # 更新图片路径
-        count = AppServiceImages.objects.filter(service_id=service_id).count()
-        if count > 1:
-            AppServiceImages.objects.filter(service_id=service_id).delete()
-            count = 0
-        if count == 0:
-            image_info = AppServiceImages()
-            image_info.service_id = service_id
-            image_info.logo = logo
+        # 获取类型
+        action = request.POST.get("action")
+        package_id = request.POST.get("id", None)
+        name = request.POST.get("name", "")
+        memory = request.POST.get("memory", 128)
+        node = request.POST.get("node", 1)
+        trial = request.POST.get("trial", 0)
+        price = request.POST.get("price", 0)
+        total_price = request.POST.get("total_price", 0)
+        service_key = request.POST.get("service_key", None)
+        app_version = request.POST.get("app_version", None)
+        dep_info = request.POST.get("dep_info", "[]")
+        logger.debug(request.POST)
+
+        if action == "delete":
+            # delete
+            AppServicePackages.objects.filter(pk=package_id).delete()
+            return JsonResponse(status=200, data={"code": 200})
+        elif action == "add" or action == "update":
+            package = AppServicePackages()
+            if package_id is None:
+                count = AppServicePackages.objects.filter(service_key=service_key,
+                                                          app_version=app_version,
+                                                          name=name).count()
+                if count > 0:
+                    return JsonResponse(status=500, data={"code": 500, "msg": "套餐名称已存在!"})
+            else:
+                try:
+                    package = AppServicePackages.objects.get(pk=package_id)
+                except Exception:
+                    pass
+            package.service_key = service_key
+            package.app_version = app_version
+            package.name = name
+            package.memory = memory
+            package.node = node
+            package.trial = trial
+            package.price = round(float(price), 2)
+            package.total_price = round(float(total_price), 2)
+            package.dep_info = dep_info
+            package.save()
+            return JsonResponse(status=200, data={"code": 200, "info": json.dumps(package.to_dict())})
         else:
-            image_info = AppServiceImages.objects.get(service_id=service_id)
-            image_info.logo = logo
-        image_info.save()
-        data = {"success": True, "code": 200, "pic": image_info.logo.name}
-        return JsonResponse(data, status=200)
+            try:
+                service_package = AppServicePackages.objects.get(pk=package_id)
+            except Exception as e:
+                logger.exception(e)
+                return JsonResponse(status=500, data={"code": 500})
+            data = {
+                "code": 200,
+                "data-name": service_package.name,
+                "data-memory": service_package.memory,
+                "data-node": service_package.node,
+                "data-time": service_package.trial,
+                "data-price": service_package.price,
+                "data-total": service_package.total_price,
+            }
+            return JsonResponse(status=200, data=data)
+
