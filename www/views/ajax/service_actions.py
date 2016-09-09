@@ -34,7 +34,7 @@ codeRepositoriesService = CodeRepositoriesService()
 class AppDeploy(AuthedView):
 
     def _saveAdapterEnv(self, service):
-        num = TenantServiceEnvVar.objects.filter(service_id=self.model.service_id, attr_name="GD_ADAPTER").count()
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
         if num < 1:
             attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
                      "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
