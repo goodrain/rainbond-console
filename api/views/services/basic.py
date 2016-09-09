@@ -62,16 +62,16 @@ class SelectedServiceView(APIView):
                 region_port_list = []
                 default_port_del = True
                 for port in port_list.keys():
-                    if port == 5000:
+                    if int(port) == 5000:
                         default_port_del = False
                         continue
                     num = TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
                                                             service_id=service.service_id,
-                                                            container_port=port).count()
+                                                            container_port=int(port)).count()
                     if num == 0:
                         baseService.addServicePort(service,
                                                    False,
-                                                   container_port=port,
+                                                   container_port=int(port),
                                                    protocol="http",
                                                    port_alias='',
                                                    is_inner_service=False,
@@ -79,7 +79,7 @@ class SelectedServiceView(APIView):
                         port_info = {
                             "tenant_id": service.tenant_id,
                             "service_id": service.service_id,
-                            "container_port": port,
+                            "container_port": int(port),
                             "mapping_port": 0,
                             "protocol": "http",
                             "port_alias": '',
