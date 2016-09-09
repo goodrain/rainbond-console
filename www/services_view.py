@@ -208,7 +208,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         multi_port = {}
         multi_port["one_outer"] = u'单一端口开放'
         # multi_port["dif_protocol"] = u'按协议开放'
-        multi_port["multi_outer"] = u'多端口开放'
+        # multi_port["multi_outer"] = u'多端口开放'
         return multi_port
 
     # 服务挂载卷类型下拉列表选项
