@@ -33,6 +33,15 @@ codeRepositoriesService = CodeRepositoriesService()
 
 class AppDeploy(AuthedView):
 
+    def _saveAdapterEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=self.model.service_id, attr_name="GD_ADAPTER").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                     "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+            TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+            
     @method_perf_time
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
@@ -62,6 +71,11 @@ class AppDeploy(AuthedView):
             else:
                 data["status"] = "over_money"
             return JsonResponse(data, status=200)
+        
+        # if docker set adapter env
+        if self.service.language == "docker":
+            self._saveAdapterEnv(self.service)
+            
         try:
             gitUrl = request.POST.get('git_url', None)
             if gitUrl is None:
@@ -1252,7 +1266,7 @@ class ContainerStatsView(AuthedView):
         data = {}
         result = []
         try:
-            data = regionClient.tenantServiceStats(self.service.service_region,self.service.service_id)
+            data = regionClient.tenantServiceStats(self.service.service_region, self.service.service_id)
         except Exception as e:
             logger.exception(e)
         return JsonResponse(data)

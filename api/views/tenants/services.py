@@ -305,14 +305,7 @@ class TenantView(APIView):
         return Response(data, status=200)
     
 class GitCheckCodeView(APIView):
-    
-    def _saveAdapterEnv(self, service):
-        attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
-                 "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
-        TenantServiceEnvVar.objects.create(**attr)
-        data = {"action": "add", "attrs": attr}
-        regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
-    
+
     def post(self, request, format=None):
         """
     代码检测
@@ -356,9 +349,6 @@ class GitCheckCodeView(APIView):
                             regionClient.changeMemory(service.service_region, service_id, json.dumps(data))
                         service.language = language
                         service.save()
-                        # if docker set adapter env
-                        if language == "docker":
-                            self._saveAdapterEnv(service)
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)
