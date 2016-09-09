@@ -47,7 +47,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                     raise Http404
                 self.response_region = region
             else:
-                if region == 'xunda-hk':
+                if region == 'xunda-bj':
                     self.response_region = region
                 else:
                     raise Http404
@@ -202,25 +202,25 @@ class TenantService(LeftSideBarMixin, AuthedView):
         extends_dict["stateless"] = u'无状态'
         extends_dict["state-expend"] = u'有状态可水平扩容'
         return extends_dict
-     
+
      # 端口开放下拉列表选项
     def multi_port_choices(self):
         multi_port = {}
         multi_port["one_outer"] = u'单一端口开放'
-        #multi_port["dif_protocol"] = u'按协议开放'
-        #multi_port["multi_outer"] = u'多端口开放'
+        # multi_port["dif_protocol"] = u'按协议开放'
+        # multi_port["multi_outer"] = u'多端口开放'
         return multi_port
 
     # 服务挂载卷类型下拉列表选项
     def mnt_share_choices(self):
         mnt_share_type = {}
         mnt_share_type["shared"] = u'共享'
-        #mnt_share_type["exclusive"] = u'独享'
+        # mnt_share_type["exclusive"] = u'独享'
         return mnt_share_type
 
     # 获取所有的开放的http对外端口
     def get_outer_service_port(self):
-        out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_outer_service=True, protocol='http')
+        out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http')
         return out_service_port_list
 
     @never_cache
@@ -295,12 +295,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
-                
+
                 # get port type
                 context["visit_port_type"] = self.service.port_type
-                if self.service.port_type=="multi_outer":
+                if self.service.port_type == "multi_outer":
                     context["http_outer_service_ports"] = self.get_outer_service_port()
-                    
+
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
@@ -502,7 +502,12 @@ class ServiceDockerContainer(AuthedView):
                 context["ctn_id"] = docker_c_id
                 context["host_id"] = docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
-                context["wss"] = settings.DOCKER_WSS_URL.get("type", "ws") + "://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
+                pro = settings.DOCKER_WSS_URL.get("type", "ws")
+                if pro == "ws":
+                    context["wss"] = pro + "://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
+                else:
+                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + docker_h_id
+                
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')

@@ -102,6 +102,31 @@
      </div>
   </div>
   {% endif %}
+
+
+	{% if user.is_sys_admin %}
+	<div class="row">
+		<div class="col-lg-12 text-left">
+			<section class="panel">
+				<header class="panel-heading"><button name="container_stats" id="show_stats" onclick="showStatus();"/> 容器状态 </header>
+				<table class="table table-hover">
+					<thead>
+					<tr>
+						<th>容器名</th>
+						<th>已使用内存</th>
+						<th>最大内存</th>
+						<th>内存百分比</th>
+						<th>CPU百分比</th>
+					</tr>
+					</thead>
+					<tbody id="container_stats">
+
+					</tbody>
+				</table>
+			</section>
+		</div>
+	</div>
+	{% endif %}
   
   {% if 'manage_service' in user.actions %}
   {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
@@ -459,11 +484,37 @@
     function visit() {
 		var port = $("#multi_ports").val();
 
-		var url = "http://{{serviceAlias}}_"+port+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
+		var url = "http://"+port+".{{serviceAlias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
 		if(port==""||port == null){
 			url = "http://{{serviceAlias}}"+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
 		}
 		window.open(url)
+	}
+
+	function showStatus() {
+		$.ajax({
+			type: "GET",
+			url: "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/container-stats",
+			cache: false,
+			dataType: 'json',
+			beforeSend: function (xhr, settings) {
+				var csrftoken = $.cookie('csrftoken');
+				xhr.setRequestHeader("X-CSRFToken", csrftoken);
+			},
+			success: function (dataObj) {
+				var list = dataObj.tenant_service_stats;
+				var content = "";
+				$("#container_stats").html(content);
+				for(var i=0;i<list.length;i++){
+					var index = i+1;
+					content += "<tr><td> 容器" + index + "</td>>" + "<td>" + list[i].used_memory + " M</td>" + "<td>" + list[i].memory_limit + " M</td>" + "<td>" + list[i].memory_percent + " %</td>" + "<td>" + list[i].cpu_percent + " %</td></tr>";
+				}
+				$("#container_stats").append(content);
+			},
+			error: function () {
+				swal("容器信息获取异常");
+			}
+		});
 	}
 </script>
 

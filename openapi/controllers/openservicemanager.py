@@ -112,7 +112,9 @@ class OpenTenantServiceManager(object):
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
-    
+        if hasattr(newTenantService, "service_origin"):
+            data["service_origin"] = newTenantService.service_origin
+
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         if ports_info:

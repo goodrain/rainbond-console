@@ -5,7 +5,7 @@ import json
 
 from rest_framework.response import Response
 from api.views.base import APIView
-from www.models import TenantServiceStatics, Tenants, TenantRegionInfo, TenantServiceInfo, TenantServiceEnv
+from www.models import TenantServiceStatics, Tenants, TenantRegionInfo, TenantServiceInfo, TenantServiceEnv, TenantServiceEnvVar
 from www.service_http import RegionServiceApi
 from www.db import BaseConnection
 
@@ -237,7 +237,7 @@ class AllTenantView(APIView):
                 dsn = BaseConnection()
                 query_sql = ""
                 if diff_day != 0:
-                    end_time = datetime.datetime.now() + datetime.timedelta(days=-1 * diff_day)
+                    end_time = datetime.datetime.now() + datetime.timedelta(days= -1 * diff_day)
                     str_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
                     query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.is_init=1 and tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}" and tr.update_time <= "{end_time}"
                         '''.format(service_status=service_status, pay_type=pay_type, region=region, end_time=str_time)
@@ -305,6 +305,14 @@ class TenantView(APIView):
         return Response(data, status=200)
     
 class GitCheckCodeView(APIView):
+    
+    def _saveAdapterEnv(self, service):
+        attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                 "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+        TenantServiceEnvVar.objects.create(**attr)
+        data = {"action": "add", "attrs": attr}
+        regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+    
     def post(self, request, format=None):
         """
     代码检测
@@ -348,6 +356,9 @@ class GitCheckCodeView(APIView):
                             regionClient.changeMemory(service.service_region, service_id, json.dumps(data))
                         service.language = language
                         service.save()
+                        # if docker set adapter env
+                        if language == "docker":
+                            self._saveAdapterEnv(service)
             data["status"] = "success"
         except Exception as e:
             logger.exception(e)

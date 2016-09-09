@@ -1244,3 +1244,15 @@ class MntShareTypeView(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
+
+
+class ContainerStatsView(AuthedView):
+    @perm_required('manage_service')
+    def get(self, request, *args, **kwargs):
+        data = {}
+        result = []
+        try:
+            data = regionClient.tenantServiceStats(self.service.service_region,self.service.service_id)
+        except Exception as e:
+            logger.exception(e)
+        return JsonResponse(data)
