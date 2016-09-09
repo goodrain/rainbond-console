@@ -497,16 +497,17 @@ class ServiceDockerContainer(AuthedView):
             docker_h_id = request.COOKIES.get('docker_h_id', '')
             docker_s_id = request.COOKIES.get('docker_s_id', '')
             if docker_c_id != "" and docker_h_id != "" and docker_s_id != "" and docker_s_id == self.service.service_id:
+                t_docker_h_id = docker_h_id.lower()
                 context["tenant_id"] = self.service.tenant_id
                 context["service_id"] = docker_s_id
                 context["ctn_id"] = docker_c_id
-                context["host_id"] = docker_h_id
+                context["host_id"] = t_docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
                 pro = settings.DOCKER_WSS_URL.get("type", "ws")
                 if pro == "ws":
-                    context["wss"] = pro + "://" + docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
+                    context["wss"] = pro + "://" + t_docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
                 else:
-                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + docker_h_id
+                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
                 
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
