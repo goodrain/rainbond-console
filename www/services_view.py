@@ -66,9 +66,9 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
         self.check_region()
-
         context = self.get_context()
         try:
+            logger.debug('monitor.user', str(self.user.pk))
             # num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
             # if num < 1:
             #     return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
