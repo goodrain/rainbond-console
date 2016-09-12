@@ -146,6 +146,8 @@ class AuthedView(BaseView):
                     logger.debug("Tenant {0} ServiceAlias {1} is not exists".format(
                         self.tenantName, self.serviceAlias))
                     raise http.Http404
+            
+            logger.debug('monitor.user', str(self.user.user_id))
 
         BaseView.__init__(self, request, *args, **kwargs)
 
