@@ -47,10 +47,11 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                     raise Http404
                 self.response_region = region
             else:
-                if region == 'xunda-bj':
-                    self.response_region = region
-                else:
-                    raise Http404
+                raise Http404
+                # if region == 'xunda-bj':
+                #self.response_region = region
+                # else:
+                #    raise Http404
 
         if self.cookie_region == 'aws-bj-1':
             self.response_region == 'ali-sh'
@@ -394,7 +395,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
                 context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
@@ -508,7 +509,7 @@ class ServiceDockerContainer(AuthedView):
                     context["wss"] = pro + "://" + t_docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
                 else:
                     context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
-                
+
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')
