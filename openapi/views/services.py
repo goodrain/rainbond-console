@@ -573,8 +573,8 @@ class QueryServiceView(BaseAPIView):
             data["new_version"] = new_service.update_version
         # 查询服务状态
         status_code, success, msg = manager.status_service(service)
-        data["status"] = status_code
-        if status == "running":
+        data["status"] = msg["status"]
+        if msg["status"] == "running":
             wild_domain = ""
             if region in settings.WILD_DOMAINS.keys():
                 wild_domain = settings.WILD_DOMAINS[service.service_region]
