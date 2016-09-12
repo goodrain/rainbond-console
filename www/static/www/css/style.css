@@ -8,7 +8,7 @@ Website: http://thevectorlab.net/
 
 body {
     color: #797979;
-    background: #f1f2f7;
+    background: #2E363F;
     font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
     padding: 0px !important;
     margin: 0px !important;
@@ -171,6 +171,8 @@ a, a:hover, a:focus {
 
 #sidebar ul li {
     position: relative;
+    border-top: 1px solid #37414b;
+    border-bottom: 1px solid #1f262d;
 }
 
 #sidebar .sub-menu > .sub li  {
@@ -260,9 +262,6 @@ ul.sidebar-menu li ul.sub li a:hover, ul.sidebar-menu li ul.sub li.active a {
 
 ul.sidebar-menu li{
     /*line-height: 20px !important;*/
-    margin-bottom: 5px;
-    margin-left:10px;
-    margin-right:10px;
 }
 
 ul.sidebar-menu li.sub-menu{
@@ -340,7 +339,7 @@ ul.sidebar-menu li a.active i {
 }
 
 .white-bg {
-    background: #fff;
+   
     border-bottom: 1px solid #f1f2f7;
 }
 
@@ -362,6 +361,10 @@ a.logo {
 a.logo:hover, a.logo:focus {
     text-decoration: none;
     outline: none;
+}
+
+a.logo img{
+   max-height: 32px;
 }
 
 a.logo span {
