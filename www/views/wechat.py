@@ -254,14 +254,14 @@ class WeChatCallBack(BaseView):
             expired_day = 7
             if hasattr(settings, "TENANT_VALID_TIME"):
                 expired_day = int(settings.TENANT_VALID_TIME)
-            expired_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
+            expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
             
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name,
                 pay_type='free',
                 creater=user.pk,
                 region=region,
-                expired_time=expired_time)
+                expired_time=expire_time)
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
             # 微信用户授权
             PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')

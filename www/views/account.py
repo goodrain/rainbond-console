@@ -437,7 +437,7 @@ class Registation(BaseView):
             expired_day = 7
             if hasattr(settings, "TENANT_VALID_TIME"):
                 expired_day = int(settings.TENANT_VALID_TIME)
-            expired_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
+            expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
             
             if not is_private:
                 if settings.MODULES["Memory_Limit"]:
@@ -446,7 +446,7 @@ class Registation(BaseView):
                         pay_type='free',
                         creater=user.pk,
                         region=region,
-                        expired_time=expired_time)
+                        expired_time=expire_time)
                 else:
                     tenant = Tenants.objects.create(
                         tenant_name=tenant_name,
@@ -454,7 +454,7 @@ class Registation(BaseView):
                         pay_level='company',
                         creater=user.pk,
                         region=region,
-                        expired_time=expired_time)
+                        expired_time=expire_time)
             else:
                 tenant = Tenants.objects.create(
                     tenant_name=tenant_name,
@@ -462,7 +462,7 @@ class Registation(BaseView):
                     pay_level='company',
                     creater=user.pk,
                     region=region,
-                    expired_time=expired_time)
+                    expired_time=expire_time)
 
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 
