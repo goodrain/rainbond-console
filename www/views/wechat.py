@@ -1,4 +1,6 @@
 # -*- coding: utf8 -*-
+import datetime
+import time
 import urllib
 import hashlib
 from django.template.response import TemplateResponse
@@ -249,11 +251,17 @@ class WeChatCallBack(BaseView):
             # 创建租户,默认为alish
             region = "ali-sh"
             # 租户名称必须唯一,这里取open_id的后面8位
+            expired_day = 7
+            if hasattr(settings, "TENANT_VALID_TIME"):
+                expired_day = int(settings.TENANT_VALID_TIME)
+            expired_time = datetime.datetime.now() + datetime.timedelta(d=expired_day)
+            
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name,
                 pay_type='free',
                 creater=user.pk,
-                region=region)
+                region=region,
+                expired_time=expired_time)
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
             # 微信用户授权
             PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')

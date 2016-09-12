@@ -125,7 +125,7 @@ class WeChatUser(models.Model):
 
     @property
     def is_sys_admin(self):
-        admins = ('ertyuiofghjklasdfas', )
+        admins = ('ertyuiofghjklasdfas',)
         return bool(self.unionid in admins)
 
     def get_session_auth_hash(self):
@@ -260,6 +260,7 @@ class Tenants(BaseModel):
     limit_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=1024)
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     pay_level = models.CharField(max_length=30, default='free', help_text=u"付费级别:free,personal,company")
+    expired_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"过期时间")
 
     def __unicode__(self):
         return self.tenant_name
@@ -330,7 +331,7 @@ class ServiceInfo(BaseModel):
 
     def is_slug(self):
         return bool(self.image.startswith('goodrain.me/runner'))
-        #return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
+        # return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
 
     def is_image(self):
         return not self.is_slug(self)
@@ -471,7 +472,7 @@ class TenantServiceInfoDelete(BaseModel):
         default=False, blank=True, help_text=u"是否inner服务")
     namespace = models.CharField(max_length=100, default='', help_text=u"镜像发布云帮的区间")
     volume_type = models.CharField(max_length=15, default='shared', help_text=u"共享类型shared、exclusive")
-    port_type = models.CharField(max_length=15, default='one_outer',help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+    port_type = models.CharField(max_length=15, default='one_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
 

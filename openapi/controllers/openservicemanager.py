@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import datetime
 import json
+import time
 
 from www.db import BaseConnection
 from www.models import TenantServiceInfo, TenantServiceInfoDelete, \
@@ -476,19 +477,26 @@ class OpenTenantServiceManager(object):
         """创建租户"""
         # 根据资源是否首先判断公有云、私有云注册
         # todo 暂时解决方案,后续需根据数据中心配置修改
+        expired_day = 7
+        if hasattr(settings, "TENANT_VALID_TIME"):
+            expired_day = int(settings.TENANT_VALID_TIME)
+        expired_time = datetime.datetime.now() + datetime.timedelta(d=expired_day)
+            
         if settings.MODULES["Memory_Limit"]:
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name,
                 pay_type='free',
                 creater=user_id,
-                region=region)
+                region=region,
+                expired_time=expired_time)
         else:
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name,
                 pay_type='payed',
                 pay_level='company',
                 creater=user_id,
-                region=region)
+                region=region,
+                expired_time=expired_time)
         #
         user = Users()
         user.nick_name = nick_name

@@ -12,6 +12,8 @@ from www.auth import authenticate, login, logout
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import CodeRepositoriesService
 from forms import AppendInfoForm
+import datetime
+import time
 
 import logging
 logger = logging.getLogger('default')
@@ -151,9 +153,14 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
             user.is_active = True
             user.save(update_fields=['nick_name', 'is_active'])
             monitorhook.registerMonitor(user, 'register from ucloud')
-
+            
+            expired_day = 7
+            if hasattr(settings, "TENANT_VALID_TIME"):
+                expired_day = int(settings.TENANT_VALID_TIME)
+            expired_time = datetime.datetime.now() + datetime.timedelta(d=expired_day)
+        
             tenant = Tenants.objects.create(
-                tenant_name=tenant_name, pay_type='free', creater=user.pk, region='ucloud-bj-1')
+                tenant_name=tenant_name, pay_type='free', creater=user.pk, region='ucloud-bj-1', expired_time=expired_time)
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 
             PermRelTenant.objects.create(
