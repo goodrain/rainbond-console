@@ -480,7 +480,7 @@ class OpenTenantServiceManager(object):
         expired_day = 7
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
-        expired_time = datetime.datetime.now() + datetime.timedelta(d=expired_day)
+        expired_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
             
         if settings.MODULES["Memory_Limit"]:
             tenant = Tenants.objects.create(

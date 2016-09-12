@@ -157,7 +157,7 @@ class UserInfoView(BaseView, RegionOperateMixin, LoginRedirectMixin):
             expired_day = 7
             if hasattr(settings, "TENANT_VALID_TIME"):
                 expired_day = int(settings.TENANT_VALID_TIME)
-            expired_time = datetime.datetime.now() + datetime.timedelta(d=expired_day)
+            expired_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
         
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name, pay_type='free', creater=user.pk, region='ucloud-bj-1', expired_time=expired_time)
