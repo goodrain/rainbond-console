@@ -51,14 +51,14 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             context["fr"] = fr
             res, resp = appClient.getRemoteServices()
             if res.status == 200:
-                appService={}
-                appVersion={}
+                appService = {}
+                appVersion = {}
                 appdata = json.loads(resp.data)
                 for appda in appdata:
-                    appService[appda["service_key"]+"_"+appda["version"]]=appda["update_version"]
-                    appVersion[appda["service_key"]+"_"+appda["version"]]=appda["version"]
+                    appService[appda["service_key"] + "_" + appda["version"]] = appda["update_version"]
+                    appVersion[appda["service_key"] + "_" + appda["version"]] = appda["version"]
                 context["appService"] = appService
-                context["appVersion"] = appVersion      
+                context["appVersion"] = appVersion
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_market.html", context)
@@ -78,18 +78,18 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         dependecy_keys = []
         dependecy_info = {}
         dependecy_version = {}
-        dependecy_services={}
+        dependecy_services = {}
         if len(asrlist) > 0:
             for asr in asrlist:
                 dependecy_keys.append(asr.dep_service_key)
-                dependecy_info[asr.dep_service_key]=asr.dep_app_alias
-                dependecy_version[asr.dep_service_key]=asr.dep_app_version
-                
+                dependecy_info[asr.dep_service_key] = asr.dep_app_alias
+                dependecy_version[asr.dep_service_key] = asr.dep_app_version
+
         if len(dependecy_keys) > 0:
             dependecy_services = dict((el, []) for el in dependecy_keys)
             tenant_id = self.tenant.tenant_id
             deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
-            if len(deployTenantServices)>0:
+            if len(deployTenantServices) > 0:
                 for s in deployTenantServices:
                     dependecy_services[s.service_key].append(s)
         return dependecy_services, dependecy_info, dependecy_version
@@ -99,7 +99,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         exist_t_services = []
         exist_new_services = []
         for string in dependency_service:
-            if string !="":
+            if string != "":
                 service_alias, service_key, app_version = string.split(':', 2)
                 if service_alias == '__new__':
                     if ServiceInfo.objects.filter(service_key=service_key, version=app_version).count() > 0:
@@ -126,7 +126,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         memory_dict["32768"] = '32G'
         memory_dict["65536"] = '64G'
         return memory_dict
-    
+
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
@@ -176,7 +176,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 memoryList.append(str(next_memory))
                 num = num + 1
                 next_memory = sem.min_memory * pow(2, num)
-                
+
             context["memoryList"] = memoryList
             context["memorydict"] = self.memory_choices()
         except Exception as e:
@@ -186,17 +186,20 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
+        if self.cookie_region == 'ucloud-bj-1':
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("暂停了新应用的创建, 请选择其它数据中心")
         service_alias = ""
         tenant_id = self.tenant.tenant_id
         service_id = make_uuid(tenant_id)
         result = {}
         try:
-            #judge region tenant is init
+            # judge region tenant is init
             success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
             if not success:
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)
-            
+
             if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
@@ -247,16 +250,16 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             dependency_service = request.POST.getlist("dependency_service")
             logger.debug(dependency_service)
             new_services, exist_t_services, exist_new_services = self.parse_dependency_service(dependency_service)
-            
+
             if len(exist_new_services) > 0:
                 result["status"] = "depend_service_notexit"
                 return JsonResponse(result, status=200)
-            
+
             if new_services:
                 new_required_memory = reduce(lambda x, y: x + y, [s.min_memory for s in new_services])
             else:
                 new_required_memory = 0
-                
+
             # calculate resource
             tempService = TenantServiceInfo()
             tempService.min_memory = service.min_memory
@@ -280,7 +283,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
-                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True) 
+                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)
@@ -322,7 +325,7 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
     def copy_envs(self, source_service, envs):
         s = self.service
         baseService = BaseTenantService()
-        has_env=[]
+        has_env = []
         for env in envs:
             source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version, attr_name=env.attr_name)
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
@@ -345,7 +348,6 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key, app_version=source_service.version)
         for volume in volumes:
             baseService.add_volume_list(tenant_service, volume.volume_path)
-
 
     # add by tanm specify tenant app default env
     def set_tenant_default_env(self, envs):

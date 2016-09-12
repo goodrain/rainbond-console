@@ -78,7 +78,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
-
+        if self.cookie_region == 'ucloud-bj-1':
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("暂停了新应用的创建, 请选择其它数据中心")
         service_alias = ""
         service_code_from = ""
         tenant_id = self.tenant.tenant_id
@@ -90,11 +92,11 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             if not success:
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
-            
+
             if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
-            
+
             service_desc = ""
             service_alias = request.POST.get("create_app_name", "")
             service_code_from = request.POST.get("service_code_from", "")
@@ -204,7 +206,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["myAppStatus"] = "active"
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
-            
+
             types = ServiceType.type_lists()
             cacheServiceList = ServiceInfo.objects.filter(status="published", service_type__in=types)
             context["cacheServiceList"] = cacheServiceList
@@ -230,7 +232,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             except Exception as e:
                 logger.exception(e)
         return totalmemory
-            
+
     @never_cache
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
@@ -304,7 +306,7 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
             context["myAppStatus"] = "active"
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
-            
+
             context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
 
             tenantServiceRelations = TenantServiceRelation.objects.filter(
@@ -396,7 +398,6 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             memory_dict["32768"] = '32G'
             memory_dict["65536"] = '64G'
         return memory_dict, key_list
-
 
     @never_cache
     @perm_required('create_service')
