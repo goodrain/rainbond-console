@@ -1,9 +1,7 @@
 # -*- coding: utf8 -*-
 from rest_framework.response import Response
 
-from www.models import Tenants, TenantServiceInfo, ServiceInfo, \
-    TenantServiceAuth, TenantServiceEnvVar, TenantServiceRelation, \
-    TenantServiceVolume
+from www.models import *
 from www.utils import crypt
 import re
 
@@ -565,13 +563,45 @@ class QueryServiceView(BaseAPIView):
             logger.exception("openapi.services", e)
             return Response(status=405, data={"success": False, "msg": u"服务不存在"})
         service_key = service.service_key
-        service_list = ServiceInfo.objects.filter(service_key=service_key).order_by("-ID")
-        data = {
-            "new_version": service.update_version,
-        }
+        version = service.version
+        region = service.service_region
+        # 查询服务的版本
+        service_list = ServiceInfo.objects.filter(service_key=service_key,version=version).order_by("-ID")
+        data = {"new_version": service.update_version}
         if len(service_list) > 0:
             new_service = list(service_list)[-1]
             data["new_version"] = new_service.update_version
+        # 查询服务状态
+        status_code, success, msg = manager.status_service(service)
+        data["status"] = status_code
+        if status == "running":
+            wild_domain = ""
+            if region in settings.WILD_DOMAINS.keys():
+                wild_domain = settings.WILD_DOMAINS[service.service_region]
+            http_port_str = ""
+            if region in settings.WILD_PORTS.keys():
+                http_port_str = settings.WILD_PORTS[region]
+            http_port_str = ":" + http_port_str
+            # 只有http服务返回url
+            access_url = ""
+            tenant_id = service.tenant_id
+            tenant_name = ""
+            try:
+                tenant_info = Tenants.objects.get(tenant_id=tenant_id)
+                tenant_name = tenant_info.tenant_name
+            except Exception:
+                logger.error("openapi.services", "tenant missing, id:{0}".format(tenant_id))
+
+            if TenantServicesPort.objects.filter(service_id=service_id,
+                                                 is_outer_service=True,
+                                                 protocol='http').exists():
+                access_url = "http://{0}.{1}{2}{3}".format(
+                    service.service_alias,
+                    tenant_name,
+                    wild_domain,
+                    http_port_str)
+            data["access_url"] = access_url
+
         return Response(status=status, data=data)
 
 
