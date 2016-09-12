@@ -337,6 +337,7 @@ ul.sidebar-menu li a.active i {
     left: 0;
     right: 0;
     z-index: 1002;
+
 }
 
 .white-bg {
@@ -345,7 +346,7 @@ ul.sidebar-menu li a.active i {
 
 .wrapper {
     display: inline-block;
-    margin-top: 60px;
+    margin-top: 40px;
     padding: 15px;
     width: 100%;
     background-color: #eeeeee;
@@ -383,7 +384,7 @@ a.logo span {
 .notify-row {
     float: left;
     margin-top: 15px;
-    margin-left: 92px;
+    margin-left: 35px;
 }
 
 .notify-row .notification span.label {
@@ -5552,3 +5553,6 @@ a.guest-on i {
     .panel-body .tab-content .applistbox button.btn{right: 30px;}
     .panel-body .tab-content .applistbox h4,.panel-body .tab-content .applistbox h5{padding-left: 20px;}
 }
+
+.notify-row .btn-white{background: #1f262d; border-left: 1px solid #2e363f; border-right: 1px solid #000; color: #999; text-shadow: 0 -1px 0 rgba(0,0,0,0.25);}
+
