@@ -260,7 +260,7 @@ class Tenants(BaseModel):
     limit_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=1024)
     update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
     pay_level = models.CharField(max_length=30, default='free', help_text=u"付费级别:free,personal,company")
-    expired_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"过期时间")
+    expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
 
     def __unicode__(self):
         return self.tenant_name
