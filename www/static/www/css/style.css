@@ -288,7 +288,7 @@ ul.sidebar-menu li a{
     transition: all 0.3s ease;
 }
 
-ul.sidebar-menu li a.active, ul.sidebar-menu li a:hover, ul.sidebar-menu li a:focus {
+ul.sidebar-menu li a.active, ul.sidebar-menu li a:focus {
     background:#27a9e3 url('../images/menu-active.png') no-repeat right center;
     color: #fff;
     display: block;
@@ -299,6 +299,12 @@ ul.sidebar-menu li a.active, ul.sidebar-menu li a:hover, ul.sidebar-menu li a:fo
     transition: all 0.3s ease;
 }
 
+ul.sidebar-menu li a:hover{
+    background-color: #27a9e3;
+    background-image: none;
+    color: #fff;
+    display: block;
+}
 
 ul.sidebar-menu li a i {
     font-size: 15px;
