@@ -131,16 +131,18 @@ class Login(BaseView):
             if origin == "app":
                 ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "/"]), 'goodrain')
                 redirect_url = "/"
-                prefix_url = "http://app.goodrain.com/login/{0}/success".format(sn.instance.cloud_assistant)
                 if next_url != '':
                     tmp = next_url.split("?")
-                    prefix_url = tmp[0]
                     sub_tmp = tmp[1]
                     key_tmp = sub_tmp.split("&")
                     for key in key_tmp:
                         if "next=" in key:
                             redirect_url = key.replace("next=", "")
-                next_url = "{0}?ticket={1}&next={2}".format(prefix_url, ticket, redirect_url)
+                next_url = "{0}/login/{1}/success?ticket={2}&next={3}".format(settings.APP_SERVICE_API.get("url"),
+                                                                              sn.instance.cloud_assistant,
+                                                                              ticket,
+                                                                              redirect_url)
+                logger.debug(next_url)
             return self.redirect_to(next_url)
         else:
             return self.redirect_view()
@@ -529,16 +531,18 @@ class Registation(BaseView):
                 if origin == "app":
                     ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "/"]), 'goodrain')
                     redirect_url = "/"
-                    prefix_url = "http://app.goodrain.com/login/{0}/success".format(sn.instance.cloud_assistant)
                     if next_url != '':
                         tmp = next_url.split("?")
-                        prefix_url = tmp[0]
                         sub_tmp = tmp[1]
                         key_tmp = sub_tmp.split("&")
                         for key in key_tmp:
                             if "next=" in key:
                                 redirect_url = key.replace("next=", "")
-                    next_url = "{0}?ticket={1}&next={2}".format(prefix_url, ticket, redirect_url)
+                    next_url = "{0}/login/{1}/success?ticket={2}&next={3}".format(settings.APP_SERVICE_API.get("url"),
+                                                                                  sn.instance.cloud_assistant,
+                                                                                  ticket,
+                                                                                  redirect_url)
+                    logger.debug(next_url)
                 return self.redirect_to(next_url)
 
             url = '/apps/{0}'.format(tenant_name)

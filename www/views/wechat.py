@@ -12,6 +12,7 @@ from django.conf import settings
 from www.auth import authenticate, login
 from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo, WeChatUnBind
 from www.utils.crypt import AuthCode
+from www.utils import sn
 
 from www.views import BaseView
 from www.monitorservice.monitorhook import MonitorHook
@@ -281,7 +282,11 @@ class WeChatCallBack(BaseView):
             if origin == "app":
                 logger.debug("now return to cloud market login..")
                 ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-                next_url = settings.APP_SERVICE_API.get("url") + '/login/goodrain/success?ticket=' + ticket
+                next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                                                                     sn.instance.cloud_assistant,
+                                                                     ticket)
+                # next_url = settings.APP_SERVICE_API.get("url") + '/login/goodrain/success?ticket=' + ticket
+                logger.debug(next_url)
             return redirect(next_url)
 
         return self.redirect_view()
