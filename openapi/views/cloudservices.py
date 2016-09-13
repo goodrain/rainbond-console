@@ -112,7 +112,7 @@ class CloudServiceInstallView(BaseAPIView):
         service_node = request.data.get("service_node", 1)
         dep_info = request.data.get("dep_info", "[]")
         dep_info_json = json.loads(dep_info)
-        dep_service_info = {"{0}-{1}".format(x.get("service_key"), x.get("app_version")):x for x in dep_info_json}
+        dep_service_info = {"{0}-{1}".format(x.get("service_key"), x.get("app_version")): x for x in dep_info_json}
 
         logger.debug("openapi.cloudservice", "now create service: service_name:{0}, tenant_name:{1}, region:{2}, key:{3}, version:{4}".format(service_name, tenant_name, region, service_key, version))
         r = re.compile("^[a-z][a-z0-9-]*[a-z0-9]$")
@@ -211,8 +211,8 @@ class CloudServiceInstallView(BaseAPIView):
                     tmp_key = "{0}-{1}".format(dep_service_tmp.service_key, dep_service_tmp.version)
                     dep_info = dep_service_info.get(tmp_key)
                     if dep_info is not None:
-                        depTenantService.min_node = int(dep_info.node)
-                        depTenantService.min_memory = int(dep_info.memory)
+                        depTenantService.min_node = int(dep_info["node"])
+                        depTenantService.min_memory = int(dep_info["memory"])
                         depTenantService.save()
                     manager.add_service_extend(depTenantService, dep_service)
                     monitorhook.serviceMonitor(username, depTenantService, 'create_service', True)
@@ -260,7 +260,7 @@ class CloudServiceInstallView(BaseAPIView):
                 newTenantService.min_memory = int(service_memory)
                 need_update = True
             if int(service_node) > 1:
-                newTenantService.min_node = int(dep_info.node)
+                newTenantService.min_node = int(service_node)
                 need_update = True
             if need_update:
                 newTenantService.save()
