@@ -166,13 +166,14 @@ a, a:hover, a:focus {
     width: 210px;
     height: 100%;
     position: fixed;
-    background: #2a3542;
+    background: #2e363f;
 }
 
 #sidebar ul li {
     position: relative;
     border-top: 1px solid #37414b;
     border-bottom: 1px solid #1f262d;
+    background: #2e363f;
 }
 
 #sidebar .sub-menu > .sub li  {
@@ -214,7 +215,8 @@ ul.sidebar-menu , ul.sidebar-menu li ul.sub{
 }
 
 ul.sidebar-menu {
-    margin-top: 75px;
+    padding-top: 60px;
+    background: #1f262d;
 }
 
 #sidebar > ul > li > ul.sub {
@@ -340,7 +342,7 @@ ul.sidebar-menu li a.active i {
 }
 
 .white-bg {
-   background: #2e363f;
+   background: #1f262d;
 }
 
 .wrapper {
