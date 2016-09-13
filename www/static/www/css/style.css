@@ -328,7 +328,6 @@ ul.sidebar-menu li a.active i {
 }
 
 .header, .footer {
-    min-height: 60px;
     padding: 0 15px;
 }
 
@@ -594,8 +593,6 @@ ul.top-menu > li > a:hover, ul.top-menu > li > a:focus {
 }
 
 .top-nav ul.top-menu > li > a {
-
-    padding: 6px;
     background: none;
     margin-right: 0;
 }
