@@ -154,7 +154,7 @@ class CloudServiceInstallView(BaseAPIView):
                     tmp_key = "{0}-{1}".format(dep_service_tmp.service_key, dep_service_tmp.version)
                     dep_info = dep_service_info.get(tmp_key)
                     if dep_info is not None:
-                        dep_required_memory += int(dep_info.memory) * int(dep_info.node)
+                        dep_required_memory += int(dep_info["memory"]) * int(dep_info["node"])
                     else:
                         dep_required_memory += int(dep_service_tmp.min_memory)
                 # dep_required_memory = reduce(lambda x, y: x + y, [s.min_memory for s in dep_service_list])
