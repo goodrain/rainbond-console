@@ -186,9 +186,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        if self.cookie_region == 'ucloud-bj-1':
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden("暂停了新应用的创建, 请选择其它数据中心")
         service_alias = ""
         tenant_id = self.tenant.tenant_id
         service_id = make_uuid(tenant_id)
