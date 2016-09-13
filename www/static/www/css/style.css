@@ -7,7 +7,7 @@ Website: http://thevectorlab.net/
 */
 
 body {
-    color: #797979;
+    color: #999;
     background: #2E363F;
     font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
     padding: 0px !important;
@@ -215,7 +215,7 @@ ul.sidebar-menu , ul.sidebar-menu li ul.sub{
 }
 
 ul.sidebar-menu {
-    padding-top: 60px;
+    padding-top: 55px;
     background: #1f262d;
 }
 
@@ -289,12 +289,9 @@ ul.sidebar-menu li a{
 }
 
 ul.sidebar-menu li a.active, ul.sidebar-menu li a:hover, ul.sidebar-menu li a:focus {
-    
+    background: #27a9e3 url('../images/menu-active.png') no-repeat scroll right center transparent !important;
     color: #fff;
     display: block;
-    border-radius: 4px;
-    -webkit-border-radius: 4px;
-
     -webkit-transition: all 0.3s ease;
     -moz-transition: all 0.3s ease;
     -o-transition: all 0.3s ease;
@@ -309,11 +306,11 @@ ul.sidebar-menu li a i {
 }
 
 ul.sidebar-menu li a:hover i, ul.sidebar-menu li a:focus i {
-    color: #FF6C60;
+    color: #93d4f1;
 }
 
 ul.sidebar-menu li a.active i {
-    color: #FF6C60;
+    color: #93d4f1;
 }
 
 
@@ -385,6 +382,7 @@ a.logo span {
 .notify-row {
     float: left;
     margin-left: 35px;
+    border-left: 1px solid #000;
 }
 
 .notify-row .notification span.label {
@@ -591,7 +589,7 @@ ul.top-menu > li > a:hover, ul.top-menu > li > a:focus {
 
 .top-nav .username {
     font-size: 14px;
-    color: #555555;
+    color: #999;
 }
 
 .top-nav ul.top-menu > li > a {
