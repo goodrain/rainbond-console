@@ -177,11 +177,11 @@ a, a:hover, a:focus {
 }
 
 #sidebar .sub-menu > .sub li  {
-    padding-left: 32px;
+    text-indent: 32px;
 }
 
 #sidebar .sub-menu > .sub li:last-child {
-    padding-bottom: 10px;
+   
 }
 
 /*LEFT NAVIGATION ICON*/
@@ -242,18 +242,19 @@ ul.sidebar-menu li ul.sub li:last-child{
 ul.sidebar-menu li ul.sub li a {
     font-size: 14px;
     padding: 6px 0;
-    line-height: 35px;
-    height: 35px;
+    line-height: 24px;
+    height: 36px;
     -webkit-transition: all 0.3s ease;
     -moz-transition: all 0.3s ease;
     -o-transition: all 0.3s ease;
     -ms-transition: all 0.3s ease;
     transition: all 0.3s ease;
-    color: #aeb2b7;
+    color: #939da8;
+    background: #1f262d;
 }
 
 ul.sidebar-menu li ul.sub li a:hover, ul.sidebar-menu li ul.sub li.active a {
-    color: #FF6C60;
+    color: #fff;
     -webkit-transition: all 0.3s ease;
     -moz-transition: all 0.3s ease;
     -o-transition: all 0.3s ease;
@@ -261,7 +262,9 @@ ul.sidebar-menu li ul.sub li a:hover, ul.sidebar-menu li ul.sub li.active a {
     transition: all 0.3s ease;
     display: block;
 }
-
+ul.sidebar-menu li ul.sub li a:hover{
+    background: #28cb75;
+}
 ul.sidebar-menu li{
     /*line-height: 20px !important;*/
 }
@@ -288,6 +291,13 @@ ul.sidebar-menu li a{
     transition: all 0.3s ease;
 }
 
+ul.sidebar-menu li a:hover{
+    background-color: #27a9e3;
+    background-image: none;
+    color: #fff;
+    display: block;
+}
+
 ul.sidebar-menu li a.active, ul.sidebar-menu li a:focus {
     background:#27a9e3 url('../images/menu-active.png') no-repeat right center;
     color: #fff;
@@ -297,13 +307,6 @@ ul.sidebar-menu li a.active, ul.sidebar-menu li a:focus {
     -o-transition: all 0.3s ease;
     -ms-transition: all 0.3s ease;
     transition: all 0.3s ease;
-}
-
-ul.sidebar-menu li a:hover{
-    background-color: #27a9e3;
-    background-image: none;
-    color: #fff;
-    display: block;
 }
 
 ul.sidebar-menu li a i {
