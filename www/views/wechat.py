@@ -105,10 +105,9 @@ class WeChatLogin(BaseView):
         scope = 'snsapi_userinfo'
         # 判断是否微信浏览器
         if not is_weixin(request):
-            if origin == 'console':
-                config = WECHAT_USER
-                oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
-                scope = 'snsapi_login'
+            config = WECHAT_USER
+            oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
+            scope = 'snsapi_login'
 
         # 获取user对应的微信配置
         config = WeChatConfig.objects.get(config=config)
@@ -116,8 +115,7 @@ class WeChatLogin(BaseView):
         # 扫码后微信的回跳页面
         redirect_url = settings.WECHAT_CALLBACK.get("console_goodrain")
         if not is_weixin(request):
-            if origin == 'wechat':
-                redirect_url = settings.WECHAT_CALLBACK.get("console")
+            redirect_url = settings.WECHAT_CALLBACK.get("console")
 
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
         # 微信登录扫码路径
