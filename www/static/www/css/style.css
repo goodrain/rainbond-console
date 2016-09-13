@@ -289,7 +289,8 @@ ul.sidebar-menu li a{
 }
 
 ul.sidebar-menu li a.active, ul.sidebar-menu li a:hover, ul.sidebar-menu li a:focus {
-    background: #27a9e3 url('../images/menu-active.png') no-repeat scroll right center transparent !important;
+    background-color:#27a9e3 ;
+    background-image:url('../images/menu-active.png') no-repeat scroll right center transparent !important;
     color: #fff;
     display: block;
     -webkit-transition: all 0.3s ease;
