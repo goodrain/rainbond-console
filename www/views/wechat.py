@@ -96,16 +96,16 @@ class WeChatLogin(BaseView):
         if csrftoken is None:
             csrftoken = "csrf"
         # 判断登录来源,默认从微信上登录
-        tye = request.GET.get("type", "uu")
-        next_url = request.GET.get("next_url", "next_url")
-        state = AuthCode.encode(','.join([csrftoken, tye, next_url]), 'we_chat_login')
+        origin = request.GET.get("origin", "console")
+        next_url = request.GET.get("next", "/")
+        state = AuthCode.encode(','.join([csrftoken, origin, next_url]), 'we_chat_login')
         logger.debug("here is encode:" + state)
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
         scope = 'snsapi_userinfo'
         # 判断是否微信浏览器
         if not is_weixin(request):
-            if tye == 'wechat':
+            if origin == 'console':
                 config = WECHAT_USER
                 oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
                 scope = 'snsapi_login'
@@ -116,7 +116,7 @@ class WeChatLogin(BaseView):
         # 扫码后微信的回跳页面
         redirect_url = settings.WECHAT_CALLBACK.get("console_goodrain")
         if not is_weixin(request):
-            if tye == 'wechat':
+            if origin == 'wechat':
                 redirect_url = settings.WECHAT_CALLBACK.get("console")
 
         redirect_url = urllib.urlencode({"1": redirect_url})[2:]
@@ -153,12 +153,12 @@ class WeChatCallBack(BaseView):
         state = request.GET.get("state")
         # 解码toke, type
         logger.debug("here is decode:" + state)
-        oldcsrftoken, tye, next_url = AuthCode.decode(str(state), 'we_chat_login').split(',')
+        oldcsrftoken, origin, next_url = AuthCode.decode(str(state), 'we_chat_login').split(',')
         logger.debug(oldcsrftoken)
-        logger.debug(tye)
+        logger.debug(origin)
         config = WECHAT_GOODRAIN
         err_url = settings.WECHAT_CALLBACK.get("index")
-        if tye == 'wechat':
+        if origin == 'console':
             config = WECHAT_USER
 
         if csrftoken != oldcsrftoken:
@@ -277,19 +277,14 @@ class WeChatCallBack(BaseView):
         # 微信用户登录
         user = authenticate(union_id=user.union_id)
         login(request, user)
-        # 检测是否论坛请求
-        discourse_url = request.COOKIES.get('discourse_url', None)
-        if discourse_url is not None:
-            response = self.redirect_to(discourse_url)
-            response.delete_cookie("discourse_url")
-            return response
 
         # 回跳到云市
-        if tye == "market":
-            logger.debug("now return to cloud market login..")
-            ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-            url = settings.APP_SERVICE_API.get("url") + '/login/goodrain/success?ticket=' + ticket
-            return redirect(url)
+        if next_url is not None:
+            if origin == "app":
+                logger.debug("now return to cloud market login..")
+                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                next_url = settings.APP_SERVICE_API.get("url") + '/login/goodrain/success?ticket=' + ticket
+            return redirect(next_url)
 
         return self.redirect_view()
 
@@ -311,7 +306,7 @@ class WeChatInfoView(BaseView):
     def get(self, request, *args, **kwargs):
         page = "www/account/wechatinfo.html"
         context = self.get_context()
-        if self.user.phone == None:
+        if self.user.phone is None:
             self.user.phone = ""
         context["user"] = self.user
         if self.user.rf == "open_wx":
@@ -340,7 +335,7 @@ class WeChatInfoView(BaseView):
                 err_info['email'] = "邮件地址已经存在"
         try:
             is_email(email)
-        except Exception as e:
+        except Exception:
             success = False
             err_info['email'] = "邮件地址不合法"
         # 校验手机号码
@@ -351,7 +346,7 @@ class WeChatInfoView(BaseView):
                 err_info['phone'] = "手机号已存在"
             try:
                 is_phone(phone)
-            except Exception as e:
+            except Exception:
                 success = False
                 err_info['phone'] = "手机号码不合法"
 
@@ -370,13 +365,13 @@ class WeChatInfoView(BaseView):
             try:
                 is_standard_word(nick_name)
                 is_sensitive(nick_name)
-            except Exception as e:
+            except Exception:
                 success = False
                 err_info['name'] = "用户名格式错误"
             # password
             try:
                 password_len(password)
-            except Exception as e:
+            except Exception:
                 success = False
                 err_info['password'] = "密码长度至少8位"
             if password is None or password == "":
@@ -419,7 +414,7 @@ class WeChatInfoView(BaseView):
                                            self.user.nick_name,
                                            self.user.nick_name)
         # 获取next_url
-        next_url = request.GET.get("next_url")
+        next_url = request.GET.get("next")
         if next_url:
             return self.redirect_to(next_url)
         return self.redirect_to("/")
@@ -500,7 +495,7 @@ class BindView(BaseView):
         if csrftoken is None:
             csrftoken = "csrf"
         user_id = str(self.user.pk)
-        next_url = request.GET.get('next_url', "next_url")
+        next_url = request.GET.get('next', "/")
         state = AuthCode.encode(','.join([csrftoken, user_id, next_url]), 'wechat')
         # 获取user对应的微信配置
         config = WECHAT_GOODRAIN
@@ -543,8 +538,6 @@ class WeChatCallBackBind(BaseView):
         # 解码
         oldcsrftoken, user_id, next_url = AuthCode.decode(str(state), 'wechat').split(',')
         # 判断是否微信浏览器
-        if next_url == "next_url":
-            next_url = "/"
         if csrftoken != oldcsrftoken:
             logger.error("csrftoken check error!")
             return self.redirect_to(next_url)
