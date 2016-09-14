@@ -271,6 +271,9 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             app.show_category = '{},{},{}'.format(category_first, category_second, category_third)
             app.is_outer = is_outer
         except AppService.DoesNotExist:
+            namespace = sn.instance.username
+            if self.service.language == "docker":
+                namespace = sn.instance.cloud_assistant
             app = AppService(
                 tenant_id=self.service.tenant_id,
                 service_id=self.service.service_id,
@@ -285,7 +288,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                 is_service=self.service.is_service,
                 is_web_service=self.service.is_web_service,
                 image=self.service.image,
-                namespace=sn.instance.username,
+                namespace=namespace,
                 slug='',
                 extend_method=self.service.extend_method,
                 cmd=self.service.cmd,
