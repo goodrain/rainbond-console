@@ -747,44 +747,45 @@ ul.top-menu > li > a:hover, ul.top-menu > li > a:focus {
 .state-overview .value h1, .state-overview .value p  {
     margin: 0;
     padding: 0;
-    color: #c6cad6;
+    color: #fff;
 }
 
 .state-overview .value h1 {
-    font-weight: 300;
+    font-weight: 100;
 }
 
 .state-overview .symbol i {
     color: #fff;
-    font-size: 50px;
+    font-size: 30px;
 }
 
+.panel{position: relative;}
 .state-overview .symbol {
-    width: 40%;
-    padding: 25px 15px;
-    -webkit-border-radius: 4px 0px 0px 4px;
-    border-radius: 4px 0px 0px 4px;
+    width: 100%;
+    padding: 10px 15px 70px;
 }
 
 .state-overview .value {
-    width: 58%;
-    padding-top: 21px;
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 45px;
 }
 
 .state-overview .terques {
-    background: #6ccac9;
+    background: #27a9e3;
 }
 
 .state-overview .red {
-    background: #ff6c60;
+    background: #da542e;
 }
 
 .state-overview .yellow {
-    background: #f8d347;
+    background: #ffb848;
 }
 
 .state-overview .blue {
-    background: #57c8f2;
+    background: #28cb75;
 }
 
 /*main chart*/
