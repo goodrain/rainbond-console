@@ -2746,12 +2746,15 @@ ul.amounts li {
     border: 1px #ddd solid;
     background: #efefef;
     color: #666;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 .table-advance tr td {
     vertical-align: middle !important;
     background: #f9f9f9;
     border: 1px #ddd solid;
     color: #666;
+    padding: 5px 10px;
 }
 
 .no-border {
