@@ -3110,9 +3110,11 @@ ul.amounts li {
 }
 
 .form-horizontal.tasi-form .form-group {
-    border-bottom: 1px solid #eff2f7;
+    border-top: 1px solid #ffffff;
+    border-bottom: 1px solid #eeeeee;
+    padding-top: 15px;
     padding-bottom: 15px;
-    margin-bottom: 15px;
+    
 }
 
 .form-horizontal.tasi-form .form-group:last-child {
