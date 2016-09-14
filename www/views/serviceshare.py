@@ -398,7 +398,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         AppServiceRelation.objects.filter(service_key=service_key,
                                           app_version=app_version).delete()
         relation_list = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
-        dep_service_ids = [x["dep_service_id"] for x in relation_list]
+        dep_service_ids = [x.dep_service_id for x in list(relation_list)]
         dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)
         app_relation_list = []
         if len(dep_service_list) > 0:
