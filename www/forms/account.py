@@ -137,7 +137,7 @@ class UserLoginForm(forms.Form):
                     Field('password', css_class="form-control", placeholder='密码'),
                     HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
                     FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
-                    HTML("""<p class="text-center">或使用以下账号登录</p><a href="/wechat/login?type=wechat" class="weixin"><img src='/static/www/images/weixin.png'>&nbsp;微信</a>"""),
+                    HTML("""<p class="text-center">或使用以下账号登录</p><a href="/wechat/login" class="weixin"><img src='/static/www/images/weixin.png'>&nbsp;微信</a>"""),
                     HTML("""<div class="linkregister text-center">现在<a href="/register">注册</a></div>"""),
                     HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                     # HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),
@@ -373,6 +373,9 @@ class RegisterForm(forms.Form):
         init_tenant = ""
         init_region = ""
         selected_region = ""
+        next_url = None
+        origin = None
+        prefix_url = ""
         if len(kwargs) > 0:
             if kwargs.get("initial") is not None:
                 initalObj = kwargs.get("initial")
@@ -383,6 +386,16 @@ class RegisterForm(forms.Form):
             if kwargs.get("region_level") is not None:
                 selected_region = kwargs["region_level"]["region"]
                 kwargs.pop("region_level")
+            if kwargs.get("next_url") is not None:
+                next_url = kwargs["next_url"]
+                prefix_url += "&next={0}".format(next_url)
+                kwargs.pop("next_url")
+            if kwargs.get("origin") is not None:
+                origin = kwargs["origin"]
+                prefix_url += "&origin={0}".format(origin)
+                kwargs.pop("origin")
+        if len(prefix_url) > 1:
+            prefix_url = "?" + prefix_url[1:]
         if len(args) > 0:
             if type(args) is tuple:
                 if args[0].get("initial") is not None:
@@ -426,6 +439,8 @@ class RegisterForm(forms.Form):
                         HTML("<hr/>"),
                         # 默认为ali-sh
                         Hidden('machine_region', value=init_region),
+                        Hidden('next', value=next_url),
+                        Hidden('origin', value=origin),
                         Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                         AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
@@ -433,8 +448,8 @@ class RegisterForm(forms.Form):
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                         HTML("""<p class="text-center">或使用以下账号注册</p>"""),
-                        HTML("""<a href="/wechat/login?type=wechat" class="weixin"><img src="static/www/images/weixin.png">微信</a>"""),
-                        HTML("""<div class="linkregister text-center">直接<a href="/login">登录</a></div>"""),
+                        HTML("""<a href="/wechat/login{0}" class="weixin"><img src="static/www/images/weixin.png">微信</a>""".format(prefix_url)),
+                        HTML("""<div class="linkregister text-center">直接<a href="/login{0}">登录</a></div>""".format(prefix_url)),
                         HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                         css_class="login-wrap"
                     )
@@ -447,13 +462,15 @@ class RegisterForm(forms.Form):
                         Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                         HTML("<hr/>"),
                         Hidden('machine_region', value=init_region),
+                        Hidden('next', value=next_url),
+                        Hidden('origin', value=origin),
                         Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                         AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
                                      css_class='input-xlarge', placeholder='验证码'),
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
-                        HTML("""<div class="linkregister text-center">直接<a href="/login">登录</a></div>"""),
+                        HTML("""<div class="linkregister text-center">直接<a href="/login{0}">登录</a></div>""".format(prefix_url)),
                         HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                         css_class="login-wrap"
                     )
@@ -467,6 +484,8 @@ class RegisterForm(forms.Form):
                         Field('email', css_class="form-control", placeholder=text_email),
                         HTML("<hr/>"),
                         Hidden('machine_region', value=init_region),
+                        Hidden('next', value=next_url),
+                        Hidden('origin', value=origin),
                         Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                         AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
@@ -474,8 +493,8 @@ class RegisterForm(forms.Form):
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                         HTML("""<p class="text-center">或使用以下账号注册</p>"""),
-                        HTML("""<a href="/wechat/login?type=wechat" class="weixin"><img src="static/www/images/weixin.png">微信</a>"""),
-                        HTML("""<div class="linkregister text-center">直接<a href="/login">登录</a></div>"""),
+                        HTML("""<a href="/wechat/login{0}" class="weixin"><img src="static/www/images/weixin.png">微信</a>""".format(prefix_url)),
+                        HTML("""<div class="linkregister text-center">直接<a href="/login{0}">登录</a></div>""".format(prefix_url)),
                         HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                         css_class="login-wrap"
                     )
@@ -488,13 +507,15 @@ class RegisterForm(forms.Form):
                         Field('email', css_class="form-control", placeholder=text_email),
                         HTML("<hr/>"),
                         Hidden('machine_region', value=init_region),
+                        Hidden('next', value=next_url),
+                        Hidden('origin', value=origin),
                         Field('password', css_class="form-control", placeholder='请输入至少8位数密码'),
                         Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                         AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
                                      css_class='input-xlarge', placeholder='验证码'),
                         HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="">云帮公有云版服务条款</a>》</div>"""),
                         FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
-                        HTML("""<div class="linkregister text-center">直接<a href="/login">登录</a></div>"""),
+                        HTML("""<div class="linkregister text-center">直接<a href="/login{0}">登录</a></div>""".format(prefix_url)),
                         HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                         css_class="login-wrap"
                     )
