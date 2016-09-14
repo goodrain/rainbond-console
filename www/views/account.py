@@ -18,6 +18,7 @@ import datetime
 import time
 import random
 import re
+import urllib
 
 from www.region import RegionInfo
 from www.views import BaseView
@@ -66,16 +67,26 @@ class Login(BaseView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        origin = request.GET.get("origin", "")
-        next_url = request.GET.get("next", "")
-        if next_url is not None and next_url != "":
-            if origin == "discourse":
-                sig = request.GET.get("sig")
-                next_url = "{0}&sig={1}".format(next_url, sig)
+        referer = request.get_full_path()
+        next_url = ""
+        origin = ""
+        if referer != '':
+            # 获取next、origin
+            tmp = referer.split("?")
+            sub_tmp = "?".join(tmp[1:])
+            key_tmp = sub_tmp.split("&")
+            for key in key_tmp:
+                if key.startswith("origin="):
+                    origin = key[7:]
+                    key_tmp.remove(key)
+                    break
+            next_url = "&".join(key_tmp)
+            if next_url.startswith("next="):
+                next_url = next_url[5:]
+
         if isinstance(user, AnonymousUser):
             # 判断是否MicroMessenger
             if is_weixin(request):
-
                 redirect_url = "/wechat/login"
                 if origin is not None and origin != "":
                     redirect_url += "&origin={0}".format(origin)
