@@ -2739,9 +2739,16 @@ ul.amounts li {
 }
 
 /*table*/
-
+.table-advance>thead>tr>th {
+    border: 1px #ddd solid;
+    background: #efefef;
+    color: #666;
+}
 .table-advance tr td {
     vertical-align: middle !important;
+    background: #f9f9f9;
+    border: 1px #ddd solid;
+    color: #666;
 }
 
 .no-border {
