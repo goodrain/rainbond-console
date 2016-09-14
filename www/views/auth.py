@@ -28,7 +28,7 @@ class DiscourseAuthView(BaseView):
         user = self.user
         if isinstance(user, AnonymousUser):
             logger.info("auth.discourse", "AnonymousUser, redirect to login")
-            response = self.redirect_to('/login?next={0}&origin=discourse'.format(urllib.quote(request.get_full_path())))
+            response = self.redirect_to('/login?next={0}&origin=discourse'.format(request.get_full_path()))
             # response.set_cookie("discourse_url", request.get_full_path())
             return response
         else:

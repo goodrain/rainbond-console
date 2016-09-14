@@ -88,18 +88,13 @@ class Login(BaseView):
             if next_url is not None:
                 if origin == "app":
                     # 这时候来源于app.goodrain.com
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "/"]), 'goodrain')
-                    redirect_url = "/"
-                    prefix_url = "http://app.goodrain.com/login/{0}/success".format(sn.instance.cloud_assistant)
-                    if next_url != '':
-                        tmp = next_url.split("?")
-                        prefix_url = tmp[0]
-                        sub_tmp = tmp[1]
-                        key_tmp = sub_tmp.split("&")
-                        for key in key_tmp:
-                            if "next=" in key:
-                                redirect_url = key.replace("next=", "")
-                    next_url = "{0}?ticket={1}&next={2}".format(prefix_url, ticket, redirect_url)
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                                                                         sn.instance.cloud_assistant,
+                                                                         ticket)
+                elif origin == "discourse":
+                    sig = request.GET.get("sig")
+                    next_url = "{0}&sig={1}".format(next_url, sig)
                 return self.redirect_to(next_url)
             return self.redirect_view()
 
@@ -129,20 +124,14 @@ class Login(BaseView):
 
         if next_url is not None:
             if origin == "app":
-                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "/"]), 'goodrain')
-                redirect_url = "/"
-                if next_url != '':
-                    tmp = next_url.split("?")
-                    sub_tmp = tmp[1]
-                    key_tmp = sub_tmp.split("&")
-                    for key in key_tmp:
-                        if "next=" in key:
-                            redirect_url = key.replace("next=", "")
-                next_url = "{0}/login/{1}/success?ticket={2}&next={3}".format(settings.APP_SERVICE_API.get("url"),
-                                                                              sn.instance.cloud_assistant,
-                                                                              ticket,
-                                                                              redirect_url)
+                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                                                                     sn.instance.cloud_assistant,
+                                                                     ticket)
                 logger.debug(next_url)
+            elif origin == "discourse":
+                sig = request.GET.get("sig")
+                next_url = "{0}&sig={1}".format(next_url, sig)
             return self.redirect_to(next_url)
         else:
             return self.redirect_view()
@@ -386,19 +375,21 @@ class Registation(BaseView):
 
         referer = request.META.get('HTTP_REFERER', '')
         logger.debug("account.register", "referer:{0}".format(referer))
-        next_url = None
-        origin = None
+        next_url = ""
+        origin = ""
         if referer != '':
             # 获取next、origin
             tmp = referer.split("?")
-            sub_tmp = tmp[1]
+            sub_tmp = "?".join(tmp[1:])
             key_tmp = sub_tmp.split("&")
             for key in key_tmp:
-                if "next=" in key:
-                    next_url = key.replace("next=", "")
-                elif "origin=" in key:
-                    origin = key.replace("origin=", "")
-
+                if key.startswith("origin="):
+                    origin = key[7:]
+                    key_tmp.remove(key)
+                    break
+            next_url = "&".join(key_tmp)
+            if next_url.startswith("next="):
+                next_url = next_url[5:]
         region_levels = pl.split(":")
         if len(region_levels) == 2:
             region = region_levels[0]
@@ -527,21 +518,12 @@ class Registation(BaseView):
             # 检测是否论坛请求
             next_url = request.POST.get("next", None)
             if next_url is not None:
-                origin = request.POST.get("origin", None)
+                origin = request.POST.get("origin", "")
                 if origin == "app":
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "/"]), 'goodrain')
-                    redirect_url = "/"
-                    if next_url != '':
-                        tmp = next_url.split("?")
-                        sub_tmp = tmp[1]
-                        key_tmp = sub_tmp.split("&")
-                        for key in key_tmp:
-                            if "next=" in key:
-                                redirect_url = key.replace("next=", "")
-                    next_url = "{0}/login/{1}/success?ticket={2}&next={3}".format(settings.APP_SERVICE_API.get("url"),
-                                                                                  sn.instance.cloud_assistant,
-                                                                                  ticket,
-                                                                                  redirect_url)
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                                                                         sn.instance.cloud_assistant,
+                                                                         ticket)
                     logger.debug(next_url)
                 return self.redirect_to(next_url)
 

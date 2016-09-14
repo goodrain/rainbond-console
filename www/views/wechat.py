@@ -15,6 +15,7 @@ from www.utils.crypt import AuthCode
 from www.utils import sn
 
 from www.views import BaseView
+from www.region import RegionInfo
 from www.monitorservice.monitorhook import MonitorHook
 
 from www.utils.md5Util import md5fun
@@ -84,10 +85,7 @@ class WeChatCheck(BaseView):
 
 
 class WeChatLogin(BaseView):
-    """微信用户登录
-    type=wechat来自pc端微信登录
-    type=market来自微信端云市登录
-    type=''来自微信端云帮登录"""
+    """微信用户登录"""
     def get(self, request, *args, **kwargs):
         if not settings.MODULES["WeChat_Module"]:
             index_url = settings.WECHAT_CALLBACK.get("index")
@@ -98,9 +96,10 @@ class WeChatLogin(BaseView):
             csrftoken = "csrf"
         # 判断登录来源,默认从微信上登录
         origin = request.GET.get("origin", "console")
-        next_url = request.GET.get("next", "/")
-        state = AuthCode.encode(','.join([csrftoken, origin, next_url]), 'we_chat_login')
-        logger.debug("here is encode:" + state)
+        next_url = request.GET.get("next", "")
+        if origin == "discourse":
+            sig = request.GET.get("sig")
+            next_url = "{0}&sig={1}".format(next_url, sig)
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
         scope = 'snsapi_userinfo'
@@ -109,6 +108,8 @@ class WeChatLogin(BaseView):
             config = WECHAT_USER
             oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
             scope = 'snsapi_login'
+        state = AuthCode.encode(','.join([csrftoken, origin, next_url, config]), 'we_chat_login')
+        logger.debug("here is encode:" + state)
 
         # 获取user对应的微信配置
         config = WeChatConfig.objects.get(config=config)
@@ -152,13 +153,13 @@ class WeChatCallBack(BaseView):
         state = request.GET.get("state")
         # 解码toke, type
         logger.debug("here is decode:" + state)
-        oldcsrftoken, origin, next_url = AuthCode.decode(str(state), 'we_chat_login').split(',')
+        logger.debug("is_weixin:" + str(is_weixin(request)))
+        oldcsrftoken, origin, next_url, config = AuthCode.decode(str(state), 'we_chat_login').split(',')
         logger.debug(oldcsrftoken)
         logger.debug(origin)
-        config = WECHAT_GOODRAIN
+        logger.debug(next_url)
+        logger.debug(config)
         err_url = settings.WECHAT_CALLBACK.get("index")
-        if origin == 'console':
-            config = WECHAT_USER
 
         if csrftoken != oldcsrftoken:
             return self.redirect_to(err_url)
@@ -248,7 +249,7 @@ class WeChatCallBack(BaseView):
             user.save()
             monitorhook.registerMonitor(user, 'register')
             # 创建租户,默认为alish
-            region = "ali-sh"
+            region = RegionInfo.register_choices()[0][0]
             # 租户名称必须唯一,这里取open_id的后面8位
             expired_day = 7
             if hasattr(settings, "TENANT_VALID_TIME"):
@@ -278,7 +279,7 @@ class WeChatCallBack(BaseView):
         login(request, user)
 
         # 回跳到云市
-        if next_url is not None:
+        if next_url is not None and next_url != "":
             if origin == "app":
                 logger.debug("now return to cloud market login..")
                 ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
@@ -499,7 +500,7 @@ class BindView(BaseView):
             csrftoken = "csrf"
         user_id = str(self.user.pk)
         next_url = request.GET.get('next', "/")
-        state = AuthCode.encode(','.join([csrftoken, user_id, next_url]), 'wechat')
+
         # 获取user对应的微信配置
         config = WECHAT_GOODRAIN
         oauth2 = 'https://open.weixin.qq.com/connect/oauth2/authorize'
@@ -510,6 +511,8 @@ class BindView(BaseView):
             oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
             scope = 'snsapi_login'
             redirect_url = settings.WECHAT_CALLBACK.get("console_bind")
+        state = AuthCode.encode(','.join([csrftoken, user_id, next_url, config]), 'wechat')
+        logger.debug("bind wechat, state:{0}".format(state))
         wechat_config = WeChatConfig.objects.get(config=config)
         app_id = wechat_config.app_id
         # 微信的回跳页面
@@ -539,7 +542,7 @@ class WeChatCallBackBind(BaseView):
         # 获取statue
         state = request.GET.get("state")
         # 解码
-        oldcsrftoken, user_id, next_url = AuthCode.decode(str(state), 'wechat').split(',')
+        oldcsrftoken, user_id, next_url, config = AuthCode.decode(str(state), 'wechat').split(',')
         # 判断是否微信浏览器
         if csrftoken != oldcsrftoken:
             logger.error("csrftoken check error!")
@@ -550,9 +553,6 @@ class WeChatCallBackBind(BaseView):
             logger.error("wechat donot return code! you do not permissioned!")
             return self.redirect_to(next_url)
         # 根据code获取access_token
-        config = WECHAT_GOODRAIN
-        if not is_weixin(request):
-            config = WECHAT_USER
         wechat_config = WeChatConfig.objects.get(config=config)
         access_token, open_id = OpenWeChatAPI.access_token_oauth2_static(
             wechat_config.app_id,
