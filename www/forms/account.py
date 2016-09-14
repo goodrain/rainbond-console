@@ -126,6 +126,20 @@ class UserLoginForm(forms.Form):
     }
 
     def __init__(self, *args, **kwargs):
+        prefix_url = ""
+        if len(kwargs) > 0:
+            if kwargs.get("next_url") is not None:
+                next_url = kwargs["next_url"]
+                if next_url != "":
+                    prefix_url += "&next={0}".format(next_url)
+                kwargs.pop("next_url")
+            if kwargs.get("origin") is not None:
+                origin = kwargs["origin"]
+                if origin != "":
+                    prefix_url += "&origin={0}".format(origin)
+                kwargs.pop("origin")
+        if len(prefix_url) > 1:
+            prefix_url = "?" + prefix_url[1:]
         super(UserLoginForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_tag = False
@@ -137,7 +151,7 @@ class UserLoginForm(forms.Form):
                     Field('password', css_class="form-control", placeholder='密码'),
                     HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
                     FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
-                    HTML("""<p class="text-center">或使用以下账号登录</p><a href="/wechat/login" class="weixin"><img src='/static/www/images/weixin.png'>&nbsp;微信</a>"""),
+                    HTML("""<p class="text-center">或使用以下账号登录</p><a href="/wechat/login{0}" class="weixin"><img src='/static/www/images/weixin.png'>&nbsp;微信</a>""".format(prefix_url)),
                     HTML("""<div class="linkregister text-center">现在<a href="/register">注册</a></div>"""),
                     HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                     # HTML(u'''<div class="registration" style="float: left;">还没有帐户？<a class="" href="/register">创建一个帐户</a></div>'''),

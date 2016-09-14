@@ -66,19 +66,25 @@ class Login(BaseView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
+        origin = request.GET.get("origin", "")
+        next_url = request.GET.get("next", "")
+        if next_url is not None and next_url != "":
+            if origin == "discourse":
+                sig = request.GET.get("sig")
+                next_url = "{0}&sig={1}".format(next_url, sig)
         if isinstance(user, AnonymousUser):
             # 判断是否MicroMessenger
             if is_weixin(request):
-                origin = request.GET.get("origin", None)
-                next_url = request.GET.get("next", None)
+
                 redirect_url = "/wechat/login"
-                if origin is not None:
+                if origin is not None and origin != "":
                     redirect_url += "&origin={0}".format(origin)
-                if next_url is not None:
+                if next_url is not None and next_url != "":
                     redirect_url += "&next={0}".format(next_url)
                 logger.debug("account.login", "weixin login,url:{0}".format(redirect_url))
                 return self.redirect_to(redirect_url)
-            self.form = UserLoginForm()
+            self.form = UserLoginForm(next_url=next_url,
+                                      origin=origin)
             return self.get_response()
         else:
             # 判断是否有跳转参数,有参数跳转到返回页面
