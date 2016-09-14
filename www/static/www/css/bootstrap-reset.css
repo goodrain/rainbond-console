@@ -55,7 +55,7 @@ a:hover {
 }
 
 .label-danger {
-    background-color: #FF6C60;
+    background-color: #da4f49;
 }
 
 .label-inverse {
@@ -65,7 +65,7 @@ a:hover {
 /*text color*/
 
 .text-danger {
-    color: #FF6C60;
+    color: #da4f49;
 }
 
 .text-muted {
