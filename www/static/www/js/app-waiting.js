@@ -41,7 +41,8 @@ function getGitCodeCheck() {
 				// swal("系统异常");
 			}
 		})
-		gitcodechecktimmer=setTimeout("getGitCodeCheck()",1000*requestNumber)
+		
+		gitcodechecktimmer=setTimeout("getGitCodeCheck()",1000*Math.ceil(requestNumber / 5)+3000)
 	}
 }
 
