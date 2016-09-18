@@ -68,14 +68,14 @@ def submit(request, tenantName):
     return HttpResponse(html)
 
 
-def return_url(request, tenantName):
+def notify_url(request, tenantName):
     try:
         out_trade_no = request.GET.get('out_trade_no', '')
         trade_no = request.GET.get('trade_no', '')
         trade_status = request.GET.get('trade_status', '')
-        logger.debug(out_trade_no)
-        logger.debug(trade_no)
-        logger.debug(trade_status)
+        logger.debug("out_trade_no=" + out_trade_no)
+        logger.debug("trade_no=" + trade_no)
+        logger.debug("trade_status=" + trade_status)
         if trade_status == 'TRADE_SUCCESS' or trade_status == 'TRADE_FINISHED':
             tenantRecharge = TenantRecharge.objects.get(order_no=out_trade_no)
             if tenantRecharge.trade_no is None or tenantRecharge.trade_no == "":
@@ -159,26 +159,26 @@ def return_url(request, tenantName):
     return redirect(get_redirect_url(path, request))
 
 
-def notify_url(request, tenantName):
+def return_url(request, tenantName):
     try:
         out_trade_no = request.GET.get('out_trade_no', '')
         trade_no = request.GET.get('trade_no', '')
         trade_status = request.GET.get('trade_status', '')
-        logger.debug(out_trade_no)
-        logger.debug(trade_no)
-        logger.debug(trade_status)
-        if trade_status == 'TRADE_SUCCESS' or trade_status == 'TRADE_FINISHED':
-            tenantRecharge = TenantRecharge.objects.get(order_no=out_trade_no)
-            tenantRecharge.status = trade_status
-            tenantRecharge.trade_no = trade_no
-            tenantRecharge.save()
-            # tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
-            # tenant.balance = tenant.balance + tenantRecharge.money
-            # tenant.pay_type = 'payed'
-            # tenant.save()
-        else:
-            logger.debug(
-                out_trade_no + " recharge trade_status=" + trade_status)
+        logger.debug("out_trade_no=" + out_trade_no)
+        logger.debug("trade_no=" + trade_no)
+        logger.debug("trade_status=" + trade_status)
+#        if trade_status == 'TRADE_SUCCESS' or trade_status == 'TRADE_FINISHED':
+#            # tenantRecharge = TenantRecharge.objects.get(order_no=out_trade_no)
+#            # tenantRecharge.status = trade_status
+#            # tenantRecharge.trade_no = trade_no
+#            # tenantRecharge.save()
+#            # tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
+#            # tenant.balance = tenant.balance + tenantRecharge.money
+#            # tenant.pay_type = 'payed'
+#            # tenant.save()
+#        else:
+#            logger.debug(
+#                out_trade_no + " recharge trade_status=" + trade_status)
     except Exception as e:
         logger.exception(e)
     path = '/apps/{0}/recharge/'.format(tenantName)

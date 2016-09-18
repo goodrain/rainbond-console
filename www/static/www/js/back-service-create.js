@@ -58,7 +58,7 @@ $(function(){
     			} else if (dataObj["status"] == "owed"){
     				swal("余额不足请及时充值")
     			} else if (dataObj["status"] == "expired"){
-                    swal("已超出试用期限")
+                    swal("试用已到期")
                 } else if (dataObj["status"] == "exist") {
     				swal("服务名已存在");
     			} else if (dataObj["status"] == "over_memory") {

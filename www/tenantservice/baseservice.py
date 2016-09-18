@@ -501,8 +501,8 @@ class TenantAccountService(object):
         return False
 
     def isExpired(self, tenant):
-        if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
-            return False
+#        if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
+#            return False
         return True
 
 

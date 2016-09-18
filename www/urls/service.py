@@ -22,8 +22,7 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-language/$', login_required(AppLanguageCodeView.as_view())),
 
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),
-    # url(r'^/(?P<serviceAlias>[\w\-]+)/publish/$', ServicePublishView.as_view()),
-    # url(r'^/(?P<serviceAlias>[\w\-]+)/publish/extra/?$', ServicePublishExtraView.as_view()),
+
     url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra/?$', ServiceDeployExtraView.as_view()),
 
     url(r'^/service/$', login_required(ServiceMarket.as_view())),
@@ -46,7 +45,7 @@ urlpatterns = patterns(
 
     url(r'^/recharge/alipay$', csrf_exempt(login_required(alipay_view.submit))),
     url(r'^/recharge/alipay-return$', alipay_view.return_url),
-    url(r'^/recharge/alipay-notify$', alipay_view.notify_url),
+    url(r'^/recharge/alipay-notify$', csrf_exempt(alipay_view.notify_url)),
 
     # new publish service
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/$', PublishServiceDetailView.as_view()),
