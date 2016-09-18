@@ -2978,7 +2978,9 @@ ul.amounts li {
 
 .tab-bg-dark-navy-blue {
     background: #fff;
-   
+    -webkit-box-shadow: 1px -1px 0 #ddd inset,-1px 0 0 #ddd inset;
+    -moz-box-shadow: 1px -1px 0 #ddd inset,-1px 0 0 #ddd inset ;
+    box-shadow: 1px -1px 0 #ddd inset,-1px 0 0 #ddd inset ;
 }
 
 .panel-heading .nav > li > a,
@@ -2989,13 +2991,16 @@ ul.amounts li {
 
 .panel-heading .nav > li > a {
     color: #666;
+
 }
 
 .panel-heading .nav > li.active > a, .panel-heading .nav > li > a:hover {
     color: #333;
     background: #f9f9f9;
-    border-right: 1px #ddd solid;
-    border-left: 1px #ddd solid;
+    -webkit-box-shadow: 1px 0 0 #ddd inset,-1px 0 0 #ddd inset;
+    -moz-box-shadow: 1px 0 0 #ddd inset,-1px 0 0 #ddd inset ;
+    box-shadow: 1px 0 0 #ddd inset,-1px 0 0 #ddd inset ;
+   
 }
 
 .panel-heading .nav > li:first-child.active > a, .panel-heading .nav > li:first-child > a:hover {
