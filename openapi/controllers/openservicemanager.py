@@ -939,3 +939,10 @@ class OpenTenantServiceManager(object):
         tsr.dep_order = 0
         tsr.save()
 
+    def init_region_tenant(self, region, tenant_name, tenant_id, nick_name):
+        user = Users(nick_name=nick_name)
+        return tenantRegionService.init_for_region(region,
+                                                   tenant_name,
+                                                   tenant_id,
+                                                   user)
+
