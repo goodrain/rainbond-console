@@ -57,7 +57,9 @@ $(function(){
     			    swal("依赖的服务类型不存在，请先下载到服务市场");
     			} else if (dataObj["status"] == "owed"){
     				swal("余额不足请及时充值")
-    			} else if (dataObj["status"] == "exist") {
+    			} else if (dataObj["status"] == "expired"){
+                    swal("已超出试用期限")
+                } else if (dataObj["status"] == "exist") {
     				swal("服务名已存在");
     			} else if (dataObj["status"] == "over_memory") {
     				swal("资源已达上限，不能创建");

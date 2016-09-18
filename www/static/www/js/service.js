@@ -26,6 +26,8 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 				swal("操作成功")
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
+			} else if (dataObj["status"] == "expired") {
+				swal("已超出试用期限")
 			} else if (dataObj["status"] == "language") {
 				swal("应用语言监测未通过")
 				forurl = "/apps/" + tenantName + "/" + serviceAlias
@@ -79,6 +81,8 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
 				swal("操作正在进行中，请稍后")
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
+			} else if (dataObj["status"] == "expired") {
+				swal("已超出试用期限")
 			} else if (dataObj["status"] == "over_memory") {
 				swal("资源已达上限，不能升级")
 			} else if (dataObj["status"] == "over_money") {
@@ -120,6 +124,8 @@ function service_onOperation(service_id, service_alias, tenantName) {
 				swal("操作正在进行中，请稍后")
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
+			} else if (dataObj["status"] == "expired") {
+				swal("已超出试用期限")
 			} else if (dataObj["status"] == "over_memory") {
 				swal("免费资源已达上限，不能操作")
 			} else if (dataObj["status"] == "over_money") {
@@ -254,6 +260,8 @@ function service_upgrade(tenantName, service_alias) {
 				swal("设置成功")
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
+			} else if (dataObj["status"] == "expired") {
+				swal("已超出试用期限")
 			} else if (dataObj["status"] == "often") {
 				swal("操作正在进行中，请稍后")
 			} else if (dataObj["status"] == "over_memory") {
@@ -289,6 +297,8 @@ function app_upgrade(tenantName, service_alias) {
 					swal("设置成功")
 				} else if (dataObj["status"] == "owed") {
 					swal("余额不足请及时充值")
+				} else if (dataObj["status"] == "expired") {
+					swal("已超出试用期限")
 				} else if (dataObj["status"] == "often") {
 					swal("操作正在进行中，请稍后")
 				} else if (dataObj["status"] == "over_memory") {
@@ -325,7 +335,9 @@ function extends_upgrade(tenantName, service_alias) {
                     swal("设置成功")
                 } else if (dataObj["status"] == "owed") {
                     swal("余额不足请及时充值")
-                } else if (dataObj["status"] == "often") {
+                } else if (dataObj["status"] == "expired") {
+					swal("已超出试用期限")
+				} else if (dataObj["status"] == "often") {
                     swal("操作正在进行中，请稍后")
                 } else if (dataObj["status"] == "no_support") {
                     swal("当前服务不支持修改")
@@ -600,7 +612,9 @@ function service_image(service_id, service_alias, tenantName) {
                 swal("操作成功,重启后生效")
             } else if (dataObj["status"] == "owed") {
                 swal("余额不足请及时充值")
-            } else if (dataObj["status"] == "often") {
+            } else if (dataObj["status"] == "expired") {
+				swal("已超出试用期限")
+			} else if (dataObj["status"] == "often") {
                 swal("操作正在进行中，请稍后")
             } else if (dataObj["status"] == "over_memory") {
                 swal("资源已达上限，不能升级")
@@ -648,7 +662,9 @@ function service_image_reboot(service_id, service_alias, tenantName) {
                         service_reboot(service_id, service_alias, tenantName);
                     } else if (dataObj["status"] == "owed") {
                         swal("余额不足请及时充值")
-                    } else if (dataObj["status"] == "often") {
+                    } else if (dataObj["status"] == "expired") {
+						swal("已超出试用期限")
+					} else if (dataObj["status"] == "often") {
                         swal("操作正在进行中，请稍后")
                     } else if (dataObj["status"] == "over_memory") {
                         swal("资源已达上限，不能升级")
@@ -689,7 +705,9 @@ function service_reboot(service_id, service_alias, tenantName) {
                 swal("操作正在进行中，请稍后")
             } else if (dataObj["status"] == "owed") {
                 swal("余额不足请及时充值")
-            } else if (dataObj["status"] == "over_memory") {
+            } else if (dataObj["status"] == "expired") {
+				swal("已超出试用期限")
+			} else if (dataObj["status"] == "over_memory") {
                 swal("免费资源已达上限，不能操作")
             } else if (dataObj["status"] == "over_money") {
                 swal("余额不足，不能操作")
