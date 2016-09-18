@@ -2740,7 +2740,7 @@ ul.amounts li {
 
 /*table*/
 
-.table-hover .tbody tr th{ border: 1px #ddd solid; background: #f9f9f9; }
+.table tbody tr th{ border: 1px #ddd solid; background: #f9f9f9; padding:10px;}
 
 
 
