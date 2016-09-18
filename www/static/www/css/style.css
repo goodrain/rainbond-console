@@ -2997,9 +2997,9 @@ ul.amounts li {
 .panel-heading .nav > li.active > a, .panel-heading .nav > li > a:hover {
     color: #333;
     background: #f9f9f9;
-    -webkit-box-shadow: 1px 0 0 #ddd inset,-1px 0 0 #ddd inset;
-    -moz-box-shadow: 1px 0 0 #ddd inset,-1px 0 0 #ddd inset ;
-    box-shadow: 1px 0 0 #ddd inset,-1px 0 0 #ddd inset ;
+    -webkit-box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset;
+    -moz-box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset ;
+    box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset ;
    
 }
 
