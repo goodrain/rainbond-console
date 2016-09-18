@@ -475,11 +475,6 @@ class AllServiceInfo(AuthedView):
                         child = {}
                         child["status"] = "owed"
                         result[sid] = child
-                elif self.tenant.pay_type == "free" and self.tenant.expired_time < datetime.datetime.now():
-                    for sid in service_ids:
-                        child = {}
-                        child["status"] = "expired"
-                        result[sid] = child
                 else:
                     id_string = ','.join(service_ids)
                     bodys = regionClient.check_status(self.cookie_region, json.dumps({"service_ids": id_string}))
@@ -546,8 +541,6 @@ class ServiceDetail(AuthedView):
             if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
-            elif tenantAccountService.isExpired(self.tenant):
-                result["status"] = "expired"
             else:
                 if self.service.deploy_version is None or self.service.deploy_version == "":
                     result["totalMemory"] = 0

@@ -230,10 +230,7 @@
 		    		  	if(obj["status"]=="closed"){
 		    		  		$("#service_status").html("已关闭")
 		    		  		$("#service_status").attr("class","badge badge-sm label-success")
-		    		  	}else if(obj["status"]=="expired"){
-							$("#service_status").html("超出试用期已关闭")
-							$("#service_status").attr("class","badge badge-sm label-danger")
-						}else{
+		    		  	}else{
 		    		  		$("#service_status").html("余额不足已关闭")
 		    		  		$("#service_status").attr("class","badge badge-sm label-danger")
 		    		  	}
