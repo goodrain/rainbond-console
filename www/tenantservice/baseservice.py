@@ -503,7 +503,7 @@ class TenantAccountService(object):
     def isExpired(self, tenant):
 #        if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
 #            return False
-        return True
+        return False
 
 
 class TenantRegionService(object):
