@@ -2978,9 +2978,9 @@ ul.amounts li {
 
 .tab-bg-dark-navy-blue {
     background: #fff;
-    -webkit-box-shadow: 1px -1px 0 #ddd inset,-1px 0 0 #ddd inset;
-    -moz-box-shadow: 1px -1px 0 #ddd inset,-1px 0 0 #ddd inset ;
-    box-shadow: 1px -1px 0 #ddd inset,-1px 0 0 #ddd inset ;
+    -webkit-box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset;
+    -moz-box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset ;
+    box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset ;
 }
 
 .panel-heading .nav > li > a,
