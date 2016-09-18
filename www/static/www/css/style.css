@@ -2739,6 +2739,11 @@ ul.amounts li {
 }
 
 /*table*/
+
+.table-hover .tbody tr th{ border: 1px #ddd solid; background: #f9f9f9; }
+
+
+
 .table>thead:first-child>tr:first-child>th {
     border:1px #ddd solid; 
     background: #efefef;
@@ -2753,7 +2758,7 @@ ul.amounts li {
     padding-top: 10px;
     padding-bottom: 10px;
 }
-.table-advance tr td {
+.table-advance tr td ,.table-hover tbody > tr > td{
     vertical-align: middle !important;
     background: #f9f9f9;
     border: 1px #ddd solid;
@@ -5575,4 +5580,6 @@ a.guest-on i {
 .notify-row .btn-white{background: #1f262d; border-left: 1px solid #2e363f; border-right: 1px solid #000; color: #999; text-shadow: 0 -1px 0 rgba(0,0,0,0.25); height: 40px; }
 
 #servicepanel{border: 0;}
-.panel-body .panel-body{border:0;}
+.panel-body .panel-body{border:0; padding:0;}
+
+
