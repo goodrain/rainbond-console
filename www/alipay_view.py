@@ -70,9 +70,10 @@ def submit(request, tenantName):
 
 def notify_url(request, tenantName):
     try:
-        out_trade_no = request.GET.get('out_trade_no', '')
-        trade_no = request.GET.get('trade_no', '')
-        trade_status = request.GET.get('trade_status', '')
+        out_trade_no = request.POST.get('out_trade_no', '')
+        trade_no = request.POST.get('trade_no', '')
+        trade_status = request.POST.get('trade_status', '')
+            
         logger.debug("out_trade_no=" + out_trade_no)
         logger.debug("trade_no=" + trade_no)
         logger.debug("trade_status=" + trade_status)
