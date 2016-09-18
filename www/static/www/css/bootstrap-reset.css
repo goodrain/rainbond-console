@@ -31,6 +31,7 @@ a:hover {
 .panel-body {
     color: #666;
     padding: 0 15px;
+    border: 1px #ddd solid;
 }
 
 /*label*/
