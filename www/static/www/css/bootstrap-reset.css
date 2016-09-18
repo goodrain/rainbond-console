@@ -34,7 +34,11 @@ a:hover {
     border: 1px #ddd solid;
     background: #f9f9f9;
 }
-
+.form-group { 
+    padding-bottom: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+ }
 /*label*/
 
 .label {
