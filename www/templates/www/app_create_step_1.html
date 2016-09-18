@@ -182,7 +182,9 @@
    				swal("资源已达上限，不能创建");
    			}else if(app_status == "over_money") {
    				swal("余额不足，不能创建");
-   			}
+   			}else if(app_status == "expired"){
+				swal("试用期已过");
+			}
 			//取消回车事件
 			$("#create_app_name").keydown(function(e){
 				var curKey = e.which;

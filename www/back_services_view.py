@@ -201,6 +201,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
 
+            if tenantAccountService.isExpired(self.tenant):
+                result["status"] = "expired"
+                return JsonResponse(result, status=200)
+
             service_key = request.POST.get("service_key", None)
             if service_key is None:
                 result["status"] = "notexist"
