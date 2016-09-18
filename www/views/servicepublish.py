@@ -151,6 +151,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     app.save()
                 else:
                     # new
+                    namespace = sn.instance.username
+                    if self.service.language == "docker":
+                        namespace = sn.instance.cloud_assistant
                     app = AppService(
                         tenant_id=self.service.tenant_id,
                         service_id=self.service.service_id,
@@ -166,7 +169,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         is_service=self.service.is_service,
                         is_web_service=self.service.is_web_service,
                         image=self.service.image,
-                        namespace=sn.instance.username,
+                        namespace=namespace,
                         slug='',
                         extend_method=self.service.extend_method,
                         cmd=self.service.cmd,

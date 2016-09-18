@@ -47,7 +47,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         # 检查用户邮箱是否完善,跳转到邮箱完善页面
         next_url = request.path
         if self.user.email is None or self.user.email == "":
-            return self.redirect_to("/wechat/info?next_url={0}".format(next_url))
+            return self.redirect_to("/wechat/info?next={0}".format(next_url))
         # 判断系统中是否有初始化的application数据
         count = ServiceInfo.objects.filter(service_key="application").count()
         if count == 0:

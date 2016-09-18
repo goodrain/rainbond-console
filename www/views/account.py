@@ -18,6 +18,7 @@ import datetime
 import time
 import random
 import re
+import urllib
 
 from www.region import RegionInfo
 from www.views import BaseView
@@ -66,26 +67,51 @@ class Login(BaseView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
+        referer = request.get_full_path()
+        next_url = ""
+        origin = ""
+        if referer != '':
+            # 获取next、origin
+            tmp = referer.split("?")
+            sub_tmp = "?".join(tmp[1:])
+            key_tmp = sub_tmp.split("&")
+            for key in key_tmp:
+                if key.startswith("origin="):
+                    origin = key[7:]
+                    key_tmp.remove(key)
+                    break
+            next_url = "&".join(key_tmp)
+            if next_url.startswith("next="):
+                next_url = next_url[5:]
+
         if isinstance(user, AnonymousUser):
             # 判断是否MicroMessenger
             if is_weixin(request):
-                return self.redirect_to("/wechat/login")
-            self.form = UserLoginForm()
+                redirect_url = "/wechat/login"
+                if origin is not None and origin != "":
+                    redirect_url += "&origin={0}".format(origin)
+                if next_url is not None and next_url != "":
+                    redirect_url += "&next={0}".format(next_url)
+                logger.debug("account.login", "weixin login,url:{0}".format(redirect_url))
+                return self.redirect_to(redirect_url)
+            self.form = UserLoginForm(next_url=next_url,
+                                      origin=origin)
             return self.get_response()
         else:
             # 判断是否有跳转参数,有参数跳转到返回页面
+            # 这里只有app请求过来
             next_url = request.GET.get('next', None)
-            typ = request.GET.get('typ', None)
+            origin = request.GET.get('origin', None)
             if next_url is not None:
-                if typ == "app":
+                if origin == "app":
                     # 这时候来源于app.goodrain.com
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "next_url"]), 'goodrain')
-                    index_num = next_url.find("?")
-                    if "nick_name" in next_url:
-                        # 成成 ticket
-                        next_url = next_url[:index_num] + "?ticket={}".format(ticket)
-                    else:
-                        next_url += ("?" if index_num == -1 else "&") + "ticket={}".format(ticket)
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                                                                         sn.instance.cloud_assistant,
+                                                                         ticket)
+                elif origin == "discourse":
+                    sig = request.GET.get("sig")
+                    next_url = "{0}&sig={1}".format(next_url, sig)
                 return self.redirect_to(next_url)
             return self.redirect_view()
 
@@ -93,6 +119,7 @@ class Login(BaseView):
     def post(self, request, *args, **kwargs):
         self.form = UserLoginForm(request.POST)
         next_url = request.GET.get('next', None)
+        origin = request.GET.get("origin", None)
         username = request.POST.get('email')
         password = request.POST.get('password')
 
@@ -112,15 +139,16 @@ class Login(BaseView):
         if app_ty is not None:
             return self.redirect_to("/autodeploy?fr=www_app")
 
-        typ = request.GET.get('typ', None)
         if next_url is not None:
-            if typ == "app":
-                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), "next_url"]), 'goodrain')
-                index_num = next_url.find("?")
-                if "nick_name" in next_url and index_num > -1:
-                    next_url = next_url[:index_num] + "?ticket={}".format(ticket)
-                else:
-                    next_url += ("?" if index_num == -1 else "&") + "ticket={}".format(ticket)
+            if origin == "app":
+                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                                                                     sn.instance.cloud_assistant,
+                                                                     ticket)
+                logger.debug(next_url)
+            elif origin == "discourse":
+                sig = request.GET.get("sig")
+                next_url = "{0}&sig={1}".format(next_url, sig)
             return self.redirect_to(next_url)
         else:
             return self.redirect_view()
@@ -361,16 +389,37 @@ class Registation(BaseView):
 
     def get(self, request, *args, **kwargs):
         pl = request.GET.get("pl", "")
+
+        referer = request.META.get('HTTP_REFERER', '')
+        logger.debug("account.register", "referer:{0}".format(referer))
+        next_url = ""
+        origin = ""
+        if referer != '':
+            # 获取next、origin
+            tmp = referer.split("?")
+            sub_tmp = "?".join(tmp[1:])
+            key_tmp = sub_tmp.split("&")
+            for key in key_tmp:
+                if key.startswith("origin="):
+                    origin = key[7:]
+                    key_tmp.remove(key)
+                    break
+            next_url = "&".join(key_tmp)
+            if next_url.startswith("next="):
+                next_url = next_url[5:]
         region_levels = pl.split(":")
         if len(region_levels) == 2:
             region = region_levels[0]
             self.form = RegisterForm(
                 region_level={
                     "region": region,
-                }
+                },
+                next_url=next_url,
+                origin=origin
             )
         else:
-            self.form = RegisterForm()
+            self.form = RegisterForm(next_url=next_url,
+                                     origin=origin)
         return self.get_response()
 
     def get_client_ip(self, request):
@@ -416,7 +465,7 @@ class Registation(BaseView):
             phone = request.POST.get('phone')
             region = request.POST.get('machine_region')
             if region is None or region == "" or region == "1":
-                region = "ucloud_bj_1"
+                region = RegionInfo.register_choices()[0][0]
             # 没有配置项默认为私有云帮,配置项为false为私有云帮
             is_private = sn.instance.is_private()
             if is_private:
@@ -484,11 +533,16 @@ class Registation(BaseView):
             login(request, user)
 
             # 检测是否论坛请求
-            discourse_url = request.COOKIES.get('discourse_url', None)
-            if discourse_url is not None:
-                response = self.redirect_to(discourse_url)
-                response.delete_cookie("discourse_url")
-                return response
+            next_url = request.POST.get("next", None)
+            if next_url is not None:
+                origin = request.POST.get("origin", "")
+                if origin == "app":
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                                                                         sn.instance.cloud_assistant,
+                                                                         ticket)
+                    logger.debug(next_url)
+                return self.redirect_to(next_url)
 
             url = '/apps/{0}'.format(tenant_name)
             if settings.MODULES["Package_Show"]:
@@ -814,7 +868,7 @@ class AppLogin(BaseView):
 
         username = request.POST.get('email')
         password = request.POST.get('password')
-        next_url = request.POST.get('next_url', "next_url")
+        next_url = request.POST.get('next_url', "/")
         if password:
             if len(password) < 8:
                 return JsonResponse({"success": False, "msg": "password error!"})

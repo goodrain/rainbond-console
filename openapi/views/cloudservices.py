@@ -135,6 +135,12 @@ class CloudServiceInstallView(BaseAPIView):
             logger.error("openapi.cloudservice", "Tenant {0} region {1} service:{2} is exists=!".format(tenant_name, region, service_name))
             return Response(status=414, data={"success": False, "msg": u"服务名称已经存在"})
 
+        # 检查对应region上的tenant是否创建
+        init_region_tenant = manager.init_region_tenant(region, tenant_name, tenant.tenant_id, username)
+        if not init_region_tenant:
+            logger.error("openapi.cloudservice", "Tenant {0} region {1} init failed!".format(tenant_name, region))
+            return Response(status=470, data={"success": False, "msg": u"init region tenant failed!"})
+
         # 没有模版从app下载模版\根据模版查询服务依赖信息
         status, success, dep_map, msg = manager.download_service(service_key, version)
         if status == 500:
