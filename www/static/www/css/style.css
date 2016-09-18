@@ -2740,7 +2740,11 @@ ul.amounts li {
 
 /*table*/
 .table>thead:first-child>tr:first-child>th {
-    border-top:1px #ddd solid; 
+    border:1px #ddd solid; 
+    background: #efefef;
+    color: #666;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 .table-advance>thead>tr>th {
     border: 1px #ddd solid;
@@ -5570,3 +5574,5 @@ a.guest-on i {
 
 .notify-row .btn-white{background: #1f262d; border-left: 1px solid #2e363f; border-right: 1px solid #000; color: #999; text-shadow: 0 -1px 0 rgba(0,0,0,0.25); height: 40px; }
 
+#servicepanel{border: 0;}
+.panel-body .panel-body{border:0;}
