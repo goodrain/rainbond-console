@@ -3,7 +3,6 @@ var requestNumber = 0
 $(function() {
 	$('#service_code_waiting').attr('disabled', "true");
 	getGitCodeCheck();
-	gitcodechecktimmer = setInterval("getGitCodeCheck()", 3000);
 	$('#service_code_waiting').click(
 			function() {
 				var tenantName = $('#tenantName').val();
@@ -30,7 +29,7 @@ function getGitCodeCheck() {
 			success : function(msg) {
 				var dataObj = msg;
 				if (dataObj["status"] == "checked") {
-					clearInterval(gitcodechecktimmer);
+					clearTimeout(gitcodechecktimmer);
 					$("#git_code_upload").html(
 							"代码已提交，语言识别为 " + dataObj["language"]);
 					$("#service_code_waiting").removeAttr('disabled')
@@ -42,6 +41,7 @@ function getGitCodeCheck() {
 				// swal("系统异常");
 			}
 		})
+		gitcodechecktimmer=setTimeout("getGitCodeCheck()",1000*requestNumber)
 	}
 }
 
