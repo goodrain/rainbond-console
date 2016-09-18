@@ -29,8 +29,6 @@ a:hover {
     font-family: 'Open Sans', sans-serif;
 }
 .panel-body {
-    background: #f9f9f9;
-    border: 1px #ddd solid;
     color: #666;
     padding: 0 15px;
 }
