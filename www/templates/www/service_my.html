@@ -138,7 +138,7 @@
 			    		  		 $("#button_"+o).attr("class","btn btn-shadow btn-info")
 			    		  		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
-			    		  		 $("#operate_"+o).attr("class","btn btn-danger btn-xs")
+			    		  		 $("#operate_"+o).attr("class","btn btn-danger")
 								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
 								 $("#operate_"+o).attr("data"+o,"stop")	
 							  }else if(obj["status"]=="starting"){
@@ -147,7 +147,7 @@
                                  $("#button_"+o).attr("class","btn btn-shadow btn-info")
                                  $("#button_"+o).removeAttr("disabled")
                                  $("#operate_"+o).removeAttr("disabled")
-                                 $("#operate_"+o).attr("class","btn btn-danger btn-xs")
+                                 $("#operate_"+o).attr("class","btn btn-danger")
                                  $("#operate_inner_"+o).attr("class","fa fa-power-off")
                                  $("#operate_"+o).attr("data"+o,"stop") 
 					    	  }else if(obj["status"]=="unusual"){
@@ -155,7 +155,7 @@
 					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")
 					    		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
-			    		  		 $("#operate_"+o).attr("class","btn btn-danger btn-xs")
+			    		  		 $("#operate_"+o).attr("class","btn btn-danger")
 								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
 						      }else if(obj["status"]=="closed" || obj["status"]=="owed"){
 					    		 $("#service_status_"+o).html("已关闭")		
@@ -167,9 +167,9 @@
 					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")			    		 
 					    		 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).removeAttr("disabled")
-					    		 $("#operate_"+o).attr("class","btn btn-success btn-xs")
+					    		 $("#operate_"+o).attr("class","btn btn-success")
 								 $("#operate_inner_"+o).attr("class","fa fa-play")
-								 $("#operate_"+o).attr("class","btn btn-success btn-xs")
+								 $("#operate_"+o).attr("class","btn btn-success")
 								 $("#operate_inner_"+o).attr("class","fa fa-play")
 								 $("#operate_"+o).attr("data"+o,"restart")
 						      }else if(obj["status"]=="undeploy"){
@@ -177,7 +177,7 @@
 						    	 $("#service_status_"+o).attr("class","label label-info label-mini")				    		 
 						    	 $("#button_"+o).removeAttr("disabled")
 						    	 $("#operate_"+o).attr('disabled',"true")
-						    	 $("#operate_"+o).attr("class","btn btn-danger btn-xs")
+						    	 $("#operate_"+o).attr("class","btn btn-danger")
 								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
 						      }else{
 						    	 $("#service_status_"+o).html("未知")
