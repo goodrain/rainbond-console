@@ -95,7 +95,9 @@
         z-index: 1001;
     }
 
-
+   ul.sidebar-menu li a.active, ul.sidebar-menu li a:focus{
+    background-image: none;
+   }
     /* body container */
     #main-content {
         margin: 0px!important;
@@ -334,7 +336,7 @@
         top: 10px;
     }
     ul.sidebar-menu li ul.sub li a {
-        padding: 0;
+       
     }
 
     /*---*/
