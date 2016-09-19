@@ -287,6 +287,7 @@ class OpenTenantServiceManager(object):
                 data["new_domain"] = domain_name
                 data["old_domain"] = old_domain_name
                 data["pool_name"] = tenant_name + "@" + service.service_alias + ".Pool"
+                data["container_port"] = 0
                 regionClient.addUserDomain(service.service_region, json.dumps(data))
                 monitorhook.serviceMonitor(username, service, 'domain_add', True)
             elif action == "close":

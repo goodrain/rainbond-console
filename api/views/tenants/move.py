@@ -273,7 +273,8 @@ class TenantFollowUpView(APIView):
                         "service_id": service.service_id,
                         "new_domain": domain.domain_name,
                         "old_domain": tenant.tenant_name,
-                        "pool_name": '{0}@{1}.Pool'.format(tenant.tenant_name, service.service_alias)
+                        "pool_name": '{0}@{1}.Pool'.format(tenant.tenant_name, service.service_alias),
+                        "container_port": 0
                     }
                     regionClient.addUserDomain(tenant_dest_region.region_name, json.dumps(task))
 
