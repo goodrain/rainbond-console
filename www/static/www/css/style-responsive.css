@@ -362,7 +362,7 @@
     }
 
     #top_menu .nav > li, ul.top-menu > li {
-        float: right;
+       
     }
     .hidden-phone {
         display: none !important;
@@ -405,12 +405,6 @@
         float: left;
         margin-left:0px;
         width: 100%;
-    }
-
-    .top-nav {
-        position: absolute;
-        right: 10px;
-        top: 0px;
     }
 
     .horizontal-menu .navbar-nav > li > a {
