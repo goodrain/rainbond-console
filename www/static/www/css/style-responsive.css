@@ -172,11 +172,13 @@
     }
 
     .btn {
-        margin-bottom: 5px;
+       
     }
 
 
-
+    .sidebar-toggle-box {
+        margin-top: 10px;
+    }
 
     .mail-box aside {
         display: block;
@@ -315,9 +317,7 @@
     }
 
     .top-nav {
-        position: absolute;
-        right: 10px;
-        top: 0px;
+       
     }
 
     .horizontal-menu .navbar-nav > li > a {
