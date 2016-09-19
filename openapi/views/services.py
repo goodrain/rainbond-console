@@ -133,8 +133,8 @@ class CreateServiceView(BaseAPIView):
         service.desc = service_desc
         if service_memory != "":
             cm = int(service_memory)
-            if cm >= 128:
-                ccpu = int(cm / 128) * 20
+            if cm >= 64:
+                ccpu = int(cm / 64) * 20
                 service.min_cpu = ccpu
                 service.min_memory = cm
 
@@ -399,7 +399,7 @@ class StatusServiceView(BaseAPIView):
             return Response(status=408, data={"success": False, "msg": u"服务不存在"})
         # 查询服务状态服务
         status, success, msg = manager.status_service(service)
-        return Response(status=status, data={"success": success, "msg": msg})
+        return Response(status=status, data={"success": success, "service_id":service.service_id, "msg": msg})
 
 
 class RestartServiceView(BaseAPIView):
@@ -566,7 +566,7 @@ class QueryServiceView(BaseAPIView):
         version = service.version
         region = service.service_region
         # 查询服务的版本
-        service_list = ServiceInfo.objects.filter(service_key=service_key,version=version).order_by("-ID")
+        service_list = ServiceInfo.objects.filter(service_key=service_key, version=version).order_by("-ID")
         data = {"new_version": service.update_version}
         if len(service_list) > 0:
             new_service = list(service_list)[-1]
