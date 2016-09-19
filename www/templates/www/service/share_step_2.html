@@ -1,6 +1,7 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
 {% load crispy_forms_tags %}
+{% load goodrain_extras %}
 {% load static %}
 {% block extracss %}
     {{ block.super }}
@@ -73,7 +74,7 @@
         </table>
     </div>
     <div class="linkbox">
-        <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step1" class="graybtn">上一步</a>
+        <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step1?fr=share" class="graybtn">上一步</a>
         <a href="#" onclick="submit_button()" class="graybtn">下一步</a>
     </div>
     <form method="POST" id="env_form">

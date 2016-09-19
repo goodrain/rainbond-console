@@ -1,6 +1,7 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
 {% load crispy_forms_tags %}
+{% load goodrain_extras %}
 {% load static %}
 {% block extracss %}
 {{ block.super }}
@@ -198,7 +199,7 @@
         </div>
         <!-- 二 结束 -->
         <div class="linkbox">
-            <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="graybtn">上一步</a>
+            <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2?fr=share" class="graybtn">上一步</a>
             <a href="#" onclick="check_data();" class="greenbtn">下一步</a>
         </div>
     </form>
