@@ -84,14 +84,17 @@ class Login(BaseView):
             if next_url.startswith("next="):
                 next_url = next_url[5:]
 
+        app_url = request.GET.get('redirect_url', None)
         if isinstance(user, AnonymousUser):
             # 判断是否MicroMessenger
             if is_weixin(request):
-                redirect_url = "/wechat/login"
+                redirect_url = "/wechat/login?time=1257"
                 if origin is not None and origin != "":
                     redirect_url += "&origin={0}".format(origin)
                 if next_url is not None and next_url != "":
                     redirect_url += "&next={0}".format(next_url)
+                if origin == "app" and app_url is not None:
+                    redirect_url += "&redirect_url={0}".format(redirect_url)
                 logger.debug("account.login", "weixin login,url:{0}".format(redirect_url))
                 return self.redirect_to(redirect_url)
             self.form = UserLoginForm(next_url=next_url,
@@ -104,9 +107,11 @@ class Login(BaseView):
             origin = request.GET.get('origin', None)
             if next_url is not None:
                 if origin == "app":
+                    if app_url is None:
+                        app_url = settings.APP_SERVICE_API.get("url")
                     # 这时候来源于app.goodrain.com
                     ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-                    next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                    next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)
                 elif origin == "discourse":
@@ -141,8 +146,11 @@ class Login(BaseView):
 
         if next_url is not None:
             if origin == "app":
+                app_url = request.GET.get('redirect_url', None)
+                if app_url is None:
+                    app_url = settings.APP_SERVICE_API.get("url")
                 ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-                next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
                 logger.debug(next_url)
