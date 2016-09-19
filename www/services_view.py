@@ -266,7 +266,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context['http_port_str'] = ":" + http_port_str
 
             if fr == "deployed":
-                if self.service.category == 'store':
+                if self.service.service_type == 'mysql':
                     service_manager = self.get_manage_app(http_port_str)
                     context['service_manager'] = service_manager
 
