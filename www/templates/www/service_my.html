@@ -68,7 +68,6 @@
 					<th><i class="fa "></i> 状态</th>
 					<th><i class=" fa "></i> 类型</th>
 					<th><i class=" fa "></i> 版本</th>
-					<th></th>
 					<th><i class=" fa fa-edit"></i> 操作</th>
 					<!--<th></th> -->
 				</tr>
@@ -84,19 +83,21 @@
 					<td><span class="label label-success label-mini"
 						id="service_status_{{item.service_id}}">未知</span></td>
 					<td>{{item.service_type}}</td> 
-					{% if item.category == "application" %}
-					<td>{{item.deploy_version}}</td>
 					<td>
+						{% if item.category == "application" %}
+							{{item.deploy_version}}
+						{% else %}
+							{{item.version}}					
+						{% endif %}
+					</td>
+					<td>
+						{% if item.category == "application" %}
 						<button type="button" class="btn btn-shadow btn-info "
 							id="button_{{item.service_id}}"
 							onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');">
 							<i class="fa fa-refresh"></i> 部署
 						</button>
-					</td> {% else %}
-					<td>{{item.version}}</td>
-					<td></td>
-					{% endif %}
-					<td>
+						{% endif %}
 						<button class="btn btn-danger btn-xs" data{{item.service_id}}="0"
 							onclick="service_my_onOperation('{{item.service_id}}','{{item.service_alias}}','{{tenantName}}');"
 							id="operate_{{item.service_id}}">
