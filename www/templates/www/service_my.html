@@ -98,13 +98,13 @@
 							<i class="fa fa-refresh"></i> 部署
 						</button>
 						{% endif %}
-						<button class="btn btn-danger btn-xs" data{{item.service_id}}="0"
+						<button class="btn btn-danger" data{{item.service_id}}="0"
 							onclick="service_my_onOperation('{{item.service_id}}','{{item.service_alias}}','{{tenantName}}');"
 							id="operate_{{item.service_id}}">
 							<i class="fa fa-power-off "
 								id="operate_inner_{{item.service_id}}"></i>
 						</button>
-						<button class="btn btn-primary btn-xs"
+						<button class="btn btn-primary"
 							onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">
 							<i class="fa fa-gear"></i>
 						</button>
