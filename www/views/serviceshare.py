@@ -260,9 +260,12 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         category_first = form_data.cleaned_data['category_first']
         category_second = form_data.cleaned_data['category_second']
         category_third = form_data.cleaned_data['category_third']
-        is_outer = form_data.cleaned_data['is_outer']
-        show_app = form_data.cleaned_data['show_app']
-        show_assistant = form_data.cleaned_data['show_assistant']
+        tmp_outer = form_data.cleaned_data.get('is_outer', 'off')
+        is_outer = 1 if tmp_outer == "on" else 0
+        tmp_app = form_data.cleaned_data.get('show_app', 'off')
+        show_app = 1 if tmp_app == "on" else 0
+        tmp_assistant = form_data.cleaned_data.get('show_assistant', 'off')
+        show_assistant = 1 if tmp_assistant == "on" else 0
         # count = AppService.objects.filter(service_key=service_key, app_version=app_version).count()
         # if count == 0:
         try:
@@ -449,8 +452,8 @@ class ShareServiceForm(forms.Form):
     app_version = forms.CharField(help_text=u"版本")
     release_note = forms.CharField(help_text=u"更新说明")
     is_outer = forms.BooleanField(required=False, initial=False, help_text=u"是否发布到云市")
-    show_app = forms.BooleanField(required=True, initial=True, help_text=u"发布到云市后是否在云市展示")
-    show_assistant = forms.BooleanField(required=True, initial=True, help_text=u"发布到云市后是否在云帮展示")
+    show_app = forms.BooleanField(required=False, initial=False, help_text=u"发布到云市后是否在云市展示")
+    show_assistant = forms.BooleanField(required=False, initial=False, help_text=u"发布到云市后是否在云帮展示")
 
 
 class ShareServiceImageForm(forms.Form):
