@@ -10,7 +10,7 @@ from django.shortcuts import redirect
 from django.conf import settings
 
 from www.auth import authenticate, login
-from www.models import WeChatConfig, WeChatUser, Users, PermRelTenant, Tenants, TenantRegionInfo, WeChatUnBind
+from www.models import *
 from www.utils.crypt import AuthCode
 from www.utils import sn
 
@@ -110,6 +110,9 @@ class WeChatLogin(BaseView):
             scope = 'snsapi_login'
         state = AuthCode.encode(','.join([csrftoken, origin, next_url, config]), 'we_chat_login')
         logger.debug("here is encode:" + state)
+        # 存储state
+        wechat_state = WeChatState(state=state)
+        wechat_state.save()
 
         # 获取user对应的微信配置
         config = WeChatConfig.objects.get(config=config)
@@ -129,7 +132,7 @@ class WeChatLogin(BaseView):
                                                   app_id,
                                                   redirect_url,
                                                   scope,
-                                                  state)
+                                                  wechat_state.ID)
         logger.debug(url)
         return self.redirect_to(url)
 
@@ -154,12 +157,21 @@ class WeChatCallBack(BaseView):
         # 解码toke, type
         logger.debug("here is decode:" + state)
         logger.debug("is_weixin:" + str(is_weixin(request)))
-        oldcsrftoken, origin, next_url, config = AuthCode.decode(str(state), 'we_chat_login').split(',')
+        # 查询数据库
+        err_url = settings.WECHAT_CALLBACK.get("index")
+        try:
+            wechat_state = WeChatState.objects.get(pk=state)
+        except Exception as e:
+            logger.exception(e)
+            logger.error("account.wechat", "wechatstate is missing,id={0}".format(state))
+            return self.redirect_to(err_url)
+        cry_state = wechat_state.state
+
+        oldcsrftoken, origin, next_url, config = AuthCode.decode(str(cry_state), 'we_chat_login').split(',')
         logger.debug(oldcsrftoken)
         logger.debug(origin)
         logger.debug(next_url)
         logger.debug(config)
-        err_url = settings.WECHAT_CALLBACK.get("index")
 
         if csrftoken != oldcsrftoken:
             return self.redirect_to(err_url)

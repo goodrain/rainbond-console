@@ -166,6 +166,10 @@ class PublishServiceView(APIView):
         data["is_init_accout"] = app.is_init_accout
         data["creater"] = app.creater
         data["namespace"] = app.namespace
+        if hasattr(app, "show_app"):
+            data["show_app"] = app.show_app
+        if hasattr(app, "show_assistant"):
+            data["show_assistant"] = app.show_assistant
         # 租户信息
         data["tenant_id"] = app.tenant_id
         return data

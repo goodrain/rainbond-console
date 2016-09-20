@@ -63,6 +63,9 @@ class AppService(BaseModel):
     creater = models.IntegerField(null=True, help_text=u"创建人")
     publisher = models.EmailField(max_length=35, help_text=u"邮件地址")
     show_category = models.CharField(max_length=15, help_text=u"服务分类")
+
+    show_app = models.BooleanField(default=False, blank=True, help_text=u"发布到公有市场后是否在云市展示")
+    show_assistant = models.BooleanField(default=False, blank=True, help_text=u"发布到公有市场后是否在云帮展示")
     
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))

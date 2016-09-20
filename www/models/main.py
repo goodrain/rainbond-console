@@ -143,6 +143,27 @@ class WeChatUnBind(models.Model):
     status = models.IntegerField(help_text=u'用户解绑的状态')
 
 
+class WeChatState(models.Model):
+    """微信state过长存储表格"""
+    class Meta:
+        db_table = 'wechat_state'
+
+    ID = models.AutoField(primary_key=True, max_length=10)
+    state = models.CharField(max_length=5000, help_text=u'微信登录state')
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now=True, help_text=u"更新时间")
+
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
+
+
 class SuperAdminUser(models.Model):
     """超级管理员"""
     class Meta:
@@ -218,6 +239,16 @@ class Users(models.Model):
 
     def __unicode__(self):
         return self.nick_name or self.email
+
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
 
 
 class BaseModel(models.Model):
