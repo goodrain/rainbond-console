@@ -260,12 +260,10 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         category_first = form_data.cleaned_data['category_first']
         category_second = form_data.cleaned_data['category_second']
         category_third = form_data.cleaned_data['category_third']
-        tmp_outer = form_data.cleaned_data.get('is_outer', 'off')
-        is_outer = 1 if tmp_outer == "on" else 0
-        tmp_app = form_data.cleaned_data.get('show_app', 'off')
-        show_app = 1 if tmp_app == "on" else 0
-        tmp_assistant = form_data.cleaned_data.get('show_assistant', 'off')
-        show_assistant = 1 if tmp_assistant == "on" else 0
+        is_outer = form_data.cleaned_data.get('is_outer', False)
+        show_app = form_data.cleaned_data.get('show_app', False)
+        show_assistant = form_data.cleaned_data.get('show_assistant', False)
+        logger.debug("{0}:{1}:{2}".format(is_outer, show_app, show_assistant))
         # count = AppService.objects.filter(service_key=service_key, app_version=app_version).count()
         # if count == 0:
         try:
