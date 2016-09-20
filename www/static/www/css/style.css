@@ -349,6 +349,7 @@ ul.sidebar-menu li a.active i {
 
 .white-bg {
    background: #1f262d;
+   min-height: 52px;
 }
 
 .wrapper {
@@ -404,7 +405,7 @@ a.logo span {
 ul.top-menu > li > a {
     color: #999;
     font-size: 14px;
-    line-height: 40px;
+    line-height: 52px;
     padding: 0  6px;
    
 }
@@ -5582,7 +5583,7 @@ a.guest-on i {
     .panel-body .tab-content .applistbox h4,.panel-body .tab-content .applistbox h5{padding-left: 20px;}
 }
 
-.notify-row .btn-white{background: #1f262d; border-left: 1px solid #2e363f; border-right: 1px solid #000; color: #999; text-shadow: 0 -1px 0 rgba(0,0,0,0.25); height: 40px; }
+.notify-row .btn-white{background: #1f262d; border-left: 1px solid #2e363f; border-right: 1px solid #000; color: #999; text-shadow: 0 -1px 0 rgba(0,0,0,0.25); height: 52px; }
 
 #servicepanel{border: 0;}
 .panel-body .panel-body{border:0; padding:0; margin-top: 10px;}
