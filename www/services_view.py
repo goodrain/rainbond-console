@@ -506,7 +506,7 @@ class ServiceDockerContainer(AuthedView):
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
                 pro = settings.DOCKER_WSS_URL.get("type", "ws")
                 if pro == "ws":
-                    context["wss"] = pro + "://" + t_docker_h_id + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws"
+                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
                 else:
                     context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
 
