@@ -645,3 +645,66 @@ class RemoveServiceView(BaseAPIView):
         else:
             status, success, msg = manager.delete_service(tenant, service, username)
         return Response(status=status, data={"success": success, "msg": msg})
+    
+class PublishedView(BaseAPIView):
+    allowed_methods = ('GET',)
+
+    def get(self, request, service_name, *args, **kwargs):
+        """
+        启动服务接口
+        ---
+        parameters:
+            - name: service_name
+              description: 服务名称
+              required: true
+              type: string
+              paramType: path
+
+        """
+        d={"service_name":"","service_key":"","version":""}
+        msg=[d]
+        return Response(status=status, data={"success": success, "msg": msg})
+    
+class UpgradeView(BaseAPIView):
+    allowed_methods = ('POST',)
+
+    def post(self, request, service_name, *args, **kwargs):
+        """
+        启动服务接口
+        ---
+        parameters:
+            - name: service_name
+              description: 服务名称
+              required: true
+              type: string
+              paramType: path
+            - name: tenant_name
+              description: 租户名称
+              required: true
+              type: string
+              paramType: form
+            - name: service_key
+              description: 镜像key
+              required: true
+              type: string
+              paramType: form
+            - name: version
+              description: 镜像version
+              required: true
+              type: string
+              paramType: form
+            - name: service_memory
+              description: 服务的内存大小
+              required: false
+              type: int
+              paramType: form
+            - name: service_node
+              description: 服务节点数
+              required: false
+              type: int
+              paramType: form
+
+        """
+        d={"service_name":"","service_key":"","version":""}
+        msg=[d]
+        return Response(status=status, data={"success": success, "msg": msg})
