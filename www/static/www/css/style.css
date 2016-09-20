@@ -613,7 +613,7 @@ ul.top-menu > li > a:hover, ul.top-menu > li > a:focus {
 }
 
 .top-nav ul.top-menu > li > a:hover, .top-nav ul.top-menu > li > a:focus {
-    
+    color: #999;
     background: #1f262d;
 
 }
