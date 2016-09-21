@@ -673,10 +673,10 @@ class PublishedView(BaseAPIView):
             for service in service_list:
                 result_list.append({"service_name": service.service_name, "service_key": service.service_key,
                                     "version": service.version})
-            return Response(status=200, data={"success": True,"msg": result_list})
-        except ServiceInfo.DoesNotExist:
-            logger.error("openapi.services", "ServiceInfo {0} is not exists".format(service_name))
-            return Response(status=406, data={"success": False, "msg": u"服务不存在,请检查服务名称"})
+            return Response(status=200, data={"success": True, "msg": result_list})
+        except Exception:
+            logger.error("openapi.services", "ServiceInfo {0} is exception".format(service_name))
+            return Response(status=419, data={"success": False, "msg": u"系统异常"})
 
 
 class UpgradeView(BaseAPIView):
@@ -688,12 +688,12 @@ class UpgradeView(BaseAPIView):
         ---
         parameters:
             - name: service_name
-              description: 服务名称
+              description: 服务名
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: tenant_name
-              description: 租户名称
+              description: 租户名
               required: true
               type: string
               paramType: form
@@ -708,7 +708,7 @@ class UpgradeView(BaseAPIView):
               type: string
               paramType: form
             - name: service_memory
-              description: 服务的内存大小
+              description: 服务内存大小
               required: false
               type: int
               paramType: form
@@ -735,7 +735,7 @@ class UpgradeView(BaseAPIView):
         # 服务内存大小
         service_memory = request.data.get("service_memory", 0)
         # 服务节点数
-        service_node = request.data.get("service_node", 1)
+        service_node = request.data.get("service_node", 0)
         try:
             tenant = Tenants.objects.get(tenant_name=tenant_name)
             # 根据tenant_name 查询出服务名
@@ -743,21 +743,22 @@ class UpgradeView(BaseAPIView):
             # 根据service_key、version到服务模板中查出image
             service = ServiceInfo.objects.get(service_key=service_key, version=version)
             # 调用region 更新region中的数据
-            if service_memory == 0:
-                service_memory = service.min_memory
+            if int(service_memory) == 0:
+                service_memory = tenant_service.min_memory
+                
+            if int(service_node) == 0:
+                service_node = tenant_service.min_node
+                
             regionClient.update_service(tenant_service.service_region, tenant_service.service_id,
                                         {"memory": service_memory, "node": service_node,
                                          "image": service.image})
+            
             # 根据查询到的service,更新 tenant_service中的memory、node、image
             tenant_service.min_memory = service_memory
             tenant_service.min_node = service_node
             tenant_service.image = service.image
             tenant_service.save()
-            return Response(status=200,data={"success":True,"msg":u"success"})
-        except Tenants.DoesNotExist:
-            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
-            return Response(status=406, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
-        except TenantServiceInfo.DoesNotExist:
-            logger.debug("openapi.services",
-                         "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
-            return Response(status=408, data={"success": False, "msg": u"服务不存在"})
+            return Response(status=200, data={"success":True, "msg":u"success"})
+        except Exception as e:
+            logger.error("openapi.services", e)
+            return Response(status=419, data={"success": False, "msg": u"系统异常"})
