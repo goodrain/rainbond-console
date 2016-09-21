@@ -737,11 +737,26 @@ class UpgradeView(BaseAPIView):
         # 服务节点数
         service_node = request.data.get("service_node", 0)
         try:
-            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            try:
+                tenant = Tenants.objects.get(tenant_name=tenant_name)
+            except Tenants.DoesNotExist:
+                logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
+                return Response(status=405, data={"success": False, "msg": u"查询不到租户"})
+            
             # 根据tenant_name 查询出服务名
-            tenant_service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
+            try:
+                tenant_service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
+            except TenantServiceInfo.DoesNotExist:
+                logger.error("openapi.services", "service_id不存在!")
+                return Response(status=406, data={"success": False, "msg": u"服务不存在"})
+            
             # 根据service_key、version到服务模板中查出image
-            service = ServiceInfo.objects.get(service_key=service_key, version=version)
+            try:
+                service = ServiceInfo.objects.get(service_key=service_key, version=version)
+            except ServiceInfo.DoesNotExist:
+                logger.error("openapi.services", "service_key={0} version={1} service is not exists".format(service_key, version))
+                return Response(status=408, data={"success": False, "msg": u"镜像不存在!"})
+        
             # 调用region 更新region中的数据
             if int(service_memory) == 0:
                 service_memory = tenant_service.min_memory
@@ -753,7 +768,7 @@ class UpgradeView(BaseAPIView):
                                         {"memory": service_memory, "node": service_node,
                                          "image": service.image})
             
-            # 根据查询到的service,更新 tenant_service中的memory、node、image
+            # 根据查询到的service,更新 tenant_service中的memory、node、imag
             tenant_service.min_memory = service_memory
             tenant_service.min_node = service_node
             tenant_service.image = service.image
@@ -761,4 +776,4 @@ class UpgradeView(BaseAPIView):
             return Response(status=200, data={"success":True, "msg":u"success"})
         except Exception as e:
             logger.error("openapi.services", e)
-            return Response(status=419, data={"success": False, "msg": u"系统异常"})
+            return Response(status=409, data={"success": False, "msg": u"系统异常"})
