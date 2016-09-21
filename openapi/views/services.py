@@ -676,7 +676,7 @@ class PublishedView(BaseAPIView):
             return Response(status=200, data={"success": True, "msg": result_list})
         except Exception:
             logger.error("openapi.services", "ServiceInfo {0} is exception".format(service_name))
-            return Response(status=419, data={"success": False, "msg": u"系统异常"})
+            return Response(status=406, data={"success": False, "msg": u"系统异常"})
 
 
 class UpgradeView(BaseAPIView):
@@ -727,11 +727,11 @@ class UpgradeView(BaseAPIView):
         # 根据service_key, version创建服务
         service_key = request.data.get("service_key")
         if service_key is None:
-            return Response(status=408, data={"success": False, "msg": u"镜像key为空!"})
+            return Response(status=406, data={"success": False, "msg": u"镜像key为空!"})
         # 服务描述
         version = request.data.get("version")
         if version is None:
-            return Response(status=409, data={"success": False, "msg": u"镜像version为空!"})
+            return Response(status=408, data={"success": False, "msg": u"镜像version为空!"})
         # 服务内存大小
         service_memory = request.data.get("service_memory", 0)
         # 服务节点数
@@ -741,21 +741,21 @@ class UpgradeView(BaseAPIView):
                 tenant = Tenants.objects.get(tenant_name=tenant_name)
             except Tenants.DoesNotExist:
                 logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
-                return Response(status=405, data={"success": False, "msg": u"查询不到租户"})
+                return Response(status=409, data={"success": False, "msg": u"查询不到租户"})
             
             # 根据tenant_name 查询出服务名
             try:
                 tenant_service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
             except TenantServiceInfo.DoesNotExist:
                 logger.error("openapi.services", "service_id不存在!")
-                return Response(status=406, data={"success": False, "msg": u"服务不存在"})
+                return Response(status=410, data={"success": False, "msg": u"服务不存在"})
             
             # 根据service_key、version到服务模板中查出image
             try:
                 service = ServiceInfo.objects.get(service_key=service_key, version=version)
             except ServiceInfo.DoesNotExist:
                 logger.error("openapi.services", "service_key={0} version={1} service is not exists".format(service_key, version))
-                return Response(status=408, data={"success": False, "msg": u"镜像不存在!"})
+                return Response(status=411, data={"success": False, "msg": u"镜像不存在!"})
         
             # 调用region 更新region中的数据
             if int(service_memory) == 0:
@@ -776,4 +776,4 @@ class UpgradeView(BaseAPIView):
             return Response(status=200, data={"success":True, "msg":u"升级成功"})
         except Exception as e:
             logger.error("openapi.services", e)
-            return Response(status=409, data={"success": False, "msg": u"系统异常"})
+            return Response(status=412, data={"success": False, "msg": u"系统异常"})
