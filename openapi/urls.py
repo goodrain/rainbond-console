@@ -27,6 +27,8 @@ urlpatterns = patterns(
     url(r'^v1/services/(?P<service_name>[\w\-]+)/stop$', StopServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/status$', StatusServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/domain$', DomainController.as_view()),
+    url(r'^v1/services/(?P<service_name>[\w\-]+)/published', PublishedView.as_view()),
+    url(r'^v1/services/(?P<service_name>[\w\-]+)/upgrade', UpgradeView.as_view()),
 
     url(r'^v2/services/(?P<service_name>[\w\-]+)/install$', CloudServiceInstallView.as_view()),
     url(r'^v2/services/(?P<service_id>[\w\-]+)/update$', UpdateServiceView.as_view()),
