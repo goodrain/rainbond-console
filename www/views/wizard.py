@@ -23,7 +23,7 @@ class PrefixView(BaseView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         return TemplateResponse(request,
-                                'rainweb/wizard/prefix.html',
+                                'www/wizard/prefix.html',
                                 context)
         # def post(self, request, *args, **kwargs):
 
@@ -34,7 +34,7 @@ class WizardView(BaseView):
         context = self.get_context()
         context["form"] = AdminForm()
         return TemplateResponse(request,
-                                'rainweb/wizard/admin.html',
+                                'www/wizard/admin.html',
                                 context)
 
     def post(self, request, *args, **kwargs):
@@ -55,9 +55,10 @@ class WizardView(BaseView):
             if tenant_count > 0:
                 logger.error("account.register", "租户已存在，请先清理租户!")
                 context = self.get_context()
+                admin_form.add_error("", "租户已存在，请先清理租户!")
                 context["form"] = admin_form
                 return TemplateResponse(request,
-                                        'rainweb/wizard/admin.html',
+                                        'www/wizard/admin.html',
                                         context)
                 # Tenants.objects.all().delete()
             # 添加用户
@@ -133,6 +134,6 @@ class WizardView(BaseView):
             context = self.get_context()
             context["form"] = admin_form
             return TemplateResponse(request,
-                                    'rainweb/wizard/admin.html',
+                                    'www/wizard/admin.html',
                                     context)
 

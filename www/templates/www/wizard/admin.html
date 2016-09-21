@@ -16,18 +16,18 @@
     <link rel="stylesheet" href="{% static 'www/css/bootstrap.min.css' %}">
 
     <!--[if lt IE 9]>
-    <script src="/static/rainweb/js/html5shiv.js"></script>
-    <script src="/static/rainweb/js/respond.min.js"></script>
+    <script src="{% static 'www/js/html5shiv.js' %}"></script>
+    <script src="{% static 'www/js/respond.min.js' %}"></script>
     <![endif]-->
 
-    <script src="{% static 'www/js/jquery-3.1.0.min.js' %}"></script>
+    <script src="{% static 'www/js/jquery.min.js' %}"></script>
     <script src="{% static 'www/js/bootstrap.min.js' %}"></script>
 </head>
 <body>
 <div class="container-fluid">
     <div class="navbar-header">
         <a class="navbar-brand pull-left" href="/">
-            <img style="height: 38px;" src='{% static "rainweb/images/yunbanglogo.png" %}'>
+            <img style="height: 38px;" src='{% static "www/images/yunbanglogo.png" %}'>
         </a>
         <span class="hidden-xs pull-left" style="padding-top:30px; ">云帮·社区版</span>
     </div>

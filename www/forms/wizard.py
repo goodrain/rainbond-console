@@ -18,7 +18,7 @@ from crispy_forms.bootstrap import (AppendedText,
                                     AccordionGroup,
                                     InlineCheckboxes)
 
-from rainweb.config.region import RegionInfo
+from www.region import RegionInfo
 
 import time
 import logging
