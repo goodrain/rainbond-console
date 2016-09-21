@@ -2,6 +2,7 @@
 from rest_framework.response import Response
 
 from www.models import *
+from www.service_http import RegionServiceApi
 from www.utils import crypt
 import re
 
@@ -11,7 +12,7 @@ manager = OpenTenantServiceManager()
 
 import logging
 logger = logging.getLogger("default")
-
+regionClient = RegionServiceApi()
 
 class CreateServiceView(BaseAPIView):
 
@@ -645,13 +646,14 @@ class RemoveServiceView(BaseAPIView):
         else:
             status, success, msg = manager.delete_service(tenant, service, username)
         return Response(status=status, data={"success": success, "msg": msg})
-    
+
+
 class PublishedView(BaseAPIView):
     allowed_methods = ('GET',)
 
     def get(self, request, service_name, *args, **kwargs):
         """
-        启动服务接口
+        获取服务service_key和service_version接口
         ---
         parameters:
             - name: service_name
@@ -661,23 +663,35 @@ class PublishedView(BaseAPIView):
               paramType: path
 
         """
-        d={"service_name":"","service_key":"","version":""}
-        msg=[d]
-        return Response(status=status, data={"success": success, "msg": msg})
-    
+        if service_name is None:
+            logger.error("openapi.services", "service_name为空!")
+            return Response(status=405, data={"success": False, "msg": u"服务名称为空"})
+
+        try:
+            result_list = []
+            service_list = ServiceInfo.objects.filter(service_name=service_name)
+            for service in service_list:
+                result_list.append({"service_name": service.service_name, "service_key": service.service_key,
+                                    "version": service.version})
+            return Response(status=200, data={"success": True,"msg": result_list})
+        except ServiceInfo.DoesNotExist:
+            logger.error("openapi.services", "ServiceInfo {0} is not exists".format(service_name))
+            return Response(status=406, data={"success": False, "msg": u"服务不存在,请检查服务名称"})
+
+
 class UpgradeView(BaseAPIView):
     allowed_methods = ('POST',)
 
     def post(self, request, service_name, *args, **kwargs):
         """
-        启动服务接口
+        升级服务接口
         ---
         parameters:
             - name: service_name
               description: 服务名称
               required: true
               type: string
-              paramType: path
+              paramType: form
             - name: tenant_name
               description: 租户名称
               required: true
@@ -705,6 +719,45 @@ class UpgradeView(BaseAPIView):
               paramType: form
 
         """
-        d={"service_name":"","service_key":"","version":""}
-        msg=[d]
-        return Response(status=status, data={"success": success, "msg": msg})
+        logger.debug("openapi.services", request.data)
+        tenant_name = request.data.get("tenant_name")
+        if tenant_name is None:
+            logger.error("openapi.services", "租户名称为空!")
+            return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
+        # 根据service_key, version创建服务
+        service_key = request.data.get("service_key")
+        if service_key is None:
+            return Response(status=408, data={"success": False, "msg": u"镜像key为空!"})
+        # 服务描述
+        version = request.data.get("version")
+        if version is None:
+            return Response(status=409, data={"success": False, "msg": u"镜像version为空!"})
+        # 服务内存大小
+        service_memory = request.data.get("service_memory", 0)
+        # 服务节点数
+        service_node = request.data.get("service_node", 1)
+        try:
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            # 根据tenant_name 查询出服务名
+            tenant_service = TenantServiceInfo.objects.get(tenant_id=tenant.tenant_id, service_alias=service_name)
+            # 根据service_key、version到服务模板中查出image
+            service = ServiceInfo.objects.get(service_key=service_key, version=version)
+            # 调用region 更新region中的数据
+            if service_memory == 0:
+                service_memory = service.min_memory
+            regionClient.update_service(tenant_service.service_region, tenant_service.service_id,
+                                        {"memory": service_memory, "node": service_node,
+                                         "image": service.image})
+            # 根据查询到的service,更新 tenant_service中的memory、node、image
+            tenant_service.min_memory = service_memory
+            tenant_service.min_node = service_node
+            tenant_service.image = service.image
+            tenant_service.save()
+            return Response(status=200,data={"success":True,"msg":u"success"})
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant {0} is not exists".format(tenant_name))
+            return Response(status=406, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services",
+                         "Tenant {0} ServiceAlias {1} is not exists".format(tenant_name, service_name))
+            return Response(status=408, data={"success": False, "msg": u"服务不存在"})
