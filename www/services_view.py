@@ -20,6 +20,7 @@ from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource,
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.url import get_redirect_url
 from www.utils.md5Util import md5fun
+import www.utils.sn as sn
 
 logger = logging.getLogger('default')
 regionClient = RegionServiceApi()
@@ -234,6 +235,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
         context['serviceAlias'] = self.serviceAlias
         fr = request.GET.get("fr", "deployed")
         context["fr"] = fr
+        # 判断是否社区版云帮
+        context["community"] = False
+        if sn.instance.is_private():
+            context["community"] = True
         try:
             if self.service.category == "application":
                 # forbidden blank page

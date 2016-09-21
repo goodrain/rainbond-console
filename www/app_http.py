@@ -42,3 +42,12 @@ class AppServiceApi(BaseHttpClient):
             return res, body
         except Exception:
             pass
+
+    def post_admin_info(self, data):
+        try:
+            url = self.url + "/api/v0/assistant/register"
+            res, body = self._post(url, self.default_headers, data)
+            return res, body
+        except Exception as e:
+            logger.exception("account.register", e)
+            logger.error("account.register", "after register admin.send data to app failed!")

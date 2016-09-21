@@ -51,4 +51,5 @@ urlpatterns = patterns(
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.urls.payedpackage')),
     url(r'^tests/(?P<templateName>[\w\-]+)/', TestView.as_view()),
     url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
+    url(r'^wizard/', include('www.urls.wizard')),
 ) + staticfiles_urlpatterns() + openapi_urlpatterns()

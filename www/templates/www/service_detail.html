@@ -41,7 +41,7 @@
                 <li {% if fr = "settings" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=settings">高级</a>
                 </li>
-                {% if tenantServiceInfo.category = "application" %}
+                {% if not community and tenantServiceInfo.category = "application" %}
                 <li>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1">分享</a>
                 </li>
