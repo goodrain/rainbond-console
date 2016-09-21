@@ -51,7 +51,7 @@
                 {% if MODULES.WeChat_Module %}
                     {% if user.status == 0 %}
                         <!--# 0:普通注册,未绑定微信-->
-                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="wxicon"></i>绑定微信</a></li>
                     {% endif %}
                     {% if user.status == 1 %}
                         <!--# 1:普通注册,绑定微信-->

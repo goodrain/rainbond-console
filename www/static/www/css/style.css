@@ -5588,4 +5588,4 @@ a.guest-on i {
 #servicepanel{border: 0;}
 .panel-body .panel-body{border:0; padding:0; margin-top: 10px;}
 
-
+.wxicon{ width: 18px; height: 15px; background: url('../img/iconwx.png') no-repeat; background-size: 18px 15px; float: left; }
