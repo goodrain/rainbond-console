@@ -773,7 +773,7 @@ class UpgradeView(BaseAPIView):
             tenant_service.min_node = service_node
             tenant_service.image = service.image
             tenant_service.save()
-            return Response(status=200, data={"success":True, "msg":u"success"})
+            return Response(status=200, data={"success":True, "msg":u"升级成功"})
         except Exception as e:
             logger.error("openapi.services", e)
             return Response(status=409, data={"success": False, "msg": u"系统异常"})
