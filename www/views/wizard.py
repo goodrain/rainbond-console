@@ -88,7 +88,7 @@ class WizardView(BaseView):
                 pay_level='company',
                 creater=user.pk,
                 region=region,
-                expired_time=expire_time)
+                expired_time=expire_time.strftime('%Y-%m-%d %H:%M:%S'))
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
             # 租户－用户关系
             PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
