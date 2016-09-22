@@ -29,20 +29,50 @@ $(function(){
         }else{
             $('#create_appname_notice').slideUp();
         }
-        var service_code_clone_url = $('#service_code_clone_url').val()
-        if(service_code_clone_url==""){
-            $("#service_code_clone_url").focus()
-            scrollOffset($("#service_code_clone_url").offset()); 
-            $('#create_git_notice').slideDown();
-            return;
+        var codeStoreSel = $(':radio:checked', $('#sel_code_store')).val();
+        if (codeStoreSel == 'option5') {
+            var service_code_demo_url = $('#service_code_demo_url option:selected').val();
+            var service_code_demo_manual = $('#service_code_demo_manual').val();
+            if(service_code_demo_manual==""){
+                $("#service_code_demo_manual").focus()
+                scrollOffset($("#service_code_demo_url").offset());
+                $('#create_demo_notice').slideDown();
+                return;
+            }
+            $("#service_code_clone_url").val(service_code_demo_url);
+            $("#service_code_version").val(service_code_demo_manual);
+        } else {
+            var service_code_clone_url = $('#service_code_clone_url_manual').val()
+            if (service_code_clone_url == "") {
+                $("#service_code_clone_url_manual").focus()
+                scrollOffset($("#service_code_clone_url_manual").offset());
+                $('#create_git_notice').slideDown();
+                return;
+            }
+            var service_code_version = $('#service_code_version_manual').val()
+            if (service_code_version == "") {
+                $("#service_code_version_manual").focus()
+                scrollOffset($("#service_code_version_manual").offset());
+                $('#create_version_notice').slideDown();
+                return;
+            }
+            $("#service_code_clone_url").val(service_code_clone_url);
+            $("#service_code_version").val(service_code_version);
         }
-        var service_code_version = $('#service_code_version').val()
-        if(service_code_version==""){
-            $("#service_code_version").focus()
-            scrollOffset($("#service_code_version").offset()); 
-            $('#create_version_notice').slideDown();
-            return;
-        }
+        // var service_code_clone_url = $('#service_code_clone_url').val()
+        // if(service_code_clone_url==""){
+        //     $("#service_code_clone_url").focus()
+        //     scrollOffset($("#service_code_clone_url").offset());
+        //     $('#create_git_notice').slideDown();
+        //     return;
+        // }
+        // var service_code_version = $('#service_code_version').val()
+        // if(service_code_version==""){
+        //     $("#service_code_version").focus()
+        //     scrollOffset($("#service_code_version").offset());
+        //     $('#create_version_notice').slideDown();
+        //     return;
+        // }
         
         $("#first_step").attr('disabled', true);
     	var _data = $("form").serialize();
@@ -87,6 +117,18 @@ $(function(){
     			$("#first_step").attr('disabled', false);
     		}
     	})
+    });
+    $(':radio', $('#sel_code_store')).click(function(){
+        var selOption = $(this).val();
+        if (selOption == 'option4') {
+            $('#service_code_from').val("gitlab_manual");
+            $('div[data-action="demobox"]').hide();
+            $('div[data-action="manual"]').show();
+        } else if(selOption == 'option5'){
+            $('#service_code_from').val("gitlab_manual");
+            $('div[data-action="manual"]').hide();
+            $('div[data-action="demobox"]').show();
+        }
     });
 });
 
