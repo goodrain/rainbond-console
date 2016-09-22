@@ -21,7 +21,7 @@ h2.tit{ font-size: 24px; line-height: 40px; text-align: center;}
 .zybox p span:nth-child(2){font-size: 14px; line-height: 16px; border: 1px #ccc solid; padding:6px 8px; color: #7fca1e;}
 
 .linkbox{width: 100%; text-align: center;}
-.graybtn{ background: #dddddd; color: #ffffff; font-size: 14px; height: 34px; width: 150px; border-radius: 4px; margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
+.graybtn{ background: #dddddd; color: #ffffff; font-size: 14px; height: 34px; width: 150px;  margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
 .graybtn:link,.graybtn:visited,.graybtn:hover,.graybtn:active{color: #ffffff;}
 
 
@@ -34,7 +34,7 @@ a.titlink span em.glyphicon-triangle-bottom{position: relative; top: 3px;}
 .appimg{ width: 140px; height: 140px; display: block; float: left;  border:1px #ddd solid; margin-right: 10px;}
 .appimg img{width: 140px; height: 140px; display: block;}
 
-.greenbtn{ background: #28cb75; color: #ffffff; font-size: 14px; height: 34px; width: 150px; border-radius: 4px; margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
+.greenbtn{ background: #28cb75; color: #ffffff; font-size: 14px; height: 34px; width: 150px;  margin: 30px 20px; display:inline-block; text-align: center; line-height: 34px;}
 .greenbtn:link,.greenbtn:visited,.greenbtn:hover,.greenbtn:active{color: #ffffff;}
 
 
