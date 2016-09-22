@@ -354,8 +354,13 @@ function extends_upgrade(tenantName, service_alias) {
 
 // 服务删除
 function delete_service(tenantName, service_alias) {
+    var code_from = $("#cur_delete_service").attr("data-code");
+    var notify_text = "确定删除当前服务吗？";
+    if (code_from == "gitlab_new") {
+        notify_text = "删除服务将删除git代码，确定删除当前服务吗？"
+    }
 	swal({
-		title : "确定删除当前服务吗？",
+		title : notify_text,
 		type : "warning",
 		showCancelButton : true,
 		confirmButtonColor : "#DD6B55",
