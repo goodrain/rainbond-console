@@ -357,7 +357,7 @@ function delete_service(tenantName, service_alias) {
     var code_from = $("#cur_delete_service").attr("data-code");
     var notify_text = "确定删除当前服务吗？";
     if (code_from == "gitlab_new") {
-        notify_text = "删除服务将删除git代码，确定删除当前服务吗？"
+        notify_text = "关联git代码将同步删除，确定删除当前服务吗？"
     }
 	swal({
 		title : notify_text,
