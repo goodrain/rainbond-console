@@ -542,14 +542,14 @@ class Registation(BaseView):
 
             # 检测是否论坛请求
             next_url = request.POST.get("next", None)
-            if next_url is not None:
+            if next_url is not None and next_url != "" and next_url != "none":
                 origin = request.POST.get("origin", "")
                 if origin == "app":
                     ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
                     next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)
-                    logger.debug(next_url)
+                logger.debug("account.register", next_url)
                 return self.redirect_to(next_url)
 
             url = '/apps/{0}'.format(tenant_name)
@@ -560,7 +560,7 @@ class Registation(BaseView):
                 if len(region_levels) == 2:
                     selected_pay_level = region_levels[1]
                 url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
-            logger.debug(url)
+            logger.debug("account.register", url)
             return self.redirect_to(url)
 
         logger.info("account.register", "register form error: %s" % self.form.errors)
