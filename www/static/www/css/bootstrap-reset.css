@@ -114,11 +114,7 @@ a:hover {
 }
 
 .modal-header {
-    background: #00A8B3;
     color: #fff;
-    border-radius: 5px 5px 0 0;
-    -webkit-border-radius: 5px 5px 0 0;
-    border-bottom: none;
 }
 
 .modal-header .close {
