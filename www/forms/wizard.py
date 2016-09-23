@@ -130,8 +130,9 @@ class AdminForm(forms.Form):
                 Hidden('machine_region', value=init_region),
                 Field('password', css_class="form-control", placeholder=u"请输入至少8位数密码"),
                 Field('password_repeat', css_class="form-control", placeholder=u"请再输入一次密码"),
-                FormActions(Submit('register', u'创建', css_class='btn btn-lg btn-success btn-block')),
-                HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                HTML("""<div class="form-group" style="text-align:left;"><a href="http://doc.goodrain.com/cloudbang-agreement/201656" target="_blank">《云帮社区版用户服务协议》</a></div>"""),
+                FormActions(Submit('register', u'同意协议，申请授权', css_class='btn btn-lg btn-success btn-block')),
+                HTML("""<div class="form-group"><a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a></div>"""),
                 css_class="login-wrap"
             )
         )

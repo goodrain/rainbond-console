@@ -41,6 +41,7 @@ class WizardView(BaseView):
     def post(self, request, *args, **kwargs):
         """注册管理员"""
         admin_form = AdminForm(request.POST)
+        import datetime
         if admin_form.is_valid():
             email = request.POST.get('email')
             nick_name = request.POST.get('nick_name')
