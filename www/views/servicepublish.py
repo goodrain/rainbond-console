@@ -77,11 +77,11 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'desc': pre_app.desc,
                 'is_outer': pre_app.is_outer,
                 'is_init_accout': pre_app.is_init_accout,
-                'first': first if first else '',
-                'second': second if second else '',
-                'thrid': third if third else '',
+                'first': '',
+                'second': '',
+                'thrid': '',
                 'logo': pre_app.logo,
-                'service_type':pre_app.service_type,
+                'service_type': pre_app.service_type,
             })
         else:
             init_data.update({
@@ -127,9 +127,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 info = detail_form.cleaned_data['info']
                 desc = detail_form.cleaned_data['desc']
                 logo = detail_form.cleaned_data['logo']
-                app_type_first = detail_form.cleaned_data['app_type_first']
-                app_type_second = detail_form.cleaned_data['app_type_second']
-                app_type_third = detail_form.cleaned_data['app_type_third']
+                # app_type_first = detail_form.cleaned_data['app_type_first']
+                # app_type_second = detail_form.cleaned_data['app_type_second']
+                # app_type_third = detail_form.cleaned_data['app_type_third']
                 is_outer = detail_form.cleaned_data['is_outer']
                 is_init_accout = detail_form.cleaned_data['is_init_accout']
                 app_service_type = detail_form.cleaned_data['app_service_type']
@@ -147,7 +147,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     app.is_outer = is_outer
                     app.image = self.service.image
                     app.is_init_accout = is_init_accout
-                    app.show_category = '{},{},{}'.format(app_type_first, app_type_second, app_type_third)
+                    app.show_category = ''
                     app.save()
                 else:
                     # new
@@ -181,7 +181,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         volume_mount_path=self.service.volume_mount_path,
                         service_type=app_service_type,
                         is_init_accout=is_init_accout,
-                        show_category='{},{},{}'.format(app_type_first, app_type_second, app_type_third),
+                        show_category='',
                         is_base=False,
                         is_outer=is_outer,
                         publisher=self.user.email,
@@ -586,9 +586,6 @@ class ServiceDetailForm(forms.Form):
     logo = forms.FileField(required=False)
     info = forms.CharField(required=False)
     desc = forms.CharField(required=False)
-    app_type_first = forms.CharField(required=True)
-    app_type_second = forms.CharField(required=True)
-    app_type_third = forms.CharField(required=True)
     is_outer = forms.BooleanField(required=False,
                                   initial=False)
     is_init_accout = forms.BooleanField(required=False,
