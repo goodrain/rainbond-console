@@ -11,6 +11,7 @@ import re
 import json
 import logging
 from www.utils import sn
+from www.region import RegionInfo
 from www.monitorservice.monitorhook import MonitorHook
 from openapi.views.base import BaseAPIView
 from openapi.controllers.openservicemanager import OpenTenantServiceManager
@@ -289,6 +290,13 @@ class CloudServiceInstallView(BaseAPIView):
                 attr_name = env_var.get("attr_name")
                 attr_value = env_var.get("attr_value")
                 env = env_var_map.get(attr_name, None)
+
+                if attr_name == "SITE_URL":
+                    port = RegionInfo.region_port(region)
+                    domain = RegionInfo.region_domain(region)
+                    attr_value = 'http://{}.{}{}:{}'.format(service_name, tenant.tenant_name, domain, port)
+                    logger.debug("openapi.cloudservice", "SITE_URL = {}".format(env.attr_value))
+
                 if env is not None:
                     env.attr_value = attr_value
                 else:
