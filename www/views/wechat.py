@@ -96,7 +96,7 @@ class WeChatLogin(BaseView):
             csrftoken = "csrf"
         # 判断登录来源,默认从微信上登录
         origin = request.GET.get("origin", "console")
-        origin_url = request.GET.get("redirect_url", "")
+        origin_url = request.GET.get("redirect_url", "redirect_url")
         next_url = request.GET.get("next", "")
         if origin == "discourse":
             sig = request.GET.get("sig")
@@ -292,7 +292,7 @@ class WeChatCallBack(BaseView):
         if next_url is not None and next_url != "":
             if origin == "app":
                 logger.debug("now return to cloud market login..")
-                if origin_url is None:
+                if origin_url is None or origin_url == "redirect_url" or origin_url == "":
                     origin_url = settings.APP_SERVICE_API.get("url")
                 ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
                 next_url = "{0}/login/{1}/success?ticket={2}".format(origin_url,
