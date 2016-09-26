@@ -290,12 +290,16 @@ class CloudServiceInstallView(BaseAPIView):
                 attr_name = env_var.get("attr_name")
                 attr_value = env_var.get("attr_value")
                 env = env_var_map.get(attr_name, None)
-
                 if attr_name == "SITE_URL":
                     port = RegionInfo.region_port(region)
                     domain = RegionInfo.region_domain(region)
                     attr_value = 'http://{}.{}{}:{}'.format(service_name, tenant.tenant_name, domain, port)
                     logger.debug("openapi.cloudservice", "SITE_URL = {}".format(env.attr_value))
+                elif attr_name == "TRUSTED_DOMAIN":
+                    port = RegionInfo.region_port(region)
+                    domain = RegionInfo.region_domain(region)
+                    attr_value = '{}.{}{}:{}'.format(service_name, tenant.tenant_name, domain, port)
+                    logger.debug("openapi.cloudservice", "TRUSTED_DOMAIN = {}".format(env.attr_value))
 
                 if env is not None:
                     env.attr_value = attr_value
