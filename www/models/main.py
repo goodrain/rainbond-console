@@ -132,6 +132,16 @@ class WeChatUser(models.Model):
         key_salt = "goodrain.com.models.get_session_auth_hash"
         return salted_hmac(key_salt, self.user_id).hexdigest()
 
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
+
 
 class WeChatUnBind(models.Model):
     """解绑用户的映射关系"""

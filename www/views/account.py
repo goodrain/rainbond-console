@@ -9,6 +9,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, RegisterForm, PasswordResetForm, PasswordResetBeginForm
 from www.models import Users, Tenants, TenantRegionInfo, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode, TenantRecharge
+from www.models import WeChatUser
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
@@ -109,8 +110,20 @@ class Login(BaseView):
                 if origin == "app":
                     if app_url is None:
                         app_url = settings.APP_SERVICE_API.get("url")
-                    # 这时候来源于app.goodrain.com
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    union_id = user.union_id
+                    wechat_user = None
+                    if union_id is not None \
+                            or union_id is not "" \
+                            or union_id is not "null" \
+                            or union_id is not "NULL":
+                        wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
+                        if len(wechat_user_list) > 0:
+                            wechat_user = wechat_user_list[0]
+                    # ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    if wechat_user is None:
+                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    else:
+                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
                     next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)
@@ -149,7 +162,20 @@ class Login(BaseView):
                 app_url = request.GET.get('redirect_url', None)
                 if app_url is None:
                     app_url = settings.APP_SERVICE_API.get("url")
-                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                union_id = user.union_id
+                wechat_user = None
+                if union_id is not None \
+                        or union_id is not "" \
+                        or union_id is not "null" \
+                        or union_id is not "NULL":
+                    wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
+                    if len(wechat_user_list) > 0:
+                        wechat_user = wechat_user_list[0]
+                # ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                if wechat_user is None:
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                else:
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
                 next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
@@ -545,7 +571,20 @@ class Registation(BaseView):
             if next_url is not None and next_url != "" and next_url != "none":
                 origin = request.POST.get("origin", "")
                 if origin == "app":
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    union_id = user.union_id
+                    wechat_user = None
+                    if union_id is not None \
+                            or union_id is not "" \
+                            or union_id is not "null" \
+                            or union_id is not "NULL":
+                        wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
+                        if len(wechat_user_list) > 0:
+                            wechat_user = wechat_user_list[0]
+                    # ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    if wechat_user is None:
+                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    else:
+                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
                     next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)

@@ -7,6 +7,7 @@ from openapi.views.services import *
 from openapi.views.cloudservices import *
 from openapi.views.tenants import *
 from openapi.views.token import *
+from openapi.views.users import *
 
 
 urlpatterns = patterns(
@@ -20,6 +21,8 @@ urlpatterns = patterns(
     url(r'^oauth2/access_token$', AccessTokenView.as_view()),
 
     url(r'^v1/register$', TenantServiceView.as_view()),
+
+    url(r'^v1/user/info$', UserInfoView.as_view()),
 
     url(r'^v1/services/(?P<service_name>[\w\-]+)/create$', CreateServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/delete$', DeleteServiceView.as_view()),

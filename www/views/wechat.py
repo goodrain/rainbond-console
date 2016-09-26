@@ -96,6 +96,7 @@ class WeChatLogin(BaseView):
             csrftoken = "csrf"
         # 判断登录来源,默认从微信上登录
         origin = request.GET.get("origin", "console")
+        origin_url = request.GET.get("redirect_url", "")
         next_url = request.GET.get("next", "")
         if origin == "discourse":
             sig = request.GET.get("sig")
@@ -108,7 +109,7 @@ class WeChatLogin(BaseView):
             config = WECHAT_USER
             oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
             scope = 'snsapi_login'
-        state = AuthCode.encode(','.join([csrftoken, origin, next_url, config]), 'we_chat_login')
+        state = AuthCode.encode(','.join([csrftoken, origin, next_url, config, origin_url]), 'we_chat_login')
         logger.debug("here is encode:" + state)
         # 存储state
         wechat_state = WeChatState(state=state)
@@ -167,11 +168,12 @@ class WeChatCallBack(BaseView):
             return self.redirect_to(err_url)
         cry_state = wechat_state.state
 
-        oldcsrftoken, origin, next_url, config = AuthCode.decode(str(cry_state), 'we_chat_login').split(',')
+        oldcsrftoken, origin, next_url, config, origin_url = AuthCode.decode(str(cry_state), 'we_chat_login').split(',')
         logger.debug(oldcsrftoken)
         logger.debug(origin)
         logger.debug(next_url)
         logger.debug(config)
+        logger.debug(origin_url)
 
         if csrftoken != oldcsrftoken:
             return self.redirect_to(err_url)
@@ -202,12 +204,8 @@ class WeChatCallBack(BaseView):
         # 添加wechatuser
         if need_new:
             jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
-            union_id = jsondata.get("unionid")
-            begin_index = len(union_id) - 8
-            tenant_name = union_id[begin_index:]
-            tenant_name = tenant_name.replace("_", "-").lower()
             wechat_user = WeChatUser(open_id=jsondata.get("openid"),
-                                     nick_name=tenant_name,
+                                     nick_name=jsondata.get("nickname"),
                                      union_id=jsondata.get("unionid"),
                                      sex=jsondata.get("sex"),
                                      city=jsondata.get("city"),
@@ -294,8 +292,10 @@ class WeChatCallBack(BaseView):
         if next_url is not None and next_url != "":
             if origin == "app":
                 logger.debug("now return to cloud market login..")
-                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-                next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                if origin_url is None:
+                    origin_url = settings.APP_SERVICE_API.get("url")
+                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
+                next_url = "{0}/login/{1}/success?ticket={2}".format(origin_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
                 # next_url = settings.APP_SERVICE_API.get("url") + '/login/goodrain/success?ticket=' + ticket
@@ -585,18 +585,15 @@ class WeChatCallBackBind(BaseView):
         # 添加wechatuser
         if need_new:
             jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
-            union_id = jsondata.get("unionid")
-            begin_index = len(union_id) - 8
-            tenant_name = union_id[begin_index:]
             WeChatUser(open_id=jsondata.get("openid"),
-                                     nick_name=tenant_name,
-                                     union_id=union_id,
-                                     sex=jsondata.get("sex"),
-                                     city=jsondata.get("city"),
-                                     province=jsondata.get("province"),
-                                     country=jsondata.get("country"),
-                                     headimgurl=jsondata.get("headimgurl"),
-                                     config=config).save()
+                       nick_name=jsondata.get("nickname"),
+                       union_id=jsondata.get("unionid"),
+                       sex=jsondata.get("sex"),
+                       city=jsondata.get("city"),
+                       province=jsondata.get("province"),
+                       country=jsondata.get("country"),
+                       headimgurl=jsondata.get("headimgurl"),
+                       config=config).save()
         # 判断union_id是否已经绑定user
 
         # 根据微信的union_id判断用户是否已经注册
