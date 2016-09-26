@@ -5597,3 +5597,5 @@ a.guest-on i {
 .tipsbox a.close{position: absolute; font-size: 20px; font-weight: bold; color: #000; text-shadow: 0 1px 0 #fff; opacity: .2; filter: alpha(opacity=20); top:10px; right: 10px;}
 .tipsbox a.greenlink{color: #28cb75; padding-left: 10px;}
 .blackbg{padding:10px; background: #1f262d; line-height: 30px; color: #999;}
+
+.borbompad{padding-bottom: 20px; border-bottom: 1px #ddd dashed;}

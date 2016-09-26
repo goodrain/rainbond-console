@@ -1,6 +1,6 @@
 <!-- settings start -->
 <div role="tabpanel" class="tab-pane active" id="settings">
-  <section class="panel">
+  <section class="panel borbompad">
       <header class="panel-heading">基础信息</header>
       <div class="panel-body">
         <div class="row">
@@ -14,7 +14,7 @@
                     <a>{{httpGitUrl}}</a>
                     {% else %}
                     <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
-                    {% endif %}
+                    {% endif %} 
                 </label>
                 {% if 'manage_service' in user.actions  and git_tag and tenantServiceInfo.code_from != "gitlab_manual" %}
                 <div class="col-xs-6">
@@ -81,7 +81,7 @@
       </div>
   </section>
   
-<section class="panel">
+<section class="panel borbompad">
     <header class="panel-heading">端口开放<br/>(对外服务后需重启)</header>
     <div class="panel-body">
         <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;" id="port_open">
@@ -128,7 +128,7 @@
                         <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if outer_auth %}data-open="open"{% else %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
-                        {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" "><i class="fa fa-times"></i></button>{% endif %}
+                        {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>{% endif %}
                     </td>
                 </tr>
                 <tr>
@@ -142,7 +142,7 @@
     </div>
 </section>
 
-<section class="panel">
+<section class="panel borbompad">
     <header class="panel-heading">自定义环境变量</header>
     <div class="panel-body">
         <div class="row">
@@ -179,7 +179,7 @@
 </section>
 
 
-<section class="panel">
+<section class="panel borbompad">
     <header class="panel-heading">持久化数据设置(设置后需要重启服务)</header>
     <div class="panel-body">
         <div class="row">
@@ -218,7 +218,7 @@
 </section>
 
 
-    <section class="panel">
+    <section class="panel borbompad">
       <header class="panel-heading">域名绑定</header>
       <div class="panel-body">
        {% if hasHttpServices %}
@@ -277,7 +277,7 @@
   
   
 
-  <section class="panel">
+  <section class="panel borbompad">
     <header class="panel-heading">扩容方式</header>
     <div class="panel-body">
         <div class="row">
@@ -344,7 +344,7 @@
   <!--start permission-->
   {% if MODULES.Team_Invite %}
   {% if 'perm_setting' in user.actions %}
-  <section class="panel" id="permission">
+  <section class="panel borbompad" id="permission">
     <header class="panel-heading">权限管理 </header>
     <div class="panel-body">
         <div class="row">
@@ -393,7 +393,7 @@
   <!--end permission-->
   
   {% if 'delete_service' in user.actions %}
-  <section class="panel" id="delete">
+  <section class="panel borbompad" id="delete">
     <header class="panel-heading">删除 </header>
     <div class="panel-body">
       <form class="form-horizontal" role="form">
