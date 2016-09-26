@@ -806,14 +806,15 @@ class OpenTenantServiceManager(object):
         except Exception as e:
             logger.exception(e)
 
-    def restart_service(self, tenant, service, username):
+    def restart_service(self, tenant, service, username, limit=True):
         diff_memory = service.min_node * service.min_memory
-        rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, False)
-        if not flag:
-            if rt_type == "memory":
-                return 410, False, "内存不足"
-            else:
-                return 411, False, "余额不足"
+        if limit:
+            rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, False)
+            if not flag:
+                if rt_type == "memory":
+                    return 410, False, "内存不足"
+                else:
+                    return 411, False, "余额不足"
 
         # stop service
         code, is_success, msg = self.stop_service(service, username)

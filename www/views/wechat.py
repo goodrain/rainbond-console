@@ -97,6 +97,7 @@ class WeChatLogin(BaseView):
         # 判断登录来源,默认从微信上登录
         origin = request.GET.get("origin", "console")
         origin_url = request.GET.get("redirect_url", "redirect_url")
+        logger.debug("account.wechat", "origin_url=" + origin_url)
         next_url = request.GET.get("next", "")
         if origin == "discourse":
             sig = request.GET.get("sig")
@@ -110,7 +111,7 @@ class WeChatLogin(BaseView):
             oauth2 = 'https://open.weixin.qq.com/connect/qrconnect'
             scope = 'snsapi_login'
         state = AuthCode.encode(','.join([csrftoken, origin, next_url, config, origin_url]), 'we_chat_login')
-        logger.debug("here is encode:" + state)
+        logger.debug("account.wechat", state)
         # 存储state
         wechat_state = WeChatState(state=state)
         wechat_state.save()
@@ -156,24 +157,31 @@ class WeChatCallBack(BaseView):
         # 获取statue
         state = request.GET.get("state")
         # 解码toke, type
-        logger.debug("here is decode:" + state)
-        logger.debug("is_weixin:" + str(is_weixin(request)))
+        logger.debug("account.wechat", state)
+        logger.debug("account.wechat", "is_weixin:{0}".format(str(is_weixin(request))))
         # 查询数据库
         err_url = settings.WECHAT_CALLBACK.get("index")
         try:
             wechat_state = WeChatState.objects.get(pk=state)
         except Exception as e:
-            logger.exception(e)
+            logger.exception("account.wechat", e)
             logger.error("account.wechat", "wechatstate is missing,id={0}".format(state))
             return self.redirect_to(err_url)
         cry_state = wechat_state.state
 
-        oldcsrftoken, origin, next_url, config, origin_url = AuthCode.decode(str(cry_state), 'we_chat_login').split(',')
-        logger.debug(oldcsrftoken)
-        logger.debug(origin)
-        logger.debug(next_url)
-        logger.debug(config)
-        logger.debug(origin_url)
+        state_array = AuthCode.decode(str(cry_state), 'we_chat_login').split(',')
+        oldcsrftoken = state_array[0]
+        origin = state_array[1]
+        next_url = state_array[2]
+        config = state_array[3]
+        origin_url = None
+        if len(state_array) == 5:
+            origin_url = state_array[4]
+        logger.debug("account.wechat", oldcsrftoken)
+        logger.debug("account.wechat", origin)
+        logger.debug("account.wechat", next_url)
+        logger.debug("account.wechat", config)
+        logger.debug("account.wechat", origin_url)
 
         if csrftoken != oldcsrftoken:
             return self.redirect_to(err_url)
@@ -198,7 +206,7 @@ class WeChatCallBack(BaseView):
         try:
             wechat_user = WeChatUser.objects.get(open_id=open_id)
         except WeChatUser.DoesNotExist:
-            logger.warning("open_id is first to access console. now regist...")
+            logger.warning("account.wechat", "open_id is first to access console. now regist...")
             need_new = True
 
         # 添加wechatuser
@@ -221,7 +229,7 @@ class WeChatCallBack(BaseView):
         try:
             user = Users.objects.get(union_id=wechat_user.union_id)
         except Users.DoesNotExist:
-            logger.warning("union id is first to access console. now create user...")
+            logger.warning("account.wechat", "union id is first to access console. now create user...")
             need_new = True
         # 用户表中不存在对应用户,判断是否已经解绑
         if need_new:
@@ -243,7 +251,7 @@ class WeChatCallBack(BaseView):
             tenant_name = tmp_union_id[begin_index:]
             tenant_name = tenant_name.replace("_", "-").lower()
             email = tenant_name + "@wechat.com"
-            logger.debug("new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
+            logger.debug("account.wechat", "new wx regist user.email:{0} tenant_name:{1}".format(email, tenant_name))
             # 创建用户,邮箱为openid后8位@wechat.comemail=email,
             # 统计当前wx数量
             count = Users.objects.filter(rf="open_wx").count()
@@ -275,14 +283,14 @@ class WeChatCallBack(BaseView):
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
             # 微信用户授权
             PermRelTenant.objects.create(user_id=user.pk, tenant_id=tenant.pk, identity='admin')
-            logger.info("account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(email, tenant_name, region, tenant.tenant_id))
+            logger.info("account.wechat", "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(email, tenant_name, region, tenant.tenant_id))
             # 租户与区域中心绑定
             TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
             # create gitlab user 微信注册默认不支持
             # codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
         logger.info(user)
         if user is None:
-            logger.error("微信用户登录失败!")
+            logger.error("account.wechat", "微信用户登录失败!")
             return self.redirect_to(err_url)
         # 微信用户登录
         user = authenticate(union_id=user.union_id)
@@ -299,7 +307,7 @@ class WeChatCallBack(BaseView):
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
                 # next_url = settings.APP_SERVICE_API.get("url") + '/login/goodrain/success?ticket=' + ticket
-                logger.debug(next_url)
+                logger.debug("account.wechat", next_url)
             return redirect(next_url)
 
         return self.redirect_view()

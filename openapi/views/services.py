@@ -446,7 +446,8 @@ class RestartServiceView(BaseAPIView):
             logger.debug("openapi.services", "Tenant {0} ServiceAlias {1} is not exists".format(tenant.tenant_name, service_name))
             return Response(status=408, data={"success": False, "msg": u"服务不存在"})
         # 启动服务
-        status, success, msg = manager.restart_service(tenant, service, username)
+        limit = request.data.get("limit", True)
+        status, success, msg = manager.restart_service(tenant, service, username, limit)
         return Response(status=status, data={"success": success, "msg": msg})
 
 
