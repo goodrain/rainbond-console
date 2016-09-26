@@ -147,14 +147,16 @@ class CreateServiceView(BaseAPIView):
         tenant_service_info.service_region = region
         tenant_service_info.min_node = service.min_node
         diffMemory = service.min_node * service.min_memory
-        rt_type, flag = manager.predict_next_memory(tenant, tenant_service_info, diffMemory, False)
-        if not flag:
-            if rt_type == "memory":
-                logger.error("openapi.services", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
-                return Response(status=416, data={"success": False, "msg": u"内存已经到最大值"})
-            else:
-                logger.error("openapi.services", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
-                return Response(status=417, data={"success": False, "msg": u"资源已经到最大值"})
+        limit = request.data.get("limit", True)
+        if limit:
+            rt_type, flag = manager.predict_next_memory(tenant, tenant_service_info, diffMemory, False)
+            if not flag:
+                if rt_type == "memory":
+                    logger.error("openapi.services", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
+                    return Response(status=416, data={"success": False, "msg": u"内存已经到最大值"})
+                else:
+                    logger.error("openapi.services", "Tenant {0} region {1} service:{2} memory!".format(tenant_name, region, service_name))
+                    return Response(status=417, data={"success": False, "msg": u"资源已经到最大值"})
 
         # 创建依赖的服务
 
