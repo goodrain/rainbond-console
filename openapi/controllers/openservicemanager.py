@@ -275,6 +275,7 @@ class OpenTenantServiceManager(object):
                     domain["service_name"] = service.service_alias
                     domain["domain_name"] = domain_name
                     domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    domain["container_port"] = 0
                     domaininfo = ServiceDomain(**domain)
                     domaininfo.save()
                 else:
@@ -296,6 +297,7 @@ class OpenTenantServiceManager(object):
                 data["service_id"] = servicerDomain.service_id
                 data["domain"] = servicerDomain.domain_name
                 data["pool_name"] = tenant_name + "@" + service.service_alias + ".Pool"
+                data["container_port"] = 0
                 regionClient.deleteUserDomain(service.service_region, json.dumps(data))
                 ServiceDomain.objects.filter(service_id=service.service_id).delete()
                 monitorhook.serviceMonitor(username, service, 'domain_delete', True)
