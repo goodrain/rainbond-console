@@ -132,7 +132,7 @@ class BaseTenantService(object):
         newTenantService.save()
         return newTenantService
     
-    def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True):
+    def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True, dep_sids=None):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
         data["service_id"] = newTenantService.service_id
@@ -159,6 +159,7 @@ class BaseTenantService(object):
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
+        data["dep_sids"] = dep_sids
     
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
@@ -393,7 +394,7 @@ class BaseTenantService(object):
                 return None
         except Exception as e:
             logger.exception(e)
-
+            
 class TenantUsedResource(object):
 
     def __init__(self):

@@ -384,7 +384,13 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             self.copy_ports(source_service)
             # add volume
             self.copy_volumes(self.service, source_service)
-            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
+            
+            dep_sids = []
+            tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
+            for tsr in tsrs:
+                dep_sids.append(tsr.dep_service_id)
+            
+            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name, dep_sids=dep_sids)
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
             return self.redirect_to('/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias))
 
@@ -398,7 +404,11 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             # add volume
             self.copy_volumes(self.service, source_service)
             # create region tenantservice
-            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
+            dep_sids = []
+            tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
+            for tsr in tsrs:
+                dep_sids.append(tsr.dep_service_id)
+            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name, dep_sids=dep_sids)
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
 
         except Exception, e:
