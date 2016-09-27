@@ -5605,8 +5605,8 @@ a.guest-on i {
 #port_show_5000{border:0 none; padding:0;}
 
 .tabbox{ border:1px #cdcdcd solid;  background: #f9f9f9; margin:20px 0;}
-.tittext{background: #efefef; height: 40px; border-bottom:1px #cdcdcd solid; line-height:40px; color: #666; font-size: 14px;}
-.tittext span{color: #28cb75; font-size: 12px;}
+.tittext{background: #efefef; height: 40px; border-bottom:1px #cdcdcd solid; line-height:40px; color: #666; font-size: 14px; text-indent: 24px;}
+.tittext span{color: #b94a48; font-size: 12px;}
 .tabbox .panel-body{padding:10px;}
 
 
