@@ -213,8 +213,11 @@ class WeChatCallBack(BaseView):
         # 添加wechatuser
         if need_new:
             jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
+            nick_name = jsondata.get("nickname")
+            if nick_name:
+                nick_name = nick_name.encode("utf-8")
             wechat_user = WeChatUser(open_id=jsondata.get("openid"),
-                                     nick_name=str(jsondata.get("nickname")),
+                                     nick_name=nick_name,
                                      union_id=jsondata.get("unionid"),
                                      sex=jsondata.get("sex"),
                                      city=jsondata.get("city"),
@@ -596,8 +599,11 @@ class WeChatCallBackBind(BaseView):
         # 添加wechatuser
         if need_new:
             jsondata = OpenWeChatAPI.query_userinfo_static(open_id, access_token)
+            nick_name = jsondata.get("nickname")
+            if nick_name:
+                nick_name = nick_name.encode("utf-8")
             WeChatUser(open_id=jsondata.get("openid"),
-                       nick_name=str(jsondata.get("nickname")),
+                       nick_name=nick_name,
                        union_id=jsondata.get("unionid"),
                        sex=jsondata.get("sex"),
                        city=jsondata.get("city"),
