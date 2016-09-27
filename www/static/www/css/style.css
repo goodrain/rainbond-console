@@ -5602,4 +5602,13 @@ a.guest-on i {
 .borbompad{padding-bottom: 20px; border-bottom: 1px #ddd dashed;}
 .modal-dialog{background: #fff;}
 
-#port_show_5000{border:0 none;}
+#port_show_5000{border:0 none; padding:0;}
+
+.tabbox{ border:1px #cdcdcd solid;  background: #f9f9f9; margin:20px 0;}
+.tittext{background: #efefef; height: 30px; border-bottom:1px #cdcdcd solid; line-height: 30px; color: #666; font-size: 16px;}
+.tittext span{color: #28cb75; font-size: 14px;}
+
+
+
+
+

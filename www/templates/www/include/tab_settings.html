@@ -1,7 +1,7 @@
 <!-- settings start -->
 <div role="tabpanel" class="tab-pane active" id="settings">
-  <section class="panel borbompad">
-      <header class="panel-heading">基础信息</header>
+  <section class="tabbox">
+      <p class="tittext">基础信息</p>
       <div class="panel-body">
         <div class="row">
             <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_alias}}</label>
@@ -81,8 +81,8 @@
       </div>
   </section>
   
-<section class="panel borbompad">
-    <header class="panel-heading">端口开放<br/>(对外服务后需重启)</header>
+<section class="tabbox">
+    <p class="tittext">端口开放<span>(对外服务后需重启)</span></p>
     <div class="panel-body">
         <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;" id="port_open">
             <thead>
@@ -142,8 +142,8 @@
     </div>
 </section>
 
-<section class="panel borbompad">
-    <header class="panel-heading">自定义环境变量</header>
+<section class="tabbox">
+    <p class="tittext">自定义环境变量</p>
     <div class="panel-body">
         <div class="row">
             <div class="col-xs-12">
@@ -179,8 +179,8 @@
 </section>
 
 
-<section class="panel borbompad">
-    <header class="panel-heading">持久化数据设置(设置后需要重启服务)</header>
+<section class="tabbox">
+    <p class="tittext">持久化数据设置<span>(设置后需要重启服务)</span></p>
     <div class="panel-body">
         <div class="row">
             <div class="col-xs-12">
@@ -218,8 +218,8 @@
 </section>
 
 
-    <section class="panel borbompad">
-      <header class="panel-heading">域名绑定</header>
+    <section class="tabbox">
+      <p class="tittext">域名绑定</p>
       <div class="panel-body">
        {% if hasHttpServices %}
         {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
@@ -277,8 +277,8 @@
   
   
 
-  <section class="panel borbompad">
-    <header class="panel-heading">扩容方式</header>
+  <section class="tabbox">
+    <p class="tittext">扩容方式</p>
     <div class="panel-body">
         <div class="row">
             {% ifequal tenantServiceInfo.category "application" %}
@@ -344,8 +344,8 @@
   <!--start permission-->
   {% if MODULES.Team_Invite %}
   {% if 'perm_setting' in user.actions %}
-  <section class="panel borbompad" id="permission">
-    <header class="panel-heading">权限管理 </header>
+  <section class="tabbox" id="permission">
+    <p class="tittext">权限管理 </p>
     <div class="panel-body">
         <div class="row">
             <div class="col-xs-4">
@@ -393,8 +393,8 @@
   <!--end permission-->
   
   {% if 'delete_service' in user.actions %}
-  <section class="panel borbompad" id="delete">
-    <header class="panel-heading">删除 </header>
+  <section class="tabbox" id="delete">
+    <p class="tittext">删除 </p>
     <div class="panel-body">
       <form class="form-horizontal" role="form">
 
