@@ -99,7 +99,7 @@
             <tbody>
                 {% for port in ports %}
                 <tr port="{{port.container_port}}">
-                    <td class="port-arrow"><a fold="yes" port="port_show_{{port.container_port}}"><i class="fa fa-chevron-circle-right fa-lg"></i></a></td>
+                    <td class="port-arrow"><a fold="yes" port="port_show_{{port.container_port}}"><i class="fa fa-chevron-circle-up fa-lg"></i></a></td>
                     <td>
                         {% if port_auth %}
                             <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
@@ -282,8 +282,8 @@
     <div class="panel-body">
         <div class="row">
             {% ifequal tenantServiceInfo.category "application" %}
-            <div class="col-xs-1 control-label">扩容方式</div>
-            <div class="col-xs-2 control-label">
+            <div class="col-xs-1">扩容方式</div>
+            <div class="col-xs-2">
                 <select name="extend_method" id="extend_method" class="form-control m-bot15">
                     {% for key,extend in extends_choices.iteritems %}
                         {% if key == tenantServiceInfo.extend_method %}
