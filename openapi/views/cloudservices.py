@@ -199,6 +199,7 @@ class CloudServiceInstallView(BaseAPIView):
         logger.debug("openapi.cloudservice", "now install dep service and service,memory:{0}".format(diffMemory))
 
         # 创建依赖的服务
+        dep_sids = []
         tenant_service_list = []
         if dep_service_list is not None:
             # 服务从后向前安装
@@ -224,6 +225,7 @@ class CloudServiceInstallView(BaseAPIView):
                     manager.add_service_extend(depTenantService, dep_service)
                     monitorhook.serviceMonitor(username, depTenantService, 'create_service', True)
                     tenant_service_list.append(depTenantService)
+                    dep_sids.append(dep_service_id)
                 except Exception as e:
                     logger.exception("openapi.cloudservice", e)
                     TenantServiceInfo.objects.filter(service_id=service_id).delete()
@@ -322,7 +324,7 @@ class CloudServiceInstallView(BaseAPIView):
             manager.create_region_service(newTenantService,
                                           tenant_name,
                                           region,
-                                          username)
+                                          username, json.dumps(dep_sids))
             monitorhook.serviceMonitor(username, newTenantService, 'init_region_service', True)
         except Exception as e:
             logger.error("openapi.cloudservice", "create region service failed!", e)
