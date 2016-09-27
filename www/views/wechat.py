@@ -150,6 +150,7 @@ class WeChatCallBack(BaseView):
     """微信登录后返回"""
 
     def get(self, request, *args, **kwargs):
+        import datetime
         # 获取cookie中的csrf
         csrftoken = request.COOKIES.get('csrftoken')
         if csrftoken is None:

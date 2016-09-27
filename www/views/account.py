@@ -568,7 +568,10 @@ class Registation(BaseView):
 
             # 检测是否论坛请求
             next_url = request.POST.get("next", None)
-            if next_url is not None and next_url != "" and next_url != "none":
+            if next_url is not None \
+                    and next_url != "" \
+                    and next_url != "none" \
+                    and next_url != "None":
                 origin = request.POST.get("origin", "")
                 if origin == "app":
                     union_id = user.union_id
