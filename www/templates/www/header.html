@@ -2,7 +2,7 @@
     <div class="fa fa-bars tooltips" data-placement="right" data-original-title="切换导航"></div>
 </div>
 <!--logo start-->
-<a href="/" class="logo hidden-xs">好雨<span>云平台</span></a>
+<a href="/" class="logo hidden-xs"><img src="/static/www/images/yunbanglogo.png" alt="好雨云帮"></a>
 <!--logo end-->
 {% block region_zone %}
 <div class="nav notify-row" id="top_menu">
@@ -19,7 +19,7 @@
 {% endblock %}
 <div class="top-nav ">
     <!--search & user info start-->
-    <ul class="nav pull-right top-menu">
+    <ul class="nav top-menu">
         <!--<li>
             <button type="button" class="btn btn-round btn-primary" onclick="window.open('https://goodrain.kf5.com/request/new/')">提交工单</button>
         </li>
@@ -32,7 +32,7 @@
          </li-->
 
          <li class="hidden-xs">
-           <a href="http://docs.goodrain.com/" target="_blank">
+           <a href="http://doc.goodrain.com/usage/180993" target="_blank">
              <i class="fa fa-file-text-o"></i>
              <span>文档</span>
            </a>
@@ -51,7 +51,7 @@
                 {% if MODULES.WeChat_Module %}
                     {% if user.status == 0 %}
                         <!--# 0:普通注册,未绑定微信-->
-                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="wxicon"></i>绑定微信</a></li>
                     {% endif %}
                     {% if user.status == 1 %}
                         <!--# 1:普通注册,绑定微信-->
@@ -74,7 +74,7 @@
                 {% if MODULES.Finance_Center %}
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
                 <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
-                <li><a href="/payed/{{tenantName}}/upgrade"><i class="fa fa-flag"></i> 我的套餐</a></li>
+                <li><a href="/payed/{{tenantName}}/upgrade"><i class="fa fa-flag"></i> 升级为付费用户</a></li>
                     {% if is_private %}
                         <li><a href="/apps/{{tenantName}}/license"><i class="fa fa-exclamation-circle"></i> 关于</a></li>
                     {% endif %}

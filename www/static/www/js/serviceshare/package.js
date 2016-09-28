@@ -287,7 +287,7 @@ $(function(){
                 var service_key = $("#service_key").val();
                 var app_version = $("#app_version").val();
 
-                var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
+                var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package?fr=share";
                 $.ajax({
                     url: step4_url,
                     type: "POST",
@@ -326,7 +326,7 @@ $(function(){
                                 var oDataId = $(this).parent().parent().parent('li').attr('data-id');
                                 var tenant_name = $("#tenant_name").val();
                                 var service_alias = $("#service_alias").val();
-                                var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
+                                var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package?fr=share";
                                 $.ajax({
                                     url: step4_url,
                                     type: "POST",
@@ -500,7 +500,7 @@ $(function(){
             var service_alias = $("#service_alias").val();
             var service_key = $("#service_key").val();
             var app_version = $("#app_version").val();
-            var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
+            var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package?fr=share";
             $.ajax({
                 url: step4_url,
                 type: "POST",
@@ -558,7 +558,7 @@ $(function(){
         /////
         var tenant_name = $("#tenant_name").val();
         var service_alias = $("#service_alias").val();
-        var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package";
+        var step4_url = "/apps/" + tenant_name + "/" + service_alias + "/share/package?fr=share";
         $.ajax({
             url: step4_url,
             type: "POST",

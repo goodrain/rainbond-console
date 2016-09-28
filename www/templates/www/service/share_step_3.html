@@ -1,6 +1,7 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
 {% load crispy_forms_tags %}
+{% load goodrain_extras %}
 {% load static %}
 {% block extracss %}
 {{ block.super }}
@@ -10,6 +11,50 @@
 
 {% block main-content %}
 <section class="wrapper site-min-height">
+     <!-- -->
+      
+     <header class="panel-heading tab-bg-dark-navy-blue ">
+            <ul class="nav nav-tabs" id="nav-tabs">
+                <li {% if fr = "deployed" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=deployed">概览</a>
+                </li>
+                {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
+                <li {% if fr = "relations" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=relations">依赖</a>
+                </li>
+                {% endif %}
+                {% if MODULES.Monitor_Control %}
+                <li class="dropdown {% if fr == 'statistic' %} active {% endif %}">
+                    {% if hasHttpServices or tenantServiceInfo.service_type == 'mysql' %}
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic"
+                       class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime">实时分析</a></li>
+                        <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">历史走势</a></li>
+                    </ul>
+                    {% else %}
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic">监控</a>
+                    {% endif %}
+                </li>
+                {% endif %}
+                <li {% if fr = "log" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=log">日志</a>
+                </li>
+                <li {% if fr = "settings" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=settings">高级</a>
+                </li>
+                {% if tenantServiceInfo.category = "application" %}
+                <li>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1">分享</a>
+                </li>
+                {% endif %}
+            </ul>
+        </header>
+
+    <!-- -->
+       
+
     <h2 class="tit">设置应用分享信息</h2>
     <form class="form-horizontal" method="post" id="share_form"
           enctype="multipart/form-data" action="">
@@ -171,7 +216,11 @@
         </div>
         <!-- 二 结束 -->
         <div class="linkbox">
+<<<<<<< HEAD
             <!--<a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="greenbtn">上一步</a>-->
+=======
+            <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2?fr=share" class="graybtn">上一步</a>
+>>>>>>> ww-interface
             <a href="#" onclick="check_data();" class="greenbtn">下一步</a>
         </div>
     </form>
