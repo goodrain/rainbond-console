@@ -355,22 +355,22 @@ class CloudServiceInstallView(BaseAPIView):
         json_data["service"] = newTenantService.to_dict()
         json_data["dep_service"] = map(lambda x: x.to_dict(), tenant_service_list)
         # 服务env+依赖服务env
-        # dep_service_ids = [x.service_id for x in tenant_service_list]
-        # env_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids)
-        # json_data["env_list"] = env_list
-        # 服务port+依赖服务port
-        # port_list = TenantServicesPort.objects.filter(service_id__in=dep_service_ids)
-        # json_data["port_list"] = port_list
-        # 服务volume+依赖服务
-        # TenantServiceVolume.objects.filter(service_id__in=dep_service_ids)
-        # 依赖的环境变量
-        env_var_list = TenantServiceEnvVar.objects.filter(service_id=service_id)
+        dep_service_ids = [x.service_id for x in tenant_service_list]
+        if service_id not in dep_service_ids:
+            dep_service_ids.append(service_id)
+        env_var_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids)
         env_list = []
         # 过滤掉不显示字段
         for env_var in list(env_var_list):
             if env_var.is_change or (not env_var.is_change and env_var.container_port > 0):
                 env_list.append(env_var)
         json_data["env_list"] = env_list
+        # 服务port+依赖服务port
+        # port_list = TenantServicesPort.objects.filter(service_id__in=dep_service_ids)
+        # json_data["port_list"] = port_list
+        # 服务volume+依赖服务
+        # TenantServiceVolume.objects.filter(service_id__in=dep_service_ids)
+        # 依赖的环境变量
 
         return Response(status=200, data={"success": True, "service": json_data})
 
