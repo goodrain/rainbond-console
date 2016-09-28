@@ -74,7 +74,7 @@
                 {% if MODULES.Finance_Center %}
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
                 <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
-                {% if tenant_pay_type == "free" %}
+                {% if tenant_pay_type != "payed" %}
                     <li><a onclick="_upgrade_header()"><i class="fa fa-flag"></i> 升级为付费用户</a></li>
                 {% endif %}
 
