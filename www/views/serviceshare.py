@@ -27,7 +27,6 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         context = super(ShareServiceStep1View, self).get_context()
         return context
  
-    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         context["myAppStatus"] = "active"
@@ -91,7 +90,6 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
         context = super(ShareServiceStep2View, self).get_context()
         return context
 
-    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         # 获取服务的环境变量
         context = self.get_context()
@@ -118,7 +116,6 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
                                 'www/service/share_step_2.html',
                                 context)
 
-    @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         # 服务的环境是否可修改存储
         post_data = request.POST.dict()
@@ -150,7 +147,6 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         context = super(ShareServiceStep3View, self).get_context()
         return context
 
-    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
@@ -221,7 +217,6 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                                 context)
 
     # form提交.
-    @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         # 获取form表单
         form_data = ShareServiceForm(request.POST, request.FILES)
@@ -498,7 +493,6 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         context = super(ShareServiceStep4View, self).get_context()
         return context
 
-    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
@@ -574,7 +568,6 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         return TemplateResponse(request, 'www/service/share_step_4.html', context)
 
     # form提交.
-    @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         # 获取form表单
         service_key = request.POST.get("service_key")
