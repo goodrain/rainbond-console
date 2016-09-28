@@ -324,7 +324,7 @@ class CloudServiceInstallView(BaseAPIView):
             manager.create_region_service(newTenantService,
                                           tenant_name,
                                           region,
-                                          username, json.dumps(dep_sids))
+                                          username, dep_sids=json.dumps(dep_sids))
             monitorhook.serviceMonitor(username, newTenantService, 'init_region_service', True)
         except Exception as e:
             logger.error("openapi.cloudservice", "create region service failed!", e)

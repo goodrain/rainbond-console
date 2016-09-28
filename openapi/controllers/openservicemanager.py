@@ -85,7 +85,7 @@ class OpenTenantServiceManager(object):
         newTenantService.save()
         return newTenantService
 
-    def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True):
+    def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True, dep_sids=None):
         """创建region服务"""
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
@@ -113,6 +113,7 @@ class OpenTenantServiceManager(object):
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
+        data["dep_sids"] = dep_sids
         if hasattr(newTenantService, "service_origin"):
             data["service_origin"] = newTenantService.service_origin
 
