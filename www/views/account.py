@@ -106,7 +106,8 @@ class Login(BaseView):
             # 这里只有app请求过来
             next_url = request.GET.get('next', None)
             origin = request.GET.get('origin', None)
-            if next_url is not None:
+            if next_url is not None and next_url != "" \
+                    and next_url != "none" and next_url != "None":
                 if origin == "app":
                     if app_url is None:
                         app_url = settings.APP_SERVICE_API.get("url")
@@ -123,7 +124,8 @@ class Login(BaseView):
                     if wechat_user is None:
                         ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
                     else:
-                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
+                        wechat_name = str(wechat_user.nick_name).decode("utf-8")
+                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_name]), 'goodrain')
                     next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)
@@ -157,7 +159,8 @@ class Login(BaseView):
         if app_ty is not None:
             return self.redirect_to("/autodeploy?fr=www_app")
 
-        if next_url is not None:
+        if next_url is not None and next_url != "" \
+                and next_url != "none" and next_url != "None":
             if origin == "app":
                 app_url = request.GET.get('redirect_url', None)
                 if app_url is None:
@@ -175,7 +178,8 @@ class Login(BaseView):
                 if wechat_user is None:
                     ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
                 else:
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
+                    wechat_name = str(wechat_user.nick_name).decode("utf-8")
+                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_name]), 'goodrain')
                 next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
@@ -587,7 +591,8 @@ class Registation(BaseView):
                     if wechat_user is None:
                         ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
                     else:
-                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
+                        wechat_name = str(wechat_user.nick_name).decode("utf-8")
+                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_name]), 'goodrain')
                     next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)

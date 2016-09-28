@@ -301,14 +301,18 @@ class WeChatCallBack(BaseView):
         login(request, user)
 
         # 回跳到云市
-        if next_url is not None and next_url != "":
+        if next_url is not None \
+                and next_url != "" \
+                and next_url != "none" \
+                and next_url != "None":
             if origin == "app":
                 logger.debug("now return to cloud market login..")
                 if origin_url is None or origin_url == "redirect_url" or origin_url == "":
                     origin_url = settings.APP_SERVICE_API.get("url")
                 if not origin_url.startswith("http://"):
                     origin_url = "http://" + origin_url
-                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name]), 'goodrain')
+                wechat_name = str(wechat_user.nick_name).decode("utf-8")
+                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_name]), 'goodrain')
                 next_url = "{0}/login/{1}/success?ticket={2}".format(origin_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
