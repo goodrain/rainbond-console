@@ -364,7 +364,7 @@ class CloudServiceInstallView(BaseAPIView):
         for env_var in list(env_var_list):
             if env_var.is_change or (not env_var.is_change and env_var.container_port > 0):
                 env_list.append(env_var)
-        json_data["env_list"] = env_list
+        json_data["env_list"] = map(lambda x: x.to_dict(), env_list)
         # 服务port+依赖服务port
         # port_list = TenantServicesPort.objects.filter(service_id__in=dep_service_ids)
         # json_data["port_list"] = port_list
