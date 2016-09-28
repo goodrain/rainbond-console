@@ -30,19 +30,12 @@
 	            <span class="big">社区版</span>
 	        </th>
 	        <th>
-	            <span class="big">专业版</span>
-
-	        </th>
-	        <th>
-	            <span class="big">企业版</span>
+	            <span class="big">付费版</span>
 	        </th>
 	    </tr>
 	    <tr>
 	        <th>
 	            <span class="small">面向极客程序员及初创型企业</span>
-	        </th>
-	        <th>
-	            <span class="small">对服务质量有更高要求的个人及中小型企业</span>
 	        </th>
 	        <th>
 	            <span class="small">对性能、稳定性、安全性有更高要求的大中型企业</span>
@@ -56,16 +49,10 @@
 	        <td>
 				支持社区版的所有特性
 	        </td>
-	        <td>
-				支持专业版的所有特性
-	        </td>
 	    </tr>
 	    <tr>
 	        <td>
 	            最高1M带宽
-	        </td>
-	        <td>
-	            无任何资源限制
 	        </td>
 	        <td>
 	            专享高性能服务器
@@ -76,18 +63,12 @@
 	            最大5G磁盘存储
 	        </td>
 	        <td>
-	            多份数据备份
-	        </td>
-	        <td>
 	            支持多种扩容方式
 	        </td>
     	</tr>
         <tr>
 	        <td>
 	            最大100访问并发
-	        </td>
-	        <td>
-	            不休眠
 	        </td>
 	        <td>
 	            高级监控
@@ -98,9 +79,6 @@
 	            共享服务器
 	        </td>
 	        <td>
-	            数据库可直连管理
-	        </td>
-	        <td>
 	            SLA 99.95%
 	        </td>
     	</tr>
@@ -109,18 +87,12 @@
 	            48小时无访问自动休眠
 	        </td>
 	        <td>
-	            可以绑定域名
-	        </td>
-	        <td>
 	            支持SSL
 	        </td>
     	</tr>
         <tr>
 	        <td>
             通过web管理数据库
-	        </td>
-	        <td>
-	        支持非HTTP协议
 	        </td>
 	        <td>
 	            7x24服务支持
@@ -132,33 +104,17 @@
 	        </td>
 	        <td>
 	        </td>
-	        <td>
-	        </td>
     	</tr>
     	
         <tr>
 	        <td style="text-align: center;font-size: 16px;color:#41cac0;">免费</td>
 	        <td style="text-align: center;font-size: 16px;text-decoration:underline;"><a href="https://www.goodrain.com/pricing.html" target="_black">详细价格</a></td>
-	        <td style="text-align: center;font-size: 16px;text-decoration:underline;"><a href="https://www.goodrain.com/pricing.html" target="_black">详细价格</a></td>
     	</tr>
         <tr>
-	        {% if tenant.pay_level == "personal" %}
-	        	<td>
-	            	
-	       	 	</td>
-	       	 	 <td>
-		            <button type="button" class="active" ><i class="fa fa-check" style="font-size: 20px;"> 当前套餐</i></button>
-		        </td>
-		        <td>
-		            <button type="button" onclick="_upgrade('company')"><i class="fa  fa-arrow-circle-up" style="font-size: 20px;"> 升级</i></button>
-		        </td>
-		    {% elif tenant.pay_level == "company" %}
+		    {% if tenant.pay_level == "company" %}
 		    	<td>
 	            	
 	       	 	</td>
-	       	 	 <td>
-		            
-		        </td>
 		        <td>
 		            <button type="button" class="active"><i class="fa fa-check" style="font-size: 20px;"> 当前套餐</i></button>
 		        </td>
@@ -166,9 +122,6 @@
 		    	<td>
 	            	<button type="button" class="active"><i class="fa fa-check" style="font-size: 20px;"> 免费套餐</i></button>
 	       	 	</td>
-	       	 	 <td>
-		            <button type="button" onclick="_upgrade('personal')"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 升级</i></button>
-		        </td>
 		        <td>
 		            <button type="button" onclick="_upgrade('company')"><i class="fa fa-arrow-circle-up" style="font-size: 20px;"> 升级</i></button>
 		        </td>
@@ -176,7 +129,7 @@
 
     	</tr>
     	<tr>
-    		<td></td><td></td><td></td>
+    		<td></td><td></td>
     	</tr>
 	</tbody>
 	</table>  
