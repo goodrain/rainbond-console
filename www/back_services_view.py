@@ -364,7 +364,7 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
                 if self.cookie_region in RegionInfo.valid_regions():
                     port = RegionInfo.region_port(self.cookie_region)
                     domain = RegionInfo.region_domain(self.cookie_region)
-                    env.options = 'owncloud param'
+                    env.options = 'direct_copy'
                     env.attr_value = '{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
                     logger.debug("TRUSTED_DOMAIN = {} options = {}".format(env.attr_value, env.options))
 
