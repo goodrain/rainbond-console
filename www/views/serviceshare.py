@@ -76,6 +76,9 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         #
         context["tenant_name"] = self.tenantName
         context["service_alias"] = self.serviceAlias
+        context["tenantServiceInfo"] = self.service
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+            context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_1.html',
@@ -107,6 +110,9 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
         # path param
         context["tenant_name"] = self.tenantName
         context["service_alias"] = self.serviceAlias
+        context["tenantServiceInfo"] = self.service
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+            context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_2.html',
@@ -206,6 +212,9 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         state = request.GET.get("state")
         if state is not None:
             context["state"] = state
+        context["tenantServiceInfo"] = self.service
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+            context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_3.html',
@@ -558,6 +567,9 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             context["service_package_map"] = {}
             context["dep_service_model"] = "[]"
         context["service_package"] = service_package
+        context["tenantServiceInfo"] = self.service
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+            context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request, 'www/service/share_step_4.html', context)
 

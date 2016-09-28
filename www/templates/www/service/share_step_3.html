@@ -45,7 +45,7 @@
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=settings">高级</a>
                 </li>
                 {% if tenantServiceInfo.category = "application" %}
-                <li>
+                <li class="active">
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1">分享</a>
                 </li>
                 {% endif %}
@@ -216,11 +216,9 @@
         </div>
         <!-- 二 结束 -->
         <div class="linkbox">
-<<<<<<< HEAD
+
             <!--<a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="greenbtn">上一步</a>-->
-=======
-            <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2?fr=share" class="graybtn">上一步</a>
->>>>>>> ww-interface
+
             <a href="#" onclick="check_data();" class="greenbtn">下一步</a>
         </div>
     </form>

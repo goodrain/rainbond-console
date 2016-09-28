@@ -5,14 +5,25 @@
 
 <section class="wrapper site-min-height">
 	<!-- 免费使用阶段 -->
-	<div class="infotips tipsbox">您可以全功能免费使用至2016-12-12 23:23:23。<a href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处立刻升级为付费用户</a><a class="close" href="#">×</a></div>
-	<div class="errortips tipsbox">您需要升级为付费用户才能继续使用云帮。<a href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处升级为付费用户</a><a class="close" href="#">×</a></div>
-	<div class="warntips tipsbox">您已升级为付费用户，当前可以继续全功能免费使用至2016-12-12 23:23:23，之后需要付费才能继续使用。<a href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处提前充值</a><a class="close" href="#">×</a></div>
+	{% if pay_type == "free" and not expired %}
+	<div class="infotips tipsbox">您可以全功能免费使用至 {{ expired_time|date:'Y-m-d H:i:s' }}。<a style="cursor:pointer;" href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处立刻升级为付费用户</a><a class="close" href="#">×</a></div>
+	{% endif %}
+	{% if pay_type == "free" and expired %}
+	<div class="errortips tipsbox">您需要升级为付费用户才能继续使用云帮。<a style="cursor:pointer;" href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处升级为付费用户</a><a class="close" href="#">×</a></div>
+	{% endif %}
 	<!-- 付费使用阶段 -->
-	<div class="warntips tipsbox">您的余额偏低。<a href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处充值</a><a class="close" href="#">×</a></div>
-	<div class="warntips tipsbox">您的云帮将于2016-12-12 23:23:23到期。<a href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处购买预付费套餐</a><a class="close" href="#">×</a></div>
-	<div class="errortips tipsbox">您需要充值才能继续使用云帮。<a href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处充值</a><a class="close" href="#">×</a></div>
-	<div class="errortips tipsbox">您的云帮已于2016-12-12 23:23:23到期。<a href＝"javascript:;" class="greenlink" data-toggle="modal" data-target="#mylayer">点击此处购买预付费套餐</a><a class="close" href="#">×</a></div>
+	{% if pay_type == "payed" and tenant_balance < 20 and tenant_balance > 0 %}
+	<div class="warntips tipsbox">您的余额偏低。 <a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a> <a class="close" href="#">×</a></div>
+	{% endif %}
+	{% if pay_type == "payed" and monthly_payment_status == 1 %}
+	<div class="warntips tipsbox">您的云帮将于 {{ buy_end_time|date:'Y-m-d H:i:s' }}到期。<a href="/apps/{{tenantName}}/paymodel/" target="_blank">点击此处购买预付费套餐</a><a class="close" href="#">×</a></div>
+	{% endif %}
+	{% if pay_type == "payed" and tenant_balance < 0 %}
+	<div class="errortips tipsbox">您需要充值才能继续使用云帮。<a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a> <a class="close" href="#">×</a></div>
+	{% endif %}
+	{% if pay_type == "payed" and monthly_payment_status == 2 %}
+	<div class="errortips tipsbox">您的云帮已于{{ buy_end_time|date:'Y-m-d H:i:s' }}到期。<a href="/apps/{{tenantName}}/paymodel/" target="_blank">点击此处购买预付费套餐</a><a class="close" href="#">×</a></div>
+	{% endif %}
 	<!-- -->
 	<div class="modal fade bs-example-modal-sm" id="mylayer" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
  		 <div class="modal-dialog modal-sm">
@@ -23,7 +34,7 @@
 	        升级为付费用户，携手云帮一起迈向云计算的未来！
 	      </div>
 	      <div class="modal-footer">
-	        <button type="button" class="btn btn-success" data-dismiss="modal">确定升级</button>
+	        <button type="button" class="btn btn-success" data-dismiss="modal" onclick="_upgrade()">确定升级</button>
 	        <button type="button" class="btn btn-default" data-dismiss="modal">我再想想</button>
 	      </div>
 	    </div>
@@ -272,6 +283,48 @@
             setInterval("checkStatus()", 15000);
 	    	setInterval("checkTenantsStorage()", 30000);
         });
+
+		function _upgrade(){
+			var current_select = "company"
+			swal({
+				title : "套餐升级后，将不能回到原有套餐，您确定要变更当前套餐吗?",
+				context:"",
+				type : "warning",
+				showCancelButton : true,
+				confirmButtonColor : "#DD6B55",
+				confirmButtonText : "确定",
+				cancelButtonText : "取消",
+				closeOnConfirm : false,
+				closeOnCancel : false
+			}, function(isConfirm) {
+				if (isConfirm) {
+					$.ajax({
+						type : "POST",
+						url : "/payed/{{tenantName}}/upgrade",
+						data : "current_select="+"company",
+						cache : false,
+						beforeSend : function(xhr, settings) {
+							var csrftoken = $.cookie('csrftoken');
+							xhr.setRequestHeader("X-CSRFToken", csrftoken);
+						},
+						success : function(msg) {
+							var dataObj = msg
+							if (dataObj["status"] == "success") {
+								swal("操作成功")
+								window.location.href = "/apps/{{tenantName}}"
+							} else {
+								swal("操作失败")
+							}
+						},
+						error : function() {
+							// swal("系统异常");
+						}
+					});
+				} else {
+					swal.close();
+				}
+			});
+		}
     </script>
 </section>
 {% endblock %}

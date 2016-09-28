@@ -152,6 +152,7 @@ class AuthedView(BaseView):
     def get_context(self):
         context = super(AuthedView, self).get_context()
         context['tenantName'] = self.tenantName
+        context["tenant_pay_type"]=self.tenant.pay_type
         context['serviceAlias'] = self.serviceAlias
         context['MODULES'] = settings.MODULES
         context['is_private'] = sn.instance.is_private()

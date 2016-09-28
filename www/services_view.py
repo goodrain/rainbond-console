@@ -6,6 +6,8 @@ from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.shortcuts import redirect
 from django.http import Http404
+
+from www.models.main import TenantRegionPayModel
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
@@ -81,6 +83,16 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             context["totalNum"] = totalNum
             context["curTenant"] = self.tenant
             context["tenant_balance"] = self.tenant.balance
+            # params for prompt
+            context["pay_type"] = self.tenant.pay_type
+            context["expired"] = tenantAccountService.isExpired(self.tenant)
+            context["expired_time"] = self.tenant.expired_time
+            status = tenantAccountService.get_monthly_payment(self.tenant,self.tenant.region)
+            context["monthly_payment_status"] = status
+            if status !=0:
+                list = TenantRegionPayModel.objects.filter(tenant_id=self.tenant.tenant_id,region_name=self.tenant.region).order_by("-buy_end_time")
+                context["buy_end_time"] = list[0].buy_end_time
+
             if self.tenant_region.service_status == 0:
                 logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
                 regionClient.unpause(self.response_region, self.tenant_region.tenant_id)
