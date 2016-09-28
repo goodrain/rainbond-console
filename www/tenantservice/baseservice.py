@@ -7,6 +7,7 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceVolume
+from www.models.main import TenantRegionPayModel
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -21,7 +22,6 @@ monitorhook = MonitorHook()
 regionClient = RegionServiceApi()
 gitClient = GitlabApi()
 gitHubClient = GitHubApi()
-
 
 class BaseTenantService(object):
 
@@ -502,10 +502,40 @@ class TenantAccountService(object):
         return False
 
     def isExpired(self, tenant):
-#        if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
-#            return False
+        if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
+            return True
         return False
 
+    def get_monthly_payment(self, tenant, region_name):
+        # 0 未包月 1快到期 2 已到期 3离到期时间很长
+        flag = 0;
+        tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id,
+                                                                     region_name=region_name)
+        if len(tenant_region_pay_list) == 0:
+            return flag
+        for pay_model in tenant_region_pay_list:
+            if pay_model.buy_end_time > datetime.datetime.now():
+                timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
+                if timedelta < 3:
+                    flag = 1
+                else:
+                    flag = 3
+            else:
+                flag = 2
+
+        return flag
+
+    def isCloseToMonthlyExpired(self,tenant,region_name):
+        tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id,region_name=region_name)
+        if len(tenant_region_pay_list)==0:
+            return False
+        tag=1
+        for pay_model in  tenant_region_pay_list:
+            if pay_model.buy_end_time > datetime.datetime.now():
+                timedelta = (pay_model.buy_end_time-datetime.datetime.now()).days
+                if timedelta >0 and timedelta <3:
+                    return True
+        return  False
 
 class TenantRegionService(object):
 
