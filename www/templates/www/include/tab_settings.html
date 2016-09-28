@@ -122,7 +122,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" {% if tenant.pay_type == "free" and not user.is_sys_admin %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
+                        <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" data-on-text="开启" data-off-text="关闭">
                     </td>
                     <td>
                         <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if outer_auth %}data-open="open"{% else %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
@@ -222,7 +222,6 @@
       <p class="tittext">域名绑定</p>
       <div class="panel-body">
        {% if hasHttpServices %}
-        {% if tenant.pay_type != "free" or tenantServiceInfo.service_region == 'aws-jp-1' %}
            <div class="row">
               <div class="col-xs-12">
                 <table class="table">
@@ -270,7 +269,6 @@
                 </table>
               </div>
            </div>
-        {% endif %}
        {% endif %}
       </div>
 </section>
