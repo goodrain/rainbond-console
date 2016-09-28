@@ -306,13 +306,13 @@ class WeChatCallBack(BaseView):
                 and next_url != "none" \
                 and next_url != "None":
             if origin == "app":
-                logger.debug("now return to cloud market login..")
+                logger.debug("account.wechat", "now return to cloud market login..")
                 if origin_url is None or origin_url == "redirect_url" or origin_url == "":
                     origin_url = settings.APP_SERVICE_API.get("url")
                 if not origin_url.startswith("http://"):
                     origin_url = "http://" + origin_url
-                wechat_name = str(wechat_user.nick_name).decode("utf-8")
-                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url, wechat_name]), 'goodrain')
+                cry_string = ','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name])
+                ticket = AuthCode.encode(cry_string.encode("UTF-8"), 'goodrain')
                 next_url = "{0}/login/{1}/success?ticket={2}".format(origin_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
