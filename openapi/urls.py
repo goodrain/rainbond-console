@@ -38,4 +38,5 @@ urlpatterns = patterns(
     url(r'^v2/services/(?P<service_id>[\w\-]+)/restart$', RestartServiceView.as_view()),
     url(r'^v2/services/(?P<service_id>[\w\-]+)/remove$', RemoveServiceView.as_view()),
     url(r'^v2/services/(?P<service_id>[\w\-]+)/detail$', QueryServiceView.as_view()),
+    url(r'^v2/services/(?P<service_id>[\w\-]+)/stop$', StopCloudServiceView.as_view()),
 )

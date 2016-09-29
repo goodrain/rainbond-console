@@ -342,7 +342,7 @@ class StopServiceView(BaseAPIView):
         if tenant_name is None:
             logger.error("openapi.services", "租户名称为空!")
             return Response(status=405, data={"success": False, "msg": u"租户名称为空"})
-        username = request.data.get("username")
+        username = request.data.get("username", "system")
 
         try:
             tenant = Tenants.objects.get(tenant_name=tenant_name)
@@ -780,3 +780,40 @@ class UpgradeView(BaseAPIView):
         except Exception as e:
             logger.error("openapi.services", e)
             return Response(status=412, data={"success": False, "msg": u"系统异常"})
+
+
+class StopCloudServiceView(BaseAPIView):
+    allowed_methods = ('POST',)
+
+    def post(self, request, service_id, *args, **kwargs):
+        """
+        停止服务接口
+        ---
+        parameters:
+            - name: service_id
+              description: 服务id
+              required: true
+              type: string
+              paramType: path
+
+        """
+        username = request.data.get("username", "system")
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.error("openapi.services", "service id={0} is not exists".format(service_id))
+            return Response(status=406, data={"success": False, "msg": u"服务不存在"})
+        # 停止服务
+        status, success, msg = manager.stop_service(service, username)
+        # 判断是否云市服务
+        if service.service_origin == "cloud":
+            # 查询并停止依赖服务
+            relation_list = TenantServiceRelation.objects.filter(service_id=service.service_id)
+            dep_id_list = [x.dep_service_id for x in list(relation_list)]
+            dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_id_list)
+            for dep_service in list(dep_service_list):
+                status, success, msg = manager.stop_service(dep_service, username)
+                logger.debug("openapi.services", "dep service:{0} status:{1},{2},{3}".format(dep_service.service_alias, status, success, msg))
+        return Response(status=status, data={"success": success, "msg": msg})
+
+
