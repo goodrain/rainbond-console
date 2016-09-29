@@ -22,15 +22,7 @@ class ModelBackend(object):
 
     def get_user(self, user_id):
         try:
-            user = Users.objects.get(pk=user_id)
-            # 查询是否存在微信信息
-            if user.union_id is not None and user.union_id != "":
-                union_id = user.union_id
-                wechat_list = WeChatUser.objects.filter(union_id=union_id)
-                if len(wechat_list) > 0:
-                    wechat_user = list(wechat_list)[0]
-                    user.nick_name = wechat_user.nick_name
-            return user
+            return Users.objects.get(pk=user_id)
         except Users.DoesNotExist:
             return None
 
