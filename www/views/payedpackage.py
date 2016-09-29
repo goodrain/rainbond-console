@@ -27,10 +27,11 @@ class PackageSelectView(AuthedView):
         try:
             current_select = request.POST.get('current_select', "free")
             logger.debug(current_select)
-            if current_select != "free" and (current_select == "personal" or current_select == "company"):
-                self.tenant.pay_type = 'payed'
-                self.tenant.pay_level = current_select
-                self.tenant.save()
+            if self.tenant.pay_type != "unpay":
+                if current_select != "free" and (current_select == "personal" or current_select == "company"):
+                    self.tenant.pay_type = 'payed'
+                    self.tenant.pay_level = current_select
+                    self.tenant.save()
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
@@ -54,10 +55,11 @@ class PackageUpgradeView(AuthedView):
         result = {}
         try:
             current_select = request.POST.get('current_select', "free")
-            if current_select != "free" and (current_select == "personal" or current_select == "company"):
-                self.tenant.pay_type = 'payed'
-                self.tenant.pay_level = current_select
-                self.tenant.save()
+            if self.tenant.pay_type != "unpay":
+                if current_select != "free" and (current_select == "personal" or current_select == "company"):
+                    self.tenant.pay_type = 'payed'
+                    self.tenant.pay_level = current_select
+                    self.tenant.save()
             result["status"] = "success"
         except Exception as e:
             logger.exception(e)
