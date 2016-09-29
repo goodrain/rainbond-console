@@ -375,3 +375,125 @@ class CloudServiceInstallView(BaseAPIView):
         return Response(status=200, data={"success": True, "service": json_data})
 
 
+class CloudServiceDomainView(BaseAPIView):
+    """域名管理模块"""
+    allowed_methods = ('POST', 'GET', 'DELETE')
+
+    def get(self, request, service_id, *args, **kwargs):
+        """
+        获取当前服务的域名
+        ---
+        parameters:
+            - name: service_id
+              description: 服务id
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "service_id {0} is not exists".format(service_id))
+            return Response(status=408, data={"success": False, "msg": u"服务名称不存在"})
+        # 查询服务
+        domain_array = manager.query_domain(service)
+        return Response(status=200, data={"success": True, "data": domain_array})
+
+    def post(self, request, service_id, *args, **kwargs):
+        """
+        当前服务添加域名
+        ---
+        parameters:
+            - name: service_id
+              description: 服务id
+              required: true
+              type: string
+              paramType: path
+            - name: domain_name
+              description: 域名
+              required: true
+              type: string
+              paramType: form
+            - name: username
+              description: 操作人名称
+              required: false
+              type: string
+              paramType: form
+        """
+        domain_name = request.data.get("domain_name")
+        if domain_name is None:
+            logger.error("openapi.services", "域名称为空!")
+            return Response(status=406, data={"success": False, "msg": u"域名称为空"})
+        # 名称
+        username = request.data.get("username", "system")
+        # 汉字校验
+        zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
+        match = zhPattern.search(domain_name.decode('utf-8'))
+        if match:
+            logger.error("openapi.services", "绑定域名有汉字!")
+            return Response(status=412, data={"success": False, "msg": u"绑定域名有汉字"})
+
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+            tenant = Tenants.objects.get(tenant_id=service.tenant_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "service_id {0} is not exists".format(service_id))
+            return Response(status=409, data={"success": False, "msg": u"服务名称不存在"})
+        # 添加domain_name
+        status, success, msg = manager.domain_service(action="start",
+                                                      service=service,
+                                                      domain_name=domain_name,
+                                                      tenant_name=tenant.tenant_name,
+                                                      username=username)
+        return Response(status=status, data={"success": success, "msg": msg})
+
+    def delete(self, request, service_id, *args, **kwargs):
+        """
+        当前服务删除域名
+        ---
+        parameters:
+            - name: service_id
+              description: 服务id
+              required: true
+              type: string
+              paramType: path
+            - name: domain_name
+              description: 域名
+              required: true
+              type: string
+              paramType: form
+            - name: username
+              description: 操作人名称
+              required: false
+              type: string
+              paramType: form
+        """
+        domain_name = request.data.get("domain_name")
+        if domain_name is None:
+            logger.error("openapi.services", "域名称为空!")
+            return Response(status=406, data={"success": False, "msg": u"域名称为空"})
+        # 名称
+        username = request.data.get("username", "system")
+        # 汉字校验
+        zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
+        match = zhPattern.search(domain_name.decode('utf-8'))
+        if match:
+            logger.error("openapi.services", "绑定域名有汉字!")
+            return Response(status=412, data={"success": False, "msg": u"绑定域名有汉字"})
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+            tenant = Tenants.objects.get(tenant_id=service.tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant is not exists")
+            return Response(status=408, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "service {0}  is not exists".format(service_id))
+            return Response(status=409, data={"success": False, "msg": u"服务名称不存在"})
+        # 删除domain_name
+        status, success, msg = manager.domain_service(action="close",
+                                                      service=service,
+                                                      domain_name=domain_name,
+                                                      tenant_name=tenant.tenant_name,
+                                                      username=username)
+        return Response(status=status, data={"success": success, "msg": msg})
+
