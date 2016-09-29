@@ -289,7 +289,7 @@ class Tenants(BaseModel):
     tenant_name = models.CharField(
         max_length=40, unique=True, help_text=u"租户名称")
     region = models.CharField(
-        max_length=30, default='ucloud_bj_1', help_text=u"区域中心")
+        max_length=30, default='xunda-bj', help_text=u"区域中心")
     is_active = models.BooleanField(default=True, help_text=u"激活状态")
     pay_type = models.CharField(
         max_length=5, choices=tenant_type, help_text=u"付费状态")
