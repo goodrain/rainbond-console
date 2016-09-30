@@ -82,7 +82,7 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         # 检查是否打开对外端口
         context["have_outer"] = False
         for tmp_port in list(port_list):
-            if tmp_port.is_outer_service:
+            if tmp_port.get("is_outer_service"):
                 context["have_outer"] = True
                 break
         # 返回页面
