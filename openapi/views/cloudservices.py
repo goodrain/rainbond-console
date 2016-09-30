@@ -436,6 +436,9 @@ class CloudServiceDomainView(BaseAPIView):
         try:
             service = TenantServiceInfo.objects.get(service_id=service_id)
             tenant = Tenants.objects.get(tenant_id=service.tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant is not exists")
+            return Response(status=408, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
         except TenantServiceInfo.DoesNotExist:
             logger.debug("openapi.services", "service_id {0} is not exists".format(service_id))
             return Response(status=409, data={"success": False, "msg": u"服务名称不存在"})

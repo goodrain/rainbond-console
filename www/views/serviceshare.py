@@ -37,7 +37,8 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         # 环境变量
         used_port = [x["container_port"] for x in port_list]
         env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
-            .exclude(container_port__in=used_port)\
+            .exclude(container_port__in=used_port) \
+            .exclude(attr_name="GD_ADAPTER") \
             .values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         context["env_list"] = list(env_list)
         # 持久化目录
@@ -78,6 +79,12 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         context["tenantServiceInfo"] = self.service
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
             context["hasHttpServices"] = True
+        # 检查是否打开对外端口
+        context["have_outer"] = False
+        for tmp_port in list(port_list):
+            if tmp_port.is_outer_service:
+                context["have_outer"] = True
+                break
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_1.html',
@@ -99,6 +106,11 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
         env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
             .exclude(container_port__in=list(port_list))\
             .values('ID', 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+
+        dep_num = TenantServiceRelation.objects.filter(service_id=self.service.service_id).count()
+        if dep_num > 0:
+            env_list = env_list.exclude(attr_name="GD_ADAPTER")
+
         env_ids = [str(x["ID"]) for x in list(env_list)]
         if len(env_ids) == 0:
             return self.redirect_to("/apps/{0}/{1}/share/step3".format(self.tenantName, self.serviceAlias))
@@ -178,11 +190,11 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             app["desc"] = first_app.desc
             app["info"] = first_app.info
             app["logo"] = first_app.logo
-            if first_app.show_category:
-                first, second, third = first_app.show_category.split(",")
-                app["category_first"] = first
-                app["category_second"] = second
-                app["category_third"] = third
+            # if first_app.show_category:
+            #     first, second, third = first_app.show_category.split(",")
+            #     app["category_first"] = first
+            #     app["category_second"] = second
+            #     app["category_third"] = third
 
             try:
                 extend_info = AppServiceExtend.objects.get(service_key=first_app.service_key,
@@ -441,9 +453,9 @@ class ShareServiceForm(forms.Form):
     app_alias = forms.CharField(help_text=u"应用名称")
     info = forms.CharField(help_text=u"一句话介绍")
     desc = forms.CharField(help_text=u"应用简介")
-    category_first = forms.CharField(required=True, help_text=u"分类1")
-    category_second = forms.CharField(required=True, help_text=u"分类2")
-    category_third = forms.CharField(required=True, help_text=u"分类3")
+    category_first = forms.CharField(required=False, help_text=u"分类1")
+    category_second = forms.CharField(required=False, help_text=u"分类2")
+    category_third = forms.CharField(required=False, help_text=u"分类3")
 
     url_site = forms.CharField(help_text=u"网站url")
     url_source = forms.CharField(help_text=u"源码url")
