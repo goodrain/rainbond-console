@@ -358,7 +358,7 @@ class CloudServiceInstallView(BaseAPIView):
         dep_service_ids = [x.service_id for x in tenant_service_list]
         if service_id not in dep_service_ids:
             dep_service_ids.append(service_id)
-        env_var_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids)
+        env_var_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids).exclude(attr_name="GD_ADAPTER")
         env_list = []
         # 过滤掉不显示字段
         for env_var in list(env_var_list):
