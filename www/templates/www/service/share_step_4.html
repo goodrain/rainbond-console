@@ -51,6 +51,7 @@
         </header>
     
     <!-- -->
+    <div style="background: #fff;padding: 10px;border: 1px #d9dadb solid;">
     <div class="setbox">
         <h2 class="tit">设置应用套餐</h2>
         <form class="form-horizontal" action="" method="post" id="package_form">
@@ -65,7 +66,7 @@
                 {% for package in service_package %}
                 <li id="01" data-id="{{package.ID}}">
                     <div class="textlist">
-                        <p><span>应用名称:</span>
+                        <p><span>套餐名称:</span>
                             <cite data-value="{{package.name}}">{{package.name}}</cite>
                         </p>
                         <p><span>内存需求:</span>
@@ -115,6 +116,7 @@
                 <a href="javascript:;" class="greenbtn" id="subbtn">发布</a>
             </div>
         </form>
+    </div>
     </div>
 </section>
 {% endblock %}

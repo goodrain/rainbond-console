@@ -5,7 +5,7 @@ function init_html(target, name, memory, ndvalue, trial, curr_price, dep_service
     target.empty();
     var name_div = $("<div/>").addClass("form-group").appendTo(target);
     $("<div/>").addClass("col-sm-1").appendTo(name_div);
-    $("<label/>").addClass("col-sm-2 control-label").html("应用名称:").appendTo(name_div);
+    $("<label/>").addClass("col-sm-2 control-label").html("套餐名称:").appendTo(name_div);
     var name_input = $("<input/>").addClass("form-control fmname")
             .attr("type", "text")
             .attr("placeholder", "请输入中英文或者符号，32个字符以内");
@@ -43,7 +43,7 @@ function init_html(target, name, memory, ndvalue, trial, curr_price, dep_service
     }
     $("<div/>").addClass("col-sm-6").append(node_sel).appendTo(node_div);
     // time
-    var time_div = $("<div/>").addClass("form-group").appendTo(target);
+    var time_div = $("<div/>").addClass("form-group").appendTo(target).css("display","none");
     $("<div/>").addClass("col-sm-1").appendTo(time_div);
     $("<label/>").addClass("col-sm-2 control-label").html("试用时长:").appendTo(time_div);
     var time_sel = $("<select/>").addClass("form-control fmsectime");
@@ -135,7 +135,7 @@ $(function(){
     /*  正则表达式 */
     var regname = /^[a-z\u4E00-\u9FA5\u2000-\u206F]{1,32}$/i; // 套餐名 英文 中文 一般标点符号
     var regprice = /^[1-9]{0,1}[0-9]{0,6}\.?[0-9]{0,2}$/;  //定价
-    var tipsArray =['请输入用户名','请输入价格','您输入的应用名称不符合规则！','您输入的价格不符合规则！','您输入的价格超出范围！','提交失败，请重新添加！','暂时不能修改！','删除失败！','修改成功'];
+    var tipsArray =['请输入用户名','请输入价格','您输入的套餐名称不符合规则！','您输入的价格不符合规则！','您输入的价格超出范围！','提交失败，请重新添加！','暂时不能修改！','删除失败！','修改成功'];
 
     // 弹出层
     function tipsFnbox(tipstext){
@@ -166,7 +166,7 @@ $(function(){
         var unit = "M";
         var new_li = $("<li/>").attr("data-id", id).appendTo($('#oldlistbox'));
         var new_div = $("<div />").addClass("textlist").appendTo(new_li);
-        $("<p/>").append($("<span />").html("应用名称:"))
+        $("<p/>").append($("<span />").html("套餐名称:"))
                 .append($("<cite />").attr("data-value", TextName).html(TextName))
                 .appendTo(new_div);
         $("<p/>").append($("<span />").html("内存需求:"))
@@ -175,7 +175,7 @@ $(function(){
         $("<p/>").append($("<span />").html("节点要求:"))
                 .append($("<cite />").attr("data-value", TextNode).html(TextNode + "个"))
                 .appendTo(new_div);
-        $("<p/>").append($("<span />").html("试用时长:"))
+        $("<p/>").css("display","none").append($("<span />").html("试用时长:"))
                 .append($("<cite />").attr("data-value", TextTime).html(TextTime + "天"))
                 .appendTo(new_div);
         $("<p/>").append($("<span />").html("订价:"))
