@@ -16,7 +16,7 @@ else:
 
 from goodrain_web.errors import PermissionDenied
 from www.perms import check_perm
-from www.models import Tenants, TenantServiceInfo
+from www.models import Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant
 from www.version import STATIC_VERSION
 from www.utils.url import get_redirect_url
 from www.utils import sn
@@ -103,6 +103,14 @@ class BaseView(BaseObject, View):
                     self, self.request_method, self.http_method_not_allowed)
             else:
                 handler = self.http_method_not_allowed
+
+            # 登录用户判断是否在租户下
+            if not isinstance(self.user, AnonymousUser):
+                user_id = self.user.user_id
+                prt_num = PermRelTenant.objects.filter(user_id=user_id).count()
+                if prt_num == 0:
+                    logger.warning("user:{0} does not have any tenant,pls relogin!".format(user_id))
+                    return self.redirect_to("/logout")
 
             response = handler(request, *args, **kwargs)
             return self.update_response(response)

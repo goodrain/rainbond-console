@@ -253,6 +253,9 @@ class CloudServiceInstallView(BaseAPIView):
                                                   dep_service_id,
                                                   region)
                 logger.debug("openapi.cloudservice", "install dep relation over")
+                # 添加goodrain_web_api反馈
+                monitorhook.serviceMonitor(username, depTenantService, 'create_service', True,
+                                           origin='goodrain_web_api')
 
         # create console service
         logger.debug("openapi.cloudservice", "install current service now")
@@ -330,6 +333,21 @@ class CloudServiceInstallView(BaseAPIView):
             logger.error("openapi.cloudservice", "create region service failed!", e)
             return Response(status=419, data={"success": False, "msg": u"创建region服务失败!"})
         logger.debug("openapi.cloudservice", "install region service {0} success!".format(region))
+
+        # 发送goodrain_web_api反馈
+        # 1、依赖信息
+        tmp_info = []
+        for dep_service in tenant_service_list:
+            tmp_array = {"dep_id": dep_service.service_id,
+                         "dep_name": dep_service.service_alias}
+            tmp_info.append(tmp_array)
+        tmp_data = {
+            "service_region": region,
+            "deps": tmp_info
+        }
+        monitorhook.serviceMonitor(username, newTenantService, 'create_service', True,
+                                   origin='goodrain_web_api',
+                                   info=json.dumps(tmp_data))
 
         wild_domain = ""
         if region in settings.WILD_DOMAINS.keys():
