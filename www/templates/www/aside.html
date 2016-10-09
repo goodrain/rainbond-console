@@ -45,8 +45,7 @@
             <span>财务中心</span></a>            
             <ul class="sub">
                 {% if pay_type != "payed" %}
-                    
-                    <li class="{{myPayModelstatus}}"><a onclick="_upgrade({{tenantName}},'/apps/{{tenantName}}/paymodel/')">打包购买</a></li>
+                    <li class="{{myPayModelstatus}}"><a onclick="payed_upgrade('{{tenantName}}', '/apps/{{tenantName}}/paymodel/')" style="cursor:pointer;">打包购买</a></li>
                 {% else %}
                     <li class="{{myPayModelstatus}}"><a href="/apps/{{tenantName}}/paymodel/">打包购买</a></li>
                 {% endif %}
