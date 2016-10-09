@@ -757,11 +757,7 @@ function payed_upgrade(tenantName,url){
                     var dataObj = msg
                     if (dataObj["status"] == "success") {
                         swal("操作成功")
-                        if(url==""){
-                            window.location.href = "/apps/{{tenantName}}"
-                        }else{
-                            window.location.href = url
-                        }
+                        window.location.href = "/apps/"+tenantName
                     } else {
                         swal("操作失败")
                     }

@@ -44,11 +44,7 @@
             <i class="fa fa-jpy"></i>
             <span>财务中心</span></a>            
             <ul class="sub">
-                {% if pay_type != "payed" %}
-                    <li class="{{myPayModelstatus}}"><a onclick="payed_upgrade('{{tenantName}}', '/apps/{{tenantName}}/paymodel/')" style="cursor:pointer;">打包购买</a></li>
-                {% else %}
-                    <li class="{{myPayModelstatus}}"><a href="/apps/{{tenantName}}/paymodel/">打包购买</a></li>
-                {% endif %}
+                <li class="{{myPayModelstatus}}"><a href="/apps/{{tenantName}}/paymodel/">打包购买</a></li>
                 <li class="{{myFinanceRecharge}}"><a href="/apps/{{tenantName}}/recharge/">账户充值</a></li>
                 <li class="{{myFinanceAccount}}"><a href="/apps/{{tenantName}}/consume/">消费明细</a></li>                                
             </ul>
