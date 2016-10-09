@@ -93,8 +93,6 @@ class PayModelView(LeftSideBarMixin, AuthedView):
 
     @never_cache
     def get(self, request, *args, **kwargs):
-        if self.tenant.pay_level != "company":
-            return self.redirect_to("/payed/" + self.tenantName + "/upgrade")
         context = self.get_context()
         context["tenant"] = self.tenant
         context["tenantName"] = self.tenantName

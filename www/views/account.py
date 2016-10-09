@@ -595,17 +595,7 @@ class Registation(BaseView):
                                                                          ticket)
                 logger.debug("account.register", next_url)
                 return self.redirect_to(next_url)
-
-            url = '/apps/{0}'.format(tenant_name)
-            if settings.MODULES["Package_Show"]:
-                selected_pay_level = ""
-                pl = request.GET.get("pl", "")
-                region_levels = pl.split(":")
-                if len(region_levels) == 2:
-                    selected_pay_level = region_levels[1]
-                url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
-            logger.debug("account.register", url)
-            return self.redirect_to(url)
+            return self.redirect_to('/apps/{0}'.format(tenant_name))
 
         logger.info("account.register", "register form error: %s" % self.form.errors)
         return self.get_response()

@@ -6,10 +6,10 @@
 <section class="wrapper site-min-height">
 	<!-- 免费使用阶段 -->
 	{% if pay_type == "free" and not expired %}
-	<div class="infotips tipsbox">您可以全功能免费使用至 {{ expired_time|date:'Y-m-d H:i:s' }}。<a style="cursor:pointer;" onclick="_upgrade()">点击此处立刻升级为付费用户</a><a class="close" href="#">×</a></div>
+	<div class="infotips tipsbox">您可以全功能免费使用至 {{ expired_time|date:'Y-m-d H:i:s' }}。<a style="cursor:pointer;" onclick="payed_upgrade('{{tenantName}}','')">点击此处立刻升级为付费用户</a><a class="close" href="#">×</a></div>
 	{% endif %}
 	{% if pay_type == "free" and expired %}
-	<div class="errortips tipsbox">您需要升级为付费用户才能继续使用云帮。<a style="cursor:pointer;" onclick="_upgrade()">点击此处升级为付费用户</a><a class="close" href="#">×</a></div>
+	<div class="errortips tipsbox">您需要升级为付费用户才能继续使用云帮。<a style="cursor:pointer;" onclick="payed_upgrade('{{tenantName}}','')">点击此处升级为付费用户</a><a class="close" href="#">×</a></div>
 	{% endif %}
 	<!-- 付费使用阶段 -->
 	{% if pay_type == "payed" and tenant_balance < 20 and tenant_balance > 0 %}
@@ -34,7 +34,7 @@
 	        升级为付费用户，携手云帮一起迈向云计算的未来！
 	      </div>
 	      <div class="modal-footer">
-	        <button type="button" class="btn btn-success" data-dismiss="modal" onclick="_upgrade()">确定升级</button>
+	        <button type="button" class="btn btn-success" data-dismiss="modal" onclick="payed_upgrade('{{tenantName}}','')">确定升级</button>
 	        <button type="button" class="btn btn-default" data-dismiss="modal">我再想想</button>
 	      </div>
 	    </div>
@@ -284,46 +284,7 @@
 	    	setInterval("checkTenantsStorage()", 30000);
         });
 
-		function _upgrade(){
-			var current_select = "company"
-			swal({
-				title:"",
-				text:"升级为付费用户，携手云帮一起迈向云计算的未来！",
-				showCancelButton : true,
-				confirmButtonColor : "#DD6B55",
-				confirmButtonText : "确定升级",
-				cancelButtonText : "我再想想",
-				closeOnConfirm : false,
-				closeOnCancel : false
-			}, function(isConfirm) {
-				if (isConfirm) {
-					$.ajax({
-						type : "POST",
-						url : "/payed/{{tenantName}}/upgrade",
-						data : "current_select="+"company",
-						cache : false,
-						beforeSend : function(xhr, settings) {
-							var csrftoken = $.cookie('csrftoken');
-							xhr.setRequestHeader("X-CSRFToken", csrftoken);
-						},
-						success : function(msg) {
-							var dataObj = msg
-							if (dataObj["status"] == "success") {
-								swal("操作成功")
-								window.location.href = "/apps/{{tenantName}}"
-							} else {
-								swal("操作失败")
-							}
-						},
-						error : function() {
-							// swal("系统异常");
-						}
-					});
-				} else {
-					swal.close();
-				}
-			});
-		}
+	
     </script>
 </section>
 {% endblock %}

@@ -392,6 +392,8 @@ function delete_service(tenantName, service_alias) {
 						window.location.href = "/apps/" + tenantName
 					} else if (dataObj["status"] == "often") {
 						swal("上次操作正在进行中，稍后再试")
+					} else if (dataObj["status"] == "published") {
+                        swal("关联了已发布服务, 不可删除")
 					} else if (dataObj["status"] == "evn_dependency") {
 						var dep_service = dataObj["dep_service"]
 						if (typeof(dep_service) == "undefined"){
@@ -724,6 +726,52 @@ function service_reboot(service_id, service_alias, tenantName) {
         error : function() {
             swal("系统异常");
             $("#service_status_operate").removeAttr("disabled");
+        }
+    });
+}
+
+
+function payed_upgrade(tenantName,url){
+    var current_select = "company"
+    swal({
+        title:"",
+        text:"升级为付费用户，携手云帮一起迈向云计算的未来！",
+        showCancelButton : true,
+        confirmButtonColor : "#DD6B55",
+        confirmButtonText : "确定升级",
+        cancelButtonText : "我再想想",
+        closeOnConfirm : false,
+        closeOnCancel : false
+    }, function(isConfirm) {
+        if (isConfirm) {
+            $.ajax({
+                type : "POST",
+                url : "/payed/"+tenantName+"/upgrade",
+                data : "current_select="+"company",
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    var dataObj = msg
+                    if (dataObj["status"] == "success") {
+                        swal("操作成功")
+                        if(url==""){
+                            window.location.href = "/apps/{{tenantName}}"
+                        }else{
+                            window.location.href = url
+                        }
+                    } else {
+                        swal("操作失败")
+                    }
+                },
+                error : function() {
+                    // swal("系统异常");
+                }
+            });
+        } else {
+            swal.close();
         }
     });
 }

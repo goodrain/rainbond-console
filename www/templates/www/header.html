@@ -75,7 +75,7 @@
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
                 <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
                 {% if tenant_pay_type != "payed" %}
-                    <li><a onclick="_upgrade_header()"><i class="fa fa-flag"></i> 升级为付费用户</a></li>
+                    <li><a onclick="payed_upgrade('{{tenantName}}','')"><i class="fa fa-flag"></i> 升级为付费用户</a></li>
                 {% endif %}
 
                     {% if is_private %}
@@ -129,46 +129,5 @@
     function bindwechat() {
         var next_url = location.href;
         location.href = "/wechat/bind?next_url" + next_url;
-    }
-
-    function _upgrade_header(){
-        var current_select = "company"
-        swal({
-            title:"",
-            text:"升级为付费用户，携手云帮一起迈向云计算的未来！",
-            showCancelButton : true,
-            confirmButtonColor : "#DD6B55",
-            confirmButtonText : "确定升级",
-            cancelButtonText : "我再想想",
-            closeOnConfirm : false,
-            closeOnCancel : false
-        }, function(isConfirm) {
-            if (isConfirm) {
-                $.ajax({
-                    type : "POST",
-                    url : "/payed/{{tenantName}}/upgrade",
-                    data : "current_select="+"company",
-                    cache : false,
-                    beforeSend : function(xhr, settings) {
-                        var csrftoken = $.cookie('csrftoken');
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                    },
-                    success : function(msg) {
-                        var dataObj = msg
-                        if (dataObj["status"] == "success") {
-                            swal("操作成功")
-                            window.location.href = "/apps/{{tenantName}}"
-                        } else {
-                            swal("操作失败")
-                        }
-                    },
-                    error : function() {
-                        // swal("系统异常");
-                    }
-                });
-            } else {
-                swal.close();
-            }
-        });
     }
 </script>
