@@ -187,6 +187,42 @@ class Login(BaseView):
                 next_url = "{0}&sig={1}".format(next_url, sig)
             return self.redirect_to(next_url)
         else:
+            # 处理用户登录时没有租户情况
+            tenant_num = PermRelTenant.objects.filter(user_id=self.user.pk).count()
+            if tenant_num == 0:
+                if sn.instance.is_private():
+                    logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
+                        self.user.nick_name, self.user.pk))
+                    self.form.add_error("", "你已经不属于任何团队，请联系管理员加入团队!")
+                    return self.get_response()
+                else:
+                    expired_day = 7
+                    if hasattr(settings, "TENANT_VALID_TIME"):
+                        expired_day = int(settings.TENANT_VALID_TIME)
+                    expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
+                    region = self.request.COOKIES.get('region', None)
+                    if region is None:
+                        region = "xunda-bj"
+                    tenant_name = self.user.nick_name
+                    if settings.MODULES["Memory_Limit"]:
+                        tenant = Tenants.objects.create(
+                            tenant_name=tenant_name,
+                            pay_type='free',
+                            creater=self.user.pk,
+                            region=region,
+                            expired_time=expire_time)
+                    else:
+                        tenant = Tenants.objects.create(
+                            tenant_name=tenant_name,
+                            pay_type='payed',
+                            pay_level='company',
+                            creater=self.user.pk,
+                            region=region,
+                            expired_time=expire_time)
+                    monitorhook.tenantMonitor(tenant, self.user, "create_tenant", True)
+                    PermRelTenant.objects.create(user_id=self.user.pk, tenant_id=tenant.pk, identity='admin')
+                    logger.info("account.login", "new login, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(username, tenant_name, region, tenant.tenant_id))
+                    return self.redirect_to('/apps/{0}/'.format(tenant_name))
             return self.redirect_view()
 
 
