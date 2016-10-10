@@ -255,7 +255,8 @@ class CloudServiceInstallView(BaseAPIView):
                 logger.debug("openapi.cloudservice", "install dep relation over")
                 # 添加goodrain_web_api反馈
                 monitorhook.serviceMonitor(username, depTenantService, 'create_service', True,
-                                           origin='goodrain_web_api')
+                                           origin='goodrain_web_api',
+                                           info='[]')
 
         # create console service
         logger.debug("openapi.cloudservice", "install current service now")
