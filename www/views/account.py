@@ -148,6 +148,7 @@ class Login(BaseView):
         user = authenticate(username=username, password=password)
         login(request, user)
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
+        self.user = request.user
 
         # create git user
         if user.email is not None and user.email != "":

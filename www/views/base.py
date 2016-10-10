@@ -104,12 +104,11 @@ class BaseView(BaseObject, View):
             else:
                 handler = self.http_method_not_allowed
 
-            # 登录用户判断是否在租户下
-            if not isinstance(self.user, AnonymousUser):
-                user_id = self.user.user_id
+            if request.user.is_authenticated():
+                user_id = request.user.user_id
                 prt_num = PermRelTenant.objects.filter(user_id=user_id).count()
                 if prt_num == 0:
-                    logger.warning("user:{0} does not have any tenant,pls relogin!".format(user_id))
+                    logger.warning("account.login", "user:{0} does not have any tenant,pls relogin!".format(user_id))
                     return self.redirect_to("/logout")
 
             response = handler(request, *args, **kwargs)
