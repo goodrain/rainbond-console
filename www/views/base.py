@@ -104,7 +104,7 @@ class BaseView(BaseObject, View):
             else:
                 handler = self.http_method_not_allowed
 
-            if request.user.is_authenticated():
+            if request.user.is_authenticated() and request.path != "/logout":
                 user_id = request.user.user_id
                 prt_num = PermRelTenant.objects.filter(user_id=user_id).count()
                 if prt_num == 0:
