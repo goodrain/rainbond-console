@@ -5,6 +5,7 @@ import time
 import datetime
 import logging
 import json
+import math
 
 from www.models import Tenants
 from www.models.main import TenantConsumeDetail, TenantServiceInfo
@@ -93,11 +94,11 @@ class ConsumeCostDetail(AuthedView):
                     childJson['memory_money'])
                 region_total_money = region_memory_money + region_disk_money + region_net_money
 
-                detail_info["region_memory_money"] = region_memory_money
-                detail_info["region_disk_money"] = region_disk_money
-                detail_info["region_net_money"] = region_net_money
+                detail_info["region_memory_money"] = round(region_memory_money,2)
+                detail_info["region_disk_money"] = round(region_disk_money,2)
+                detail_info["region_net_money"] = round(region_net_money,2)
 
-                detail_info["region_total_money"] = region_total_money
+                detail_info["region_total_money"] = round(region_total_money,2)
 
                 detail_result[region_name] = detail_info
             context["details"] = detail_result
