@@ -52,7 +52,7 @@
              {% if tenantConsume.ID > 55297 %}
                 <td class=" "><a href="#" onclick="detail('{{tenantConsume.time|date:"Y-m-d H:i:s"}}')">详情</a></td>
              {% else %}
-                <td class=" "><a  disabled = 'true'>服务同步中...</a></td>
+                <td class=" "><a  disabled = 'true'></a></td>
              {% endif %}
          </tr>
          {% endfor %}
