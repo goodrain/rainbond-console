@@ -57,7 +57,7 @@ class ConsumeCostDetail(AuthedView):
             context = self.get_context()
             create_time = request.GET.get("create_time")
             tenant = Tenants.objects.get(tenant_name=self.tenantName)
-            consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=tenant.tenant_id, time=create_time)
+            consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=tenant.tenant_id, status=1, time=create_time)
             if len(consume_detail_list) == 0:
                 return TemplateResponse(self.request, "www/consume_cost_detail.html", context)
 
