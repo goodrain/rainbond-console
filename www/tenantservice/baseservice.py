@@ -64,7 +64,7 @@ class BaseTenantService(object):
             if temp is not None:
                 cur_service_port = int(temp)
         return cur_service_port
-    
+
     def getInnerServicePort(self, tenant_id, service_key):
         cur_service_port = 0
         dsn = BaseConnection()
@@ -86,13 +86,14 @@ class BaseTenantService(object):
         port_list.insert(0, container_port)
         max_port = reduce(lambda x, y: y if (y - x) == 1 else x, port_list)
         return max_port + 1
-    
-    def create_service(self, service_id, tenant_id, service_alias, service, creater, region):
+
+    def create_service(self, service_id, tenant_id, service_alias, service_cname, service, creater, region):
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
         tenantServiceInfo["tenant_id"] = tenant_id
         tenantServiceInfo["service_key"] = service.service_key
         tenantServiceInfo["service_alias"] = service_alias
+        tenantServiceInfo["service_cname"] = service_cname
         tenantServiceInfo["service_region"] = region
         tenantServiceInfo["desc"] = service.desc
         tenantServiceInfo["category"] = service.category
@@ -131,7 +132,7 @@ class BaseTenantService(object):
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
-    
+
     def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True, dep_sids=None):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
@@ -160,12 +161,12 @@ class BaseTenantService(object):
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
         data["dep_sids"] = dep_sids
-    
+
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         if ports_info:
             data["extend_info"]["ports"] = list(ports_info)
-    
+
         envs_info = TenantServiceEnvVar.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
@@ -180,7 +181,7 @@ class BaseTenantService(object):
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
-    
+
     def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         dependS = TenantServiceInfo.objects.get(service_id=dep_service_id)
         task = {}
@@ -195,7 +196,7 @@ class BaseTenantService(object):
         tsr.dep_service_type = dependS.service_type
         tsr.dep_order = 0
         tsr.save()
-    
+
     def cancel_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         task = {}
         task["dep_service_id"] = dep_service_id
@@ -203,7 +204,7 @@ class BaseTenantService(object):
         task["dep_service_type"] = "v"
         regionClient.cancelServiceDependency(region, service_id, json.dumps(task))
         TenantServiceRelation.objects.get(service_id=service_id, dep_service_id=dep_service_id).delete()
-    
+
     def create_service_env(self, tenant_id, service_id, region):
         tenantServiceEnvList = TenantServiceEnvVar.objects.filter(service_id=service_id)
         data = {}
@@ -216,13 +217,13 @@ class BaseTenantService(object):
         service = TenantServiceInfo.objects.get(service_id=service_id)
         task["container_port"] = service.inner_port
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
-    
+
     def cancel_service_env(self, tenant_id, service_id, region):
         task = {}
         task["tenant_id"] = tenant_id
         task["attr"] = {}
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
-    
+
     def saveServiceEnvVar(self, tenant_id, service_id, container_port, name, attr_name, attr_value, isChange, scope="outer"):
         tenantServiceEnvVar = {}
         tenantServiceEnvVar["tenant_id"] = tenant_id
@@ -234,7 +235,7 @@ class BaseTenantService(object):
         tenantServiceEnvVar["is_change"] = isChange
         tenantServiceEnvVar["scope"] = scope
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
-    
+
     def addServicePort(self, service, is_init_account, container_port=0, protocol='', port_alias='', is_inner_service=False, is_outer_service=False):
         port = TenantServicesPort(tenant_id=service.tenant_id, service_id=service.service_id, container_port=container_port,
                                   protocol=protocol, port_alias=port_alias, is_inner_service=is_inner_service,
@@ -254,7 +255,7 @@ class BaseTenantService(object):
             port.save()
         except Exception, e:
             logger.exception(e)
-    
+
     def is_user_click(self, region, service_id):
         is_ok = True
         data = regionClient.getLatestServiceEvent(region, service_id)
@@ -267,7 +268,7 @@ class BaseTenantService(object):
                 if event.status == "start" and diffsec <= 180:
                     is_ok = False
         return is_ok
-    
+
     def create_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
         dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
         task = {}
@@ -284,7 +285,7 @@ class BaseTenantService(object):
         tsr.mnt_dir = dependS.host_path
         tsr.dep_order = 0
         tsr.save()
-    
+
     def cancel_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
         dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
         task = {}
@@ -394,13 +395,13 @@ class BaseTenantService(object):
                 return None
         except Exception as e:
             logger.exception(e)
-            
+
 class TenantUsedResource(object):
 
     def __init__(self):
         self.feerule = settings.REGION_RULE
         self.MODULES = settings.MODULES
-    
+
     def calculate_real_used_resource(self, tenant):
         totalMemory = 0
         tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True)
@@ -438,7 +439,7 @@ class TenantUsedResource(object):
             cur_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             dsn = BaseConnection()
             query_sql = "select region_name,sum(buy_memory) as buy_memory,sum(buy_disk) as buy_disk, sum(buy_net) as buy_net  from tenant_region_pay_model where tenant_id='" + \
-                tenant.tenant_id + "' and buy_end_time <='" + cur_time + "' group by region_name"
+                        tenant.tenant_id + "' and buy_end_time <='" + cur_time + "' group by region_name"
             sqlobjs = dsn.query(query_sql)
             if sqlobjs is not None and len(sqlobjs) > 0:
                 for sqlobj in sqlobjs:
@@ -477,7 +478,7 @@ class TenantUsedResource(object):
             elif tenant.pay_type == "unpay":
                 result = True
         return rt_type, result
-    
+
     def curServiceMemory(self, cur_service):
         memory = 0
         try:
@@ -493,7 +494,7 @@ class TenantUsedResource(object):
 class TenantAccountService(object):
     def __init__(self):
         self.MODULES = settings.MODULES
-        
+
     def isOwnedMoney(self, tenant, region_name):
         if self.MODULES["Owned_Fee"]:
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=region_name)
@@ -570,10 +571,10 @@ class TenantRegionService(object):
 
 
 class CodeRepositoriesService(object):
-    
+
     def __init__(self):
         self.MODULES = settings.MODULES
-    
+
     def initRepositories(self, tenant, user, service, service_code_from, code_url, code_id, code_version):
         if service_code_from == "gitlab_new":
             if self.MODULES["GitLab_Project"]:
@@ -617,7 +618,7 @@ class CodeRepositoriesService(object):
         data["tenant_id"] = service.tenant_id
         data["service_id"] = service.service_id
         data["git_url"] = "--branch " + service.code_version + " --depth 1 " + service.git_url
-        
+
         parsed_git_url = git_url_parse(service.git_url)
         if parsed_git_url.host == "code.goodrain.com" and not settings.MODULES["Git_Code_Manual"]:
             gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
@@ -634,11 +635,11 @@ class CodeRepositoriesService(object):
         task["data"] = data
         logger.debug(json.dumps(task))
         regionClient.writeToRegionBeanstalk(service.service_region, service.service_id, json.dumps(task))
-        
+
     def showGitUrl(self, service):
         httpGitUrl = service.git_url
         if settings.MODULES["Git_Code_Manual"]:
-                httpGitUrl = service.git_url
+            httpGitUrl = service.git_url
         else:
             if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
                 cur_git_url = service.git_url.split("/")
@@ -646,7 +647,7 @@ class CodeRepositoriesService(object):
             elif service.code_from == "gitlab_manual":
                 httpGitUrl = service.git_url
         return httpGitUrl
-    
+
     def deleteProject(self, service):
         if self.MODULES["GitLab_Project"]:
             if service.code_from == "gitlab_new" and service.git_project_id > 0:
@@ -656,7 +657,7 @@ class CodeRepositoriesService(object):
         if self.MODULES["GitLab_Project"]:
             return gitClient.getProjectBranches(project_id)
         return ""
-    
+
     def createUser(self, user, email, password, username, name):
         if self.MODULES["GitLab_User"]:
             if user.git_user_id == 0:
@@ -669,28 +670,28 @@ class CodeRepositoriesService(object):
                     user.save()
                     logger.info("account.gituser", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
                 monitorhook.gitUserMonitor(user, git_user_id)
-    
+
     def modifyUser(self, user, password):
         if self.MODULES["GitLab_User"]:
             gitClient.modifyUser(user.git_user_id, password=password)
-        
+
     def addProjectMember(self, git_project_id, git_user_id, level):
         if self.MODULES["GitLab_Project"]:
             gitClient.addProjectMember(git_project_id, git_user_id, level)
-        
+
     def listProjectMembers(self, git_project_id):
         if self.MODULES["GitLab_Project"]:
             return gitClient.listProjectMembers(git_project_id)
         return ""
-    
+
     def deleteProjectMember(self, project_id, git_user_id):
         if self.MODULES["GitLab_Project"]:
             gitClient.deleteProjectMember(project_id, git_user_id)
-        
+
     def addProjectMember(self, project_id, git_user_id, gitlab_identity):
         if self.MODULES["GitLab_Project"]:
             gitClient.addProjectMember(project_id, git_user_id, gitlab_identity)
-    
+
     def editMemberIdentity(self, project_id, git_user_id, gitlab_identity):
         if self.MODULES["GitLab_Project"]:
             gitClient.editMemberIdentity(project_id, git_user_id, gitlab_identity)
@@ -699,17 +700,17 @@ class CodeRepositoriesService(object):
         if self.MODULES["Git_Hub"]:
             return gitHubClient.get_access_token(code)
         return ""
-    
+
     def getgGitHubAllRepos(self, token):
         if self.MODULES["Git_Hub"]:
             return gitHubClient.getAllRepos(token)
         return ""
-    
+
     def gitHub_authorize_url(self, user):
         if self.MODULES["Git_Hub"]:
             return gitHubClient.authorize_url(user.pk)
         return ""
-    
+
     def gitHub_ReposRefs(self, user, repos, token):
         if self.MODULES["Git_Hub"]:
             return gitHubClient.getReposRefs(user, repos, token)

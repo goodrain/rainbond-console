@@ -388,6 +388,7 @@ class TenantServiceInfo(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     service_alias = models.CharField(max_length=100, help_text=u"服务别名")
+    service_cname = models.CharField(max_length=100, help_text=u"服务名")
     service_region = models.CharField(max_length=15, help_text=u"服务所属区")
     desc = models.CharField(max_length=200, null=True, blank=True, help_text=u"描述")
     category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
@@ -680,7 +681,6 @@ class TenantConsumeDetail(BaseModel):
     pay_status = models.CharField(
         max_length=10, help_text=u"扣费状态；payed,unpayed")
     region = models.CharField(max_length=15, help_text=u"服务所属区")
-    status = models.IntegerField(help_text=u"服务状态", default=1)
     time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
 

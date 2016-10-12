@@ -76,7 +76,7 @@ class ConsumeCostDetail(AuthedView):
 
                 for detail in region_consume_detail:
                     tenant_service = TenantServiceInfo.objects.get(service_id=detail.service_id)
-                    detail.service_alias = tenant_service.service_alias
+                    detail.service_alias = tenant_service.service_cname
                     region_total_memory += detail.memory
                     region_total_disk += detail.disk
                     region_total_net += detail.net

@@ -20,7 +20,7 @@
             <ul class="sub">
                 {% if tenantServiceList %}
                  	{% for item in tenantServiceList %}
-                 		<li {% if item.is_selected %}class="active"{% endif %}><a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_alias}}</a></li>
+                 		<li {% if item.is_selected %}class="active"{% endif %}><a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a></li>
                  	{% endfor %}
                 {% endif %}
             </ul>

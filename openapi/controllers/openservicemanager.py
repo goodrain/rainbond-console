@@ -49,6 +49,7 @@ class OpenTenantServiceManager(object):
         tenantServiceInfo["tenant_id"] = tenant_id
         tenantServiceInfo["service_key"] = service.service_key
         tenantServiceInfo["service_alias"] = service_alias
+        tenantServiceInfo["service_cname"] = service_alias
         tenantServiceInfo["service_region"] = region
         tenantServiceInfo["desc"] = service.desc
         tenantServiceInfo["category"] = service.category
@@ -121,7 +122,7 @@ class OpenTenantServiceManager(object):
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         if ports_info:
             data["extend_info"]["ports"] = list(ports_info)
-    
+
         envs_info = TenantServiceEnvVar.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
@@ -135,7 +136,7 @@ class OpenTenantServiceManager(object):
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
-    
+
     def delete_service(self, tenant, service, username):
         try:
             # 检查服务关联
@@ -348,7 +349,7 @@ class OpenTenantServiceManager(object):
             logger.exception("openapi.services", e)
             monitorhook.serviceMonitor(username, service, 'app_start', False)
             return 412, False, "启动失败"
-    
+
     def status_service(self, service):
         result = {}
         try:
@@ -485,7 +486,7 @@ class OpenTenantServiceManager(object):
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
-            
+
         if settings.MODULES["Memory_Limit"]:
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name,
@@ -599,7 +600,7 @@ class OpenTenantServiceManager(object):
             return host_path, volume.ID
         except Exception as e:
             logger.exception("openapi.services", e)
-            
+
     def save_mnt_volume(self, service, host_path, volume_path):
         try:
             category = service.category

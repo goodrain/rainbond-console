@@ -4,7 +4,7 @@
       <p class="tittext">基础信息</p>
       <div class="panel-body">
         <div class="row">
-            <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_alias}}</label>
+            <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_cname}}</label>
         </div>
         {% if tenantServiceInfo.category == "application" %}
             <div class="row">
@@ -395,7 +395,7 @@
       <form class="form-horizontal" role="form">
 
         <div class="form-group">
-          <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_alias}}</label>
+          <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_cname}}</label>
           <div class="col-sm-2 col-lg-2 text-center">
             <button type="button" class="btn btn-danger"  data-code="{{tenantServiceInfo.code_from}}" id="cur_delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除</button>
           </div>
