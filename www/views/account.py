@@ -541,11 +541,22 @@ class Registation(BaseView):
                 region = RegionInfo.register_choices()[0][0]
             # 没有配置项默认为私有云帮,配置项为false为私有云帮
             is_private = sn.instance.is_private()
+            tenants_num = 0
             if is_private:
                 tenants_num = Tenants.objects.count()
-                if tenants_num != 0:
-                    logger.info("account.register", "private console only one tenant")
+                # 如果租户数量>1,社区版租户数量异常
+                if tenants_num > 1:
+                    self.form.add_error("", "current version console only auth one tenant!")
                     return self.get_response()
+                # 租户数量=1,判断租户名称是否相同
+                if tenants_num == 1:
+                    tenants_num = Tenants.objects.filter(tenant_name=tenant_name).count()
+                    if tenants_num == 0:
+                        self.form.add_error("", "current version console only auth one tenant!")
+                        return self.get_response()
+                # if tenants_num != 0:
+                    # logger.info("account.register", "private console only one tenant")
+                    # return self.get_response()
 
             user = Users(email=email, nick_name=nick_name,
                          phone=phone, client_ip=self.get_client_ip(request), rf=rf)
@@ -578,13 +589,17 @@ class Registation(BaseView):
                         region=region,
                         expired_time=expire_time)
             else:
-                tenant = Tenants.objects.create(
-                    tenant_name=tenant_name,
-                    pay_type='payed',
-                    pay_level='company',
-                    creater=user.pk,
-                    region=region,
-                    expired_time=expire_time)
+                # 社区版注册，没有租户创建租户;存在租户查询信息
+                if tenants_num == 0:
+                    tenant = Tenants.objects.create(
+                        tenant_name=tenant_name,
+                        pay_type='payed',
+                        pay_level='company',
+                        creater=user.pk,
+                        region=region,
+                        expired_time=expire_time)
+                else:
+                    tenant = Tenants.objects.get(tenant_name=tenant_name)
 
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 
@@ -593,7 +608,9 @@ class Registation(BaseView):
             logger.info(
                 "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(nick_name, tenant_name, region, tenant.tenant_id))
 
-            TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
+            # 非社区版 或者 社区版租户为0时创建tenant_region
+            if not is_private or (is_private and tenants_num == 0):
+                TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
             # create gitlab user
             if user.email is not None and user.email != "":
                 codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
