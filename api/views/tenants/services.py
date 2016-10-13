@@ -354,3 +354,40 @@ class GitCheckCodeView(APIView):
             logger.exception(e)
             data["status"] = "failure"
         return Response(data, status=200)
+
+
+class UpdateTenantExpiredTimeView(APIView):
+    allowed_methods = ('put',)
+
+    def put(self, request, format=None):
+        """
+
+        更新租户过期时间
+        ---
+        parameters:
+            - name: tenant_name
+              description: 租户名
+              required: true
+              type: string
+              paramType: form
+            - name: expired_days
+              description: 剩余过期天数
+              required: true
+              type: int
+              paramType: form
+        """
+        data = {}
+        try:
+            tenant_name = request.data.get("tenant_name", "")
+            expired_days = request.data.get("expired_days", 7)
+            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            expired_time = tenant.expired_time + datetime.timedelta(days=expired_days)
+            tenant.expired_time = expired_time
+            tenant.save()
+            data["status"] = "success"
+        except Tenants.DoesNotExist:
+            logger.error("tenant_name:{0} is not found".format(tenant_name))
+        except Exception as e:
+            logger.exception(e)
+            data["status"] = "failure"
+        return Response(data, status=200)
