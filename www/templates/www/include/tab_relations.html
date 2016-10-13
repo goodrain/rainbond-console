@@ -19,7 +19,7 @@
                        {% with curServiceEnvVarList=envMap|mkey:sid %}
                         <tr>
                             <td>{{value.service_type}}</td>
-                            <td>{{value.service_alias}}</td>
+                            <td>{{value.service_cname}}</td>
                             <td class="text-center">
                           {% if 'manage_service' in user.actions %}
                                 <button type="button" class="btn btn-danger"  onclick="buid_relation('cancel','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
@@ -73,7 +73,7 @@
                         {% if k not in serviceIds %}
                            <tr>
                                 <td>{{value.service_type}}</td>
-                                <td>{{value.service_alias}}</td>
+                                <td>{{value.service_cname}}</td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-success"  onclick="buid_relation('add','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">关联</button>
                                 </td>
@@ -113,7 +113,7 @@
                 {% for tenantSer in tenantServiceList %}
                    {% if tenantSer.service_alias != tenantServiceInfo.service_alias %}
                     <tr>
-                        <td>{{tenantSer.service_alias}}</td>
+                        <td>{{tenantSer.service_cname}}</td>
                         <td>/mnt/{{tenantSer.service_alias}}</td>
                         <td class="text-center">
                         {% if 'manage_service' in user.actions %}

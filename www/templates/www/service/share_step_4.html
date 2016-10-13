@@ -80,7 +80,7 @@
 
                         {% with service_package_map|mkey:package.ID as dep_service_list %}
                             {% for dep_service in dep_service_list %}
-                            <p><span>依赖服务{{dep_service.service_alias}}:</span>
+                            <p><span>依赖服务{{dep_service.service_cname}}:</span>
                                 <cite data-memory="{{dep_service.memory}}"
                                       data-node="{{dep_service.node}}"
                                       data-version="{{dep_service.app_version}}"
