@@ -299,7 +299,8 @@ class WeChatCallBack(BaseView):
         # 微信用户登录
         user = authenticate(union_id=user.union_id)
         login(request, user)
-
+        self.user = request.user
+         
         # 回跳到云市
         if next_url is not None \
                 and next_url != "" \

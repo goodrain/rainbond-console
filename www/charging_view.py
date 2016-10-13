@@ -99,7 +99,7 @@ class PayModelView(LeftSideBarMixin, AuthedView):
         context["region_name"] = self.response_region
         context["myPayModelstatus"] = "active"
         context["myFinanceStatus"] = "active"
-        context["memoryList"] = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 1000]
+        context["memoryList"] = [1, 2, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 1000]
         context["diskList"] = [0, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
         context["netList"] = [0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
         context["periodList"] = [(1, "1月"), (2, "2月"), (3, "3月"), (4, "4月"), (5, "5月"), (6, "6月"), (7, "7月"), (8, "8月"), (9, "9月"), (12, "1年"), (24, "2年")]
