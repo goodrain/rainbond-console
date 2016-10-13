@@ -682,9 +682,9 @@ class TenantConsumeDetail(BaseModel):
     pay_status = models.CharField(
         max_length=10, help_text=u"扣费状态；payed,unpayed")
     region = models.CharField(max_length=15, help_text=u"服务所属区")
+    status = models.IntegerField(help_text=u"服务状态", default=1)
     time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
-
 
 class TenantConsume(BaseModel):
 
