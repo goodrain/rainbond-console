@@ -377,17 +377,21 @@ class UpdateTenantExpiredTimeView(APIView):
               paramType: form
         """
         data = {}
+        status = 200
         try:
             tenant_name = request.data.get("tenant_name", "")
             expired_days = request.data.get("expired_days", 7)
             tenant = Tenants.objects.get(tenant_name=tenant_name)
-            expired_time = tenant.expired_time + datetime.timedelta(days=expired_days)
+            expired_time = tenant.expired_time + datetime.timedelta(days=int(expired_days))
             tenant.expired_time = expired_time
             tenant.save()
             data["status"] = "success"
         except Tenants.DoesNotExist:
             logger.error("tenant_name:{0} is not found".format(tenant_name))
+            data["status"] = "failure"
+            status = 404
         except Exception as e:
             logger.exception(e)
             data["status"] = "failure"
-        return Response(data, status=200)
+            status = 500
+        return Response(data, status=status)
