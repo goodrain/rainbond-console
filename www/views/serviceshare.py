@@ -54,7 +54,7 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         # 依赖应用
         dep_service_ids = TenantServiceRelation.objects.filter(service_id=self.service.service_id).values("dep_service_id")
         dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)\
-            .values("service_key", "version", "service_alias", "service_type")
+            .values("service_key", "version", "service_alias", "service_type","service_cname")
         context["dep_service_list"] = dep_service_list
         # 检查依赖服务是否已经发布
         context["dep_status"] = True
