@@ -389,7 +389,8 @@ class UpdateTenantResourceView(APIView):
             expired_days = request.data.get("expired_days", 7)
             limit_memory = request.data.get("limit_memory",None)
             tenant = Tenants.objects.get(tenant_name=tenant_name)
-            tenant.expired_time = tenant.expired_time + datetime.timedelta(days=int(expired_days))
+            if not expired_days.strip():
+                tenant.expired_time = tenant.expired_time + datetime.timedelta(days=int(expired_days))
             if not limit_memory.strip():
                 tenant.limit_memory = int(limit_memory)
             tenant.save()
