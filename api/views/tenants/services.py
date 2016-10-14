@@ -356,13 +356,13 @@ class GitCheckCodeView(APIView):
         return Response(data, status=200)
 
 
-class UpdateTenantExpiredTimeView(APIView):
+class UpdateTenantResourceView(APIView):
     allowed_methods = ('put',)
 
     def put(self, request, format=None):
         """
 
-        更新租户过期时间
+        更新租户过期时间和最大内存
         ---
         parameters:
             - name: tenant_name
@@ -372,18 +372,26 @@ class UpdateTenantExpiredTimeView(APIView):
               paramType: form
             - name: expired_days
               description: 剩余过期天数
-              required: true
+              required: false
               type: int
               paramType: form
+            - name: limit_memory
+              description: 最大内存(单位:M)
+              required: false
+              type: int
+              paramType: form
+
         """
         data = {}
         status = 200
         try:
             tenant_name = request.data.get("tenant_name", "")
             expired_days = request.data.get("expired_days", 7)
+            limit_memory = request.data.get("limit_memory",None)
             tenant = Tenants.objects.get(tenant_name=tenant_name)
-            expired_time = tenant.expired_time + datetime.timedelta(days=int(expired_days))
-            tenant.expired_time = expired_time
+            tenant.expired_time = tenant.expired_time + datetime.timedelta(days=int(expired_days))
+            if limit_memory is not None and int(limit_memory) > 0:
+                tenant.limit_memory = int(limit_memory)
             tenant.save()
             data["status"] = "success"
         except Tenants.DoesNotExist:
