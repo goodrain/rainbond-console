@@ -131,16 +131,20 @@
 					<label for="create_app_name" class="control-label col-lg-2 app_name">使用提示：</label>
 					<div class="col-lg-8">
                         {% if is_private %}
-                        <a href="http://doc.goodrain.com/cloudbang-community-install/218460"
-                           target="_blank">请查看社区版对接代码仓库方案</a>
+                        <div style="line-height:35px;">
+                            <a href="http://doc.goodrain.com/cloudbang-community-install/218460"
+                               target="_blank">请查看社区版对接代码仓库方案</a>
+                        </div>
                         {% else %}
-						<div class="alert alert-danger" role="alert">
-							代码仓库为公有仓库，可以忽略该设置。
-							<br/>
-							私有代码仓库，需将下列添加到git用户的ssh列表中：
-							<br/>
-							<code>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1 builder</code>
-						</div>
+                        <div class="alert alert-danger" role="alert">
+                            代码仓库为公有仓库，可以忽略该设置。
+                            <br/>
+                            私有代码仓库，需将下列添加到git用户的ssh列表中：
+                            <br/>
+                            <code>ssh-rsa
+                                AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1
+                                builder</code>
+                        </div>
                         {% endif %}
 					</div>
 				</div>
