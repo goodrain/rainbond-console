@@ -3,7 +3,7 @@ from rest_framework.authtoken import views
 from api.views.services import SelectedServiceView, PublishServiceView, \
     ReceiveServiceView, QueryServiceView, QueryTenantView
 from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantView, AllTenantView, GitCheckCodeView, \
-    UpdateTenantExpiredTimeView
+    UpdateTenantResourceView
 from api.views.tenants import move
 
 urlpatterns = patterns(
@@ -25,5 +25,5 @@ urlpatterns = patterns(
     # url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api-token-auth', views.obtain_auth_token),
     url(r'^docs/', include('rest_framework_swagger.urls')),
-    url(r'^tenants/services/update_expired', UpdateTenantExpiredTimeView.as_view()),
+    url(r'^tenants/services/update_resource', UpdateTenantResourceView.as_view()),
 )
