@@ -88,7 +88,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         if len(dependecy_keys) > 0:
             dependecy_services = dict((el, []) for el in dependecy_keys)
             tenant_id = self.tenant.tenant_id
-            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
+            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region, service_origin='assistant')
             if len(deployTenantServices) > 0:
                 for s in deployTenantServices:
                     dependecy_services[s.service_key].append(s)

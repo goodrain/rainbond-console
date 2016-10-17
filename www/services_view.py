@@ -411,13 +411,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
-                result_list = []
-                for volume in list(volume_list):
-                    tmp_path = volume.volume_path
-                    if tmp_path:
-                        volume.volume_path = tmp_path.replace("/app", "", 1)
-                    result_list.append(volume)
-                context["volume_list"] = result_list
+                # result_list = []
+                # for volume in list(volume_list):
+                #     tmp_path = volume.volume_path
+                # if tmp_path:
+                #     volume.volume_path = tmp_path.replace("/app", "", 1)
+                # result_list.append(volume)
+                context["volume_list"] = volume_list
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 

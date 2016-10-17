@@ -832,7 +832,7 @@ class OpenTenantServiceManager(object):
         old_memory = service.min_memory
         if int(memory) != old_memory or cpu != old_cpu:
             left = memory % 128
-            if memory > 0 and left <= 65536 and left == 0:
+            if memory > 0 and memory <= 65536 and left == 0:
                 # calculate resource
                 diff_memory = memory - int(old_memory)
                 if limit:

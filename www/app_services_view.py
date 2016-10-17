@@ -16,6 +16,7 @@ from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 from django.conf import settings
 from www.servicetype import ServiceType
+from www.utils import sn
 
 logger = logging.getLogger('default')
 
@@ -69,6 +70,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             app_an = request.COOKIES.get('app_an', '')
             context["app_status"] = app_status
             context["app_an"] = app_an
+            context["is_private"] = sn.instance.is_private()
             response.delete_cookie('app_status')
             response.delete_cookie('app_an')
         except Exception as e:
@@ -214,7 +216,9 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             tenant_id = self.tenant.tenant_id
             deployTenantServices = TenantServiceInfo.objects.filter(
-                tenant_id=tenant_id, service_region=self.response_region).exclude(category='application')
+                tenant_id=tenant_id,
+                service_region=self.response_region,
+                service_origin='assistant').exclude(category='application')
             context["deployTenantServices"] = deployTenantServices
         except Exception as e:
             logger.exception(e)

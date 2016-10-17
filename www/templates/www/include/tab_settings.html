@@ -210,7 +210,7 @@
                 {% if tenantServiceInfo.category == "application" %}
                 <div id="edit_volume_div"></div>
                 <div class="clearfix" style="padding: 8px;"></div>
-                <button type="button" class="btn btn-success" id="add_volume_attr">新增持久化设置</button>
+                <button type="button" class="btn btn-success" id="add_volume_attr" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
                 {% endif %}
             </div>
         </div>
@@ -422,10 +422,19 @@
         // 持久化目录
         $("#add_volume_attr").bind("click", function(){
             clear_volume();
+            var tmp_language = $(this).attr("data-language");
             var input = $("<input />").addClass("col-xs-12")
                     .attr("id", "edit_volume_div_input")
                     .attr("placeholder", "请输入持久化目录");
-            $("<div />").addClass("col-xs-6").append(input).appendTo($("#edit_volume_div"));
+            var input_span = $("<span />").addClass("col-xs-2").html("/app");
+            if (tmp_language == "docker") {
+                $("<div />").addClass("col-xs-6")
+                        .append(input).appendTo($("#edit_volume_div"));
+            } else {
+                $("<div />").addClass("col-xs-6")
+                        .append(input_span)
+                        .append(input).appendTo($("#edit_volume_div"));
+            }
 
             var add_button = $("<button/>").attr("type", "button")
                     .attr("onclick", "post_volume();")
