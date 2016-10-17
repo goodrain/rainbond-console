@@ -234,7 +234,7 @@ class PasswordResetBeginForm(forms.Form):
         self.helper.form_tag = False
         self.helper.layout = Div(
             Field('account', css_class="form-control"),
-            FormActions(Submit('next', u'下一步', css_class='btn btn-lg btn-primary btn-block')),
+            FormActions(Submit('next', u'下一步', css_class='btn btn-lg btn-success btn-block')),
             css_class='login-wrap',
             style="background: #FFFFFF;",
         )
