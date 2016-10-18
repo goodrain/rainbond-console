@@ -45,7 +45,7 @@
                       {% endfor %}
                   </select>
               </div>
-              <!--
+              
               <div class="col-xs-2">
                   <button type="button"
                           class="btn btn-success port-type-service"
@@ -53,14 +53,13 @@
                           onclick="muti_outer_port('{{ tenantName }}','{{ serviceAlias }}')">设置
                   </button>
               </div>
-              -->
           </div>
           {% endif %}
           
           <div class="row">
               <label class="col-xs-2 control-label text-right">持久化配置</label>
-              <div class="col-xs-2">
-                  <select class="form-control" id="mnt_share_type" name="mnt_share_type">
+              <div class="col-xs-2"> 共享
+                  <!--<select class="form-control" id="mnt_share_type" name="mnt_share_type">
                       {% for key,extend in mnt_share_choices.iteritems %}
                       {% if key == tenantServiceInfo.volume_type %}
                       <option value="{{ key }}" selected="selected">{{ extend }}</option>
@@ -68,7 +67,7 @@
                       <option value="{{ key }}">{{ extend }}</option>
                       {% endif %}
                       {% endfor %}
-                  </select>
+                  </select>-->
               </div>
               <!--
               <div class="col-xs-2">
