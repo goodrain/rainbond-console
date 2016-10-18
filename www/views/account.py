@@ -20,6 +20,7 @@ import time
 import random
 import re
 import urllib
+import json
 
 from www.region import RegionInfo
 from www.views import BaseView
@@ -95,7 +96,7 @@ class Login(BaseView):
                 if next_url is not None and next_url != "":
                     redirect_url += "&next={0}".format(next_url)
                 if origin == "app" and app_url is not None:
-                    redirect_url += "&redirect_url={0}".format(redirect_url)
+                    redirect_url += "&redirect_url={0}".format(app_url)
                 logger.debug("account.login", "weixin login,url:{0}".format(redirect_url))
                 return self.redirect_to(redirect_url)
             self.form = UserLoginForm(next_url=next_url,
@@ -109,7 +110,7 @@ class Login(BaseView):
             if next_url is not None and next_url != "" \
                     and next_url != "none" and next_url != "None":
                 if origin == "app":
-                    if app_url is None:
+                    if app_url is None or app_url == "":
                         app_url = settings.APP_SERVICE_API.get("url")
                     union_id = user.union_id
                     wechat_user = None
@@ -120,11 +121,15 @@ class Login(BaseView):
                         wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
                         if len(wechat_user_list) > 0:
                             wechat_user = wechat_user_list[0]
-                    if wechat_user is None:
-                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-                    else:
-                        cry_string = ','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name])
-                        ticket = AuthCode.encode(cry_string.encode("UTF-8"), 'goodrain')
+                    payload = {
+                        "nick_name": user.nick_name,
+                        "user_id": str(user.user_id),
+                        "next_url": next_url,
+                        "action": "login"
+                    }
+                    if wechat_user is not None:
+                        payload["wechat_name"] = wechat_user.nick_name
+                    ticket = AuthCode.encode(json.dumps(payload), "goodrain")
                     next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)
@@ -174,11 +179,15 @@ class Login(BaseView):
                     wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
                     if len(wechat_user_list) > 0:
                         wechat_user = wechat_user_list[0]
-                if wechat_user is None:
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-                else:
-                    cry_string = ','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name])
-                    ticket = AuthCode.encode(cry_string.encode("UTF-8"), 'goodrain')
+                payload = {
+                    "nick_name": user.nick_name,
+                    "user_id": str(user.user_id),
+                    "next_url": next_url,
+                    "action": "login"
+                }
+                if wechat_user is not None:
+                    payload["wechat_name"] = wechat_user.nick_name
+                ticket = AuthCode.encode(json.dumps(payload), "goodrain")
                 next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
@@ -462,37 +471,16 @@ class Registation(BaseView):
 
     def get(self, request, *args, **kwargs):
         pl = request.GET.get("pl", "")
-
-        referer = request.META.get('HTTP_REFERER', '')
-        logger.debug("account.register", "referer:{0}".format(referer))
-        next_url = ""
-        origin = ""
-        if referer != '':
-            # 获取next、origin
-            tmp = referer.split("?")
-            sub_tmp = "?".join(tmp[1:])
-            key_tmp = sub_tmp.split("&")
-            for key in key_tmp:
-                if key.startswith("origin="):
-                    origin = key[7:]
-                    key_tmp.remove(key)
-                    break
-            next_url = "&".join(key_tmp)
-            if next_url.startswith("next="):
-                next_url = next_url[5:]
         region_levels = pl.split(":")
         if len(region_levels) == 2:
             region = region_levels[0]
             self.form = RegisterForm(
                 region_level={
-                    "region": region,
-                },
-                next_url=next_url,
-                origin=origin
+                    "region": region
+                }
             )
         else:
-            self.form = RegisterForm(next_url=next_url,
-                                     origin=origin)
+            self.form = RegisterForm()
         return self.get_response()
 
     def get_client_ip(self, request):
@@ -621,14 +609,15 @@ class Registation(BaseView):
 
             user = authenticate(username=nick_name, password=password)
             login(request, user)
+            self.user = request.user
 
             # 检测是否论坛请求
-            next_url = request.POST.get("next", None)
+            next_url = request.GET.get("next", None)
             if next_url is not None \
                     and next_url != "" \
                     and next_url != "none" \
                     and next_url != "None":
-                origin = request.POST.get("origin", "")
+                origin = request.GET.get("origin", "")
                 if origin == "app":
                     union_id = user.union_id
                     wechat_user = None
@@ -639,12 +628,19 @@ class Registation(BaseView):
                         wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
                         if len(wechat_user_list) > 0:
                             wechat_user = wechat_user_list[0]
-                    if wechat_user is None:
-                        ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-                    else:
-                        cry_string = ','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name])
-                        ticket = AuthCode.encode(cry_string.encode("UTF-8"), 'goodrain')
-                    next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                    payload = {
+                        "nick_name": user.nick_name,
+                        "user_id": str(user.user_id),
+                        "next_url": next_url,
+                        "action": "register"
+                    }
+                    if wechat_user is not None:
+                        payload["wechat_name"] = wechat_user.nick_name
+                    ticket = AuthCode.encode(json.dumps(payload), "goodrain")
+                    app_url = request.GET.get('redirect_url', None)
+                    if app_url is None:
+                        app_url = settings.APP_SERVICE_API.get("url")
+                    next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)
                 logger.debug("account.register", next_url)
