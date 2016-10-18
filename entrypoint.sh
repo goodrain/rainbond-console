@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ $1 = "bash" ];then
+if [ $1 = "openshell" ];then
     exec /bin/bash
 elif [ $1 = "version" ];then
     echo $RELEASE_TAG
