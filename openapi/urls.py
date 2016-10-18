@@ -7,6 +7,7 @@ from openapi.views.services import *
 from openapi.views.cloudservices import *
 from openapi.views.tenants import *
 from openapi.views.token import *
+from openapi.views.users import *
 
 
 urlpatterns = patterns(
@@ -20,6 +21,8 @@ urlpatterns = patterns(
     url(r'^oauth2/access_token$', AccessTokenView.as_view()),
 
     url(r'^v1/register$', TenantServiceView.as_view()),
+
+    url(r'^v1/user/info$', UserInfoView.as_view()),
 
     url(r'^v1/services/(?P<service_name>[\w\-]+)/create$', CreateServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/delete$', DeleteServiceView.as_view()),
@@ -35,4 +38,6 @@ urlpatterns = patterns(
     url(r'^v2/services/(?P<service_id>[\w\-]+)/restart$', RestartServiceView.as_view()),
     url(r'^v2/services/(?P<service_id>[\w\-]+)/remove$', RemoveServiceView.as_view()),
     url(r'^v2/services/(?P<service_id>[\w\-]+)/detail$', QueryServiceView.as_view()),
+    url(r'^v2/services/(?P<service_id>[\w\-]+)/stop$', StopCloudServiceView.as_view()),
+    url(r'^v2/services/(?P<service_id>[\w\-]+)/domain$', CloudServiceDomainView.as_view()),
 )

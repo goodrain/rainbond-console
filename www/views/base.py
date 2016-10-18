@@ -16,7 +16,7 @@ else:
 
 from goodrain_web.errors import PermissionDenied
 from www.perms import check_perm
-from www.models import Tenants, TenantServiceInfo
+from www.models import Tenants, TenantServiceInfo, AnonymousUser, PermRelTenant
 from www.version import STATIC_VERSION
 from www.utils.url import get_redirect_url
 from www.utils import sn
@@ -104,6 +104,13 @@ class BaseView(BaseObject, View):
             else:
                 handler = self.http_method_not_allowed
 
+            if request.user.is_authenticated() and request.path != "/logout":
+                user_id = request.user.user_id
+                prt_num = PermRelTenant.objects.filter(user_id=user_id).count()
+                if prt_num == 0:
+                    logger.warning("account.login", "user:{0} does not have any tenant,pls relogin!".format(user_id))
+                    return self.redirect_to("/logout")
+
             response = handler(request, *args, **kwargs)
             return self.update_response(response)
 
@@ -152,6 +159,7 @@ class AuthedView(BaseView):
     def get_context(self):
         context = super(AuthedView, self).get_context()
         context['tenantName'] = self.tenantName
+        context["tenant_pay_type"]=self.tenant.pay_type
         context['serviceAlias'] = self.serviceAlias
         context['MODULES'] = settings.MODULES
         context['is_private'] = sn.instance.is_private()

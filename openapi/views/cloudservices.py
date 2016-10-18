@@ -11,6 +11,7 @@ import re
 import json
 import logging
 from www.utils import sn
+from www.region import RegionInfo
 from www.monitorservice.monitorhook import MonitorHook
 from openapi.views.base import BaseAPIView
 from openapi.controllers.openservicemanager import OpenTenantServiceManager
@@ -198,6 +199,7 @@ class CloudServiceInstallView(BaseAPIView):
         logger.debug("openapi.cloudservice", "now install dep service and service,memory:{0}".format(diffMemory))
 
         # 创建依赖的服务
+        dep_sids = []
         tenant_service_list = []
         if dep_service_list is not None:
             # 服务从后向前安装
@@ -223,6 +225,7 @@ class CloudServiceInstallView(BaseAPIView):
                     manager.add_service_extend(depTenantService, dep_service)
                     monitorhook.serviceMonitor(username, depTenantService, 'create_service', True)
                     tenant_service_list.append(depTenantService)
+                    dep_sids.append(dep_service_id)
                 except Exception as e:
                     logger.exception("openapi.cloudservice", e)
                     TenantServiceInfo.objects.filter(service_id=service_id).delete()
@@ -250,6 +253,9 @@ class CloudServiceInstallView(BaseAPIView):
                                                   dep_service_id,
                                                   region)
                 logger.debug("openapi.cloudservice", "install dep relation over")
+                # 添加goodrain_web_api反馈
+                monitorhook.serviceMonitor(username, depTenantService, 'create_service', True,
+                                           origin='goodrain_web_api')
 
         # create console service
         logger.debug("openapi.cloudservice", "install current service now")
@@ -289,6 +295,17 @@ class CloudServiceInstallView(BaseAPIView):
                 attr_name = env_var.get("attr_name")
                 attr_value = env_var.get("attr_value")
                 env = env_var_map.get(attr_name, None)
+                if attr_name == "SITE_URL":
+                    port = RegionInfo.region_port(region)
+                    domain = RegionInfo.region_domain(region)
+                    attr_value = 'http://{}.{}{}:{}'.format(service_name, tenant.tenant_name, domain, port)
+                    logger.debug("openapi.cloudservice", "SITE_URL = {}".format(env.attr_value))
+                elif attr_name == "TRUSTED_DOMAIN":
+                    port = RegionInfo.region_port(region)
+                    domain = RegionInfo.region_domain(region)
+                    attr_value = '{}.{}{}:{}'.format(service_name, tenant.tenant_name, domain, port)
+                    logger.debug("openapi.cloudservice", "TRUSTED_DOMAIN = {}".format(env.attr_value))
+
                 if env is not None:
                     env.attr_value = attr_value
                 else:
@@ -310,12 +327,27 @@ class CloudServiceInstallView(BaseAPIView):
             manager.create_region_service(newTenantService,
                                           tenant_name,
                                           region,
-                                          username)
+                                          username, dep_sids=json.dumps(dep_sids))
             monitorhook.serviceMonitor(username, newTenantService, 'init_region_service', True)
         except Exception as e:
             logger.error("openapi.cloudservice", "create region service failed!", e)
             return Response(status=419, data={"success": False, "msg": u"创建region服务失败!"})
         logger.debug("openapi.cloudservice", "install region service {0} success!".format(region))
+
+        # 发送goodrain_web_api反馈
+        # 1、依赖信息
+        tmp_info = []
+        for dep_service in tenant_service_list:
+            tmp_array = {"dep_id": dep_service.service_id,
+                         "dep_name": dep_service.service_alias}
+            tmp_info.append(tmp_array)
+        tmp_data = {
+            "service_region": region,
+            "deps": tmp_info
+        }
+        monitorhook.serviceMonitor(username, newTenantService, 'create_service', True,
+                                   origin='goodrain_web_api',
+                                   info=json.dumps(tmp_data))
 
         wild_domain = ""
         if region in settings.WILD_DOMAINS.keys():
@@ -341,14 +373,148 @@ class CloudServiceInstallView(BaseAPIView):
         json_data["service"] = newTenantService.to_dict()
         json_data["dep_service"] = map(lambda x: x.to_dict(), tenant_service_list)
         # 服务env+依赖服务env
-        # dep_service_ids = [x.service_id for x in tenant_service_list]
-        # env_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids)
-        # json_data["env_list"] = env_list
+        dep_service_ids = [x.service_id for x in tenant_service_list]
+        if service_id not in dep_service_ids:
+            dep_service_ids.append(service_id)
+        env_var_list = TenantServiceEnvVar.objects.filter(service_id__in=dep_service_ids).exclude(attr_name="GD_ADAPTER")
+        env_list = []
+        # 过滤掉不显示字段
+        for env_var in list(env_var_list):
+            if env_var.is_change or (not env_var.is_change and env_var.container_port > 0):
+                env_list.append(env_var)
+        json_data["env_list"] = map(lambda x: x.to_dict(), env_list)
         # 服务port+依赖服务port
         # port_list = TenantServicesPort.objects.filter(service_id__in=dep_service_ids)
         # json_data["port_list"] = port_list
         # 服务volume+依赖服务
         # TenantServiceVolume.objects.filter(service_id__in=dep_service_ids)
+        # 依赖的环境变量
+
         return Response(status=200, data={"success": True, "service": json_data})
 
+
+class CloudServiceDomainView(BaseAPIView):
+    """域名管理模块"""
+    allowed_methods = ('POST', 'GET', 'DELETE')
+
+    def get(self, request, service_id, *args, **kwargs):
+        """
+        获取当前服务的域名
+        ---
+        parameters:
+            - name: service_id
+              description: 服务id
+              required: true
+              type: string
+              paramType: path
+        """
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "service_id {0} is not exists".format(service_id))
+            return Response(status=408, data={"success": False, "msg": u"服务名称不存在"})
+        # 查询服务
+        domain_array = manager.query_domain(service)
+        return Response(status=200, data={"success": True, "data": domain_array})
+
+    def post(self, request, service_id, *args, **kwargs):
+        """
+        当前服务添加域名
+        ---
+        parameters:
+            - name: service_id
+              description: 服务id
+              required: true
+              type: string
+              paramType: path
+            - name: domain_name
+              description: 域名
+              required: true
+              type: string
+              paramType: form
+            - name: username
+              description: 操作人名称
+              required: false
+              type: string
+              paramType: form
+        """
+        domain_name = request.data.get("domain_name")
+        if domain_name is None:
+            logger.error("openapi.services", "域名称为空!")
+            return Response(status=406, data={"success": False, "msg": u"域名称为空"})
+        # 名称
+        username = request.data.get("username", "system")
+        # 汉字校验
+        zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
+        match = zhPattern.search(domain_name.decode('utf-8'))
+        if match:
+            logger.error("openapi.services", "绑定域名有汉字!")
+            return Response(status=412, data={"success": False, "msg": u"绑定域名有汉字"})
+
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+            tenant = Tenants.objects.get(tenant_id=service.tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant is not exists")
+            return Response(status=408, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "service_id {0} is not exists".format(service_id))
+            return Response(status=409, data={"success": False, "msg": u"服务名称不存在"})
+        # 添加domain_name
+        status, success, msg = manager.domain_service(action="start",
+                                                      service=service,
+                                                      domain_name=domain_name,
+                                                      tenant_name=tenant.tenant_name,
+                                                      username=username)
+        return Response(status=status, data={"success": success, "msg": msg})
+
+    def delete(self, request, service_id, *args, **kwargs):
+        """
+        当前服务删除域名
+        ---
+        parameters:
+            - name: service_id
+              description: 服务id
+              required: true
+              type: string
+              paramType: path
+            - name: domain_name
+              description: 域名
+              required: true
+              type: string
+              paramType: form
+            - name: username
+              description: 操作人名称
+              required: false
+              type: string
+              paramType: form
+        """
+        domain_name = request.data.get("domain_name")
+        if domain_name is None:
+            logger.error("openapi.services", "域名称为空!")
+            return Response(status=406, data={"success": False, "msg": u"域名称为空"})
+        # 名称
+        username = request.data.get("username", "system")
+        # 汉字校验
+        zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
+        match = zhPattern.search(domain_name.decode('utf-8'))
+        if match:
+            logger.error("openapi.services", "绑定域名有汉字!")
+            return Response(status=412, data={"success": False, "msg": u"绑定域名有汉字"})
+        try:
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+            tenant = Tenants.objects.get(tenant_id=service.tenant_id)
+        except Tenants.DoesNotExist:
+            logger.error("openapi.services", "Tenant is not exists")
+            return Response(status=408, data={"success": False, "msg": u"租户不存在,请检查租户名称"})
+        except TenantServiceInfo.DoesNotExist:
+            logger.debug("openapi.services", "service {0}  is not exists".format(service_id))
+            return Response(status=409, data={"success": False, "msg": u"服务名称不存在"})
+        # 删除domain_name
+        status, success, msg = manager.domain_service(action="close",
+                                                      service=service,
+                                                      domain_name=domain_name,
+                                                      tenant_name=tenant.tenant_name,
+                                                      username=username)
+        return Response(status=status, data={"success": success, "msg": msg})
 

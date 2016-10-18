@@ -88,7 +88,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         if len(dependecy_keys) > 0:
             dependecy_services = dict((el, []) for el in dependecy_keys)
             tenant_id = self.tenant.tenant_id
-            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region)
+            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region, service_origin='assistant')
             if len(deployTenantServices) > 0:
                 for s in deployTenantServices:
                     dependecy_services[s.service_key].append(s)
@@ -186,9 +186,9 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        service_alias = ""
         tenant_id = self.tenant.tenant_id
         service_id = make_uuid(tenant_id)
+        service_alias = "gr"+service_id[-6:]
         result = {}
         try:
             # judge region tenant is init
@@ -214,13 +214,12 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "notexist"
                 return JsonResponse(result, status=200)
 
-            service_alias = request.POST.get("create_service_name", None)
-            if service_alias is None:
+            service_cname = request.POST.get("create_service_name", None)
+            if service_cname is None:
                 result["status"] = "empty"
                 return JsonResponse(result, status=200)
 
-            service_alias = service_alias.lower()
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
+            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
             if num > 0:
                 result["status"] = "exist"
                 return JsonResponse(result, status=200)
@@ -279,8 +278,9 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 for dep_service in new_services:
                     try:
                         dep_service_id = make_uuid(dep_service.service_key)
+                        dep_service_alias="gr"+dep_service_id[-6:]
                         depTenantService = baseService.create_service(
-                            dep_service_id, tenant_id, dep_service.service_name.lower() + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                            dep_service_id, tenant_id, dep_service_alias, dep_service.service_name.lower() + "_" + service_cname, dep_service, self.user.pk, region=self.response_region)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
@@ -299,7 +299,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             # create console service
             newTenantService = baseService.create_service(
-                service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
+                service_id, tenant_id, service_alias, service_cname, service, self.user.pk, region=self.response_region)
 
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             result["status"] = "success"
@@ -360,6 +360,13 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
                     env.options = 'direct_copy'
                     env.attr_value = 'http://{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
                     logger.debug("SITE_URL = {} options = {}".format(env.attr_value, env.options))
+            elif env.attr_name == 'TRUSTED_DOMAIN':
+                if self.cookie_region in RegionInfo.valid_regions():
+                    port = RegionInfo.region_port(self.cookie_region)
+                    domain = RegionInfo.region_domain(self.cookie_region)
+                    env.options = 'direct_copy'
+                    env.attr_value = '{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
+                    logger.debug("TRUSTED_DOMAIN = {} options = {}".format(env.attr_value, env.options))
 
     def get(self, request, *args, **kwargs):
         context = self.get_context()
@@ -377,7 +384,13 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             self.copy_ports(source_service)
             # add volume
             self.copy_volumes(self.service, source_service)
-            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
+
+            dep_sids = []
+            tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
+            for tsr in tsrs:
+                dep_sids.append(tsr.dep_service_id)
+
+            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name, dep_sids=json.dumps(dep_sids))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
             return self.redirect_to('/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias))
 
@@ -391,7 +404,12 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             # add volume
             self.copy_volumes(self.service, source_service)
             # create region tenantservice
-            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name)
+            dep_sids = []
+            tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
+            for tsr in tsrs:
+                dep_sids.append(tsr.dep_service_id)
+
+            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name, dep_sids=json.dumps(dep_sids))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
 
         except Exception, e:

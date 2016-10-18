@@ -185,6 +185,8 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                         is_base=False,
                         is_outer=is_outer,
                         publisher=self.user.email,
+                        show_app=True,
+                        show_assistant=True,
                         is_ok=0)
                     filed_list = ('tenant_id', 'service_id', 'is_service', 'env',
                                   'is_web_service', 'image', 'extend_method', 'cmd',

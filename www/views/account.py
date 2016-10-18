@@ -9,6 +9,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from www.auth import authenticate, login, logout
 from www.forms.account import UserLoginForm, RegisterForm, PasswordResetForm, PasswordResetBeginForm
 from www.models import Users, Tenants, TenantRegionInfo, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode, TenantRecharge
+from www.models import WeChatUser
 from www.utils.crypt import AuthCode
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
@@ -19,6 +20,7 @@ import time
 import random
 import re
 import urllib
+import json
 
 from www.region import RegionInfo
 from www.views import BaseView
@@ -99,7 +101,7 @@ class Login(BaseView):
                 if next_url is not None and next_url != "":
                     redirect_url += "&next={0}".format(next_url)
                 if origin == "app" and app_url is not None:
-                    redirect_url += "&redirect_url={0}".format(redirect_url)
+                    redirect_url += "&redirect_url={0}".format(app_url)
                 logger.debug("account.login", "weixin login,url:{0}".format(redirect_url))
                 return self.redirect_to(redirect_url)
             self.form = UserLoginForm(next_url=next_url,
@@ -110,12 +112,29 @@ class Login(BaseView):
             # 这里只有app请求过来
             next_url = request.GET.get('next', None)
             origin = request.GET.get('origin', None)
-            if next_url is not None:
+            if next_url is not None and next_url != "" \
+                    and next_url != "none" and next_url != "None":
                 if origin == "app":
-                    if app_url is None:
+                    if app_url is None or app_url == "":
                         app_url = settings.APP_SERVICE_API.get("url")
-                    # 这时候来源于app.goodrain.com
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                    union_id = user.union_id
+                    wechat_user = None
+                    if union_id is not None \
+                            or union_id is not "" \
+                            or union_id is not "null" \
+                            or union_id is not "NULL":
+                        wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
+                        if len(wechat_user_list) > 0:
+                            wechat_user = wechat_user_list[0]
+                    payload = {
+                        "nick_name": user.nick_name,
+                        "user_id": str(user.user_id),
+                        "next_url": next_url,
+                        "action": "login"
+                    }
+                    if wechat_user is not None:
+                        payload["wechat_name"] = wechat_user.nick_name
+                    ticket = AuthCode.encode(json.dumps(payload), "goodrain")
                     next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)
@@ -139,6 +158,7 @@ class Login(BaseView):
         user = authenticate(username=username, password=password)
         login(request, user)
         logger.info('account.login', "user {0} success login in".format(user.nick_name))
+        self.user = request.user
 
         # create git user
         if user.email is not None and user.email != "":
@@ -149,12 +169,30 @@ class Login(BaseView):
         if app_ty is not None:
             return self.redirect_to("/autodeploy?fr=www_app")
 
-        if next_url is not None:
+        if next_url is not None and next_url != "" \
+                and next_url != "none" and next_url != "None":
             if origin == "app":
                 app_url = request.GET.get('redirect_url', None)
                 if app_url is None:
                     app_url = settings.APP_SERVICE_API.get("url")
-                ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
+                union_id = user.union_id
+                wechat_user = None
+                if union_id is not None \
+                        or union_id is not "" \
+                        or union_id is not "null" \
+                        or union_id is not "NULL":
+                    wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
+                    if len(wechat_user_list) > 0:
+                        wechat_user = wechat_user_list[0]
+                payload = {
+                    "nick_name": user.nick_name,
+                    "user_id": str(user.user_id),
+                    "next_url": next_url,
+                    "action": "login"
+                }
+                if wechat_user is not None:
+                    payload["wechat_name"] = wechat_user.nick_name
+                ticket = AuthCode.encode(json.dumps(payload), "goodrain")
                 next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)
@@ -164,6 +202,42 @@ class Login(BaseView):
                 next_url = "{0}&sig={1}".format(next_url, sig)
             return self.redirect_to(next_url)
         else:
+            # 处理用户登录时没有租户情况
+            tenant_num = PermRelTenant.objects.filter(user_id=self.user.pk).count()
+            if tenant_num == 0:
+                if sn.instance.is_private():
+                    logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
+                        self.user.nick_name, self.user.pk))
+                    self.form.add_error("", "你已经不属于任何团队，请联系管理员加入团队!")
+                    return self.get_response()
+                else:
+                    expired_day = 7
+                    if hasattr(settings, "TENANT_VALID_TIME"):
+                        expired_day = int(settings.TENANT_VALID_TIME)
+                    expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
+                    region = self.request.COOKIES.get('region', None)
+                    if region is None:
+                        region = "xunda-bj"
+                    tenant_name = self.user.nick_name
+                    if settings.MODULES["Memory_Limit"]:
+                        tenant = Tenants.objects.create(
+                            tenant_name=tenant_name,
+                            pay_type='free',
+                            creater=self.user.pk,
+                            region=region,
+                            expired_time=expire_time)
+                    else:
+                        tenant = Tenants.objects.create(
+                            tenant_name=tenant_name,
+                            pay_type='payed',
+                            pay_level='company',
+                            creater=self.user.pk,
+                            region=region,
+                            expired_time=expire_time)
+                    monitorhook.tenantMonitor(tenant, self.user, "create_tenant", True)
+                    PermRelTenant.objects.create(user_id=self.user.pk, tenant_id=tenant.pk, identity='admin')
+                    logger.info("account.login", "new login, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(username, tenant_name, region, tenant.tenant_id))
+                    return self.redirect_to('/apps/{0}/'.format(tenant_name))
             return self.redirect_view()
 
 
@@ -402,37 +476,16 @@ class Registation(BaseView):
 
     def get(self, request, *args, **kwargs):
         pl = request.GET.get("pl", "")
-
-        referer = request.META.get('HTTP_REFERER', '')
-        logger.debug("account.register", "referer:{0}".format(referer))
-        next_url = ""
-        origin = ""
-        if referer != '':
-            # 获取next、origin
-            tmp = referer.split("?")
-            sub_tmp = "?".join(tmp[1:])
-            key_tmp = sub_tmp.split("&")
-            for key in key_tmp:
-                if key.startswith("origin="):
-                    origin = key[7:]
-                    key_tmp.remove(key)
-                    break
-            next_url = "&".join(key_tmp)
-            if next_url.startswith("next="):
-                next_url = next_url[5:]
         region_levels = pl.split(":")
         if len(region_levels) == 2:
             region = region_levels[0]
             self.form = RegisterForm(
                 region_level={
-                    "region": region,
-                },
-                next_url=next_url,
-                origin=origin
+                    "region": region
+                }
             )
         else:
-            self.form = RegisterForm(next_url=next_url,
-                                     origin=origin)
+            self.form = RegisterForm()
         return self.get_response()
 
     def get_client_ip(self, request):
@@ -481,11 +534,22 @@ class Registation(BaseView):
                 region = RegionInfo.register_choices()[0][0]
             # 没有配置项默认为私有云帮,配置项为false为私有云帮
             is_private = sn.instance.is_private()
+            tenants_num = 0
             if is_private:
                 tenants_num = Tenants.objects.count()
-                if tenants_num != 0:
-                    logger.info("account.register", "private console only one tenant")
+                # 如果租户数量>1,社区版租户数量异常
+                if tenants_num > 1:
+                    self.form.add_error("", "current version console only auth one tenant!")
                     return self.get_response()
+                # 租户数量=1,判断租户名称是否相同
+                if tenants_num == 1:
+                    tenants_num = Tenants.objects.filter(tenant_name=tenant_name).count()
+                    if tenants_num == 0:
+                        self.form.add_error("", "current version console only auth one tenant!")
+                        return self.get_response()
+                # if tenants_num != 0:
+                    # logger.info("account.register", "private console only one tenant")
+                    # return self.get_response()
 
             user = Users(email=email, nick_name=nick_name,
                          phone=phone, client_ip=self.get_client_ip(request), rf=rf)
@@ -518,13 +582,17 @@ class Registation(BaseView):
                         region=region,
                         expired_time=expire_time)
             else:
-                tenant = Tenants.objects.create(
-                    tenant_name=tenant_name,
-                    pay_type='payed',
-                    pay_level='company',
-                    creater=user.pk,
-                    region=region,
-                    expired_time=expire_time)
+                # 社区版注册，没有租户创建租户;存在租户查询信息
+                if tenants_num == 0:
+                    tenant = Tenants.objects.create(
+                        tenant_name=tenant_name,
+                        pay_type='payed',
+                        pay_level='company',
+                        creater=user.pk,
+                        region=region,
+                        expired_time=expire_time)
+                else:
+                    tenant = Tenants.objects.get(tenant_name=tenant_name)
 
             monitorhook.tenantMonitor(tenant, user, "create_tenant", True)
 
@@ -533,7 +601,9 @@ class Registation(BaseView):
             logger.info(
                 "account.register", "new registation, nick_name: {0}, tenant: {1}, region: {2}, tenant_id: {3}".format(nick_name, tenant_name, region, tenant.tenant_id))
 
-            TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
+            # 非社区版 或者 社区版租户为0时创建tenant_region
+            if not is_private or (is_private and tenants_num == 0):
+                TenantRegionInfo.objects.create(tenant_id=tenant.tenant_id, region_name=tenant.region)
             # create gitlab user
             if user.email is not None and user.email != "":
                 codeRepositoriesService.createUser(user, email, password, nick_name, nick_name)
@@ -544,29 +614,43 @@ class Registation(BaseView):
 
             user = authenticate(username=nick_name, password=password)
             login(request, user)
+            self.user = request.user
 
             # 检测是否论坛请求
-            next_url = request.POST.get("next", None)
-            if next_url is not None and next_url != "" and next_url != "none":
-                origin = request.POST.get("origin", "")
+            next_url = request.GET.get("next", None)
+            if next_url is not None \
+                    and next_url != "" \
+                    and next_url != "none" \
+                    and next_url != "None":
+                origin = request.GET.get("origin", "")
                 if origin == "app":
-                    ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
-                    next_url = "{0}/login/{1}/success?ticket={2}".format(settings.APP_SERVICE_API.get("url"),
+                    union_id = user.union_id
+                    wechat_user = None
+                    if union_id is not None \
+                            or union_id is not "" \
+                            or union_id is not "null" \
+                            or union_id is not "NULL":
+                        wechat_user_list = WeChatUser.objects.filter(union_id=union_id)
+                        if len(wechat_user_list) > 0:
+                            wechat_user = wechat_user_list[0]
+                    payload = {
+                        "nick_name": user.nick_name,
+                        "user_id": str(user.user_id),
+                        "next_url": next_url,
+                        "action": "register"
+                    }
+                    if wechat_user is not None:
+                        payload["wechat_name"] = wechat_user.nick_name
+                    ticket = AuthCode.encode(json.dumps(payload), "goodrain")
+                    app_url = request.GET.get('redirect_url', None)
+                    if app_url is None:
+                        app_url = settings.APP_SERVICE_API.get("url")
+                    next_url = "{0}/login/{1}/success?ticket={2}".format(app_url,
                                                                          sn.instance.cloud_assistant,
                                                                          ticket)
                 logger.debug("account.register", next_url)
                 return self.redirect_to(next_url)
-
-            url = '/apps/{0}'.format(tenant_name)
-            if settings.MODULES["Package_Show"]:
-                selected_pay_level = ""
-                pl = request.GET.get("pl", "")
-                region_levels = pl.split(":")
-                if len(region_levels) == 2:
-                    selected_pay_level = region_levels[1]
-                url = '/payed/{0}/select?selected={1}'.format(tenant_name, selected_pay_level)
-            logger.debug("account.register", url)
-            return self.redirect_to(url)
+            return self.redirect_to('/apps/{0}'.format(tenant_name))
 
         logger.info("account.register", "register form error: %s" % self.form.errors)
         return self.get_response()

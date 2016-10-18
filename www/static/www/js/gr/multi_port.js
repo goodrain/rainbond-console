@@ -98,6 +98,9 @@
         for (var order in data) {
           body = body + '<tr><td>' + data[order].desc + '</td><td>' + data[order].name + '</td><td>' + data[order].value + '</td></tr>';
         }
+        if (body==""){
+            return ""
+        }
         return prefix + body + suffix;
       }
 

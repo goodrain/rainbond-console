@@ -9,7 +9,7 @@ from www import alipay_view
 from django.views.decorators.csrf import csrf_exempt
 from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
 from www.views.serviceshare import *
-
+from www.views.consume import *
 
 urlpatterns = patterns(
     '',
@@ -59,4 +59,6 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step4$', ShareServiceStep4View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/package$', ShareServicePackageView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
+    # consume details
+    url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
 )

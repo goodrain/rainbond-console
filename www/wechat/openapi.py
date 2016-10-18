@@ -167,6 +167,7 @@ class OpenWeChatAPI(object):
                    'openid': open_id}
         url = "https://api.weixin.qq.com/sns/userinfo"
         res = requests.get(url, params=payload)
+        res.encoding = "utf-8"
         if res.status_code == 200:
             try:
                 return res.json()

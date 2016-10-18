@@ -34,6 +34,7 @@
              <th>应付金额</th>
              <th>实付金额</th>
              <th>支付状态</th>
+             <th>详情</th>
          </tr>
      </thead>
      <tbody>
@@ -46,6 +47,12 @@
              	<td><span class="label label-success label-mini"> 已支付  </span></td>
              {% else %}
               	<td><span class="label label-danger label-mini"> 未支付 </span></td>
+             {% endif %}
+
+             {% if tenantConsume.ID > 55297 %}
+                <td class=" "><a href="#" onclick="detail('{{tenantConsume.time|date:"Y-m-d H:i:s"}}')">详情</a></td>
+             {% else %}
+                <td class=" "><a  disabled = 'true'></a></td>
              {% endif %}
          </tr>
          {% endfor %}
@@ -76,3 +83,12 @@
      </div>
 </div>
 </div>
+
+<script type="text/javascript">
+    function detail(time){
+        var url = "/apps/{{tenantName}}/cost-detail/?create_time="+encodeURIComponent(time)+"&r="+Math.random()
+        window.open(url)
+    }
+
+
+</script>

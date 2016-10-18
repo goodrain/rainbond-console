@@ -49,6 +49,7 @@ class OpenTenantServiceManager(object):
         tenantServiceInfo["tenant_id"] = tenant_id
         tenantServiceInfo["service_key"] = service.service_key
         tenantServiceInfo["service_alias"] = service_alias
+        tenantServiceInfo["service_cname"] = service_alias
         tenantServiceInfo["service_region"] = region
         tenantServiceInfo["desc"] = service.desc
         tenantServiceInfo["category"] = service.category
@@ -85,7 +86,7 @@ class OpenTenantServiceManager(object):
         newTenantService.save()
         return newTenantService
 
-    def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True):
+    def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True, dep_sids=None):
         """创建region服务"""
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
@@ -113,6 +114,7 @@ class OpenTenantServiceManager(object):
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
+        data["dep_sids"] = dep_sids
         if hasattr(newTenantService, "service_origin"):
             data["service_origin"] = newTenantService.service_origin
 
@@ -120,7 +122,7 @@ class OpenTenantServiceManager(object):
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         if ports_info:
             data["extend_info"]["ports"] = list(ports_info)
-    
+
         envs_info = TenantServiceEnvVar.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
@@ -134,7 +136,7 @@ class OpenTenantServiceManager(object):
         logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
         logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
-    
+
     def delete_service(self, tenant, service, username):
         try:
             # 检查服务关联
@@ -275,6 +277,7 @@ class OpenTenantServiceManager(object):
                     domain["service_name"] = service.service_alias
                     domain["domain_name"] = domain_name
                     domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    domain["container_port"] = 0
                     domaininfo = ServiceDomain(**domain)
                     domaininfo.save()
                 else:
@@ -296,6 +299,7 @@ class OpenTenantServiceManager(object):
                 data["service_id"] = servicerDomain.service_id
                 data["domain"] = servicerDomain.domain_name
                 data["pool_name"] = tenant_name + "@" + service.service_alias + ".Pool"
+                data["container_port"] = 0
                 regionClient.deleteUserDomain(service.service_region, json.dumps(data))
                 ServiceDomain.objects.filter(service_id=service.service_id).delete()
                 monitorhook.serviceMonitor(username, service, 'domain_delete', True)
@@ -345,7 +349,7 @@ class OpenTenantServiceManager(object):
             logger.exception("openapi.services", e)
             monitorhook.serviceMonitor(username, service, 'app_start', False)
             return 412, False, "启动失败"
-    
+
     def status_service(self, service):
         result = {}
         try:
@@ -482,7 +486,7 @@ class OpenTenantServiceManager(object):
         if hasattr(settings, "TENANT_VALID_TIME"):
             expired_day = int(settings.TENANT_VALID_TIME)
         expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
-            
+
         if settings.MODULES["Memory_Limit"]:
             tenant = Tenants.objects.create(
                 tenant_name=tenant_name,
@@ -596,7 +600,7 @@ class OpenTenantServiceManager(object):
             return host_path, volume.ID
         except Exception as e:
             logger.exception("openapi.services", e)
-            
+
     def save_mnt_volume(self, service, host_path, volume_path):
         try:
             category = service.category
@@ -806,14 +810,15 @@ class OpenTenantServiceManager(object):
         except Exception as e:
             logger.exception(e)
 
-    def restart_service(self, tenant, service, username):
+    def restart_service(self, tenant, service, username, limit=True):
         diff_memory = service.min_node * service.min_memory
-        rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, False)
-        if not flag:
-            if rt_type == "memory":
-                return 410, False, "内存不足"
-            else:
-                return 411, False, "余额不足"
+        if limit:
+            rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, False)
+            if not flag:
+                if rt_type == "memory":
+                    return 410, False, "内存不足"
+                else:
+                    return 411, False, "余额不足"
 
         # stop service
         code, is_success, msg = self.stop_service(service, username)
@@ -827,7 +832,7 @@ class OpenTenantServiceManager(object):
         old_memory = service.min_memory
         if int(memory) != old_memory or cpu != old_cpu:
             left = memory % 128
-            if memory > 0 and left <= 65536 and left == 0:
+            if memory > 0 and memory <= 65536 and left == 0:
                 # calculate resource
                 diff_memory = memory - int(old_memory)
                 if limit:

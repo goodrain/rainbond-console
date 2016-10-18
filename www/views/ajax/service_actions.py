@@ -208,7 +208,7 @@ class ServiceManage(AuthedView):
             try:
                 published = AppService.objects.filter(service_id=self.service.service_id).count()
                 if published:
-                    result["status"] = "success"
+                    result["status"] = "published"
                     result["info"] = u"关联了已发布服务, 不可删除"
                     return JsonResponse(result)
 
@@ -1161,7 +1161,6 @@ class ServiceVolumeView(AuthedView):
         try:
             if action == "add":
                 volume_path = request.POST.get("volume_path")
-                old_volume_path = volume_path
                 # category = self.service.category
                 language = self.service.language
                 if language == "docker":
@@ -1199,7 +1198,7 @@ class ServiceVolumeView(AuthedView):
                 if volume_id:
                     result["volume"] = {
                         "ID": volume_id,
-                        "volume_path": old_volume_path,
+                        "volume_path": volume_path,
                     }
                     result["status"] = "success"
                     result["code"] = "200"

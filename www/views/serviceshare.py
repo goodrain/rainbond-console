@@ -27,7 +27,6 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         context = super(ShareServiceStep1View, self).get_context()
         return context
  
-    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         context["myAppStatus"] = "active"
@@ -38,7 +37,8 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         # 环境变量
         used_port = [x["container_port"] for x in port_list]
         env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
-            .exclude(container_port__in=used_port)\
+            .exclude(container_port__in=used_port) \
+            .exclude(attr_name="GD_ADAPTER") \
             .values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         context["env_list"] = list(env_list)
         # 持久化目录
@@ -54,7 +54,7 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         # 依赖应用
         dep_service_ids = TenantServiceRelation.objects.filter(service_id=self.service.service_id).values("dep_service_id")
         dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)\
-            .values("service_key", "version", "service_alias", "service_type")
+            .values("service_key", "version", "service_alias", "service_type","service_cname")
         context["dep_service_list"] = dep_service_list
         # 检查依赖服务是否已经发布
         context["dep_status"] = True
@@ -76,6 +76,15 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         #
         context["tenant_name"] = self.tenantName
         context["service_alias"] = self.serviceAlias
+        context["tenantServiceInfo"] = self.service
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+            context["hasHttpServices"] = True
+        # 检查是否打开对外端口
+        context["have_outer"] = False
+        for tmp_port in list(port_list):
+            if tmp_port.get("is_outer_service"):
+                context["have_outer"] = True
+                break
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_1.html',
@@ -88,7 +97,6 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
         context = super(ShareServiceStep2View, self).get_context()
         return context
 
-    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         # 获取服务的环境变量
         context = self.get_context()
@@ -98,6 +106,11 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
         env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
             .exclude(container_port__in=list(port_list))\
             .values('ID', 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+
+        dep_num = TenantServiceRelation.objects.filter(service_id=self.service.service_id).count()
+        if dep_num > 0:
+            env_list = env_list.exclude(attr_name="GD_ADAPTER")
+
         env_ids = [str(x["ID"]) for x in list(env_list)]
         if len(env_ids) == 0:
             return self.redirect_to("/apps/{0}/{1}/share/step3".format(self.tenantName, self.serviceAlias))
@@ -107,12 +120,14 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
         # path param
         context["tenant_name"] = self.tenantName
         context["service_alias"] = self.serviceAlias
+        context["tenantServiceInfo"] = self.service
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+            context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_2.html',
                                 context)
 
-    @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         # 服务的环境是否可修改存储
         post_data = request.POST.dict()
@@ -144,7 +159,6 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         context = super(ShareServiceStep3View, self).get_context()
         return context
 
-    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
@@ -176,11 +190,11 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             app["desc"] = first_app.desc
             app["info"] = first_app.info
             app["logo"] = first_app.logo
-            if first_app.show_category:
-                first, second, third = first_app.show_category.split(",")
-                app["category_first"] = first
-                app["category_second"] = second
-                app["category_third"] = third
+            # if first_app.show_category:
+            #     first, second, third = first_app.show_category.split(",")
+            #     app["category_first"] = first
+            #     app["category_second"] = second
+            #     app["category_third"] = third
 
             try:
                 extend_info = AppServiceExtend.objects.get(service_key=first_app.service_key,
@@ -206,13 +220,15 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         state = request.GET.get("state")
         if state is not None:
             context["state"] = state
+        context["tenantServiceInfo"] = self.service
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+            context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_3.html',
                                 context)
 
     # form提交.
-    @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         # 获取form表单
         form_data = ShareServiceForm(request.POST, request.FILES)
@@ -437,9 +453,9 @@ class ShareServiceForm(forms.Form):
     app_alias = forms.CharField(help_text=u"应用名称")
     info = forms.CharField(help_text=u"一句话介绍")
     desc = forms.CharField(help_text=u"应用简介")
-    category_first = forms.CharField(required=True, help_text=u"分类1")
-    category_second = forms.CharField(required=True, help_text=u"分类2")
-    category_third = forms.CharField(required=True, help_text=u"分类3")
+    category_first = forms.CharField(required=False, help_text=u"分类1")
+    category_second = forms.CharField(required=False, help_text=u"分类2")
+    category_third = forms.CharField(required=False, help_text=u"分类3")
 
     url_site = forms.CharField(help_text=u"网站url")
     url_source = forms.CharField(help_text=u"源码url")
@@ -489,7 +505,6 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         context = super(ShareServiceStep4View, self).get_context()
         return context
 
-    @perm_required('app_publish')
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
@@ -558,11 +573,13 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             context["service_package_map"] = {}
             context["dep_service_model"] = "[]"
         context["service_package"] = service_package
+        context["tenantServiceInfo"] = self.service
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+            context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request, 'www/service/share_step_4.html', context)
 
     # form提交.
-    @perm_required('app_publish')
     def post(self, request, *args, **kwargs):
         # 获取form表单
         service_key = request.POST.get("service_key")

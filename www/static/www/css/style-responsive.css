@@ -7,7 +7,6 @@
 }
 
 @media (min-width: 768px) and (max-width: 979px) {
-
     .mail-box .sm-side {
         width: 30%;
     }
@@ -95,7 +94,9 @@
         z-index: 1001;
     }
 
-
+   ul.sidebar-menu li a.active, ul.sidebar-menu li a:focus{
+    background-image: none;
+   }
     /* body container */
     #main-content {
         margin: 0px!important;
@@ -172,11 +173,13 @@
     }
 
     .btn {
-        margin-bottom: 5px;
+       
     }
 
 
-
+    .sidebar-toggle-box {
+       
+    }
 
     .mail-box aside {
         display: block;
@@ -315,9 +318,7 @@
     }
 
     .top-nav {
-        position: absolute;
-        right: 10px;
-        top: 0px;
+       
     }
 
     .horizontal-menu .navbar-nav > li > a {
@@ -334,7 +335,7 @@
         top: 10px;
     }
     ul.sidebar-menu li ul.sub li a {
-        padding: 0;
+       
     }
 
     /*---*/
@@ -342,7 +343,8 @@
     .img-responsive {
         width: 100%;
     }
-
+    .table-striped tr th:nth-child(4),.table-striped tr th:nth-child(5),.table-striped tr th:nth-child(6),.table-striped tr td:nth-child(4),.table-striped tr td:nth-child(5),.table-striped tr td:nth-child(6){display: none;}
+{display: none;}
 }
 
 
@@ -362,7 +364,7 @@
     }
 
     #top_menu .nav > li, ul.top-menu > li {
-        float: right;
+       
     }
     .hidden-phone {
         display: none !important;
@@ -405,12 +407,6 @@
         float: left;
         margin-left:0px;
         width: 100%;
-    }
-
-    .top-nav {
-        position: absolute;
-        right: 10px;
-        top: 0px;
     }
 
     .horizontal-menu .navbar-nav > li > a {

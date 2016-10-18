@@ -132,6 +132,16 @@ class WeChatUser(models.Model):
         key_salt = "goodrain.com.models.get_session_auth_hash"
         return salted_hmac(key_salt, self.user_id).hexdigest()
 
+    def to_dict(self):
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            data[f.name] = value
+        return data
+
 
 class WeChatUnBind(models.Model):
     """解绑用户的映射关系"""
@@ -279,7 +289,7 @@ class Tenants(BaseModel):
     tenant_name = models.CharField(
         max_length=40, unique=True, help_text=u"租户名称")
     region = models.CharField(
-        max_length=30, default='ucloud_bj_1', help_text=u"区域中心")
+        max_length=30, default='xunda-bj', help_text=u"区域中心")
     is_active = models.BooleanField(default=True, help_text=u"激活状态")
     pay_type = models.CharField(
         max_length=5, choices=tenant_type, help_text=u"付费状态")
@@ -378,6 +388,7 @@ class TenantServiceInfo(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     service_alias = models.CharField(max_length=100, help_text=u"服务别名")
+    service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
     service_region = models.CharField(max_length=15, help_text=u"服务所属区")
     desc = models.CharField(max_length=200, null=True, blank=True, help_text=u"描述")
     category = models.CharField(max_length=15, help_text=u"服务分类：application,cache,store")
@@ -451,6 +462,7 @@ class TenantServiceInfoDelete(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     service_alias = models.CharField(max_length=100, help_text=u"服务别名")
+    service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
     service_region = models.CharField(max_length=15, help_text=u"服务所属区")
     desc = models.CharField(
         max_length=200, null=True, blank=True, help_text=u"描述")
@@ -670,9 +682,9 @@ class TenantConsumeDetail(BaseModel):
     pay_status = models.CharField(
         max_length=10, help_text=u"扣费状态；payed,unpayed")
     region = models.CharField(max_length=15, help_text=u"服务所属区")
+    status = models.IntegerField(help_text=u"服务状态", default=1)
     time = models.DateTimeField(
         auto_now_add=True, blank=True, help_text=u"创建时间")
-
 
 class TenantConsume(BaseModel):
 

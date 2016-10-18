@@ -16,6 +16,7 @@ from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 from django.conf import settings
 from www.servicetype import ServiceType
+from www.utils import sn
 
 logger = logging.getLogger('default')
 
@@ -69,6 +70,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             app_an = request.COOKIES.get('app_an', '')
             context["app_status"] = app_status
             context["app_an"] = app_an
+            context["is_private"] = sn.instance.is_private()
             response.delete_cookie('app_status')
             response.delete_cookie('app_an')
         except Exception as e:
@@ -93,26 +95,25 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
-            
+
             if tenantAccountService.isExpired(self.tenant):
                 data["status"] = "expired"
                 return JsonResponse(data, status=200)
 
             service_desc = ""
-            service_alias = request.POST.get("create_app_name", "")
+            service_cname = request.POST.get("create_app_name", "")
             service_code_from = request.POST.get("service_code_from", "")
             if service_code_from is None or service_code_from == "":
                 data["status"] = "code_from"
                 return JsonResponse(data, status=200)
-            service_alias = service_alias.rstrip().lstrip()
-            if service_alias is None or service_alias == "":
+            service_cname = service_cname.rstrip().lstrip()
+            if service_cname is None or service_cname == "":
                 data["status"] = "empty"
                 return JsonResponse(data, status=200)
-            service_alias = service_alias.lower()
             # get base service
             service = ServiceInfo.objects.get(service_key="application")
             # create console tenant service
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_alias=service_alias).count()
+            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
             if num > 0:
                 data["status"] = "exist"
                 return JsonResponse(data, status=200)
@@ -131,10 +132,11 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     data["status"] = "over_money"
                 return JsonResponse(data, status=200)
 
+            service_alias = "gr"+service_id[-6:]
             # create console service
             service.desc = service_desc
             newTenantService = baseService.create_service(
-                service_id, tenant_id, service_alias, service, self.user.pk, region=self.response_region)
+                service_id, tenant_id, service_alias, service_cname, service, self.user.pk, region=self.response_region)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias='', is_inner_service=False, is_outer_service=True)
 
@@ -214,7 +216,9 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             tenant_id = self.tenant.tenant_id
             deployTenantServices = TenantServiceInfo.objects.filter(
-                tenant_id=tenant_id, service_region=self.response_region).exclude(category='application')
+                tenant_id=tenant_id,
+                service_region=self.response_region,
+                service_origin='assistant').exclude(category='application')
             context["deployTenantServices"] = deployTenantServices
         except Exception as e:
             logger.exception(e)
@@ -240,7 +244,7 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
         data = {}
         try:
             tenant_id = self.tenant.tenant_id
-            service_alias = self.service.service_alias
+            service_cname = self.service.service_cname
             service_id = self.service.service_id
             # create service dependency
             createService = request.POST.get("createService", "")
@@ -263,8 +267,9 @@ class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                         service_key, app_version = skey.split(':', 1)
                         dep_service = ServiceInfo.objects.get(service_key=service_key, version=app_version)
                         dep_service_id = make_uuid(service_key)
+                        dep_service_alias="gr"+dep_service_id[-6:]
                         depTenantService = baseService.create_service(
-                            dep_service_id, tenant_id, dep_service.service_name.lower() + "_" + service_alias, dep_service, self.user.pk, region=self.response_region)
+                            dep_service_id, tenant_id, dep_service_alias, dep_service.service_name.lower() + "_" + service_cname, dep_service, self.user.pk, region=self.response_region)
                         monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
                         self.copy_port_and_env(dep_service, depTenantService)
                         baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)

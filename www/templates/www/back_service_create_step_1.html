@@ -64,7 +64,7 @@
 						  			<option value="__new__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">新建</option>
 						  			{% if deployed_services %}
 						  			{% for d_service in deployed_services %}
-						  			<option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}">{{d_service.service_alias}}</option>
+						  			<option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}">{{d_service.service_cname}}</option>
 						  			{% endfor %}
 						  			{% endif %}
 						  		</select>

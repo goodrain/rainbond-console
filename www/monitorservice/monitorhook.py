@@ -110,15 +110,17 @@ class MonitorHook(object):
         data["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.debug('monitor.hook', json.dumps(data))
         
-    def serviceMonitor(self, nick_name, tenantService, action, result):
+    def serviceMonitor(self, nick_name, tenantService, action, result, origin=None, info=""):
         data = {}
         data["operator"] = nick_name
-        data["origin"] = "goodrain_web"
+        if origin is None:
+            origin = "goodrain_web"
+        data["origin"] = origin
         data["target_id"] = tenantService.service_id
         data["target_name"] = tenantService.service_alias
         data["category"] = "service"
         data["action"] = action
-        data["info"] = ""
+        data["info"] = info
         if result:
             data["result"] = "success"
         else:
