@@ -985,3 +985,42 @@ class AppLogin(BaseView):
 
         ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
         return JsonResponse({"success": True, "ticket": ticket})
+
+
+class ChangeLoginPassword(BaseView):
+    """修改用户登陆密码"""
+    def post(self, request, *args, **kwargs):
+        context = self.get_context()
+        old_password = request.POST.get("oldpwd", "")
+        new_password = request.POST.get("newpwd", "")
+        confirm_password = request.POST.get("confirmpwd", "")
+
+        user_id = request.user.user_id
+        if new_password == "" or new_password != confirm_password:
+            logger.error("account.login", "modify user {} password failed, new password is empty or confirm password not equial".format(user_id))
+            context.update({
+                "message": "修改密码失败, 新密码不能为空"
+            })
+            return TemplateResponse(request, "www/account/change_password.html", context)
+
+        try:
+            login_user = Users.objects.get(user_id=user_id, password=old_password)
+        except Exception:
+            logger.error("account.login", "modify user {} password failed, no such user with passwd {}".format(user_id, old_password))
+            context.update({
+                "message": "修改密码失败, 用户密码不正确"
+            })
+            return TemplateResponse(request, "www/account/change_password.html", context)
+
+        login_user.set_password(new_password)
+        login_user.save()
+        logger.info("account.login", "modify user {} password succeed".format(user_id))
+
+        # 同时修改git的密码
+        codeRepositoriesService.modifyUser(login_user, new_password)
+        logger.info("account.login", "modify user {} git password succeed".format(user_id))
+
+        context.update({
+            "message": "修改密码成功!"
+        })
+        return TemplateResponse(request, "www/account/change_password.html", context)
