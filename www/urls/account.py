@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, url
-from www.views.account import PasswordReset, PasswordResetBegin, PasswordResetMethodSelect
+from www.views.account import PasswordReset, PasswordResetBegin, PasswordResetMethodSelect, ChangeLoginPassword
 from django.contrib.auth.decorators import login_required
 
 urlpatterns = patterns(
@@ -10,5 +10,5 @@ urlpatterns = patterns(
     url(r'^reset_password$', PasswordReset.as_view()),
     # query user info
     url(r'^info$', PasswordReset.as_view()),
-    url(r'^/changepwd/$', login_required(ChangeLoginPassword.as_view())),
+    url(r'^changepwd$', login_required(ChangeLoginPassword.as_view())),
 )
