@@ -11,6 +11,7 @@ from www.forms.account import UserLoginForm, RegisterForm, PasswordResetForm, Pa
 from www.models import Users, Tenants, TenantRegionInfo, TenantServiceInfo, AnonymousUser, PermRelTenant, PermRelService, PhoneCode, TenantRecharge
 from www.models import WeChatUser
 from www.utils.crypt import AuthCode
+from www.utils import crypt
 from www.utils.mail import send_reset_pass_mail
 from www.sms_service import send_phone_message
 from www.db import BaseConnection
@@ -985,3 +986,53 @@ class AppLogin(BaseView):
 
         ticket = AuthCode.encode(','.join([user.nick_name, str(user.user_id), next_url]), 'goodrain')
         return JsonResponse({"success": True, "ticket": ticket})
+
+
+class ChangeLoginPassword(BaseView):
+    """修改用户登陆密码"""
+    def get(self, request, *args, **kwargs):
+        return TemplateResponse(request, "www/account/change_password.html", self.get_context())
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context()
+        old_raw_password = request.POST.get("oldpwd", "")
+        new_raw_password = request.POST.get("newpwd", "")
+        confirm_password = request.POST.get("confirmpwd", "")
+
+        user_id = request.user.user_id
+        if new_raw_password == "" or new_raw_password != confirm_password:
+            logger.error("account.login", "modify user {} password failed, new password is empty or confirm password not equial".format(user_id))
+            context.update({
+                "message": "修改密码失败, 新密码不能为空"
+            })
+            return TemplateResponse(request, "www/account/change_password.html", context)
+
+        if len(new_raw_password) < 8:
+            logger.error("account.login",
+                         "modify user {} password failed, new password is too short, at least 8 characters".format(
+                             user_id))
+            context.update({
+                "message": "修改密码失败, 新密码不能少于8位"
+            })
+            return TemplateResponse(request, "www/account/change_password.html", context)
+
+        login_user = Users.objects.get(user_id=user_id)
+        encrypt_old_password = crypt.encrypt_passwd(login_user.email + old_raw_password)
+        if encrypt_old_password != login_user.password:
+            context.update({
+                "message": "修改密码失败, 用户密码不正确"
+            })
+            return TemplateResponse(request, "www/account/change_password.html", context)
+
+        login_user.set_password(new_raw_password)
+        login_user.save()
+        logger.info("account.login", "modify user {} password from {} to {} succeed!".format(user_id, encrypt_old_password, login_user.password))
+
+        # 同时修改git的密码
+        codeRepositoriesService.modifyUser(login_user, new_raw_password)
+        logger.info("account.login", "modify user {} git password succeed".format(user_id))
+
+        context.update({
+            "message": "修改密码成功!"
+        })
+        return TemplateResponse(request, "www/account/change_password.html", context)
