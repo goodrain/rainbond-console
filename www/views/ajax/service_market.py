@@ -87,9 +87,10 @@ class RemoteServiceMarketAjax(AuthedView):
                 base_info.pic = service_data.get("pic")
                 base_info.info = service_data.get("info")
                 base_info.desc = service_data.get("desc")
-                # base_info.status = service_data.get("status")
+                base_info.status = service_data.get("status")
                 # fix bug 下载镜像后本地市场无法展示
-                base_info.status = "published"
+                if base_info.service_key != "application":
+                    base_info.status = "published"
                 base_info.category = service_data.get("category")
                 base_info.is_service = service_data.get("is_service")
                 base_info.is_web_service = service_data.get("is_web_service")
