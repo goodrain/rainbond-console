@@ -141,7 +141,81 @@
         </table>
     </div>
 </section>
+<!-- 多端口修改开始 -->
+<section class="tabbox">
+    <!-- title line-->
+    <div class="tittext">
+      <p>端口开放<span>(对外服务后需重启)</span></p>
+      <p>{% if user.is_sys_admin or add_port %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}</p>
+    </div>
+    <!-- table-->
+    <table class="table table-striped table-advance table-hover" id="port_open">
+        <thead>
+            <tr>
+              <th>端口号:
+                  {% if port_auth %}
+                      <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
+                  {% else %}
+                    {{port.container_port}}
+                  {% endif %}
+              </th>
+              <th>协议类型:
+                  {% if port_auth %}
+                      <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
+                  {% else %}
+                      {{port.protocol}}
+                  {% endif %}
+              </th>
+              <th>
+                  {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>{% endif %}
+              </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+              <td>
+                  对内服务: <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" data-on-text="开启" data-off-text="关闭">
+              </td>
+              <td>
+                  服务地址:
+              </td>
+              <td>
+                  使用别名:
+                  {% if port_auth %}
+                      <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}"></a>
+                  {% else %}
+                      {{port.port_alias}}
+                  {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td>
+                  外部访问: 
+                  <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if outer_auth %}data-open="open"{% else %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
+              </td>
+              <td>
+                  访问地址:
+                  <a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}</a>
+              </td>
+              <td>
+                  绑定域名:
+                  <input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com">
 
+                  {% if 'manage_service' in user.actions %}
+                    <p class="text-center">
+                        {% if serviceDomain %}
+                        <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">解绑</button>
+                        {% else %}
+                        <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">绑定</button>
+                        {% endif %}
+                      </p>
+                    {% endif %}
+              </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+<!-- 多端口修改结束 -->
 <section class="tabbox">
     <p class="tittext">自定义环境变量</p>
     <div class="panel-body">
