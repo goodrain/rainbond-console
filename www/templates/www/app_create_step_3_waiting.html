@@ -59,7 +59,10 @@
 											<tr>
 
 												<td>连接端口</td>
-												<td>{{deplyts.service_port }}</td>
+												<td>{% with port_info=port_map|mkey:deplyts.service_id %}
+                                                    {{port_info.mapping_port}}
+                                                    {% endwith %}
+												</td>
 											</tr>
 											{% if deplyts.service_type == "mysql" or deplyts.service_type == "postgresql" %}
 											<tr>
