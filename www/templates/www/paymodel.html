@@ -72,7 +72,11 @@
 			        </tr>
 			        <tr>
 			            <input type="hidden" id="region_name" name="region_name" value="{{region_name}}">
-			        	<td colspan="4" align="center"><button type="button" class="btn btn-danger" onclick="paymodelSubmit('{{tenantName}}')">打包购买</button></td>
+			        	<td colspan="4" align="center">
+			        	    <button type="button" class="btn btn-danger" onclick="paymodelSubmit('{{tenantName}}','new')">购买</button>
+			        	    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp
+			        	    <button type="button" class="btn btn-danger" onclick="paymodelSubmit('{{tenantName}}','append')">续费</button>
+			        	</td>
 			             {% if tenant.pay_type != "payed" %}
                             <div class="errortips tipsbox">您需要升级为付费用户才能继续使用云帮。<a style="cursor:pointer;" onclick="_payed_upgrade('{{tenantName}}')">点击此处升级为付费用户</a><a class="close" href="#">×</a></div>
                          {% endif %}
@@ -121,7 +125,7 @@
     	　　return this.replace(new RegExp(s1,"gm"),s2);
     	}
     
-    	function paymodelSubmit(tenantName){
+    	function paymodelSubmit(tenantName, action){
     	    var pay_type = $("#pay_type").val();
     	    if (pay_type != "payed"){
     	       swal("请先升级成付费用户");
@@ -150,7 +154,7 @@
     				$.ajax({
     					type : "POST",
     					url : "/ajax/" + tenantName + "/paymodel",
-    					data : "region_name="+region_name+"&buy_memory="+buy_memory+"&buy_disk="+buy_disk+"&buy_net="+buy_net+"&buy_period="+buy_period,
+    					data : "region_name="+region_name+"&buy_memory="+buy_memory+"&buy_disk="+buy_disk+"&buy_net="+buy_net+"&buy_period="+buy_period+"&action="+action,
     					cache : false,
     					beforeSend : function(xhr, settings) {
     						var csrftoken = $.cookie('csrftoken');

@@ -140,6 +140,7 @@ class PayModelInfo(AuthedView):
             buy_disk = request.POST["buy_disk"]
             buy_net = 0
             buy_period = request.POST["buy_period"]
+            action = request.POST["action"]
             regions = RegionInfo.region_names()
             period = int(buy_period)
             pay_model = "month"
@@ -168,9 +169,17 @@ class PayModelInfo(AuthedView):
                     logger.debug(tenant_id + "cost money" + str(needTotalMoney))
                     TenantConsume(tenant_id=tenant_id, total_memory=int(buy_memory) * int(buy_period),
                                   cost_money=needTotalMoney, payed_money=needTotalMoney, pay_status='payed').save()
+                    
                     statTime = datetime.datetime.now() + datetime.timedelta(hours=1)
-                    start_time = statTime.strftime("%Y-%m-%d %H:00:00")
                     endTime = datetime.datetime.now() + relativedelta(months=int(buy_period))
+                    if action=="append":
+                        trpms= TenantRegionPayModel.objects.filter(tenant_id=tenant_id).order_by('-ID')[:1]
+                        if len(trpms) > 0:
+                            trpm = trpms[0]
+                            statTime = trpm.buy_end_time + datetime.timedelta(hours=1)
+                            endTime = trpm.buy_end_time + relativedelta(months=int(buy_period))
+                            
+                    start_time = statTime.strftime("%Y-%m-%d %H:00:00")
                     end_time = endTime.strftime("%Y-%m-%d %H:00:00")
                     data = {}
                     data["tenant_id"] = tenant_id
