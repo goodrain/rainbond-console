@@ -420,8 +420,8 @@ class OpenTenantServiceManager(object):
             if is_init_account:
                 password = service.service_id[:8]
                 TenantServiceAuth.objects.create(service_id=service.service_id, user="admin", password=password)
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"用户名", env_prefix + "_USER", "admin", False, scope="both")
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"密码", env_prefix + "_PASS", password, False, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, -1, u"用户名", env_prefix + "_USER", "admin", False, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, -1, u"密码", env_prefix + "_PASS", password, False, scope="both")
             port.save()
         except Exception as e:
             logger.exception("openapi.services", e)
