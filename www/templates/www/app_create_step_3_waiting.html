@@ -13,7 +13,7 @@
 							<img src="/static/www/img/step-3.png" width="80%" style="padding-bottom: 50px;padding-top: 30px;"/>
 							<div class="col-lg-offset-3 col-lg-6 alert text-center alert-warning fade in">
 								<h3 id="git_code_upload">等待提交代码...</h3>
-								<h7><a class=" p-head" href="http://docs.goodrain.com/languages/" target="_block">语言支持文档</a></h7>
+								<h7><a class=" p-head" href="http://doc.goodrain.com/usage/181923" target="_block">语言支持文档</a></h7>
 							</div>
 						</div>
 					</div>
@@ -59,7 +59,10 @@
 											<tr>
 
 												<td>连接端口</td>
-												<td>{{deplyts.service_port }}</td>
+												<td>{% with port_info=port_map|mkey:deplyts.service_id %}
+                                                    {{port_info.mapping_port}}
+                                                    {% endwith %}
+												</td>
 											</tr>
 											{% if deplyts.service_type == "mysql" or deplyts.service_type == "postgresql" %}
 											<tr>
@@ -90,7 +93,7 @@
 						<label class="col-xs-2 control-label col-lg-2" for="inputSuccess">Git文档</label>
 						<div class="col-xs-10 col-lg-10">
 							<div class="col-xs-4 control-label col-lg-4">
-								<a href="http://docs.goodrain.com/usage/git.html" target="_blank">使用git提交代码</a>
+								<a href="http://doc.goodrain.com/usage/181959" target="_blank">使用git提交代码</a>
 							</div>
 							<!--<div class="col-xs-4 control-label col-lg-4">
 								<a href="#">mac系统git使用</a>

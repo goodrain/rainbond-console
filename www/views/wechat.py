@@ -312,8 +312,16 @@ class WeChatCallBack(BaseView):
                     origin_url = settings.APP_SERVICE_API.get("url")
                 if not origin_url.startswith("http://"):
                     origin_url = "http://" + origin_url
-                cry_string = ','.join([user.nick_name, str(user.user_id), next_url, wechat_user.nick_name])
-                ticket = AuthCode.encode(cry_string.encode("UTF-8"), 'goodrain')
+                # 返回参数
+                payload = {
+                    "nick_name": user.nick_name,
+                    "user_id": str(user.user_id),
+                    "next_url": next_url,
+                    "action": "register" if need_new else "login"
+                }
+                if wechat_user is not None:
+                    payload["wechat_name"] = wechat_user.nick_name
+                ticket = AuthCode.encode(json.dumps(payload), "goodrain")
                 next_url = "{0}/login/{1}/success?ticket={2}".format(origin_url,
                                                                      sn.instance.cloud_assistant,
                                                                      ticket)

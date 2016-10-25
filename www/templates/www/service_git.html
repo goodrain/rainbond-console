@@ -19,7 +19,7 @@
         </div>
 
         <header class="panel-heading">如果已经提交代码，可以   <button type="button" class="btn btn-info" id="onekey_deploy" onclick="service_oneKeyDeploy('application','{{serviceAlias}}','{{tenantName}}','yes');">一键部署</button></header>
-        <header class="panel-heading">如果不知道如何提交代码，请 <a href="http://docs.goodrain.com/usage/git.html" target="_black">参阅文档</a></header>
+        <header class="panel-heading">如果不知道如何提交代码，请 <a href="http://doc.goodrain.com/usage/181959" target="_black">参阅文档</a></header>
     </section>
   </div>
   <div class="col-lg-6">
@@ -40,7 +40,7 @@
                 <p>源代码目录需要有<font color="red">index.php</font>或<font color="red">composer.json</font>文件</p>
                 <h4>运行</h4>
                 <p>目前支持 Apache 和 Nginx 两种 Web 服务器，如果源代码根目录没有 <font color="red">Procfile</font> 文件来定义启动命令，系统默认会使用 Apache。如果用Nginx可以将Procfile写成如下格式：</p><pre>web:&nbsp;vendor/bin/heroku-php-nginx</pre>
-                <p class="text-right">详细文档参见 [ <a href="http://docs.goodrain.com/languages/php.html">php文档</a> ]</p>
+                <p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181942">php文档</a> ]</p>
               </div>
             </div>
           </div>
@@ -124,9 +124,9 @@
                     </tbody>
                   </table>
                   <p class="text-right">更多文档参见 </p>
-                  <p class="text-right">[ <a href="http://docs.goodrain.com/languages/java.html">java支持文档</a> ]</p>
-                  <p class="text-right">[ <a href="http://docs.goodrain.com/java/java-jetty-runner.html">部署基于jetty的java应用程序</a> ]</p>
-                  <p class="text-right">[ <a href="http://docs.goodrain.com/java/java-webapp-runner.html">部署基于tomcat的java应用程序</a> ]</p>
+                  <p class="text-right">[ <a href="http://doc.goodrain.com/usage/181925">java支持文档</a> ]</p>
+                  <p class="text-right">[ <a href="http://doc.goodrain.com/usage/181928">部署基于jetty的java应用程序</a> ]</p>
+                  <p class="text-right">[ <a href="http://doc.goodrain.com/usage/181927">部署基于tomcat的java应用程序</a> ]</p>
               </div>
             </div>
           </div>
@@ -149,7 +149,7 @@
 
                 <br><br>
                 <font color="blue">VIRIABLE_NAME</font>表示在 MODULE_NAME 文件中要调用的对象(是一个WSGI callable, 可以是一个函数,类详情参看<a href="http://www.cnblogs.com/ArtsCrafts/p/wsgi.html"> WSGI规格说明书 </a>)名。</p>
-                <p class="text-right">详细文档参见 [ <a href="http://docs.goodrain.com/languages/python.html">python文档</a> ]</p>
+                <p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181940">python文档</a> ]</p>
               </div>
             </div>
           </div>
@@ -173,7 +173,7 @@
                   </tbody>
                 </table>
                 <p class="text-warning">注意：</p>
-                <p>生产环境建议使用<a href="http://puma.io">puma</a>做为ruby应用的web server，Procfile的写法参见 [<a href="http://code.goodrain.com/demo/ruby-sinatra/tree/master" target="_blank">ruby-sinatra</a>] 或 [<a href="http://code.goodrain.com/demo/ruby-rails/tree/master" target="_blank"> ruby-rails</a>] 代码示例。</p><p class="text-right">详细文档参见 [ <a href="http://docs.goodrain.com/languages/ruby.html">ruby文档</a> ]</p>
+                <p>生产环境建议使用<a href="http://puma.io">puma</a>做为ruby应用的web server，Procfile的写法参见 [<a href="http://code.goodrain.com/demo/ruby-sinatra/tree/master" target="_blank">ruby-sinatra</a>] 或 [<a href="http://code.goodrain.com/demo/ruby-rails/tree/master" target="_blank"> ruby-rails</a>] 代码示例。</p><p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181932">ruby文档</a> ]</p>
               </div>
             </div>
           </div>
@@ -187,8 +187,8 @@
                 <h4>语言识别</h4>
                 <p>源代码目录需要有<font color="red">package.json&nbsp;</font>文件，如果不存在请使用 npm init 命令创建并配置需要的依赖和其它信息。</p>
                 <h4>运行</h4>
-                <p>Procfile 文件不是必须的，系统会检查 package.json 里的 scripts.start 项，如果存在，系统会自动创建 Procfile 。点击查看 <a href="http://docs.goodrain.com/languages/nodejs.html#自定义构建" target="_blank">package.json 文件</a>中的 scripts.start 示例。否则，用户需要自行创建 Procfile 来指定应用启动命令，如：</p>
-                <pre>web: node app.js</pre><p class="text-right">详细文档参见 [ <a href="http://docs.goodrain.com/languages/nodejs.html">Node.js文档</a> ]</p>
+                <p>Procfile 文件不是必须的，系统会检查 package.json 里的 scripts.start 项，如果存在，系统会自动创建 Procfile 。点击查看 <a href="http://doc.goodrain.com/usage/181950" target="_blank">package.json 文件</a>中的 scripts.start 示例。否则，用户需要自行创建 Procfile 来指定应用启动命令，如：</p>
+                <pre>web: node app.js</pre><p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181949">Node.js文档</a> ]</p>
               </div>
             </div>
           </div>
@@ -205,7 +205,7 @@
                 <p>通过 Procfile 文件来指定应用启动方式：</p>
                 <pre>$ echo 'web: demoapp' &gt; Procfile</pre>
                 <p>早期的 go 语言支持要求在项目根目录下创建一个 .godir 文件来指定编译后的二进制文件名：</p>
-                <pre>$ echo 'go-hello' &gt; .godir</pre><p class="text-right">详细文档参见 [ <a href="http://docs.goodrain.com/languages/golang.html">Go文档</a> ]</p>
+                <pre>$ echo 'go-hello' &gt; .godir</pre><p class="text-right">详细文档参见 [ <a href="http://doc.goodrain.com/usage/181947">Go文档</a> ]</p>
               </div>
             </div>
           </div> -->
@@ -216,7 +216,7 @@
               <a href="#accordion1_7" data-parent="#accordion1" data-toggle="collapse" class="accordion-toggle collapsed">其他 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</a></h4>
             </div>
             <div class="panel-collapse collapse" id="accordion1_7" style="height: auto;">
-              <div class="panel-body"><a href="http://docs.goodrain.com/languages/" target="_blank"> 更多语言支持文档... </a></div>
+              <div class="panel-body"><a href="http://doc.goodrain.com/usage/181923" target="_blank"> 更多语言支持文档... </a></div>
             </div>
           </div>
         </div>

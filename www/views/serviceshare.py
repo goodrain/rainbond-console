@@ -434,12 +434,19 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                 if dep_service.service_key == "application":
                     logger.error("dep service is application not published")
                     raise http.Http404
+                # dep_app_alias需要获取对应app_service中的app_alias
+                dep_service_alias = dep_service.service_cname
+                try:
+                    app_service = AppService.objects.get(service_key=dep_service.service_key, app_version=dep_service.version)
+                    dep_service_alias = app_service.app_alias
+                except Exception as e:
+                    logger.exception(e)
                 relation = AppServiceRelation(service_key=service_key,
                                               app_version=app_version,
                                               app_alias=app_alias,
                                               dep_service_key=dep_service.service_key,
                                               dep_app_version=dep_service.version,
-                                              dep_app_alias=dep_service.service_alias)
+                                              dep_app_alias=dep_service_alias)
                 app_relation_list.append(relation)
         if len(app_relation_list) > 0:
             logger.debug(len(app_relation_list))

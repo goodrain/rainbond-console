@@ -947,8 +947,16 @@ class OpenTenantServiceManager(object):
 
     def init_region_tenant(self, region, tenant_name, tenant_id, nick_name):
         user = Users(nick_name=nick_name)
-        return tenantRegionService.init_for_region(region,
-                                                   tenant_name,
-                                                   tenant_id,
-                                                   user)
+        for num in range(0, 3):
+            result = tenantRegionService.init_for_region(region,
+                                                         tenant_name,
+                                                         tenant_id,
+                                                         user)
+            if result:
+                logger.debug("openapi.cloudservice", "init tenant region success!")
+                return result
+            else:
+                logger.error("openapi.cloudservice", "init tenant region failed! try again!num:{0}".format(num))
+
+        return False
 

@@ -8,7 +8,7 @@ from django.http.response import HttpResponse
 from django.http import JsonResponse
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
+from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService, TenantRegionService
 from www.utils.language import is_redirect
@@ -323,6 +323,10 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
                     dpsids.append(tsr.dep_service_id)
                 deployTenantServices = TenantServiceInfo.objects.filter(service_id__in=dpsids)
                 context["deployTenantServices"] = deployTenantServices
+                # 获取服务的端口信息
+                dep_port_list = TenantServicesPort.objects.filter(service_id__in=dpsids)
+                port_map = {x.service_id: x for x in list(dep_port_list)}
+                context["port_map"] = port_map
                 authList = TenantServiceAuth.objects.filter(service_id__in=dpsids)
                 if len(authList) > 0:
                     authMap = {}
