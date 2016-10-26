@@ -3,6 +3,7 @@ import datetime
 import time
 import urllib
 import hashlib
+import requests
 from django.template.response import TemplateResponse
 from django.http import JsonResponse, HttpResponse
 from django.http import Http404
@@ -83,6 +84,19 @@ class WeChatCheck(BaseView):
         else:
             return HttpResponse("")
 
+    def post(self, request, *args, **kwargs):
+        """微信通知处理入口, 云帮不做处理只是转发请求给云市处理"""
+        body_raw = request.body
+        logger.debug("account.wechat", "recv wechat notify: {}".format(body_raw))
+        body_encode = AuthCode.encode(body_raw, "goodrain")
+        redirect_url = "{}/user/wechat/msgnotify".format(settings.APP_SERVICE_API["url"])
+        logger.debug("account.wechat", "post data {}".format(redirect_url))
+        try:
+            # 微信端5秒内需要返回
+            requests.post(redirect_url, data={"body": body_encode}, timeout=4)
+        except Exception as e:
+            logger.exception("", e)
+        return HttpResponse("")
 
 class WeChatLogin(BaseView):
     """微信用户登录"""
