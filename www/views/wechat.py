@@ -4,6 +4,7 @@ import time
 import urllib
 import hashlib
 import requests
+import xml.etree.ElementTree as ET
 from django.template.response import TemplateResponse
 from django.http import JsonResponse, HttpResponse
 from django.http import Http404
@@ -88,14 +89,45 @@ class WeChatCheck(BaseView):
         """微信通知处理入口, 云帮不做处理只是转发请求给云市处理"""
         body_raw = request.body
         logger.debug("account.wechat", "recv wechat notify: {}".format(body_raw))
-        body_encode = AuthCode.encode(body_raw, "goodrain")
-        redirect_url = "{}/user/wechat/msgnotify".format(settings.APP_SERVICE_API["url"])
-        logger.debug("account.wechat", "post data {}".format(redirect_url))
-        try:
-            # 微信端5秒内需要返回
-            requests.post(redirect_url, data={"body": body_encode}, timeout=4)
-        except Exception as e:
-            logger.exception("", e)
+        # 将xml转成dict
+        data = dict((child.tag, child.text) for child in ET.fromstring(body_raw))
+        logger.debug("account.wechat", "format to map: {}".format(data))
+        msg_type = data["MsgType"]
+        # 非事件类消息不处理
+        if msg_type != "event":
+            return HttpResponse("")
+
+        event_type = data["Event"]
+        # 当前只处理公众号订阅消息
+        if event_type != "subscribe":
+            return HttpResponse("")
+
+        open_id = data["FromUserName"]
+        wechat_users = WeChatUser.objects.filter(open_id=open_id, config="goodrain")
+        if len(wechat_users) > 0:
+            wechat_user = wechat_users[0]
+            try:
+                user = Users.objects.get(union_id=wechat_user.union_id)
+                user_id = user.user_id
+            except Exception:
+                logger.error("account.wechat", "wechat union_id {} not bind any user!".format(wechat_user.union_id))
+                return HttpResponse("")
+
+            try:
+                post_data = {
+                    "user_id": user_id,
+                    "open_id": open_id
+                }
+                body_encode = AuthCode.encode(json.dumps(post_data), "goodrain")
+                redirect_url = "{}/user/wechat/event/subscribe".format(settings.APP_SERVICE_API["url"])
+                logger.debug("account.wechat", "post {} with data {}".format(redirect_url, post_data))
+                # 微信端5秒内需要返回
+                requests.post(redirect_url, data={"body": body_encode}, timeout=4)
+            except Exception as e:
+                logger.exception("", e)
+        else:
+            logger.debug("account.wechat", "wechat open_id  {} not bind any user, ignore!".format(open_id))
+
         return HttpResponse("")
 
 class WeChatLogin(BaseView):
