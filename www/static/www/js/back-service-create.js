@@ -17,7 +17,7 @@ $(function(){
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
             
-        if(!checkReg.test(appName)){
+        if(appName == ""){
             $('#create_service_notice').slideDown();
             return;
         }else{
@@ -30,7 +30,7 @@ $(function(){
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
             
-        if(!checkReg.test(appName)){
+        if(appName == ""){
             $('#create_service_notice').slideDown();
             return;
         }else{
