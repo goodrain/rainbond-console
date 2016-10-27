@@ -103,6 +103,7 @@ class WizardView(BaseView):
             # 登录系统
             user = authenticate(username=nick_name, password=password)
             login(request, user)
+            self.user = request.user
 
             # 发送数据到app进行注册
             data = {
