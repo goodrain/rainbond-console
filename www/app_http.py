@@ -30,9 +30,12 @@ class AppServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, files=files)
         return res, body
 
-    def getRemoteServices(self):
+    def getRemoteServices(self, timeout=None):
         url = self.url + "/api/v0/services/published"
-        res, body = self._get(url, self.default_headers)
+        if timeout is None:
+            res, body = self._get(url, self.default_headers)
+        else:
+            res, body = self._get(url, self.default_headers, timeout=timeout)
         return res, body
 
     def post_statics_tenant(self, tenant_id, statics_id):

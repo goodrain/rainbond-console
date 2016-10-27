@@ -49,16 +49,24 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             context["tenantName"] = self.tenantName
             fr = request.GET.get("fr", "local")
             context["fr"] = fr
-            res, resp = appClient.getRemoteServices()
-            if res.status == 200:
-                appService = {}
-                appVersion = {}
-                appdata = json.loads(resp.data)
-                for appda in appdata:
-                    appService[appda["service_key"] + "_" + appda["version"]] = appda["update_version"]
-                    appVersion[appda["service_key"] + "_" + appda["version"]] = appda["version"]
-                context["appService"] = appService
-                context["appVersion"] = appVersion
+            # 修改为三次查询, 超时累进
+            for num in range(0, 3):
+                timeout = 0.5 + 0.5 * num
+                res, resp = appClient.getRemoteServices(timeout=timeout)
+                logger.debug(res)
+                logger.debug(resp)
+                if res.status == 200:
+                    appService = {}
+                    appVersion = {}
+                    appdata = json.loads(resp.data)
+                    for appda in appdata:
+                        appService[appda["service_key"] + "_" + appda["version"]] = appda["update_version"]
+                        appVersion[appda["service_key"] + "_" + appda["version"]] = appda["version"]
+                    context["appService"] = appService
+                    context["appVersion"] = appVersion
+                    break
+                else:
+                    logger.error("query remote service failed ,try again {0}", num)
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_market.html", context)
