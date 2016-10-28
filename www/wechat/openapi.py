@@ -3,6 +3,7 @@
 import time
 import logging
 import requests
+import json
 
 from django.conf import settings
 from www.models.main import WeChatConfig, WeChatUser
@@ -176,3 +177,53 @@ class OpenWeChatAPI(object):
                 logger.error("wechatapi", "object json failed! res: " + res.content)
         else:
             return None
+
+
+class MPWeChatAPI(object):
+    """好雨云公众平台账号API"""
+
+    def __init__(self, *args, **kwargs):
+        if settings.MODULES["WeChat_Module"]:
+            logger.debug("PublicWeChatAPI", "now init public wechat config.")
+            self.config = WeChatConfig.objects.get(config="goodrain")
+
+    def __save_to_db(self, access_token, access_token_expires_at):
+        if not settings.MODULES["WeChat_Module"]:
+            return
+
+        self.config.access_token = access_token
+        self.config.access_token_expires_at = access_token_expires_at
+        self.config.save()
+
+    def get_access_token(self):
+        if not settings.MODULES["WeChat_Module"]:
+            return None
+
+        now = int(time.time())
+        if self.config.access_token_expires_at - now > 60:
+            return self.config.access_token
+        else:
+            access_token, expires_in = self.__get_access_token_direct()
+            self.__save_to_db(access_token, now + expires_in)
+            return access_token
+
+    def __get_access_token_direct(self):
+        if not settings.MODULES["WeChat_Module"]:
+            return None
+
+        _ACCESS_URL = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={0}&secret={1}"
+        data = requests.get(_ACCESS_URL.format(self.config.app_id, self.config.app_secret))
+        json_data = json.loads(data.content)
+
+        return json_data.get("access_token"), json_data.get("expires_in")
+
+    def get_wechat_user_info(self, openid, lang="zh_CN"):
+        """获取用户基本信息"""
+        if not settings.MODULES["WeChat_Module"]:
+            return None
+
+        _USER_URL = "https://api.weixin.qq.com/cgi-bin/user/info?access_token={0}&openid={1}&lang={2}"
+        access_token = self.get_access_token()
+        data = requests.get(_USER_URL.format(access_token, openid, lang))
+
+        return json.loads(data.content)
