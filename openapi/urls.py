@@ -8,6 +8,7 @@ from openapi.views.cloudservices import *
 from openapi.views.tenants import *
 from openapi.views.token import *
 from openapi.views.users import *
+from openapi.views.wecheat import *
 
 
 urlpatterns = patterns(
@@ -23,6 +24,8 @@ urlpatterns = patterns(
     url(r'^v1/register$', TenantServiceView.as_view()),
 
     url(r'^v1/user/info$', UserInfoView.as_view()),
+    # wecheat token
+    url(r'^v1/wecheat/token', WecheatTokenView.as_view()),
 
     url(r'^v1/services/(?P<service_name>[\w\-]+)/create$', CreateServiceView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/delete$', DeleteServiceView.as_view()),
