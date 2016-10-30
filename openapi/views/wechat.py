@@ -29,4 +29,4 @@ class WechatTokenView(BaseAPIView):
         #
         access_token = mp_api.get_access_token()
         logger.debug("openapi.cloudservice", "access token is: {0}".format(access_token))
-        return Response(status=200, data={"success": True, "data": json.dumps({"access_token": access_token})})
+        return Response(status=200, data={"success": True, "data": {"access_token": access_token}})
