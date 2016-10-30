@@ -184,7 +184,7 @@ class MPWeChatAPI(object):
 
     def __init__(self, *args, **kwargs):
         if settings.MODULES["WeChat_Module"]:
-            logger.debug("PublicWeChatAPI", "now init public wechat config.")
+            logger.debug("wechatapi", "now init public wechat config.")
             self.config = WeChatConfig.objects.get(config="goodrain")
 
     def __save_to_db(self, access_token, access_token_expires_at):
@@ -200,11 +200,15 @@ class MPWeChatAPI(object):
             return None
 
         now = int(time.time())
+        logger.debug("wechatapi",
+                     "{} - {} = {}".format(self.config.access_token_expires_at, now, self.config.access_token_expires_at - now))
         if self.config.access_token_expires_at - now > 60:
+            logger.info("wechatapi", "access_token available use cache: {}.".format(self.config.access_token))
             return self.config.access_token
         else:
             access_token, expires_in = self.__get_access_token_direct()
             self.__save_to_db(access_token, now + expires_in)
+            logger.info("wechatapi", "access_token will expire require new: {}.".format(self.config.access_token))
             return access_token
 
     def __get_access_token_direct(self):
