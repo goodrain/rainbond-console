@@ -9,7 +9,7 @@ logger = logging.getLogger("default")
 mp_api = MPWeChatAPI()
 
 
-class WecheatTokenView(BaseAPIView):
+class WechatTokenView(BaseAPIView):
 
     allowed_methods = ('GET',)
 
