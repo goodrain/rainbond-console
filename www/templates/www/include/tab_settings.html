@@ -233,7 +233,35 @@
                   <tbody>
                   <tr>
                     <td><input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com"></td>
-                    <td><a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}" target="_blank">{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}</a></td>
+                    <td>
+                        {% ifequal tenantServiceInfo.port_type "one_outer" %}
+                            <a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}" target="_blank">
+                                {{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}
+                            </a>
+                        {% else %}
+                            {% if serviceDomain %}
+                                {% for port in http_outer_service_ports %}
+                                    {% if port.container_port == serviceDomain.container_port%}
+                                        <a href="http://{{port.container_port}}.{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
+                                           target="_blank"
+                                           name="custom_domain_select"
+                                           data-href=".{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}">
+                                            {{cur_port}}.{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                {% with http_outer_service_ports|first as first_port %}
+                                    <a href="http://{{first_port.container_port}}.{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
+                                       target="_blank"
+                                       name="custom_domain_select"
+                                       data-href=".{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}">
+                                        {{first_port.container_port}}.{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}
+                                    </a>
+                                {% endwith %}
+                            {% endif %}
+                        {% endifequal %}
+                    </td>
                       <td>
                           {#   多端口域名绑定  #}
                           <select class="form-control" id="multi_port_bind" name="multi_port_bind">
@@ -444,6 +472,18 @@
                     .addClass("btn btn-danger btn-xs")
                     .append($("<i/>").addClass("fa fa-times"));
             $("<div/>").addClass("btn-group").attr("role", "group").append(cancel_button).appendTo($("#edit_volume_div"));
+        });
+        // 多端口select响应
+        $("#multi_port_bind").bind("change", function () {
+            // 获取当前端口
+            var cur_port = $(this).val();
+            // 修改a的属性，html
+            if ($("a[name='custom_domain_select']")) {
+                var data_href = $("a[name='custom_domain_select']").attr("data-href");
+                var target_str = cur_port + data_href;
+                $("a[name='custom_domain_select']").attr("href", target_str);
+                $("a[name='custom_domain_select']").html(target_str);
+            }
         });
     });
 
