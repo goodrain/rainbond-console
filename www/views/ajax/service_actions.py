@@ -223,7 +223,7 @@ class ServiceManage(AuthedView):
                         for alias in aliasList:
                             if depalias != "":
                                 depalias = depalias + ","
-                            depalias = depalias + alias["service_alias"]
+                            depalias = depalias + alias["service_cname"]
                         result["dep_service"] = depalias
                         result["status"] = "evn_dependency"
                         return JsonResponse(result)

@@ -168,7 +168,13 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     app_version = serviceObj.version
 
             if serviceObj is None:
-                return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
+                # 没有服务模版，需要下载模版
+                code, base_info, dep_map, error_msg = baseService.download_service_info(service_key, app_version)
+                if code == 500:
+                    logger.error(error_msg)
+                    return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
+                else:
+                    serviceObj = base_info
 
             context["service"] = serviceObj
             dependecy_services, dependecy_info, dependecy_version = self.find_dependecy_services(serviceObj)

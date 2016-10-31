@@ -3,6 +3,8 @@ import datetime
 import time
 import urllib
 import hashlib
+import requests
+import xml.etree.ElementTree as ET
 from django.template.response import TemplateResponse
 from django.http import JsonResponse, HttpResponse
 from django.http import Http404
@@ -19,7 +21,7 @@ from www.region import RegionInfo
 from www.monitorservice.monitorhook import MonitorHook
 
 from www.utils.md5Util import md5fun
-from www.wechat.openapi import OpenWeChatAPI
+from www.wechat.openapi import OpenWeChatAPI, MPWeChatAPI
 from www.tenantservice.baseservice import CodeRepositoriesService
 from www.forms.account import is_standard_word, is_sensitive, password_len, is_phone, is_email
 
@@ -54,6 +56,13 @@ def is_weixin(request):
 
 class WeChatCheck(BaseView):
     """微信公众平台检测"""
+    # 需要通知的事件订阅者
+    REGISTER_LISTENER = [
+        "{}/user/wechat/event/subscribe".format(settings.APP_SERVICE_API["url"])
+    ]
+    # 当前处理通知事件类型
+    ALLOW_EVENT = ["subscribe", "SCAN"]
+
     def get(self, request, *args, **kwargs):
         signature = request.GET.get("signature", "")
         timestamp = request.GET.get("timestamp", "")
@@ -82,6 +91,89 @@ class WeChatCheck(BaseView):
             return HttpResponse(echostr)
         else:
             return HttpResponse("")
+
+    def post(self, request, *args, **kwargs):
+        """微信通知处理入口, 云帮不做处理只是转发请求给云市处理"""
+        body_raw = request.body
+        logger.debug("account.wechat", "recv wechat notify: {}".format(body_raw))
+        # 将xml转成dict
+        data = dict((child.tag, child.text) for child in ET.fromstring(body_raw))
+        logger.debug("account.wechat", "format to map: {}".format(data))
+        msg_type = data["MsgType"]
+        # 非事件类消息不处理
+        if msg_type != "event":
+            return HttpResponse("")
+
+        # 当前只处理公众号订阅跟扫码消息
+        event_type = data["Event"]
+        if event_type not in self.ALLOW_EVENT:
+            return HttpResponse("")
+
+        post_data = {}
+        if event_type == "subscribe":
+            # 只处理qrscene_xxxx类型的场景关注通知
+            if "EventKey" not in data:
+                return HttpResponse("")
+
+            user_id = data["EventKey"].split("_")[1]
+            open_id = data["FromUserName"]
+            user_id, open_id = self.bind_wechat_user_to_goodrain(user_id, open_id)
+            post_data = {
+                "user_id": user_id,
+                "open_id": open_id,
+                "event_type": "subscribe"
+            }
+        elif event_type == "SCAN":
+            user_id = data["EventKey"]
+            open_id = data["FromUserName"]
+            user_id, open_id = self.bind_wechat_user_to_goodrain(user_id, open_id)
+            post_data = {
+                "user_id": user_id,
+                "open_id": open_id,
+                "event_type": "scan"
+            }
+
+        # 不管上面绑定关系如何, 用户确实完成对公众号的关注,所以将事件推送到关注的监听者
+        for url in self.REGISTER_LISTENER:
+            try:
+                body_encode = AuthCode.encode(json.dumps(post_data), "goodrain")
+                logger.debug("account.wechat", "post {} with data {}".format(url, post_data))
+                # 微信端5秒内需要返回
+                requests.post(url, data={"body": body_encode}, timeout=4)
+            except Exception as e:
+                logger.exception("push event to market failed!", e)
+
+        return HttpResponse("")
+
+    def bind_wechat_user_to_goodrain(self, user_id, open_id):
+        user = Users.objects.get(user_id=user_id)
+        try:
+            wechat_user = WeChatUser.objects.get(open_id=open_id, config="goodrain")
+        except Exception:
+            # 这里应该去获取微信用户基本信息
+            mp_api = MPWeChatAPI()
+            jsondata = mp_api.get_wechat_user_info(open_id)
+            wechat_user = WeChatUser(open_id=jsondata.get("openid"),
+                                     nick_name=jsondata.get("nickname"),
+                                     union_id=jsondata.get("unionid"),
+                                     sex=jsondata.get("sex"),
+                                     city=jsondata.get("city"),
+                                     province=jsondata.get("province"),
+                                     country=jsondata.get("country"),
+                                     headimgurl=jsondata.get("headimgurl"),
+                                     config="goodrain").save()
+            logger.info("account.wechat", "save new wechat user {} with union_id {}!".format(wechat_user.open_id,
+                                                                                             wechat_user.union_id))
+        if not user.union_id:
+            user.union_id = wechat_user.union_id
+            user.save()
+            logger.info("account.wechat", "bind user {} to union_id {}!".format(user_id, wechat_user.union_id))
+        else:
+            # 用户已绑定过微信, 且绑定union_id与通知union_id不一致,以已绑定union_id对应的open_id为准
+            if user.union_id != wechat_user.union_id:
+                open_id = WeChatUser.objects.get(union_id=user.union_id, config="goodrain").open_id
+
+        return user_id, open_id
 
 
 class WeChatLogin(BaseView):

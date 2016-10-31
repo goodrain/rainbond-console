@@ -6,7 +6,7 @@ $(function(){
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
             
-        if(!checkReg.test(appName)){
+        if(appName == ""){
         	$("#create_app_name").focus()
         	scrollOffset($("#create_app_name").offset()); 
             $('#create_appname_notice').slideDown();
@@ -21,7 +21,7 @@ $(function(){
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
             result = true;
             
-        if(!checkReg.test(appName)){
+        if(appName == ""){
         	$("#create_app_name").focus()
         	scrollOffset($("#create_app_name").offset()); 
             $('#create_appname_notice').slideDown();
