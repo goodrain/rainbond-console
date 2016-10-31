@@ -50,7 +50,7 @@ urlpatterns = patterns(
     url(r'^select$', login_required(views.TenantSelectView.as_view())),
     url(r'^payed/(?P<tenantName>[\w\-]+)/', include('www.urls.payedpackage')),
     url(r'^tests/(?P<templateName>[\w\-]+)/', TestView.as_view()),
-    url(r'^admin', include('admin.urls')),
-    url(r'^admin/ajax', include('admin.urls_ajax')),
+    url(r'^admin', include('cadmin.urls')),
+    url(r'^admin/ajax', include('cadmin.urls_ajax')),
     url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
 ) + staticfiles_urlpatterns() + openapi_urlpatterns()
