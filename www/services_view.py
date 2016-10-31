@@ -192,7 +192,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 service_manager[
                     'url'] = 'http://{0}.{1}.{2}{3}:{4}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, settings.WILD_DOMAIN, http_port_str)
             else:
-                service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin'.format(self.tenant.tenant_name)
+                # 根据服务版本获取对应phpmyadmin版本,暂时解决方法,待优化
+                app_version = '4.4.12'
+                if self.service.version == "5.6.30":
+                    app_version = '4.6.3'
+                service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin&app_version={1}'.format(self.tenant.tenant_name, app_version)
         return service_manager
 
     def memory_choices(self):

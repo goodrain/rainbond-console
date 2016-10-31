@@ -926,7 +926,7 @@ class OpenTenantServiceManager(object):
                 if tmp_map is not None:
                     dep_map = dict(dep_map, **tmp_map)
                 if status == 500:
-                    return 500, False, None, "下载{0}:{1}失败".format(service_key, version)
+                    return 500, False, None, "下载{0}:{1}失败".format(dep_key, dep_version)
 
         return 200, True, dep_map, "success"
 
