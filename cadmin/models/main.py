@@ -32,4 +32,5 @@ class ConsoleSysConfig(BaseModel):
     type = models.CharField(max_length=40, help_text=u"类型:string,json,int,bool,list")
     value = models.CharField(max_length=400, help_text=u"value")
     category = models.CharField(max_length=40, help_text=u"分类：")
+    desc = models.CharField(max_length=40, help_text=u"描述：")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")

@@ -1,5 +1,6 @@
-{% extends 'admin/base.html' %}
-{% load i18n %}{% load staticfiles %}
+{% extends 'cadmin/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
 
 {% block extracss %}
     <link rel="stylesheet" href="{% static "admin/css/style.css" %}">
@@ -10,13 +11,13 @@
     <section id="container">
         <header class="header white-bg">
             {% block header %}
-            {% include 'admin/header.html' %}
+            {% include 'cadmin/header.html' %}
             {% endblock %}
         </header>
 
         <aside>
             {% block aside %}
-            {% include 'admin/aside.html' %}
+            {% include 'cadmin/aside.html' %}
             {% endblock %}
         </aside>
 
@@ -26,7 +27,7 @@
         </section>
 
         <footer>
-            {% include 'admin/footer.html' %}
+            {% include 'cadmin/footer.html' %}
         </footer>
     </section>
 

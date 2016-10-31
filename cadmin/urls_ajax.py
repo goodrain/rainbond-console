@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, url
-from www.views.ajax.adminview import AdminViews
+from cadmin.views.ajax.adminview import AdminViews
 
 urlpatterns = patterns(
     '',
