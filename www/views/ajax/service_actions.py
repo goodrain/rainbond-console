@@ -931,6 +931,10 @@ class ServicePort(AuthedView):
         elif action == 'change_port_alias':
             new_port_alias = request.POST.get("value")
             success, reason = self.check_port_alias(new_port_alias)
+            # todo 同一租户下别名不能重复
+            tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id, port_alias=new_port_alias).count()
+            if tenant_alias_num > 0:
+                return JsonResponse({"success": False, "info": "别名不能重复", "code": 400}, status=400)
             if not success:
                 return JsonResponse({"success": False, "info": reason, "code": 400}, status=400)
             else:
@@ -1076,7 +1080,10 @@ class ServiceNewPort(AuthedView):
 
             if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
                 return JsonResponse({"success": False, "code": 400, "info": u"别名不合法"})
-
+            # todo 判断端口别名是否重复
+            tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id, port_alias=port_alias).count()
+            if tenant_alias_num > 0:
+                return JsonResponse({"success": False, "code": 400, "info": u"别名不能重复"})
             if port_outter == 1:
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=1).count() > 0:
                     return JsonResponse({"success": False, "code": 409, "info": u"只能开启一个对外端口"})
