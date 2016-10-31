@@ -1,0 +1,33 @@
+{% extends 'admin/base.html' %}
+{% load i18n %}{% load staticfiles %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "admin/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "admin/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block body %}
+    <section id="container">
+        <header class="header white-bg">
+            {% block header %}
+            {% include 'admin/header.html' %}
+            {% endblock %}
+        </header>
+
+        <aside>
+            {% block aside %}
+            {% include 'admin/aside.html' %}
+            {% endblock %}
+        </aside>
+
+        <section id="main-content" class="{{curType}}">
+            {% block main-content %}
+            {% endblock %}
+        </section>
+
+        <footer>
+            {% include 'admin/footer.html' %}
+        </footer>
+    </section>
+
+{% endblock %}

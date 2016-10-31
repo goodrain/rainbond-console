@@ -48,6 +48,7 @@ for k in dir(conf_mod):
         elif isinstance(v, int):
             exec "{0} = {1}".format(k, v)
 
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
@@ -80,6 +81,7 @@ if IS_OPEN_API:
         'api',
         'openapi',
         'oauth2_provider',
+        'admin',
     )
     OAUTH2_PROVIDER = {
         'SCOPES': {'read': 'Read scope',
@@ -98,7 +100,8 @@ else:
         'rest_framework.authtoken',
         'rest_framework_swagger',
         'www',
-        'api'
+        'api',
+        'admin',
     )
 
 MIDDLEWARE_CLASSES = (
