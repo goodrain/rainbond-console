@@ -306,6 +306,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
 
+                containerPortList = []
+                opend_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_inner_service=True)
+                if len(opend_service_port_list) > 0:
+                    for opend_service_port in opend_service_port_list:
+                        containerPortList.append(opend_service_port.container_port)
+                context["containerPortList"] = containerPortList
+
                 baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
                 if baseservice.update_version != self.service.update_version:
                     context["updateService"] = True

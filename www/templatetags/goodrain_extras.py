@@ -33,3 +33,12 @@ def difftime(cur_date, sec):
 def strToInt(value):
     return int(value)
 
+@register.filter
+def hasvalue(list,key):
+    value = False;
+    try:
+        if key in list:
+            value = True
+    except Exception:
+        pass
+    return value

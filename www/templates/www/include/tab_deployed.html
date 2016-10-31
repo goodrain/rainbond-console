@@ -146,12 +146,14 @@
            <tbody>
             {% for curServiceEnvVar in curServiceEnvVarList %}
                 {% if curServiceEnvVar.name != "" %}
-                 <tr>
+				{% if containerPortList|hasvalue:curServiceEnvVar.container_port or curServiceEnvVar.container_port < 1 %}
+				<tr>
                    <td>{{curServiceEnvVar.name}}</td>
                    <td>{{curServiceEnvVar.attr_name}}</td>
                    <td>{{curServiceEnvVar.attr_value}}</td>
                  </tr>
                  {% endif %}
+			  {% endif %}
             {% endfor %}
            </tbody>
          </table>
