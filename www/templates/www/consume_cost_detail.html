@@ -1,33 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>详情</title>
-    <style>
-        .consume_detail {
-            width:800px;
-            margin:15px 0
-        }
-        .consume_detail th,.consume_detail td{
-            height: 40px;
-        }
-        .consume_detail th {
-            background-color: #F7F7F7;
-            color:#000000;
+{% extends 'www/raster.html' %}
+{% load i18n %}
 
-
-        }
-        .consume_detail,.consume_detail th,.consume_detail td
-        {
-            font-size:0.95em;
-            text-align:center;
-            padding:4px;
-            border:1px solid #000000;
-            border-collapse:collapse
-        }
-    </style>
-</head>
-<body>
+{% block main-content %}
 <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
     <h3>消费详情</h3>
 
@@ -84,5 +58,4 @@
     {% endfor %}
 
 </div>
-</body>
-</html>
+{% endblock %}
