@@ -5614,11 +5614,11 @@ a.guest-on i {
 }
 .consume_detail,.consume_detail th,.consume_detail td
  {
-            font-size:0.95em;
-            text-align:center;
-            padding:4px;
-            border:1px solid #000000;
-            border-collapse:collapse
+        font-size:16px;
+        text-align:center;
+        padding:4px;
+        border:1px solid #000000;
+        border-collapse:collapse
  }
 
 
