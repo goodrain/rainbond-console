@@ -5605,5 +5605,20 @@ a.guest-on i {
 .tittext span{color: #b94a48; font-size: 12px;}
 .tabbox .panel-body{padding:10px;}
 
+.consume_detail th,.consume_detail td{
+            height: 40px;
+ }
+.consume_detail th {
+            background-color: #F7F7F7;
+            color:#000000;
+}
+.consume_detail,.consume_detail th,.consume_detail td
+ {
+            font-size:0.95em;
+            text-align:center;
+            padding:4px;
+            border:1px solid #000000;
+            border-collapse:collapse
+ }
 
 
