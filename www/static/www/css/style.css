@@ -5609,16 +5609,18 @@ a.guest-on i {
             height: 40px;
  }
 .consume_detail th {
-            background-color: #F7F7F7;
-            color:#000000;
+            background: #efefef;
+            color:#666;
+            font-size:16px;
 }
 .consume_detail,.consume_detail th,.consume_detail td
  {
-        font-size:16px;
-        text-align:center;
-        padding:4px;
-        border:1px solid #000000;
-        border-collapse:collapse
+    color:#666;
+    font-size:14px;
+    text-align:center;
+    padding:4px;
+    border:1px #ddd solid;
+    border-collapse:collapse;
  }
 
 
