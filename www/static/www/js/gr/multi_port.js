@@ -114,28 +114,26 @@
       // 显示网址 -- ww start
       
       $(".fn-sever-link").each(function(){
-           this_curr_tr = $(this);
            this_port_show = $(this).attr('port');
-           Fn_make_port_detail (this_curr_tr, this_port_show);
+           Fn_make_port_detail (this_port_show);
       });
 
-      function Fn_make_port_detail (curr_tr, port_show) {
-        url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + curr_tr.attr('port');
+      function Fn_make_port_detail (port_show) {
+        url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
           if (event.outer_service) {
-            next_tr = make_outer_html(event.outer_service);
+            next_tr = event.outer_service.domain;
           }
-          // curr_tr.parents('table').after(next_tr);
           $("#port_show_" + port_show).html(next_tr);
-          //curr_tr.parents('table').after('<table class="table table-striped table-advance table-hover port-detail">' + next_tr + '</body>');
         });
       }
 
+      /*
       function Fn_make_outer_html(data) {
         var body =  data.domain;
         return body;
       }
-       
+      */
       // 显示网址 -- ww end 
 
       //即时修改端口别名和协议类型
