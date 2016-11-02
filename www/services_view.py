@@ -407,6 +407,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # service git repository
                 try:
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
+                    if self.service.code_from == "gitlab_manual":
+                        href_url = self.service.git_url
+                        if href_url.startswith('git@'):
+                            href_url = "http://" + href_url.replace(":", "/")[4:]
+                        context["href_url"] = href_url
                 except Exception as e:
                     pass
                 if service_domain:

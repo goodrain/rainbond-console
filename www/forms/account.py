@@ -525,7 +525,7 @@ class RegisterForm(forms.Form):
                 pass
 
         # 判断是否邀请注册,邀请注册不校验租户
-        if invite_tag is None or invite_tag == "":
+        if invite_tag is None or invite_tag == "" or not sn.instance.is_private():
             try:
                 Tenants.objects.get(tenant_name=tenant)
                 raise forms.ValidationError(
