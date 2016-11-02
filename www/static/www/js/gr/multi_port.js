@@ -47,7 +47,7 @@
             }, 'json');
         }
     );
-
+      
       //显示端口明细
       $('.port-arrow a').click(function(event) {
         fold = $(this).attr('fold');
@@ -111,6 +111,32 @@
         return prefix + body + suffix;
       }
 
+      // 显示网址 -- ww start
+      
+      $(".fn-sever-link").each(function(){
+           this_curr_tr = $(this);
+           this_port_show = $(this).attr('port');
+           Fn_make_port_detail (this_curr_tr, this_port_show);
+      });
+
+      function Fn_make_port_detail (curr_tr, port_show) {
+        url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + curr_tr.attr('port');
+        $.get(url, function (event) {
+          if (event.outer_service) {
+            next_tr = make_outer_html(event.outer_service);
+          }
+          // curr_tr.parents('table').after(next_tr);
+          $("#"+port_show).html(next_tr);
+          //curr_tr.parents('table').after('<table class="table table-striped table-advance table-hover port-detail">' + next_tr + '</body>');
+        });
+      }
+
+      function Fn_make_outer_html(data) {
+        var body =  data.domain;
+        return body;
+      }
+       
+      // 显示网址 -- ww end 
 
       //即时修改端口别名和协议类型
       $(document).ready(function() {
