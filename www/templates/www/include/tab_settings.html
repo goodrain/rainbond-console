@@ -172,6 +172,15 @@
                   <td>
                      <span>绑定域名:</span>
                      <input type="text" class="form-control" id="service_app_name" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com">
+                     {% if 'manage_service' in user.actions %}
+                      <p>
+                        {% if serviceDomain %}
+                        <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">解绑</button>
+                        {% else %}
+                        <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}')">绑定</button>
+                        {% endif %}
+                      </p>
+                    {% endif %}
                   </td>
               </tr>
               {% endfor %}
