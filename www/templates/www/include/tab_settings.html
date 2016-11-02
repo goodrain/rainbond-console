@@ -90,6 +90,7 @@
       </div>
       <!-- title line end -->
       <!-- table start -->
+      {% for port in ports %}
       <table class="table table-striped table-advance table-hover newtab" id="port_open">
           <!--  表格 头  开始 -->
           <thead>
@@ -116,7 +117,6 @@
           <!--  表格 头  结束 -->
           <!-- 表格 内容  开始 -->
           <tbody>
-              {% for port in ports %}
               <tr>
                   <td>
                     <span>对内服务:</span>
@@ -186,10 +186,10 @@
                     {% endif %}
                   </td>
               </tr>
-              {% endfor %}
           </tbody>
           <!-- 表格 内容  结束 -->
       </table>
+      {% endfor %}
       <!-- table end -->
   </section>
   <!-- 多端口修改结束 -->
