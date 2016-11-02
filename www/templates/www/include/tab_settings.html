@@ -93,20 +93,20 @@
       <table class="table table-striped table-advance table-hover newtab" id="port_open">
           <!--  表格 头  开始 -->
           <thead>
-              <tr>
+              <tr port="{{port.container_port}}">
                 <th>端口号:
                     {% if port_auth %}
                         <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
                     {% else %}
-                      {{port.container_port}}
+                        {{port.container_port}}
                     {% endif %}
                 </th>
                 <th>协议类型:
                     {% if port_auth %}
-                        <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
-                    {% else %}
-                        {{port.protocol}}
-                    {% endif %}
+                            <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
+                        {% else %}
+                            {{port.protocol}}
+                        {% endif %}
                 </th>
                 <th>
                     {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>{% endif %}
