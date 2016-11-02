@@ -126,7 +126,7 @@
             next_tr = make_outer_html(event.outer_service);
           }
           // curr_tr.parents('table').after(next_tr);
-          $("#"+port_show).html(next_tr);
+          $("#port_show_" + port_show).html(next_tr);
           //curr_tr.parents('table').after('<table class="table table-striped table-advance table-hover port-detail">' + next_tr + '</body>');
         });
       }
