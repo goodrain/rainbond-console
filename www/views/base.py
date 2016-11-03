@@ -130,6 +130,11 @@ class BaseView(BaseObject, View):
     def redirect_to(self, path, *args, **kwargs):
         full_url = get_redirect_url(path, request=self.request)
         return redirect(full_url, *args, **kwargs)
+    
+    def get_context(self):
+        context = super(BaseView, self).get_context()
+        context['CUSTOM_CONFIG'] = custom_config.configs()
+        return context
 
 
 class AuthedView(BaseView):
@@ -163,7 +168,6 @@ class AuthedView(BaseView):
         context["tenant_pay_type"]=self.tenant.pay_type
         context['serviceAlias'] = self.serviceAlias
         context['SYS_MODULES'] = settings.MODULES
-        context['CUSTOM_CONFIG'] = custom_config.configs()
         context['is_private'] = sn.instance.is_private()
         return context
 
