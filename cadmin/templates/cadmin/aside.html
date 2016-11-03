@@ -1,19 +1,17 @@
 <div id="sidebar" class="nav-collapse " tabindex="5000" style="overflow: hidden; outline: none;">
     <!-- sidebar menu start-->
     <ul class="sidebar-menu" id="nav-accordion">
-    	
-         <li class="sub-menu">
-              <a class="{{config}}" href="javascript:;">
+
+        <li class="sub-menu">
+            <a class="{{config}}" href="javascript:;">
                 <i class="fa fa-laptop"></i>
                 <span>配置管理</span>
-              </a>
-               <ul class="sub">
-                 <li {% if base_config %}class="active"{% endif %}><a href="">配置列表</a></li>
-                 <li {% if git_config %}class="active"{% endif %}><a href="">Git仓库配置</a></li>
-                 <li {% if wild_config %}class="active"{% endif %}><a href="">泛域名配置</a></li>
-                   <li {% if wild_config %}class="active"{% endif %}><a href="">泛域名1配置</a></li>
-              </ul>
-         </li>
+            </a>
+            <ul class="sub">
+                <li {% if base_config %}class="active" {% endif %}><a href="">配置列表</a></li>
+
+            </ul>
+        </li>
     </ul>
     <!-- sidebar menu end-->
 </div>

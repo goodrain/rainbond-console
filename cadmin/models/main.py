@@ -6,8 +6,8 @@ from www.utils.crypt import encrypt_passwd, make_tenant_id
 from django.db.models.fields import DateTimeField
 from datetime import datetime
 
-class BaseModel(models.Model):
 
+class BaseModel(models.Model):
     class Meta:
         abstract = True
 
@@ -23,14 +23,23 @@ class BaseModel(models.Model):
             data[f.name] = value
         return data
 
-class ConsoleSysConfig(BaseModel):
 
+class ConsoleSysConfig(BaseModel):
     class Meta:
         db_table = 'console_sys_config'
 
     key = models.CharField(max_length=32, help_text=u"key")
-    type = models.CharField(max_length=40, help_text=u"类型:string,json,int,bool,list")
-    value = models.CharField(max_length=400, help_text=u"value")
-    category = models.CharField(max_length=40, help_text=u"分类：")
-    desc = models.CharField(max_length=40, help_text=u"描述：")
+    value = models.CharField(max_length=4096, help_text=u"value")
+    desc = models.CharField(max_length=40, help_text=u"描述")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+
+
+class ConsoleSysConfigAttr(BaseModel):
+    class Meta:
+        db_table = 'console_sys_config_attr'
+
+    attr_name = models.CharField(max_length=40, help_text=u"key")
+    attr_val = models.CharField(max_length=256, help_text=u"key")
+    attr_type = models.CharField(max_length=40, default='string', help_text=u"type")
+    attr_desc = models.CharField(max_length=40, help_text=u"说明")
+    config_id = models.IntegerField(help_text=u"配置项id：")

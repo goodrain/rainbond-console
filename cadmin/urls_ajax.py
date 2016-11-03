@@ -1,8 +1,9 @@
 from django.conf.urls import patterns, url
-from cadmin.views.ajax.adminview import AdminViews
+from cadmin.views.ajax.adminview import ConfigViews,ConfigAttributeViews,ConfigDetailViews
 
 urlpatterns = patterns(
     '',
-    url(r'^admin/test/$', AdminViews.as_view()),
-    
+    url(r'^custome-config', ConfigViews.as_view()),
+    url(r'^custome-attribute', ConfigAttributeViews.as_view()),
+    url(r'^detail', ConfigDetailViews.as_view()),
 )

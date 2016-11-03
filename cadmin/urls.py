@@ -6,4 +6,6 @@ from cadmin.views.adminview import *
 urlpatterns = patterns(
     '',
     url(r'^/?$', login_required(AdminViews.as_view())),
+    url(r'^edit', login_required(ConfigDetailViews.as_view())),
+    url(r'^update',login_required(UpdateAttrViews.as_view())),
 )
