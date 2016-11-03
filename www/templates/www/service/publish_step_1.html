@@ -1,5 +1,10 @@
 {% extends 'www/raster.html' %}{% load i18n %}
 {% load crispy_forms_tags %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/bootstrap-switch.min.css" %}' />
+{% endblock %}
 
 {% block main-content %}
 <section class="wrapper site-min-height">
@@ -96,18 +101,50 @@
                     </div>
                     
                     <div id="div_id_app_dest" class="form-group">
-                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">是否发布到云端<span
-                                class="asteriskField">*</span></label>
+                        <label for="id_app_logo"
+                               class="control-label col-lg-2 requiredField">
+                            是否发布到云端<span class="asteriskField">*</span></label>
                         <div class="controls col-lg-8">
-                            <input type="checkbox" id="is_outer" name="is_outer" {% if app.is_outer %} checked="checked" {% endif %} value="0"/>
+                            <div class="switch switch-mini">
+                                <input type="checkbox" id="is_outer" data-switch="mini" name="is_outer" {% if app.is_outer %} checked="checked" {% endif %} value="0"/>
+                            </div>
                         </div>
                     </div>
-                    
+                    <!-- 04云市展示方式 -->
+                    <div class="form-group" {% if not app.is_outer %}style="display:none;"{% endif %} data-alias="show_div">
+                        <label class="col-sm-2 control-label">云帮展示</label>
+                        <div class="col-sm-8">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" name="show_assistant" type="checkbox" {% if app.show_assistant %}checked{% endif %}/>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 04云市展示方式 -->
+                    <div class="form-group" {% if not app.is_outer %}style="display:none;"{% endif %} data-alias="show_div">
+                        <label class="col-sm-2 control-label">云市展示</label>
+                        <div class="col-sm-8">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" name="show_app" type="checkbox" {% if app.show_app %}checked{% endif %}/>
+                            </div>
+                        </div>
+                    </div>
+                    <!--是否发布为私有应用-->
+                    <div class="form-group" {% if app.is_outer %}style="display:none;"{% endif %} data-alias="private_div">
+                        <label class="col-sm-2 control-label">是否发布为私有服务</label>
+                        <div class="col-sm-8">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" name="is_private" type="checkbox" {% if app.is_private %}checked{% endif %}/>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="div_id_app_account" class="form-group">
-                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">是否初始化账户<span
-                                class="asteriskField">*</span></label>
+                        <label for="id_app_logo" class="control-label col-lg-2 requiredField">
+                            是否初始化账户<span class="asteriskField">*</span></label>
                         <div class="controls col-lg-8">
-                            <input type="checkbox" id="is_init_accout" name="is_init_accout" {% if app.is_init_accout %} checked="checked" {% endif %} value="0"/>
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" type="checkbox" id="is_init_accout" name="is_init_accout" {% if app.is_init_accout %} checked="checked" {% endif %} value="0"/>
+                            </div>
                         </div>
                     </div>
                     
@@ -125,10 +162,24 @@
 {% endblock %}
 
 {% block extrajs %}
+<script src='{% static "www/js/bootstrap-switch.js" %}'></script>
 <script type="text/javascript">
     $('#app_publish_form').validator();
 
-
+    $(function () {
+        // 分发到云市后显示设置
+        $("#is_outer").parent().parent().on('switch-change', function (e, data) {
+            var $el = $(data.el), value = data.value;
+            // alert(value);
+            if (value) {
+                $("div.form-group[data-alias='show_div']").show();
+                $("div.form-group[data-alias='private_div']").hide();
+            } else {
+                $("div.form-group[data-alias='show_div']").hide();
+                $("div.form-group[data-alias='private_div']").show();
+            }
+        });
+    });
 
 
 </script>

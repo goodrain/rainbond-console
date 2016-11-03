@@ -52,20 +52,20 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         context["myAppStatus"] = "active"
-        
+
         init_data = {
             'tenant_id': self.service.tenant_id,
             'service_id': self.service.service_id,
             'deploy_version': self.service.deploy_version,
             'publisher': self.user.email,
         }
-        
+
         # 获取之前发布的服务信息
         pre_app = AppService.objects.filter(service_id=self.service.service_id).order_by('-ID')[:1]
         if len(pre_app) == 1:
             pre_app = list(pre_app)[0]
-            if pre_app.show_category:
-                first, second, third = pre_app.show_category.split(",")
+            # if pre_app.show_category:
+            #     first, second, third = pre_app.show_category.split(",")
             init_data.update({
                 'service_key': pre_app.service_key,
                 'app_version': pre_app.app_version,
@@ -76,6 +76,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'info': pre_app.info,
                 'desc': pre_app.desc,
                 'is_outer': pre_app.is_outer,
+                'is_private': pre_app.status == "private",
+                'show_app': pre_app.show_app,
+                'show_assistant': pre_app.show_assistant,
                 'is_init_accout': pre_app.is_init_accout,
                 'first': '',
                 'second': '',
@@ -98,7 +101,10 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'desc': self.service.desc if self.service.desc else '',
                 'is_init_accout': False,
                 'is_outer': False,
-                'service_type':self.service.service_type,
+                'service_type': self.service.service_type,
+                'is_private': pre_app.status == "private",
+                'show_app': pre_app.show_app,
+                'show_assistant': pre_app.show_assistant,
             })
         # 查询对应服务的名称等信息
         context.update({'app': init_data})
@@ -133,7 +139,10 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 is_outer = detail_form.cleaned_data['is_outer']
                 is_init_accout = detail_form.cleaned_data['is_init_accout']
                 app_service_type = detail_form.cleaned_data['app_service_type']
-                
+
+                is_private = detail_form.cleaned_data.get('is_private', False)
+                show_app = detail_form.cleaned_data.get('show_app', False)
+                show_assistant = detail_form.cleaned_data.get('show_assistant', False)
                 # 获取保存的服务信息
                 app = AppService.objects.filter(service_key=service_key, app_version=app_version)
                 if len(app) == 1:
@@ -195,6 +204,11 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                     app = copy_properties(self.service, app, filed_list)
                     if app.is_slug():
                         app.slug = '/app_publish/{0}/{1}.tgz'.format(app.service_key, app.app_version)
+                    # 更新status、show_app、show_assistant
+                    if is_private:
+                        app.status = "private"
+                    app.show_app = show_app
+                    app.show_assistant = show_assistant
                     app.save()
                 # 跳转到服务关系页面
                 return self.redirect_to('/apps/{0}/{1}/publish/extra/?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
@@ -588,8 +602,9 @@ class ServiceDetailForm(forms.Form):
     logo = forms.FileField(required=False)
     info = forms.CharField(required=False)
     desc = forms.CharField(required=False)
-    is_outer = forms.BooleanField(required=False,
-                                  initial=False)
-    is_init_accout = forms.BooleanField(required=False,
-                                  initial=False)
+    is_outer = forms.BooleanField(required=False, initial=False)
+    is_private = forms.BooleanField(required=False, initial=False)
+    show_app = forms.BooleanField(required=False, initial=False, help_text=u"发布到云市后是否在云市展示")
+    show_assistant = forms.BooleanField(required=False, initial=False, help_text=u"发布到云市后是否在云帮展示")
+    is_init_accout = forms.BooleanField(required=False, initial=False)
     app_service_type = forms.CharField(required=False)

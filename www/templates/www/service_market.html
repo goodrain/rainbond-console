@@ -8,14 +8,59 @@
     <section class="panel">
         <header class="panel-heading tab-bg-dark-navy-blue ">
             <ul class="nav nav-tabs" id="nav-tabs">
+                <li {% if fr == "private" %}class="active"{% endif %}><a href="/apps/{{tenantName}}/service/?fr=private">私有应用</a></li>
                 <li {% if fr == "local" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service">本地应用</a></li>
                 <li {% if fr == "remote" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=remote">应用市场</a></li>
             </ul>
         </header>
 
         <div class="panel-body">
-            <div class="tab-content">
-                {% if fr == "local" %}
+            <div class="tab-content container">
+                {% if fr == "private" %}
+                    <div class="row">
+                    {% if tenant_service_list %}
+                        <h4>团队共享</h4>
+                        {% for service in tenant_service_list %}
+                            <div class="col-lg-3  col-md-6 applistbox">
+                                <h4>{{service.app_alias}}</h4>
+                                <h5>{{service.app_version}}</h5>
+                                <button type="button" class="btn btn-success"
+                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    </div>
+
+                    <div class="row">
+                    {% if assistant_service_list %}
+                        <h4>云帮共享</h4>
+                        {% for service in assistant_service_list %}
+                            <div class="col-lg-3  col-md-6 applistbox">
+                                <h4>{{service.app_alias}}</h4>
+                                <h5>{{service.app_version}}</h5>
+                                <button type="button" class="btn btn-success"
+                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    </div>
+                    <div class="row">
+                    {% if cloud_service_list %}
+                        <h4>云市共享</h4>
+                        {% for service in cloud_service_list %}
+                            <div class="col-lg-3  col-md-6 applistbox">
+                                <h4>{{service.app_alias}}</h4>
+                                <h5>{{service.app_version}}</h5>
+                                <button type="button" class="btn btn-success"
+                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    </div>
+                {% elif fr == "local" %}
                     {% if cacheServiceList %}
                     {% for cache in cacheServiceList %}
                     <div class="col-lg-3  col-md-6 applistbox">
@@ -77,8 +122,8 @@
 
                             },
                             error: function () {
-                                // swal("系统异常");
-                                alert("data error");
+                                //alert("data error");
+                                console.log("data error");
                             }
                         });
                     });

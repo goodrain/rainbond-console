@@ -137,7 +137,9 @@ class PublishServiceView(APIView):
         data["pic"] = app.logo
         data["info"] = app.info
         data["desc"] = app.desc
-        data["status"] = "published"
+        # 修改为根据app_service status数据
+        # data["status"] = "published"
+        data["status"] = app.status
         data["category"] = "app_publish"
         data["is_service"] = app.is_service
         data["is_web_service"] = app.is_web_service
