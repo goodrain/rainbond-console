@@ -121,15 +121,15 @@
        
      function Fn_make_envs_html(port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
+        var serlink = '';
         $.get(url, function (event) {
-            if(event.environment){
+            if(event.environment.length != 0){
                console.log(event.environment);
                console.log(event.environment[0]);
-               console.log(event.environment[0].value);
-               
+               console.log(event.environment[0].value); 
+               serlink = event.environment[0].value;
             }
-            var serlink =""
-            $("#sever_show_" + port_show).html(serlink);
+            $("#sever_show_" + port_show).html();
         });
       }
 
