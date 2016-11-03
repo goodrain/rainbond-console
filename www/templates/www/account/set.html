@@ -3,7 +3,7 @@
 {% load staticfiles %}
 {% load crispy_forms_tags %}
 
-{% block title %}好雨云平台 用户设置{% endblock %}
+{% block title %}{{CUSTOM_CONFIG.TITLE}} 用户设置{% endblock %}
 
 {% block extracss %}
     <link rel="stylesheet" href="{% static "www/css/style.css" %}">

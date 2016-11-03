@@ -11,6 +11,7 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
 from www.models.main import TenantRegionPayModel
 from www.service_http import RegionServiceApi
 from django.conf import settings
+from goodrain_web.custom_config import custom_config
 from www.monitorservice.monitorhook import MonitorHook
 from www.gitlab_http import GitlabApi
 from www.github_http import GitHubApi
@@ -779,7 +780,7 @@ class CodeRepositoriesService(object):
 
     def initRepositories(self, tenant, user, service, service_code_from, code_url, code_id, code_version):
         if service_code_from == "gitlab_new":
-            if self.MODULES["GitLab_Project"]:
+            if custom_config.GITLAB_SERVICE_API:
                 project_id = 0
                 if user.git_user_id > 0:
                     project_id = gitClient.createProject(tenant.tenant_name + "_" + service.service_alias)
@@ -822,7 +823,7 @@ class CodeRepositoriesService(object):
         data["git_url"] = "--branch " + service.code_version + " --depth 1 " + service.git_url
 
         parsed_git_url = git_url_parse(service.git_url)
-        if parsed_git_url.host == "code.goodrain.com" and not settings.MODULES["Git_Code_Manual"]:
+        if parsed_git_url.host == "code.goodrain.com" and service.code_from=="gitlab_new":
             gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
         elif parsed_git_url.host == 'github.com':
             createUser = Users.objects.get(user_id=service.creater)
@@ -840,28 +841,25 @@ class CodeRepositoriesService(object):
 
     def showGitUrl(self, service):
         httpGitUrl = service.git_url
-        if settings.MODULES["Git_Code_Manual"]:
+        if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
+            cur_git_url = service.git_url.split("/")
+            httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
+        elif service.code_from == "gitlab_manual":
             httpGitUrl = service.git_url
-        else:
-            if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
-                cur_git_url = service.git_url.split("/")
-                httpGitUrl = "http://code.goodrain.com/app/" + cur_git_url[1]
-            elif service.code_from == "gitlab_manual":
-                httpGitUrl = service.git_url
         return httpGitUrl
 
     def deleteProject(self, service):
-        if self.MODULES["GitLab_Project"]:
+        if custom_config.GITLAB_SERVICE_API:
             if service.code_from == "gitlab_new" and service.git_project_id > 0:
                 gitClient.deleteProject(service.git_project_id)
 
     def getProjectBranches(self, project_id):
-        if self.MODULES["GitLab_Project"]:
+        if custom_config.GITLAB_SERVICE_API:
             return gitClient.getProjectBranches(project_id)
         return ""
 
     def createUser(self, user, email, password, username, name):
-        if self.MODULES["GitLab_User"]:
+        if custom_config.GITLAB_SERVICE_API:
             if user.git_user_id == 0:
                 logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
                 git_user_id = gitClient.createUser(email, password, username, name)
@@ -874,46 +872,46 @@ class CodeRepositoriesService(object):
                 monitorhook.gitUserMonitor(user, git_user_id)
 
     def modifyUser(self, user, password):
-        if self.MODULES["GitLab_User"]:
+        if custom_config.GITLAB_SERVICE_API:
             gitClient.modifyUser(user.git_user_id, password=password)
 
     def addProjectMember(self, git_project_id, git_user_id, level):
-        if self.MODULES["GitLab_Project"]:
+        if custom_config.GITLAB_SERVICE_API:
             gitClient.addProjectMember(git_project_id, git_user_id, level)
 
     def listProjectMembers(self, git_project_id):
-        if self.MODULES["GitLab_Project"]:
+        if custom_config.GITLAB_SERVICE_API:
             return gitClient.listProjectMembers(git_project_id)
         return ""
 
     def deleteProjectMember(self, project_id, git_user_id):
-        if self.MODULES["GitLab_Project"]:
+        if custom_config.GITLAB_SERVICE_API:
             gitClient.deleteProjectMember(project_id, git_user_id)
 
     def addProjectMember(self, project_id, git_user_id, gitlab_identity):
-        if self.MODULES["GitLab_Project"]:
+        if custom_config.GITLAB_SERVICE_API:
             gitClient.addProjectMember(project_id, git_user_id, gitlab_identity)
 
     def editMemberIdentity(self, project_id, git_user_id, gitlab_identity):
-        if self.MODULES["GitLab_Project"]:
+        if custom_config.GITLAB_SERVICE_API:
             gitClient.editMemberIdentity(project_id, git_user_id, gitlab_identity)
 
     def get_gitHub_access_token(self, code):
-        if self.MODULES["Git_Hub"]:
+        if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.get_access_token(code)
         return ""
 
     def getgGitHubAllRepos(self, token):
-        if self.MODULES["Git_Hub"]:
+        if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.getAllRepos(token)
         return ""
 
     def gitHub_authorize_url(self, user):
-        if self.MODULES["Git_Hub"]:
+        if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.authorize_url(user.pk)
         return ""
 
     def gitHub_ReposRefs(self, user, repos, token):
-        if self.MODULES["Git_Hub"]:
+        if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.getReposRefs(user, repos, token)
         return ""

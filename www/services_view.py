@@ -18,6 +18,7 @@ from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from django.conf import settings
+from goodrain_web.custom_config import custom_config
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.url import get_redirect_url
@@ -395,7 +396,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["memorydict"] = self.memory_choices()
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
-                context["git_tag"] = settings.MODULES["GitLab_Project"]
+                if custom_config.GITLAB_SERVICE_API :
+                    context["git_tag"] = True
+                else:
+                    context["git_tag"] = False
                 context["multi_port_choices"] = self.multi_port_choices()
                 context["mnt_share_choices"] = self.mnt_share_choices()
                 context["http_outer_service_ports"] = self.get_outer_service_port()

@@ -8,6 +8,7 @@ from django.shortcuts import redirect
 from django.views.generic.base import RedirectView
 
 from django.conf import settings
+from goodrain_web.custom_config import custom_config
 
 if 'django.contrib.staticfiles' in settings.INSTALLED_APPS:
     from django.contrib.staticfiles.templatetags.staticfiles import static
@@ -161,7 +162,8 @@ class AuthedView(BaseView):
         context['tenantName'] = self.tenantName
         context["tenant_pay_type"]=self.tenant.pay_type
         context['serviceAlias'] = self.serviceAlias
-        context['MODULES'] = settings.MODULES
+        context['SYS_MODULES'] = settings.MODULES
+        context['CUSTOM_CONFIG'] = custom_config.configs()
         context['is_private'] = sn.instance.is_private()
         return context
 
