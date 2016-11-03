@@ -8,7 +8,7 @@ from django.http import JsonResponse
 
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
-from www.views import CAdminView
+from www.views.base import CAdminView
 
 logger = logging.getLogger('default')
 
