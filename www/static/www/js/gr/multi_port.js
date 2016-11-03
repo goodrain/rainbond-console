@@ -123,7 +123,7 @@
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
             var serlink =""
-            if(event.envVartable){
+            if(event.environment){
                console.log(event.environment[value] + "01");
                console.log(event.environment[value][0] + "02");
                console.log(event.environment[0][value] + "03");
