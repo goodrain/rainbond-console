@@ -122,9 +122,11 @@
      function Fn_make_envs_html(port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
+            console.log(event.environment);
             if (event.environment) {
               for (var order in event) {
                  var serlink =  event[order].value;
+                 console.log(serlink);
               }
               
             }
@@ -135,9 +137,10 @@
       function Fn_make_port_detail (port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
+          console.log(event.outer_service);
           if (event.outer_service) {
             var next_tr = event.outer_service.domain;
-            //console.log(next_tr);
+            console.log(next_tr);
           }
           $("#port_show_" + port_show).html(next_tr);
         });
