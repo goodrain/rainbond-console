@@ -139,6 +139,8 @@ class SingAttrAddOrModifyViews(CAdminView):
             ConsoleSysConfig.objects.filter(key=config_key).update(value=config_value)
             data["success"] = True
             data["info"]="操作成功";
+            # 更新缓存数据
+            custom_settings.reload()
         except Exception as e:
             logger.exception(e)
             data["success"] = False
