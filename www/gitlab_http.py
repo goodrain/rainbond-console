@@ -25,10 +25,18 @@ class GitlabApi(BaseHttpClient):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive'}
         gitlab_service_info = custom_config.GITLAB_SERVICE_API
-        for k, v in gitlab_service_info.items():
-            setattr(self, k, v)
+        if gitlab_service_info is not None:
+            for k, v in gitlab_service_info.items():
+                setattr(self, k, v)
+
+    def _reload(self):
+        gitlab_service_info = custom_config.GITLAB_SERVICE_API
+        if gitlab_service_info is not None:
+            for k, v in gitlab_service_info.items():
+                setattr(self, k, v)
 
     def get_private_token(self):
+        self._reload()
         private_token = ""
         body = {}
         body["login"] = self.admin_user
@@ -47,6 +55,7 @@ class GitlabApi(BaseHttpClient):
         return private_token
 
     def getUser(self, user_id):
+        self._reload()
         git_user_id = 0
         try:
             userId = str(user_id)
@@ -61,6 +70,7 @@ class GitlabApi(BaseHttpClient):
         return git_user_id
 
     def modifyUser(self, user_id, **kwargs):
+        self._reload()
         try:
             private_token = self.get_private_token()
             url = self.url + PREFIX + "/users/" + str(user_id)
@@ -72,6 +82,7 @@ class GitlabApi(BaseHttpClient):
             raise e
 
     def createUser(self, email, password, username, name):
+        self._reload()
         git_user_id = 0
         user = {}
         user["email"] = email
@@ -99,6 +110,7 @@ class GitlabApi(BaseHttpClient):
         return git_user_id
 
     def createProject(self, appname):
+        self._reload()
         project_id = 0
         project = {}
         project["name"] = appname
@@ -124,6 +136,7 @@ class GitlabApi(BaseHttpClient):
         return project_id
 
     def createProjectForUser(self, appname, user_id):
+        self._reload()
         project_id = 0
         try:
             userId = str(user_id)
@@ -149,6 +162,7 @@ class GitlabApi(BaseHttpClient):
         return project_id
 
     def deleteProject(self, project_id):
+        self._reload()
         try:
             private_token = self.get_private_token()
             logger.debug(private_token)
@@ -163,12 +177,14 @@ class GitlabApi(BaseHttpClient):
             return ""
 
     def listProjectMembers(self, project_id):
+        self._reload()
         url = "{0}{1}/projects/{2}/members".format(self.url, PREFIX, project_id)
         headers = {'Content-Type': 'application/json', 'PRIVATE-TOKEN': self.get_private_token()}
         res, body = self._get(url, headers=headers)
         return body
 
     def addProjectMember(self, project_id, user_id, identity):
+        self._reload()
         result = False
         try:
             private_token = self.get_private_token()
@@ -189,6 +205,7 @@ class GitlabApi(BaseHttpClient):
         return result
 
     def editMemberIdentity(self, project_id, user_id, identity):
+        self._reload()
         level = self.ACCESS_LEVEL.get(identity.upper())
         url = "{0}{1}/projects/{2}/members/{3}".format(self.url, PREFIX, project_id, user_id)
 
@@ -202,6 +219,7 @@ class GitlabApi(BaseHttpClient):
             return False
 
     def deleteProjectMember(self, project_id, user_id):
+        self._reload()
         result = False
         try:
             projectId = str(project_id)
@@ -215,6 +233,7 @@ class GitlabApi(BaseHttpClient):
         return result
 
     def getProjectCommitTime(self, project_id):
+        self._reload()
         result = 0
         try:
             projectId = str(project_id)
@@ -229,6 +248,7 @@ class GitlabApi(BaseHttpClient):
         return result
 
     def getProjectBranches(self, project_id):
+        self._reload()
         try:
             projectId = str(project_id)
             url = self.url + PREFIX + "/projects/" + projectId + "/repository/branches"
@@ -240,6 +260,7 @@ class GitlabApi(BaseHttpClient):
         return ""
 
     def createWebHook(self, project_id):
+        self._reload()
         result = False
         try:
             projectId = str(project_id)
