@@ -16,7 +16,7 @@
 {% block body %}
 
 <div class="mainbox">
-  <h1 class="yblogo"><img src="static/www/images/yunbanglogo.png"></h1>
+  <h1 class="yblogo"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}"></h1>
 
   <form enctype="multipart/form-data" action="" method="post">
     <div class="form-group">

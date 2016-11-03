@@ -17,7 +17,7 @@
 
 <div class="mainbox">
     <h1 class="yblogo">
-        <img src='{% static "www/images/yunbanglogo.png" %}' />
+        <img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" />
     </h1>
     {% if error %}
         <ul>

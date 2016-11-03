@@ -17,7 +17,7 @@
 
 <div class="mainbox">
     <!-- logo start -->
-    <h1 class="yblogo"><img src='{% static "www/images/yunbanglogo.png" %}'></h1>
+    <h1 class="yblogo"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}"></h1>
     <!-- logo end -->
 
     <form class="form-signin-w form-signin-reg-w" enctype="multipart/form-data" action="" method="post">
