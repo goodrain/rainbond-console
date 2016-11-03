@@ -122,10 +122,11 @@
      function Fn_make_envs_html(port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
-            console.log(event.environment + "01");
             if (event.environment) {
-              var serlink = event.environment.value;
-              console.log(event.environment.value + "02");
+              for (var order in event) {
+                 var serlink =  event[order].value;
+              }
+              
             }
             $("#sever_show_" + port_show).html(serlink);
         });
