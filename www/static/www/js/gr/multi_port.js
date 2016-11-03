@@ -123,10 +123,8 @@
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
             if (event.environment) {
-              serlink = event.environment[0].value;
+              var serlink = event.environment[0].value;
               console(serlink);
-            }else{
-              serlink = "";
             }
             $("#sever_show_" + port_show).html(serlink);
         });
@@ -136,7 +134,7 @@
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
           if (event.outer_service) {
-            next_tr = event.outer_service.domain;
+            var next_tr = event.outer_service.domain;
             console.log(next_tr);
           }
           $("#port_show_" + port_show).html(next_tr);
