@@ -116,7 +116,21 @@
       $(".fn-sever-link").each(function(){
            this_port_show = $(this).attr('port');
            Fn_make_port_detail (this_port_show);
+           Fn_make_envs_html(this_port_show);
       });
+       
+     function Fn_make_envs_html(port_show) {
+        url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
+        $.get(url, function (event) {
+            if (event.environment) {
+              serlink = event.environment[0].value;
+            }
+            if(event.environment ==""){
+               serlink = ""
+            }
+            $("#sever_show_" + port_show).html(serlink);
+        });
+      }
 
       function Fn_make_port_detail (port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
