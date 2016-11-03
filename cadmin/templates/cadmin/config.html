@@ -20,6 +20,7 @@
                 <tbody>
 
                     {% for config in config_list %}
+                        {% if config.key != 'LOGO'%}
                         <tr config_key="{{config.key}}" config_type="{{config.type}}">
                             <td>{{config.key}}</td>
                             <td>{{config.desc}}</td>
@@ -30,6 +31,7 @@
                                 <button type="button" class="config-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>
                             </td>
                         </tr>
+                        {% endif %}
                     {% endfor %}
                 </tbody>
 

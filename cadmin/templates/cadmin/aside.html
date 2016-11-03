@@ -8,7 +8,9 @@
                 <span>配置管理</span>
             </a>
             <ul class="sub">
-                <li {% if base_config %}class="active" {% endif %}><a href="">配置列表</a></li>
+                <li {% if info_page %}class="active" {% endif %}><a href="/cadmin/info">配置说明</a></li>
+                <li {% if base_config %}class="active" {% endif %}><a href="/cadmin">配置列表</a></li>
+                <li {% if upload_page %}class="active" {% endif %}><a href="/cadmin/logo">公司LOGO</a></li>
 
             </ul>
         </li>

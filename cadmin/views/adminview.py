@@ -11,6 +11,8 @@ from django.http.response import HttpResponse, JsonResponse
 
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
+from www.models import AppServiceImages
+from www.models.service_publish import AppServiceImages
 from www.views.base import CAdminView
 from goodrain_web.custom_config import custom_config as custom_settings
 
@@ -124,3 +126,33 @@ class UpdateAttrViews(CAdminView):
         return JsonResponse(data, status=200)
 
 
+class ConfigLogoViews(CAdminView):
+    def get_media(self):
+        media = super(ConfigLogoViews, self).get_media() + self.vendor('admin/css/jquery-ui.css',
+                                                                         'admin/css/jquery-ui-timepicker-addon.css',
+                                                                         'admin/js/jquery.cookie.js',
+                                                                         'admin/js/common-scripts.js',
+                                                                         'admin/js/jquery.dcjqaccordion.2.7.js',
+                                                                         'admin/js/jquery.scrollTo.min.js',
+                                                                         'admin/layer/layer.js',
+                                                                         'admin/js/jquery-ui.js',
+                                                                         'admin/js/jquery-ui-timepicker-addon.js',
+                                                                         'admin/js/jquery-ui-timepicker-addon-i18n.min.js',
+                                                                         'admin/js/jquery-ui-sliderAccess.js')
+        return media
+
+    def init_context(self, context):
+        context["config"] = "active"
+        context["upload_page"]="active"
+
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        self.init_context(context)
+        try:
+            data =  AppServiceImages.objects.get(service_id="logo")
+            context["data"] = data
+        except Exception as e:
+            logger.error(e)
+
+        return TemplateResponse(self.request, "cadmin/upload.html", context)

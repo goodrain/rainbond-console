@@ -8,6 +8,7 @@ from django.http import JsonResponse
 
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
+from www.models import AppServiceImages
 from www.views.base import CAdminView
 from goodrain_web.custom_config import custom_config as custom_settings
 
@@ -145,4 +146,36 @@ class SingAttrAddOrModifyViews(CAdminView):
             logger.exception(e)
             data["success"] = False
             data["info"] = "操作失败"
+        return JsonResponse(data, status=200)
+
+
+class UploadLogoViews(CAdminView):
+    def post(self, request, *args, **kwargs):
+        logo = request.FILES['logo']
+        service_id = "logo"
+        # 更新图片路径
+        try:
+            count = AppServiceImages.objects.filter(service_id=service_id).count()
+            if count > 1:
+                AppServiceImages.objects.filter(service_id=service_id).delete()
+                count = 0
+            if count == 0:
+                image_info = AppServiceImages()
+                image_info.service_id = service_id
+                image_info.logo = logo
+            else:
+                image_info = AppServiceImages.objects.get(service_id=service_id)
+                image_info.logo = logo
+            image_info.save()
+            image_url = AppServiceImages.objects.get(service_id="logo").logo
+            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            if ConsoleSysConfig.objects.filter(key="LOGO").exists():
+                ConsoleSysConfig.objects.filter(key="LOGO").update(value = image_url)
+            else:
+                ConsoleSysConfig.objects.create(key="LOGO", type="string", value = image_url, desc="logo", create_time=create_time)
+                # 更新缓存数据
+            custom_settings.reload()
+        except Exception as e:
+            logger.error(e)
+        data = {"success": True, "code": 200, "pic": image_info.logo.name}
         return JsonResponse(data, status=200)
