@@ -167,7 +167,7 @@ class UserLoginForm(forms.Form):
                     HTML("""<div class="checkbox clearfix"><label><input type="checkbox">下次自动登录</label><a href="/account/begin_password_reset" class="pull-right">忘记密码了？</a></div>"""),
                     FormActions(Submit('login', u'登录', css_class='btn btn-lg btn-success btn-block')),
                     HTML("""<div class="linkregister text-center">现在<a href="/register{0}">注册</a></div>""".format(prefix_url)),
-                    #HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                    # HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                     css_class='login-wrap',
                     style="background: #FFFFFF;",
                 )
@@ -475,7 +475,7 @@ class RegisterForm(forms.Form):
                     HTML("""<p class="text-center">或使用以下账号注册</p>"""),
                     HTML("""<a href="/wechat/login{0}" class="weixin"><img src="static/www/images/weixin.png">微信</a>""".format(prefix_url)),
                     HTML("""<div class="linkregister text-center">直接<a href="/login{0}">登录</a></div>""".format(prefix_url)),
-                    HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                    # HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                     css_class="login-wrap"
                 )
             )
@@ -496,7 +496,7 @@ class RegisterForm(forms.Form):
                     HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="http://www.goodrain.com/product/goodrainlaws.html" target="_blank">云帮公有云版服务条款</a>》</div>"""),
                     FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                     HTML("""<div class="linkregister text-center">直接<a href="/login{0}">登录</a></div>""".format(prefix_url)),
-                    HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
+                    # HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),
                     css_class="login-wrap"
                 )
             )
