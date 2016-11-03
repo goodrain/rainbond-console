@@ -128,7 +128,6 @@ class SelectedServiceView(APIView):
 class PublishServiceView(APIView):
     allowed_methods = ('post',)
 
-    
     def init_data(self, app, slug, image):
         data = {}
         data["service_key"] = app.service_key
@@ -138,8 +137,9 @@ class PublishServiceView(APIView):
         data["info"] = app.info
         data["desc"] = app.desc
         # 修改为根据app_service status数据
-        # data["status"] = "published"
-        data["status"] = app.status
+        data["status"] = "published"
+        if app.status == "private":
+            data["status"] = app.status
         data["category"] = "app_publish"
         data["is_service"] = app.is_service
         data["is_web_service"] = app.is_web_service
