@@ -81,7 +81,7 @@ if IS_OPEN_API:
         'api',
         'openapi',
         'oauth2_provider',
-        'admin',
+        'cadmin',
     )
     OAUTH2_PROVIDER = {
         'SCOPES': {'read': 'Read scope',
@@ -101,7 +101,7 @@ else:
         'rest_framework_swagger',
         'www',
         'api',
-        'admin',
+        'cadmin',
     )
 
 MIDDLEWARE_CLASSES = (
