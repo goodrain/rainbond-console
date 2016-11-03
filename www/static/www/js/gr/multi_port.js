@@ -125,7 +125,7 @@
             if(event.environment){
                console.log(event.environment);
                console.log(event.environment[0]);
-               
+               console.log(event.environment[0].value;);
                
             }
             var serlink =""
