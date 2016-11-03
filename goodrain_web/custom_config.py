@@ -9,15 +9,7 @@ import logging
 
 logger = logging.getLogger('default')
 
-
-class Singleton(object):  
-    def __new__(cls, *args, **kw):  
-        if not hasattr(cls, '_instance'):  
-            orig = super(Singleton, cls)  
-            cls._instance = orig.__new__(cls, *args, **kw)  
-        return cls._instance 
-    
-class ConfigCenter(Singleton):
+class ConfigCenter(object):
     objects = {}
 
     def __init__(self):
@@ -50,7 +42,8 @@ class ConfigCenter(Singleton):
                 return None
 
     def configs(self):
-        logger.info(self.objects)
+        #logger.info(id(self))
+        #logger.info(self.objects)
         return self.objects
 
     def reload(self):
