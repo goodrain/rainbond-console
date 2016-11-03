@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
 from www.views.base import CAdminView
-from goodrain_web.custom_settings import settings as custom_settings
+from goodrain_web.custom_config import custom_config as custom_settings
 
 logger = logging.getLogger('default')
 
@@ -22,6 +22,7 @@ class ConfigViews(CAdminView):
             if action == "add_config":
                 config_key = request.POST.get('config_key', None)
                 config_desc = request.POST.get('config_desc', "")
+                config_type = request.POST.get('config_type')
                 if config_key is None:
                     data["success"] = False
                     data["info"] = "key 不能为空"
@@ -31,7 +32,7 @@ class ConfigViews(CAdminView):
                 if ConsoleSysConfig.objects.filter(key=config_key).exists():
                     return JsonResponse({"success": False, "code": 400, "info": u"配置名已存在"})
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                ConsoleSysConfig.objects.create(key=config_key, desc=config_desc, create_time=create_time)
+                ConsoleSysConfig.objects.create(key=config_key, type=config_type, desc=config_desc, create_time=create_time)
                 data["success"] = True
                 data["info"] = "添加成功"
             elif action == "del_config":
@@ -127,3 +128,19 @@ class ConfigDetailViews(CAdminView):
             data["info"] = "操作失败"
         return JsonResponse(data, status=200)
 
+
+class SingAttrAddOrModifyViews(CAdminView):
+    def post(self, request, *args, **kwargs):
+        data={}
+        try:
+            config_key = request.POST.get("current_config_key")
+            config_value = request.POST.get("config_value")
+
+            ConsoleSysConfig.objects.filter(key=config_key).update(value=config_value)
+            data["success"] = True
+            data["info"]="操作成功";
+        except Exception as e:
+            logger.exception(e)
+            data["success"] = False
+            data["info"] = "操作失败"
+        return JsonResponse(data, status=200)

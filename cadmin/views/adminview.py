@@ -12,7 +12,7 @@ from django.http.response import HttpResponse, JsonResponse
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
 from www.views.base import CAdminView
-from goodrain_web.custom_settings import settings as custom_settings
+from goodrain_web.custom_config import custom_config as custom_settings
 
 logger = logging.getLogger('default')
 
@@ -113,6 +113,7 @@ class UpdateAttrViews(CAdminView):
                 ConsoleSysConfig.objects.filter(ID=config_attr.config_id).update(value=jsonstr)
 
             data = {"ok": True,"info":u"操作成功"}
+
 
             # 更新缓存数据
             custom_settings.reload()

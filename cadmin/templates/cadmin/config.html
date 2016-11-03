@@ -11,6 +11,7 @@
                     <tr>
                         <th>配置名</th>
                         <th>配置描述</th>
+                        <th>配置类型</th>
                         <th>详情</th>
                         <th><i class=" fa fa-edit"></i> 操作</th>
                     </tr>
@@ -19,9 +20,10 @@
                 <tbody>
 
                     {% for config in config_list %}
-                        <tr config_key="{{config.key}}">
+                        <tr config_key="{{config.key}}" config_type="{{config.type}}">
                             <td>{{config.key}}</td>
                             <td>{{config.desc}}</td>
+                            <td>{{config.type}}</td>
                             <td><a href="#" class="config-detail">详情</a></td>
                             <td>
                                 <button type="button" class="config-edit btn btn-danger btn-xs" ><i class="fa fa-edit"></i></button>&nbsp;&nbsp;&nbsp;
@@ -44,18 +46,44 @@
     </div>
 </div>
 
+<div id="singleAttrDialog" title="为配置添加值">
+    <fieldset>
+        <input type="hidden" name="current_config_key" class="current_config_key" value="">
+        属性值 &nbsp;&nbsp;&nbsp;&nbsp;<input style="width: 70%" type="text" name="config_value" class="config_value" value=""><br>
+        <br/>
+        <!--属性类型 &nbsp;<select id="attr_type" class="attr_type">-->
+        <!--<option value="string">字符串</option>-->
+        <!--<option value="boolean">布尔类型</option>-->
+        <!--<option value="int">整型</option>-->
+        <!--<option value="float">浮点型</option>-->
+    <!--</select><br>-->
+        <br/>
+    </fieldset>
+    <input type="button" value="确定" onclick="confirm_btn()">&nbsp;&nbsp;
+    <input type="button" value="取消" onclick="closeDialog()">
+
+
+</div>
+
 <script>
     $(document).ready(function () {
-
-
+        $("#singleAttrDialog").dialog({
+            autoOpen: false
+        });
 
     });
+    //关闭修改对话框
+    function closeDialog() {
+        $("#singleAttrDialog").dialog("close");
+    }
+
     // 添加新配置
     $("#add_new_config").on('click', function () {
         var msg = '<tr colspan=7></tr>';
         msg = msg + '<tr>';
         msg = msg + '<td><input name="config_key" placeholder="(^[A-Z][A-Z0-9_])" value=""></td>';
-        msg = msg + '<td><input name ="config_desc" value=""></td>'
+        msg = msg + '<td><input name ="config_desc" value=""></td>';
+        msg = msg + '<td><select name="config_type" id="config_type"> <option value="json">json</option> <option value="string">字符串</option> <option value="boolean">布尔类型</option> <option value="int">整型</option> <option value="float">浮点型</option> <option value="list">列表</option></select></td>';
         msg = msg + '<td><div class="btn-toolbar" role="toolbar">' +
                 '<div class="btn-group" role="group">' +
                 '<button type="button" class="config-save btn btn-success btn-xs" "><i class="fa fa-check"></i></button>' +
@@ -70,7 +98,6 @@
         $('.config-cancel').unbind('click').bind('click', config_cancel);
         $('.config-save').unbind('click').bind('click', config_save);
 
-
     });
 
     $('.config-cancel').click(config_cancel);
@@ -78,6 +105,16 @@
     $('.config-delete').click(config_delete);
     $('.config-edit').click(config_edit);
     $('.config-detail').click(config_detail);
+
+//    function select_change(){
+//        var val = $("#config_type option:selected").val();
+//        if(val != 'json'){
+//            var msg = '<td><input name ="config_desc" placeholder="配置值" value=""></td>';
+//            $("#config_type").parent().before(msg);
+//        }
+//
+//    }
+
 
     //取消添加操作
     function config_cancel(event) {
@@ -94,6 +131,12 @@
             value = $(this).val();
             dict[name] = value;
         });
+        add_config.find('select').each(function() {
+            name = $(this).attr("name");
+            value = $(this).val();
+            dict[name] = value;
+        });
+
         url = "/cadmin/ajax/custome-config";
 
         $.post(url, dict, function(res) {
@@ -124,9 +167,39 @@
     function config_edit(event){
         var detail_tr = $(this).closest('tr');
         var config_key = detail_tr.attr("config_key");
-        window.location.href = "/cadmin/edit?config_key="+config_key;
+        var config_type = detail_tr.attr("config_type");
+        $(".current_config_key").val(config_key);
+        if (config_type=='json'){
+            window.location.href = "/cadmin/edit?config_key="+config_key;
+        }else{
+            $("#singleAttrDialog").dialog("open");
+        }
 
     }
+
+    function confirm_btn() {
+        var dict = {csrfmiddlewaretoken: $.cookie('csrftoken')};
+        var current_config_key = $(".current_config_key").val();
+        var config_value = $(".config_value").val();
+        url = "/cadmin/ajax/addSingleAttrbuite";
+        dict["current_config_key"]=current_config_key;
+        dict["config_value"]=config_value;
+        $.post(url, dict, function(res) {
+            if (res.success) {
+                closeDialog();
+            }
+        });
+
+    }
+
+    // 单一属性的添加修改
+//    function showConfigmodify(config_key,config_type){
+//        $("#singleAttrDialog").dialog("open");
+//        var curr_tr = $(this).closest("tr");
+//
+////        curr_tr.find('')
+////        curr_tr.find("select").val(config_type);
+//    }
 
     // 显示详情
     function config_detail(event){
@@ -158,7 +231,7 @@
                         }
                     });
 
-                    $("#detail-message").html(msg.info);
+                    $("#detail-message").html(config_key+"="+msg.info);
                 } else {
                     swal("获取详情异常");
                 }
