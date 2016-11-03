@@ -124,9 +124,6 @@
         $.get(url, function (event) {
             
             if(event.environment){
-               console.log(event.environment[value] + "01");
-               console.log(event.environment[value][0] + "02");
-               console.log(event.environment[0][value] + "03");
                console.log(event.environment["value"] + "04");
                console.log(event.environment["value"][0] + "05");
                console.log(event.environment[0]["value"] + "06");
