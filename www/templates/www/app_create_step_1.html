@@ -55,10 +55,12 @@
                         {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
                             <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" checked> 新建仓库
                             <label style="font-size:14px" class="checkbox-inline "></label>
+
+							<input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2"> 使用已有仓库
+							<label style="font-size:14px" class="checkbox-inline select_git"></label>
                         {% endif %}
 	                    
-	                    <input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2"> 使用已有仓库
-	                    <label style="font-size:14px" class="checkbox-inline select_git"></label>
+
 	                    
 	                    {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
 							<input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3"> 连接Github
