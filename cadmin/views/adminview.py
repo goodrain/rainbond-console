@@ -11,13 +11,12 @@ from django.http.response import HttpResponse, JsonResponse
 
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
-from www.views.base import BaseView, AuthedView
-from django.conf import settings
+from www.views.base import CAdminView
 
 logger = logging.getLogger('default')
 
 
-class AdminViews(BaseView):
+class AdminViews(CAdminView):
     def get_media(self):
         media = super(AdminViews, self).get_media() + self.vendor('admin/css/jquery-ui.css',
                                                                   'admin/css/jquery-ui-timepicker-addon.css',
@@ -45,7 +44,7 @@ class AdminViews(BaseView):
         return TemplateResponse(self.request, "cadmin/config.html", context)
 
 
-class ConfigDetailViews(BaseView):
+class ConfigDetailViews(CAdminView):
     def get_media(self):
         media = super(ConfigDetailViews, self).get_media() + self.vendor('admin/css/jquery-ui.css',
                                                                          'admin/css/jquery-ui-timepicker-addon.css',
@@ -83,7 +82,7 @@ class ConfigDetailViews(BaseView):
         return TemplateResponse(self.request, "cadmin/edit.html", context)
 
 
-class UpdateAttrViews(AuthedView):
+class UpdateAttrViews(CAdminView):
     @never_cache
     def post(self, request, *args, **kwargs):
         data = {}

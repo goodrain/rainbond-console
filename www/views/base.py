@@ -173,3 +173,19 @@ class AuthedView(BaseView):
                 return False
         except PermissionDenied:
             return False
+
+
+class CAdminView(BaseView):
+    """是否有权限访问cadmin模块"""
+    def __init__(self, request, *args, **kwargs):
+        BaseView.__init__(self, request, *args, **kwargs)
+        if isinstance(request.user, AnonymousUser):
+            raise http.Http404
+        if not request.user.is_sys_admin():
+            raise http.Http404
+
+    def get_context(self):
+        context = super(CAdminView, self).get_context()
+        context['MODULES'] = settings.MODULES
+        context['is_private'] = sn.instance.is_private()
+        return context

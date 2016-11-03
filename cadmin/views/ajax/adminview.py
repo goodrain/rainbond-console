@@ -8,12 +8,12 @@ from django.http import JsonResponse
 
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
-from www.views import AuthedView
+from www.views import CAdminView
 
 logger = logging.getLogger('default')
 
 
-class ConfigViews(AuthedView):
+class ConfigViews(CAdminView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
@@ -53,7 +53,7 @@ class ConfigViews(AuthedView):
         return JsonResponse(data, status=200)
 
 
-class ConfigAttributeViews(AuthedView):
+class ConfigAttributeViews(CAdminView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
@@ -108,7 +108,7 @@ class ConfigAttributeViews(AuthedView):
         return JsonResponse(data, status=200)
 
 
-class ConfigDetailViews(AuthedView):
+class ConfigDetailViews(CAdminView):
     def post(self, request, *args, **kwargs):
         data = {}
         try:
