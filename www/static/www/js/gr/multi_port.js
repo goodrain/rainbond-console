@@ -123,7 +123,7 @@
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (data) {
             var serlink =""
-            for (var order in data) {
+            for (var order in data.environment) {
               serlink = serlink + '///' + data[order].desc + '//' + data[order].name + '//' + data[order].value ;
             }
             $("#sever_show_" + port_show).html(serlink);
