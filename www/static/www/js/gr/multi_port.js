@@ -122,8 +122,9 @@
      function Fn_make_envs_html(port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
-            
             if(event.environment){
+               console.log(event.environment + "01");
+               console.log(event.environment[0] + "02");
                console.log(event.environment["value"] + "04");
                console.log(event.environment["value"][0] + "05");
                console.log(event.environment[0]["value"] + "06");
