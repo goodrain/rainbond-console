@@ -5,6 +5,7 @@ from goodrain_web.base import BaseHttpClient
 import json
 import logging
 import httplib2
+from goodrain_web.custom_config import custom_config
 
 logger = logging.getLogger('default')
 
@@ -17,7 +18,7 @@ class GitHubApi(BaseHttpClient):
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive'}
-        github_service_info = settings.GITHUB_SERVICE_API
+        github_service_info = custom_config.GITHUB_SERVICE_API
         for k, v in github_service_info.items():
             setattr(self, k, v)
 
@@ -74,7 +75,7 @@ class GitHubApi(BaseHttpClient):
 
     def getReposRefs(self, user, repos, token):
         try:
-            url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token+"&per_page=200"
+            url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token + "&per_page=200"
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'}
             response, content = http.request(url, 'GET', headers=headers)

@@ -4,6 +4,7 @@ GITLAB_SERVICE_API = {
     'admin_email': 'app@goodrain.com',
     'admin_password': 'gr123465',
     'apitype': 'gitlab service',
+    'hook_url':'https://user.goodrain.com/service/gitlabhook/',
 }
 
 GITHUB_SERVICE_API = {

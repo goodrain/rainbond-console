@@ -1,6 +1,7 @@
 from django.conf import settings
 
 from goodrain_web.base import BaseHttpClient
+from goodrain_web.custom_config import custom_config
 
 import json
 import logging
@@ -9,7 +10,6 @@ import httplib2
 logger = logging.getLogger('default')
 
 PREFIX = "api/v3"
-GIT_LAB_WEB_HOOK_URL = "https://user.goodrain.com/service/gitlabhook/"
 
 
 class GitlabApi(BaseHttpClient):
@@ -24,7 +24,7 @@ class GitlabApi(BaseHttpClient):
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive'}
-        gitlab_service_info = settings.GITLAB_SERVICE_API
+        gitlab_service_info = custom_config.GITLAB_SERVICE_API
         for k, v in gitlab_service_info.items():
             setattr(self, k, v)
 
@@ -244,7 +244,7 @@ class GitlabApi(BaseHttpClient):
         try:
             projectId = str(project_id)
             project_hook = {}
-            project_hook["url"] = GIT_LAB_WEB_HOOK_URL
+            project_hook["url"] = gitlab_service_info["hook_url"]
             project_hook["push_events"] = True
             project_hook["issues_events"] = False
             project_hook["merge_requests_events"] = False
