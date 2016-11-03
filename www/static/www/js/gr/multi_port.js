@@ -124,8 +124,9 @@
         $.get(url, function (event) {
             if (event.environment) {
               serlink = event.environment[0].value;
+              console(serlink);
             }else{
-              serlink = ""
+              serlink = "";
             }
             $("#sever_show_" + port_show).html(serlink);
         });
@@ -136,6 +137,7 @@
         $.get(url, function (event) {
           if (event.outer_service) {
             next_tr = event.outer_service.domain;
+            console.log(next_tr);
           }
           $("#port_show_" + port_show).html(next_tr);
         });
