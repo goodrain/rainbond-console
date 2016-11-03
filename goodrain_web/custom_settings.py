@@ -12,12 +12,9 @@ class ConfigCenter(object):
     def __init__(self):
         configs = ConsoleSysConfig.objects.all()
         for config in configs:
-            if config.type == "json":
-                self.objects[config.key] = json.loads(config.value)
-            elif config.type == "list":
-                self.objects[config.key] = json.loads(config.value)
-            else:
-                self.objects[config.key] = config.value
+            json_value = config.value
+            array_value = json.loads(json_value)
+            self.objects[config.key] = array_value
 
     def __getattr__(self, name):
         if name in self.objects:
@@ -27,5 +24,16 @@ class ConfigCenter(object):
                 return getattr(base_settings, name)
             else:
                 return None
+
+    def get_item(self, key):
+        return self.objects.get(key)
+
+    def reload(self):
+        configs = ConsoleSysConfig.objects.all()
+        for config in configs:
+            json_value = config.value
+            array_value = json.loads(json_value)
+            self.objects[config.key] = array_value
+
 
 settings = ConfigCenter()

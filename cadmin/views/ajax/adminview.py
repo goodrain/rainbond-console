@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from cadmin.models.main import ConsoleSysConfig, ConsoleSysConfigAttr
 from cadmin.utils import attrlist2json, is_number
 from www.views.base import CAdminView
+from goodrain_web.custom_settings import settings as custom_settings
 
 logger = logging.getLogger('default')
 
@@ -46,6 +47,8 @@ class ConfigViews(CAdminView):
                 data["success"] = True
                 data["info"] = "删除成功"
 
+            # 更新缓存数据
+            custom_settings.reload()
         except Exception as e:
             logger.exception(e)
             data["success"] = False
@@ -101,6 +104,8 @@ class ConfigAttributeViews(CAdminView):
                 data["success"] = True
                 data["info"] = "删除成功"
 
+            # 更新缓存数据
+            custom_settings.reload()
         except Exception as e:
             logger.exception(e)
             data["success"] = False
@@ -118,7 +123,6 @@ class ConfigDetailViews(CAdminView):
             data["info"] = res_json
         except Exception as e:
             logger.exception(e)
-            print e
             data["success"] = False
             data["info"] = "操作失败"
         return JsonResponse(data, status=200)

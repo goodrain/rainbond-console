@@ -181,7 +181,7 @@ class CAdminView(BaseView):
         BaseView.__init__(self, request, *args, **kwargs)
         if isinstance(request.user, AnonymousUser):
             raise http.Http404
-        if not request.user.is_sys_admin():
+        if not request.user.is_sys_admin:
             raise http.Http404
 
     def get_context(self):
