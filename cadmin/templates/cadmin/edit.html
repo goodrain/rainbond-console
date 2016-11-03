@@ -9,6 +9,7 @@
             <span><button type="button" class="btn btn-success" id="add_new_attr">新增属性项</button></span>
         </p>
         <div class="panel-body">
+            <h5>配置名 &nbsp;&nbsp;{{config_key}}</h5>
             <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;" id="attr_list">
                 <thead>
                 <tr>
@@ -51,9 +52,9 @@
 <div id="dialog" title="修改属性">
     <fieldset>
     <input type="hidden" name="attr_id" class="attr_id" value="">
-    属性名 &nbsp;&nbsp;&nbsp;&nbsp;<input type="text" name="attr_name" class="attr_name " value=""><br>
+    属性名 &nbsp;&nbsp;&nbsp;&nbsp;<input style="width: 70%" type="text" name="attr_name" class="attr_name " value=""><br>
     <br/>
-    属性值 &nbsp;&nbsp;&nbsp;&nbsp;<input type="text" name="attr_val" class="attr_val" value=""><br>
+    属性值 &nbsp;&nbsp;&nbsp;&nbsp;<input style="width: 70%" type="text" name="attr_val" class="attr_val" value=""><br>
     <br/>
     属性类型 &nbsp;<select id="attr_type" class="attr_type">
     <option value="string">字符串</option>
@@ -62,7 +63,7 @@
     <option value="float">浮点型</option>
     </select><br>
     <br/>
-    属性描述 &nbsp;<input type="text" name="attr_desc" class="attr_desc" value=""><br>
+    属性描述 &nbsp;<input style="width: 70%" type="text" name="attr_desc" class="attr_desc" value=""><br>
     <br/>
     </fieldset>
     <input type="button" value="确定" onclick="modify_attr()">&nbsp;&nbsp;
@@ -87,7 +88,9 @@
     });
     //显示修改对话框
     function showDialog(attr_id, attr_name, attr_val, attr_type, attr_desc) {
-        $("#dialog").dialog({});
+        $("#dialog").dialog({
+            width:460
+        });
         $(".attr_id").val(attr_id);
         $(".attr_name").val(attr_name);
         $(".attr_val").val(attr_val);
