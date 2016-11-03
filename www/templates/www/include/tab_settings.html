@@ -83,13 +83,13 @@
   <!-- 多端口修改开始 -->
   <section class="tabbox">
       <!-- title line start -->
-      <div class="tittext">
-          <p>端口开放<span>(对外服务后需重启)</span></p>
+      <div class="tittext clearfix">
+          <p style="float: left;">端口开放<span>(对外服务后需重启)</span></p>
           <!--
-          <p>{% if user.is_sys_admin or add_port %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}
+          <p style="float: left;">{% if user.is_sys_admin or add_port %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}
           </p>
           -->
-          <p><button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button></p>
+          <p style="float: left;"><button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button></p>
       </div>
       <!-- title line end -->
       <!-- table start -->
@@ -127,9 +127,7 @@
                   </td>
                   <td>
                       <span>服务地址:</span>
-                      <p class="fn-sever-link" id="port_show_{{port.container_port}}" port="{{port.container_port}}">
-
-                      </p>
+                      
                   </td>
                   <td>
                       <span>使用别名:</span>
@@ -147,33 +145,9 @@
                   </td>
                   <td>
                      <span>访问地址:</span>
-                      {% ifequal tenantServiceInfo.port_type "one_outer" %}
-                            <a href="http://{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}" target="_blank">
-                                {{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}
-                            </a>
-                      {% else %}
-                            {% if serviceDomain %}
-                                {% for port in http_outer_service_ports %}
-                                    {% if port.container_port == serviceDomain.container_port%}
-                                        <a href="http://{{port.container_port}}.{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
-                                           target="_blank"
-                                           name="custom_domain_select"
-                                           data-href=".{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}">
-                                            {{cur_port}}.{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}
-                                        </a>
-                                    {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                {% with http_outer_service_ports|first as first_port %}
-                                    <a href="http://{{first_port.container_port}}.{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
-                                       target="_blank"
-                                       name="custom_domain_select"
-                                       data-href=".{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}">
-                                        {{first_port.container_port}}.{{tenantServiceInfo.service_alias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}
-                                    </a>
-                                {% endwith %}
-                            {% endif %}
-                      {% endifequal %}
+                     <p class="fn-sever-link" id="port_show_{{port.container_port}}" port="{{port.container_port}}">
+
+                     </p>
                   </td>
                   <td>
                      <span>绑定域名:</span>
