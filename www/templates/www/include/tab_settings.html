@@ -120,7 +120,7 @@
           <!--  表格 头  结束 -->
           <!-- 表格 内容  开始 -->
           <tbody>
-              <tr>
+              <tr port="{{port.container_port}}">
                   <td>
                     <span>对内服务:</span>
                     <input class="switch-box" name="inner" type="checkbox" {% if port.is_inner_service %}checked{% endif %} data-size="mini" data-on-color="info" data-on-text="开启" data-off-text="关闭">
@@ -140,7 +140,7 @@
                       {% endif %}
                   </td>
               </tr>
-              <tr>
+              <tr port="{{port.container_port}}">
                   <td>
                      <span>外部访问:</span>
                      <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" {% if outer_auth %}data-open="open"{% else %}disabled{% endif %} data-on-text="开启" data-off-text="关闭">
