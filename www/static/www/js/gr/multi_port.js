@@ -124,9 +124,8 @@
         $.get(url, function (event) {
             if (event.environment) {
               serlink = event.environment[0].value;
-            }
-            if(event.environment ==""){
-               serlink = ""
+            }else{
+              serlink = ""
             }
             $("#sever_show_" + port_show).html(serlink);
         });
