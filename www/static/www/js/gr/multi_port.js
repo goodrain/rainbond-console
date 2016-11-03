@@ -133,10 +133,8 @@
       function Fn_make_port_detail (port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
-          console.log(event.outer_service);
           if (event.outer_service) {
             var next_tr = event.outer_service.domain;
-            console.log(next_tr);
           }
           $("#port_show_" + port_show).html(next_tr);
         });
