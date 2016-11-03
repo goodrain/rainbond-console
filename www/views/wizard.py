@@ -113,15 +113,21 @@ class WizardView(BaseView):
             }
             json_data = json.dumps(data)
 
-            for num in range(0, 3):
+            try:
+                # for num in range(0, 3):
+                appClient.timeout = 5
                 res, body = appClient.post_admin_info(json_data)
-                logger.debug("account.register", res)
-                logger.debug("account.register", body)
-                if res.status == 200:
-                    logger.debug("account.register", "register app success!")
-                    break
+                if res is None:
+                    logger.error("account.register", "register app failed!")
                 else:
-                    logger.error("account.register", "register app failed! try again!num:{0}".format(num))
+                    logger.debug("account.register", res)
+                    logger.debug("account.register", body)
+                    if res.status == 200:
+                        logger.debug("account.register", "register app success!")
+                    else:
+                        logger.error("account.register", "register app failed!")
+            except Exception as e:
+                logger.exception("account.register", e)
 
             url = '/apps/{0}'.format(tenant_name)
             if settings.MODULES["Package_Show"]:

@@ -54,3 +54,4 @@ class AppServiceApi(BaseHttpClient):
         except Exception as e:
             logger.exception("account.register", e)
             logger.error("account.register", "after register admin.send data to app failed!")
+        return None, None

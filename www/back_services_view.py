@@ -49,28 +49,24 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             context["tenantName"] = self.tenantName
             fr = request.GET.get("fr", "local")
             context["fr"] = fr
-            # 修改为三次查询, 超时累进
-            for num in range(0, 3):
-                timeout = 0.5 + 0.5 * num
-                logger.error("timeout:{0}".format(timeout))
-                try:
-                    res, resp = appClient.getRemoteServices(timeout=timeout)
-                    logger.error(res)
-                    logger.error(resp)
-                    if res.status == 200:
-                        appService = {}
-                        appVersion = {}
-                        appdata = json.loads(resp.data)
-                        for appda in appdata:
-                            appService[appda["service_key"] + "_" + appda["version"]] = appda["update_version"]
-                            appVersion[appda["service_key"] + "_" + appda["version"]] = appda["version"]
-                        context["appService"] = appService
-                        context["appVersion"] = appVersion
-                        break
-                    else:
-                        logger.error("query remote service failed ,try again {0}".format(num))
-                except Exception as e:
-                    logger.exception(e)
+            try:
+                appClient.timeout = 5
+                res, resp = appClient.getRemoteServices()
+                logger.error(res)
+                logger.error(resp)
+                if res.status == 200:
+                    appService = {}
+                    appVersion = {}
+                    appdata = json.loads(resp.data)
+                    for appda in appdata:
+                        appService[appda["service_key"] + "_" + appda["version"]] = appda["update_version"]
+                        appVersion[appda["service_key"] + "_" + appda["version"]] = appda["version"]
+                    context["appService"] = appService
+                    context["appVersion"] = appVersion
+                else:
+                    logger.error("query remote service failed")
+            except Exception as e:
+                logger.exception(e)
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_market.html", context)
