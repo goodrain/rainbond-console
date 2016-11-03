@@ -129,7 +129,7 @@
                console.log(event.environment[0].value); 
                serlink = event.environment[0].value;
             }
-            $("#sever_show_" + port_show).html();
+            $("#sever_show_" + port_show).html(serlink);
         });
       }
 
