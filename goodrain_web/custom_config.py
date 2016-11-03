@@ -43,7 +43,6 @@ class ConfigCenter(object):
                 return None
 
     def configs(self):
-        logger.info(self.objects)
         return self.objects
 
     def reload(self):

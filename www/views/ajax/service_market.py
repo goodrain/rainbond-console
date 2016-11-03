@@ -34,7 +34,7 @@ class RemoteServiceMarketAjax(AuthedView):
         try:
             res, resp = appClient.getRemoteServices()
             if res.status == 200:
-                logger.debug(resp.data)
+                #logger.debug(resp.data)
                 return JsonResponse({"success": True, "data": resp.data, "info": u"查询成功"})
             else:
                 return JsonResponse({"success": False, "info": u"查询数据失败"})

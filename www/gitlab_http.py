@@ -265,7 +265,7 @@ class GitlabApi(BaseHttpClient):
         try:
             projectId = str(project_id)
             project_hook = {}
-            project_hook["url"] = gitlab_service_info["hook_url"]
+            project_hook["url"] = self.hook_url
             project_hook["push_events"] = True
             project_hook["issues_events"] = False
             project_hook["merge_requests_events"] = False
