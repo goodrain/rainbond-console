@@ -6,11 +6,13 @@ from django.conf import settings as base_settings
 from cadmin.models.main import ConsoleSysConfig
 
 import logging
+
 logger = logging.getLogger('default')
+
 
 class ConfigCenter(object):
     objects = {}
-    
+
     def __init__(self):
         configs = ConsoleSysConfig.objects.all()
         for config in configs:
@@ -24,8 +26,8 @@ class ConfigCenter(object):
                 else:
                     c_value = True
             elif config.type == "json":
-                logger.info(config.value)
-                c_value = json.loads(config.value)
+                if config.value != "" and config.value is not None:
+                    c_value = json.loads(config.value)
             else:
                 c_value = config.value
 
@@ -39,13 +41,16 @@ class ConfigCenter(object):
                 return getattr(base_settings, name)
             else:
                 return None
-    
+
     def configs(self):
+        logger.info(self.objects)
         return self.objects
 
     def reload(self):
         configs = ConsoleSysConfig.objects.all()
+        self.objects = {}
         for config in configs:
+            c_value = ""
             if config.type == "int":
                 c_value = int(config.value)
             elif config.type == "list":
@@ -56,12 +61,12 @@ class ConfigCenter(object):
                 else:
                     c_value = True
             elif config.type == "json":
-                logger.info(config.value)
-                c_value = json.loads(config.value)
+                if config.value is not None and config.value != "":
+                    c_value = json.loads(config.value)
             else:
                 c_value = config.value
+            if c_value != "":
+                self.objects[config.key] = c_value
 
-            self.objects[config.key] = c_value
 
 custom_config = ConfigCenter()
-
