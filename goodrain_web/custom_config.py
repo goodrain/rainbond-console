@@ -8,7 +8,7 @@ from cadmin.models.main import ConsoleSysConfig
 
 class ConfigCenter(object):
     objects = {}
-
+    
     def __init__(self):
         configs = ConsoleSysConfig.objects.all()
         for config in configs:
@@ -24,16 +24,27 @@ class ConfigCenter(object):
                 return getattr(base_settings, name)
             else:
                 return None
-
-    def get_item(self, key):
-        return self.objects.get(key)
+    
+    def configs(self):
+        return self.objects
 
     def reload(self):
         configs = ConsoleSysConfig.objects.all()
         for config in configs:
-            json_value = config.value
-            array_value = json.loads(json_value)
+            if config.type == "int":
+                c_value = int(config.value)
+            elif config.type == "list":
+                c_value = eval(config.value)
+            elif config.type == "bool":
+                if config.value == "0":
+                    c_value = False
+                else:
+                    c_value = True
+            elif config.type == "json":
+                c_value = json.loads(json_value)
+            else:
+                c_value = config.value
             self.objects[config.key] = array_value
 
+custom_config = ConfigCenter()
 
-settings = ConfigCenter()
