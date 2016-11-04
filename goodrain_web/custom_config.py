@@ -55,7 +55,7 @@ class ConfigCenter(object):
                 c_value = int(config.value)
             elif config.type == "list":
                 c_value = eval(config.value)
-            elif config.type == "bool":
+            elif config.type == "boolean":
                 if config.value == "0":
                     c_value = False
                 else:
