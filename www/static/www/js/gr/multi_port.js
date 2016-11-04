@@ -273,9 +273,9 @@
       $('#add_service_port').click(function(event) {
         
         var msg = '<table class="addtab"><tr>'
-        msg = msg + '<td><span>端口号:</span><input name="port_port" value=""></td>'
+        msg = msg + '<td><span>端口号:</span><input name="port_port" value="" class="tab-port"></td>'
         msg = msg + '<td><span>协议类型:</span><select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
-        //msg = msg + '<td><input name ="port_alias" value=""></td>'
+        msg = msg + '<td style="display:none;"><input name ="port_alias" value="" class="tab-alias"></td>'
         msg = msg + '<td><div class="btn-toolbar" role="toolbar">' + 
               '<div class="btn-group" role="group">' + 
                 '<button type="button" class="port-save btn btn-success btn-xs" "><i class="fa fa-check"></i></button>' +
@@ -319,11 +319,13 @@
       function port_save(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "add_port"};
         var add_tr = $(this).closest('table');
+        add_tr.find('input.tab-alias').val('S' + add_tr.find('input.tab-port').val());
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
           dict[name] = value;
         });
+
         add_tr.find('select').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
