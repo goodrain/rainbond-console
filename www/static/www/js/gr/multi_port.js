@@ -297,7 +297,7 @@
       $('.port-save').click(port_save);
 
       function port_cancel(event) {
-        var cancel_tr = $(this).closest('tr');
+        var cancel_tr = $(this).closest('table');
         cancel_tr.remove();
       }
 
@@ -318,7 +318,7 @@
 
       function port_save(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "add_port"};
-        var add_tr = $(this).closest('tr');
+        var add_tr = $(this).closest('table');
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();

@@ -5617,8 +5617,8 @@ a.guest-on i {
 .addtab tr td:last-child{width: auto; }
 
 .addtab tr td span{padding-right: 5px;}
-.addtab tr td input{width:100px; height: 30px;}
-.addtab tr td select{ width:100px; height: 30px; line-height: 30px; }
+.addtab tr td input{width:100px; height: 20px;}
+.addtab tr td select{ width:100px; height: 20px; }
 
 
 
