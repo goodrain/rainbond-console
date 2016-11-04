@@ -273,8 +273,8 @@
       $('#add_service_port').click(function(event) {
         
         var msg = '<table class="addtab"><tr>'
-        msg = msg + '<td>端口号:<input name="port_port" value=""></td>'
-        msg = msg + '<td>协议类型:<select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
+        msg = msg + '<td><span>端口号:</span><input name="port_port" value=""></td>'
+        msg = msg + '<td><span>协议类型:<span><select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
         //msg = msg + '<td><input name ="port_alias" value=""></td>'
         msg = msg + '<td><div class="btn-toolbar" role="toolbar">' + 
               '<div class="btn-group" role="group">' + 
