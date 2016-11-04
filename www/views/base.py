@@ -167,7 +167,7 @@ class AuthedView(BaseView):
         context['tenantName'] = self.tenantName
         context["tenant_pay_type"]=self.tenant.pay_type
         context['serviceAlias'] = self.serviceAlias
-        context['SYS_MODULES'] = settings.MODULES
+        context['MODULES'] = settings.MODULES
         context['is_private'] = sn.instance.is_private()
         return context
 
