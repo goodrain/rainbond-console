@@ -5613,12 +5613,12 @@ a.guest-on i {
 #port_open{background: #fff;}
 .addtab{width: 100%; border-bottom: 1px #cdcdcd solid;}
 .addtab tr{height: 40px;}
-.addtab tr td{width:25%; padding: 10px;}
+.addtab tr td{width:20%; padding: 10px;}
 .addtab tr td:last-child{width: auto; }
 
 .addtab tr td span{padding-right: 5px;}
-.addtab tr td input{width: min-width: 100px; height: 20px;}
-.addtab tr td select{ width: min-width: 100px; height: 20px; }
+.addtab tr td input{width:100px; height: 30px;}
+.addtab tr td select{ width:100px; height: 30px; line-height: 30px; }
 
 
 
