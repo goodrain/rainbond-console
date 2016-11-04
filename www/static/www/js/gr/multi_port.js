@@ -3,7 +3,7 @@
       $('.switch-box').bootstrapSwitch();
       $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {
         var port_switch = $(this);
-          port = $(this).parent('td').parent('tr').parent('tbody').parent('table').children('thead').children('tr').attr('port');
+          port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
           if (state) {
             action = "open_" + port_type;
