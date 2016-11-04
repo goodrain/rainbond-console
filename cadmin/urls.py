@@ -9,5 +9,6 @@ urlpatterns = patterns(
     url(r'^edit', login_required(ConfigDetailViews.as_view())),
     url(r'^update',login_required(UpdateAttrViews.as_view())),
     url(r'^logo',login_required(ConfigLogoViews.as_view())),
+    url(r'^info',login_required(SpecificationSViews.as_view())),
 
 )

@@ -156,3 +156,28 @@ class ConfigLogoViews(CAdminView):
             logger.error(e)
 
         return TemplateResponse(self.request, "cadmin/upload.html", context)
+
+class SpecificationSViews(CAdminView):
+    def get_media(self):
+        media = super(SpecificationSViews, self).get_media() + self.vendor('admin/css/jquery-ui.css',
+                                                                           'admin/css/jquery-ui-timepicker-addon.css',
+                                                                           'admin/js/jquery.cookie.js',
+                                                                           'admin/js/common-scripts.js',
+                                                                           'admin/js/jquery.dcjqaccordion.2.7.js',
+                                                                           'admin/js/jquery.scrollTo.min.js',
+                                                                           'admin/layer/layer.js',
+                                                                           'admin/js/jquery-ui.js',
+                                                                           'admin/js/jquery-ui-timepicker-addon.js',
+                                                                           'admin/js/jquery-ui-timepicker-addon-i18n.min.js',
+                                                                           'admin/js/jquery-ui-sliderAccess.js')
+        return media
+
+    def init_context(self, context):
+        context["config"] = "active"
+        context["info_page"]="active"
+
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        self.init_context(context)
+        return TemplateResponse(self.request, "cadmin/info.html", context)

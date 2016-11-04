@@ -37,6 +37,17 @@
              <span>文档</span>
            </a>
          </li>
+
+        {% if user.is_sys_admin %}
+
+        <li class="hidden-xs">
+            <a href="/cadmin">
+                <i class="fa fa-file-text-o"></i>
+                <span>配置管理</span>
+            </a>
+        </li>
+        {% endif%}
+
         <!-- user login dropdown start-->
         <li class="dropdown">
             <a data-toggle="dropdown" class="dropdown-toggle" href="#">
