@@ -3,7 +3,7 @@
 {% load staticfiles %}
 {% load crispy_forms_tags %}
 
-{% block title %}好雨云平台 用户注册{% endblock %}
+{% block title %}{{CUSTOM_CONFIG.TITLE}} 用户注册{% endblock %}
 
 {% block extracss %}
     <link rel="stylesheet" href='{% static "www/css/style.css" %}'>
@@ -17,7 +17,7 @@
 
 <div class="mainbox">
     <h1 class="yblogo">
-		<img src='{% static "www/images/yunbanglogo.png" %}' />
+		<img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" />
     </h1>
 
     <form id="reg_form" class="form-signin-w form-signin-reg-w" enctype="multipart/form-data" action="" method="post">

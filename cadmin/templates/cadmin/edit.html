@@ -1,0 +1,222 @@
+{% extends 'cadmin/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content %}
+<div role="tabpanel" class="tab-pane active">
+    <section class="wrapper site-min-height">
+        <p class="tittext">
+            <span><button type="button" class="btn btn-success" id="go_back" onclick="window.location.href='/cadmin'">返回</button></span> &nbsp;&nbsp;&nbsp;&nbsp;
+            <span><button type="button" class="btn btn-success" id="add_new_attr">新增属性项</button></span>
+        </p>
+        <div class="panel-body">
+            <h5>配置名 &nbsp;&nbsp;{{config_key}}</h5>
+            <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;" id="attr_list">
+                <thead>
+                <tr>
+                    <th>属性名</th>
+                    <th>属性值</th>
+                    <th>属性类型</th>
+                    <th>属性描述</th>
+                    <th><i class=" fa fa-edit"></i> 操作</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                {% for attr in attr_list %}
+                <tr config_id="{{attr.config_id}}" attr_id="{{attr.ID}}">
+
+                    <td>{{attr.attr_name}}</td>
+                    <td>{{attr.attr_val}}</td>
+                    <td>{{attr.attr_type}}</td>
+                    <td>{{attr.attr_desc}}</td>
+                    <td>
+                        <button type="button" class="attr-edit btn btn-danger btn-xs"><i class="fa fa-edit"></i>
+                        </button>
+                        &nbsp;&nbsp;&nbsp;
+                        <button type="button" class="attr-delete btn btn-danger btn-xs"><i class="fa fa-times"></i>
+                        </button>
+                    </td>
+
+                </tr>
+                {% endfor %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+</div>
+
+<div id="dialog" title="修改属性">
+    <fieldset>
+    <input type="hidden" name="attr_id" class="attr_id" value="">
+    属性名 &nbsp;&nbsp;&nbsp;&nbsp;<input style="width: 70%" type="text" name="attr_name" class="attr_name " value=""><br>
+    <br/>
+    属性值 &nbsp;&nbsp;&nbsp;&nbsp;<input style="width: 70%" type="text" name="attr_val" class="attr_val" value=""><br>
+    <br/>
+    属性类型 &nbsp;<select id="attr_type" class="attr_type">
+    <option value="string">字符串</option>
+    <option value="boolean">布尔类型</option>
+    <option value="int">整型</option>
+    <option value="float">浮点型</option>
+    </select><br>
+    <br/>
+    属性描述 &nbsp;<input style="width: 70%" type="text" name="attr_desc" class="attr_desc" value=""><br>
+    <br/>
+    </fieldset>
+    <input type="button" value="确定" onclick="modify_attr()">&nbsp;&nbsp;
+    <input type="button" value="取消" onclick="closeDialog()">
+
+
+</div>
+
+<script>
+    $(document).ready(function () {
+        $("#dialog").hide();
+    });
+
+    $(".attr-edit").on('click', function () {
+        var curr_tr = $(this).closest("tr");
+        var attr_id = curr_tr.attr("attr_id");
+        var attr_name = curr_tr.children('td').eq(0).html();
+        var attr_val = curr_tr.children('td').eq(1).html();
+        var attr_type = curr_tr.children('td').eq(2).html();
+        var attr_desc = curr_tr.children('td').eq(3).html();
+        showDialog(attr_id, attr_name, attr_val, attr_type, attr_desc);
+    });
+    //显示修改对话框
+    function showDialog(attr_id, attr_name, attr_val, attr_type, attr_desc) {
+        $("#dialog").dialog({
+            width:460
+        });
+        $(".attr_id").val(attr_id);
+        $(".attr_name").val(attr_name);
+        $(".attr_val").val(attr_val);
+        $(".attr_type").val(attr_type);
+        $(".attr_desc").val(attr_desc);
+
+    }
+    //关闭修改对话框
+    function closeDialog() {
+        $("#dialog").dialog("close");
+    }
+
+    function modify_attr() {
+        var attr_id = $(".attr_id").val()
+        var attr_name = $(".attr_name").val();
+        var attr_val = $(".attr_val").val();
+        var attr_type = $(".attr_type").val();
+        var attr_desc = $(".attr_desc").val();
+        data = {
+            "attr_id": attr_id,
+            "attr_name": attr_name,
+            "attr_val": attr_val,
+            "attr_type": attr_type,
+            "attr_desc": attr_desc
+        }
+        $.ajax({
+            type: "post",
+            url: "/cadmin/update",
+            data: data,
+            cache: false,
+            beforeSend: function (xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (msg) {
+                if (msg.ok) {
+                    closeDialog();
+                    window.location.href = window.location.href
+                } else {
+                    swal(msg.info);
+                }
+
+            },
+            error: function () {
+                swal("内部错误");
+            }
+        })
+    }
+
+
+    $("#add_new_attr").on('click', function () {
+        var msg = '<tr colspan=7></tr>';
+        msg = msg + '<tr>';
+        msg = msg + '<td><input name="attr_name" placeholder="(^[A-Z][A-Z0-9_])" value=""></td>';
+        msg = msg + '<td><input name ="attr_val" value=""></td>';
+        msg = msg + '<td><select name="attr_type" id="attr_type"> <option value="string">字符串</option> <option value="boolean">布尔类型</option> <option value="int">整型</option> <option value="float">浮点型</option> </select></td>';
+        msg = msg + '<td><input name ="attr_desc" value=""></td>';
+        msg = msg + '<td><div class="btn-toolbar" role="toolbar">' +
+                '<div class="btn-group" role="group">' +
+                '<button type="button" class="attribute-save btn btn-success btn-xs" "><i class="fa fa-check"></i></button>' +
+                '</div>' +
+                '<div class="btn-group" role="group">' +
+                '<button type="button" class="attribute-cancel btn btn-danger btn-xs" "><i class="fa fa-times"></i></button></td>' +
+                '</div>' +
+                '</div></td>';
+        msg = msg + '</tr>';
+        $("#attr_list tr:last").after(msg);
+
+        $('.attribute-save').unbind('click').bind('click', attribute_save);
+        $('.attribute-cancel').unbind('click').bind('click', attribute_cancel);
+
+    });
+
+    $('.attribute-save').click(attribute_save);
+    $('.attribute-cancel').click(attribute_cancel);
+    $('.attr-delete').click(attribute_delete)
+
+    //取消添加操作
+    function attribute_cancel(event) {
+        var cancel_tr = $(this).closest('tr');
+        cancel_tr.remove();
+    }
+
+    //添加属性
+    function attribute_save(event) {
+        var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "add_attribute"};
+        var add_config = $(this).closest('tr');
+        add_config.find('input').each(function() {
+            name = $(this).attr("name");
+            value = $(this).val();
+            dict[name] = value;
+        });
+        dict["config_id"] = "{{config_id}}"
+        dict["attr_type"] = $("#attr_type").val();
+        url = "/cadmin/ajax/custome-attribute";
+
+        $.post(url, dict, function(res) {
+            if (res.success) {
+                add_config.find('.btn-toolbar').remove();
+                window.location.reload();
+
+            } else {
+                swal(res.info)
+            }
+        });
+    }
+
+    //删除属性
+    function attribute_delete(event) {
+        var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "del_attribute"};
+        var del_tr = $(this).closest('tr');
+        var attr_id = del_tr.attr("attr_id");
+        var config_id = del_tr.attr("config_id");
+        dict["config_id"] = config_id;
+        dict["attr_id"] = attr_id;
+        url = "/cadmin/ajax/custome-attribute";
+        $.post(url, dict, function(res) {
+            if (res.success) {
+                del_tr.remove();
+            }
+        });
+
+    }
+
+</script>
+
+{% endblock %}
+
+

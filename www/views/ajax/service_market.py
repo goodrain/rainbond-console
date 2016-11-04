@@ -34,7 +34,7 @@ class RemoteServiceMarketAjax(AuthedView):
         try:
             res, resp = appClient.getRemoteServices()
             if res.status == 200:
-                logger.debug(resp.data)
+                #logger.debug(resp.data)
                 return JsonResponse({"success": True, "data": resp.data, "info": u"查询成功"})
             else:
                 return JsonResponse({"success": False, "info": u"查询数据失败"})
@@ -59,7 +59,7 @@ class RemoteServiceMarketAjax(AuthedView):
                         appClient.post_statics_tenant(self.tenant.tenant_id, callback)
                     return redirect('/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(self.tenantName, service_key, app_version))
             # 请求云市数据
-            code, base_info, dep_map, error_msg = baseService.download_service_info(service_key, app_version)
+            code, base_info, dep_map, error_msg = baseService.download_service_info(service_key, app_version, action=action)
             if code == 500:
                 # 下载失败
                 logger.error(error_msg)

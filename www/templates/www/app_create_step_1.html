@@ -52,15 +52,17 @@
 		                <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
 		                <input type="hidden" id="service_code_version" name="service_code_version" value="">
 		                <input type="hidden" id="service_code_id" name="service_code_id" value="">
-                        {% if MODULES.GitLab_Project %}
+                        {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
                             <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" checked> 新建仓库
                             <label style="font-size:14px" class="checkbox-inline "></label>
+
+							<input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2"> 使用已有仓库
+							<label style="font-size:14px" class="checkbox-inline select_git"></label>
                         {% endif %}
 	                    
-	                    <input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2"> 使用已有仓库
-	                    <label style="font-size:14px" class="checkbox-inline select_git"></label>
+
 	                    
-	                    {% if MODULES.Git_Hub %}
+	                    {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
 							<input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3"> 连接Github
 							<label style="font-size:14px" class="checkbox-inline"></label>
 	                    {% endif %}

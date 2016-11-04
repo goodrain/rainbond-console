@@ -121,20 +121,6 @@ REGION_FEE_RULE = {
     'xunda-bj': {'memory_money': 0.069, 'disk_money': 0.0041, 'net_money': 0.8},
 }
 
-GITLAB_SERVICE_API = {
-    'url': 'http://code.goodrain.com/',
-    'admin_user': 'app',
-    'admin_email': 'app@goodrain.com',
-    'admin_password': 'gr123465',
-    'apitype': 'gitlab service',
-}
-
-GITHUB_SERVICE_API = {
-    'client_id': 'c2cc316a9e6741e7b74a',
-    'redirect_uri': 'https://user.goodrain.com/oauth/githup',
-    'client_secret': '25b99d1d03323dd540eb72bfceb0e033062ccbe5',
-}
-
 QING_CLOUD_APP = {
     "app_id": "app-9x7m7zht", "secret_app_key": "XEmWiKVbXGSIu7c3LW5mkHBXdnpkKoUC2aTh8Gwl"
 }
@@ -164,10 +150,6 @@ SESSION_ENGINE = "www.contrib.sessions.backends.cache"
 MODULES = {
     "Owned_Fee": True,
     "Memory_Limit": True,
-    "GitLab_Project": True,
-    "GitLab_User": True,
-    "Git_Hub": True,
-    "Git_Code_Manual": False,
     "Finance_Center": True,
     "Team_Invite": True,
     "Monitor_Control": True,

@@ -1078,12 +1078,13 @@ class ServiceNewPort(AuthedView):
             port_inner = int(port_inner)
             port_outter = int(port_outter)
 
-            if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
-                return JsonResponse({"success": False, "code": 400, "info": u"别名不合法"})
-            # todo 判断端口别名是否重复
-            tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id, port_alias=port_alias).count()
-            if tenant_alias_num > 0:
-                return JsonResponse({"success": False, "code": 400, "info": u"别名不能重复"})
+            if port_inner != 0:
+                if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
+                    return JsonResponse({"success": False, "code": 400, "info": u"别名不合法"})
+                # todo 判断端口别名是否重复
+                tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id, port_alias=port_alias).count()
+                if tenant_alias_num > 0:
+                    return JsonResponse({"success": False, "code": 400, "info": u"别名不能重复"})
             if port_outter == 1:
                 if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=1).count() > 0:
                     return JsonResponse({"success": False, "code": 409, "info": u"只能开启一个对外端口"})

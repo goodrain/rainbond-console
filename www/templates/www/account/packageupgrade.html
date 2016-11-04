@@ -3,7 +3,7 @@
 {% load staticfiles %}
 {% load crispy_forms_tags %}
 
-{% block title %}好雨云平台 套餐选择{% endblock %}
+{% block title %}{{CUSTOM_CONFIG.TITLE}} 套餐选择{% endblock %}
 
 {% block extracss %}
     <link rel="stylesheet" href="{% static "www/css/style.css" %}">
@@ -15,7 +15,7 @@
 {% block body %}
 <header class="header white-bg">
     <!--logo start-->
-    <a href="/" class="logo hidden-xs"><img src="/static/www/images/yunbanglogo.png" alt="好雨云帮"></a>
+    <a href="/" class="logo hidden-xs"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" alt="{{CUSTOM_CONFIG.TITLE}}"></a>
     <!--logo end-->
 </header>
 

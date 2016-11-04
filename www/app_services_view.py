@@ -35,11 +35,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js',)
-        if settings.MODULES["Git_Code_Manual"]:
-            media = media + self.vendor("www/js/app-create-manual.js")
-        else:
-            media = media + self.vendor("www/js/app-create.js")
+            'www/js/respond.min.js','www/js/app-create.js')
         return media
 
     @never_cache
@@ -58,10 +54,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             return self.redirect_to(redirect_url)
 
         context = self.get_context()
-        if settings.MODULES["Git_Code_Manual"]:
-            response = TemplateResponse(self.request, "www/app_create_manual_code_step_1.html", context)
-        else:
-            response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
+        response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
         try:
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"

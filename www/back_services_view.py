@@ -8,7 +8,7 @@ from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
-                        AppServiceVolume)
+                        AppServiceVolume, AppService)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService
 from www.monitorservice.monitorhook import MonitorHook
@@ -43,30 +43,41 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            cacheServiceList = ServiceInfo.objects.filter(status="published")
-            context["cacheServiceList"] = cacheServiceList
             context["serviceMarketStatus"] = "active"
             context["tenantName"] = self.tenantName
             fr = request.GET.get("fr", "local")
             context["fr"] = fr
-            try:
-                appClient.timeout = 5
-                res, resp = appClient.getRemoteServices()
-                logger.error(res)
-                logger.error(resp)
-                if res.status == 200:
-                    appService = {}
-                    appVersion = {}
-                    appdata = json.loads(resp.data)
-                    for appda in appdata:
-                        appService[appda["service_key"] + "_" + appda["version"]] = appda["update_version"]
-                        appVersion[appda["service_key"] + "_" + appda["version"]] = appda["version"]
-                    context["appService"] = appService
-                    context["appVersion"] = appVersion
-                else:
-                    logger.error("query remote service failed")
-            except Exception as e:
-                logger.exception(e)
+            if fr == "local":
+                cacheServiceList = ServiceInfo.objects.filter(status="published")
+                context["cacheServiceList"] = cacheServiceList
+                try:
+                    appClient.timeout = 5
+                    res, resp = appClient.getRemoteServices()
+                    if res.status == 200:
+                        appService = {}
+                        appVersion = {}
+                        appdata = json.loads(resp.data)
+                        for appda in appdata:
+                            appService[appda["service_key"] + "_" + appda["version"]] = appda["update_version"]
+                            appVersion[appda["service_key"] + "_" + appda["version"]] = appda["version"]
+                        context["appService"] = appService
+                        context["appVersion"] = appVersion
+                    else:
+                        logger.error("query remote service failed")
+                except Exception as e:
+                    logger.exception(e)
+            elif fr == "private":
+                # 私有市场
+                service_list = AppService.objects.filter(tenant_id=self.tenant.tenant_id)
+                # 团队共享
+                tenant_service_list = [x for x in service_list if x.status == "private"]
+                # 云帮共享
+                assistant_service_list = [x for x in service_list if x.status != "private" and not x.dest_ys]
+                # 云市共享
+                cloud_service_list = [x for x in service_list if x.status != "private" and x.dest_ys]
+                context["tenant_service_list"] = tenant_service_list
+                context["assistant_service_list"] = assistant_service_list
+                context["cloud_service_list"] = cloud_service_list
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_market.html", context)

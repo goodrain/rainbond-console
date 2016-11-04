@@ -328,16 +328,17 @@ class OpenTenantServiceManager(object):
             monitorhook.serviceMonitor(username, service, 'app_stop', False)
             return 409, False, "停止服务失败"
 
-    def start_service(self, tenant, service, username):
+    def start_service(self, tenant, service, username, limit=True):
         try:
             # calculate resource
             diff_memory = service.min_node * service.min_memory
-            rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, False)
-            if not flag:
-                if rt_type == "memory":
-                    return 410, False, "内存不足"
-                else:
-                    return 411, False, "余额不足"
+            if limit:
+                rt_type, flag = self.predict_next_memory(tenant, service, diff_memory, False)
+                if not flag:
+                    if rt_type == "memory":
+                        return 410, False, "内存不足"
+                    else:
+                        return 411, False, "余额不足"
 
             body = {}
             body["deploy_version"] = service.deploy_version
@@ -823,7 +824,7 @@ class OpenTenantServiceManager(object):
         # stop service
         code, is_success, msg = self.stop_service(service, username)
         if code == 200:
-            code, is_success, msg = self.start_service(tenant, service, username)
+            code, is_success, msg = self.start_service(tenant, service, username, limit)
         return code, is_success, msg
 
     def update_service_memory(self, tenant, service, username, memory, limit=True):

@@ -11,7 +11,7 @@
                 <label class="col-xs-2 control-label text-right">Git仓库</label>
                 <label class="col-xs-6 control-label">
                     {% if tenantServiceInfo.code_from == "gitlab_manual" %}
-                    <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
+                    <a href="{{href_url|default:httpGitUrl}}">{{httpGitUrl}}</a>
                     {% else %}
                     <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
                     {% endif %} 
@@ -19,7 +19,7 @@
                 {% if 'manage_service' in user.actions  and git_tag and tenantServiceInfo.code_from != "gitlab_manual" %}
                 <div class="col-xs-4">
                   <div class="col-xs-4 control-label">
-                    <select name="branch" id="git_branch" class="git-branch-change">
+                    <select name="branch" id="git_branch" class="git-branch-change" style="width:100%;">
                     </select>
                   </div>
                   <div class="col-xs-4 control-label">
