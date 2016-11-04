@@ -24,7 +24,7 @@
                           {% if 'manage_service' in user.actions %}
                                 <button type="button" class="btn btn-danger"  onclick="buid_relation('cancel','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
                           {% endif %}
-                          {% if 'git_pull' in user.actions %}
+                          {% if 'git_pull' in user.actions or user.is_sys_admin %}
                                 <a class="btn btn-success" data-toggle="modal" href="#linkinfo{{value.service_id}}">连接信息</a>
                                 <div class="modal fade in" id="linkinfo{{value.service_id}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="false" style="display: none;">
                                   <div class="modal-dialog">
@@ -68,7 +68,7 @@
                 {% endif %}
 
                 {% if serviceMap %}
-                {% if 'manage_service' in user.actions %}
+                {% if 'manage_service' in user.actions or user.is_sys_admin %}
                         {% for k,value in serviceMap.items %}
                         {% if k not in serviceIds %}
                            <tr>
@@ -116,7 +116,7 @@
                         <td>{{tenantSer.service_cname}}</td>
                         <td>/mnt/{{tenantSer.service_alias}}</td>
                         <td class="text-center">
-                        {% if 'manage_service' in user.actions %}
+                        {% if 'manage_service' in user.actions or user.is_sys_admin %}
                              {% if tenantSer.service_id not in mntsids %}
                                 <button type="button" class="btn btn-danger"  onclick="buid_mnt('add','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">挂载</button>
                              {% else %}
