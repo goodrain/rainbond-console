@@ -113,8 +113,13 @@
                             {{port.protocol}}
                         {% endif %}
                 </th>
+                <!--
                 <th>
                     {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>{% endif %}
+                </th>
+                -->
+                <th>
+                    <button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>
                 </th>
               </tr>
           </thead>
