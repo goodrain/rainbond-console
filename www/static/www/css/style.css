@@ -5611,9 +5611,9 @@ a.guest-on i {
 .newtab tr:last-child td,.newtab tr:last-child th{width:auto;}
 .newtab tr td span{display: block;}
 #port_open{background: #fff;}
-.addtab{width: 100%;}
+.addtab{width: 100%; border-bottom: 1px #cdcdcd solid;}
 .addtab tr{height: 40px;}
-.addtab tr td{width: 30%; border:1px #ddd solid;}
+.addtab tr td{width: 30%; padding: 10px;}
 .addtab tr td:last-child{width: auto; }
 
 
