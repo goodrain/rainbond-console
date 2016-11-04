@@ -118,6 +118,10 @@ $(function(){
     		}
     	})
     });
+    // 名字改变 取消 disabled 
+    $('#create_app_name').change(function(){
+        $("#first_step").attr('disabled', false);
+    });
     $(':radio', $('#sel_code_store')).click(function(){
         var selOption = $(this).val();
         if (selOption == 'option4') {
