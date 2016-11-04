@@ -272,7 +272,7 @@
       //服务端口新建
       $('#add_service_port').click(function(event) {
         
-        var msg = '<table class="addtab"><tr>'
+        var msg = '<table class="addtab table table-striped table-advance table-hover"><tr>'
         msg = msg + '<td>端口号:<input name="port_port" value=""></td>'
         msg = msg + '<td>协议类型:<select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
         //msg = msg + '<td><input name ="port_alias" value=""></td>'
