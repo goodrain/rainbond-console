@@ -21,7 +21,7 @@
                     {% if tenant_service_list %}
                         <h4>团队共享</h4>
                         {% for service in tenant_service_list %}
-                            <div class="col-lg-3  col-md-6 applistbox">
+                            <div class="col-lg-4 col-md-6 applistbox">
                                 <h4>{{service.app_alias}}</h4>
                                 <h5>{{service.app_version}}</h5>
                                 <button type="button" class="btn btn-success"
@@ -36,7 +36,7 @@
                     {% if assistant_service_list %}
                         <h4>云帮共享</h4>
                         {% for service in assistant_service_list %}
-                            <div class="col-lg-3  col-md-6 applistbox">
+                            <div class="col-lg-4 col-md-6 applistbox">
                                 <h4>{{service.app_alias}}</h4>
                                 <h5>{{service.app_version}}</h5>
                                 <button type="button" class="btn btn-success"
@@ -50,7 +50,7 @@
                     {% if cloud_service_list %}
                         <h4>云市共享</h4>
                         {% for service in cloud_service_list %}
-                            <div class="col-lg-3  col-md-6 applistbox">
+                            <div class="col-lg-4 col-md-6 applistbox">
                                 <h4>{{service.app_alias}}</h4>
                                 <h5>{{service.app_version}}</h5>
                                 <button type="button" class="btn btn-success"

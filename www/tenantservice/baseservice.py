@@ -403,9 +403,9 @@ class BaseTenantService(object):
             logger.exception(e)
 
     # 下载服务模版逻辑
-    def download_service_info(self, service_key, app_version):
+    def download_service_info(self, service_key, app_version, action=None):
         num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
-        if num == 0:
+        if num == 0 or action == "update":
             dep_code = 500
             for num in range(0, 3):
                 dep_code, base_info = self.download_remote_service(service_key, app_version)
