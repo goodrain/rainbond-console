@@ -175,8 +175,7 @@ class PublishServiceView(APIView):
         # 租户信息
         data["tenant_id"] = app.tenant_id
         return data
-    
-    
+
     def post(self, request, format=None):
         """
         获取某个租户信息(tenant_id或者tenant_name)
@@ -253,6 +252,8 @@ class PublishServiceView(APIView):
                 serviceInfo.info = app.info
                 serviceInfo.desc = app.desc
                 serviceInfo.status = "published"
+                if app.status == "private":
+                    serviceInfo.status = app.status
                 serviceInfo.category = "app_publish"
                 serviceInfo.is_service = app.is_service
                 serviceInfo.is_web_service = app.is_web_service

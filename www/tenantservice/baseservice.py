@@ -457,10 +457,8 @@ class BaseTenantService(object):
                 return 500, None
             # 模版信息
             base_info = None
-            update_version = 1
             try:
                 base_info = ServiceInfo.objects.get(service_key=service_key, version=version)
-                update_version = base_info.update_version
             except Exception:
                 pass
             if base_info is None:
@@ -479,7 +477,7 @@ class BaseTenantService(object):
             base_info.is_service = service_data.get("is_service")
             base_info.is_web_service = service_data.get("is_web_service")
             base_info.version = service_data.get("version")
-            base_info.update_version = update_version
+            base_info.update_version = service_data.get("update_version")
             base_info.image = service_data.get("image")
             base_info.slug = service_data.get("slug")
             base_info.extend_method = service_data.get("extend_method")

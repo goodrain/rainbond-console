@@ -15,7 +15,7 @@
         </header>
 
         <div class="panel-body">
-            <div class="tab-content container">
+            <div class="tab-content container" style="width:100%;">
                 {% if fr == "private" %}
                     <div class="row">
                     {% if tenant_service_list %}
@@ -63,24 +63,26 @@
                 {% elif fr == "local" %}
                     {% if cacheServiceList %}
                     {% for cache in cacheServiceList %}
-                    <div class="col-lg-3  col-md-6 applistbox">
+                    <div class="col-lg-4 col-md-6 applistbox">
                         <h4>{{cache.service_name}}</h4>
                         <h5>{{cache.version}}</h5>
-                        <button type="button" class="btn btn-success"
-                                onclick="service_create('{{tenantName}}','{{cache.service_key}}', '{{cache.version}}')">部署
-                        </button>
-                        {% with tkey=cache.service_key|add:"_"|add:cache.version %}
-                        {% with update_version=appService|mkey:tkey %}
-                            {% if update_version %}
-                                {% if update_version = cache.update_version %}
-                                {% else %}
-                                    <button type="button" class="btn"
-                                        onclick="service_update('{{tenantName}}','{{cache.service_key}}','{{appVersion|mkey:tkey}}','{{update_version}}')">更新
-                                    </button>
-                                {% endif %}
-                            {% endif %}
-                        {% endwith %}
-                        {% endwith %}
+                        <div style="position:absolute;top:50%;right:20px;">
+                            <button type="button" class="btn btn-success" style="position: static;"
+                                    onclick="service_create('{{tenantName}}','{{cache.service_key}}', '{{cache.version}}')">部署
+                            </button>
+                            {% with tkey=cache.service_key|add:"_"|add:cache.version %}
+                                {% with update_version=appService|mkey:tkey %}
+                                    {% if update_version %}
+                                        {% if update_version = cache.update_version %}
+                                        {% else %}
+                                            <button type="button" class="btn" style="position: static;"
+                                                    onclick="service_update('{{tenantName}}','{{cache.service_key}}','{{appVersion|mkey:tkey}}','{{update_version}}')">更新
+                                            </button>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endwith %}
+                            {% endwith %}
+                        </div>
                     </div>
                     {% endfor %}
                     {% endif %}
