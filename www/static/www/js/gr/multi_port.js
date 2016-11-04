@@ -271,14 +271,11 @@
       
       //服务端口新建
       $('#add_service_port').click(function(event) {
-        var msg = '<tr colspan=7></tr>'
-        msg = msg + '<tr>'
-        msg = msg + '<td></td>'
-        msg = msg + '<td><input name="port_port" value=""></td>'
-        msg = msg + '<td><select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
-        msg = msg + '<td><input name ="port_alias" value=""></td>'
-        //msg = msg + '<td><select name="port_inner"><option value="0">关闭</option></select></td>'
-        //msg = msg + '<td><select name="port_outter"><option value="0">关闭</option></select></td>'
+        
+        var msg = '<table><tr>'
+        msg = msg + '<td>端口号:<input name="port_port" value=""></td>'
+        msg = msg + '<td>协议类型:<select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
+        //msg = msg + '<td><input name ="port_alias" value=""></td>'
         msg = msg + '<td><div class="btn-toolbar" role="toolbar">' + 
               '<div class="btn-group" role="group">' + 
                 '<button type="button" class="port-save btn btn-success btn-xs" "><i class="fa fa-check"></i></button>' +
@@ -287,7 +284,7 @@
                 '<button type="button" class="port-cancel btn btn-danger btn-xs" "><i class="fa fa-times"></i></button></td>' +
               '</div>' + 
             '</div></td>'
-        msg = msg + '</tr>'
+        msg = msg + '</tr></table>'
         $("#port_open tr:last").after(msg);
         $('.port-cancel').unbind('click').bind('click', port_cancel);
         $('.port-save').unbind('click').bind('click', port_save);

@@ -92,9 +92,10 @@
           <p style="float: left;"><button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button></p>
       </div>
       <!-- title line end -->
+      <div id="port_open"></div>
       <!-- table start -->
       {% for port in ports %}
-      <table class="table table-striped table-advance table-hover newtab" id="port_open">
+      <table class="table table-striped table-advance table-hover newtab">
           <!--  表格 头  开始 -->
           <thead>
               <tr port="{{port.container_port}}">
