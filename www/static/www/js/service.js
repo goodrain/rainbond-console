@@ -195,9 +195,11 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 		swal("参数异常");
 		window.location.href = window.location.href;
 	}
-	var domain_name = $("#service_app_name").val();
+	//var domain_name = $("#service_app_name").val();
 	//绑定端口
-	var multi_port_bind = $("#multi_port_bind").val();
+	//var multi_port_bind = $("#multi_port_bind").val();
+	var domain_name = $(this).closest('tr').find('input').val();
+	var multi_port_bind = $(this).closest('tr').attr('port');
 	if (multi_port_bind == ""){
 		swal("选择有效的端口");
 		return;
