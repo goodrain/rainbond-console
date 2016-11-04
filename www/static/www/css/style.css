@@ -5605,15 +5605,16 @@ a.guest-on i {
 .tittext span{color: #b94a48; font-size: 12px;}
 .tabbox .panel-body{padding:10px;}
 
+.tittext p{margin:0; padding:0;}
 .newtab{margin-bottom: 0;}
 .newtab tr td,.newtab tr th{width: 30%;}
-.newtab tr:last-child td,.newtab tr:last-child th{width: 40%;}
+.newtab tr:last-child td,.newtab tr:last-child th{width:auto;}
 .newtab tr td span{display: block;}
 #port_open{background: #fff;}
 .addtab{width: 100%;}
 .addtab tr{height: 40px;}
-.addtab tr td{width: 30%; 1px #ddd solid;}
-.addtab tr td:last-child{width: 40%; }
+.addtab tr td{width: 30%; border:1px #ddd solid;}
+.addtab tr td:last-child{width: auto; }
 
 
 
