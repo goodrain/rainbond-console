@@ -285,7 +285,7 @@
               '</div>' + 
             '</div></td>'
         msg = msg + '</tr></table>'
-        $("#port_open tr:last").after(msg);
+        $("#port_open").append(msg);
         $('.port-cancel').unbind('click').bind('click', port_cancel);
         $('.port-save').unbind('click').bind('click', port_save);
       });
