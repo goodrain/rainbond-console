@@ -142,7 +142,7 @@
                       {% if port_auth %}
                           <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}"></a>
                       {% else %}
-                          {{port.port_alias}}
+                          {{port.port_alias}}_HOST:{{port.port_alias}}_PORT
                       {% endif %}
                   </td>
               </tr>
