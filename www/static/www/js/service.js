@@ -199,7 +199,9 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 	//绑定端口
 	//var multi_port_bind = $("#multi_port_bind").val();
 	var domain_name = $(this).closest('tr').find('input').val();
+	console.log(domain_name);
 	var multi_port_bind = $(this).closest('tr').attr('port');
+	console.log(multi_port_bind);
 	if (multi_port_bind == ""){
 		swal("选择有效的端口");
 		return;
