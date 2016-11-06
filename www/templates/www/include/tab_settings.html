@@ -164,9 +164,9 @@
                        {% if 'manage_service' in user.actions %}
                         <p>
                           {% if serviceDomain %}
-                          <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}},{{port.container_port}}')">解绑</button>
+                          <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">解绑</button>
                           {% else %}
-                          <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}},{{port.container_port}}')">绑定</button>
+                          <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">绑定</button>
                           {% endif %}
                         </p>
                       {% endif %}
