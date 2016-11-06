@@ -190,7 +190,7 @@ function service_branch_change(tenantName, service_alias) {
 }
 
 // 域名绑定
-function domainSubmit(action, service_id, tenantName, service_alias) {
+function domainSubmit(action, service_id, tenantName, service_alias,port_name) {
 	if (action != "start" && action != "close") {
 		swal("参数异常");
 		window.location.href = window.location.href;
@@ -198,9 +198,9 @@ function domainSubmit(action, service_id, tenantName, service_alias) {
 	//var domain_name = $("#service_app_name").val();
 	//绑定端口
 	//var multi_port_bind = $("#multi_port_bind").val();
-	var domain_name = $(this).closest('tr').find('input').val();
+	var domain_name = $("#service_app_name_"+port_name).val();
 	console.log(domain_name);
-	var multi_port_bind = $(this).closest('tr').attr('port');
+	var multi_port_bind = port_name;
 	console.log(multi_port_bind);
 	if (multi_port_bind == ""){
 		swal("选择有效的端口");
