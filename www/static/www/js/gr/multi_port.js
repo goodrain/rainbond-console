@@ -250,6 +250,7 @@
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-port';
             $.post(url, dict, function(res) {
               if (res.success) {
+                muti_outer_port();
                 window.location.href = window.location.href;
               } else {
                 showMessage(res.info);
@@ -330,21 +331,20 @@ $(function(){
             success: function (msg) {
                 var result = msg;
                 if (result["status"] == "ok") {
-                    swal("设置成功");
+                    console.log("设置成功");
                 }else if(result["status"] == "mult_port"){
-                    swal(result["info"]);
+                    console.log(result["info"]);
                 }
                 else {
-                    swal("设置失败");
+                    console.log("设置失败");
                 }
             },
             error: function () {
-                swal("对外端口设置异常,请重试");
+                console.log("对外端口设置异常,请重试");
             }
 
 
         })
     }
-    muti_outer_port();
 
 });
