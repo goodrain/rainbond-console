@@ -344,6 +344,16 @@
       }
       
       
-      
+   // 域名绑定
+   $(".fn-domain").each(function(){
+      var domainText = $(".fn-domain").find("button").html();
+      if(domainText== "解绑"){
+        $(".fn-domain").hide();
+        $(this).show();
+      }else{
+        $(".fn-domain").show();
+      }
+
+   });      
       
 })(jQuery);

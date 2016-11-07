@@ -164,19 +164,21 @@
                      </p>
                   </td>
                   <td>
+                    <div class="fn-domain">
                      {% if hasHttpServices %}
                      <span>绑定域名:</span>
                      <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com">
                        {% if 'manage_service' in user.actions %}
                         <p>
                           {% if serviceDomain %}
-                          <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">解绑</button>
+                          <button type="button" class="btn btn-danger btn-xs fn-domain" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">解绑</button>
                           {% else %}
                           <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">绑定</button>
                           {% endif %}
                         </p>
                       {% endif %}
                     {% endif %}
+                    </div>
                   </td>
               </tr>
           </tbody>
@@ -545,7 +547,7 @@
     String.prototype.trim = function() {
         return this.replace(/(^\s*)|(\s*$)/g, "");
     }
-    var setIntertimmer
+    var setIntertimmerc
     
     $(document).ready(function () {     
         var mapping = $("#create_port_mapping").val()
