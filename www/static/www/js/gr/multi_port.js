@@ -24,13 +24,13 @@
                         if (outer_port_type == "one_outer") {
                             // 其他的open全部设置为disabled
                             $('.switch-box[name="outer"]').each(function () {
-                                $(this).bootstrapSwitchs('disabled', true);
+                                $(this).bootstrapSwitch('disabled', true);
                             });
                             port_switch.bootstrapSwitch('disabled', false);
                         }
                         else {
                             $('.switch-box[name="outer"]').each(function () {
-                                $(this).bootstrapSwitchs('disabled', false);
+                                $(this).bootstrapSwitch('disabled', false);
                             });
                         }
                     } else {
