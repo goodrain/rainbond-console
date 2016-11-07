@@ -60,7 +60,7 @@
                                     <th class="text-center">
                                         <input type="checkbox" identity="access" checked="" disabled="">
                                     </th>
-                                    <th class="text-center"><a class="member-remove"><i class="fa fa-times fa-danger"></i></a></th>
+                                    <th class="text-center"><a class="member-remove" {% if user.selfuser %}style="display:none;"{% endif %}><i class="fa fa-times fa-danger"></i></a></th>
                                 </tr>
                                 {% endfor %}
                             </tbody>

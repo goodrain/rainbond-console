@@ -402,11 +402,11 @@
       {% for user in perm_users %}
       <tr entry-user="{{user.name}}">
         <th><a href="/apps/goodrain/perms?user={{user.name}}">{{user.name}}</a></th>
-        <th>{{user.email}}</th>
-        <th class="perm-modify-enable text-center"><input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}></th>
-        <th class="perm-modify-enable text-center"><input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}></th>
-        <th class="perm-modify-enable text-center"><input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}></th>
-        <th class="text-center"><a class="member-remove"><i class="fa fa-times fa-danger"></i></a></th>
+        <th>{{user.email}}{% if user.selfuser %}(本人){% endif %}</th>
+        <th class="perm-modify-enable text-center"><input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}{% if user.selfuser %}disabled{% endif %}></th>
+        <th class="perm-modify-enable text-center"><input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}{% if user.selfuser %}disabled{% endif %}></th>
+        <th class="perm-modify-enable text-center"><input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}{% if user.selfuser %}disabled{% endif %}></th>
+        <th class="text-center"><a class="member-remove" {% if user.selfuser %}style="display:none;"{% endif %}><i class="fa fa-times fa-danger"></i></a></th>
       </tr>
       {% endfor %}
       </tbody>

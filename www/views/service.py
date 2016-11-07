@@ -49,6 +49,8 @@ class TeamInfo(LeftSideBarMixin, AuthedView):
         for i in identities:
             user_perm = perm_template.copy()
             user_info = user_map.get(i.user_id)
+            if user_info is None:
+                continue
             user_perm['name'] = user_info.nick_name
             if i.user_id == self.user.user_id:
                 user_perm['selfuser'] = True
