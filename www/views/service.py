@@ -41,19 +41,31 @@ class TeamInfo(LeftSideBarMixin, AuthedView):
         }
 
         identities = PermRelTenant.objects.filter(tenant_id=self.tenant.pk)
+
+        user_id_list = [x.user_id for x in identities]
+        user_list = Users.objects.filter(pk__in=user_id_list)
+        user_map = {x.user_id: x for x in user_list}
+
         for i in identities:
             user_perm = perm_template.copy()
-            user_perm['name'] = Users.objects.get(pk=i.user_id).nick_name
+            user_info = user_map.get(i.user_id)
+            user_perm['name'] = user_info.nick_name
+            if i.user_id == self.user.user_id:
+                user_perm['selfuser'] = True
+
             if i.identity == 'admin':
                 user_perm.update({
                     'adminCheck': True,
-                    'developerCheck': True, 'developerDisable': True,
-                    'viewerCheck': True, 'viewerDisable': True
+                    'developerCheck': True,
+                    'developerDisable': True,
+                    'viewerCheck': True,
+                    'viewerDisable': True
                 })
             elif i.identity == 'developer':
                 user_perm.update({
                     'developerCheck': True,
-                    'viewerCheck': True, 'viewerDisable': True
+                    'viewerCheck': True,
+                    'viewerDisable': True
                 })
             elif i.identity == 'viewer':
                 user_perm.update({

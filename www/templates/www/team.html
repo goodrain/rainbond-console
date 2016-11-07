@@ -47,15 +47,15 @@
                             <tbody>
                                 {% for user in perm_users %}
                                 <tr entry-user="{{user.name}}">
-                                    <th>{{user.name}}</th>
+                                    <th>{{user.name}}{% if user.selfuser %}(本人){% endif %}</th>
                                     <th class="perm-modify-enable text-center">
-                                        <input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}>
+                                        <input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}{% if user.selfuser %}disabled{% endif %}>
                                     </th>
                                     <th class="perm-modify-enable text-center">
-                                        <input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}>
+                                        <input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}{% if user.selfuser %}disabled{% endif %}>
                                     </th>
                                     <th class="perm-modify-enable text-center">
-                                        <input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}>
+                                        <input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}{% if user.selfuser %}disabled{% endif %}>
                                     </th>
                                     <th class="text-center">
                                         <input type="checkbox" identity="access" checked="" disabled="">
