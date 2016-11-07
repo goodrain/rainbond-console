@@ -529,7 +529,7 @@
     <p class="tittext">删除 </p>
     <div class="panel-body">
       <form class="form-horizontal" role="form">
-
+          {% csrf_token %}
         <div class="form-group">
           <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_cname}}</label>
           <div class="col-sm-2 col-lg-2 text-center">
@@ -716,6 +716,7 @@
     function muti_outer_port() {
         //var port_type = $("#outer_port_setting").val();
         var tenantName = $("#tenant-name").html();
+
         var service_alias = $("#service-alias").html();
         var port_type = "";
         if($(".newtab").length == 1){
