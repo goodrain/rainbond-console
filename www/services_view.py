@@ -18,6 +18,7 @@ from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
 from www.region import RegionInfo
 from service_http import RegionServiceApi
 from django.conf import settings
+from goodrain_web.custom_config import custom_config
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.url import get_redirect_url
@@ -155,11 +156,19 @@ class TenantService(LeftSideBarMixin, AuthedView):
             'viewerDisable': False,
         }
         identities = PermRelService.objects.filter(service_id=self.service.pk)
+        user_id_list = [x.user_id for x in identities]
+        user_list = Users.objects.filter(pk__in=user_id_list)
+        user_map = {x.user_id: x for x in user_list}
+
         for i in identities:
             user_perm = perm_template.copy()
-            user = Users.objects.get(pk=i.user_id)
-            user_perm['name'] = user.nick_name
-            user_perm['email'] = user.email
+            user_info = user_map.get(i.user_id)
+            if user_info is None:
+                continue
+            user_perm['name'] = user_info.nick_name
+            if i.user_id == self.user.user_id:
+                user_perm['selfuser'] = True
+            user_perm['email'] = user_info.email
             if i.identity == 'admin':
                 user_perm.update({
                     'adminCheck': True,
@@ -225,7 +234,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         multi_port = {}
         multi_port["one_outer"] = u'单一端口开放'
         # multi_port["dif_protocol"] = u'按协议开放'
-        multi_port["multi_outer"] = u'多端口开放'
+        # multi_port["multi_outer"] = u'多端口开放'
         return multi_port
 
     # 服务挂载卷类型下拉列表选项
@@ -395,13 +404,21 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["memorydict"] = self.memory_choices()
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
-                context["git_tag"] = settings.MODULES["GitLab_Project"]
+                if custom_config.GITLAB_SERVICE_API :
+                    context["git_tag"] = True
+                else:
+                    context["git_tag"] = False
                 context["multi_port_choices"] = self.multi_port_choices()
                 context["mnt_share_choices"] = self.mnt_share_choices()
                 context["http_outer_service_ports"] = self.get_outer_service_port()
                 # service git repository
                 try:
                     context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
+                    if self.service.code_from == "gitlab_manual":
+                        href_url = self.service.git_url
+                        if href_url.startswith('git@'):
+                            href_url = "http://" + href_url.replace(":", "/")[4:]
+                        context["href_url"] = href_url
                 except Exception as e:
                     pass
                 if service_domain:

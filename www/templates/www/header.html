@@ -2,7 +2,7 @@
     <div class="fa fa-bars tooltips" data-placement="right" data-original-title="切换导航"></div>
 </div>
 <!--logo start-->
-<a href="/" class="logo hidden-xs"><img src="/static/www/images/yunbanglogo.png" alt="好雨云帮"></a>
+<a href="/" class="logo hidden-xs"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" alt="{{CUSTOM_CONFIG.TITLE}}"></a>
 <!--logo end-->
 {% block region_zone %}
 <div class="nav notify-row" id="top_menu">
@@ -37,6 +37,17 @@
              <span>文档</span>
            </a>
          </li>
+
+        {% if user.is_sys_admin %}
+
+        <li class="hidden-xs">
+            <a href="/cadmin">
+                <i class="fa fa-file-text-o"></i>
+                <span>配置管理</span>
+            </a>
+        </li>
+        {% endif%}
+
         <!-- user login dropdown start-->
         <li class="dropdown">
             <a data-toggle="dropdown" class="dropdown-toggle" href="#">

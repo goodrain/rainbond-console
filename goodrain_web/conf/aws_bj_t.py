@@ -122,10 +122,7 @@ SESSION_ENGINE = "www.contrib.sessions.backends.cache"
 MODULES = {
     "Owned_Fee": True,
     "Memory_Limit": False,
-    "GitLab_Project": False,
-    "GitLab_User": False,
-    "Git_Hub": False,
-    "Git_Code_Manual": True,
+    
     "Finance_Center": True,
     "Team_Invite": True,
     "Monitor_Control": True,

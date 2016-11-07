@@ -8,6 +8,7 @@ from django.shortcuts import redirect
 from django.views.generic.base import RedirectView
 
 from django.conf import settings
+from goodrain_web.custom_config import custom_config
 
 if 'django.contrib.staticfiles' in settings.INSTALLED_APPS:
     from django.contrib.staticfiles.templatetags.staticfiles import static
@@ -129,6 +130,11 @@ class BaseView(BaseObject, View):
     def redirect_to(self, path, *args, **kwargs):
         full_url = get_redirect_url(path, request=self.request)
         return redirect(full_url, *args, **kwargs)
+    
+    def get_context(self):
+        context = super(BaseView, self).get_context()
+        context['CUSTOM_CONFIG'] = custom_config.configs()
+        return context
 
 
 class AuthedView(BaseView):
@@ -173,3 +179,22 @@ class AuthedView(BaseView):
                 return False
         except PermissionDenied:
             return False
+
+
+class CAdminView(BaseView):
+    """是否有权限访问cadmin模块"""
+    def __init__(self, request, *args, **kwargs):
+        BaseView.__init__(self, request, *args, **kwargs)
+        if isinstance(request.user, AnonymousUser):
+            raise http.Http404
+        if not request.user.is_sys_admin:
+            if request.user.user_id == 1:
+                pass
+            else:
+                raise http.Http404
+
+    def get_context(self):
+        context = super(CAdminView, self).get_context()
+        context['MODULES'] = settings.MODULES
+        context['is_private'] = sn.instance.is_private()
+        return context

@@ -5,6 +5,7 @@ from goodrain_web.base import BaseHttpClient
 import json
 import logging
 import httplib2
+from goodrain_web.custom_config import custom_config
 
 logger = logging.getLogger('default')
 
@@ -17,12 +18,13 @@ class GitHubApi(BaseHttpClient):
     def __init__(self, *args, **kwargs):
         BaseHttpClient.__init__(self, *args, **kwargs)
         self.default_headers = {'Connection': 'keep-alive'}
-        github_service_info = settings.GITHUB_SERVICE_API
+        self.base_url = 'https://api.github.com'
+    
+    def _reload(self):
+        github_service_info = custom_config.GITHUB_SERVICE_API
         for k, v in github_service_info.items():
             setattr(self, k, v)
-
-        self.base_url = 'https://api.github.com'
-
+            
     def _encode_params(self, kw):
         args = []
         for k, v in kw.items():
@@ -34,6 +36,7 @@ class GitHubApi(BaseHttpClient):
         return '&'.join(args)
 
     def authorize_url(self, state):
+        self._reload()
         try:
             kw = {}
             kw["client_id"] = self.client_id
@@ -46,6 +49,7 @@ class GitHubApi(BaseHttpClient):
         return ""
 
     def get_access_token(self, code, state=None):
+        self._reload()
         try:
             kw = {}
             kw["client_id"] = self.client_id
@@ -62,6 +66,7 @@ class GitHubApi(BaseHttpClient):
         return ""
 
     def getAllRepos(self, token):
+        self._reload()
         try:
             url = "https://api.github.com/user/repos?access_token=" + token + "&per_page=200"
             http = httplib2.Http()
@@ -73,8 +78,9 @@ class GitHubApi(BaseHttpClient):
         return ""
 
     def getReposRefs(self, user, repos, token):
+        self._reload()
         try:
-            url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token+"&per_page=200"
+            url = "https://api.github.com/repos/" + user + "/" + repos + "/git/refs?access_token=" + token + "&per_page=200"
             http = httplib2.Http()
             headers = {'Content-Type': 'application/json'}
             response, content = http.request(url, 'GET', headers=headers)
@@ -88,6 +94,7 @@ class GitHubApi(BaseHttpClient):
         return cmd
 
     def getUser(self, token):
+        self._reload()
         try:
             url = "https://api.github.com/user?access_token=" + token
             http = httplib2.Http()
@@ -99,6 +106,7 @@ class GitHubApi(BaseHttpClient):
         return ""
 
     def getRepos(self, username):
+        self._reload()
         try:
             url = "https://api.github.com/users/" + username + "/repos"
             http = httplib2.Http()
@@ -110,6 +118,7 @@ class GitHubApi(BaseHttpClient):
         return ""
 
     def getProjectCommitTime(self, user, repos, token):
+        self._reload()
         result = 0
         try:
             url = "https://api.github.com/repos/" + user + "/" + repos + "/commits?access_token=" + token
@@ -122,6 +131,7 @@ class GitHubApi(BaseHttpClient):
         return result
 
     def createReposHook(self, user, repos, token):
+        self._reload()
         result = False
         try:
             url = "https://api.github.com/repos/" + user + "/" + repos + "/hooks?access_token=" + token

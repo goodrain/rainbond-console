@@ -212,6 +212,15 @@
                         </div>
                     </div>
                 </div>
+                <!-- 05是否私有市场 -->
+                <div class="form-group" {% if data.is_outer %}style="display:none;"{% endif %} data-alias="private_div">
+                    <label class="col-sm-2 control-label">发布为私有应用</label>
+                    <div class="col-sm-8">
+                        <div class="switch switch-mini">
+                            <input data-switch="mini" name="is_private" type="checkbox" {% if data.is_private %}checked{% endif %}/>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <!-- 二 结束 -->
@@ -276,8 +285,10 @@
             // alert(value);
             if (value) {
                 $("div.form-group[data-alias='show_div']").show();
+                $("div.form-group[data-alias='private_div']").hide();
             } else {
                 $("div.form-group[data-alias='show_div']").hide();
+                $("div.form-group[data-alias='private_div']").show();
             }
         });
     });

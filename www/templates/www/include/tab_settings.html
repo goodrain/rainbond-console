@@ -10,23 +10,25 @@
         {% if tenantServiceInfo.category == "application" %}
             <div class="row">
                 <label class="col-xs-2 control-label text-right">Git仓库</label>
-                <label class="col-xs-4 control-label">
+                <label class="col-xs-6 control-label">
                     {% if tenantServiceInfo.code_from == "gitlab_manual" %}
-                    <a>{{httpGitUrl}}</a>
+                    <a href="{{href_url|default:httpGitUrl}}">{{httpGitUrl}}</a>
                     {% else %}
                     <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
                     {% endif %} 
                 </label>
                 {% if 'manage_service' in user.actions  and git_tag and tenantServiceInfo.code_from != "gitlab_manual" %}
-                <div class="col-xs-6">
+                <div class="col-xs-4">
                   <div class="col-xs-4 control-label">
-                    <select name="branch" id="git_branch" class="git-branch-change">
+                    <select name="branch" id="git_branch" class="git-branch-change" style="width:100%;">
                     </select>
                   </div>
                   <div class="col-xs-4 control-label">
                     <button type="button"  onclick="service_branch_change('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success btn-xs">切换分支</button>
                   </div>
                 </div>
+                {% else %}
+                <div class="col-xs-4">{{tenantServiceInfo.code_version}}</div>
                 {% endif %}
             </div>
         {% endif %}
@@ -358,11 +360,11 @@
       {% for user in perm_users %}
       <tr entry-user="{{user.name}}">
         <th><a href="/apps/goodrain/perms?user={{user.name}}">{{user.name}}</a></th>
-        <th>{{user.email}}</th>
-        <th class="perm-modify-enable text-center"><input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}></th>
-        <th class="perm-modify-enable text-center"><input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}></th>
-        <th class="perm-modify-enable text-center"><input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}></th>
-        <th class="text-center"><a class="member-remove"><i class="fa fa-times fa-danger"></i></a></th>
+        <th>{{user.email}}{% if user.selfuser %}(本人){% endif %}</th>
+        <th class="perm-modify-enable text-center"><input type="checkbox" identity="admin" {% if user.adminCheck %}checked="" {% endif %}{% if user.selfuser %}disabled{% endif %}></th>
+        <th class="perm-modify-enable text-center"><input type="checkbox" identity="developer" {% if user.developerCheck %}checked="" {% if user.developerDisable %}disabled="" {% endif %}{% endif %}{% if user.selfuser %}disabled{% endif %}></th>
+        <th class="perm-modify-enable text-center"><input type="checkbox" identity="viewer" {% if user.viewerCheck %}checked="" {% if user.viewerDisable %}disabled="" {% endif %}{% endif %}{% if user.selfuser %}disabled{% endif %}></th>
+        <th class="text-center"><a class="member-remove" {% if user.selfuser %}style="display:none;"{% endif %}><i class="fa fa-times fa-danger"></i></a></th>
       </tr>
       {% endfor %}
       </tbody>

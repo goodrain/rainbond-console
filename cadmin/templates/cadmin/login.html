@@ -1,0 +1,26 @@
+{% extends 'admin/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}平台 用户登录{% endblock %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "admin/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "admin/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block bodyclass %}login-body{% endblock %}
+
+{% block body %}
+
+<div class="container">
+    <form class="form-signin form-signin-reg" enctype="multipart/form-data" action="" method="post">
+        <h2 class="form-signin-heading">用户登录</h2>
+        {% crispy form %}
+
+    </form>
+</div>
+
+
+{% endblock %}

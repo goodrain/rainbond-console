@@ -210,6 +210,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             app["service_key"] = first_app.service_key
             app["app_version"] = first_app.app_version
             app["is_outer"] = first_app.is_outer
+            app["is_private"] = first_app.status == "private"
             app["show_app"] = first_app.show_app
             app["show_assistant"] = first_app.show_assistant
 
@@ -277,6 +278,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         category_second = form_data.cleaned_data['category_second']
         category_third = form_data.cleaned_data['category_third']
         is_outer = form_data.cleaned_data.get('is_outer', False)
+        is_private = form_data.cleaned_data.get('is_private', False)
         show_app = form_data.cleaned_data.get('show_app', False)
         show_assistant = form_data.cleaned_data.get('show_assistant', False)
         logger.debug("{0}:{1}:{2}".format(is_outer, show_app, show_assistant))
@@ -337,6 +339,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         # save
         app.dest_yb = False
         app.dest_ys = False
+        if is_private:
+            app.status = "private"
         app.save()
         # 保存port
         # port 1 delete all old info
@@ -473,6 +477,7 @@ class ShareServiceForm(forms.Form):
     app_version = forms.CharField(help_text=u"版本")
     release_note = forms.CharField(help_text=u"更新说明")
     is_outer = forms.BooleanField(required=False, initial=False, help_text=u"是否发布到云市")
+    is_private = forms.BooleanField(required=False, initial=False, help_text=u"是否发布为私有应用")
     show_app = forms.BooleanField(required=False, initial=False, help_text=u"发布到云市后是否在云市展示")
     show_assistant = forms.BooleanField(required=False, initial=False, help_text=u"发布到云市后是否在云帮展示")
 
