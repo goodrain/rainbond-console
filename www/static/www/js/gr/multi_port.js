@@ -1,6 +1,6 @@
 (function ($) {
       var tenantName = $("#tenant-name").html();
-      var serviceAlias = $("#service-alias").html();
+      var service_alias = $("#service-alias").html();
       //设定端口对内服务和对外服务的开关
       $('.switch-box').bootstrapSwitch();
       $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {
@@ -361,5 +361,5 @@
       }
    });      
    
-    muti_outer_port();
+
 })(jQuery);
