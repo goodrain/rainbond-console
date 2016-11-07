@@ -162,7 +162,7 @@
                      <span>绑定域名:</span>
                      <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com">
                        {% if 'manage_service' in user.actions %}
-                        <p>
+                        <p style="padding-top: 10px;">
                           {% if serviceDomain %}
                           <button type="button" class="btn btn-danger btn-xs fn-domain" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">解绑</button>
                           {% else %}
