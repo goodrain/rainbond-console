@@ -773,3 +773,49 @@ function payed_upgrade(tenantName,url){
         }
     });
 }
+
+
+／/
+$(function(){
+   //多端口支持
+    function muti_outer_port() {
+        //var port_type = $("#outer_port_setting").val();
+        var tenantName = $("#tenant-name").html();
+
+        var service_alias = $("#service-alias").html();
+        var port_type = "";
+        if($(".newtab").length == 1){
+            port_type = "one_outer";
+        }else{
+            port_type = "multi_outer";
+        }
+        $.ajax({
+            type: "post",
+            url: "/ajax/" + tenantName + "/" + service_alias + "/service-outer-port-type",
+            data: "action=change_port_type&port_type=" + port_type,
+            catch: false,
+            beforeSend: function (xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (msg) {
+                var result = msg;
+                if (result["status"] == "ok") {
+                    swal("设置成功");
+                }else if(result["status"] == "mult_port"){
+                    swal(result["info"]);
+                }
+                else {
+                    swal("设置失败");
+                }
+            },
+            error: function () {
+                swal("对外端口设置异常,请重试");
+            }
+
+
+        })
+    }
+    muti_outer_port();
+
+});
