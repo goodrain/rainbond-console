@@ -775,7 +775,7 @@ function payed_upgrade(tenantName,url){
 }
 
 
-／/
+//端口
 $(function(){
    //多端口支持
     function muti_outer_port() {
