@@ -697,7 +697,7 @@ class ServiceDomainManager(AuthedView):
                     domain = ServiceDomain.objects.get(service_id=self.service.service_id)
                     old_domain_name = domain.domain_name
                     domain.domain_name = domain_name
-                    domain["container_port"] = int(container_port)
+                    domain.container_port = int(container_port)
                     domain.save()
                 data = {}
                 data["service_id"] = self.service.service_id
