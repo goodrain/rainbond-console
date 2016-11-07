@@ -77,12 +77,14 @@
           </div>
           -->
           <!-- 单端口 多端口-->
+          <form>
+           {% csrf_token %}
           <div style="display: none">
             <p id="tenant-name">{{ tenantName }}</p>
             <p id="service-alias">{{ serviceAlias }}</p>
           </div>
           <!-- 单端口 多端口-->
-          
+          </form>
       </div>
   </section>
 
@@ -529,6 +531,7 @@
     <p class="tittext">删除 </p>
     <div class="panel-body">
       <form class="form-horizontal" role="form">
+         
         <div class="form-group">
           <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_cname}}</label>
           <div class="col-sm-2 col-lg-2 text-center">
@@ -750,7 +753,7 @@
 
         })
     }
-   
+    muti_outer_port();
     //服务挂载卷类型 设置
     function mnt_share_set(tenantName, service_alias) {
         var volume_type = $("#mnt_share_type").val();
