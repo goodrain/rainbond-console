@@ -102,9 +102,9 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
                 'is_init_accout': False,
                 'is_outer': False,
                 'service_type': self.service.service_type,
-                'is_private': pre_app.status == "private",
-                'show_app': pre_app.show_app,
-                'show_assistant': pre_app.show_assistant,
+                'is_private': False,
+                'show_app': True,
+                'show_assistant': True,
             })
         # 查询对应服务的名称等信息
         context.update({'app': init_data})

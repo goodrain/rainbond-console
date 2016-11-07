@@ -157,11 +157,19 @@ class TenantService(LeftSideBarMixin, AuthedView):
             'viewerDisable': False,
         }
         identities = PermRelService.objects.filter(service_id=self.service.pk)
+        user_id_list = [x.user_id for x in identities]
+        user_list = Users.objects.filter(pk__in=user_id_list)
+        user_map = {x.user_id: x for x in user_list}
+
         for i in identities:
             user_perm = perm_template.copy()
-            user = Users.objects.get(pk=i.user_id)
-            user_perm['name'] = user.nick_name
-            user_perm['email'] = user.email
+            user_info = user_map.get(i.user_id)
+            if user_info is None:
+                continue
+            user_perm['name'] = user_info.nick_name
+            if i.user_id == self.user.user_id:
+                user_perm['selfuser'] = True
+            user_perm['email'] = user_info.email
             if i.identity == 'admin':
                 user_perm.update({
                     'adminCheck': True,
