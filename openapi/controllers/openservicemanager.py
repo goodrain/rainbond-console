@@ -780,10 +780,10 @@ class OpenTenantServiceManager(object):
             volume_data = []
             if volume_list:
                 for app_volume in volume_list:
-                    volume = AppServiceVolume(service_key=app_volume.service_key,
-                                              app_version=app_volume.app_version,
-                                              category=app_volume.category,
-                                              volume_path=app_volume.volume_path);
+                    volume = AppServiceVolume(service_key=app_volume.get("service_key"),
+                                              app_version=app_volume.get("app_version"),
+                                              category=app_volume.get("category"),
+                                              volume_path=app_volume.get("volume_path"));
 
                     volume_data.append(volume)
             AppServiceVolume.objects.filter(service_key=service_key, app_version=version).delete()
