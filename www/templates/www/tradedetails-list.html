@@ -87,7 +87,11 @@
 <script type="text/javascript">
     function detail(time){
         var url = "/apps/{{tenantName}}/cost-detail/?create_time="+encodeURIComponent(time)+"&r="+Math.random()
-        window.open(url)
+        $.ajax({
+            url: url,
+            type: 'GET'
+        });
+        //window.open(url);
     }
 
 
