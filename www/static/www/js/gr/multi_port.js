@@ -347,9 +347,12 @@
    // 域名绑定
    $(".fn-domain").each(function(){
       var domainText = $(".fn-domain").find("button").html();
+      console.log("domainText" + domainText);
       if(domainText == "解绑"){
         $(".fn-domain").hide();
+        console.log($(".fn-domain"));
         $(this).closest("div").show();
+        console.log($(this));
         $(this).show();
       }else{
         $(".fn-domain").show();

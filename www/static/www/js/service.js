@@ -197,7 +197,9 @@ function domainSubmit(action, service_id, tenantName, service_alias,port_name) {
 	}
 	//绑定端口
 	var domain_name = $("#service_app_name_"+port_name).val();
+	console.log(domain_name);
 	var multi_port_bind = port_name;
+	console.log(multi_port_bind);
 	if (multi_port_bind == ""){
 		swal("选择有效的端口");
 		return;
@@ -237,6 +239,7 @@ function domainSubmit(action, service_id, tenantName, service_alias,port_name) {
 		error : function() {
 			swal("系统异常");
 		}
+		console.log(data);
 	})
 }
 
