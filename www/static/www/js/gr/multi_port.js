@@ -51,68 +51,7 @@
     );
       
       //显示端口明细
-      $('.port-arrow a').click(function(event) {
-        fold = $(this).attr('fold');
-        port_show = $(this).attr('port');
-        if (fold == 'yes') {
-          $(this).attr('fold', 'no');
-          $(this).children('i').removeClass('fa-chevron-circle-right').addClass('fa-chevron-circle-down');
-          curr_tr =  $(this).closest('tr');
-          make_port_detail(curr_tr, port_show);
-        } else {
-          $(this).attr('fold', 'yes');
-          $(this).children('i').removeClass('fa-chevron-circle-down').addClass('fa-chevron-circle-right');
-          /*next_tr = $(this).closest('tr').next('tr');
-          if (next_tr.hasClass('port-detail')) {
-            next_tr.remove();
-          }*/
-          $("#"+port_show).html("")
-          /*var next_table = $(this).closest('tr').parents('table').next();
-          if (next_table.hasClass('port-detail')) {
-            next_table.remove();
-          }*/
-        }
-      });
-
-
-      function make_port_detail (curr_tr, port_show) {
-        
-        url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + curr_tr.attr('port');
-        $.get(url, function (event) {
-          var next_tr = '<tr class="port-detail">';
-          if (event.environment) {
-            next_tr = next_tr + make_envs_html(event.environment);
-          }
-          if (event.outer_service) {
-            next_tr = next_tr + make_outer_html(event.outer_service);
-          }
-          next_tr = next_tr + '</tr>';
-          // curr_tr.parents('table').after(next_tr);
-          $("#"+port_show).html('<table class="table table-striped table-advance table-hover port-detail">' + next_tr + '</body>')
-          //curr_tr.parents('table').after('<table class="table table-striped table-advance table-hover port-detail">' + next_tr + '</body>');
-        });
-      }
-
-      function make_envs_html(data) {
-        var prefix = '<td class="details" colspan="9"><table><thead><tr><th>说明</th><th>变量名</th><th>变量值</th><th></th></tr></thead><tbody>';
-        var suffix = '</tbody></table></td>';
-        var body = '';
-        for (var order in data) {
-          body = body + '<tr><td>' + data[order].desc + '</td><td>' + data[order].name + '</td><td>' + data[order].value + '</td></tr>';
-        }
-        if (body==""){
-            return ""
-        }
-        return prefix + body + suffix;
-      }
-
-      function make_outer_html(data) {
-        var prefix = '<td class="details" colspan="3"><table><tbody>';
-        var suffix = '</tbody></table></td>';
-        var body = '<tr><td>访问地址</td><td>' + data.domain + '</td><td>' + data.port + '</td></tr>';
-        return prefix + body + suffix;
-      }
-
+      
       // 显示网址 -- ww start
       
       $(".fn-sever-link").each(function(){
