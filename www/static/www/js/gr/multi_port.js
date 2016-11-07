@@ -350,6 +350,7 @@
       if(domainText == "解绑"){
         $(".fn-domain").hide();
         $(this).closest("div").show();
+        $(this).show();
       }else{
         $(".fn-domain").show();
       }
