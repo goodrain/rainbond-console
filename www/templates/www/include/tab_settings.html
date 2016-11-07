@@ -6,6 +6,7 @@
         <div class="row">
             <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_cname}}</label>
         </div>
+
         {% if tenantServiceInfo.category == "application" %}
             <div class="row">
                 <label class="col-xs-2 control-label text-right">Git仓库</label>
@@ -51,7 +52,7 @@
               </div>
               -->
           </div>
-          <!--
+          
           <div class="row" style="display: none;">
               <label class="col-xs-2 control-label text-right">对外端口配置</label>
               <div class="col-xs-2">
@@ -74,17 +75,15 @@
                           onclick="muti_outer_port('{{ tenantName }}','{{ serviceAlias }}')">设置
                   </button>
               </div>
+              <div style="display: none">
+                <p id="tenant-name">{{ tenantName }}</p>
+                <p id="service-alias">{{ serviceAlias }}</p>
+              </div>
           </div>
-          -->
+         
           <!-- 单端口 多端口-->
-          <form>
-           {% csrf_token %}
-          <div style="display: none">
-            <p id="tenant-name">{{ tenantName }}</p>
-            <p id="service-alias">{{ serviceAlias }}</p>
-          </div>
-          <!-- 单端口 多端口-->
-          </form>
+          
+          
       </div>
   </section>
 
