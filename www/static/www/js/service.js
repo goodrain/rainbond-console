@@ -239,7 +239,6 @@ function domainSubmit(action, service_id, tenantName, service_alias,port_name) {
 		error : function() {
 			swal("系统异常");
 		}
-		console.log(data);
 	})
 }
 
