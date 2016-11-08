@@ -46,14 +46,15 @@
                     */
                     if(state){
                         if (port_switch.attr("name") == "outer"){
-                            port_switch.parent("td").parent("tr").find("div.fn-domain").show();
+                            $("#showlink"+port).show();
+                            window.location.reload();
                         }
                     }else{
                        if (port_switch.attr("name") == "outer"){
-                           port_switch.parent("td").parent("tr").find("div.fn-domain").hide();
+                           $("#showlink"+port).hide();
+                           window.location.reload();
                        }
                     }
-                    window.location.reload();
                 } else {
                     showMessage(res.info);
                     port_switch.bootstrapSwitch('state', !state, true);

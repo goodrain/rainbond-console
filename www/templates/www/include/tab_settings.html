@@ -159,7 +159,7 @@
                      </p>
                   </td>
                   <td>
-                    <div class="fn-domain">
+                    <div id="showLink{{port.container_port}}">
                      {% if hasHttpServices %}
                      <span>绑定域名:</span>
                      <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com">
