@@ -298,14 +298,8 @@
         });
       }
       
-   
-
-})(jQuery);
-
-
-//端口
-$(function(){
-   //多端口支持
+    //
+    //多端口支持
     function muti_outer_port() {
         //var port_type = $("#outer_port_setting").val();
         var tenantName = $("#tenant-name").html();
@@ -346,5 +340,8 @@ $(function(){
         })
     };
     muti_outer_port();
-    
-});
+
+})(jQuery);
+
+
+
