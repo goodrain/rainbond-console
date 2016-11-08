@@ -682,7 +682,7 @@ class ServiceDomainManager(AuthedView):
                     result["status"] = "exist"
                     return JsonResponse(result)
 
-                num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
+                num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).count()
                 old_domain_name = "goodrain"
                 if num == 0:
                     domain = {}
@@ -694,7 +694,7 @@ class ServiceDomainManager(AuthedView):
                     domaininfo = ServiceDomain(**domain)
                     domaininfo.save()
                 else:
-                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                    domain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
                     old_domain_name = domain.domain_name
                     domain.domain_name = domain_name
                     domain.container_port = int(container_port)
