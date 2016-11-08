@@ -7,6 +7,8 @@
         var port_switch = $(this);
           port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
+          console.log(event);
+          console.log(state);
           if (state) {
             action = "open_" + port_type;
           } else {
@@ -16,12 +18,6 @@
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
             $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
                 if(res.success) {
-                    var outer_port_type = "";
-                    if($(".newtab").length == 1){
-                        outer_port_type = "one_outer";
-                    }else{
-                        outer_port_type = "multi_outer";
-                    }
                     //var outer_port_type = $("#outer_port_setting").val();
                     if (state) {
                         if (port_switch.attr("name") == "inner") {
