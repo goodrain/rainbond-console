@@ -7,8 +7,8 @@
         var port_switch = $(this);
           port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
-          console.log(event);
-          console.log(state);
+          alert(event);
+          alert(state);
           if (state) {
             action = "open_" + port_type;
           } else {
@@ -47,11 +47,13 @@
                     if(state){
                         if (port_switch.attr("name") == "outer"){
                             $("#showlink"+port).show();
+                            alert($("#showlink"+port));
                             window.location.reload();
                         }
                     }else{
                        if (port_switch.attr("name") == "outer"){
                            $("#showlink"+port).hide();
+                           alert($("#showlink"+port));
                            window.location.reload();
                        }
                     }
