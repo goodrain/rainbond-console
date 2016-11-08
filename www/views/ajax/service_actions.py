@@ -881,11 +881,11 @@ class ServicePort(AuthedView):
             # 检查服务已经存在对外端口
             outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
                                                                is_outer_service=True).count()
-            if self.service.port_type == 'one_outer':
-                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                   is_outer_service=True).count()
-                if outer_port_num > 0:
-                    return JsonResponse({"success": False, "info": u"单一端口开放只能开启一个对外端口", "code": 408})
+            # if self.service.port_type == 'one_outer':
+            #     outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+            #                                                        is_outer_service=True).count()
+            #     if outer_port_num > 0:
+            #         return JsonResponse({"success": False, "info": u"单一端口开放只能开启一个对外端口", "code": 408})
             deal_port.is_outer_service = True
             data.update({"modified_field": "is_outer_service", "current_value": True})
             if deal_port.mapping_port == 0:
@@ -1240,13 +1240,13 @@ class MutiOuterPortView(AuthedView):
         try:
             if port_type != "":
                 # 判断在单一端口对外开放的情况下,
-                if port_type == 'one_outer':
-                    outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                       is_outer_service=True).count()
-                    if outer_port_num > 1:
-                        result["status"] = "mult_port"
-                        result["info"] = u"请先关闭多余端口"
-                        return JsonResponse(result)
+                # if port_type == 'one_outer':
+                #     outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                #                                                        is_outer_service=True).count()
+                #     if outer_port_num > 1:
+                #         result["status"] = "mult_port"
+                #         result["info"] = u"请先关闭多余端口"
+                #         return JsonResponse(result)
                 tenantServiceInfo = TenantServiceInfo.objects.get(service_id=self.service.service_id)
                 if tenantServiceInfo.port_type != port_type:
                     tenantServiceInfo.port_type = port_type
