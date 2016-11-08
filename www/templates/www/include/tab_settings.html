@@ -150,7 +150,7 @@
               <tr port="{{port.container_port}}">
                   <td>
                      <span>外部访问:</span>
-                     <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" data-on-text="开启" data-off-text="关闭">
+                     <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" data-on-text="开启" data-off-text="关闭" class="fn-outInput">
                   </td>
                   <td>
                      <span>访问地址:</span>
@@ -165,7 +165,7 @@
                      <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" value="{{serviceDomain.domain_name}}" placeholder="请输入新域名，如：www.example.com">
                        {% if 'manage_service' in user.actions %}
                         <p style="padding-top: 10px;">
-                          {% if serviceDomain %}
+                          {% if serviceDomain.container_port == port.container_port %}
                           <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">解绑</button>
                           {% else %}
                           <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">绑定</button>

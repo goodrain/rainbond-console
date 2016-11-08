@@ -1,4 +1,14 @@
 (function ($) {
+      //加载显示 隐藏绑定域名
+      $(".fn-outInput").each(function(){
+         var inputPort = $(this).closest('tr').attr('port');
+         if(typeof($(this).attr("checked")) == undefined){
+              $("#showLink"+inputPort).hide();
+         }else{
+             $("#showLink"+inputPort).show();
+         }
+      });
+
       var tenantName = $("#tenant-name").html();
       var serviceAlias = $("#service-alias").html();
       //设定端口对内服务和对外服务的开关
@@ -47,13 +57,11 @@
                         if (port_switch.attr("name") == "outer"){
                             $("#showLink"+port).show();
                             alert(port);
-                            window.location.reload();
                         }
                     }else{
                        if (port_switch.attr("name") == "outer"){
                            $("#showLink"+port).hide();
-                            alert(port);
-                           window.location.reload();
+                           alert(port);
                        }
                     }
                 } else {
@@ -302,7 +310,7 @@
 
 })(jQuery);
 
-
+/*
 //端口
 $(function(){
    //多端口支持
@@ -346,4 +354,4 @@ $(function(){
     };
     //muti_outer_port();
     
-});
+});*/
