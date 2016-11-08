@@ -44,6 +44,7 @@
                         });
                     }
                     */
+                    /*
                     if(state){
                         if (port_switch.attr("name") == "outer"){
                             $("#showLink"+port).show();
@@ -54,7 +55,8 @@
                            $("#showLink"+port).hide();
                            console.log(port);
                        }
-                    }
+                    }*/
+                    window.location.reload();
                 } else {
                     showMessage(res.info);
                     port_switch.bootstrapSwitch('state', !state, true);
