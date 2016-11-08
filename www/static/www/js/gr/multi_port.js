@@ -18,6 +18,7 @@
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
             $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
                 if(res.success) {
+                    /*
                     //var outer_port_type = $("#outer_port_setting").val();
                     if (state) {
                         if (port_switch.attr("name") == "inner") {
@@ -25,9 +26,7 @@
                         }
                         if (outer_port_type == "one_outer") {
                             // 其他的open全部设置为disabled
-                            $('.switch-box[name="outer"]').each(function () {
-                                $(this).bootstrapSwitch('disabled', true);
-                            });
+                            
                             port_switch.bootstrapSwitch('disabled', false);
                         }
                         else {
@@ -44,9 +43,12 @@
                             $(this).bootstrapSwitch('disabled', false);
                         });
                     }
+                    */
                 } else {
                     showMessage(res.info);
+                    /*
                     port_switch.bootstrapSwitch('state', !state, true);
+                    */
                 }
             }, 'json');
         }
