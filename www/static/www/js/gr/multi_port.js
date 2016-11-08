@@ -8,7 +8,6 @@
         var port_switch = $(this);
           port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
-          alert(state);
           if (state) {
             action = "open_" + port_type;
           } else {
