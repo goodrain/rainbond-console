@@ -44,11 +44,18 @@
                         });
                     }
                     */
+                    if(state){
+                        if (port_switch.attr("name") == "outer"){
+                            port_switch.parent("td").parent("tr").find("div.fn-domain").show();
+                        }
+                    }else{
+                       if (port_switch.attr("name") == "outer"){
+                           port_switch.parent("td").parent("tr").find("div.fn-domain").hide();
+                       }
+                    }
                 } else {
                     showMessage(res.info);
-                    /*
                     port_switch.bootstrapSwitch('state', !state, true);
-                    */
                 }
             }, 'json');
         }
@@ -334,6 +341,6 @@ $(function(){
 
         })
     };
-    muti_outer_port();
+    //muti_outer_port();
     
 });
