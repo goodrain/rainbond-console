@@ -46,11 +46,13 @@
                     if(state){
                         if (port_switch.attr("name") == "outer"){
                             $("#showlink"+port).show();
+                            alert(port);
                             window.location.reload();
                         }
                     }else{
                        if (port_switch.attr("name") == "outer"){
                            $("#showlink"+port).hide();
+                            alert(port);
                            window.location.reload();
                        }
                     }
