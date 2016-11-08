@@ -431,8 +431,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     if len(serviceDomainlist) > 0:
                         data = {}
                         for domain in serviceDomainlist:
-                            data[domain.container_port] = domain.container_port
-                            data[domain.domain_name] = domain.domain_name
+                            data[domain.container_port] = domain.domain_name
                         context["serviceDomainDict"] = data
 
                 port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
