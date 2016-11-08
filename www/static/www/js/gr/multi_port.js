@@ -16,7 +16,13 @@
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
             $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
                 if(res.success) {
-                    var outer_port_type = $("#outer_port_setting").val();
+                    var outer_port_type = "";
+                    if($(".newtab").length == 1){
+                        outer_port_type = "one_outer";
+                    }else{
+                        outer_port_type = "multi_outer";
+                    }
+                    //var outer_port_type = $("#outer_port_setting").val();
                     if (state) {
                         if (port_switch.attr("name") == "inner") {
                             return;
