@@ -307,7 +307,7 @@
         var service_alias = $("#service-alias").html();
         var port_type = "";
 
-        if($(".fn-out-servce").children("input:checked").length > 1){
+        if($(".fn-out-servce input:checked").length > 1){
             port_type = "multi_outer";
         }else{
             port_type = "one_outer";
