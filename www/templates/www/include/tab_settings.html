@@ -148,9 +148,9 @@
                   </td>
               </tr>
               <tr port="{{port.container_port}}">
-                  <td>
+                  <td class="fn-out-servce">
                      <span>外部访问:</span>
-                     <input class="switch-box fn-out-servce" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" data-on-text="开启" data-off-text="关闭">
+                     <input class="switch-box" name="outer" type="checkbox" {% if port.is_outer_service %}checked{% endif %} data-size="mini" data-on-color="success" data-on-text="开启" data-off-text="关闭">
                   </td>
                   <td>
                      <span>访问地址:</span>

@@ -302,7 +302,7 @@
 
 })(jQuery);
 
-/*
+
 //端口
 $(function(){
    //多端口支持
@@ -312,10 +312,11 @@ $(function(){
 
         var service_alias = $("#service-alias").html();
         var port_type = "";
-        if($(".newtab").length == 1){
-            port_type = "one_outer";
-        }else{
+
+        if($(".fn-out-servce").children("input:checked").length > 1){
             port_type = "multi_outer";
+        }else{
+            port_type = "one_outer";
         }
         $.ajax({
             type: "post",
@@ -344,6 +345,6 @@ $(function(){
 
         })
     };
-    //muti_outer_port();
+    muti_outer_port();
     
-});*/
+});
