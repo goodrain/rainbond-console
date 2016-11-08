@@ -94,7 +94,7 @@
       <!-- title line start -->
       <div class="tittext clearfix">
           <p style="float: left;">端口开放<span>(配置变化后需重启)</span></p>
-          <p style="float: left;">{% if user.is_sys_admin or add_port %} <button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>{% endif %}
+          <p style="float: left;"><button type="button" class="btn btn-success btn-xs" id="add_service_port">新增服务端口</button>
           </p>
       </div>
       <!-- title line end -->
@@ -120,7 +120,7 @@
                         {% endif %}
                 </th>
                 <th>
-                    {% if user.is_sys_admin  or add_port %}<button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>{% endif %}
+                    <button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>
                 </th>
               </tr>
           </thead>
