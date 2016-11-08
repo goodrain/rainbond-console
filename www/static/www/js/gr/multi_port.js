@@ -53,6 +53,7 @@
                            port_switch.parent("td").parent("tr").find("div.fn-domain").hide();
                        }
                     }
+                    window.location.reload();
                 } else {
                     showMessage(res.info);
                     port_switch.bootstrapSwitch('state', !state, true);
