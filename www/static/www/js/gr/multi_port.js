@@ -16,7 +16,7 @@
           }
 
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
-            $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action,"st":state,"ev":event}, function (res) {
+            $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
                 if(res.success) {
                     /*
                     //var outer_port_type = $("#outer_port_setting").val();
