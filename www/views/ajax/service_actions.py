@@ -715,7 +715,7 @@ class ServiceDomainManager(AuthedView):
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 data["container_port"] = int(container_port)
                 regionClient.deleteUserDomain(self.service.service_region, json.dumps(data))
-                ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
+                ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_delete', True)
             result["status"] = "success"
         except Exception as e:
