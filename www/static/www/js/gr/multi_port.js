@@ -1,17 +1,5 @@
 (function ($) {
       //加载显示 隐藏绑定域名
-      $(".fn-outInput").each(function(){
-         var inputPort = $(this).closest('tr').attr('port');
-         console.log(inputPort);
-         if(typeof($(this).attr("checked")) == undefined){
-              $("#showLink"+inputPort).hide();
-              console.log(inputPort);
-         }else{
-             $("#showLink"+inputPort).show();
-             console.log(inputPort);
-         }
-      });
-
       var tenantName = $("#tenant-name").html();
       var serviceAlias = $("#service-alias").html();
       //设定端口对内服务和对外服务的开关
@@ -59,12 +47,12 @@
                     if(state){
                         if (port_switch.attr("name") == "outer"){
                             $("#showLink"+port).show();
-                            alert(port);
+                            console.log(port);
                         }
                     }else{
                        if (port_switch.attr("name") == "outer"){
                            $("#showLink"+port).hide();
-                           alert(port);
+                           console.log(port);
                        }
                     }
                 } else {
