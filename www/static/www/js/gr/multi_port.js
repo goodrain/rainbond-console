@@ -2,10 +2,13 @@
       //加载显示 隐藏绑定域名
       $(".fn-outInput").each(function(){
          var inputPort = $(this).closest('tr').attr('port');
+         console.log(inputPort);
          if(typeof($(this).attr("checked")) == undefined){
               $("#showLink"+inputPort).hide();
+              console.log(inputPort);
          }else{
              $("#showLink"+inputPort).show();
+             console.log(inputPort);
          }
       });
 
