@@ -162,10 +162,10 @@
                     <div id="showLink{{port.container_port}}">
                      {% if port.is_outer_service %}
                      <span>绑定域名:</span>
-                     <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" {% if serviceDomain.container_port == port.container_port %}value="{{serviceDomain.domain_name}}"{% endif %} placeholder="请输入新域名，如：www.example.com">
+                     <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" {% if port.container_port in serviceDomainDict.keys %}value="{{serviceDomainDict|mkey:port.container_port}}"{% endif %} placeholder="请输入新域名，如：www.example.com">
                        {% if 'manage_service' in user.actions %}
                         <p style="padding-top: 10px;">
-                          {% if serviceDomain.container_port == port.container_port %}
+                          {% if port.container_port in serviceDomainDict.keys %}
                           <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">解绑</button>
                           {% else %}
                           <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">绑定</button>

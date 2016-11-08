@@ -423,10 +423,18 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     pass
                 if service_domain:
                     # service domain
-                    domain_num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
-                    if domain_num == 1:
-                        domain = ServiceDomain.objects.get(service_id=self.service.service_id)
-                        context["serviceDomain"] = domain
+                    # domain_num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
+                    # if domain_num == 1:
+                    #     domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                    #     context["serviceDomain"] = domain
+                    serviceDomainlist = ServiceDomain.objects.filter(service_id=self.service.service_id)
+                    if len(serviceDomainlist) > 0:
+                        data = {}
+                        for domain in serviceDomainlist:
+                            data[domain.container_port] = domain.container_port
+                            data[domain.domain_name] = domain.domain_name
+                        context["serviceDomainDict"] = data
+
                 port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
                 outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
                 context["ports"] = list(port_list)
