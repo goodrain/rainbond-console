@@ -250,7 +250,6 @@
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-port';
             $.post(url, dict, function(res) {
               if (res.success) {
-                muti_outer_port();
                 window.location.href = window.location.href;
               } else {
                 showMessage(res.info);
@@ -285,21 +284,6 @@
         });
       }
       
-      
-   // 域名绑定
-   $(".fn-domain").each(function(){
-      var domainText = $(".fn-domain").find("button").html();
-      console.log("domainText" + domainText);
-      if(domainText == "解绑"){
-        $(".fn-domain").hide();
-        console.log($(".fn-domain"));
-        $(this).closest("div").show();
-        console.log($(this));
-        $(this).show();
-      }else{
-        $(".fn-domain").show();
-      }
-   });      
    
 
 })(jQuery);
@@ -345,6 +329,7 @@ $(function(){
 
 
         })
-    }
-
+    };
+    muti_outer_port();
+    
 });
