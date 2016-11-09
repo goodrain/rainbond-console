@@ -308,12 +308,12 @@
         if($("#tenant-name")){
           var tenantName = $("#tenant-name").html();
         }else{
-          return;
+          return false;
         }
         if($("#service-alias")){
            var service_alias = $("#service-alias").html();
         }else{
-          return;
+          return false;
         }
         var port_type = "";
 
