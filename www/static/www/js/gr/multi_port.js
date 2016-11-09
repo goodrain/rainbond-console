@@ -305,16 +305,14 @@
     //多端口支持
     function muti_outer_port() {
         //var port_type = $("#outer_port_setting").val();
-        if($("#tenant-name")){
-          var tenantName = $("#tenant-name").html();
-        }else{
+        
+        var tenantName = $("#tenant-name").html();
+        var service_alias = $("#service-alias").html();
+        var oUrl = console.log(window.location.href);
+        var oArray =  oUrl.split("?");
+        if(oArray[oArray.length-1] != "fr=settings"){
           return false;
-        }
-        if($("#service-alias")){
-           var service_alias = $("#service-alias").html();
-        }else{
-          return false;
-        }
+        } 
         var port_type = "";
 
         if($(".fn-out-servce input:checked").length > 1){
