@@ -15,6 +15,7 @@ from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 from www.app_http import AppServiceApi
 from www.region import RegionInfo
+from django.db.models import Q, Count
 
 import logging
 logger = logging.getLogger('default')
@@ -45,7 +46,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             context = self.get_context()
             context["serviceMarketStatus"] = "active"
             context["tenantName"] = self.tenantName
-            fr = request.GET.get("fr", "local")
+            fr = request.GET.get("fr", "private")
             context["fr"] = fr
             if fr == "local":
                 cacheServiceList = ServiceInfo.objects.filter(status="published")
@@ -62,7 +63,10 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                     context["appVersion"] = appVersion
             elif fr == "private":
                 # 私有市场
-                service_list = AppService.objects.filter(tenant_id=self.tenant.tenant_id)
+                service_list = AppService.objects.filter(tenant_id=self.tenant.tenant_id) \
+                    .exclude(service_key='application') \
+                    .exclude(service_key='redis', app_version='2.8.20_51501') \
+                    .exclude(service_key='wordpress', app_version='4.2.4')
                 # 团队共享
                 tenant_service_list = [x for x in service_list if x.status == "private"]
                 # 云帮共享
@@ -72,6 +76,65 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                 context["tenant_service_list"] = tenant_service_list
                 context["assistant_service_list"] = assistant_service_list
                 context["cloud_service_list"] = cloud_service_list
+            elif fr == "deploy":
+                # 当前租户最新部署的应用
+                tenant_id = self.tenant.tenant_id
+                tenant_service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).exclude(service_key='application').order_by("-ID")
+                service_key_query = []
+                tenant_service_query = None
+                for tenant_service in tenant_service_list:
+                    if tenant_service.service_key == 'redis' and tenant_service.version == '2.8.20_51501':
+                        continue
+                    if tenant_service.service_key == 'wordpress' and tenant_service.version == '4.2.4':
+                        continue
+                    tmp_key = '{0}_{1}'.format(tenant_service.service_key, tenant_service.version)
+                    if tmp_key in service_key_query:
+                        continue
+                    service_key_query.append(tmp_key)
+                    if len(service_key_query) > 10:
+                        break
+                    if tenant_service_query is None:
+                        tenant_service_query = (Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
+                    else:
+                        tenant_service_query = tenant_service_query | (Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
+                if len(service_key_query) > 0:
+                    service_list = ServiceInfo.objects.filter(tenant_service_query)
+                    context["service_list"] = service_list
+            elif fr == "hot":
+                # 当前云帮部署最多应用
+                tenant_service_list = TenantServiceInfo.objects.values('service_key', 'version') \
+                                          .exclude(service_key='application') \
+                                          .annotate(Count('ID')).order_by("-ID__count")
+                service_key_query = []
+                tenant_service_query = None
+                for tenant_service in tenant_service_list:
+                    if tenant_service.get("service_key") == 'redis' and tenant_service.get("version") == '2.8.20_51501':
+                        continue
+                    if tenant_service.get("service_key") == 'wordpress' and tenant_service.get("version") == '4.2.4':
+                        continue
+                    tmp_key = '{0}_{1}'.format(tenant_service.get("service_key"), tenant_service.get("version"))
+                    if tmp_key in service_key_query:
+                        continue
+                    service_key_query.append(tmp_key)
+                    if len(service_key_query) > 10:
+                        break
+                    if tenant_service_query is None:
+                        tenant_service_query = (Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
+                    else:
+                        tenant_service_query = tenant_service_query | (Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
+                logger.debug(tenant_service_query)
+                service_list = ServiceInfo.objects.filter(tenant_service_query)
+                context["service_list"] = service_list
+            elif fr == "new":
+                # 云市最新的应用
+                res, resp = appClient.getRemoteServices(key="newest", limit=10)
+                if res.status == 200:
+                    service_list = json.loads(resp.data)
+                    context["service_list"] = service_list
+                else:
+                    logger.error("service market query newest failed!")
+                    logger.error(res, resp)
+
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_market.html", context)

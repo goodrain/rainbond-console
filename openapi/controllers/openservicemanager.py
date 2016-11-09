@@ -780,10 +780,10 @@ class OpenTenantServiceManager(object):
             volume_data = []
             if volume_list:
                 for app_volume in volume_list:
-                    volume = AppServiceVolume(service_key=app_volume.service_key,
-                                              app_version=app_volume.app_version,
-                                              category=app_volume.category,
-                                              volume_path=app_volume.volume_path);
+                    volume = AppServiceVolume(service_key=app_volume.get("service_key"),
+                                              app_version=app_volume.get("app_version"),
+                                              category=app_volume.get("category"),
+                                              volume_path=app_volume.get("volume_path"));
 
                     volume_data.append(volume)
             AppServiceVolume.objects.filter(service_key=service_key, app_version=version).delete()
@@ -800,12 +800,12 @@ class OpenTenantServiceManager(object):
         try:
             download_task = {}
             if base_info.is_slug():
-                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key, "app_version":base_info.version, "namespace":base_info.namespace}
+                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key, "app_version": base_info.version, "namespace": base_info.namespace, "dep_sids": json.dumps([])}
                 for region in RegionInfo.valid_regions():
                     logger.info(region)
                     regionClient.send_task(region, 'app_slug', json.dumps(download_task))
             else:
-                download_task = {"action": "download_and_deploy", "image": base_info.image, "namespace":base_info.namespace}
+                download_task = {"action": "download_and_deploy", "image": base_info.image, "namespace": base_info.namespace, "dep_sids": json.dumps([])}
                 for region in RegionInfo.valid_regions():
                     regionClient.send_task(region, 'app_image', json.dumps(download_task))
         except Exception as e:
