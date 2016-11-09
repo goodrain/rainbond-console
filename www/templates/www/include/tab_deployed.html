@@ -38,21 +38,22 @@
                 {% endifequal %}
 
                 {% if hasHttpServices %}
-					{% if visit_port_type == "multi_outer" %}
-						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px;">
+                 <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
+        					{% if visit_port_type == "multi_outer" %}
+        						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px;">
 
-							{% for port in http_outer_service_ports %}
-    							{% if port.container_port == serviceDomain.container_port %}
-        							<option value="{{ port.container_port }}"
-        									selected="selected">{{ port.container_port }}</option>
-        							{% else %}
-        							<option value="{{ port.container_port }}">{{ port.container_port }}</option>
-    							{% endif %}
-							{% endfor %}
+        							{% for port in http_outer_service_ports %}
+            							{% if port.container_port == serviceDomain.container_port %}
+                							<option value="{{ port.container_port }}"
+                									selected="selected">{{ port.container_port }}</option>
+                							{% else %}
+                							<option value="{{ port.container_port }}">{{ port.container_port }}</option>
+            							{% endif %}
+        							{% endfor %}
 
-						</select>
-					{%endif%}
-                    <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
+        						</select>
+        					{%endif%}
+                   
                 {% endif  %}
                  
                 {% ifequal tenantServiceInfo.service_type "mysql" %}

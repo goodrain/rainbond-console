@@ -1,4 +1,4 @@
-(function ($) {
+edit-protocol(function ($) {
       //加载显示 隐藏绑定域名
       var tenantName = $("#tenant-name").html();
       var serviceAlias = $("#service-alias").html();
@@ -127,6 +127,9 @@
           type: 'select',
           source: [{value: "http", text: 'http'}, {value: "stream", text: 'stream'}],
           pk: 1,
+          success: function(data){
+             window.location.reload();
+          },
           error: function (data) {
             msg = data.responseText;
             res = $.parseJSON(msg);
