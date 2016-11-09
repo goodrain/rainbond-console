@@ -305,9 +305,16 @@
     //多端口支持
     function muti_outer_port() {
         //var port_type = $("#outer_port_setting").val();
-        var tenantName = $("#tenant-name").html();
-
-        var service_alias = $("#service-alias").html();
+        if($("#tenant-name")){
+          var tenantName = $("#tenant-name").html();
+        }else{
+          return;
+        }
+        if($("#service-alias")){
+           var service_alias = $("#service-alias").html();
+        }else{
+          return;
+        }
         var port_type = "";
 
         if($(".fn-out-servce input:checked").length > 1){
