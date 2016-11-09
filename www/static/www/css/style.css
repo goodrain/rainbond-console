@@ -5606,4 +5606,51 @@ a.guest-on i {
 .tabbox .panel-body{padding:10px;}
 
 
+.tittext p{margin:0; padding:0;}
+.newtab{margin-bottom: 0;}
+.newtab tr td,.newtab tr th{width: 30%;}
+.newtab tr:last-child td,.newtab tr:last-child th{width:auto;}
+.newtab tr td span{display: block;}
+#port_open{background: #fff;}
+.addtab{width: 100%; border-bottom: 1px #cdcdcd solid;}
+.addtab tr{height: 40px;}
+.addtab tr td{width:20%; padding: 10px;}
+.addtab tr td:last-child{width: auto; }
+
+.addtab tr td span{padding-right: 5px;}
+.addtab tr td input{width:100px; height: 20px;}
+.addtab tr td select{ width:100px; height: 20px; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.consume_detail th,.consume_detail td{
+            height: 40px;
+ }
+.consume_detail th {
+            background: #efefef;
+            color:#666;
+            font-size:16px;
+}
+.consume_detail,.consume_detail th,.consume_detail td
+ {
+    color:#666;
+    font-size:14px;
+    text-align:center;
+    padding:4px;
+    border:1px #ddd solid;
+    border-collapse:collapse;
+ }
+
+
 

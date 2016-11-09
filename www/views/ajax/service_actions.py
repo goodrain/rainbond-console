@@ -682,7 +682,7 @@ class ServiceDomainManager(AuthedView):
                     result["status"] = "exist"
                     return JsonResponse(result)
 
-                num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
+                num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).count()
                 old_domain_name = "goodrain"
                 if num == 0:
                     domain = {}
@@ -694,10 +694,10 @@ class ServiceDomainManager(AuthedView):
                     domaininfo = ServiceDomain(**domain)
                     domaininfo.save()
                 else:
-                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                    domain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
                     old_domain_name = domain.domain_name
                     domain.domain_name = domain_name
-                    domain["container_port"] = int(container_port)
+                    domain.container_port = int(container_port)
                     domain.save()
                 data = {}
                 data["service_id"] = self.service.service_id
@@ -708,14 +708,14 @@ class ServiceDomainManager(AuthedView):
                 regionClient.addUserDomain(self.service.service_region, json.dumps(data))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_add', True)
             elif action == "close":
-                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
                 data = {}
                 data["service_id"] = servicerDomain.service_id
                 data["domain"] = servicerDomain.domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 data["container_port"] = int(container_port)
                 regionClient.deleteUserDomain(self.service.service_region, json.dumps(data))
-                ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
+                ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_delete', True)
             result["status"] = "success"
         except Exception as e:
@@ -881,11 +881,11 @@ class ServicePort(AuthedView):
             # 检查服务已经存在对外端口
             outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
                                                                is_outer_service=True).count()
-            if self.service.port_type == 'one_outer':
-                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                   is_outer_service=True).count()
-                if outer_port_num > 0:
-                    return JsonResponse({"success": False, "info": u"单一端口开放只能开启一个对外端口", "code": 408})
+            # if self.service.port_type == 'one_outer':
+            #     outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+            #                                                        is_outer_service=True).count()
+            #     if outer_port_num > 0:
+            #         return JsonResponse({"success": False, "info": u"单一端口开放只能开启一个对外端口", "code": 408})
             deal_port.is_outer_service = True
             data.update({"modified_field": "is_outer_service", "current_value": True})
             if deal_port.mapping_port == 0:
@@ -1111,6 +1111,7 @@ class ServiceNewPort(AuthedView):
             port_port = request.POST.get("port_port")
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
+            ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             data = {"action": "delete", "port_ports": [port_port]}
             regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"删除成功"})
@@ -1240,13 +1241,13 @@ class MutiOuterPortView(AuthedView):
         try:
             if port_type != "":
                 # 判断在单一端口对外开放的情况下,
-                if port_type == 'one_outer':
-                    outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                       is_outer_service=True).count()
-                    if outer_port_num > 1:
-                        result["status"] = "mult_port"
-                        result["info"] = u"请先关闭多余端口"
-                        return JsonResponse(result)
+                # if port_type == 'one_outer':
+                #     outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                #                                                        is_outer_service=True).count()
+                #     if outer_port_num > 1:
+                #         result["status"] = "mult_port"
+                #         result["info"] = u"请先关闭多余端口"
+                #         return JsonResponse(result)
                 tenantServiceInfo = TenantServiceInfo.objects.get(service_id=self.service.service_id)
                 if tenantServiceInfo.port_type != port_type:
                     tenantServiceInfo.port_type = port_type

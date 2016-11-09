@@ -39,7 +39,7 @@ $(function(){
             swal("服务名太长,不能超过30个字符");
             return;
         }
-
+        
         // manual git check
         if (codeStoreSel == 'option4') {
             var service_code_clone_url = $('#service_code_clone_url_manual').val()
