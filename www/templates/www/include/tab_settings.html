@@ -106,18 +106,10 @@
           <thead>
               <tr port="{{port.container_port}}">
                 <th>端口号:
-                    {% if port_auth %}
-                        <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
-                    {% else %}
-                        {{port.container_port}}
-                    {% endif %}
+                    <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
                 </th>
                 <th>协议类型:
-                    {% if port_auth %}
-                            <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
-                        {% else %}
-                            {{port.protocol}}
-                        {% endif %}
+                    <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
                 </th>
                 <th>
                     <button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>
@@ -140,11 +132,7 @@
                   </td>
                   <td>
                       <span>使用别名:</span>
-                      {% if port_auth %}
-                          <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}">{{port.port_alias}}_HOST:{{port.port_alias}}_PORT</a>
-                      {% else %}
-                          {{port.port_alias}}_HOST:{{port.port_alias}}_PORT
-                      {% endif %}
+                      <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}">{{port.port_alias}}_HOST:{{port.port_alias}}_PORT</a>
                   </td>
               </tr>
               <tr port="{{port.container_port}}">
