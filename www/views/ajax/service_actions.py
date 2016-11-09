@@ -1111,6 +1111,7 @@ class ServiceNewPort(AuthedView):
             port_port = request.POST.get("port_port")
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
+            ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             data = {"action": "delete", "port_ports": [port_port]}
             regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"删除成功"})
