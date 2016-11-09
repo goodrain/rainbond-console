@@ -1,4 +1,4 @@
-edit-protocol(function ($) {
+(function ($) {
       //加载显示 隐藏绑定域名
       var tenantName = $("#tenant-name").html();
       var serviceAlias = $("#service-alias").html();
