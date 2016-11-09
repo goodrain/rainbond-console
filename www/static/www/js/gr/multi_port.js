@@ -308,7 +308,7 @@
         
         var tenantName = $("#tenant-name").html();
         var service_alias = $("#service-alias").html();
-        var oUrl = console.log(window.location.href);
+        var oUrl = window.location.href;
         var oArray =  oUrl.split("=");
         if(oArray[oArray.length-1] != "settings"){
           return false;
