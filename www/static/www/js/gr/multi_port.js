@@ -8,10 +8,16 @@
         var port_switch = $(this);
           port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
+          var  alias = port_switch.parent().parent().find("a");
           if (state) {
             action = "open_" + port_type;
+            var alias = port_switch.parent().parent().find("a").html();
+            console.log(alias);
+
           } else {
             action = 'close_' + port_type;
+             var  alias = "";
+             console.log(alias);
           }
 
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
