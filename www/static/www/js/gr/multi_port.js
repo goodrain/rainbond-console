@@ -8,23 +8,28 @@
         var port_switch = $(this);
           port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
-          var alias = $(this).closest('tr').find("a").html();
+          var alias = $(this).closest('tr').find("a").attr("data-value");
              alert(alias);
           if (state) {
             action = "open_" + port_type;
-            if(alias == ""){
-               alias = "S" + port;
-               alert(alias);
-            }else{
-               alias = "";
-                alert(alias);
-            }
-            
           } else {
             action = 'close_' + port_type;
-              alias = "";
-               alert(alias);
           }
+
+            //
+           if(port_type == "inner"){
+                if(alias == ""){
+                   alias = "S" + port;
+                   alert(alias);
+                }else{
+                   alias = "";
+                    alert(alias);
+                }
+            }else{
+                alias = "";
+                alert(alias);
+            }
+            //
 
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
             $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action,"name":alias}, function (res) {
