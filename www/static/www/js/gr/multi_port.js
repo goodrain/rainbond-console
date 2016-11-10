@@ -93,12 +93,14 @@
         $.get(url, function (event) {
           if (event.outer_service) {
             if($(".newtab").length > 1){
-               var next_tr ="http://" + port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr = port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr_href = "http://" + next_tr;
             }else{
-                var next_tr ="http://" + event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr = event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr_href = "http://" + next_tr;
             }
           }
-          $("#port_show_" + port_show).find("a").html(next_tr).attr("href",next_tr);
+          $("#port_show_" + port_show).find("a").html(next_tr).attr("href",next_tr_href);
         });
       }
 
