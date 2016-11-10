@@ -91,7 +91,7 @@
       function Fn_make_port_detail (port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
-          if($(".newtab").length > 1){
+          if($(".fn-out-servce input:checked").length > 1){
                var next_tr = port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
                var next_tr_href = "http://" + next_tr;
             }else{
