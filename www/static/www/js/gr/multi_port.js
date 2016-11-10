@@ -8,7 +8,7 @@
         var port_switch = $(this);
           port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
-          var alias = $(this).parent().parent().children().children("a").html();
+          var alias = $(this).closest('tr').find("a").html();
              alert(alias);
           if (state) {
             action = "open_" + port_type;
