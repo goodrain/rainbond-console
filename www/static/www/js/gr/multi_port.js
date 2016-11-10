@@ -16,7 +16,7 @@
                alias = "S" + port;
                alert(alias);
             }else{
-               alias == "";
+               alias = "";
                 alert(alias);
             }
             
