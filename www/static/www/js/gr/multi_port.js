@@ -93,7 +93,7 @@
         $.get(url, function (event) {
           if (event.outer_service) {
             if($(".newtab").length > 1){
-               var next_tr =port_show + event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr =port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
             }else{
                 var next_tr = event.outer_service.domain + ':' + event.outer_service.port;
             }
