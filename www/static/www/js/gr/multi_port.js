@@ -9,7 +9,7 @@
           port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
           var alias = $(this).closest('tr').find("a").attr("data-value");
-             alert(alias);
+             //alert(alias);
           if (state) {
             action = "open_" + port_type;
           } else {
@@ -20,14 +20,14 @@
            if(port_type == "inner"){
                 if(alias == ""){
                    alias = "S" + port;
-                   alert(alias);
+                   //alert(alias);
                 }else{
                    alias = "";
-                    alert(alias);
+                    //alert(alias);
                 }
             }else{
                 alias = "";
-                alert(alias);
+                //alert(alias);
             }
             //
 
