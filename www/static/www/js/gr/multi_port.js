@@ -8,20 +8,26 @@
         var port_switch = $(this);
           port = $(this).closest('tr').attr('port');
           port_type = $(this).attr('name'); //inner outer
-          var  alias = port_switch.parent().parent().find("a");
+          var alias = $(this).parent().parent().find("a").html();
+             alert(alias);
           if (state) {
             action = "open_" + port_type;
-            var alias = port_switch.parent().parent().find("a").html();
-            console.log(alias);
-
+            if(alias == ""){
+               alias = "S" + port;
+               alert(alias);
+            }else{
+               alias == "";
+                alert(alias);
+            }
+            
           } else {
             action = 'close_' + port_type;
-             var  alias = "";
-             console.log(alias);
+              alias = "";
+               alert(alias);
           }
 
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
-            $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
+            $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action,"name":alias}, function (res) {
                 if(res.success) {
                     /*
                     //var outer_port_type = $("#outer_port_setting").val();
