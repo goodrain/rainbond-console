@@ -84,17 +84,21 @@
                console.log(event.environment[0].value); 
                serlink = event.environment[0].value + ':' + event.environment[1].value;
             }
-            $("#sever_show_" + port_show).find("a").html(serlink).attr("href",serlink);
+            $("#sever_show_" + port_show).find("span").html(serlink);
         });
       }
 
       function Fn_make_port_detail (port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
-          if (event.outer_service) {
-            var next_tr = event.outer_service.domain + ':' + event.outer_service.port;
-          }
-          $("#port_show_" + port_show).find("a").html(next_tr).attr("href",next_tr);
+          if($(".newtab").length > 1){
+               var next_tr = port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr_href = "http://" + next_tr;
+            }else{
+               var next_tr = event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr_href = "http://" + next_tr;
+            }
+          $("#port_show_" + port_show).find("a").html(next_tr).attr("href",next_tr_href);
         });
       }
 
