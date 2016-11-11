@@ -199,24 +199,24 @@ $(function(){
 
     //修改组名
     $("#revise-groupname").click(function(){
-        FnLayer("请输入新组名：",true,"",false);
+        FnLayer("请输入新组名：",true,"",false,"全部应用不能改名！");
     });
     // 删除当前组
     // 删除当前组
     $("#reomve-groupname").click(function(){
-        FnLayer("",false,"您确定要删除当前组么？",false);
+        FnLayer("",false,"您确定要删除当前组么？",false,"全部应用不能删除！");
     });
     // 新增组
     $("#add-groupname").click(function(){
-        FnLayer("请输入新增组名",true,"",true);
+        FnLayer("请输入新增组名",true,"",true,"");
     });
     // 新增组
     
     //弹出层
-    function FnLayer(textTit,onoff,text,newonoff){
+    function FnLayer(textTit,onoff,text,newonoff,tipsText){
         var sedVal = $("#app-group option:selected").val(); // 取应用ID
-        if(sedVal == "0"){
-            swal("全部应用不能改名！")
+        if(sedVal == "0" && !newonoff){
+            swal(tipsText);
             return false;
             console.log(1);
         }else{
