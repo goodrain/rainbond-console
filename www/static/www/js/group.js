@@ -1,5 +1,5 @@
 $(function(){
-    var ser_alias = $("#app-group").attr("data-serviceAlias");
+    // var ser_alias = $("#app-group").attr("data-serviceAlias");
     var tenant_Name = $("#app-group").attr("data-tenantName");
 	// 复选框开始
 	var chackboxnums;
@@ -251,7 +251,7 @@ $(function(){
                             ///
                             $.ajax({
                                 type : "post",
-                                url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/add",
+                                url : "/apps/" + tenant_Name  + "/group/add",
                                 data : {
                                     group_name : inputText
                                 },
@@ -261,8 +261,11 @@ $(function(){
                                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                                 },
                                 success : function(msg) {
-                                    var dataObj = msg;
-                                    window.location.reload();
+                                    if (msg.ok){
+                                        window.location.reload();
+                                    }else{
+                                        swal(msg.info)
+                                    }
                                 },
                                 error : function() {
                                     swal("系统异常,请重试");
@@ -273,7 +276,7 @@ $(function(){
                             ///
                             $.ajax({
                                 type : "post",
-                                url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/update",
+                                url : "/apps/" + tenant_Name  + "/group/update",
                                 data : {
                                     new_group_name : inputText,
                                     group_id : sedVal
@@ -284,7 +287,6 @@ $(function(){
                                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                                 },
                                 success : function(msg) {
-                                    var dataObj = msg;
                                     window.location.reload();
                                 },
                                 error : function() {
@@ -298,7 +300,7 @@ $(function(){
                     ///
                     $.ajax({
                         type : "post",
-                        url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/delete",
+                        url : "/apps/" + tenant_Name  + "/group/delete",
                         data : {
                             group_id : sedVal,
                         },
@@ -363,10 +365,10 @@ $(function(){
         /////
         $.ajax({
             type : "post",
-            url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/change-group",
+            url : "/apps/" + tenant_Name + "/group/change-group",
             data : {
-                "newname" : new_group_id,
-                "ser_id" : ser_id
+                "group_id" : new_group_id,
+                "service_id" : ser_id
             },
             cache : false,
             beforeSend : function(xhr, settings) {

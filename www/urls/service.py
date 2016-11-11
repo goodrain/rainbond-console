@@ -1,4 +1,6 @@
 from django.conf.urls import patterns, url
+
+from www.services_group_view import *
 from www.services_view import *
 from www.app_services_view import *
 from www.back_services_view import *
@@ -61,4 +63,11 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
+
+    url(r'^/myservice/$', login_required(MyTenantService.as_view())),
+    # service group
+    url(r'^/group/add$', AddGroupView.as_view()),
+    url(r'^/group/update$', UpdateGroupView.as_view()),
+    url(r'^/group/delete$', DeleteGroupView.as_view()),
+    url(r'^/group/change-group$', UpdateServiceGroupView.as_view()),
 )

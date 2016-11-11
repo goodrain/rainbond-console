@@ -3,7 +3,7 @@
 {% load static %}
 {% block extracss %}
 {{ block.super }}
-<link rel="stylesheet" href='{% static "www/css/login.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/grouping.css" %}' />
 {% endblock %}
 {% block extrajs %}
 <script src='{% static "www/js/group.js" %}'></script>
@@ -14,7 +14,7 @@
 	<section class="panel">
 	<!-- main start  -->
 		<!-- top 分组 -->
-		<div class="clearfix" id="app-group"  data-serviceAlias="{{item.service_alias}}" data-tenantName="{{tenantName}}">
+		<div class="clearfix" id="app-group"   data-tenantName="{{tenantName}}">
 			<select>
 				<option value="0">全部应用</option>
 				{% for group in groups %}

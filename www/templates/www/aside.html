@@ -13,17 +13,21 @@
               	<span>新建应用</span>
               </a>
          </li>
-        <li class="sub-menu">
-            <a class="{{myAppStatus}}" href="javascript:;">
+        <li>
+        <!--<li class="sub-menu">-->
+            <!--<a class="{{myAppStatus}}" href="javascript:;">-->
+                <!--<i class="fa fa-laptop"></i>-->
+                <!--<span>我的应用</span></a>-->
+            <!--<ul class="sub">-->
+                <!--{% if tenantServiceList %}-->
+                 	<!--{% for item in tenantServiceList %}-->
+                 		<!--<li {% if item.is_selected %}class="active"{% endif %}><a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a></li>-->
+                 	<!--{% endfor %}-->
+                <!--{% endif %}-->
+            <!--</ul>-->
+            <a class="{{myAppStatus}}" href="/apps/{{tenantName}}/myservice">
                 <i class="fa fa-laptop"></i>
                 <span>我的应用</span></a>
-            <ul class="sub">
-                {% if tenantServiceList %}
-                 	{% for item in tenantServiceList %}
-                 		<li {% if item.is_selected %}class="active"{% endif %}><a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a></li>
-                 	{% endfor %}
-                {% endif %}
-            </ul>
         </li> 
               
         <li>

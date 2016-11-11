@@ -818,3 +818,22 @@ class TenantServiceVolume(BaseModel):
     category = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
     host_path = models.CharField(max_length=400, help_text=u"物理机的路径,绝对路径")
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
+
+
+class ServiceGroup(BaseModel):
+    """服务分组"""
+    class Meta:
+        db_table = 'service_group'
+
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    group_name = models.CharField(max_length=15, help_text=u"组名")
+    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
+
+
+class ServiceGroupRelation(BaseModel):
+    """服务与分组关系"""
+    class Meta:
+        db_table = 'service_group_relation'
+
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    group_id = models.IntegerField(max_length=10)
