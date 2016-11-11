@@ -218,104 +218,108 @@ $(function(){
         if(sedVal == "0"){
             swal("全部应用不能改名！")
             return false;
+            console.log(1);
         }else{
-            
-        }
-        var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
-        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
-        var oTit = '<p class="layer-tit">'+ textTit +'</p>';
-        var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
-        var oText ='<p class="tipstext">'+ text +'</p>';
-        var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
-        $("body").append(oDiv);
-        $("div.layermain").append(oCloseBtn,oTit);
-        if(onoff){
-           $("div.layermain").append(oInput);
-        }else{
-            $("div.layermain").append(oText);
-        }
-        $("div.layermain").append(oLink);
-        $(".fn-close").click(function(){
-            $("div.layerbg").remove();
-        });
-        $(".fn-sure").click(function(){
+            ///
+            console.log(2);
+            var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
+            var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
+            var oTit = '<p class="layer-tit">'+ textTit +'</p>';
+            var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
+            var oText ='<p class="tipstext">'+ text +'</p>';
+            var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
+            $("body").append(oDiv);
+            $("div.layermain").append(oCloseBtn,oTit);
+            console.log(3);
             if(onoff){
-                if(inputText == ""){
-                    swal("您还没有输入组名！")
-                    return false;
-                }else{
-                    var inputText = $(".input-css input").val();
-                    if(newonoff){
-                        ///
-                        $.ajax({
-                            type : "post",
-                            url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/add",
-                            data : {
-                                group_name : inputText
-                            },
-                            cache : false,
-                            beforeSend : function(xhr, settings) {
-                                var csrftoken = $.cookie('csrftoken');
-                                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                            },
-                            success : function(msg) {
-                                var dataObj = msg;
-                                window.location.reload();
-                            },
-                            error : function() {
-                                swal("系统异常,请重试");
-                            }
-                        });
-                        ///
-                    }else{
-                        ///
-                        $.ajax({
-                            type : "post",
-                            url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/update",
-                            data : {
-                                new_group_name : inputText,
-                                group_id : sedVal
-                            },
-                            cache : false,
-                            beforeSend : function(xhr, settings) {
-                                var csrftoken = $.cookie('csrftoken');
-                                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                            },
-                            success : function(msg) {
-                                var dataObj = msg;
-                                window.location.reload();
-                            },
-                            error : function() {
-                                swal("系统异常,请重试");
-                            }
-                        });
-                        ///
-                    }
-                }
+               $("div.layermain").append(oInput);
             }else{
-                ///
-                $.ajax({
-                    type : "post",
-                    url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/delete",
-                    data : {
-                        group_id : sedVal,
-                    },
-                    cache : false,
-                    beforeSend : function(xhr, settings) {
-                        var csrftoken = $.cookie('csrftoken');
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                    },
-                    success : function(msg) {
-                        var dataObj = msg;
-                        window.location.reload();
-                    },
-                    error : function() {
-                        swal("系统异常,请重试");
-                    }
-                });
-                ///
+                $("div.layermain").append(oText);
             }
-        });
+            $("div.layermain").append(oLink);
+            $(".fn-close").click(function(){
+                $("div.layerbg").remove();
+            });
+            $(".fn-sure").click(function(){
+                if(onoff){
+                    if(inputText == ""){
+                        swal("您还没有输入组名！")
+                        return false;
+                    }else{
+                        var inputText = $(".input-css input").val();
+                        if(newonoff){
+                            ///
+                            $.ajax({
+                                type : "post",
+                                url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/add",
+                                data : {
+                                    group_name : inputText
+                                },
+                                cache : false,
+                                beforeSend : function(xhr, settings) {
+                                    var csrftoken = $.cookie('csrftoken');
+                                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                                },
+                                success : function(msg) {
+                                    var dataObj = msg;
+                                    window.location.reload();
+                                },
+                                error : function() {
+                                    swal("系统异常,请重试");
+                                }
+                            });
+                            ///
+                        }else{
+                            ///
+                            $.ajax({
+                                type : "post",
+                                url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/update",
+                                data : {
+                                    new_group_name : inputText,
+                                    group_id : sedVal
+                                },
+                                cache : false,
+                                beforeSend : function(xhr, settings) {
+                                    var csrftoken = $.cookie('csrftoken');
+                                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                                },
+                                success : function(msg) {
+                                    var dataObj = msg;
+                                    window.location.reload();
+                                },
+                                error : function() {
+                                    swal("系统异常,请重试");
+                                }
+                            });
+                            ///
+                        }
+                    }
+                }else{
+                    ///
+                    $.ajax({
+                        type : "post",
+                        url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/delete",
+                        data : {
+                            group_id : sedVal,
+                        },
+                        cache : false,
+                        beforeSend : function(xhr, settings) {
+                            var csrftoken = $.cookie('csrftoken');
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success : function(msg) {
+                            var dataObj = msg;
+                            window.location.reload();
+                        },
+                        error : function() {
+                            swal("系统异常,请重试");
+                        }
+                    });
+                    ///
+                }
+            });
+            ///
+        }        
     }
     //  弹出层
     /////////////////////
