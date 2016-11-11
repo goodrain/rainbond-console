@@ -22,6 +22,6 @@ em,cite,span{font-style: normal;}
 .input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px;}
 
 .choose-group-box{position: relative;}
-.choose-layer{width: 200px; height: 50px; position: absolute; top: 50%; left: 50%; z-index: 99; background: #fff; display: none; margin:5px 0 0 -110px; border:1px #ececec solid; padding:10px;}
-.choose-layer select{100px; height: 30px; line-height: 30px;}
+.choose-layer{width: 200px; min-height: 50px; position: absolute; top: 50%; left: 50%; z-index: 99; background: #fff; display: none; margin:5px 0 0 -110px; border:1px #ececec solid; padding:10px;}
+.choose-layer select{width:100px; height: 30px; line-height: 30px;}
 .choose-group-box span{cursor: pointer;}
