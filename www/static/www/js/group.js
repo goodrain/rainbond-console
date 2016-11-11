@@ -333,7 +333,7 @@ $(function(){
         return (a.textContent || a.innerText || "").toUpperCase().indexOf(m[3].toUpperCase())>=0;
     };
     function filterList(list) { 
-    input = $("input.filterform");
+    input = $("input#search");
     $(input)
         .change( function () {
             var filter = $(this).val();
