@@ -3,9 +3,10 @@ a:hover{text-decoration: none;}
 div.applisttit{ margin:20px 20px 0; background: url('../images/titicon.png') no-repeat; height: 48px; line-height: 48px; color: #666;  clear:both; color: #666666; font-size: 30px; line-height: 48px; text-indent: 60px;}
 em,cite,span{font-style: normal;}
 
-
+#app-group select{width: 100px; height: 30px; line-height: 30px;}
 .bs-checkbox{text-align: center;}
-.numbers-box p{width:20%; float: left; line-height: 30px;}
+.numbers-box{padding-top: 10px;}
+.numbers-box p{min-width: 110px; float: left; line-height: 30px;}
 .numbers-box p span{color: #28cb75; padding:0 5px; font-size: 16px;}
 .numbers-box a{line-height: 30px;}
 
@@ -20,6 +21,6 @@ em,cite,span{font-style: normal;}
 .input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px;}
 
 .choose-group-box{position: relative;}
-.choose-layer{width: 300px; height: 100px; position: absolute; top: 50%; left: 50%; z-index: 99; background: #fff; display: none;}
-
+.choose-layer{width: 200px; height: 50px; position: absolute; top: 50%; left: 50%; z-index: 99; background: #fff; display: none; margin:5px 0 0 -110px; border:1px #ececec solid;}
+.choose-layer select{100px; height: 30px; line-height: 30px;}
 .choose-group-box span{cursor: pointer;}
