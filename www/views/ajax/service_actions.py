@@ -524,6 +524,7 @@ class AllTenantsUsedResource(AuthedView):
                             serviceIds = serviceIds + ","
                         serviceIds = serviceIds + "'" + s["service_id"] + "'"
                         result[s['service_id'] + "_running_memory"] = s["min_node"] * s["min_memory"]
+                        print "=====>", result[s['service_id'] + "_running_memory"]
                         result[s['service_id'] + "_storage_memory"] = 0
             result["service_ids"] = service_ids
         except Exception as e:

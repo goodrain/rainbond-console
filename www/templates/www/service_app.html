@@ -202,7 +202,6 @@
 	    }
 	    
 	    function checkTenantsStorage(){
-			console.log("检查内存状态");
 	    	var servcieList=$("#panel")
 	    	var curLength=servcieList.length;
     		if(curLength >0 ){
@@ -239,7 +238,6 @@
 			    				 totalM = totalM + storage_memory
 			    			  }
 			    		   }
-		    		  	   $("#service_total_memory").html(totalM+"M")
    		    		  },
    		    		error: function(){
    		    			//swal("系统异常");
