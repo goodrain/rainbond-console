@@ -1,7 +1,9 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
+{% load static %}
 {% block extracss %}
-<link rel="stylesheet" href='{% static "www/css/login.css" %}'>
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/login.css" %}' />
 {% endblock %}
 {% block extrajs %}
 <script src='{% static "www/js/group.js" %}'></script>

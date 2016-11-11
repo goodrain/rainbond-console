@@ -199,7 +199,7 @@ $(function(){
 
     //修改组名
     $("#revise-groupname").click(function(){
-        FnLayer("请输入新组名：",true,"",newonoff,false);
+        FnLayer("请输入新组名：",true,"",false);
     });
     // 删除当前组
     // 删除当前组
@@ -218,19 +218,21 @@ $(function(){
         if(sedVal == "0"){
             swal("全部应用不能改名！")
             return false;
+        }else{
+            
         }
         var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
         var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
         var oTit = '<p class="layer-tit">'+ textTit +'</p>';
         var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
-        var oText ='<p class="tipstext">'+ text +'</p>';    
-        var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';   
+        var oText ='<p class="tipstext">'+ text +'</p>';
+        var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
         $("body").append(oDiv);
         $("div.layermain").append(oCloseBtn,oTit);
         if(onoff){
-           $("div.layermain").append(oInput); 
+           $("div.layermain").append(oInput);
         }else{
-            $("div.layermain").append(oText); 
+            $("div.layermain").append(oText);
         }
         $("div.layermain").append(oLink);
         $(".fn-close").click(function(){
@@ -247,9 +249,9 @@ $(function(){
                         ///
                         $.ajax({
                             type : "post",
-                            url : "/ajax/" + tenant_Name + '/' + ser_alias + "/group/",
+                            url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/add",
                             data : {
-                                newname : inputText
+                                group_name : inputText
                             },
                             cache : false,
                             beforeSend : function(xhr, settings) {
@@ -269,10 +271,10 @@ $(function(){
                         ///
                         $.ajax({
                             type : "post",
-                            url : "/ajax/" + tenant_Name + '/' + ser_alias + "/group/",
+                            url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/update",
                             data : {
-                                newname : inputText,
-                                groupId : sedVal
+                                new_group_name : inputText,
+                                group_id : sedVal
                             },
                             cache : false,
                             beforeSend : function(xhr, settings) {
@@ -294,9 +296,9 @@ $(function(){
                 ///
                 $.ajax({
                     type : "post",
-                    url : "/ajax/" + tenant_Name + '/' + ser_alias + "/group/",
+                    url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/delete",
                     data : {
-                        groupId : sedVal,
+                        group_id : sedVal,
                     },
                     cache : false,
                     beforeSend : function(xhr, settings) {
@@ -357,7 +359,7 @@ $(function(){
         /////
         $.ajax({
             type : "post",
-            url : "/ajax/" + tenant_Name + '/' + ser_alias + "/group/",
+            url : "/apps/" + tenant_Name + '/' + ser_alias + "/group/change-group",
             data : {
                 "newname" : new_group_id,
                 "ser_id" : ser_id
