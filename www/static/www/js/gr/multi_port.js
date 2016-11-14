@@ -17,44 +17,6 @@
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
             $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
                 if(res.success) {
-                    /*
-                    //var outer_port_type = $("#outer_port_setting").val();
-                    if (state) {
-                        if (port_switch.attr("name") == "inner") {
-                            return;
-                        }
-                        if (outer_port_type == "one_outer") {
-                            // 其他的open全部设置为disabled
-                            
-                            port_switch.bootstrapSwitch('disabled', false);
-                        }
-                        else {
-                            $('.switch-box[name="outer"]').each(function () {
-                                $(this).bootstrapSwitch('disabled', false);
-                            });
-                        }
-                    } else {
-                        if (port_switch.attr("name") == "inner") {
-                            return;
-                        }
-                        // 全部取消disabled
-                        $('.switch-box[name="outer"]').each(function () {
-                            $(this).bootstrapSwitch('disabled', false);
-                        });
-                    }
-                    */
-                    /*
-                    if(state){
-                        if (port_switch.attr("name") == "outer"){
-                            $("#showLink"+port).show();
-                            console.log(port);
-                        }
-                    }else{
-                       if (port_switch.attr("name") == "outer"){
-                           $("#showLink"+port).hide();
-                           console.log(port);
-                       }
-                    }*/
                     window.location.reload();
                 } else {
                     showMessage(res.info);
@@ -304,54 +266,6 @@
           }
         });
       }
-      
-    //
-    //多端口支持
-    function muti_outer_port() {
-        //var port_type = $("#outer_port_setting").val();
-        
-        var tenantName = $("#tenant-name").html();
-        var service_alias = $("#service-alias").html();
-        var oUrl = window.location.href;
-        var oArray =  oUrl.split("=");
-        if(oArray[oArray.length-1] != "settings"){
-          return false;
-        } 
-        var port_type = "";
-
-        if($(".fn-out-servce input:checked").length > 1){
-            port_type = "multi_outer";
-        }else{
-            port_type = "one_outer";
-        }
-        $.ajax({
-            type: "post",
-            url: "/ajax/" + tenantName + "/" + service_alias + "/service-outer-port-type",
-            data: "action=change_port_type&port_type=" + port_type,
-            catch: false,
-            beforeSend: function (xhr, settings) {
-                var csrftoken = $.cookie('csrftoken');
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function (msg) {
-                var result = msg;
-                if (result["status"] == "ok") {
-                    console.log("设置成功");
-                }else if(result["status"] == "mult_port"){
-                    console.log(result["info"]);
-                }
-                else {
-                    console.log("设置失败");
-                }
-            },
-            error: function () {
-                console.log("对外端口设置异常,请重试");
-            }
-
-
-        })
-    };
-    muti_outer_port();
 
 })(jQuery);
 
