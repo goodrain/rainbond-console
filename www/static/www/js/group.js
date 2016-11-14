@@ -218,10 +218,8 @@ $(function(){
         if(sedVal == "0" && !newonoff){
             swal(tipsText);
             return false;
-            console.log(1);
         }else{
             ///
-            console.log(2);
             var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
             var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
             var oTit = '<p class="layer-tit">'+ textTit +'</p>';
@@ -230,7 +228,6 @@ $(function(){
             var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
             $("body").append(oDiv);
             $("div.layermain").append(oCloseBtn,oTit);
-            console.log(3);
             if(onoff){
                $("div.layermain").append(oInput);
             }else{
