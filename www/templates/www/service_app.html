@@ -32,7 +32,7 @@
 		<table class="table table-striped table-hover">
 			<thead>
 				<tr>
-					<th class="bs-checkbox fn-SelectAll"><input type="checkbox" name="SelectAll" value=""></th>
+					<!--<th class="bs-checkbox fn-SelectAll"><input type="checkbox" name="SelectAll" value=""></th>-->
 					<th>应用名</th>
 					<th>版本</th>
 					<th>类型 </th>
@@ -44,11 +44,11 @@
 			</thead>
 			<tbody id="tab-box">
 				{% for item in tenantServiceList %}
-				<tr class="tabline" data-group="{{item.group_id}}" data-id="{{item.service_id}}">
+				<tr id="panel" class="tabline" data-group="{{item.group_id}}" data-id="{{item.service_id}}">
 					<!-- 复选框 -->
-					<td class="bs-checkbox fn-SelectItem">
-						<input name="SelectItem" type="checkbox"  type="checkbox" value="{{item.service_id}}" />
-					</td>
+					<!--<td class="bs-checkbox fn-SelectItem">-->
+						<!--<input name="SelectItem" type="checkbox"  type="checkbox" value="{{item.service_id}}" />-->
+					<!--</td>-->
 					<!-- 应用名  -->
 					<td>
 						<h4>
@@ -112,12 +112,12 @@
 		</table>
 		<!-- tab end -->
 		<!-- Mass deployment Start -->
-		<div class="clearfix numbers-box" id="nums-app">
-			<p id="app-numbers">已选择<span>0</span>个应用</p>
-			<button id="batchStart" class="btn btn-success">批量启动</button>
-			<button id="batchEnd" class="btn btn-danger">批量停止</button>
-			<button id="newStart" class="btn btn-info">批量重新部署</button>
-		</div>
+		<!--<div class="clearfix numbers-box" id="nums-app">-->
+			<!--<p id="app-numbers">已选择<span>0</span>个应用</p>-->
+			<!--<button id="batchStart" class="btn btn-success">批量启动</button>-->
+			<!--<button id="batchEnd" class="btn btn-danger">批量停止</button>-->
+			<!--<button id="newStart" class="btn btn-info">批量重新部署</button>-->
+		<!--</div>-->
 		<!-- Mass deployment End-->
 	<!-- main end -->
 	</section>
@@ -211,8 +211,8 @@
    		    		  cache: false,
    		    		  beforeSend: function(xhr, settings){  
    		    		      var csrftoken = $.cookie('csrftoken');  
-   		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);  
-   		    		  },  
+   		    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+   		    		  },
    		    	  	  success: function(msg) {
    		    	  		  var dataObj=msg;
    		    	  		  totalM =0; 
@@ -221,11 +221,11 @@
 		    		  		  var o = service_ids[i]
 			    		  	  running_memory = 0
 			    			  if(dataObj[o+"_running_memory"] != undefined){
-			    				  running_memory = dataObj[o+"_running_memory"]
+			    				  running_memory = dataObj[o+"_running_memory"];
 			    			  }
 			    			  storage_memory = 0
 			    			  if(dataObj[o+"_storage_memory"] != undefined){
-			    			      storage_memory = dataObj[o+"_storage_memory"]
+			    			      storage_memory = dataObj[o+"_storage_memory"];
 			    			  }
 			    			  if($("#service_status_"+o).html() == "运行中"){
 			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
@@ -238,7 +238,6 @@
 			    				 totalM = totalM + storage_memory
 			    			  }
 			    		   }
-		    		  	   $("#service_total_memory").html(totalM+"M")
    		    		  },
    		    		error: function(){
    		    			//swal("系统异常");
