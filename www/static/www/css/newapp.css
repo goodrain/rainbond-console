@@ -1,0 +1,12 @@
+ul,ul li{list-style: none;}
+a:hover{text-decoration: none;}
+em,cite,span{font-style: normal;}
+
+.tit{font-size: 18px; line-height: 30px; color: #28cb75;}
+.smalltit{font-size: 16px; line-height: 30px; color: #666;}
+.linkbox{}
+.linkbox-two{}
+.linkbox a{width: 20%;  font-size: 18px; height: 40px;  color: #fff; background: #28cb75; -webkit-text-shadow:0 -1px 0 rgba(0,0,0,0.25); -moz-text-shadow:0 -1px 0 rgba(0,0,0,0.25); text-shadow:0 -1px 0 rgba(0,0,0,0.25); display: inline-block; line-height: 40px; text-align: center;}
+.linkbox-two a{width: 40%;  font-size: 18px; height: 40px;  color: #fff; background: #28cb75; -webkit-text-shadow:0 -1px 0 rgba(0,0,0,0.25); -moz-text-shadow:0 -1px 0 rgba(0,0,0,0.25); text-shadow:0 -1px 0 rgba(0,0,0,0.25); display: inline-block; line-height: 40px; text-align: center;}
+.linkbox-three a{width: 18%;  height: 40px;  color: #fff; background: #28cb75; -webkit-text-shadow:0 -1px 0 rgba(0,0,0,0.25); -moz-text-shadow:0 -1px 0 rgba(0,0,0,0.25); text-shadow:0 -1px 0 rgba(0,0,0,0.25); display: inline-block;}
+.linkbox-three a span{ font-size: 14px; line-height: 20px;}
