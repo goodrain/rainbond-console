@@ -199,7 +199,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 service_manager['deployed'] = True
                 manager = has_managers[0]
                 service_manager[
-                    'url'] = 'http://{0}.{1}.{2}{3}:{4}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, settings.WILD_DOMAIN, http_port_str)
+                    'url'] = 'http://{0}.{1}{2}:{3}'.format(manager.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[self.service.service_region], http_port_str)
             else:
                 # 根据服务版本获取对应phpmyadmin版本,暂时解决方法,待优化
                 app_version = '4.4.12'
