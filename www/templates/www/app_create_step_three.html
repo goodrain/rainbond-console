@@ -12,15 +12,18 @@
 {% block main-content%}
 
 <section class="wrapper site-min-height">
-    <div class="steptit">
-        <p>1，上传compose文件</p>
-        <p>2，设置应用参数</p>
-    </div>
-    <div class="">
-        <form id="myForm">
-            <p><label>镜像地址：</label><input id="file" type="file" name="file"/></p>
-            <a href="javascript:;" class="btn btn-success" id="nextcomposestep">下一步</a>
-        </form>
-    </div>
+    <section class="panel">
+        <div class="steptit">
+            <p>1，上传compose文件</p>
+            <p>2，设置应用参数</p>
+        </div>
+        <span class="line"></span>
+        <div class="fm-link">
+            <form id="myForm">
+                <p><label>镜像地址：</label><input id="file" type="file" name="file"/></p>
+                <a href="javascript:;" class="btn btn-success" id="nextcomposestep">下一步</a>
+            </form>
+        </div>
+    </section>
 </section>
 {% endblock %}

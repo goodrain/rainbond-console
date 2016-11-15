@@ -31,15 +31,12 @@ $(function(){
                 url : url,  
                 type : 'POST',  
                 data : formData,  
-  
-               
                 processData : false,  
-                
                 contentType : false,  
                 beforeSend: function (xhr, settings) {
-                var csrftoken = $.cookie('csrftoken');
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
                 success : function(responseStr) {  
                                      
                 },  
