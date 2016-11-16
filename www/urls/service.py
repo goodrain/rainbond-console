@@ -1,4 +1,7 @@
 from django.conf.urls import patterns, url
+
+from www.create_services_view import CreateServiceEntranceView
+from www.image_service_view import ImageServiceDeploy, ImageParamsViews
 from www.services_view import *
 from www.app_services_view import *
 from www.back_services_view import *
@@ -14,6 +17,8 @@ from www.views.consume import *
 urlpatterns = patterns(
     '',
     url(r'^/?$', login_required(TenantServiceAll.as_view())),
+
+    url(r'^/service-entrance/$', login_required(CreateServiceEntranceView.as_view())),
 
     url(r'^/app-create/$', login_required(AppCreateView.as_view())),
 
@@ -61,4 +66,8 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
+    # image_service
+    url(r'^/image-create/$', login_required(ImageServiceDeploy.as_view())),
+    url(r'^/image-params/$', login_required(ImageParamsViews.as_view())),
+
 )

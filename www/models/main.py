@@ -818,3 +818,12 @@ class TenantServiceVolume(BaseModel):
     category = models.CharField(max_length=50, null=True, blank=True, help_text=u"服务类型")
     host_path = models.CharField(max_length=400, help_text=u"物理机的路径,绝对路径")
     volume_path = models.CharField(max_length=400, help_text=u"容器内路径,application为相对;其他为绝对")
+
+
+class ImageServiceRelation(BaseModel):
+    """image_url拉取的service的对应关系"""
+    class Meta:
+        db_table = 'tenant_service_image_relation'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    image_url = models.CharField(max_length=100, help_text=u"镜像地址")

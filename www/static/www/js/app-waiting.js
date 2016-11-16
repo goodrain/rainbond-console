@@ -79,7 +79,7 @@ function app_create_delete() {
 					var dataObj = msg
 					if (dataObj["status"] == "success") {
 						swal("操作成功");
-						window.location.href = "/apps/"+tenantName+"/app-create/"
+						window.location.href = "/apps/"+tenantName+"/service-entrance/"
 					} else if (dataObj["status"] == "often") {
 						swal("上次操作正在进行中，稍后再试")
 					}else if (dataObj["status"] == "dependency") {

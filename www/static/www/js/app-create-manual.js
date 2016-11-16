@@ -79,7 +79,7 @@ $(function(){
         var tenantName= $('#currentTeantName').val();
     	$.ajax({
     		type : "post",
-    		url : "/apps/" + tenantName + "/app-create/",
+    		url : "/apps/" + tenantName + "/service-entrance/",
     		data : _data,
     		cache : false,
     		beforeSend : function(xhr, settings) {
