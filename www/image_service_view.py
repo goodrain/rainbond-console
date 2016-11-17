@@ -48,11 +48,21 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        image_url = request.POST.get("image_url", "")
         result = {}
+        image_url = request.POST.get("image_url", "")
         result["image_url"] = image_url
-        result["ok"] = True
+        if image_url !="":
+            tenant_id = self.tenant.tenant_id
+            service_id = make_uuid(tenant_id)
+            ImageServiceRelation.objects.create(tenant_id=tenant_id, service_id=service_id, image_url=image_url)
+            result["ok"] = True
+            result["id"]=service_id
+        else:
+            result["ok"] = False
+            return JsonResponse(result, status=500)
         return JsonResponse(result, status=200)
+            
+        
 
 
 class ImageParamsViews(LeftSideBarMixin, AuthedView):
@@ -72,8 +82,8 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
 
         context = self.get_context()
         try:
-            image_url = request.GET.get("image_url", "")
-            context["image_url"] = image_url
+            service_id = request.GET.get("id", "")
+            context["service_id"] = service_id
             return TemplateResponse(self.request, "www/app_create_step_four.html", context)
         except Exception as e:
             logger.exception(e)
@@ -82,15 +92,21 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         print "enter port request"
-        tenant_id = self.tenant.tenant_id
-        service_id = make_uuid(tenant_id)
-        service_alias = "gr" + service_id[-6:]
-
+        service_id = request.POST.get("service_id", "")
         result = {}
+        try:
+            imsr = ImageServiceRelation.objects.get(service_id=service_id)
+            tenant_id=imsr.tenant_id
+            image_url=imsr.image_url
+        except Exception as e:
+            logger.exception(e)
+            result["status"] = "notfind"
+            return JsonResponse(result, status=200)
+        
+        service_alias = "gr" + service_id[-6:]
         try:
             success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
 
-            image_url = request.POST.get("image_url", "")
             # service_cname 需要从url中分析出来
             service_cname = image_url[-6:]
             # 端口信息
@@ -157,7 +173,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname, service,
                                                           self.user.pk,
                                                           region=self.response_region)
-            ImageServiceRelation.objects.create(tenant_id=tenant_id, service_id=service_id, image_url=image_url)
+            
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
