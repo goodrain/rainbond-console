@@ -167,6 +167,8 @@ $(function(){
             $('div[data-action="demobox"]').show();
         }
     });
+    
+   $(':radio', $('#sel_code_store')).click();
 });
 
 function loadRepos(_url){
