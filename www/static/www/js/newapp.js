@@ -391,7 +391,7 @@ $(function(){
 					swal("资源已达上限,无法创建");
 				}else if(status == "over_money"){
 					swal("余额不足无法创建");
-				}else if (state == "success"){
+				}else if (status == "success"){
 					service_alias = data.service_alias
 					window.location.href = "/apps/" + tenantName + "/" + service_alias + "/setup/extra/";
 				}else{
@@ -413,13 +413,15 @@ $(function(){
     $("#nextstep").click(function(){
 		$(this).attr('disabled',true);
         var oVal = $("#mirror-address").val();
-		var tenantName = $("#tenantNameValue").val()
+		var tenantName = $("#tenantNameValue").val();
+		var service_id = $("#service_id").val();
         ///
         $.ajax({
             type: "post",
             url: "/apps/"+tenantName+"/image-create/",
             data: {
-				"image_url":oVal
+				"image_url":oVal,
+				"service_id":service_id
             },
             catch: false,
             beforeSend: function (xhr, settings) {
