@@ -2,10 +2,10 @@ $(function(){
 	////// 端口
 	//正则表达式
 	var regNumber = /^[0-9]*$/; //验证数字
-	// 新增端口 start 
+	var variableReg = /^[A-Z][A-Z0-9_]*$/ //验证变量名
+	// 新增端口 start
 	$(".fn-newapp").on("click",function(){
-		var this_btn = $(this);
-		this_btn.hide();
+		$(this).hide();
 		$(".fn-newapp-sure").show();
 		$(".fn-newapp-cancel").show();
 		$(".addport-box").show();
@@ -132,6 +132,7 @@ $(function(){
 	////// 环境变量
 	// 新增环境变量 start 
 	$(".fn-environment").click(function(){
+		alert("Hello!")
 		$(this).hide();
 		$(".environment-box").show();
 		$(".fn-environment-sure").show();
@@ -157,10 +158,10 @@ $(function(){
 		var env_value = $(".environment-value input").val();
 		if(env_name == ""){
 			alert("请输入名称！")
-		}else if(env_english == ""){
-			alert("请输入变量名！")
+		}else if(env_english == "" || !variableReg.test(env_english)) {
+			alert("请输入合法变量名！")
 		}else if(env_value == ""){
-			alert("请输入值！")
+			alert("请输入属性值！")
 		}else{
 			var new_tab = "<tr>";
 			new_tab = new_tab + "<td><span>"+ env_name +"</span></td>";
@@ -462,13 +463,3 @@ $(function(){
             });  
     });
 });
-
-
-
-
-
-
-
-
-
-
