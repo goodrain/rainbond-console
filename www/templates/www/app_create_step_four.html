@@ -1,6 +1,6 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
-
+{% load staticfiles %}
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/newapp.css" %}' />
@@ -12,6 +12,9 @@
 {% block main-content%}
 
 <section class="wrapper site-min-height">
+    <input type="hidden" id="image_url" value="{{image_url}}">
+    <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
+
     <section class="panel">
         <div class="steptit">
             <p>1，上传compose文件</p>
@@ -33,14 +36,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><span>S5000</span></td>
-                        <td><span>5000</span></td>
-                        <td><span>http</span></td>
-                        <td><input class="fn-input-inner" name="inner" type="checkbox"  disabled="true"></td>
-                        <td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>
-                        <td><a href="javascript:;" class="fn-revise">修改</a><a href="javascript:;" class="fn-delete">删除</a></td>
-                    </tr>
+
                 </tbody>
             </table>
             <div class="new-box">

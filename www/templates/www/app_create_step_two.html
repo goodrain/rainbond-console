@@ -1,6 +1,6 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
-
+{% load staticfiles %}
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/newapp.css" %}' />
@@ -13,6 +13,7 @@
 
 <section class="wrapper site-min-height">
     <section class="panel">
+        <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
         <div class="steptit">
             <span class="sed">1，设置镜像来源</span>
             <span>2，设置应用参数</span>

@@ -45,7 +45,7 @@ $(function(){
 			}else{
 				new_tab = new_tab + '<td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>';
 			}
-			new_tab = new_tab + '<td><a href="javascript:;" class="fn-revise">修改</a><a href="javascript:;" class="fn-delete">删除</a></td>';
+			new_tab = new_tab + '<td><a href="javascript:;" class="fn-revise">修改</a>&nbsp;&nbsp;&nbsp;<a href="javascript:;" class="fn-delete">删除</a></td>';
 			new_tab = new_tab + "</tr>";
 			$("#new-port tbody").append(new_tab);
 			$(".fn-newapp-sure").hide();
@@ -321,11 +321,11 @@ $(function(){
     		var my_agreement = $(this).children("td").eq(2).children("span").html();
     		var my_inner = $(this).children("td").eq(3).children("input").prop("checked");
     		var my_outer = $(this).children("td").eq(4).children("input").prop("checked");
-    		json_port["name"] = my_name;
-    		json_port["port"] = my_port;
-    		json_port["agreement"] = my_agreement;
-    		json_port["inner"] = my_inner;
-    		json_port["outer"] = my_outer;
+    		json_port["port_alias"] = my_name;
+    		json_port["container_port"] = my_port;
+    		json_port["protocol"] = my_agreement;
+    		json_port["is_inner_service"] = my_inner;
+    		json_port["is_outer_service"] = my_outer;
     		port_nums[i] = json_port;
     	});
     	$(environment).each(function(i){
@@ -334,34 +334,39 @@ $(function(){
     		var my_engname = $(this).children("td").eq(1).children("span").html();
     		var my_value = $(this).children("td").eq(2).children("span").html();
     		json_environment["name"] = my_name;
-    		json_environment["eng_name"] = my_engname;
-    		json_environment["value"] = my_value;
+    		json_environment["attr_name"] = my_engname;
+    		json_environment["attr_value"] = my_value;
     		env_nums[i] = json_environment;
     	});
     	$(directory).each(function(i){
     		var json_directory = {"name":""};
     		var my_name = $(this).children("td").eq(0).children("span").html();
-    		json_directory["name"] = my_name;
+    		json_directory["volume_path"] = my_name;
     		dir_nums[i] = json_directory;
     	});
+		var image_url = $("#image_url").val()
     	console.log(port_nums);
     	console.log(env_nums);
     	console.log(dir_nums);
     	console.log(resources);
     	console.log(order);
+		service_config = {
+			"image_url":image_url,
+			"port_list" : JSON.stringify(port_nums),
+			"env_list" : JSON.stringify(env_nums),
+			"volume_list" : JSON.stringify(dir_nums),
+			"image_service_memory" : resources,
+			"start_cmd" : order
+		};
+		var tenantName = $("#tenantNameValue").val();
     	///
     	$.ajax({
             type: "post",
-            url: "",
+            url: "/apps/"+tenantName+"/image-params/",
             dataType: "json",
-			data: {
-				"NewPort" : port_nums,
-				"Environment" : env_nums,
-				"Directory" : dir_nums,
-				"Resources" : resources,
-				"Order" : order
-			},
+			data: service_config,
 			beforeSend : function(xhr, settings) {
+				alert(JSON.stringify( service_config ))
 				var csrftoken = $.cookie('csrftoken');
 				xhr.setRequestHeader("X-CSRFToken", csrftoken);
 			},
@@ -381,20 +386,23 @@ $(function(){
     //提交信息
     $("#nextstep").click(function(){
         var oVal = $("#mirror-address").val();
+		var tenantName = $("#tenantNameValue").val()
         ///
         $.ajax({
             type: "post",
-            url: "",
+            url: "/apps/"+tenantName+"/image-create/",
             data: {
-                "mirror_Address" : oVal
+				"image_url":oVal
             },
             catch: false,
             beforeSend: function (xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
-            success: function (msg) {
-                var result = msg;
+            success: function (data) {
+				if(data.ok){
+					window.location.href = "/apps/"+tenantName+"/image-params?image_url="+data.image_url
+				}
                 
             },
             error: function () {

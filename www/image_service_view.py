@@ -40,7 +40,7 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
 
         context = self.get_context()
         try:
-            return TemplateResponse(self.request, "www/image_service_create_step_1.html", context)
+            return TemplateResponse(self.request, "www/app_create_step_two.html", context)
 
         except Exception as e:
             logger.exception(e)
@@ -74,7 +74,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
         try:
             image_url = request.GET.get("image_url", "")
             context["image_url"] = image_url
-            return TemplateResponse(self.request, "www/image_service_create_step_2.html", context)
+            return TemplateResponse(self.request, "www/app_create_step_four.html", context)
         except Exception as e:
             logger.exception(e)
 
@@ -143,15 +143,17 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             tempService.min_memory = cm
             tempService.service_region = self.response_region
             tempService.min_node = int(service.min_node)
-            # diffMemory = cm
-            # # 判断是否超出资源
-            # rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
-            # if not flag:
-            #     if rt_type == "memory":
-            #         result["status"] = "over_memory"
-            #     else:
-            #         result["status"] = "over_money"
-            #     return JsonResponse(result, status=200)
+
+            diffMemory = cm
+            # 判断是否超出资源
+            rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
+            if not flag:
+                if rt_type == "memory":
+                    result["status"] = "over_memory"
+                else:
+                    result["status"] = "over_money"
+                return JsonResponse(result, status=200)
+
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname, service,
                                                           self.user.pk,
                                                           region=self.response_region)
