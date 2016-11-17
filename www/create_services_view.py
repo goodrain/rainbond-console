@@ -6,6 +6,8 @@ from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import JsonResponse
+
+from www.app_http import AppServiceApi
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -27,7 +29,7 @@ tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 codeRepositoriesService = CodeRepositoriesService()
 tenantRegionService = TenantRegionService()
-
+appClient = AppServiceApi()
 
 class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
 
@@ -47,7 +49,12 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         context["createApp"] = "active"
         try:
-            return TemplateResponse(self.request, "www/app_create_step_one.html", context)
+            # 云市最新的应用
+            res, resp = appClient.getRemoteServices(key="newest", limit=5)
+            if res.status == 200:
+                service_list = json.loads(resp.data)
+                context["service_list"] = service_list
 
         except Exception as e:
             logger.exception(e)
+        return TemplateResponse(self.request, "www/app_create_step_one.html", context)

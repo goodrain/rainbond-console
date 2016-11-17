@@ -39,11 +39,10 @@
         <div class="link-box">
             <p class="smalltit">从应用市场开始</p>
             <p class="link-app-market clearfix">
-                <a href=""><span>MySQL</span><span>5.5.46</span></a>
-                <a href=""><span>MySQL</span><span>5.5.46</span></a>
-                <a href=""><span>MySQL</span><span>5.5.46</span></a>
-                <a href=""><span>MySQL</span><span>5.5.46</span></a>
-                <a href="" class="more-app">更多应用&gt;&gt;</a>
+            {% for service in service_list %}
+                <a href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}"><span>{{service.service_name}}</span><span>{{service.version}}</span></a>
+            {% endfor %}
+                <a href="http://app.goodrain.com" target="_blank" class="more-app">更多应用&gt;&gt;</a>
             </p>
         </div>
     </section>
