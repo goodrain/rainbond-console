@@ -124,10 +124,7 @@ $(function(){
     });
     //代码仓库选择
     $(':radio', $('#sel_code_store')).click(function(){
-        
         var selOption = $(this).val();
-        alert(selOption)
-        alert($(this).attr("checked"))
         
         if(selOption == 'option1'){
         	$('#service_code_from').val("gitlab_new");
