@@ -10,11 +10,14 @@ from www.decorator import perm_required
 from www.models.main import TenantServiceInfo, ServiceInfo, ImageServiceRelation, TenantServiceEnvVar, \
     TenantServicesPort, TenantServiceVolume
 from www.monitorservice.monitorhook import MonitorHook
+from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
     BaseTenantService
 from www.utils.crypt import make_uuid
 from www.views.base import AuthedView
 from www.views.mixin import LeftSideBarMixin
+from django.conf import settings
+import httplib2
 
 logger = logging.getLogger('default')
 tenantRegionService = TenantRegionService()
@@ -22,6 +25,7 @@ tenantAccountService = TenantAccountService()
 tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 monitorhook = MonitorHook()
+regionClient = RegionServiceApi()
 
 
 class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
@@ -132,8 +136,8 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             if ":" in image_url:
                 index = image_url.index(":")
                 service_cname = image_url[:index]
-                version = image_url[index+1:]
-            else :
+                version = image_url[index + 1:]
+            else:
                 service_cname = image_url
                 version = "lastest"
 
@@ -201,12 +205,13 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname, service,
                                                           self.user.pk,
                                                           region=self.response_region)
-            newTenantService.code_from="image_manual"
+            newTenantService.code_from = "image_manual"
             newTenantService.save()
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
                                               self.user.nick_name, dep_sids=json.dumps([]))
+            # self.send_task("aws-jp-1", "image_manual", newTenantService)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
             result["status"] = "success"
             result["service_id"] = service_id
@@ -227,7 +232,8 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                                        protocol=port["protocol"], port_alias=port["port_alias"],
                                        is_inner_service=port["is_inner_service"],
                                        is_outer_service=port["is_outer_service"])
-            logger.info(port["container_port"],"*",port["protocol"],"*",port["port_alias"],"*",port["is_inner_service"],"*",port["is_outer_service"])
+            logger.info(port["container_port"], "*", port["protocol"], "*", port["port_alias"], "*",
+                        port["is_inner_service"], "*", port["is_outer_service"])
 
         for env in envs:
             baseService.saveServiceEnvVar(tenant_serivce.tenant_id, tenant_serivce.service_id, 0,
@@ -235,3 +241,15 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
 
         for volume in volumes:
             baseService.add_volume_list(tenant_serivce, volume["volume_path"])
+
+    def send_task(self, region, topic, tenant_service):
+        body = {"image": tenant_service.image_name,
+                "deploy_version": tenant_service.deploy_version,
+                "service_id": tenant_service.service_id,
+                "service_alias": tenant_service.service_alias,
+                "app_version": tenant_service.service_version,
+                "namespace": tenant_service.namespace,
+                "operator": tenant_service.operator,
+                "action": "download_and_deploy",
+                "dep_sids": json.dumps([])}
+        regionClient.send_task(region, topic, body)
