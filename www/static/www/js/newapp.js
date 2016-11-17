@@ -132,7 +132,6 @@ $(function(){
 	////// 环境变量
 	// 新增环境变量 start 
 	$(".fn-environment").click(function(){
-		alert("Hello!")
 		$(this).hide();
 		$(".environment-box").show();
 		$(".fn-environment-sure").show();
