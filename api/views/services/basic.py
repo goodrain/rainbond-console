@@ -38,13 +38,15 @@ class SelectedServiceView(APIView):
             return Response({"ok": False, "reason": e.__str__()}, status=404)
 
     def post(self, request, serviceId, format=None):
-        """更新服务的属性
+        """
+        更新服务属性
         ---
-            -name: image
-             description: 镜像名称
-             required: true
-             type: string
-             paramType: body
+        parameters:
+            - name: image
+              description: image_name
+              required: true
+              type: string
+              paramType: form
         """
         logger.debug("api.service", request.data)
         image = request.data.get("image", None)
@@ -61,7 +63,7 @@ class SelectedServiceView(APIView):
             logger.error("api.service", "update tenant service image failed! service_id is {}".format(serviceId))
             return Response({"success": False, "msg": "update console failed!"}, status=502)
         # 查询服务
-        service = TenantServiceInfo.objects.filter(service_id=serviceId)
+        service = TenantServiceInfo.objects.get(service_id=serviceId)
         # 更新region库
         logger.debug("api.service", "now update region images")
         try:
