@@ -45,6 +45,7 @@
 	            </div>
 	            <div class="form-group">
 	                <label class="col-sm-2 control-label col-lg-2">代码仓库</label>
+	                {{cur_type}}
 	                <div id="sel_code_store" class="col-lg-10">
 	                    <label style="font-size:14px" class="checkbox-inline"></label>
 	                    <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
@@ -53,23 +54,23 @@
 		                <input type="hidden" id="service_code_version" name="service_code_version" value="">
 		                <input type="hidden" id="service_code_id" name="service_code_id" value="">
                         {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
-                            <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" {% if app_type == "gitlab_new" %} checked {% endif %} > 新建仓库
+                            <input input="" type="radio" value="option1" name="optionsRadios" id="optionsRadios1" {% if cur_type == "gitlab_new" %} checked {% endif %} > 新建仓库
                             <label style="font-size:14px" class="checkbox-inline "></label>
 
-							<input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2" {% if app_type == "gitlab_exit" %} checked {% endif %} > 使用已有仓库
+							<input input="" type="radio" value="option2" name="optionsRadios" id="optionsRadios2" {% if cur_type == "gitlab_exit" %} checked {% endif %} > 使用已有仓库
 							<label style="font-size:14px" class="checkbox-inline select_git"></label>
                         {% endif %}
 	                    
 
 	                    
 	                    {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
-							<input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3" {% if app_type == "github" %} checked {% endif %} > 连接Github
+							<input input="" type="radio" value="option3" name="optionsRadios" id="optionsRadios3" {% if cur_type == "github" %} checked {% endif %} > 连接Github
 							<label style="font-size:14px" class="checkbox-inline"></label>
 	                    {% endif %}
 
-                        <input input="" type="radio" value="option4" name="optionsRadios" id="optionsRadios4" {% if app_type == "gitlab_manual" %} checked {% endif %} > 用户自定义
+                        <input input="" type="radio" value="option4" name="optionsRadios" id="optionsRadios4" {% if cur_type == "gitlab_manual" %} checked {% endif %} > 用户自定义
                         <label style="font-size:14px" class="checkbox-inline"></label>
-                        <input input="" type="radio" value="option5" name="optionsRadios" id="optionsRadios5" {% if app_type == "gitlab_demo" %} checked {% endif %}> Demo
+                        <input input="" type="radio" value="option5" name="optionsRadios" id="optionsRadios5" {% if cur_type == "gitlab_demo" %} checked {% endif %}> Demo
                         <label style="font-size:14px" class="checkbox-inline"></label>
 	                </div>
 	            </div>
@@ -183,6 +184,7 @@
 	    </div>
     </section><!-- page end-->
     <script type="text/javascript">
+        alert("aa")
     	$(':radio', $('#sel_code_store')).click();
     </script>
 </section>

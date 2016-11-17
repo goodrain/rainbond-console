@@ -64,7 +64,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             app_an = request.COOKIES.get('app_an', '')
             context["app_status"] = app_status
             context["app_an"] = app_an
-            context["app_type"] = type
+            context["cur_type"] = type
             context["is_private"] = sn.instance.is_private()
             response.delete_cookie('app_status')
             response.delete_cookie('app_an')
