@@ -39,5 +39,9 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-outer-port-type', ajax.MutiOuterPortView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-mnt-share-type', ajax.MntShareTypeView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/container-stats', ajax.ContainerStatsView.as_view()),
+    
+    url(r'^image/(?P<image_id>[\w\-]+)/port', ajax.ImagePort.as_view()),
+    url(r'^image/(?P<image_id>[\w\-]+)/env', ajax.ImageEnv.as_view()),
+    url(r'^image/(?P<image_id>[\w\-]+)/mnt', ajax.ImageMnt.as_view()),
 
 )
