@@ -387,9 +387,9 @@ $(function(){
 					swal("余额不足请及时充值");
 				}else if (status =="expired"){
 					swal("试用期已过");
-				}else if(status=="over_memory"){
+				}else if(status =="over_memory"){
 					swal("资源已达上限,无法创建");
-				}else if(status = "over_money"){
+				}else if(status == "over_money"){
 					swal("余额不足无法创建");
 				}else if (state == "success"){
 					service_alias = data.service_alias
