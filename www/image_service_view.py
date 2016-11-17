@@ -127,8 +127,16 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
         try:
             success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
 
-            # service_cname 需要从url中分析出来
-            service_cname = image_url[-6:]
+            # 从url中分析出来service_cname 和 version
+            version = ""
+            if ":" in image_url:
+                index = image_url.index(":")
+                service_cname = image_url[:index]
+                version = image_url[index+1:]
+            else :
+                service_cname = image_url
+                version = "lastest"
+
             # 端口信息
             port_list = json.loads(request.POST.get("port_list", "[]"))
             # 环境变量信息
@@ -169,7 +177,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             service.min_cpu = ccpu
             service.inner_port = 0
             # version version需要从image_url中分析出来
-            service.version = "1.0.0"
+            service.version = version
             service.namespace = "goodrain"
             service.update_version = 1
             service.volume_mount_path = ""
