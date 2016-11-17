@@ -127,6 +127,10 @@ $(function(){
         var selOption = $(this).val();
         _radioChange(selOption)
     });
+    $(':radio:checked', $('#sel_code_store')).each(function(i,val){
+        var selOption = val.value
+        _radioChange(selOption)
+    });
 });
 
 function _radioChange(selOption){
