@@ -22,3 +22,23 @@ em,cite,span{font-style: normal;}
 .directory-box,.fn-directory-sure,.fn-directory-cancel{display: none;}
 
 .build-app-btn{text-align: center;}
+
+.tit{font-size: 24px; line-height: 50px; color: #555;  }
+.line{height: 0; width: 100%; display: block; border-top: 1px #f7f7f7 solid; border-bottom: 1px #dfdfdf solid;}
+.smalltit{font-size: 18px; line-height: 50px; color: #555; height: 50px; background: #efefef; border-bottom: 1px #ddd solid; text-indent:20px; margin-bottom: 0;}
+.link{margin-bottom: 0; background:#f5f5f5; padding: 20px; }
+.link-box{border: 1px #ddd solid;}
+.link a{padding:15px; background: #28cb75; color: #fff; font-size: 18px; line-height: 1; display:block; float: left; margin-right: 10px; text-align: center;}
+.link-app-market{margin-bottom: 0; background:#f5f5f5; padding: 20px;}
+.link-app-market a{ height: 50px; padding: 0 15px; background: #28cb75; color: #fff; line-height: 1; display:block; float: left; margin-right: 10px; text-align: center;}
+.link-app-market a span:nth-child(1){font-size: 18px; padding-top: 10px; }
+.link-app-market a span:nth-child(2){font-size: 14px;}
+.link-app-market a.more-app{ line-height: 50px; font-size: 24px;}
+
+.steptit{height:50px; line-height: 50px; font-size: 24px; text-align: center;}
+.steptit span{margin-bottom: 0; display: inline-block;  padding:0 20px; color: #555;}
+.steptit span.sed{color: #28cb75;}
+.fm-link{padding:30px 0; width: 80%; margin: 0 auto; }
+.fm-link p label{ font-size: 18px;  color: #555; }
+.fm-link p input{border: #c6c6c6 1px solid;  background:#fff; }
+.fm-link a{display: block; margin:20px auto;}
