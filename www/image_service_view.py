@@ -159,10 +159,10 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                 return JsonResponse(result, status=200)
 
             service = ServiceInfo()
-            service.service_key = ""
+            service.service_key = "0000"
             service.desc = ""
             service.category = "app_publish"
-            service.image = ""
+            service.image = image_url
             service.cmd = start_cmd
             service.setting = ""
             service.extend_method = "stateless"
@@ -201,7 +201,8 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname, service,
                                                           self.user.pk,
                                                           region=self.response_region)
-
+            newTenantService.code_from="image_manual"
+            newTenantService.save()
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
@@ -226,6 +227,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                                        protocol=port["protocol"], port_alias=port["port_alias"],
                                        is_inner_service=port["is_inner_service"],
                                        is_outer_service=port["is_outer_service"])
+            logger.info(port["container_port"],"*",port["protocol"],"*",port["port_alias"],"*",port["is_inner_service"],"*",port["is_outer_service"])
 
         for env in envs:
             baseService.saveServiceEnvVar(tenant_serivce.tenant_id, tenant_serivce.service_id, 0,

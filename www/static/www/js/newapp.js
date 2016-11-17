@@ -325,8 +325,8 @@ $(function(){
     		var my_name = $(this).children("td").eq(0).children("span").html();
     		var my_port = $(this).children("td").eq(1).children("span").html();
     		var my_agreement = $(this).children("td").eq(2).children("span").html();
-    		var my_inner = $(this).children("td").eq(3).children("input").prop("checked");
-    		var my_outer = $(this).children("td").eq(4).children("input").prop("checked");
+    		var my_inner = $(this).children("td").eq(3).children("input").prop("checked") ? 1 : 0;
+    		var my_outer = $(this).children("td").eq(4).children("input").prop("checked") ? 1 : 0;
     		json_port["port_alias"] = my_name;
     		json_port["container_port"] = my_port;
     		json_port["protocol"] = my_agreement;
@@ -393,7 +393,7 @@ $(function(){
 					swal("余额不足无法创建");
 				}else if (status == "success"){
 					service_alias = data.service_alias
-					window.location.href = "/apps/" + tenantName + "/" + service_alias + "/setup/extra/";
+					window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
 				}else{
 					swal("创建失败");
 				}
