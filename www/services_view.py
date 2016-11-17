@@ -321,10 +321,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     for opend_service_port in opend_service_port_list:
                         containerPortList.append(opend_service_port.container_port)
                 context["containerPortList"] = containerPortList
-
-                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
-                if baseservice.update_version != self.service.update_version:
-                    context["updateService"] = True
+                
+                if self.service.code_from != "image_manual":
+                    baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
+                    if baseservice.update_version != self.service.update_version:
+                        context["updateService"] = True
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
