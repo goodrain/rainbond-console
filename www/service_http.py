@@ -73,6 +73,11 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
+    def start(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/start/"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return res, body
+
     def stop(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/stop/"
         res, body = self._post(url, self.default_headers, body, region=region)

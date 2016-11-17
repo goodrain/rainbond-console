@@ -114,6 +114,7 @@ class OpenTenantServiceManager(object):
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
+        data["code_from"] = newTenantService.code_from
         data["dep_sids"] = dep_sids
         if hasattr(newTenantService, "service_origin"):
             data["service_origin"] = newTenantService.service_origin
