@@ -14,11 +14,12 @@
 <section class="wrapper site-min-height">
     <input type="hidden" id="image_url" value="{{image_url}}">
     <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
+    <input type="hidden" id="service_id" value="{{service_id}}">
 
     <section class="panel">
         <div class="steptit">
-            <p>1，上传compose文件</p>
-            <p class="sed">2，设置应用参数</p>
+            <span >1，设置镜像来源</span>
+            <span class="sed">2，设置应用参数</span>
         </div>
         <span class="line"></span>
         <!-- 应用端口 start -->
@@ -129,8 +130,8 @@
         <!-- 启动命令 end -->
         <!-- 提交 start -->
         <div class="build-app-btn">
-            <a href="" class="btn btn-info">上一页</a>
-            <a href="javascript:;" id="build-app" class="btn  btn-success">建立应用</a>
+            <a class="btn btn-info" id="pre_step">上一页</a>
+            <a href="javascript:;" id="build-app" ondblclick="return false;" class="btn  btn-success">建立应用</a>
         </div>
         <!-- 提交 end -->
     </section>

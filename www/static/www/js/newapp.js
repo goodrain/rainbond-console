@@ -303,6 +303,12 @@ $(function(){
 		$(this).parent().parent().remove();
 	});
 
+	$("#pre_step").click(function(){
+		var tenantName = $("#tenantNameValue").val();
+		var service_id = $("#service_id").val();
+		window.location.href ="/apps/"+tenantName+"/image-create/?id="+service_id
+	})
+
 	///// 提交
     $("#build-app").click(function(){
     	console.log(1);
@@ -315,7 +321,7 @@ $(function(){
     	var env_nums = [];
     	var dir_nums = [];
     	$(port_tr).each(function(i){
-    		var json_port = {"name":"","port":"","agreement":"","inner":"","outer":""};
+    		var json_port = {};
     		var my_name = $(this).children("td").eq(0).children("span").html();
     		var my_port = $(this).children("td").eq(1).children("span").html();
     		var my_agreement = $(this).children("td").eq(2).children("span").html();
@@ -329,7 +335,7 @@ $(function(){
     		port_nums[i] = json_port;
     	});
     	$(environment).each(function(i){
-    		var json_environment = {"name":"","eng_name":"","value":""};
+    		var json_environment = {};
     		var my_name = $(this).children("td").eq(0).children("span").html();
     		var my_engname = $(this).children("td").eq(1).children("span").html();
     		var my_value = $(this).children("td").eq(2).children("span").html();
@@ -339,12 +345,13 @@ $(function(){
     		env_nums[i] = json_environment;
     	});
     	$(directory).each(function(i){
-    		var json_directory = {"name":""};
+    		var json_directory = {};
     		var my_name = $(this).children("td").eq(0).children("span").html();
     		json_directory["volume_path"] = my_name;
     		dir_nums[i] = json_directory;
     	});
 		var image_url = $("#image_url").val()
+		var service_id = $("#service_id").val()
     	console.log(port_nums);
     	console.log(env_nums);
     	console.log(dir_nums);
@@ -356,7 +363,8 @@ $(function(){
 			"env_list" : JSON.stringify(env_nums),
 			"volume_list" : JSON.stringify(dir_nums),
 			"image_service_memory" : resources,
-			"start_cmd" : order
+			"start_cmd" : order,
+			"service_id":service_id
 		};
 		var tenantName = $("#tenantNameValue").val();
     	///
@@ -366,12 +374,30 @@ $(function(){
             dataType: "json",
 			data: service_config,
 			beforeSend : function(xhr, settings) {
-				alert(JSON.stringify( service_config ))
 				var csrftoken = $.cookie('csrftoken');
 				xhr.setRequestHeader("X-CSRFToken", csrftoken);
 			},
 			success:function(data){
-				var oData = eval(data);
+				status = data.status;
+				if(status == "notfound"){
+					swal("服务不存在");
+				}else if (status == "failure"){
+					swal("数据中心初始化失败");
+				}else if (status == "owed"){
+					swal("余额不足请及时充值");
+				}else if (status =="expired"){
+					swal("试用期已过");
+				}else if(status=="over_memory"){
+					swal("资源已达上限,无法创建");
+				}else if(status = "over_money"){
+					swal("余额不足无法创建");
+				}else if (state == "success"){
+					service_alias = data.service_alias
+					window.location.href = "/apps/" + tenantName + "/" + service_alias + "/setup/extra/";
+				}else{
+					swal("创建失败");
+				}
+				
 				
 			},
 			error: function() {
@@ -385,6 +411,7 @@ $(function(){
 	///////
     //提交信息
     $("#nextstep").click(function(){
+		$(this).attr('disabled',true);
         var oVal = $("#mirror-address").val();
 		var tenantName = $("#tenantNameValue").val()
         ///
@@ -401,7 +428,7 @@ $(function(){
             },
             success: function (data) {
 				if(data.ok){
-					window.location.href = "/apps/"+tenantName+"/image-params?image_url="+data.image_url
+					window.location.href = "/apps/"+tenantName+"/image-params?id="+data.id
 				}
                 
             },

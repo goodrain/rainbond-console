@@ -7,7 +7,8 @@ from django.template.response import TemplateResponse
 from django.views.decorators.cache import never_cache
 
 from www.decorator import perm_required
-from www.models.main import TenantServiceInfo, ServiceInfo, ImageServiceRelation
+from www.models.main import TenantServiceInfo, ServiceInfo, ImageServiceRelation, TenantServiceEnvVar, \
+    TenantServicesPort, TenantServiceVolume
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
     BaseTenantService
@@ -39,30 +40,50 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
             self.response_region = choose_region
 
         context = self.get_context()
-        try:
-            return TemplateResponse(self.request, "www/app_create_step_two.html", context)
+        service_id = request.GET.get("id", "")
 
+        try:
+            if service_id != "":
+                imags = ImageServiceRelation.objects.get(service_id=service_id)
+                context["image_url"] = imags.image_url
+                context["service_id"] = service_id
         except Exception as e:
-            logger.exception(e)
+            pass
+        return TemplateResponse(self.request, "www/app_create_step_two.html", context)
 
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         result = {}
-        image_url = request.POST.get("image_url", "")
-        result["image_url"] = image_url
-        if image_url !="":
-            tenant_id = self.tenant.tenant_id
-            service_id = make_uuid(tenant_id)
-            ImageServiceRelation.objects.create(tenant_id=tenant_id, service_id=service_id, image_url=image_url)
-            result["ok"] = True
-            result["id"]=service_id
-        else:
-            result["ok"] = False
-            return JsonResponse(result, status=500)
+        try:
+            service_id = request.POST.get("service_id", "")
+            image_url = request.POST.get("image_url", "")
+            result["image_url"] = image_url
+            if image_url != "":
+                imagesr = None
+                if service_id != "":
+                    try:
+                        imagesr = ImageServiceRelation.objects.get(service_id=service_id)
+                    except Exception:
+                        pass
+
+                if imagesr is None:
+                    imagesr = ImageServiceRelation()
+                    service_id = make_uuid(self.tenant.tenant_id)
+
+                imagesr.tenant_id = self.tenant.tenant_id
+                imagesr.service_id = service_id
+                imagesr.image_url = image_url
+                imagesr.save()
+
+                result["ok"] = True
+                result["id"] = service_id
+            else:
+                result["ok"] = False
+                return JsonResponse(result, status=500)
+        except Exception as e:
+            logger.exception(e)
         return JsonResponse(result, status=200)
-            
-        
 
 
 class ImageParamsViews(LeftSideBarMixin, AuthedView):
@@ -91,18 +112,17 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        print "enter port request"
         service_id = request.POST.get("service_id", "")
         result = {}
         try:
             imsr = ImageServiceRelation.objects.get(service_id=service_id)
-            tenant_id=imsr.tenant_id
-            image_url=imsr.image_url
+            tenant_id = imsr.tenant_id
+            image_url = imsr.image_url
         except Exception as e:
             logger.exception(e)
-            result["status"] = "notfind"
+            result["status"] = "notfound"
             return JsonResponse(result, status=200)
-        
+
         service_alias = "gr" + service_id[-6:]
         try:
             success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
@@ -173,7 +193,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname, service,
                                                           self.user.pk,
                                                           region=self.response_region)
-            
+
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
@@ -183,8 +203,12 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             result["service_id"] = service_id
             result["service_alias"] = service_alias
         except Exception as e:
-            print e
+            TenantServiceInfo.objects.filter(service_id=service_id).delete()
+            TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
+            TenantServicesPort.objects.filter(service_id=service_id).delete()
+            TenantServiceVolume.objects.filter(service_id=service_id).delete()
             logger.exception(e)
+
         return JsonResponse(result, status=200)
 
     def save_ports_envs_and_volumes(self, ports, envs, volumes, tenant_serivce):
@@ -192,7 +216,8 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
         for port in ports:
             baseService.addServicePort(tenant_serivce, False, container_port=port["container_port"],
                                        protocol=port["protocol"], port_alias=port["port_alias"],
-                                       is_inner_service=port["is_inner_service"], is_outer_service=port["is_outer_service"])
+                                       is_inner_service=port["is_inner_service"],
+                                       is_outer_service=port["is_outer_service"])
 
         for env in envs:
             baseService.saveServiceEnvVar(tenant_serivce.tenant_id, tenant_serivce.service_id, 0,
