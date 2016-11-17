@@ -206,7 +206,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
-                                              self.user.nick_name)
+                                              self.user.nick_name, dep_sids=json.dumps([]))
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
             result["status"] = "success"
             result["service_id"] = service_id
