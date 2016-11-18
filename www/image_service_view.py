@@ -237,7 +237,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
 
         for env in envs:
             baseService.saveServiceEnvVar(tenant_serivce.tenant_id, tenant_serivce.service_id, 0,
-                                          env["name"], env["attr_name"], env["attr_value"], True, "outer")
+                                          env["name"], env["attr_name"], env["attr_value"], True, "inner")
 
         for volume in volumes:
             baseService.add_volume_list(tenant_serivce, volume["volume_path"])
