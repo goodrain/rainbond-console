@@ -218,7 +218,7 @@ class ServiceManage(AuthedView):
                     for ds in dependSids:
                         sids.append(ds["service_id"])
                     if len(sids) > 0:
-                        aliasList = TenantServiceInfo.objects.filter(service_id__in=sids).values('service_alias')
+                        aliasList = TenantServiceInfo.objects.filter(service_id__in=sids).values('service_cname')
                         depalias = ""
                         for alias in aliasList:
                             if depalias != "":
