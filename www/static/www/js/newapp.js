@@ -425,8 +425,13 @@ $(function(){
 	///////
     //提交信息
     $("#nextstep").click(function(){
-		$(this).attr('disabled',true);
+
         var oVal = $("#mirror-address").val();
+		if(oVal== ""){
+			swal("镜像不能为空");
+			return false;
+		}
+		$(this).attr('disabled',true);
 		var tenantName = $("#tenantNameValue").val();
 		var service_id = $("#service_id").val();
         ///
