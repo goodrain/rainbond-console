@@ -990,9 +990,9 @@ class ServicePort(AuthedView):
                 body = regionClient.findMappingPort(self.service.service_region, self.service.service_id)
                 cur_region = service_region.replace("-1", "")
                 domain = "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region)
-                if settings.STREAM_DOMAIN:
+                if settings.STREAM_DOMAIN_URL[service_region] != "":
                     domain = settings.STREAM_DOMAIN_URL[service_region]
-
+                    
                 data["outer_service"] = {
                     "domain": domain,
                     "port": body["port"],

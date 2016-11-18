@@ -166,6 +166,7 @@ class BaseTenantService(object):
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
+        data["code_from"] = newTenantService.code_from
         data["dep_sids"] = dep_sids
 
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
