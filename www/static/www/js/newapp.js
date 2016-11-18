@@ -3,6 +3,7 @@ $(function(){
 	//正则表达式
 	var regNumber = /^[0-9]*$/; //验证数字
 	var variableReg = /^[A-Z][A-Z0-9_]*$/ //验证变量名
+	var linuxPathReg = /^([\/] [\w-]+)*$/;  //验证linux文件
 	// 新增端口 start
 	$(".fn-newapp").on("click",function(){
 		$(this).hide();
@@ -62,22 +63,24 @@ $(function(){
 		$(this).hide();
 		$(this).next("a").hide();
 		var this_box = $(this).parent().parent();
+		var previous_port_alias = this_box.find("span").eq(0).html();
+		var previous_port = this_box.find("span").eq(1).html();
 		//console.log(this_box);
 		var input_onoff_inner = this_box.find("input").eq(0).attr("checked");
 		var input_onoff_outer = this_box.find("input").eq(1).attr("checked");
 		console.log(input_onoff_inner,input_onoff_outer);
 		this_box.find("span").css({"display":"none"});
 		this_box.find("input").removeAttr("disabled");
-		var addto_name = '<input type="text" class="fn-addto-name" />';
-		var addto_input = '<input type="text" class="fn-addto-input" />';
+		var addto_name = '<input type="text" class="fn-addto-name" value='+previous_port_alias+' />';
+		var addto_input = '<input type="text" class="fn-addto-input" value='+previous_port+' />';
 		var addto_select = '<select class="fn-addto-select"><option value="http">http</option><option value="stream">stream</option></select>';
-		var a_sure = '<a class="fn-sure" href="javascript:;">确定</a>';
+		var a_sure = '<a class="fn-sure" href="javascript:;">确定</a>&nbsp;&nbsp;';
 		var a_cancel = '<a class="fn-cancel" href="javascript:;">取消</a>';
 		this_box.children("td").eq(0).append(addto_name);
 		this_box.children("td").eq(1).append(addto_input);
 		this_box.children("td").eq(2).append(addto_select);
 		this_box.children("td").eq(5).append(a_sure,a_cancel);
-		
+
 		////确定
 		$("body").on("click",".fn-sure",function(){
 			var val_name = this_box.find("input.fn-addto-name").val();
@@ -86,8 +89,10 @@ $(function(){
 			if(val_name !=""){
 				this_box.find("span").eq(0).html(val_name);
 			}
-			if(val_input != ""){
+			if(val_input != "" && regNumber.test(val_input)){
 				this_box.find("span").eq(1).html(val_input);
+			}else{
+				alert("端口值不合法")
 			}
 			this_box.find("span").eq(2).html(val_select);
 			this_box.find("span").css({"display":"inline-block"});
@@ -166,7 +171,7 @@ $(function(){
 			new_tab = new_tab + "<td><span>"+ env_name +"</span></td>";
 			new_tab = new_tab + "<td><span>"+ env_english +"</span></td>";
 			new_tab = new_tab + "<td><span>"+ env_value +"</span></td>";
-			new_tab = new_tab + '<td><a href="javascript:;" class="fn-env-revise">修改</a><a href="javascript:;" class="fn-env-delete">删除</a></td>';
+			new_tab = new_tab + '<td><a href="javascript:;" class="fn-env-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-env-delete">删除</a></td>';
 			new_tab = new_tab + "</tr>";
 			$("#new-environment tbody").append(new_tab);
 			$(".environment-box").hide();
@@ -185,11 +190,14 @@ $(function(){
 		$(this).hide();
 		$(this).next("a").hide();
 		var this_box = $(this).parent().parent();
+		var previous_env_name = this_box.find("span").eq(0).html();
+		var previous_attr_name = this_box.find("span").eq(1).html();
+		var privious_attr_value = this_box.find("span").eq(2).html();
 		this_box.find("span").css({"display":"none"});
-		var env_name = '<input type="text" class="fn-env-name" />';
-		var env_engname = '<input type="text" class="fn-env-engname" />';
-		var env_val = '<input type="text" class="fn-env-val" />';
-		var a_env_sure = '<a class="fn-env-sure" href="javascript:;">确定</a>';
+		var env_name = '<input type="text" class="fn-env-name" value='+previous_env_name+' /> ';
+		var env_engname = '<input type="text" class="fn-env-engname" value='+previous_attr_name+' /> ';
+		var env_val = '<input type="text" class="fn-env-val" value='+privious_attr_value+' /> ';
+		var a_env_sure = '<a class="fn-env-sure" href="javascript:;">确定</a>&nbsp;&nbsp;';
 		var a_env_cancel = '<a class="fn-env-cancel" href="javascript:;">取消</a>';
 		this_box.children("td").eq(0).append(env_name);
 		this_box.children("td").eq(1).append(env_engname);
@@ -203,8 +211,10 @@ $(function(){
 			if(val_env_name !=""){
 				this_box.find("span").eq(0).html(val_env_name);
 			}
-			if(val_env_eng != ""){
+			if(val_env_eng != "" && variableReg.test(val_env_eng)){
 				this_box.find("span").eq(1).html(val_env_eng);
+			}else{
+				alert("请输入合法变量值")
 			}
 			if(val_env_val != ""){
 				this_box.find("span").eq(2).html(val_env_val);
@@ -249,14 +259,15 @@ $(function(){
 		$(".directory-name input").prop("value","");
 	});
 	//
+
 	$(".fn-directory-sure").click(function(){
 		var dir_name = $(".directory-name input").val();
-		if(dir_name == ""){
-			alert("请输入名称！")
+		if(dir_name == "" ){
+			alert("请输入正确的linux文件路径！")
 		}else{
 			var new_tab = "<tr>";
 			new_tab = new_tab + "<td><span>"+ dir_name +"</span></td>";
-			new_tab = new_tab + '<td><a href="javascript:;" class="fn-dir-revise">修改</a><a href="javascript:;" class="fn-dir-delete">删除</a></td>';
+			new_tab = new_tab + '<td><a href="javascript:;" class="fn-dir-revise">修改</a>&nbsp;&nbsp;<a href="javascript:;" class="fn-dir-delete">删除</a></td>';
 			new_tab = new_tab + "</tr>";
 			$("#new-directory").append(new_tab);
 			$(".directory-box").hide();
@@ -271,9 +282,10 @@ $(function(){
 		$(this).hide();
 		$(this).next("a").hide();
 		var this_box = $(this).parent().parent();
+		var previous_dir = this_box.find("span").eq(0).html();
 		this_box.find("span").css({"display":"none"});
-		var dir_name = '<input type="text" class="fn-dir-name" />';
-		var a_dir_sure = '<a class="fn-dir-sure" href="javascript:;">确定</a>';
+		var dir_name = '<input type="text" class="fn-dir-name" value='+previous_dir+' />';
+		var a_dir_sure = '<a class="fn-dir-sure" href="javascript:;">确定</a>&nbsp;&nbsp;';
 		var a_dir_cancel = '<a class="fn-dir-cancel" href="javascript:;">取消</a>';
 		this_box.children("td").eq(0).append(dir_name);
 		this_box.children("td").eq(1).append(a_dir_sure,a_dir_cancel);
@@ -282,6 +294,8 @@ $(function(){
 			var val_dir_name = this_box.find("input.fn-dir-name").val();
 			if(val_dir_name !=""){
 				this_box.find("span").eq(0).html(val_dir_name);
+			}else{
+				alert("请输入正确的linux文件路径!")
 			}
 			this_box.find("span").css({"display":"inline-block"});
 			this_box.find("a").css({"display":"inline-block"});
