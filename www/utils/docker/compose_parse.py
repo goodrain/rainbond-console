@@ -6,6 +6,7 @@ import os
 import json
 from www.models.compose import *
 from www.utils.md5Util import get_md5
+import re
 
 
 def get_config_path_from_options(options, environment):
@@ -112,13 +113,32 @@ def compose_list(file_path):
                     # - "49100:22"
                     # - "127.0.0.1:8001:8001"
                     # - "127.0.0.1:5000-5010:5000-5010"
-                    result.append(info_port)
+                    if info_port.isdigit():
+                        result.append(info_port)
+                    else:
+                        # 去掉ip
+
+                        port_reg = re.compile('\d+\.\d+\.\d+\.\d+:')
+                        tmp_port = port_reg.sub("", info_port)
+                        # 使用:进行分割
+                        port_array = tmp_port.split(":")
+                        tmp_port = port_array[0]
+                        if tmp_port.isdigit():
+                            result.append(tmp_port)
+                        else:
+                            port_array = tmp_port.split("-")
+                            for i in range(int(port_array[0]), int(port_array[1])+1):
+                                result.append(i)
                 docker_service.ports = json.dumps(result)
             if "expose" in service_info.keys():
                 # 内部端口
                 docker_service.expose = json.dumps(service_info.get("expose"))
             if "links" in service_info.keys():
-                docker_service.links = json.dumps(service_info.get("external_links"))
+                compose_links = service_info.get("links")
+                result = []
+                for link in compose_links:
+                    result.append(link.split(":")[0])
+                docker_service.links = json.dumps(result)
             if "volumes" in service_info.keys():
                 compose_volumes = service_info.get("volumes")
                 volume_path_list = []
@@ -132,10 +152,7 @@ def compose_list(file_path):
                 compose_depends = service_info.get("depends_on")
                 depend_list = []
                 for depend in compose_depends:
-                    if ":" in depend:
-                        depend_list.append(depend.split(":")[0])
-                    else:
-                        depend_list.append(depend)
+                    depend_list.append(depend.split(":")[0])
                 docker_service.depends_on = json.dumps(depend_list)
         if version == 2:
             # 可能存在多个服务共用卷问题
@@ -173,10 +190,32 @@ def compose_list(file_path):
 #
 #         if "ports" in service_info.keys():
 #             compose_ports = service_info.get("ports")
-#             print(compose_ports)
+#             result = []
+#             # 这里需要解析
+#             # - "3000"
+#             # - "3000-3005"
+#             # - "8000:8000"
+#             # - "9090-9091:8080-8081"
+#             # - "49100:22"
+#             # - "127.0.0.1:8001:8001"
+#             # - "127.0.0.1:5000-5010:5000-5010"
 #             for info_port in compose_ports:
-#                 print info_port
-#                 print type(info_port)
+#                 if info_port.isdigit():
+#                     result.append(info_port)
+#                 else:
+#                     # 去掉ip
+#                     port_reg = re.compile('\d+\.\d+\.\d+\.\d+:')
+#                     tmp_port = port_reg.sub("", info_port)
+#                     # 使用:进行分割
+#                     port_array = tmp_port.split(":")
+#                     tmp_port = port_array[0]
+#                     if tmp_port.isdigit():
+#                         result.append(tmp_port)
+#                     else:
+#                         port_array = tmp_port.split("-")
+#                         for i in range(int(port_array[0]), int(port_array[1])+1):
+#                             result.append(i)
+#
 #
 #         if "volumes" in service_info.keys():
 #             compose_volumes = service_info.get("volumes")
