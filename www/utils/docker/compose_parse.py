@@ -56,11 +56,11 @@ def compose_list(file_path):
                                   services=compose_config.services,
                                   volumes=compose_config.volumes,
                                   networks=compose_config.networks,
-                                  build_args=compose_config.args)
+                                  build_args="")
     yaml_info.save()
     # 解析文件
     service_list = []
-    if version == 1 or version == 2:
+    if version == "1" or version == "2":
         # 每一个service对应一个tenant_service
         volume_dict = {}
         for service_info in compose_config.services:
@@ -69,7 +69,6 @@ def compose_list(file_path):
                 return None, "now we donot support build!"
             # new docker service
             docker_service = DockerService(compose_id=yaml_info.ID)
-            service_list.append(docker_service)
 
             compose_name = service_info.get("name")
             docker_service.name = compose_name
@@ -153,7 +152,10 @@ def compose_list(file_path):
                 depend_list = []
                 for depend in compose_depends:
                     depend_list.append(depend.split(":")[0])
+
                 docker_service.depends_on = json.dumps(depend_list)
+            docker_service.save()
+            service_list.append(docker_service)
         if version == 2:
             # 可能存在多个服务共用卷问题
             pass
