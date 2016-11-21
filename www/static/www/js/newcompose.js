@@ -23,10 +23,10 @@ $(function(){
 	//确认新增端口
 	$(".fn-newapp-sure").on("click",function(){
 		var appid = $(this).parent().parent().parent().parent().attr("id");
-		console.log(appid);
+		//console.log(appid);
 		var val_port = $(this).parent().prev("div.addport-box").find(".add-port input").val();
 		//console.log($(this).parent().prev("div.addport-box").children(".add-port").children("input").val());
-		console.log($(this).parent().prev("div.addport-box").find(".add-port input").val());
+		//console.log($(this).parent().prev("div.addport-box").find(".add-port input").val());
 		var val_agreement =$(this).parent().prev("div.addport-box").find(".add-agreement option:selected").val();
 		var val_inner = $(this).parent().prev("div.addport-box").find(".add-inner").children("input").prop("checked");
 		var val_outer = $(this).parent().prev("div.addport-box").find(".add-outer").children("input").prop("checked");
@@ -51,7 +51,7 @@ $(function(){
 			}
 			new_tab = new_tab + '<td><a href="javascript:;" class="fn-revise">修改</a><a href="javascript:;" class="fn-delete">删除</a></td>';
 			new_tab = new_tab + "</tr>";
-			$("#" + appid + " #new-port tbody").append(new_tab);
+			$("#" + appid + " table.new-port tbody").append(new_tab);
 			$(".fn-newapp-sure").hide();
 			$(".fn-newapp-cancel").hide();
 			$(".fn-newapp").show();	
@@ -175,7 +175,7 @@ $(function(){
 			new_tab = new_tab + "<td><span>"+ env_value +"</span></td>";
 			new_tab = new_tab + '<td><a href="javascript:;" class="fn-env-revise">修改</a><a href="javascript:;" class="fn-env-delete">删除</a></td>';
 			new_tab = new_tab + "</tr>";
-			$("#" + appid + " #new-environment tbody").append(new_tab);
+			$("#" + appid + " table.new-environment tbody").append(new_tab);
 			$(".environment-box").hide();
 			$(".fn-environment-sure").hide();
 			$(".fn-environment-cancel").hide();
@@ -266,7 +266,7 @@ $(function(){
 			new_tab = new_tab + "<td><span>"+ dir_name +"</span></td>";
 			new_tab = new_tab + '<td><a href="javascript:;" class="fn-dir-revise">修改</a><a href="javascript:;" class="fn-dir-delete">删除</a></td>';
 			new_tab = new_tab + "</tr>";
-			$("#" + appid + " #new-directory").append(new_tab);
+			$("#" + appid + " table.new-directory").append(new_tab);
 			$(".directory-box").hide();
 			$(".fn-directory-sure").hide();
 			$(".fn-directory-cancel").hide();
@@ -313,61 +313,123 @@ $(function(){
 
 	///// 提交
     $("#build-app").click(function(){
-    	console.log(1);
-    	var port_tr = $("#new-port tbody tr");
-    	var environment = $("#new-environment tbody tr");
-    	var directory = $("#new-directory tr");
-    	var resources = $("#resources option:selected").val();
-    	var order = $("#order").val();
-    	var port_nums = [];
-    	var env_nums = [];
-    	var dir_nums = [];
-    	$(port_tr).each(function(i){
-    		var json_port = {"name":"","port":"","agreement":"","inner":"","outer":""};
-    		var my_name = $(this).children("td").eq(0).children("span").html();
-    		var my_port = $(this).children("td").eq(1).children("span").html();
-    		var my_agreement = $(this).children("td").eq(2).children("span").html();
-    		var my_inner = $(this).children("td").eq(3).children("input").prop("checked");
-    		var my_outer = $(this).children("td").eq(4).children("input").prop("checked");
-    		json_port["name"] = my_name;
-    		json_port["port"] = my_port;
-    		json_port["agreement"] = my_agreement;
-    		json_port["inner"] = my_inner;
-    		json_port["outer"] = my_outer;
-    		port_nums[i] = json_port;
+    	// length
+    	var secbox= $(".app-box");
+    	//id
+    	var appid_nums=[];
+    	$(secbox).each(function(){
+    		appid_nums.push($(this).attr("id"));
     	});
-    	$(environment).each(function(i){
-    		var json_environment = {"name":"","eng_name":"","value":""};
-    		var my_name = $(this).children("td").eq(0).children("span").html();
-    		var my_engname = $(this).children("td").eq(1).children("span").html();
-    		var my_value = $(this).children("td").eq(2).children("span").html();
-    		json_environment["name"] = my_name;
-    		json_environment["eng_name"] = my_engname;
-    		json_environment["value"] = my_value;
-    		env_nums[i] = json_environment;
+    	
+    	// 端口
+    	// var port_nums = [];
+    	var posts_box = [];
+    	var port_box =$(".new-port tbody");
+    	//console.log($(".new-port tbody").length);
+    	function Fnport(num){
+    		var port_tr = $(".new-port tbody").eq(num).children("tr");
+    		var port_nums = [];
+	        $(port_tr).each(function(i){
+		    	var json_port = {"name":"","port":"","agreement":"","inner":"","outer":""};
+			    var my_name = $(this).children("td").eq(0).children("span").html();
+			    var my_port = $(this).children("td").eq(1).children("span").html();
+			    var my_agreement = $(this).children("td").eq(2).children("span").html();
+			    var my_inner = $(this).children("td").eq(3).children("input").prop("checked");
+			    var my_outer = $(this).children("td").eq(4).children("input").prop("checked");
+			    json_port["name"] = my_name;
+			    json_port["port"] = my_port;
+			    json_port["agreement"] = my_agreement;
+			    json_port["inner"] = my_inner;
+			    json_port["outer"] = my_outer;
+			    port_nums[i] = json_port;
+			    //console.log(port_nums);
+			    
+			});
+			posts_box.push(port_nums);
+    	}
+        for(var nums = 0; nums < port_box.length; nums ++){
+        	Fnport(nums);
+        }
+        
+        
+        // 环境变量
+        var envs_box = [];
+    	var environment = $(".new-environment tbody");
+    	function FnEnv(num){
+    		var env_tr = $(environment).eq(num).children("tr");
+    		var env_nums = [];
+	    	$(env_tr).each(function(i){
+	    		console.log(i);
+	    		var json_environment = {"name":"","eng_name":"","value":""};
+	    		var my_name = $(this).children("td").eq(0).children("span").html();
+	    		var my_engname = $(this).children("td").eq(1).children("span").html();
+	    		var my_value = $(this).children("td").eq(2).children("span").html();
+	    		json_environment["name"] = my_name;
+	    		json_environment["eng_name"] = my_engname;
+	    		json_environment["value"] = my_value;
+	    		env_nums[i] = json_environment;
+	    	});
+	    	envs_box.push(env_nums);
+    	}
+    	for(var nums = 0; nums < environment.length; nums ++){
+        	FnEnv(nums);
+        }
+    	
+
+    	//持久化目录
+    	var dirs_box = [];
+    	var directory = $(".new-directory tbody");
+    	function FnDir(num){
+    		var dir_tr = $(directory).eq(num).children("tr");
+    		var dir_nums = [];
+	    	$(dir_tr).each(function(i){
+	    		var json_directory = {"name":""};
+	    		var my_name = $(this).children("td").eq(0).children("span").html();
+	    		json_directory["name"] = my_name;
+	    		dir_nums[i] = json_directory;
+	    	});
+	    	dirs_box.push(dir_nums);
+    	}  
+    	for(var nums = 0; nums < directory.length; nums++){
+        	FnDir(nums);
+        }
+    	
+    	// 内存
+    	var resources = $(".resources option:selected");    	
+    	var res_nums = [];
+    	$(resources).each(function(){
+    		res_nums.push($(this).val());
     	});
-    	$(directory).each(function(i){
-    		var json_directory = {"name":""};
-    		var my_name = $(this).children("td").eq(0).children("span").html();
-    		json_directory["name"] = my_name;
-    		dir_nums[i] = json_directory;
+        
+
+        // 命令
+    	var order = $(".order");
+    	var order_nums = [];
+    	$(order).each(function(){
+    		order_nums.push($(this).val());
     	});
-    	console.log(port_nums);
-    	console.log(env_nums);
-    	console.log(dir_nums);
-    	console.log(resources);
-    	console.log(order);
+        
+    	
+    	console.log(appid_nums);
+    	console.log(posts_box);
+    	console.log(envs_box);
+    	console.log(dirs_box);
+    	console.log(res_nums);
+    	console.log(order_nums);
+
     	///
+    	
     	$.ajax({
             type: "post",
             url: "",
             dataType: "json",
 			data: {
-				"NewPort" : port_nums,
-				"Environment" : env_nums,
-				"Directory" : dir_nums,
-				"Resources" : resources,
-				"Order" : order
+				"ServiceId" : appid_nums,
+				"NewPort" : posts_box,
+				"Environment" : envs_box,
+				"Directory" : dirs_box,
+				"Resources" : res_nums,
+				"Order" : order_nums
 			},
 			beforeSend : function(xhr, settings) {
 				var csrftoken = $.cookie('csrftoken');
@@ -383,6 +445,7 @@ $(function(){
             cache: false
             // processData: false
 		});
+		
     	///
     });
 	///////
