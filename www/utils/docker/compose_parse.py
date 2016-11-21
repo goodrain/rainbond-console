@@ -2,9 +2,9 @@
 # -*- coding: utf8 -*-
 from compose import config
 from compose.config.environment import Environment
-from www.models.compose import *
 import os
 import json
+from www.models.compose import *
 from www.utils.md5Util import get_md5
 
 
@@ -58,6 +58,7 @@ def compose_list(file_path):
                                   build_args=compose_config.args)
     yaml_info.save()
     # 解析文件
+    service_list = []
     if version == 1 or version == 2:
         # 每一个service对应一个tenant_service
         volume_dict = {}
@@ -66,92 +67,39 @@ def compose_list(file_path):
             if "build" in service_info.keys():
                 return None, "now we donot support build!"
             # new docker service
-            service_info = DockerService(compose_id=yaml_info.ID)
-            # service_cname="",
-            # image="",
-            # cmd="",
-            # info = TenantServiceInfo(service_id="",
-            #                          tenant_id="",
-            #                          service_key="",
-            #                          service_alias="",
-            #                          service_region="",
-            #                          desc="",
-            #                          category="",
-            #                          service_port=5000,
-            #                          is_web_service=True,
-            #                          version="",
-            #                          update_version=1,
-            #                          setting="",
-            #                          extend_method="stateless",
-            #                          env="",
-            #                          min_node="",
-            #                          min_cpu="",
-            #                          min_memory="",
-            #                          inner_port="",
-            #                          volume_mount_path="",
-            #                          host_path="",
-            #                          deploy_version="",
-            #                          code_from="",
-            #                          git_url="",
-            #                          git_project_id=0,
-            #                          is_code_upload=False,
-            #                          code_version="",
-            #                          service_type="application",
-            #                          creater="",
-            #                          language="image",
-            #                          protocol="",
-            #                          total_memory="",
-            #                          is_service="",
-            #                          namespace="goodrain",
-            #                          volume_type="shared",
-            #                          port_type="multi_outer",
-            #                          service_origin="assistant")
+            docker_service = DockerService(compose_id=yaml_info.ID)
+            service_list.append(docker_service)
+
             compose_name = service_info.get("name")
-            service_info.name = compose_name
+            docker_service.name = compose_name
             compose_image = service_info.get("image")
-            service_info.image = compose_image
+            docker_service.image = compose_image
             if "command" in service_info.keys():
                 compose_command = service_info.get("command")
-                service_info.command = compose_command
+                docker_service.command = compose_command
 
-            service_info.depends_on = models.CharField(max_length=100, help_text=u"依赖的服务名称,逗号分割")
-            service_info.entrypoint = models.CharField(max_length=100, help_text=u"镜像的启动脚本")
-
-            service_info.volumes_from = models.CharField(max_length=15, help_text=u"挂载项，逗号分割")
-
-            service_info.build = ""
-            service_info.context = ""
-            service_info.dockerfile = ""
-            service_info.args = ""
-            service_info.cap_add = ""
-            service_info.cap_drop = ""
-            service_info.cgroup_parent = ""
-            service_info.container_name = ""
-            service_info.devices = ""
-            service_info.dns = ""
-            service_info.dns_search = ""
-            service_info.tmpfs = ""
-            service_info.env_file = ""
-            service_info.extends = ""
-            service_info.external_links = ""
-            service_info.extra_hosts = ""
-            service_info.group_add = ""
-            service_info.isolation = ""
-            service_info.logging = ""
+            docker_service.build = ""
+            docker_service.context = ""
+            docker_service.dockerfile = ""
+            docker_service.args = ""
+            docker_service.cap_add = ""
+            docker_service.cap_drop = ""
+            docker_service.cgroup_parent = ""
+            docker_service.container_name = ""
+            docker_service.devices = ""
+            docker_service.dns = ""
+            docker_service.dns_search = ""
+            docker_service.tmpfs = ""
+            docker_service.env_file = ""
+            docker_service.extends = ""
+            docker_service.external_links = ""
+            docker_service.extra_hosts = ""
+            docker_service.group_add = ""
+            docker_service.isolation = ""
+            docker_service.logging = ""
 
             if "environment" in service_info.keys():
-                service_info.environment = json.dumps(service_info.get("environment"))
-                # compose_env = service_info.get("environment")
-                # if isinstance(compose_env, dict):
-                #     for k, v in compose_env.items():
-                #         env_var = TenantServiceEnvVar(tenant_id="",
-                #                                       service_id="",
-                #                                       container_port=-1,
-                #                                       name=k,
-                #                                       attr_name=k,
-                #                                       attr_value=v,
-                #                                       is_change=True,
-                #                                       scope="both")
+                docker_service.environment = json.dumps(service_info.get("environment"))
             if "ports" in service_info.keys():
                 compose_ports = service_info.get("ports")
                 result = []
@@ -164,40 +112,13 @@ def compose_list(file_path):
                     # - "49100:22"
                     # - "127.0.0.1:8001:8001"
                     # - "127.0.0.1:5000-5010:5000-5010"
-                    # TenantServicesPort(tenant_id="",
-                    #                    service_id="",
-                    #                    container_port="",
-                    #                    mapping_port="",
-                    #                    protocol="",
-                    #                    port_alias="",
-                    #                    is_inner_service=False,
-                    #                    is_outer_service=True)
                     result.append(info_port)
-                service_info.ports = json.dumps(result)
+                docker_service.ports = json.dumps(result)
             if "expose" in service_info.keys():
                 # 内部端口
-                service_info.expose = json.dumps(service_info.get("expose"))
-                # compose_exposes = service_info.get("expose")
-                # for expose in compose_exposes:
-                #     TenantServicesPort(tenant_id="",
-                #                        service_id="",
-                #                        container_port=expose,
-                #                        mapping_port=expose,
-                #                        protocol="",
-                #                        port_alias="",
-                #                        is_inner_service=True,
-                #                        is_outer_service=False)
+                docker_service.expose = json.dumps(service_info.get("expose"))
             if "links" in service_info.keys():
-                service_info.links = json.dumps(service_info.get("external_links"))
-                # links = service_info.get("external_links")
-                # for service_cname in links:
-                #     mnt_name = "/mnt/{0}".format(dep_service_name)
-                #     mnt_dir = "/grdata/tenant/{0}/service/{1}".format(tenant_id, service_id)
-                #     TenantServiceMountRelation(tenant_id="",
-                #                                service_id="",
-                #                                dep_service_id="",
-                #                                mnt_name=mnt_name,
-                #                                mnt_dir=mnt_dir)
+                docker_service.links = json.dumps(service_info.get("external_links"))
             if "volumes" in service_info.keys():
                 compose_volumes = service_info.get("volumes")
                 volume_path_list = []
@@ -205,13 +126,7 @@ def compose_list(file_path):
                     volume_path_list.append(vol.internal)
                     if version == 2:
                         volume_dict[vol.external] = service_info
-                        # volume_path = vol.internal
-                        # host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
-                        # TenantServiceVolume(service_id="",
-                        #                     category="application",
-                        #                     host_path=host_path,
-                        #                     volume_path=volume_path)
-                service_info.volumes = json.dumps(volume_path_list)
+                docker_service.volumes = json.dumps(volume_path_list)
 
             if "depends_on" in service_info.keys():
                 compose_depends = service_info.get("depends_on")
@@ -221,10 +136,11 @@ def compose_list(file_path):
                         depend_list.append(depend.split(":")[0])
                     else:
                         depend_list.append(depend)
-                service_info.depends_on = json.dumps(depend_list)
+                docker_service.depends_on = json.dumps(depend_list)
         if version == 2:
             # 可能存在多个服务共用卷问题
             pass
+        return service_list, "success"
     else:
         return None, "docker compose file version is not support!"
 
@@ -232,7 +148,7 @@ def compose_list(file_path):
 # if __name__ == "__main__":
 #     print "DEMO"
 #     base_dir = os.path.abspath(".")
-#     compose_config = parse_compose(base_dir, file_name="b.yml")
+#     compose_config = compose_list(os.path.join(base_dir, "b.yml"))
 #     # compose_config = custom_compose(base_dir, "a.yml")
 #     # print compose_config
 #     print(compose_config.version)
