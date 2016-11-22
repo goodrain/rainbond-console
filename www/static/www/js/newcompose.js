@@ -319,21 +319,13 @@ $(function(){
 
 	///// 提交
     $("#build-app").click(function(){
-    	// length
     	var secbox= $(".app-box");
-    	//id
-    	var appid_nums=[];
+    	var secdate = [];
     	$(secbox).each(function(){
-    		appid_nums.push($(this).attr("id"));
-    	});
-    	
-    	// 端口
-    	// var port_nums = [];
-    	var posts_box = [];
-    	var port_box =$(".new-port tbody");
-    	//console.log($(".new-port tbody").length);
-    	function Fnport(num){
-    		var port_tr = $(".new-port tbody").eq(num).children("tr");
+    		var appid = $(this).attr("id");
+    		//console.log(appid);
+    		//
+    		var port_tr = $(this).find(".new-port tbody").children("tr");
     		var port_nums = [];
 	        $(port_tr).each(function(i){
 		    	var json_port = {"name":"","port":"","agreement":"","inner":"","outer":""};
@@ -348,24 +340,12 @@ $(function(){
 			    json_port["inner"] = my_inner;
 			    json_port["outer"] = my_outer;
 			    port_nums[i] = json_port;
-			    //console.log(port_nums);
-			    
 			});
-			posts_box.push(port_nums);
-    	}
-        for(var nums = 0; nums < port_box.length; nums ++){
-        	Fnport(nums);
-        }
-        
-        
-        // 环境变量
-        var envs_box = [];
-    	var environment = $(".new-environment tbody");
-    	function FnEnv(num){
-    		var env_tr = $(environment).eq(num).children("tr");
+	        //console.log(port_nums);  
+	        //
+	        var env_tr = $(this).find(".new-environment tbody").children("tr");
     		var env_nums = [];
 	    	$(env_tr).each(function(i){
-	    		console.log(i);
 	    		var json_environment = {"name":"","eng_name":"","value":""};
 	    		var my_name = $(this).children("td").eq(0).children("span").html();
 	    		var my_engname = $(this).children("td").eq(1).children("span").html();
@@ -375,68 +355,42 @@ $(function(){
 	    		json_environment["value"] = my_value;
 	    		env_nums[i] = json_environment;
 	    	});
-	    	envs_box.push(env_nums);
-    	}
-    	for(var nums = 0; nums < environment.length; nums ++){
-        	FnEnv(nums);
-        }
-    	
-
-    	//持久化目录
-    	var dirs_box = [];
-    	var directory = $(".new-directory tbody");
-    	function FnDir(num){
-    		var dir_tr = $(directory).eq(num).children("tr");
-    		var dir_nums = [];
-	    	$(dir_tr).each(function(i){
-	    		var json_directory = {"name":""};
-	    		var my_name = $(this).children("td").eq(0).children("span").html();
-	    		json_directory["name"] = my_name;
-	    		dir_nums[i] = json_directory;
-	    	});
-	    	dirs_box.push(dir_nums);
-    	}  
-    	for(var nums = 0; nums < directory.length; nums++){
-        	FnDir(nums);
-        }
-    	
-    	// 内存
-    	var resources = $(".resources option:selected");    	
-    	var res_nums = [];
-    	$(resources).each(function(){
-    		res_nums.push($(this).val());
+	    	//console.log(env_nums);
+	    	//
+	    	var dir_tr = $(this).find(".new-directory tbody").children("tr");
+	    	var dir_nums = [];
+		    $(dir_tr).each(function(i){
+		    	var json_directory = {"name":""};
+		    	var my_name = $(this).children("td").eq(0).children("span").html();
+		    	json_directory["name"] = my_name;
+		    	dir_nums[i] = json_directory;
+		    });
+		    //console.log(dir_nums);
+	    	//
+	    	var resources = $(this).find(".resources option:selected").val();  
+	    	//console.log(resources);
+	    	//
+	    	var order = $(this).find(".order").val();
+	    	var this_json={
+	    		"Id" : appid,
+	    		"Port" : port_nums,
+	    		"Environment" : env_nums,
+	    		"Directory" : env_nums,
+	    		"Resources" : resources,
+	    		"Order" : order
+	    	}
+	    	//console.log(this_json);
+	    	secdate.push(this_json);
     	});
-        
-
-        // 命令
-    	var order = $(".order");
-    	var order_nums = [];
-    	$(order).each(function(){
-    		order_nums.push($(this).val());
-    	});
-        
-    	
-    	console.log(appid_nums);
-    	console.log(posts_box);
-    	console.log(envs_box);
-    	console.log(dirs_box);
-    	console.log(res_nums);
-    	console.log(order_nums);
+    	console.log(secdate);
+    	//
 
     	///
-    	
     	$.ajax({
             type: "post",
             url: "",
             dataType: "json",
-			data: {
-				"ServiceId" : appid_nums,
-				"NewPort" : posts_box,
-				"Environment" : envs_box,
-				"Directory" : dirs_box,
-				"Resources" : res_nums,
-				"Order" : order_nums
-			},
+			data: secdate,
 			beforeSend : function(xhr, settings) {
 				var csrftoken = $.cookie('csrftoken');
 				xhr.setRequestHeader("X-CSRFToken", csrftoken);
