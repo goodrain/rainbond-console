@@ -52,7 +52,7 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                 context["image_url"] = imags.image_url
                 context["service_id"] = service_id
         except Exception as e:
-            pass
+            logger.error(e)
         return TemplateResponse(self.request, "www/app_create_step_two.html", context)
 
     @never_cache
