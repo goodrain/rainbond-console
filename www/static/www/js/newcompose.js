@@ -66,14 +66,16 @@ $(function(){
 		$(this).hide();
 		$(this).next("a").hide();
 		var this_box = $(this).parent().parent();
+		var previous_port_alias = this_box.find("span").eq(0).html();
+		var previous_port = this_box.find("span").eq(1).html(); 
 		//console.log(this_box);
 		var input_onoff_inner = this_box.find("input").eq(0).attr("checked");
 		var input_onoff_outer = this_box.find("input").eq(1).attr("checked");
 		console.log(input_onoff_inner,input_onoff_outer);
 		this_box.find("span").css({"display":"none"});
 		this_box.find("input").removeAttr("disabled");
-		var addto_name = '<input type="text" class="fn-addto-name" />';
-		var addto_input = '<input type="text" class="fn-addto-input" />';
+		var addto_name = '<input type="text" class="fn-addto-name" value='+previous_port_alias+' />';
+		var addto_input = '<input type="text" class="fn-addto-input" value='+previous_port+' />';
 		var addto_select = '<select class="fn-addto-select"><option value="http">http</option><option value="stream">stream</option></select>';
 		var a_sure = '<a class="fn-sure" href="javascript:;">确定</a>';
 		var a_cancel = '<a class="fn-cancel" href="javascript:;">取消</a>';
@@ -192,10 +194,13 @@ $(function(){
 		$(this).hide();
 		$(this).next("a").hide();
 		var this_box = $(this).parent().parent();
+		var previous_env_name = this_box.find("span").eq(0).html();
+		var previous_attr_name = this_box.find("span").eq(1).html();
+		var privious_attr_value = this_box.find("span").eq(2).html();
 		this_box.find("span").css({"display":"none"});
-		var env_name = '<input type="text" class="fn-env-name" />';
-		var env_engname = '<input type="text" class="fn-env-engname" />';
-		var env_val = '<input type="text" class="fn-env-val" />';
+		var env_name = '<input type="text" class="fn-env-name" value='+previous_env_name+' /> ';
+		var env_engname = '<input type="text" class="fn-env-engname" value='+previous_attr_name+' /> ';
+		var env_val = '<input type="text" class="fn-env-val" value='+privious_attr_value+' /> ';
 		var a_env_sure = '<a class="fn-env-sure" href="javascript:;">确定</a>';
 		var a_env_cancel = '<a class="fn-env-cancel" href="javascript:;">取消</a>';
 		this_box.children("td").eq(0).append(env_name);
@@ -279,8 +284,9 @@ $(function(){
 		$(this).hide();
 		$(this).next("a").hide();
 		var this_box = $(this).parent().parent();
+		var previous_dir = this_box.find("span").eq(0).html();
 		this_box.find("span").css({"display":"none"});
-		var dir_name = '<input type="text" class="fn-dir-name" />';
+		var dir_name = '<input type="text" class="fn-dir-name" value=' + previous_dir+'/>';
 		var a_dir_sure = '<a class="fn-dir-sure" href="javascript:;">确定</a>';
 		var a_dir_cancel = '<a class="fn-dir-cancel" href="javascript:;">取消</a>';
 		this_box.children("td").eq(0).append(dir_name);
@@ -458,6 +464,14 @@ $(function(){
 		$("section.app-box").hide();
 		$("section.app-box").eq(num).show();
 	});
+
+
+	$("#pre_page").click(function () {
+		var compose_file_id = $("#compose_file_id").val();
+		var tenantName = $("#tenantNameValue").val();
+		url = "/apps/"+tenantName+"/compose-create?id="+compose_file_id;
+		window.location.href = url
+	})
 });
 
 
