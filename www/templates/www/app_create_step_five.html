@@ -34,7 +34,7 @@
         {% for service in service_list %}
         <input type="hidden" name="depends_on" value="{{service.depends_on}}">
         <input type="hidden" name="image" value="{{service.image}}">
-        <section id="{{service.service_id}}" service_cname="{{service.name}}" service_image="{{service.name}}" class="app-box" {% if forloop.first %} style="display: block;" {% endif %}>
+        <section id="{{service.service_id}}" service_cname="{{service.name}}" service_image="{{service.image}}" class="app-box" {% if forloop.first %} style="display: block;" {% endif %}>
             <!-- 应用端口 start -->
             <section class="box-single">
                 <h3>应用端口</h3>

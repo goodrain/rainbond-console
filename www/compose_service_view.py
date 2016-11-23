@@ -185,7 +185,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     service = ServiceInfo()
                     service.service_key = "0000"
                     service.desc = ""
-                    service.category = "application"
+                    service.category = "app_publish"
                     service.image = service_image
                     service.cmd = start_cmd
                     service.setting = ""
