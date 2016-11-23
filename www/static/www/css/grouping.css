@@ -34,5 +34,5 @@ em,cite,span{font-style: normal;}
 a.imgbtn{width: 24px; height: 24px; background: url('../images/grayimg.png') no-repeat; background-size: 24px 24px; display: inline-block;}
 a.tabbtn{width: 24px; height: 24px; background: url('../images/graytab.png') no-repeat; background-size: 24px 24px; display: inline-block;}
 
-a.imgbtn.sed{background: url('../images/greenimg.png');}
-a.tabbtn.sed{background: url('../images/greentab.png');}
+a.imgbtn.sed{background: url('../images/greenimg.png'); background-size: 24px 24px;}
+a.tabbtn.sed{background: url('../images/greentab.png'); background-size: 24px 24px;}
