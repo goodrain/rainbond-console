@@ -105,7 +105,7 @@ class WeChatConfig(models.Model):
     encrypt_mode = models.CharField(max_length=200, help_text=u'encrypt_mode')
     encoding_aes_key = models.CharField(max_length=200, help_text=u'aes_key')
     access_token = models.CharField(max_length=200, help_text=u'access_token')
-    access_token_expires_at = models.IntegerField(max_length=10, help_text=u"token过期时间")
+    access_token_expires_at = models.IntegerField(help_text=u"token过期时间")
     refresh_token = models.CharField(max_length=200, help_text=u'refresh_token,只对网页授权有效')
     app_type = models.CharField(max_length=200, choices=OPEN_TYPE, help_text=u'公众平台or网站')
 
@@ -213,7 +213,7 @@ class Users(models.Model):
     # 2:微信注册,绑定微信,未补充信息
     # 3:微信注册,绑定微信,已补充信息
     # 4:微信注册,解除微信绑定,已补充信息
-    status = models.IntegerField(max_length=2, default=0, help_text=u'用户类型 0:普通注册,未绑定微信')
+    status = models.IntegerField(default=0, help_text=u'用户类型 0:普通注册,未绑定微信')
     union_id = models.CharField(max_length=100, help_text=u'绑定微信的union_id')
 
     def set_password(self, raw_password):
