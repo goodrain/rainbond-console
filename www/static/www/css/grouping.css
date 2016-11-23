@@ -28,4 +28,6 @@ em,cite,span{font-style: normal;}
 .choose-layer select{width:100px; height: 30px; line-height: 30px;}
 .choose-group-box span{cursor: pointer;}
 
-.group-tit{min-width: 60px; height:30px; line-height:30px; color:#666;}
+.group-tit{min-width: 80px; height:40px; line-height:40px; color:#666; font-size: 18px;}
+.tab-box{}
+.img-box{ display:none;}
