@@ -52,7 +52,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             else:
                 raise Http404
                 # if region == 'xunda-bj':
-                #self.response_region = region
+                # self.response_region = region
                 # else:
                 #    raise Http404
 
@@ -88,10 +88,10 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             context["pay_type"] = self.tenant.pay_type
             context["expired"] = tenantAccountService.isExpired(self.tenant)
             context["expired_time"] = self.tenant.expired_time
-            status = tenantAccountService.get_monthly_payment(self.tenant,self.tenant.region)
+            status = tenantAccountService.get_monthly_payment(self.tenant, self.tenant.region)
             context["monthly_payment_status"] = status
-            if status !=0:
-                list = TenantRegionPayModel.objects.filter(tenant_id=self.tenant.tenant_id,region_name=self.tenant.region).order_by("-buy_end_time")
+            if status != 0:
+                list = TenantRegionPayModel.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.tenant.region).order_by("-buy_end_time")
                 context["buy_end_time"] = list[0].buy_end_time
 
             if self.tenant_region.service_status == 0:
@@ -317,7 +317,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["envMap"] = envMap
 
                 containerPortList = []
-                opend_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_inner_service=True)
+                opend_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
                 if len(opend_service_port_list) > 0:
                     for opend_service_port in opend_service_port_list:
                         containerPortList.append(opend_service_port.container_port)
@@ -444,7 +444,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
                 context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
@@ -456,7 +456,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # result_list.append(volume)
                 context["volume_list"] = volume_list
 
-                if self.service.code_from in ("image_manual"):
+                if self.service.code_from is not None and self.service.code_from in ("image_manual"):
                     context["show_git"] = False
                 else:
                     context["show_git"] = True
