@@ -46,7 +46,7 @@
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1?fr=share">分享</a>
                 </li>
                 {% endif %}
-                
+                {% if user.is_sys_admin %}
                 <li class="dropdown {% if fr == 'sources' %} active {% endif %}">
                     <a href="" class="dropdown-toggle" data-toggle="dropdown">资源<b class="caret"></b>
                     </a>
@@ -55,6 +55,7 @@
                         <!-- <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/sources/alert?fr=sources">资源报警</a></li> -->
                     </ul>
                 </li>
+                {% endif %}
             </ul>
         </header>
 
