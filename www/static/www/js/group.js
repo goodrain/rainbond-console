@@ -409,17 +409,28 @@ $(function(){
     var oSvgDiv = document.getElementById("svg-box");
     var oSvg = createTag('svg',{'xmlns':svgNS,'width':'100%','height':'100%'});
     var json_svg = {
-        "dev-debug" : "application",
-        "dev-goodrain-app" : "application",
-        "discourse-pg" : "application",
-        "dev-goodrain-app" : "application",
-        "discourse-redis" : "redis",
-        "goodrain-app" : "application",
-        "mysql_myapp" : "mysql",
-        "phpmyadmin" : "phpmyadmin",
-        "user_mysql" : "mysql",
-        "user_cache" : "memcached",
-        "phpmyadmin" : "phpmyadmin"
+        "serone" : "serthree",
+        "sertwo" : "serthree",
+        "serthree" : "serfive",
+        "serfour" : "serfive",
+        "serfive" : "appone",
+        "appone" : "apptwo",
+        "apptwo" : "apptwo",
+        "appthree" : "apptwo",
+        "appfour" : "phptwo",
+        "appfive" : "apptwo",
+        "appsix" : "phpthree"
+        "phpone" : "phptwo",
+        "phptwo" : "phptwo",
+        "phpthree" : "jstwo",
+        "jsone" : "jstwo",
+        "jstwo" : "redis",
+        "jsthree" : "jsfour",
+        "jsfour" : "cssone",
+        "cssone" : "cssone",
+        "csstwo" : "html",
+        "html" : "html",
+        "img" : "html"
     }
 
 });
