@@ -52,7 +52,7 @@
                     <tbody>
                     {% for outer_port in service.ports %}
                         <tr>
-                            <td><span>{{service.name|upper}}{{outer_port}}</span></td>
+                            <td><span>{{service.name|upper}}</span></td>
                             <td><span>{{outer_port}}</span></td>
                             <td><span>{% if service.name in linked_service %} stream {% else %} http {% endif %}</span></td>
                             <td><input class="fn-input-inner" name="inner" type="checkbox" {% if service.name in linked_service %} checked="checked" {% endif %} disabled="true"></td>

@@ -206,6 +206,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                                                           self.user.pk,
                                                           region=self.response_region)
             newTenantService.code_from = "image_manual"
+            newTenantService.language = "docker-image"
             newTenantService.save()
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)

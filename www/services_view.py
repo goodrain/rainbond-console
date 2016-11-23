@@ -269,9 +269,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)
                     return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-                tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-                if tse.user_dependency is None or tse.user_dependency == "":
-                    return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                if self.service.code_from not in ("image_manual"):
+                    tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+                    if tse.user_dependency is None or tse.user_dependency == "":
+                        return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context["tenantServiceInfo"] = self.service
             tenantServiceList = context["tenantServiceList"]
