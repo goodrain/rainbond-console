@@ -415,24 +415,26 @@ $(function(){
         "serfour" : "serfive",
         "serfive" : "appone",
         "appone" : "apptwo",
-        "apptwo" : "apptwo",
+        "apptwo" : "",
         "appthree" : "apptwo",
         "appfour" : "phptwo",
         "appfive" : "apptwo",
         "appsix" : "phpthree"
         "phpone" : "phptwo",
-        "phptwo" : "phptwo",
+        "phptwo" : "",
         "phpthree" : "jstwo",
         "jsone" : "jstwo",
         "jstwo" : "redis",
         "jsthree" : "jsfour",
         "jsfour" : "cssone",
-        "cssone" : "cssone",
+        "cssone" : "",
         "csstwo" : "html",
-        "html" : "html",
+        "html" : "",
         "img" : "html"
     }
-
+    for(var key in json_svg){
+        
+    }
 });
 
 

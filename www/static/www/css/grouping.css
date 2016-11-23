@@ -28,7 +28,7 @@ em,cite,span{font-style: normal;}
 .choose-layer select{width:100px; height: 30px; line-height: 30px;}
 .choose-group-box span{cursor: pointer;}
 
-.group-tit{min-width: 80px; height:40px; line-height:40px; color:#666; font-size: 18px;}
+.group-tit{min-width: 80px; height:34px; line-height:34px; color:#666; font-size: 18px;}
 .tab-box{}
 .img-box{display:none;}
 a.imgbtn{width: 24px; height: 24px; background: url('../images/grayimg.png') no-repeat; background-size: 24px 24px; display: inline-block; margin:0 5px;}
