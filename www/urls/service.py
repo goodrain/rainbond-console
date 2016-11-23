@@ -14,6 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
 from www.views.serviceshare import *
 from www.views.consume import *
+from  www.views.servicemonitor import *
 
 urlpatterns = patterns(
     '',
@@ -72,7 +73,8 @@ urlpatterns = patterns(
     url(r'^/image-params/$', login_required(ImageParamsViews.as_view())),
     # docker-compose
     url(r'^/compose-create/$', login_required(ComposeServiceDeploy.as_view())),
-
     url(r'^/compose-params/$', login_required(ComposeServiceParams.as_view())),
-
+    # new monitor service source
+    url(r'^/(?P<serviceAlias>[\w\-]+)/sources/monitor$', SourcesMonitorServicelView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/sources/alert$', SourcesAlertServicelView.as_view()),
 )
