@@ -40,7 +40,7 @@
 			<table class="table table-striped table-hover">
 				<thead>
 					<tr>
-						<!--<th class="bs-checkbox fn-SelectAll"><input type="checkbox" name="SelectAll" value=""></th>-->
+						<th class="bs-checkbox fn-SelectAll"><input type="checkbox" name="SelectAll" value=""></th>
 						<th>应用名</th>
 						<th>版本</th>
 						<th>类型 </th>
@@ -54,7 +54,7 @@
 					{% for item in tenantServiceList %}
 					<tr id="panel" class="tabline" data-group="{{item.group_id}}" data-id="{{item.service_id}}">
 						<!-- 复选框 -->
-						<td class="bs-checkbox fn-SelectItem">-->
+						<td class="bs-checkbox fn-SelectItem">
 							<input name="SelectItem" type="checkbox"  type="checkbox" value="{{item.service_id}}" />
 						</td>
 						<!-- 应用名  -->
