@@ -31,8 +31,8 @@ em,cite,span{font-style: normal;}
 .group-tit{min-width: 80px; height:40px; line-height:40px; color:#666; font-size: 18px;}
 .tab-box{}
 .img-box{display:none;}
-a.imgbtn{width: 24px; height: 24px; background: url('../images/grayimg.png') no-repeat; background-size: 24px 24px; display: inline-block;}
-a.tabbtn{width: 24px; height: 24px; background: url('../images/graytab.png') no-repeat; background-size: 24px 24px; display: inline-block;}
+a.imgbtn{width: 24px; height: 24px; background: url('../images/grayimg.png') no-repeat; background-size: 24px 24px; display: inline-block; margin:0 5px;}
+a.tabbtn{width: 24px; height: 24px; background: url('../images/graytab.png') no-repeat; background-size: 24px 24px; display: inline-block; margin:0 5px;}
 
 a.imgbtn.sed{background: url('../images/greenimg.png'); background-size: 24px 24px;}
 a.tabbtn.sed{background: url('../images/greentab.png'); background-size: 24px 24px;}
