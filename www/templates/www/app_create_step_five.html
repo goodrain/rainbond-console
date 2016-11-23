@@ -54,7 +54,7 @@
                         <tr>
                             <td><span>{{service.name|upper}}</span></td>
                             <td><span>{{outer_port}}</span></td>
-                            <td><span>{% if service.name in linked_service %} stream {% else %} http {% endif %}</span></td>
+                            <td><span>{% if service.name in linked_service %}stream{% else %}http{% endif %}</span></td>
                             <td><input class="fn-input-inner" name="inner" type="checkbox" {% if service.name in linked_service %} checked="checked" {% endif %} disabled="true"></td>
                             <td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>
                             <td><a href="javascript:;" class="fn-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-delete">删除</a></td>
