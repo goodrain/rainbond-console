@@ -214,7 +214,7 @@ $(function(){
     
     //弹出层
     function FnLayer(textTit,onoff,text,newonoff,tipsText){
-        var sedVal = $("#app-group option:selected").val(); // 取应用ID
+        var sedVal = $("#group-tit").attr("data-group"); // 取应用ID
         if(sedVal == "0" && !newonoff){
             swal(tipsText);
             return false;
