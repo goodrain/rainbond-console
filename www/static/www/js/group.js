@@ -389,6 +389,20 @@ $(function(){
         $(this).parent("div.fn-show-select ").hide();
     });
     //  选择分组
+
+    //切换
+    $("#imgbtn").click(function(){
+        $("#tab-box").hide();
+        $("#img-box").show()
+        $(this).addClass("sed");
+        $("tabbtn").removeClass("sed");
+    });
+    $("#tabbtn").click(function(){
+        $("#tab-box").show();
+        $("#img-box").hide()
+        $(this).addClass("sed");
+        $("imgbtn").removeClass("sed");
+    });
  
 });
 
