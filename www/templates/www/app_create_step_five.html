@@ -15,7 +15,7 @@
     <input type="hidden" id="image_url" value="{{image_url}}">
     <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
     <input type="hidden" id="compose_file_id" value="{{compose_file_id}}">
-
+    <input type="hidden" id="parse_error" value="{{parse_error}}">
     <section class="panel">
         <div class="steptit">
             <span >1，设置镜像来源</span>
@@ -32,7 +32,9 @@
 
         <!-- 01-->
         {% for service in service_list %}
-        <section id="{{service.service_id}}" class="app-box" {% if forloop.first %} style="display: block;" {% endif %}>
+        <input type="hidden" name="depends_on" value="{{service.depends_on}}">
+        <input type="hidden" name="image" value="{{service.image}}">
+        <section id="{{service.service_id}}" service_cname="{{service.name}}" service_image="{{service.name}}" class="app-box" {% if forloop.first %} style="display: block;" {% endif %}>
             <!-- 应用端口 start -->
             <section class="box-single">
                 <h3>应用端口</h3>
@@ -50,12 +52,12 @@
                     <tbody>
                     {% for outer_port in service.ports %}
                         <tr>
-                            <td><span>S{{outer_port}}</span></td>
+                            <td><span>{{service.name|upper}}{{outer_port}}</span></td>
                             <td><span>{{outer_port}}</span></td>
-                            <td><span>http</span></td>
-                            <td><input class="fn-input-inner" name="inner" type="checkbox"  disabled="true"></td>
-                            <td><input class="fn-input-outer" name="outer" type="checkbox"  checked="true" disabled="true"></td>
-                            <td><a href="javascript:;" class="fn-revise">修改</a><a href="javascript:;" class="fn-delete">删除</a></td>
+                            <td><span>{% if service.name in linked_service %} stream {% else %} http {% endif %}</span></td>
+                            <td><input class="fn-input-inner" name="inner" type="checkbox" {% if service.name in linked_service %} checked="checked" {% endif %} disabled="true"></td>
+                            <td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>
+                            <td><a href="javascript:;" class="fn-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-delete">删除</a></td>
                         </tr>
                     {% endfor %}
                     {% for inner_port in service.expose %}
@@ -63,7 +65,7 @@
                             <td><span>S{{inner_port}}</span></td>
                             <td><span>{{inner_port}}</span></td>
                             <td><span>http</span></td>
-                            <td><input class="fn-input-inner" name="inner" type="checkbox" checked="true"  disabled="true"></td>
+                            <td><input class="fn-input-inner" name="inner" type="checkbox"  disabled="true"></td>
                             <td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>
                             <td><a href="javascript:;" class="fn-revise">修改</a><a href="javascript:;" class="fn-delete">删除</a></td>
                         </tr>
@@ -180,10 +182,31 @@
                 <textarea rows="4" class="order" >{% if service.command %}{{service.command}}{% endif %}</textarea>
             </section>
             <!-- 启动命令 end -->
+            <!--依赖服务 start -->
+            {% if service.depends_on|length > 0 or service.links|length > 0 %}
+            <section  class="box-single">
+                <h3>依赖服务</h3>
+                <div id="depends_service">
+                    {% for dep in service.depends_on %}
+                        <span>{{dep}}</span>
+                    {% endfor %}
+                    {% for link in service.links %}
+                    <span>{{link}}</span>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+            <!--依赖服务 end-->
+
         </section>
         {% endfor %}
         <!-- 01-->
         <!-- 02-->
+        {% if parse_error %}
+            <section>
+                <h4> 解析出错</h4>
+            </section>
+        {% endif %}
 
         <!-- 02-->
         <!-- 03-->
@@ -192,7 +215,9 @@
         <!-- 提交 start -->
         <div class="build-app-btn">
             <a href="javascript:;" class="btn btn-info" id="pre_page">上一页</a>
+            {% if not parse_error %}
             <a href="javascript:;" class="btn  btn-success" id="build-app">建立一组应用</a>
+            {% endif %}
         </div>
         <!-- 提交 end -->
         <!-- end -->

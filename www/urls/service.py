@@ -1,5 +1,6 @@
 from django.conf.urls import patterns, url
 
+from www.compose_service_view import ComposeServiceDeploy, ComposeServiceParams
 from www.create_services_view import CreateServiceEntranceView
 from www.image_service_view import ImageServiceDeploy, ImageParamsViews
 from www.services_view import *
@@ -69,5 +70,9 @@ urlpatterns = patterns(
     # image_service
     url(r'^/image-create/$', login_required(ImageServiceDeploy.as_view())),
     url(r'^/image-params/$', login_required(ImageParamsViews.as_view())),
+    # docker-compose
+    url(r'^/compose-create/$', login_required(ComposeServiceDeploy.as_view())),
+
+    url(r'^/compose-params/$', login_required(ComposeServiceParams.as_view())),
 
 )

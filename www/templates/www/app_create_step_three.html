@@ -1,6 +1,6 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
-
+{% load staticfiles %}
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/newapp.css" %}' />
@@ -13,6 +13,7 @@
 
 <section class="wrapper site-min-height">
     <section class="panel">
+        <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
         <div class="steptit">
             <p class="sed">1，上传compose文件</p>
             <p>2，设置应用参数</p>
@@ -20,7 +21,7 @@
         <span class="line"></span>
         <div class="fm-link">
             <form id="myForm">
-                <p><label>镜像地址：</label><input id="file" type="file" name="file"/></p>
+                <p><label>compose文件：</label><input id="compose_file" type="file" name="compose_file"/></p>
                 <a href="javascript:;" class="btn btn-success" id="nextcomposestep">下一步</a>
             </form>
         </div>
