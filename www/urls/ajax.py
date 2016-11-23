@@ -39,5 +39,5 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-mnt-share-type', ajax.MntShareTypeView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/container-stats', ajax.ContainerStatsView.as_view()),
     
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/sources/monitor/', ajax.ServiceMonitorQueryMem.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/sources/monitor/', ajax.ServiceMonitorQuery.as_view()),
 )

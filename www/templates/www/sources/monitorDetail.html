@@ -75,9 +75,9 @@
     var cpu = echarts.init(document.getElementById('cpu'));
     var io = echarts.init(document.getElementById('io'));
     var zfs = echarts.init(document.getElementById('fs'));
-    mem.setOption(GetOption("内存使用量"))
-    cpu.setOption(GetOption("cpu使用量"))
-    io.setOption(GetOption("IO使用量"))
-    zfs.setOption(GetOption("硬盘使用量"))
+    showMem("/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=mem")
+    showCPU("/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=cpu")
+    showIO("/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=io")
+    showFS("/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=fs")
 </script>
 {% endblock %}
