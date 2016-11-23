@@ -70,14 +70,15 @@
 {% endblock %} {% block extrajs %}
 <script type="text/javascript" src='{% static "www/js/monitor/echarts.common.min.js" %}'></script>
 <script type="text/javascript" src='{% static "www/js/monitor/common.js" %}'></script>
+<script type="text/javascript" src='{% static "www/js/jquery.cookie.js" %}'></script>
 <script>
     var mem = echarts.init(document.getElementById('mem'));
     var cpu = echarts.init(document.getElementById('cpu'));
     var io = echarts.init(document.getElementById('io'));
     var zfs = echarts.init(document.getElementById('fs'));
-    showMem("/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=mem")
-    showCPU("/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=cpu")
-    showIO("/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=io")
-    showFS("/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=fs")
+    showMem(mem,"/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=mem")
+    showCPU(cpu,"/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=cpu")
+    showIO(io,"/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=io")
+    showFS(zfs,"/ajax/{{tenantName}}/{{serviceAlias}}/sources/monitor?query=fs")
 </script>
 {% endblock %}

@@ -26,15 +26,15 @@ class ServiceMonitorQuery(AuthedView):
         """
         data = {}
         try:
-            query = request.GET.get("query","")
+            query = request.GET.get("query")
             if query=="mem":
-                data = regionClient.monitoryQueryMem(self.service.service_id) 
+                data = regionClient.monitoryQueryMem(self.service.service_region,self.service.service_id) 
             elif query=="cpu":
-                data = regionClient.monitoryQueryCPU(self.service.service_id) 
+                data = regionClient.monitoryQueryCPU(self.service.service_region,self.service.service_id) 
             elif query=="io":
-                data = regionClient.monitoryQueryIO(self.service.service_id) 
+                data = regionClient.monitoryQueryIO(self.service.service_region,self.service.service_id) 
             elif query=="fs":
-                data = regionClient.monitoryQueryFS(self.service.service_id) 
+                data = regionClient.monitoryQueryFS(self.service.service_region,self.service.service_id) 
             return JsonResponse(data, status=200)   
         except Exception as e:
             logger.exception(e)

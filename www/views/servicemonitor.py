@@ -12,6 +12,7 @@ class SourcesMonitorServicelView(LeftSideBarMixin, AuthedView):
         get
         """
         context = self.get_context()
+        context["myAppStatus"] = "active"
         context["fr"] = "sources"
         return TemplateResponse(self.request,
                                 'www/sources/monitorDetail.html',
@@ -26,6 +27,7 @@ class SourcesAlertServicelView(LeftSideBarMixin, AuthedView):
         监控页面
         """
         context = self.get_context()
+        context["myAppStatus"] = "active"
         context["fr"] = "sources"
         return TemplateResponse(self.request,
                                 'www/sources/alert.html',
