@@ -43,7 +43,6 @@ def compose_list(file_path):
         yaml_info = DockerComposeYaml.objects.get(md5=md5string)
         service_list = DockerService.objects.filter(compose_id=yaml_info.ID)
         return service_list, "success"
-
     # now parse docker compose
     file_name = os.path.basename(file_path)
     file_dir = os.path.dirname(file_path)
@@ -60,7 +59,7 @@ def compose_list(file_path):
     yaml_info.save()
     # 解析文件
     service_list = []
-    if version == "1" or version == "2":
+    if version in ["1", "1.0", "2", "2.0", "2.1"]:
         # 每一个service对应一个tenant_service
         volume_dict = {}
         for service_info in compose_config.services:
