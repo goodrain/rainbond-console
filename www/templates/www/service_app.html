@@ -15,7 +15,10 @@
 	<!-- main start  -->
 		<!-- top 分组 -->
 		<div class="clearfix" id="app-group"   data-tenantName="{{tenantName}}">
-			<p data-group="{{item.group_id}}" class="pull-left group-tit">{{group.group_name}}</p>
+			{% for group in groups %}
+			<p data-group="{{group.ID}}" class="pull-left group-tit">{{group.group_name}}</p>
+			{% endfor %}
+			<p data-group="-1" class="pull-left group-tit">分组</p>
 			<!--
 			<select>
 				<option value="0">全部应用</option>
@@ -117,12 +120,12 @@
 		</table>
 		<!-- tab end -->
 		<!-- Mass deployment Start -->
-		<!--<div class="clearfix numbers-box" id="nums-app">-->
-			<!--<p id="app-numbers">已选择<span>0</span>个应用</p>-->
-			<!--<button id="batchStart" class="btn btn-success">批量启动</button>-->
-			<!--<button id="batchEnd" class="btn btn-danger">批量停止</button>-->
-			<!--<button id="newStart" class="btn btn-info">批量重新部署</button>-->
-		<!--</div>-->
+		<div class="clearfix numbers-box" id="nums-app">
+			<p id="app-numbers">已选择<span>0</span>个应用</p>-->
+			<button id="batchStart" class="btn btn-success">批量启动</button>
+			<button id="batchEnd" class="btn btn-danger">批量停止</button>
+			<button id="newStart" class="btn btn-info">批量重新部署</button>
+		</div>
 		<!-- Mass deployment End-->
 	<!-- main end -->
 	</section>
