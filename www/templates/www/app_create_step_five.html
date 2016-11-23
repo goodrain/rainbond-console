@@ -108,7 +108,7 @@
                     <tbody>
                     {% for k,v in service.environment.items %}
                     <tr>
-                        <td><span>{{k}}名称</span></td>
+                        <td><span>{{k}}</span></td>
                         <td><span>{{k}}</span></td>
                         <td><span>{{v}}</span></td>
                         <td><a href="javascript:;" class="fn-env-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-env-delete">删除</a></td>
@@ -205,6 +205,7 @@
         {% if parse_error %}
             <section>
                 <h4> 解析出错</h4>
+                <h5>{{parse_error_info}}</h5>
             </section>
         {% endif %}
 

@@ -91,12 +91,12 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
         try:
             compose_file_id = request.GET.get("id", "")
             compose_file_path = ComposeServiceRelation.objects.get(compose_file_id=compose_file_id).compose_file.path
-            service_list, success = compose_list(compose_file_path)
+            service_list, info = compose_list(compose_file_path)
             tenant_id = self.tenant.tenant_id
             linked = []
             if service_list is None:
                 context["parse_error"] = "parse_error"
-                logger.error(success)
+                context["parse_error_info"] = info
             else:
                 for docker_service in service_list:
                     service_id = make_uuid(tenant_id)
@@ -146,9 +146,9 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
             if tenantAccountService.isExpired(self.tenant):
                 result["status"] = "expired"
                 return JsonResponse(result, status=200)
-
             service_configs = request.POST.get("service_configs", "")
             service_configs = self.json_loads(service_configs)
+
 
             if service_configs != "":
                 deps = {}
@@ -164,7 +164,6 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
                     if num > 0:
                         result["status"] = "exist"
-                        result["info"] = '{0} is already exist'
                         return JsonResponse(result, status=200)
                     port_list = service_config.get("port_list")
                     env_list = service_config.get("env_list")
@@ -248,7 +247,6 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
             TenantServicesPort.objects.filter(service_id=service_id).delete()
             TenantServiceVolume.objects.filter(service_id=service_id).delete()
-            print e
             logger.error(e)
         return JsonResponse(result, status=200)
 

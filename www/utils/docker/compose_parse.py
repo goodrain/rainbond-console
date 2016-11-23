@@ -46,7 +46,10 @@ def compose_list(file_path):
     # now parse docker compose
     file_name = os.path.basename(file_path)
     file_dir = os.path.dirname(file_path)
-    compose_config = parse_compose(file_dir, file_name=file_name)
+    try:
+        compose_config = parse_compose(file_dir, file_name=file_name)
+    except Exception as e:
+        return None,str(e)
     # 解析docker compose，转化未goodrain平台信息
     version = compose_config.version
     yaml_info = DockerComposeYaml(version=version,

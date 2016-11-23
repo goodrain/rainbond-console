@@ -15,11 +15,13 @@
     <section class="panel">
         <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
         <div class="steptit">
-            <p class="sed">1，上传compose文件</p>
-            <p>2，设置应用参数</p>
+            <span class="sed">1，设置镜像来源</span>
+            <span >2，设置应用参数</span>
         </div>
+
         <span class="line"></span>
         <div class="fm-link">
+            <span>暂不支持docker-compose的build命令</span>
             <form id="myForm">
                 <p><label>compose文件：</label><input id="compose_file" type="file" name="compose_file"/></p>
                 <a href="javascript:;" class="btn btn-success" id="nextcomposestep">下一步</a>

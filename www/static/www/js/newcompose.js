@@ -412,8 +412,23 @@ $(function(){
 				xhr.setRequestHeader("X-CSRFToken", csrftoken);
 			},
 			success:function(data){
-				if (data.status == 'success'){
-					alert("success");
+				status = data.status;
+				if (status == 'success'){
+					window.location.href="/apps/"+tenantName +"/"
+				}else if (status == "failure"){
+					swal("数据中心初始化失败");
+				}else if (status == "owed"){
+					swal("余额不足请及时充值");
+				}else if (status =="expired"){
+					swal("试用期已过");
+				}else if(status =="over_memory"){
+					swal("资源已达上限,无法创建");
+				}else if(status == "over_money"){
+					swal("余额不足无法创建");
+				}else if (status == 'exist'){
+					swal("服务已存在")
+				}else{
+					swal("创建失败")
 				}
 			},
 			error: function() {
