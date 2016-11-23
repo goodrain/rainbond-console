@@ -254,7 +254,7 @@ class BaseTenantService(object):
                 port.mapping_port = mapping_port
                 if service.language == "docker-compose":
                     self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_PORT_" + str(container_port) + "_TCP_ADDR", "127.0.0.1", False, scope="outer")
-                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "DB_PORT_" + str(container_port) + "_TCP_PORT", mapping_port, False, scope="outer")
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT_" + str(container_port) + "_TCP_PORT", mapping_port, False, scope="outer")
                 else:
                     self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
                     self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
