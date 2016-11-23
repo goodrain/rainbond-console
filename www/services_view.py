@@ -455,6 +455,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 #     volume.volume_path = tmp_path.replace("/app", "", 1)
                 # result_list.append(volume)
                 context["volume_list"] = volume_list
+
+                if self.service.code_from in ("image_manual"):
+                    context["show_git"] = False
+                else:
+                    context["show_git"] = True
+
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 

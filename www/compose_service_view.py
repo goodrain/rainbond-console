@@ -130,7 +130,6 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
 
-        print "building a group of service "
         result = {}
         tenant_id = self.tenant.tenant_id
         try:
@@ -149,7 +148,6 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                 return JsonResponse(result, status=200)
 
             service_configs = request.POST.get("service_configs", "")
-            print service_configs
             service_configs = self.json_loads(service_configs)
 
             if service_configs != "":
@@ -230,6 +228,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                                                                   self.user.pk,
                                                                   region=self.response_region)
                     newTenantService.code_from = "image_manual"
+                    newTenantService.language = "docker-compose"
                     newTenantService.save()
                     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
 
@@ -263,12 +262,10 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
     def save_ports_envs_and_volumes(self, ports, envs, volumes, tenant_serivce):
         """保存端口,环境变量和持久化目录"""
         for port in ports:
-            baseService.addServicePort(tenant_serivce, False, container_port=port["container_port"],
+            baseService.addServicePort(tenant_serivce, False, container_port=int(port["container_port"]),
                                        protocol=port["protocol"], port_alias=port["port_alias"],
                                        is_inner_service=port["is_inner_service"],
                                        is_outer_service=port["is_outer_service"])
-            logger.info(port["container_port"], "*", port["protocol"], "*", port["port_alias"], "*",
-                        port["is_inner_service"], "*", port["is_outer_service"])
 
         for env in envs:
             baseService.saveServiceEnvVar(tenant_serivce.tenant_id, tenant_serivce.service_id, 0,
