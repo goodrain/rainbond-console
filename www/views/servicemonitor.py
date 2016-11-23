@@ -6,12 +6,18 @@ from django.template.response import TemplateResponse
 class SourcesMonitorServicelView(LeftSideBarMixin, AuthedView):
     """服务资源监控配置页面"""
 
+    
+    def get_media(self):
+        media = super(SourcesMonitorServicelView, self).get_media() + self.vendor(
+            'www/css/owl.carousel.css', 'www/css/goodrainstyle.css',
+            'www/js/jquery.cookie.js', 'www/js/service.js', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+            'www/js/jquery.scrollTo.min.js')
+        return media
+    
     @perm_required('service_monitor')
     def get(self, request, *args, **kwargs):
-        """
-        get
-        """
         context = self.get_context()
+        context["myAppStatus"] = "active"
         context["fr"] = "sources"
         return TemplateResponse(self.request,
                                 'www/sources/monitorDetail.html',
@@ -26,6 +32,7 @@ class SourcesAlertServicelView(LeftSideBarMixin, AuthedView):
         监控页面
         """
         context = self.get_context()
+        context["myAppStatus"] = "active"
         context["fr"] = "sources"
         return TemplateResponse(self.request,
                                 'www/sources/alert.html',

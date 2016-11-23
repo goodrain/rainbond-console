@@ -59,21 +59,7 @@ function GetOption(optitle) {
                 normal: {
                     color: '#50df9b',
                 }
-            },
-            data: (function() {
-                var d = [];
-                var len = 0;
-                var now = new Date();
-                var value;
-                while (len++ < 200) {
-                    d.push([
-                        new Date(2014, 9, 1, 0, len * 10000),
-                        (Math.random() * 30).toFixed(2) - 0,
-                        (Math.random() * 100).toFixed(2) - 0
-                    ]);
-                }
-                return d;
-            })()
+            }
         }]
     };
 
@@ -82,7 +68,17 @@ function GetOption(optitle) {
 }
 
 function showMem(mem,api) {
-   $.get(api).done(function(data) {
+
+   $.ajax({
+
+      type: "GET",  
+      url: api,        
+      cache: false,
+      beforeSend: function(xhr, settings){  
+            var csrftoken = $.cookie('csrftoken');  
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);  
+      },
+      success: function(data) {
         //console.log(data)
         var d = [];
         $.each(data.data.result[0].values, function(k, v) {
@@ -115,11 +111,21 @@ function showMem(mem,api) {
                 data: d
             }]
         })
-    })
+      }  
+   }) 
 }
 
 function showCPU(cpu, api) {
-    $.get(api).done(function(data) {
+    $.ajax({
+
+      type: "GET",  
+      url: api,        
+      cache: false,
+      beforeSend: function(xhr, settings){  
+            var csrftoken = $.cookie('csrftoken');  
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);  
+      },
+      success: function(data) {
         //console.log(data)
         var d = [];
         $.each(data.data.result[0].values, function(k, v) {
@@ -158,11 +164,21 @@ function showCPU(cpu, api) {
                 data: d
             }]
         })
-    })
+    }
+})
 }
 
 function showFS(zfs, api) {
-    $.get(api).done(function(data) {
+    $.ajax({
+
+      type: "GET",  
+      url: api,        
+      cache: false,
+      beforeSend: function(xhr, settings){  
+            var csrftoken = $.cookie('csrftoken');  
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);  
+      },
+      success: function(data) {
         //console.log(data)
         var d = [];
         $.each(data.data.result[0].values, function(k, v) {
@@ -187,10 +203,20 @@ function showFS(zfs, api) {
                 data: d
             }]
         })
-    })
+    }
+   }) 
 }
 function showIO(io, api) {
-    $.get(api).done(function(data) {
+    $.ajax({
+
+      type: "GET",  
+      url: api,        
+      cache: false,
+      beforeSend: function(xhr, settings){  
+            var csrftoken = $.cookie('csrftoken');  
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);  
+      },
+      success: function(data) {
         //console.log(data)
         var d = [];
         $.each(data.data.result[0].values, function(k, v) {
@@ -215,5 +241,6 @@ function showIO(io, api) {
                 data: d
             }]
         })
+    }
     })
 }
