@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
 from www.views.serviceshare import *
 from www.views.consume import *
+from  www.views.servicemonitor import *
 
 urlpatterns = patterns(
     '',
@@ -69,5 +70,7 @@ urlpatterns = patterns(
     # image_service
     url(r'^/image-create/$', login_required(ImageServiceDeploy.as_view())),
     url(r'^/image-params/$', login_required(ImageParamsViews.as_view())),
-
+    # new monitor service source
+    url(r'^/(?P<serviceAlias>[\w\-]+)/sources/monitor$', SourcesMonitorServicelView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/sources/alert$', SourcesAlertServicelView.as_view()),
 )

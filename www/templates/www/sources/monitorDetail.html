@@ -1,4 +1,4 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% load goodrain_extras %} {% block main-content %} {% if tenantServiceInfo %}
+{% extends 'www/raster.html' %} {% load i18n %} {% load goodrain_extras %} {% load staticfiles %} {% block main-content %}
 <section class="wrapper">
     <section class="panel">
         <header class="panel-heading tab-bg-dark-navy-blue ">
@@ -49,10 +49,35 @@
 
         <div class="panel-body">
             <div class="tab-content">
-                {% if fr == "deployed" %} {% include 'www/include/tab_deployed.html' %} {% elif fr == "relations" %} {% include 'www/include/tab_relations.html' %} {% elif fr == "statistic" %} {% include 'www/include/tab_statistic.html' %} {% elif fr == "log" %} {% include
-                'www/include/tab_log.html' %} {% elif fr == "settings" %} {% include 'www/include/tab_settings.html' %} {% endif %}
+                    <div class="row">
+                        <div class="col-xs-6" style="padding:30px;padding-bottom: 0px;">
+                            <div class="Monitorshow" id="mem" style="height:300px;"></div>
+                        </div>
+                        <div class="col-xs-6" style="padding:30px;padding-bottom: 0px;">
+                            <div class="Monitorshow" id="cpu" style="height:300px;"></div>
+                        </div>
+                        <div class="col-xs-6" style="padding:30px;padding-bottom: 0px;">
+                            <div class="Monitorshow" id="io" style="height:300px;"></div>
+                        </div>
+                        <div class="col-xs-6" style="padding:30px;padding-bottom: 0px;">
+                            <div class="Monitorshow" id="fs" style="height:300px;"></div>
+                        </div>
+                    </div>
             </div>
         </div>
     </section>
 </section>
-{% endif %} {% endblock %}
+{% endblock %} {% block extrajs %}
+<script type="text/javascript" src='{% static "www/js/monitor/echarts.common.min.js" %}'></script>
+<script type="text/javascript" src='{% static "www/js/monitor/common.js" %}'></script>
+<script>
+    var mem = echarts.init(document.getElementById('mem'));
+    var cpu = echarts.init(document.getElementById('cpu'));
+    var io = echarts.init(document.getElementById('io'));
+    var zfs = echarts.init(document.getElementById('fs'));
+    mem.setOption(GetOption("内存使用量"))
+    cpu.setOption(GetOption("cpu使用量"))
+    io.setOption(GetOption("IO使用量"))
+    zfs.setOption(GetOption("硬盘使用量"))
+</script>
+{% endblock %}
