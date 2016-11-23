@@ -400,7 +400,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         num = num + 1
                         next_memory = sem.min_memory * pow(2, num)
                 except Exception as e:
-                    pass
+                    nodeList.append(1)
+                    memoryList.append(str(self.service.min_memory))
+                    memoryList.append("1024")
+                    memoryList.append("2048")
+                    memoryList.append("4096")
+                    memoryList.append("8192")
+
                 context["nodeList"] = nodeList
                 context["memoryList"] = memoryList
                 context["memorydict"] = self.memory_choices()
