@@ -15,10 +15,7 @@
 	<!-- main start  -->
 		<!-- top 分组 -->
 		<div class="clearfix" id="app-group"   data-tenantName="{{tenantName}}">
-			{% for group in groups %}
-			<p data-group="{{group.ID}}" class="pull-left group-tit">{{group.group_name}}</p>
-			{% endfor %}
-			<p data-group="-1" class="pull-left group-tit">分组</p>
+			<p data-group="-1" class="pull-left" id="group-tit" class="group-tit">未分组</p>
 			<!--
 			<select>
 				<option value="0">全部应用</option>
@@ -34,99 +31,109 @@
 			<!--
 			<p class="pull-right search-icon"><input type="text" name="" value="" id="search"></p>
 			-->
+			<p><a href="javascript:;"></a><a href="javascript:;"></a></p>
 		</div>
 		<!-- top 结束 -->
-		<!-- tab start -->
-		<table class="table table-striped table-hover">
-			<thead>
-				<tr>
-					<!--<th class="bs-checkbox fn-SelectAll"><input type="checkbox" name="SelectAll" value=""></th>-->
-					<th>应用名</th>
-					<th>版本</th>
-					<th>类型 </th>
-					<th>分组</th>
-					<th>内存</th>
-					<th>状态</th>
-					<th><i class="fa fa-edit"></i> 操作</th>
-				</tr>
-			</thead>
-			<tbody id="tab-box">
-				{% for item in tenantServiceList %}
-				<tr id="panel" class="tabline" data-group="{{item.group_id}}" data-id="{{item.service_id}}">
-					<!-- 复选框 -->
-					<!--<td class="bs-checkbox fn-SelectItem">-->
-						<!--<input name="SelectItem" type="checkbox"  type="checkbox" value="{{item.service_id}}" />-->
-					<!--</td>-->
-					<!-- 应用名  -->
-					<td>
-						<h4>
-							<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>
-						</h4>
-					</td>
-					<!-- 版本 -->
-					<td>
-						{% if item.category == "application" %}
-							{{item.deploy_version}}
-						{% else %}
-							{{item.version}}					
-						{% endif %}
-					</td>
-					<!-- 类型 -->
-					<td>{{item.service_type}}</td> 
-					<!-- 分组 -->
-					<td class="choose-group-box fn-choose-group">
-						<span class="fn-name">{{item.group_name}}</span>
-						<div class="fn-show-select  choose-layer">
-							<select>
-								{% for group in groups %}
-								<option value="{{group.ID}}">{{group.group_name}}</option>
-								{% endfor %}
-								<option value="-1">未分组</option>
-							</select>
-							<button class="fn-groupname-sure btn btn-success" data-id="{{item.service_id}}" >√</button>
-							<button class="fn-groupname-close btn btn-danger">×</button>
-						</div>
-					</td>
-					<!-- 内存  -->
-					<td id="service_memory_{{item.service_id}}">0M</td>
-					<!-- 状态 -->
-					<td>
-						<span class="label label-success label-mini"
-						id="service_status_{{item.service_id}}">未知</span>
-					</td>
-					<!-- 操作 -->
-					<td>
-						{% if item.category == "application" %}
-						<button type="button" class="btn btn-shadow btn-info "
-							id="button_{{item.service_id}}"
-							onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');">
-							<i class="fa fa-refresh"></i>部署
-						</button>
-						{% endif %}
-						<button class="btn btn-danger" data{{item.service_id}}="0"
-							onclick="service_my_onOperation('{{item.service_id}}','{{item.service_alias}}','{{tenantName}}');"
-							id="operate_{{item.service_id}}">
-							<i class="fa fa-power-off "
-								id="operate_inner_{{item.service_id}}"></i>
-						</button>
-						<button class="btn btn-primary"
-							onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">
-							<i class="fa fa-gear"></i>
-						</button>
-					</td>
-				 </tr>
-				{% endfor %}
-			</tbody>
-		</table>
-		<!-- tab end -->
-		<!-- Mass deployment Start -->
-		<div class="clearfix numbers-box" id="nums-app">
-			<p id="app-numbers">已选择<span>0</span>个应用</p>-->
-			<button id="batchStart" class="btn btn-success">批量启动</button>
-			<button id="batchEnd" class="btn btn-danger">批量停止</button>
-			<button id="newStart" class="btn btn-info">批量重新部署</button>
-		</div>
-		<!-- Mass deployment End-->
+		<!-- biaoge start -->
+		<section class="tab-box">
+			<!-- tab start -->
+			<table class="table table-striped table-hover">
+				<thead>
+					<tr>
+						<!--<th class="bs-checkbox fn-SelectAll"><input type="checkbox" name="SelectAll" value=""></th>-->
+						<th>应用名</th>
+						<th>版本</th>
+						<th>类型 </th>
+						<th>分组</th>
+						<th>内存</th>
+						<th>状态</th>
+						<th><i class="fa fa-edit"></i> 操作</th>
+					</tr>
+				</thead>
+				<tbody id="tab-box">
+					{% for item in tenantServiceList %}
+					<tr id="panel" class="tabline" data-group="{{item.group_id}}" data-id="{{item.service_id}}">
+						<!-- 复选框 -->
+						<td class="bs-checkbox fn-SelectItem">-->
+							<input name="SelectItem" type="checkbox"  type="checkbox" value="{{item.service_id}}" />
+						</td>
+						<!-- 应用名  -->
+						<td>
+							<h4>
+								<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>
+							</h4>
+						</td>
+						<!-- 版本 -->
+						<td>
+							{% if item.category == "application" %}
+								{{item.deploy_version}}
+							{% else %}
+								{{item.version}}					
+							{% endif %}
+						</td>
+						<!-- 类型 -->
+						<td>{{item.service_type}}</td> 
+						<!-- 分组 -->
+						<td class="choose-group-box fn-choose-group">
+							<span class="fn-name">{{item.group_name}}</span>
+							<div class="fn-show-select  choose-layer">
+								<select>
+									{% for group in groups %}
+									<option value="{{group.ID}}">{{group.group_name}}</option>
+									{% endfor %}
+									<option value="-1">未分组</option>
+								</select>
+								<button class="fn-groupname-sure btn btn-success" data-id="{{item.service_id}}" >√</button>
+								<button class="fn-groupname-close btn btn-danger">×</button>
+							</div>
+						</td>
+						<!-- 内存  -->
+						<td id="service_memory_{{item.service_id}}">0M</td>
+						<!-- 状态 -->
+						<td>
+							<span class="label label-success label-mini"
+							id="service_status_{{item.service_id}}">未知</span>
+						</td>
+						<!-- 操作 -->
+						<td>
+							{% if item.category == "application" %}
+							<button type="button" class="btn btn-shadow btn-info "
+								id="button_{{item.service_id}}"
+								onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');">
+								<i class="fa fa-refresh"></i>部署
+							</button>
+							{% endif %}
+							<button class="btn btn-danger" data{{item.service_id}}="0"
+								onclick="service_my_onOperation('{{item.service_id}}','{{item.service_alias}}','{{tenantName}}');"
+								id="operate_{{item.service_id}}">
+								<i class="fa fa-power-off "
+									id="operate_inner_{{item.service_id}}"></i>
+							</button>
+							<button class="btn btn-primary"
+								onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">
+								<i class="fa fa-gear"></i>
+							</button>
+						</td>
+					 </tr>
+					{% endfor %}
+				</tbody>
+			</table>
+			<!-- tab end -->
+			<!-- Mass deployment Start -->
+			<div class="clearfix numbers-box" id="nums-app">
+				<p id="app-numbers">已选择<span>0</span>个应用</p>
+				<button id="batchStart" class="btn btn-success">批量启动</button>
+				<button id="batchEnd" class="btn btn-danger">批量停止</button>
+				<button id="newStart" class="btn btn-info">批量重新部署</button>
+			</div>
+			<!-- Mass deployment End-->
+		</section>
+		<!-- biaoge end-->
+		<!-- tu start -->
+		<section class="img-box">
+
+		</section>
+		<!-- tu end -->
 	<!-- main end -->
 	</section>
 	<script>
