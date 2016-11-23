@@ -403,7 +403,15 @@ $(function(){
         $(this).addClass("sed");
         $("#imgbtn").removeClass("sed");
     });
- 
+    
+    //图
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var oSvgDiv = document.getElementById("svg-box");
+    var oSvg = createTag('svg',{'xmlns':svgNS,'width':'100%','height':'100%'});
+    
+
+
+
 });
 
 
