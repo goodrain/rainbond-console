@@ -62,15 +62,11 @@ function GetOption(optitle) {
             }
         }]
     };
-
-
     return option
 }
 
 function showMem(mem,api) {
-
    $.ajax({
-
       type: "GET",  
       url: api,        
       cache: false,
@@ -81,36 +77,39 @@ function showMem(mem,api) {
       success: function(data) {
         //console.log(data)
         var d = [];
-        $.each(data.data.result[0].values, function(k, v) {
+        if (data.data.result!=null){
+            $.each(data.data.result[0].values, function(k, v) {
                 d.push([
                     parseInt(v[0]) * 1000, (parseInt(v[1]) / 1024 / 1024).toFixed(2), (Math.random() * 100).toFixed(2) - 0
                 ]);
             })
             // console.log(d)
-        mem.setOption({
-            legend: {
-                data: ["最大内存限制", "实时内存使用"]
-            },
-            tooltip: {
-                trigger: 'item',
-                formatter: function(params) {
-                    var date = new Date(params.value[0]);
-                    data = date.getFullYear() + '-' +
-                        (date.getMonth() + 1) + '-' +
-                        date.getDate() + ' ' +
-                        date.getHours() + ':' +
-                        date.getMinutes();
-                    return data + '<br/>' +
-                        params.value[1] + 'Mb, ' +
-                        params.value[2];
-                }
-            },
-            series: [{
-                name: '实时内存使用',
-                type: 'line',
-                data: d
-            }]
-        })
+            mem.setOption({
+                legend: {
+                    data: ["最大内存限制", "实时内存使用"]
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        var date = new Date(params.value[0]);
+                        data = date.getFullYear() + '-' +
+                            (date.getMonth() + 1) + '-' +
+                            date.getDate() + ' ' +
+                            date.getHours() + ':' +
+                            date.getMinutes();
+                        return data + '<br/>' +
+                            params.value[1] + 'Mb, ' +
+                            params.value[2];
+                    }
+                },
+                series: [{
+                    name: '实时内存使用',
+                    type: 'line',
+                    data: d
+                }]
+            })
+        }
+
       }  
    }) 
 }
@@ -128,44 +127,46 @@ function showCPU(cpu, api) {
       success: function(data) {
         //console.log(data)
         var d = [];
-        $.each(data.data.result[0].values, function(k, v) {
-                d.push([
-                    parseInt(v[0]) * 1000, parseFloat(v[1]).toFixed(4), (Math.random() * 100).toFixed(2) - 0
-                ]);
+        if (data.data.result!=null){
+            $.each(data.data.result[0].values, function(k, v) {
+                    d.push([
+                        parseInt(v[0]) * 1000, parseFloat(v[1]).toFixed(4), (Math.random() * 100).toFixed(2) - 0
+                    ]);
+                })
+                // console.log(d)
+            cpu.setOption({
+                legend: {
+                    data: ["实时CPU使用"]
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        var date = new Date(params.value[0]);
+                        data = date.getFullYear() + '-' +
+                            (date.getMonth() + 1) + '-' +
+                            date.getDate() + ' ' +
+                            date.getHours() + ':' +
+                            date.getMinutes();
+                        return data + '<br/>' +
+                            params.value[1] + '%, ' +
+                            params.value[2];
+                    }
+                },
+                yAxis: [{
+                    type: 'value',
+                    axisLabel: {
+                        formatter: '{value} %'
+                    }
+                }],
+                series: [{
+                    name: '实时CPU使用',
+                    type: 'line',
+                    data: d
+                }]
             })
-            // console.log(d)
-        cpu.setOption({
-            legend: {
-                data: ["实时CPU使用"]
-            },
-            tooltip: {
-                trigger: 'item',
-                formatter: function(params) {
-                    var date = new Date(params.value[0]);
-                    data = date.getFullYear() + '-' +
-                        (date.getMonth() + 1) + '-' +
-                        date.getDate() + ' ' +
-                        date.getHours() + ':' +
-                        date.getMinutes();
-                    return data + '<br/>' +
-                        params.value[1] + '%, ' +
-                        params.value[2];
-                }
-            },
-            yAxis: [{
-                type: 'value',
-                axisLabel: {
-                    formatter: '{value} %'
-                }
-            }],
-            series: [{
-                name: '实时CPU使用',
-                type: 'line',
-                data: d
-            }]
-        })
-    }
-})
+        }    
+      }
+   })
 }
 
 function showFS(zfs, api) {
@@ -181,6 +182,7 @@ function showFS(zfs, api) {
       success: function(data) {
         //console.log(data)
         var d = [];
+       if (data.data.result!=null){ 
         $.each(data.data.result[0].values, function(k, v) {
                 d.push([
                     parseInt(v[0]) * 1000, (parseInt(v[1]) / 1024 / 1024).toFixed(2), (Math.random() * 100).toFixed(2) - 0
@@ -203,12 +205,12 @@ function showFS(zfs, api) {
                 data: d
             }]
         })
+      }  
     }
    }) 
 }
 function showIO(io, api) {
     $.ajax({
-
       type: "GET",  
       url: api,        
       cache: false,
@@ -219,6 +221,7 @@ function showIO(io, api) {
       success: function(data) {
         //console.log(data)
         var d = [];
+       if (data.data.result!=null){ 
         $.each(data.data.result[0].values, function(k, v) {
                 d.push([
                     parseInt(v[0]) * 1000, (parseInt(v[1]) / 1024 / 1024).toFixed(2), (Math.random() * 100).toFixed(2) - 0
@@ -241,6 +244,9 @@ function showIO(io, api) {
                 data: d
             }]
         })
+      }
+        
     }
+    
     })
 }

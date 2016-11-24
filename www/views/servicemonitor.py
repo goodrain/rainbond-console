@@ -18,9 +18,9 @@ class SourcesMonitorServicelView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         context["myAppStatus"] = "active"
-        context["fr"] = "sources"
+        context["fr"] = "resource"
         return TemplateResponse(self.request,
-                                'www/sources/monitorDetail.html',
+                                'www/service_detail.html',
                                 context)
 
 class SourcesAlertServicelView(LeftSideBarMixin, AuthedView):
@@ -33,7 +33,7 @@ class SourcesAlertServicelView(LeftSideBarMixin, AuthedView):
         """
         context = self.get_context()
         context["myAppStatus"] = "active"
-        context["fr"] = "sources"
+        context["fr"] = "resource"
         return TemplateResponse(self.request,
-                                'www/sources/alert.html',
+                                'www/service_detail.html',
                                 context)

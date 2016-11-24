@@ -1,0 +1,28 @@
+<div class="row">
+    <div class="col-xs-6" style="padding:30px;padding-bottom: 0px;">
+        <div class="Monitorshow" id="mem" style="height:300px;"></div>
+    </div>
+    <div class="col-xs-6" style="padding:30px;padding-bottom: 0px;">
+        <div class="Monitorshow" id="cpu" style="height:300px;"></div>
+    </div>
+    <div class="col-xs-6" style="padding:30px;padding-bottom: 0px;">
+        <div class="Monitorshow" id="io" style="height:300px;"></div>
+    </div>
+    <div class="col-xs-6" style="padding:30px;padding-bottom: 0px;">
+        <div class="Monitorshow" id="fs" style="height:300px;"></div>
+    </div>
+</div>
+{% endblock %} {% block extrajs %}
+<script type="text/javascript" src='{% static "www/js/monitor/echarts.common.min.js" %}'></script>
+<script type="text/javascript" src='{% static "www/js/monitor/common.js" %}'></script>
+<script>
+    var mem = echarts.init(document.getElementById('mem'));
+    var cpu = echarts.init(document.getElementById('cpu'));
+    var io = echarts.init(document.getElementById('io'));
+    var zfs = echarts.init(document.getElementById('fs'));
+    showMem(mem, "/ajax/{{tenantName}}/{{serviceAlias}}/resource/monitor?query=mem")
+    showCPU(cpu, "/ajax/{{tenantName}}/{{serviceAlias}}/resource/monitor?query=cpu")
+    showIO(io, "/ajax/{{tenantName}}/{{serviceAlias}}/resource/monitor?query=io")
+    showFS(zfs, "/ajax/{{tenantName}}/{{serviceAlias}}/resource/monitor?query=fs")
+</script>
+{% endblock %}

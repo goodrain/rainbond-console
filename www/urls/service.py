@@ -75,6 +75,6 @@ urlpatterns = patterns(
     url(r'^/compose-create/$', login_required(ComposeServiceDeploy.as_view())),
     url(r'^/compose-params/$', login_required(ComposeServiceParams.as_view())),
     # new monitor service source
-    url(r'^/(?P<serviceAlias>[\w\-]+)/sources/monitor$', SourcesMonitorServicelView.as_view()),
-    url(r'^/(?P<serviceAlias>[\w\-]+)/sources/alert$', SourcesAlertServicelView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),
 )
