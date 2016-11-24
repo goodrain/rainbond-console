@@ -405,36 +405,7 @@ $(function(){
     });
     
     //图
-    var svgNS = 'http://www.w3.org/2000/svg';
-    var oSvgDiv = document.getElementById("svg-box");
-    var oSvg = createTag('svg',{'xmlns':svgNS,'width':'100%','height':'100%'});
-    var json_svg = {
-        "serone" : "serthree",
-        "sertwo" : "serthree",
-        "serthree" : "serfive",
-        "serfour" : "serfive",
-        "serfive" : "appone",
-        "appone" : "apptwo",
-        "apptwo" : "",
-        "appthree" : "apptwo",
-        "appfour" : "phptwo",
-        "appfive" : "apptwo",
-        "appsix" : "phpthree"
-        "phpone" : "phptwo",
-        "phptwo" : "",
-        "phpthree" : "jstwo",
-        "jsone" : "jstwo",
-        "jstwo" : "redis",
-        "jsthree" : "jsfour",
-        "jsfour" : "cssone",
-        "cssone" : "",
-        "csstwo" : "html",
-        "html" : "",
-        "img" : "html"
-    }
-    for(var key in json_svg){
-        
-    }
+    
 });
 
 
