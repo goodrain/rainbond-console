@@ -65,6 +65,12 @@ class TopologicalGraphView(AuthedView):
                 tmp_info_relation = json_svg.get(tmp_info.service_cname)
             tmp_info_relation.append(tmp_dep_info.service_cname)
             json_svg[tmp_info.service_cname] = tmp_info_relation
+        # dep service info
+        for dep_service_id in dep_service_id_list:
+            tmp_info = service_map.get(dep_service_id)
+            # 依赖服务的cname
+            if tmp_info.service_cname not in json_svg.keys():
+                json_svg[tmp_info.service_cname] = []
 
         result["status"] = 200
         result["json_data"] = json_data
