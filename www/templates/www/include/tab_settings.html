@@ -148,7 +148,7 @@
                   </td>
                   <td>
                     <div id="showLink{{port.container_port}}">
-                     {% if port.is_outer_service %}
+                     {% if port.is_outer_service and port.protocol == 'http' %}
                      <span>绑定域名:</span>
                      <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" {% if port.container_port in serviceDomainDict.keys %}value="{{serviceDomainDict|mkey:port.container_port}}"{% endif %} placeholder="请输入新域名，如：www.example.com">
                        {% if 'manage_service' in user.actions %}
