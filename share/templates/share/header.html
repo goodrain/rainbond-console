@@ -2,7 +2,7 @@
     <div class="fa fa-bars tooltips" data-placement="right" data-original-title="切换导航"></div>
 </div>
 <!--logo start-->
-<a href="/" class="logo">云平台<span>管理后台</span></a>
+<a href="/" class="logo">数据中心<span>管理后台</span></a>
 <!--logo end-->
 <div class="top-nav ">
     <!--search & user info start-->
@@ -11,15 +11,14 @@
    	    <label>     </label>
     	</li>
         <!-- user login dropdown start-->
-        <!--<li class="dropdown">-->
-            <!--<a data-toggle="dropdown" class="dropdown-toggle" href="#">-->
-                <!--&lt;!&ndash;img alt="" src="/static/admin/img/avatar1_small.jpg"&ndash;&gt;-->
-                <!--<i class="fa  fa-user"></i>-->
-                <!--<span class="username">{% if user.is_authenticated %}{{ user.name }}{% else %}匿名用户{% endif %}</span>-->
-                <!--<b class="caret"></b>-->
-            <!--</a>-->
+        <li class="dropdown">
+            <a data-toggle="dropdown" class="dropdown-toggle" href="#">
+                <i class="fa  fa-user"></i>
+                <span class="username">{% if user.is_authenticated %}{{ user.name }}{% else %}匿名用户{% endif %}</span>
+                <b class="caret"></b>
+            </a>
 
-        <!--</li>-->
+        </li>
         <!-- user login dropdown end -->
     </ul>
     <!--search & user info end-->
