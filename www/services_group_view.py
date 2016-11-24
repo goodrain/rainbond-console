@@ -44,78 +44,52 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
             'www/js/jquery.scrollTo.min.js')
         return media
 
-    def get_service_group_relation(self):
-        try:
-            service_list = ServiceGroupRelation.objects.all()
-            data = {}
-            for service in service_list:
-                data[service.service_id] = service.group_id
-            return data
-        except Exception, e:
-            logger.error(e)
 
-    def get_service_group(self):
+
+    def check_region(self):
+        region = self.request.GET.get('region', None)
+        if region is not None:
+            if region in RegionInfo.region_names():
+                if region == 'aws-bj-1' and self.tenant.region != 'aws-bj-1':
+                    raise Http404
+                self.response_region = region
+            else:
+                raise Http404
+
+        if self.cookie_region == 'aws-bj-1':
+            self.response_region == 'ali-sh'
+
         try:
-            group_list = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.tenant.region)
-            data = {}
-            for group in group_list:
-                data[group.ID] = group.group_name
-            return data
+            t_region, created = TenantRegionInfo.objects.get_or_create(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+            self.tenant_region = t_region
         except Exception, e:
             logger.error(e)
 
     @never_cache
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
+        self.check_region()
         context = self.get_context()
         try:
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
-            service_group_relation = self.get_service_group_relation()
-            groups = self.get_service_group()
-            for tenantService in tenantServiceList:
-                group_id = service_group_relation.get(tenantService.service_id, None)
-                if group_id is not None:
-                    group_name = groups.get(group_id)
-                    tenantService.group_name = group_name
-                    tenantService.group_id = group_id
-                else:
-                    tenantService.group_name = "未分组"
-                    tenantService.group_id = -1
-            context["tenantServiceList"] = tenantServiceList
-            context["myAppStatus"] = "active"
-            context["totalFlow"] = 0
-            context["totalAppNumber"] = len(tenantServiceList)
-            context["tenantName"] = self.tenantName
-            totalNum = PermRelTenant.objects.filter(tenant_id=self.tenant.ID).count()
-            context["totalNum"] = totalNum
-            context["curTenant"] = self.tenant
-            context["tenant_balance"] = self.tenant.balance
-            # params for prompt
-            context["pay_type"] = self.tenant.pay_type
-            context["expired"] = tenantAccountService.isExpired(self.tenant)
-            context["expired_time"] = self.tenant.expired_time
-            status = tenantAccountService.get_monthly_payment(self.tenant, self.tenant.region)
-            context["monthly_payment_status"] = status
-            groups = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.tenant.region)
-            context["groups"] = list(groups)
-            if status != 0:
-                payModellist = TenantRegionPayModel.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                                   region_name=self.tenant.region).order_by(
-                    "-buy_end_time")
-                context["buy_end_time"] = payModellist[0].buy_end_time
+            gid = request.GET.get("gid","")
+            if gid.strip() != "" and gid != '-1':
+                service_id_list = ServiceGroupRelation.objects.filter(group_id=gid).values("service_id")
+                service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_region=self.response_region,service_id__in=service_id_list)
+            else:
+                gid=-1
+                service_id_list = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region).values("service_id")
+                service_list = TenantServiceInfo.objects.exclude(tenant_id=self.tenant.tenant_id,service_region=self.response_region,service_id__in=service_id_list)
 
-            if self.tenant_region.service_status == 0:
-                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
-                regionClient.unpause(self.response_region, self.tenant_region.tenant_id)
-                self.tenant_region.service_status = 1
-                self.tenant_region.save()
-            elif self.tenant_region.service_status == 3:
-                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
-                regionClient.systemUnpause(self.response_region, self.tenant_region.tenant_id)
-                self.tenant_region.service_status = 1
-                self.tenant_region.save()
+            # ServiceGroupRelation.objects.filter(tenant_id)
+
+            service_group_relation_list = self.get_service_group_relation()
+            context["group_id"] = gid
+            context["tenantServiceList"] = service_list
+            context["service_group_relation_list"] = service_group_relation_list
+            context["tenantName"] = self.tenantName
+            context["curTenant"] = self.tenant
+
         except Exception as e:
-            print e
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_app.html", context)
 
