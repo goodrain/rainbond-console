@@ -10,10 +10,10 @@
             <ul class="nav nav-tabs" id="nav-tabs">
                 <li {% if fr = "private" %}class="active"{% endif %}><a href="/apps/{{tenantName}}/service/?fr=private">分享的应用</a></li>
                 <li {% if fr = "local" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=local">本地应用</a></li>
-                <li {% if fr = "remote" %} class="active" {% endif %} style="display: none;"><a href="/apps/{{tenantName}}/service/?fr=remote">应用市场</a></li>
-                <li {% if fr = "deploy" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=deploy">最近部署应用</a></li>
-                <li {% if fr = "hot" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=hot">热门应用</a></li>
-                <li {% if fr = "new" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=new">最新应用</a></li>
+                <li {% if fr = "remote" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=remote">应用市场</a></li>
+                <li {% if fr = "deploy" %} class="active" {% endif %} style="display: none;"><a href="/apps/{{tenantName}}/service/?fr=deploy">最近部署应用</a></li>
+                <li {% if fr = "hot" %} class="active" {% endif %} style="display: none;"><a href="/apps/{{tenantName}}/service/?fr=hot">热门应用</a></li>
+                <li {% if fr = "new" %} class="active" {% endif %} style="display: none;"><a href="/apps/{{tenantName}}/service/?fr=new">最新应用</a></li>
             </ul>
         </header>
 
