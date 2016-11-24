@@ -1,0 +1,34 @@
+{% extends 'share/base.html' %}
+{% load i18n %}
+{% load staticfiles %}
+
+{% block extracss %}
+    <link rel="stylesheet" href="{% static "admin/css/style.css" %}">
+    <link rel="stylesheet" href="{% static "admin/css/style-responsive.css" %}">
+{% endblock %}
+
+{% block body %}
+    <section id="container">
+        <header class="header white-bg">
+            {% block header %}
+            {% include 'share/header.html' %}
+            {% endblock %}
+        </header>
+
+        <aside>
+            {% block aside %}
+            {% include 'share/aside.html' %}
+            {% endblock %}
+        </aside>
+
+        <section id="main-content" class="{{curType}}">
+            {% block main-content %}
+            {% endblock %}
+        </section>
+
+        <footer>
+            {% include 'share/footer.html' %}
+        </footer>
+    </section>
+
+{% endblock %}
