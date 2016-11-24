@@ -15,7 +15,7 @@ docker push hub.goodrain.com/dc-deploy/$PROGRAM
 
 # rename tag
 #docker tag `docker images  | grep console | grep latest | awk '{print $3}'` hub.goodrain.com/dc-deploy/console:community
-docker tag `docker images  | grep console | grep latest | awk '{print $3}'` hub.goodrain.com/dc-deploy/console:pre-release
+docker tag `docker images  | grep console | grep latest | awk '{print $3}' | head -n 1` hub.goodrain.com/dc-deploy/console:pre-release
 docker images | grep console | grep community
 
 # remove old images
