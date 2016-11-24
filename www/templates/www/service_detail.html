@@ -46,6 +46,16 @@
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1?fr=share">分享</a>
                 </li>
                 {% endif %}
+                {% if user.is_sys_admin %}
+                <li class="dropdown {% if fr == 'resource' %} active {% endif %}">
+                    <a href="" class="dropdown-toggle" data-toggle="dropdown">资源<b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/resource/monitor?fr=resource">资源监控</a></li>
+                        <!-- <li><a href="/apps/{{tenantName}}/{{serviceAlias}}/resource/alert?fr=resource">资源报警</a></li> -->
+                    </ul>
+                </li>
+                {% endif %}
             </ul>
         </header>
 
@@ -61,6 +71,8 @@
                 {% include 'www/include/tab_log.html' %}
                 {% elif fr == "settings" %}
                 {% include 'www/include/tab_settings.html' %}
+                {% elif fr == "resource" %}
+                {% include 'www/resource/monitorDetail.html' %}
                 {% endif %}
             </div>
         </div>

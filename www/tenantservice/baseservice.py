@@ -166,6 +166,7 @@ class BaseTenantService(object):
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
+        data["code_from"] = newTenantService.code_from
         data["dep_sids"] = dep_sids
 
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
@@ -251,8 +252,12 @@ class BaseTenantService(object):
             if is_inner_service:
                 mapping_port = self.prepare_mapping_port(service, container_port)
                 port.mapping_port = mapping_port
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
+                if service.language == "docker-compose":
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_PORT_" + str(container_port) + "_TCP_ADDR", "127.0.0.1", False, scope="outer")
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT_" + str(container_port) + "_TCP_PORT", mapping_port, False, scope="outer")
+                else:
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
             if is_init_account:
                 password = service.service_id[:8]
                 TenantServiceAuth.objects.create(service_id=service.service_id, user="admin", password=password)
@@ -366,27 +371,8 @@ class BaseTenantService(object):
         except Exception as e:
             logger.exception(e)
 
-    # 服务对外端口类型
-    def custom_port_type(self, service, port_type):
-        try:
-            service_id = service.service_id
-            region = service.service_region
-
-            # 发送到region进行处理
-            json_data = {
-                "service_id": service_id,
-                "port_type": port_type
-            }
-            res, body = regionClient.mutiPortSupport(region, service_id, json.dumps(json_data))
-            if res.status == 200:
-                return service_id
-            else:
-                return None
-        except Exception as e:
-            logger.exception(e)
-
     # 服务挂载卷类型 设置
-    def custom_mnt_shar_type(self,service,volume_type):
+    def custom_mnt_shar_type(self, service, volume_type):
         try:
             service_id = service.service_id
             region = service.service_region
@@ -394,8 +380,8 @@ class BaseTenantService(object):
                 "service_id":service_id,
                 "volume_type":volume_type
             }
-            res,body = regionClient.mntShareSupport(region,service_id,json.dumps(json_data))
-            if res.status ==200:
+            res, body = regionClient.mntShareSupport(region, service_id, json.dumps(json_data))
+            if res.status == 200:
                 return True
             else:
                 return None
@@ -727,13 +713,13 @@ class TenantAccountService(object):
         return flag
 
     def isCloseToMonthlyExpired(self, tenant, region_name):
-        tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id,region_name=region_name)
+        tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
         if len(tenant_region_pay_list) == 0:
             return False
         tag = 1
         for pay_model in tenant_region_pay_list:
             if pay_model.buy_end_time > datetime.datetime.now():
-                timedelta = (pay_model.buy_end_time-datetime.datetime.now()).days
+                timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
                 if timedelta > 0 and timedelta < 3:
                     return True
         return False
@@ -821,7 +807,7 @@ class CodeRepositoriesService(object):
         data["git_url"] = "--branch " + service.code_version + " --depth 1 " + service.git_url
 
         parsed_git_url = git_url_parse(service.git_url)
-        if parsed_git_url.host == "code.goodrain.com" and service.code_from=="gitlab_new":
+        if parsed_git_url.host == "code.goodrain.com" and service.code_from == "gitlab_new":
             gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
         elif parsed_git_url.host == 'github.com':
             createUser = Users.objects.get(user_id=service.creater)

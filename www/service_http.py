@@ -73,6 +73,11 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
+    def start(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/start/"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return res, body
+
     def stop(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/stop/"
         res, body = self._post(url, self.default_headers, body, region=region)
@@ -286,5 +291,26 @@ class RegionServiceApi(BaseHttpClient):
 
     def tenantServiceStats(self, region, service_id):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/container-stats/"
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+
+    def monitoryQueryMem(self, region, service_id):
+        url = self.region_map[region]['url'] + "/v1/monitor/container/query/mem/"+service_id
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def monitoryQueryCPU(self, region, service_id):
+        url = self.region_map[region]['url'] + "/v1/monitor/container/query/cpu/"+service_id
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def monitoryQueryFS(self, region, service_id):
+        url = self.region_map[region]['url'] + "/v1/monitor/container/query/fs/"+service_id
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
+    def monitoryQueryIO(self, region, service_id):
+        url = self.region_map[region]['url'] + "/v1/monitor/container/query/io/"+service_id
         res, body = self._get(url, self.default_headers, region=region)
         return body

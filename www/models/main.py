@@ -2,9 +2,10 @@
 import re
 from django.db import models
 from django.utils.crypto import salted_hmac
-from www.utils.crypt import encrypt_passwd, make_tenant_id
+from www.utils.crypt import encrypt_passwd, make_tenant_id, make_uuid
 from django.db.models.fields import DateTimeField
 from datetime import datetime
+from django.conf import settings
 
 # Create your models here.
 
@@ -29,6 +30,10 @@ app_pay_choices = (
     (u'免费', "free"), (u'付费', "pay")
 )
 
+
+def compose_file_path(instance, filename):
+    suffix = filename.split('.')[-1]
+    return '{0}/compose-file/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
 
 class AnonymousUser(object):
     id = None
@@ -100,7 +105,7 @@ class WeChatConfig(models.Model):
     encrypt_mode = models.CharField(max_length=200, help_text=u'encrypt_mode')
     encoding_aes_key = models.CharField(max_length=200, help_text=u'aes_key')
     access_token = models.CharField(max_length=200, help_text=u'access_token')
-    access_token_expires_at = models.IntegerField(max_length=10, help_text=u"token过期时间")
+    access_token_expires_at = models.IntegerField(help_text=u"token过期时间")
     refresh_token = models.CharField(max_length=200, help_text=u'refresh_token,只对网页授权有效')
     app_type = models.CharField(max_length=200, choices=OPEN_TYPE, help_text=u'公众平台or网站')
 
@@ -208,7 +213,7 @@ class Users(models.Model):
     # 2:微信注册,绑定微信,未补充信息
     # 3:微信注册,绑定微信,已补充信息
     # 4:微信注册,解除微信绑定,已补充信息
-    status = models.IntegerField(max_length=2, default=0, help_text=u'用户类型 0:普通注册,未绑定微信')
+    status = models.IntegerField(default=0, help_text=u'用户类型 0:普通注册,未绑定微信')
     union_id = models.CharField(max_length=100, help_text=u'绑定微信的union_id')
 
     def set_password(self, raw_password):
@@ -837,3 +842,20 @@ class ServiceGroupRelation(BaseModel):
 
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     group_id = models.IntegerField(max_length=10)
+
+class ImageServiceRelation(BaseModel):
+    """image_url拉取的service的对应关系"""
+    class Meta:
+        db_table = 'tenant_service_image_relation'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    image_url = models.CharField(max_length=100, help_text=u"镜像地址")
+
+
+class ComposeServiceRelation(BaseModel):
+    """docker compose 文件"""
+    class Meta:
+        db_table = 'tenant_compose_file'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    compose_file_id = models.CharField(max_length=32, help_text=u"compose文件id")
+    compose_file = models.FileField(upload_to=compose_file_path, null=True, blank=True, help_text=u"compose file")

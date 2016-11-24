@@ -91,7 +91,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                     if tmp_key in service_key_query:
                         continue
                     service_key_query.append(tmp_key)
-                    if len(service_key_query) > 10:
+                    if len(service_key_query) > 18:
                         break
                     if tenant_service_query is None:
                         tenant_service_query = (Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
@@ -116,7 +116,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                     if tmp_key in service_key_query:
                         continue
                     service_key_query.append(tmp_key)
-                    if len(service_key_query) > 10:
+                    if len(service_key_query) > 18:
                         break
                     if tenant_service_query is None:
                         tenant_service_query = (Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
@@ -127,7 +127,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                 context["service_list"] = service_list
             elif fr == "new":
                 # 云市最新的应用
-                res, resp = appClient.getRemoteServices(key="newest", limit=10)
+                res, resp = appClient.getRemoteServices(key="newest", limit=18)
                 if res.status == 200:
                     service_list = json.loads(resp.data)
                     context["service_list"] = service_list

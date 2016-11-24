@@ -7,7 +7,7 @@
             <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_cname}}</label>
         </div>
 
-        {% if tenantServiceInfo.category == "application" %}
+        {% if tenantServiceInfo.category == "application" and show_git %}
             <div class="row">
                 <label class="col-xs-2 control-label text-right">Git仓库</label>
                 <label class="col-xs-6 control-label">
@@ -132,7 +132,9 @@
                   </td>
                   <td>
                       <span>使用别名:</span>
-                      <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}"></a>
+
+                      <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}">{{port.port_alias}}_HOST:{{port.port_alias}}_PORT</a>
+
                   </td>
               </tr>
               <tr port="{{port.container_port}}">

@@ -52,7 +52,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             else:
                 raise Http404
                 # if region == 'xunda-bj':
-                #self.response_region = region
+                # self.response_region = region
                 # else:
                 #    raise Http404
 
@@ -88,10 +88,10 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             context["pay_type"] = self.tenant.pay_type
             context["expired"] = tenantAccountService.isExpired(self.tenant)
             context["expired_time"] = self.tenant.expired_time
-            status = tenantAccountService.get_monthly_payment(self.tenant,self.tenant.region)
+            status = tenantAccountService.get_monthly_payment(self.tenant, self.tenant.region)
             context["monthly_payment_status"] = status
-            if status !=0:
-                list = TenantRegionPayModel.objects.filter(tenant_id=self.tenant.tenant_id,region_name=self.tenant.region).order_by("-buy_end_time")
+            if status != 0:
+                list = TenantRegionPayModel.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.tenant.region).order_by("-buy_end_time")
                 context["buy_end_time"] = list[0].buy_end_time
 
             if self.tenant_region.service_status == 0:
@@ -199,7 +199,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 service_manager['deployed'] = True
                 manager = has_managers[0]
                 service_manager[
-                    'url'] = 'http://{0}.{1}.{2}{3}:{4}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, settings.WILD_DOMAIN, http_port_str)
+                    'url'] = 'http://{0}.{1}{2}:{3}'.format(manager.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[self.service.service_region], http_port_str)
             else:
                 # 根据服务版本获取对应phpmyadmin版本,暂时解决方法,待优化
                 app_version = '4.4.12'
@@ -269,9 +269,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)
                     return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-                tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-                if tse.user_dependency is None or tse.user_dependency == "":
-                    return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                if self.service.code_from not in ("image_manual"):
+                    tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+                    if tse.user_dependency is None or tse.user_dependency == "":
+                        return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context["tenantServiceInfo"] = self.service
             tenantServiceList = context["tenantServiceList"]
@@ -316,15 +317,16 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["envMap"] = envMap
 
                 containerPortList = []
-                opend_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_inner_service=True)
+                opend_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
                 if len(opend_service_port_list) > 0:
                     for opend_service_port in opend_service_port_list:
                         containerPortList.append(opend_service_port.container_port)
                 context["containerPortList"] = containerPortList
-
-                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
-                if baseservice.update_version != self.service.update_version:
-                    context["updateService"] = True
+                
+                if self.service.code_from != "image_manual":
+                    baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
+                    if baseservice.update_version != self.service.update_version:
+                        context["updateService"] = True
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
@@ -398,7 +400,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         num = num + 1
                         next_memory = sem.min_memory * pow(2, num)
                 except Exception as e:
-                    pass
+                    nodeList.append(1)
+                    memoryList.append(str(self.service.min_memory))
+                    memoryList.append("1024")
+                    memoryList.append("2048")
+                    memoryList.append("4096")
+                    memoryList.append("8192")
+
                 context["nodeList"] = nodeList
                 context["memoryList"] = memoryList
                 context["memorydict"] = self.memory_choices()
@@ -442,7 +450,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
                 context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
@@ -453,6 +461,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 #     volume.volume_path = tmp_path.replace("/app", "", 1)
                 # result_list.append(volume)
                 context["volume_list"] = volume_list
+
+                if self.service.code_from is not None and self.service.code_from in ("image_manual"):
+                    context["show_git"] = False
+                else:
+                    context["show_git"] = True
+
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 

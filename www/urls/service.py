@@ -1,6 +1,9 @@
 from django.conf.urls import patterns, url
 
 from www.services_group_view import *
+from www.compose_service_view import ComposeServiceDeploy, ComposeServiceParams
+from www.create_services_view import CreateServiceEntranceView
+from www.image_service_view import ImageServiceDeploy, ImageParamsViews
 from www.services_view import *
 from www.app_services_view import *
 from www.back_services_view import *
@@ -12,10 +15,13 @@ from django.views.decorators.csrf import csrf_exempt
 from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
 from www.views.serviceshare import *
 from www.views.consume import *
+from  www.views.servicemonitor import *
 
 urlpatterns = patterns(
     '',
     url(r'^/?$', login_required(TenantServiceAll.as_view())),
+
+    url(r'^/service-entrance/$', login_required(CreateServiceEntranceView.as_view())),
 
     url(r'^/app-create/$', login_required(AppCreateView.as_view())),
 
@@ -64,10 +70,22 @@ urlpatterns = patterns(
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
 
+
     url(r'^/myservice/$', login_required(MyTenantService.as_view())),
     # service group
     url(r'^/group/add$', AddGroupView.as_view()),
     url(r'^/group/update$', UpdateGroupView.as_view()),
     url(r'^/group/delete$', DeleteGroupView.as_view()),
     url(r'^/group/change-group$', UpdateServiceGroupView.as_view()),
+
+    # image_service
+    url(r'^/image-create/$', login_required(ImageServiceDeploy.as_view())),
+    url(r'^/image-params/$', login_required(ImageParamsViews.as_view())),
+    # docker-compose
+    url(r'^/compose-create/$', login_required(ComposeServiceDeploy.as_view())),
+    url(r'^/compose-params/$', login_required(ComposeServiceParams.as_view())),
+    # new monitor service source
+    url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),
+
 )

@@ -125,49 +125,57 @@ $(function(){
     //代码仓库选择
     $(':radio', $('#sel_code_store')).click(function(){
         var selOption = $(this).val();
-        if(selOption == 'option1'){
-        	$('#service_code_from').val("gitlab_new");
-            $('#code_store_list').slideUp();
-            $('#wait_loading').hide();
-            $('div[data-action="manual"]').hide();
-            $('div[data-action="demobox"]').hide();
-        }else if(selOption == 'option2'){
-            BranchLocalData = {};
-        	$('#service_code_from').val("gitlab_exit");
-            $('#code_store_list').hide();
-            $('#create_codestore_notice').hide();
-            $('#wait_loading').slideDown();
-            $('div[data-action="manual"]').hide();
-            $('div[data-action="demobox"]').hide();
-            var tenantName= $('#currentTeantName').val();
-            _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
-            loadRepos(_url);
-        }else if(selOption == 'option3'){
-            BranchLocalData = {};
-        	$('#service_code_from').val("github");
-            $('#code_store_list').hide();
-            $('#create_codestore_notice').hide();
-            $('#wait_loading').slideDown();
-            $('div[data-action="manual"]').hide();
-            $('div[data-action="demobox"]').hide();
-            var tenantName= $('#currentTeantName').val();
-            _url = "/ajax/"+tenantName+"/code_repos?action=github";
-            loadRepos(_url);
-        } else if (selOption == 'option4') {
-            $('#service_code_from').val("gitlab_manual");
-            $('#code_store_list').slideUp();
-            $('#wait_loading').hide();
-            $('div[data-action="demobox"]').hide();
-            $('div[data-action="manual"]').show();
-        }else if(selOption == 'option5'){
-            $('#service_code_from').val("gitlab_manual");
-            $('#code_store_list').slideUp();
-            $('#wait_loading').hide();
-            $('div[data-action="manual"]').hide();
-            $('div[data-action="demobox"]').show();
-        }
+        _radioChange(selOption)
+    });
+    $(':radio:checked', $('#sel_code_store')).each(function(i,val){
+        var selOption = val.value
+        _radioChange(selOption)
     });
 });
+
+function _radioChange(selOption){
+    if(selOption == 'option1'){
+        $('#service_code_from').val("gitlab_new");
+        $('#code_store_list').slideUp();
+        $('#wait_loading').hide();
+        $('div[data-action="manual"]').hide();
+        $('div[data-action="demobox"]').hide();
+    }else if(selOption == 'option2'){
+        BranchLocalData = {};
+        $('#service_code_from').val("gitlab_exit");
+        $('#code_store_list').hide();
+        $('#create_codestore_notice').hide();
+        $('#wait_loading').slideDown();
+        $('div[data-action="manual"]').hide();
+        $('div[data-action="demobox"]').hide();
+        var tenantName= $('#currentTeantName').val();
+        _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
+        loadRepos(_url);
+    }else if(selOption == 'option3'){
+        BranchLocalData = {};
+        $('#service_code_from').val("github");
+        $('#code_store_list').hide();
+        $('#create_codestore_notice').hide();
+        $('#wait_loading').slideDown();
+        $('div[data-action="manual"]').hide();
+        $('div[data-action="demobox"]').hide();
+        var tenantName= $('#currentTeantName').val();
+        _url = "/ajax/"+tenantName+"/code_repos?action=github";
+        loadRepos(_url);
+    } else if (selOption == 'option4') {
+        $('#service_code_from').val("gitlab_manual");
+        $('#code_store_list').slideUp();
+        $('#wait_loading').hide();
+        $('div[data-action="demobox"]').hide();
+        $('div[data-action="manual"]').show();
+    }else if(selOption == 'option5'){
+        $('#service_code_from').val("gitlab_manual");
+        $('#code_store_list').slideUp();
+        $('#wait_loading').hide();
+        $('div[data-action="manual"]').hide();
+        $('div[data-action="demobox"]').show();
+    }
+}
 
 function loadRepos(_url){
     listWrap = $('#code_store_list');
