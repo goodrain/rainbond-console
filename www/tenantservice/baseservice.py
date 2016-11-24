@@ -166,6 +166,7 @@ class BaseTenantService(object):
         data["service_type"] = newTenantService.service_type
         data["extend_info"] = {"ports": [], "envs": []}
         data["namespace"] = newTenantService.namespace
+        data["code_from"] = newTenantService.code_from
         data["dep_sids"] = dep_sids
 
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
@@ -363,25 +364,6 @@ class BaseTenantService(object):
             volume.volume_path = volume_path
             volume.save()
             return host_path, volume.ID
-        except Exception as e:
-            logger.exception(e)
-
-    # 服务对外端口类型
-    def custom_port_type(self, service, port_type):
-        try:
-            service_id = service.service_id
-            region = service.service_region
-
-            # 发送到region进行处理
-            json_data = {
-                "service_id": service_id,
-                "port_type": port_type
-            }
-            res, body = regionClient.mutiPortSupport(region, service_id, json.dumps(json_data))
-            if res.status == 200:
-                return service_id
-            else:
-                return None
         except Exception as e:
             logger.exception(e)
 

@@ -118,7 +118,7 @@ $(function(){
     		}
     	})
     });
-    
+
     // 名字改变 取消 disabled 
     $('#create_app_name').change(function(){
         $("#first_step").attr('disabled', false);

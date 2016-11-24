@@ -218,7 +218,7 @@ class ServiceManage(AuthedView):
                     for ds in dependSids:
                         sids.append(ds["service_id"])
                     if len(sids) > 0:
-                        aliasList = TenantServiceInfo.objects.filter(service_id__in=sids).values('service_alias')
+                        aliasList = TenantServiceInfo.objects.filter(service_id__in=sids).values('service_cname')
                         depalias = ""
                         for alias in aliasList:
                             if depalias != "":
@@ -682,7 +682,7 @@ class ServiceDomainManager(AuthedView):
                     result["status"] = "exist"
                     return JsonResponse(result)
 
-                num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
+                num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).count()
                 old_domain_name = "goodrain"
                 if num == 0:
                     domain = {}
@@ -694,10 +694,10 @@ class ServiceDomainManager(AuthedView):
                     domaininfo = ServiceDomain(**domain)
                     domaininfo.save()
                 else:
-                    domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                    domain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
                     old_domain_name = domain.domain_name
                     domain.domain_name = domain_name
-                    domain["container_port"] = int(container_port)
+                    domain.container_port = int(container_port)
                     domain.save()
                 data = {}
                 data["service_id"] = self.service.service_id
@@ -708,14 +708,14 @@ class ServiceDomainManager(AuthedView):
                 regionClient.addUserDomain(self.service.service_region, json.dumps(data))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_add', True)
             elif action == "close":
-                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
                 data = {}
                 data["service_id"] = servicerDomain.service_id
                 data["domain"] = servicerDomain.domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 data["container_port"] = int(container_port)
                 regionClient.deleteUserDomain(self.service.service_region, json.dumps(data))
-                ServiceDomain.objects.filter(service_id=self.service.service_id).delete()
+                ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_delete', True)
             result["status"] = "success"
         except Exception as e:
@@ -878,14 +878,6 @@ class ServicePort(AuthedView):
             deal_port.protocol = protocol
             data.update({"modified_field": "protocol", "current_value": protocol})
         elif action == 'open_outer':
-            # 检查服务已经存在对外端口
-            outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                               is_outer_service=True).count()
-            if self.service.port_type == 'one_outer':
-                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                   is_outer_service=True).count()
-                if outer_port_num > 0:
-                    return JsonResponse({"success": False, "info": u"单一端口开放只能开启一个对外端口", "code": 408})
             deal_port.is_outer_service = True
             data.update({"modified_field": "is_outer_service", "current_value": True})
             if deal_port.mapping_port == 0:
@@ -934,7 +926,7 @@ class ServicePort(AuthedView):
             # todo 同一租户下别名不能重复
             tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id, port_alias=new_port_alias).count()
             if tenant_alias_num > 0:
-                return JsonResponse({"success": False, "info": "别名不能重复", "code": 400}, status=400)
+                return JsonResponse({"success": False, "info": "同一租户下别名不能重复", "code": 400}, status=400)
             if not success:
                 return JsonResponse({"success": False, "info": reason, "code": 400}, status=400)
             else:
@@ -962,6 +954,21 @@ class ServicePort(AuthedView):
             regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
             deal_port.save()
+            
+            if action == 'close_outer' or action == 'open_outer':
+                # 检查服务已经存在对外端口
+                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                                   is_outer_service=True).count()
+                cur_port_type="one_outer"
+                if outer_port_num > 1:
+                    cur_port_type="multi_outer"
+                self.service.port_type = cur_port_type
+                self.service.save()
+                
+                data1 = {"port": int(port)}
+                data1.update({"modified_field": "mult_port", "current_value": True, "port_type":cur_port_type})
+                regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data1))
+                
             return JsonResponse({"success": True, "info": u"更改成功"}, status=200)
         except Exception as e:
             logger.exception(e)
@@ -983,9 +990,9 @@ class ServicePort(AuthedView):
                 body = regionClient.findMappingPort(self.service.service_region, self.service.service_id)
                 cur_region = service_region.replace("-1", "")
                 domain = "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region)
-                if settings.STREAM_DOMAIN:
+                if settings.STREAM_DOMAIN_URL[service_region] != "":
                     domain = settings.STREAM_DOMAIN_URL[service_region]
-
+                    
                 data["outer_service"] = {
                     "domain": domain,
                     "port": body["port"],
@@ -1081,13 +1088,10 @@ class ServiceNewPort(AuthedView):
             if port_inner != 0:
                 if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
                     return JsonResponse({"success": False, "code": 400, "info": u"别名不合法"})
-                # todo 判断端口别名是否重复
-                tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id, port_alias=port_alias).count()
-                if tenant_alias_num > 0:
-                    return JsonResponse({"success": False, "code": 400, "info": u"别名不能重复"})
-            if port_outter == 1:
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=1).count() > 0:
-                    return JsonResponse({"success": False, "code": 409, "info": u"只能开启一个对外端口"})
+            # todo 判断端口别名是否重复
+            tenant_alias_num = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id, port_alias=port_alias).count()
+            if tenant_alias_num > 0:
+                return JsonResponse({"success": False, "code": 400, "info": u"同一租户下别名不能重复"})
 
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).exists():
                 return JsonResponse({"success": False, "code": 409, "info": u"容器端口冲突"})
@@ -1111,6 +1115,7 @@ class ServiceNewPort(AuthedView):
             port_port = request.POST.get("port_port")
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
+            ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             data = {"action": "delete", "port_ports": [port_port]}
             regionClient.createServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             return JsonResponse({"success": True, "info": u"删除成功"})
@@ -1226,36 +1231,6 @@ class ServiceVolumeView(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
             result["code"] = "500"
-        return JsonResponse(result)
-
-
-class MutiOuterPortView(AuthedView):
-
-    @perm_required('manage_service')
-    def post(self, request, *args, **kwargs):
-        port_type = request.POST.get("port_type", "")
-        result = {}
-
-        # 端口类型
-        try:
-            if port_type != "":
-                # 判断在单一端口对外开放的情况下,
-                if port_type == 'one_outer':
-                    outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                       is_outer_service=True).count()
-                    if outer_port_num > 1:
-                        result["status"] = "mult_port"
-                        result["info"] = u"请先关闭多余端口"
-                        return JsonResponse(result)
-                tenantServiceInfo = TenantServiceInfo.objects.get(service_id=self.service.service_id)
-                if tenantServiceInfo.port_type != port_type:
-                    tenantServiceInfo.port_type = port_type
-                    tenantServiceInfo.save()
-                    baseService.custom_port_type(self.service, port_type)
-            result["status"] = "ok"
-        except Exception as e:
-            logger.exception(e)
-            result["status"] = "failure"
         return JsonResponse(result)
 
 

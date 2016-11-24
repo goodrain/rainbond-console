@@ -30,8 +30,10 @@ class AppServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, files=files)
         return res, body
 
-    def getRemoteServices(self, timeout=None):
+    def getRemoteServices(self, limit=10, key=None, timeout=None):
         url = self.url + "/api/v0/services/published"
+        if key is not None:
+            url += "?key={0}&limit={1}".format(key, limit)
         if timeout is None:
             res, body = self._get(url, self.default_headers)
         else:

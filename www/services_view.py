@@ -200,7 +200,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 service_manager['deployed'] = True
                 manager = has_managers[0]
                 service_manager[
-                    'url'] = 'http://{0}.{1}.{2}{3}:{4}'.format(manager.service_alias, self.tenant.tenant_name, self.service.service_region, settings.WILD_DOMAIN, http_port_str)
+                    'url'] = 'http://{0}.{1}{2}:{3}'.format(manager.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[self.service.service_region], http_port_str)
             else:
                 # 根据服务版本获取对应phpmyadmin版本,暂时解决方法,待优化
                 app_version = '4.4.12'
@@ -326,10 +326,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     for opend_service_port in opend_service_port_list:
                         containerPortList.append(opend_service_port.container_port)
                 context["containerPortList"] = containerPortList
-
-                baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
-                if baseservice.update_version != self.service.update_version:
-                    context["updateService"] = True
+                
+                if self.service.code_from != "image_manual":
+                    baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
+                    if baseservice.update_version != self.service.update_version:
+                        context["updateService"] = True
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
                 context["publish_service"] = settings.MODULES["Publish_Service"]
@@ -428,10 +429,17 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     pass
                 if service_domain:
                     # service domain
-                    domain_num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
-                    if domain_num == 1:
-                        domain = ServiceDomain.objects.get(service_id=self.service.service_id)
-                        context["serviceDomain"] = domain
+                    # domain_num = ServiceDomain.objects.filter(service_id=self.service.service_id).count()
+                    # if domain_num == 1:
+                    #     domain = ServiceDomain.objects.get(service_id=self.service.service_id)
+                    #     context["serviceDomain"] = domain
+                    serviceDomainlist = ServiceDomain.objects.filter(service_id=self.service.service_id)
+                    if len(serviceDomainlist) > 0:
+                        data = {}
+                        for domain in serviceDomainlist:
+                            data[domain.container_port] = domain.domain_name
+                        context["serviceDomainDict"] = data
+
                 port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
                 outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
                 context["ports"] = list(port_list)

@@ -454,7 +454,7 @@ class RegisterForm(forms.Form):
         if settings.MODULES["WeChat_Module"]:
             self.helper.layout = Layout(
                 Div(
-                    AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="form-control") if tenant_name is None else AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="form-control", readonly="readonly", value=tenant_name),
+                    AppendedText('tenant', "", placeholder='请输入团队名', css_class="form-control") if tenant_name is None else AppendedText('tenant', "", placeholder='请输入团队名', css_class="form-control", readonly="readonly", value=tenant_name),
                     Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                     Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                     HTML("<hr/>"),
@@ -478,7 +478,7 @@ class RegisterForm(forms.Form):
         else:
             self.helper.layout = Layout(
                 Div(
-                    AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="form-control") if tenant_name is None else AppendedText('tenant', settings.WILD_DOMAIN, placeholder='请输入团队名', css_class="form-control", readonly="readonly", value=tenant_name),
+                    AppendedText('tenant', "", placeholder='请输入团队名', css_class="form-control") if tenant_name is None else AppendedText('tenant', "", placeholder='请输入团队名', css_class="form-control", readonly="readonly", value=tenant_name),
                     Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
                     Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                     HTML("<hr/>"),

@@ -7,6 +7,7 @@ from www.models import TenantServiceInfo, AppService, ServiceInfo, \
     Tenants, Users, PermRelTenant, TenantServiceVolume, TenantServicesPort, \
     AppServiceExtend
 from www.service_http import RegionServiceApi
+from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import BaseTenantService
 import json
 from api.views.services.sendapp import AppSendUtil
@@ -17,13 +18,14 @@ logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 baseService = BaseTenantService()
+monitorhook = MonitorHook()
 
 
 class SelectedServiceView(APIView):
     '''
     对单个服务的动作
     '''
-    allowed_methods = ('PUT',)
+    allowed_methods = ('PUT','POST',)
 
     def get(self, request, serviceId, format=None):
         """
@@ -34,6 +36,56 @@ class SelectedServiceView(APIView):
             return Response({"ok": True}, status=200)
         except TenantServiceInfo.DoesNotExist, e:
             return Response({"ok": False, "reason": e.__str__()}, status=404)
+
+    def post(self, request, serviceId, format=None):
+        """
+        更新服务属性
+        ---
+        parameters:
+            - name: image
+              description: image_name
+              required: true
+              type: string
+              paramType: form
+        """
+        logger.debug("api.service", request.data)
+        image = request.data.get("image", None)
+        if serviceId is None or image is None:
+            return Response({"success": False, "msg": "param is error!"}, status=500)
+        service_num = TenantServiceInfo.objects.filter(service_id=serviceId).count()
+        if service_num != 1:
+            return Response({"success": False, "msg": "service num is error!"}, status=501)
+        logger.debug("api.service", "now update console images")
+        try:
+            TenantServiceInfo.objects.filter(service_id=serviceId).update(image=image)
+        except Exception as e:
+            logger.exception("api.service", e)
+            logger.error("api.service", "update tenant service image failed! service_id is {}".format(serviceId))
+            return Response({"success": False, "msg": "update console failed!"}, status=502)
+        # 查询服务
+        service = TenantServiceInfo.objects.get(service_id=serviceId)
+        # 更新region库
+        logger.debug("api.service", "now update region images")
+        try:
+            regionClient.update_service(service.service_region, serviceId, {"image": image})
+        except Exception as e:
+            logger.exception("api.service", e)
+            logger.error("api.service", "update region service image failed!")
+            return Response({"success": False, "msg": "update region failed!"}, status=503)
+        # 启动服务
+        try:
+            user_id = service.creater
+            user = Users.objects.get(pk=user_id)
+            body = {
+                "deploy_version": service.deploy_version,
+                "operator": user.nick_name
+            }
+            regionClient.start(service.service_region, service.service_id, json.dumps(body))
+            monitorhook.serviceMonitor(user.nick_name, service, 'app_start', True)
+        except Exception as e:
+            logger.exception("api.service", e)
+            logger.error("api.service", "start service error!")
+        return Response({"success": True, "msg": "success!"}, status=200)
 
     def put(self, request, serviceId, format=None):
         """

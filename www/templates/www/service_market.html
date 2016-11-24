@@ -8,9 +8,12 @@
     <section class="panel">
         <header class="panel-heading tab-bg-dark-navy-blue ">
             <ul class="nav nav-tabs" id="nav-tabs">
-                <li {% if fr == "private" %}class="active"{% endif %}><a href="/apps/{{tenantName}}/service/?fr=private">私有应用</a></li>
-                <li {% if fr == "local" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service">本地应用</a></li>
-                <li {% if fr == "remote" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=remote">应用市场</a></li>
+                <li {% if fr = "private" %}class="active"{% endif %}><a href="/apps/{{tenantName}}/service/?fr=private">分享的应用</a></li>
+                <li {% if fr = "local" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=local">本地应用</a></li>
+                <li {% if fr = "remote" %} class="active" {% endif %} style="display: none;"><a href="/apps/{{tenantName}}/service/?fr=remote">应用市场</a></li>
+                <li {% if fr = "deploy" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=deploy">最近部署应用</a></li>
+                <li {% if fr = "hot" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=hot">热门应用</a></li>
+                <li {% if fr = "new" %} class="active" {% endif %}><a href="/apps/{{tenantName}}/service/?fr=new">最新应用</a></li>
             </ul>
         </header>
 
@@ -59,6 +62,51 @@
                             </div>
                         {% endfor %}
                     {% endif %}
+                    </div>
+                {% elif fr == "deploy" %}
+                    <div class="row">
+                        <div class="text-right" style="padding:3px 10px;">
+                            <a href="http://app.goodrain.com">更多应用</a>
+                        </div>
+                        {% for service in service_list %}
+                        <div class="col-lg-4 col-md-6 applistbox">
+                            <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                            <h5>{{service.version}}</h5>
+                            <button type="button" class="btn btn-success"
+                                    onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% elif fr == "hot" %}
+                    <div class="row">
+                        <div class="text-right" style="padding:3px 10px;">
+                            <a href="http://app.goodrain.com/category/0/?order_by=download">更多应用</a>
+                        </div>
+                        {% for service in service_list %}
+                        <div class="col-lg-4 col-md-6 applistbox">
+                            <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                            <h5>{{service.version}}</h5>
+                            <button type="button" class="btn btn-success"
+                                    onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% elif fr == "new" %}
+                <div class="row">
+                    <div class="text-right" style="padding:3px 10px;">
+                        <a href="http://app.goodrain.com/category/0/?order_by=newest">更多应用</a>
+                    </div>
+                    {% for service in service_list %}
+                        <div class="col-lg-4 col-md-6 applistbox">
+                            <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                            <h5>{{service.version}}</h5>
+                            <button type="button" class="btn btn-success"
+                                    onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                            </button>
+                        </div>
+                        {% endfor %}
                     </div>
                 {% elif fr == "local" %}
                     {% if cacheServiceList %}

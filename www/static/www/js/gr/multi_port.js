@@ -1,4 +1,7 @@
 (function ($) {
+      //加载显示 隐藏绑定域名
+      var tenantName = $("#tenant-name").html();
+      var serviceAlias = $("#service-alias").html();
       //设定端口对内服务和对外服务的开关
       $('.switch-box').bootstrapSwitch();
       $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {
@@ -14,32 +17,7 @@
             url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port;
             $.post(url, {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": action}, function (res) {
                 if(res.success) {
-                    var outer_port_type = $("#outer_port_setting").val();
-                    if (state) {
-                        if (port_switch.attr("name") == "inner") {
-                            return;
-                        }
-                        if (outer_port_type == "one_outer") {
-                            // 其他的open全部设置为disabled
-                            $('.switch-box[name="outer"]').each(function () {
-                                $(this).bootstrapSwitchs('disabled', true);
-                            });
-                            port_switch.bootstrapSwitch('disabled', false);
-                        }
-                        else {
-                            $('.switch-box[name="outer"]').each(function () {
-                                $(this).bootstrapSwitchs('disabled', false);
-                            });
-                        }
-                    } else {
-                        if (port_switch.attr("name") == "inner") {
-                            return;
-                        }
-                        // 全部取消disabled
-                        $('.switch-box[name="outer"]').each(function () {
-                            $(this).bootstrapSwitch('disabled', false);
-                        });
-                    }
+                    window.location.reload();
                 } else {
                     showMessage(res.info);
                     port_switch.bootstrapSwitch('state', !state, true);
@@ -47,70 +25,52 @@
             }, 'json');
         }
     );
-
+      
       //显示端口明细
-      $('.port-arrow a').click(function(event) {
-        fold = $(this).attr('fold');
-        port_show = $(this).attr('port');
-        if (fold == 'yes') {
-          $(this).attr('fold', 'no');
-          $(this).children('i').removeClass('fa-chevron-circle-right').addClass('fa-chevron-circle-down');
-          curr_tr =  $(this).closest('tr');
-          make_port_detail(curr_tr, port_show);
-        } else {
-          $(this).attr('fold', 'yes');
-          $(this).children('i').removeClass('fa-chevron-circle-down').addClass('fa-chevron-circle-right');
-          /*next_tr = $(this).closest('tr').next('tr');
-          if (next_tr.hasClass('port-detail')) {
-            next_tr.remove();
-          }*/
-          $("#"+port_show).html("")
-          /*var next_table = $(this).closest('tr').parents('table').next();
-          if (next_table.hasClass('port-detail')) {
-            next_table.remove();
-          }*/
-        }
+      
+      // 显示网址 -- ww start
+      
+      $(".fn-sever-link").each(function(){
+           this_port_show = $(this).attr('port');
+           Fn_make_port_detail (this_port_show);
+           Fn_make_envs_html(this_port_show);
       });
-
-
-      function make_port_detail (curr_tr, port_show) {
-        
-        url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + curr_tr.attr('port');
+       
+     function Fn_make_envs_html(port_show) {
+        url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
+        var serlink = '';
         $.get(url, function (event) {
-          var next_tr = '<tr class="port-detail">';
-          if (event.environment) {
-            next_tr = next_tr + make_envs_html(event.environment);
-          }
-          if (event.outer_service) {
-            next_tr = next_tr + make_outer_html(event.outer_service);
-          }
-          next_tr = next_tr + '</tr>';
-          // curr_tr.parents('table').after(next_tr);
-          $("#"+port_show).html('<table class="table table-striped table-advance table-hover port-detail">' + next_tr + '</body>')
-          //curr_tr.parents('table').after('<table class="table table-striped table-advance table-hover port-detail">' + next_tr + '</body>');
+            if(event.environment.length != 0){
+               console.log(event.environment);
+               console.log(event.environment[0]);
+               console.log(event.environment[0].value); 
+               serlink = event.environment[0].value + ':' + event.environment[1].value;
+            }
+            $("#sever_show_" + port_show).find("span").html(serlink);
         });
       }
 
-      function make_envs_html(data) {
-        var prefix = '<td class="details" colspan="9"><table><thead><tr><th>说明</th><th>变量名</th><th>变量值</th><th></th></tr></thead><tbody>';
-        var suffix = '</tbody></table></td>';
-        var body = '';
-        for (var order in data) {
-          body = body + '<tr><td>' + data[order].desc + '</td><td>' + data[order].name + '</td><td>' + data[order].value + '</td></tr>';
-        }
-        if (body==""){
-            return ""
-        }
-        return prefix + body + suffix;
+      function Fn_make_port_detail (port_show) {
+        url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
+        $.get(url, function (event) {
+          if($(".fn-out-servce input:checked").length > 1){
+               var next_tr = port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr_href = "http://" + next_tr;
+            }else{
+               var next_tr = event.outer_service.domain + ':' + event.outer_service.port;
+               var next_tr_href = "http://" + next_tr;
+            }
+          $("#port_show_" + port_show).find("a").html(next_tr).attr("href",next_tr_href);
+        });
       }
 
-      function make_outer_html(data) {
-        var prefix = '<td class="details" colspan="3"><table><tbody>';
-        var suffix = '</tbody></table></td>';
-        var body = '<tr><td>访问地址</td><td>' + data.domain + '</td><td>' + data.port + '</td></tr>';
-        return prefix + body + suffix;
+      /*
+      function Fn_make_outer_html(data) {
+        var body =  data.domain;
+        return body;
       }
-
+      */
+      // 显示网址 -- ww end 
 
       //即时修改端口别名和协议类型
       $(document).ready(function() {
@@ -133,6 +93,9 @@
           type: 'select',
           source: [{value: "http", text: 'http'}, {value: "stream", text: 'stream'}],
           pk: 1,
+          success: function(data){
+             window.location.reload();
+          },
           error: function (data) {
             msg = data.responseText;
             res = $.parseJSON(msg);
@@ -232,14 +195,11 @@
       
       //服务端口新建
       $('#add_service_port').click(function(event) {
-        var msg = '<tr colspan=7></tr>'
-        msg = msg + '<tr>'
-        msg = msg + '<td></td>'
-        msg = msg + '<td><input name="port_port" value=""></td>'
-        msg = msg + '<td><select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
-        msg = msg + '<td><input name ="port_alias" value=""></td>'
-        //msg = msg + '<td><select name="port_inner"><option value="0">关闭</option></select></td>'
-        //msg = msg + '<td><select name="port_outter"><option value="0">关闭</option></select></td>'
+        
+        var msg = '<table class="addtab"><tr>'
+        msg = msg + '<td><span>端口号:</span><input name="port_port" value="" class="tab-port"></td>'
+        msg = msg + '<td><span>协议类型:</span><select name="port_protocol"><option value="http">http</option><option value="stream">stream</option></select></td>'
+        msg = msg + '<td style="display:none;"><input name ="port_alias" value="" class="tab-alias"></td>'
         msg = msg + '<td><div class="btn-toolbar" role="toolbar">' + 
               '<div class="btn-group" role="group">' + 
                 '<button type="button" class="port-save btn btn-success btn-xs" "><i class="fa fa-check"></i></button>' +
@@ -248,8 +208,8 @@
                 '<button type="button" class="port-cancel btn btn-danger btn-xs" "><i class="fa fa-times"></i></button></td>' +
               '</div>' + 
             '</div></td>'
-        msg = msg + '</tr>'
-        $("#port_open tr:last").after(msg);
+        msg = msg + '</tr></table>'
+        $("#port_open").append(msg);
         $('.port-cancel').unbind('click').bind('click', port_cancel);
         $('.port-save').unbind('click').bind('click', port_save);
       });
@@ -261,7 +221,7 @@
       $('.port-save').click(port_save);
 
       function port_cancel(event) {
-        var cancel_tr = $(this).closest('tr');
+        var cancel_tr = $(this).closest('table');
         cancel_tr.remove();
       }
 
@@ -282,12 +242,14 @@
 
       function port_save(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "add_port"};
-        var add_tr = $(this).closest('tr');
+        var add_tr = $(this).closest('table');
+        add_tr.find('input.tab-alias').val('S' + add_tr.find('input.tab-port').val());
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
           dict[name] = value;
         });
+
         add_tr.find('select').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
@@ -304,8 +266,8 @@
           }
         });
       }
-      
-      
-      
-      
+
 })(jQuery);
+
+
+
