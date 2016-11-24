@@ -44,30 +44,6 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
             'www/js/jquery.scrollTo.min.js')
         return media
 
-    def check_region(self):
-        region = self.request.GET.get('region', None)
-        if region is not None:
-            if region in RegionInfo.region_names():
-                if region == 'aws-bj-1' and self.tenant.region != 'aws-bj-1':
-                    raise Http404
-                self.response_region = region
-            else:
-                raise Http404
-                # if region == 'xunda-bj':
-                # self.response_region = region
-                # else:
-                #    raise Http404
-
-        if self.cookie_region == 'aws-bj-1':
-            self.response_region == 'ali-sh'
-
-        try:
-            t_region, created = TenantRegionInfo.objects.get_or_create(tenant_id=self.tenant.tenant_id,
-                                                                       region_name=self.response_region)
-            self.tenant_region = t_region
-        except Exception, e:
-            logger.error(e)
-
     def get_service_group_relation(self):
         try:
             service_list = ServiceGroupRelation.objects.all()
@@ -91,14 +67,9 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):
-        self.check_region()
         context = self.get_context()
         try:
-            logger.debug('monitor.user', str(self.user.pk))
-            # num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
-            # if num < 1:
-            #     return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
-            tenantServiceList = context["tenantServiceList"]
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
             service_group_relation = self.get_service_group_relation()
             groups = self.get_service_group()
             for tenantService in tenantServiceList:
@@ -149,69 +120,4 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
         return TemplateResponse(self.request, "www/service_app.html", context)
 
 
-class AddGroupView(LeftSideBarMixin, AuthedView):
-    """添加组"""
 
-    @perm_required('manage_service')
-    def post(self, request, *args, **kwargs):
-        group_name = request.POST.get("group_name", "")
-        try:
-            if group_name.strip == "":
-                return JsonResponse({"ok": False, "info": "参数错误"})
-            if ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
-                                           group_name=group_name).exists():
-                return JsonResponse({"ok": False, "info": "组名已存在"})
-            ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
-                                        group_name=group_name)
-            return JsonResponse({'ok': True, "info": "修改成功"})
-        except Exception as e:
-            print e
-            logger.exception(e)
-
-
-class UpdateGroupView(LeftSideBarMixin, AuthedView):
-    """修改组"""
-
-    @perm_required('manage_service')
-    def post(self, request, *args, **kwargs):
-        new_group_name = request.POST.get("new_group_name", "")
-        group_id = request.POST.get("group_id")
-        try:
-            if new_group_name.strip == "" or group_id.strip == "":
-                return JsonResponse({"ok": False, "info": "参数错误"})
-            ServiceGroup.objects.filter(ID=group_id).update(group_name=new_group_name)
-            return JsonResponse({"ok": True, "info": "修改成功"})
-        except Exception as e:
-            logger.exception(e)
-
-
-class DeleteGroupView(LeftSideBarMixin, AuthedView):
-    """删除组"""
-
-    @perm_required('manage_service')
-    def post(self, request, *args, **kwargs):
-        group_id = request.POST.get("group_id")
-        try:
-            ServiceGroup.objects.filter(ID=group_id).delete()
-            ServiceGroupRelation.objects.filter(group_id=group_id).delete()
-            return JsonResponse({"ok": True, "info": "删除成功"})
-        except Exception as e:
-            logger.exception(e)
-
-
-class UpdateServiceGroupView(LeftSideBarMixin, AuthedView):
-    """修改服务所在的组"""
-
-    def post(self, request, *args, **kwargs):
-        group_id = request.POST.get("group_id", "")
-        service_id = request.POST.get("service_id", "")
-        try:
-            if group_id.strip == "" or service_id.strip == "":
-                return JsonResponse({"ok": False, "info": "参数错误"})
-            if ServiceGroupRelation.objects.filter(service_id=service_id).count() > 0:
-                ServiceGroupRelation.objects.filter(service_id=service_id).update(group_id=group_id)
-            else:
-                ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id)
-            return JsonResponse({"ok": True, "info": "修改成功"})
-        except Exception as e:
-            logger.exception(e)

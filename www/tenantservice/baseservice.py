@@ -8,6 +8,7 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceVolume, ServiceInfo, AppServiceRelation, AppServiceEnv, \
     AppServicePort, ServiceExtendMethod, AppServiceVolume
+
 from www.models.main import TenantRegionPayModel
 from www.service_http import RegionServiceApi
 from django.conf import settings
@@ -30,7 +31,7 @@ appClient = AppServiceApi()
 
 
 class BaseTenantService(object):
-
+    
     def get_service_list(self, tenant_pk, user, tenant_id, region):
         user_pk = user.pk
         tmp = TenantServiceInfo()

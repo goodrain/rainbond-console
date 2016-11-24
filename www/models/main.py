@@ -839,7 +839,6 @@ class ServiceGroupRelation(BaseModel):
     """服务与分组关系"""
     class Meta:
         db_table = 'service_group_relation'
-
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     group_id = models.IntegerField(max_length=10)
 

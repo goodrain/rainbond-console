@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from django.http import Http404
 from www.service_http import RegionServiceApi
-from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv, AppServiceVolume
+from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv, AppServiceVolume, ServiceGroup
 from www.tenantservice.baseservice import BaseTenantService
 from www.region import RegionInfo
 
@@ -77,7 +77,8 @@ class LeftSideBarMixin(object):
 
     def get_context(self):
         context = super(LeftSideBarMixin, self).get_context()
-        context['tenantServiceList'] = self.get_service_list()
+        #context['tenantServiceList'] = self.get_service_list()
+        context["groupList"] = self.get_group_list()
         context = self.set_region_info(context)
         return context
 
@@ -108,5 +109,8 @@ class LeftSideBarMixin(object):
                 services.insert(0, s)
                 services.remove(s)
                 break
-
         return services
+    
+    def get_group_list(self):
+        grouplist = ServiceGroup.objects.filter(tenant_id=tenant_id, region=self.response_region)
+        return grouplist
