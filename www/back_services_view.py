@@ -129,7 +129,9 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                     else:
                         tenant_service_query = tenant_service_query | (Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
                 logger.debug(tenant_service_query)
-                service_list = ServiceInfo.objects.filter(tenant_service_query)
+                service_list = []
+                if tenant_service_query is not None:
+                    service_list = ServiceInfo.objects.filter(tenant_service_query)
                 context["service_list"] = service_list
             elif fr == "new":
                 # 云市最新的应用
