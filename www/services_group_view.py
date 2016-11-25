@@ -80,12 +80,29 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
                 service_list = TenantServiceInfo.objects.exclude(tenant_id=self.tenant.tenant_id,service_region=self.response_region,service_id__in=service_id_list)
 
             sgrs=ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id,region_name=self.response_region)
-            
-            context["group_id"] = gid
+
+            serviceGroupIdMap={}
+            for sgr in sgrs:
+                serviceGroupIdMap[sgr.service_id]= sgr.group_id
+
+            serviceGroupNameMap={}
+            group_list=context["groupList"]
+            group_name = u"未分组"
+            group_id = -1
+            for group in group_list:
+                serviceGroupNameMap[group.ID] = group.group_name
+                if group.ID == int(gid):
+                    group_name = group.group_name
+                    group_id = group.ID
+            context["group_id"] = int(gid)
             context["tenantServiceList"] = service_list
-            context["service_group_relation_list"] = sgrs
+            context["serviceGroupNameMap"] = serviceGroupNameMap
+            context["serviceGroupIdMap"] = serviceGroupIdMap
             context["tenantName"] = self.tenantName
             context["curTenant"] = self.tenant
+            context["myAppStatus"]="active"
+            context["group_name"] =group_name
+            context["group_id"] = group_id
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_app.html", context)

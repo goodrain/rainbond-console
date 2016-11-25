@@ -51,10 +51,6 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                 self.response_region = region
             else:
                 raise Http404
-                # if region == 'xunda-bj':
-                # self.response_region = region
-                # else:
-                #    raise Http404
 
         if self.cookie_region == 'aws-bj-1':
             self.response_region == 'ali-sh'
@@ -72,10 +68,8 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         try:
             logger.debug('monitor.user', str(self.user.pk))
-            # num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
-            # if num < 1:
-            #     return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
-            tenantServiceList = context["tenantServiceList"]
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
+            context["tenantServiceList"] = tenantServiceList
             context["totalAppStatus"] = "active"
             context["totalFlow"] = 0
             context["totalAppNumber"] = len(tenantServiceList)

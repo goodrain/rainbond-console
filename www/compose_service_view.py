@@ -6,6 +6,7 @@ from django.views.decorators.cache import never_cache
 from www.decorator import perm_required
 from www.models import ComposeServiceRelation, TenantServiceInfo, ServiceInfo, TenantServiceEnvVar, TenantServicesPort, \
     TenantServiceVolume
+from www.models.main import ServiceGroup, ServiceGroupRelation
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
     BaseTenantService
 from www.utils.docker.compose_parse import compose_list
@@ -156,6 +157,9 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     service_cname = config.get("service_cname")
                     service_id = config.get("service_id")
                     deps[service_cname] = service_id
+                group_name = "compose"+make_uuid(self.tenant.tenant_id)[-6:]
+                group = ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
+                                            group_name=group_name)
 
                 for service_config in service_configs:
                     service_id = service_config.get("service_id")
@@ -164,6 +168,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
                     if num > 0:
                         result["status"] = "exist"
+                        ServiceGroup.objects.filter(ID=group.ID).delete()
                         return JsonResponse(result, status=200)
                     port_list = service_config.get("port_list")
                     env_list = service_config.get("env_list")
@@ -238,6 +243,8 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     for dep_service in depends_services_list:
                         dep_service_id = deps[dep_service]
                         baseService.create_service_dependency(tenant_id,service_id,dep_service_id,self.response_region)
+
+                    ServiceGroupRelation.objects.create(service_id=service_id,group_id=group.ID,tenant_id=tenant_id,region_name=self.response_region)
                     result["status"] = "success"
                     result["service_id"] = service_id
                     result["service_alias"] = service_alias
@@ -247,6 +254,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
             TenantServicesPort.objects.filter(service_id=service_id).delete()
             TenantServiceVolume.objects.filter(service_id=service_id).delete()
+            ServiceGroup.objects.filter(ID=group.ID).delete()
             logger.error(e)
         return JsonResponse(result, status=200)
 

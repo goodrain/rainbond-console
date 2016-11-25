@@ -841,6 +841,8 @@ class ServiceGroupRelation(BaseModel):
         db_table = 'service_group_relation'
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     group_id = models.IntegerField(max_length=10)
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
 
 class ImageServiceRelation(BaseModel):
     """image_url拉取的service的对应关系"""

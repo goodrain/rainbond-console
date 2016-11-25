@@ -112,5 +112,5 @@ class LeftSideBarMixin(object):
         return services
     
     def get_group_list(self):
-        grouplist = ServiceGroup.objects.filter(tenant_id=tenant_id, region=self.response_region)
+        grouplist = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
         return grouplist

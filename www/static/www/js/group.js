@@ -33,13 +33,14 @@ $(function(){
         var app_id = Arraycheck;
         console.log(app_id);
         $("#newStart").attr('disabled', "true");
-        _url = "/ajax/" + tenant_Name + '/' + ser_alias + "/app-deploy/";
+        _url = "/ajax/" + tenantName + "/batch-action";
         ///
         $.ajax({
             type : "POST",
             url : _url,
             data:{
-                ser_Id : app_id
+                "action":"deploy",
+                service_ids : JSON.stringify(app_id)
             },
             cache : false,
             beforeSend : function(xhr, settings) {
@@ -47,28 +48,11 @@ $(function(){
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success : function(msg) {
-                var dataObj = msg;
-                if (dataObj["status"] == "success") {
-                    swal("操作成功")
-                } else if (dataObj["status"] == "owed") {
-                    swal("余额不足请及时充值")
-                } else if (dataObj["status"] == "expired") {
-                    swal("试用已到期")
-                } else if (dataObj["status"] == "language") {
-                    swal("应用语言监测未通过")
-                    forurl = "/apps/" + tenantName + "/" + serviceAlias
-                            + "/detail/"
-                    window.open(forurl, target = "_parent")
-                } else if (dataObj["status"] == "often") {
-                    swal("部署正在进行中，请稍后")
-                } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能升级")
-                } else if (dataObj["status"] == "over_money") {
-                    swal("余额不足，不能升级")
-                } else {
-                    swal("操作失败")
-                    $("#onekey_deploy").removeAttr("disabled")
-                }
+                if(msg.ok){
+                    swal(msg.info)
+                }else(
+                    swal(msg.info)
+                )
                 $("#newStart").removeAttr("disabled")
             },
             error : function() {
@@ -91,9 +75,10 @@ $(function(){
         ///
         $.ajax({
             type : "POST",
-            url : "/ajax/" + tenantName + "/" + service_alias + "/manage",
+            url : "/ajax/" + tenantName + "/batch-action",
             data : {
-
+                "action":"stop",
+                "service_ids":JSON.stringify(Arraycheck)
             },
             cache : false,
             beforeSend : function(xhr, settings) {
@@ -102,21 +87,14 @@ $(function(){
             },
             success : function(msg) {
                 var dataObj = msg
-                if (dataObj["status"] == "success") {
-                    swal("操作成功")
-                } else if (dataObj["status"] == "often") {
-                    swal("操作正在进行中，请稍后")
-                } else if (dataObj["status"] == "owed") {
-                    swal("余额不足请及时充值")
-                } else if (dataObj["status"] == "expired") {
-                    swal("试用已到期")
-                } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能升级")
-                } else if (dataObj["status"] == "over_money") {
-                    swal("余额不足，不能升级")
-                } else {
-                    swal("操作失败")
+
+                if(msg.ok){
+                    swal(msg.info)
                 }
+                else{
+                    swal(msg.info)
+                }
+                
                 $("#batchEnd").removeAttr("disabled");
             },
             error : function() {
@@ -139,9 +117,10 @@ $(function(){
         ///
         $.ajax({
             type : "POST",
-            url : "/ajax/" + tenantName + "/" + service_alias + "/manage",
+            url : "/ajax/" + tenantName + "/batch-action",
             data : {
-
+                "action":"start",
+                "service_ids":JSON.stringify(Arraycheck)
             },
             cache : false,
             beforeSend : function(xhr, settings) {
@@ -149,21 +128,12 @@ $(function(){
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success : function(msg) {
-                var dataObj = msg
-                if (dataObj["status"] == "success") {
-                    swal("操作成功")
-                } else if (dataObj["status"] == "often") {
-                    swal("操作正在进行中，请稍后")
-                } else if (dataObj["status"] == "owed") {
-                    swal("余额不足请及时充值")
-                } else if (dataObj["status"] == "expired") {
-                    swal("试用已到期")
-                } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能升级")
-                } else if (dataObj["status"] == "over_money") {
-                    swal("余额不足，不能升级")
-                } else {
-                    swal("操作失败")
+
+                if(msg.ok){
+                    swal(msg.info)
+                }
+                else{
+                    swal(msg.info)
                 }
                 $("#batchStart").removeAttr("disabled");
             },
@@ -199,6 +169,7 @@ $(function(){
 
     //修改组名
     $("#revise-groupname").click(function(){
+        
         FnLayer("请输入新组名：",true,"",false,"全部应用不能改名！");
     });
     // 删除当前组
@@ -248,7 +219,7 @@ $(function(){
                             ///
                             $.ajax({
                                 type : "post",
-                                url : "/apps/" + tenant_Name  + "/group/add",
+                                url : "/ajax/" + tenant_Name  + "/group/add",
                                 data : {
                                     group_name : inputText
                                 },
@@ -273,7 +244,7 @@ $(function(){
                             ///
                             $.ajax({
                                 type : "post",
-                                url : "/apps/" + tenant_Name  + "/group/update",
+                                url : "/ajax/" + tenant_Name  + "/group/update",
                                 data : {
                                     new_group_name : inputText,
                                     group_id : sedVal
@@ -297,7 +268,7 @@ $(function(){
                     ///
                     $.ajax({
                         type : "post",
-                        url : "/apps/" + tenant_Name  + "/group/delete",
+                        url : "/ajax/" + tenant_Name  + "/group/delete",
                         data : {
                             group_id : sedVal,
                         },
@@ -308,7 +279,7 @@ $(function(){
                         },
                         success : function(msg) {
                             var dataObj = msg;
-                            window.location.reload();
+                            window.location.href="/apps/"+tenant_Name+"/myservice/?gid=-1";
                         },
                         error : function() {
                             swal("系统异常,请重试");
@@ -362,7 +333,7 @@ $(function(){
         /////
         $.ajax({
             type : "post",
-            url : "/apps/" + tenant_Name + "/group/change-group",
+            url : "/ajax/" + tenant_Name + "/group/change-group",
             data : {
                 "group_id" : new_group_id,
                 "service_id" : ser_id
@@ -376,7 +347,7 @@ $(function(){
                 var dataObj = msg;
                 oThis.parent().prev().html(new_group_name);
                 oThis.parent("div.fn-show-select ").hide();
-                //window.location.reload();
+                window.location.reload();
             },
             error : function() {
                 swal("系统异常,请重试");

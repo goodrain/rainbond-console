@@ -8,6 +8,8 @@ from www.services_view import *
 from www.app_services_view import *
 from www.back_services_view import *
 from www.charging_view import *
+from www.views.ajax import UpdateGroupView
+from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
 from www.views.service import TeamInfo
 from django.contrib.auth.decorators import login_required
 from www import alipay_view
@@ -72,11 +74,7 @@ urlpatterns = patterns(
 
 
     url(r'^/myservice/$', login_required(MyTenantService.as_view())),
-    # service group
-    url(r'^/group/add$', AddGroupView.as_view()),
-    url(r'^/group/update$', UpdateGroupView.as_view()),
-    url(r'^/group/delete$', DeleteGroupView.as_view()),
-    url(r'^/group/change-group$', UpdateServiceGroupView.as_view()),
+    
 
     # image_service
     url(r'^/image-create/$', login_required(ImageServiceDeploy.as_view())),

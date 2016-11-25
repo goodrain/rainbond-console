@@ -15,20 +15,21 @@
               </a>
          </li>
         <li>
-        <!--<li class="sub-menu">-->
-            <!--<a class="{{myAppStatus}}" href="javascript:;">-->
-                <!--<i class="fa fa-laptop"></i>-->
-                <!--<span>我的应用</span></a>-->
-            <!--<ul class="sub">-->
-                <!--{% if tenantServiceList %}-->
-                 	<!--{% for item in tenantServiceList %}-->
-                 		<!--<li {% if item.is_selected %}class="active"{% endif %}><a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a></li>-->
-                 	<!--{% endfor %}-->
-                <!--{% endif %}-->
-            <!--</ul>-->
-            <a class="{{myAppStatus}}" href="/apps/{{tenantName}}/myservice">
+        <li class="sub-menu">
+            <a class="{{myAppStatus}}" href="javascript:;">
                 <i class="fa fa-laptop"></i>
                 <span>我的应用</span></a>
+            <ul class="sub">
+                {% if groupList %}
+                 	{% for group in groupList %}
+                 		<li {% if group.ID =  group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid={{group.ID}}">{{group.group_name}}</a></li>
+                 	{% endfor %}
+                {% endif %}
+                <li {% if -1 ==  group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid=-1">未分组</a></li>
+            </ul>
+            <!--<a class="{{myAppStatus}}" href="/apps/{{tenantName}}/myservice">-->
+                <!--<i class="fa fa-laptop"></i>-->
+                <!--<span>我的应用</span></a>-->
         </li> 
               
         <li>

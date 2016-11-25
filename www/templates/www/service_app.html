@@ -1,5 +1,6 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
+{% load goodrain_extras %}
 {% load static %}
 {% block extracss %}
 {{ block.super }}
@@ -15,7 +16,7 @@
 	<!-- main start  -->
 		<!-- top 分组 -->
 		<div class="clearfix" id="app-group"   data-tenantName="{{tenantName}}">
-			<p data-group="-1" class="pull-left group-tit" id="group-tit">未分组</p>
+			<p data-group="{{group_id}}" class="pull-left group-tit" id="group-tit">{{group_name}}</p>
 			<!--
 			<select>
 				<option value="0">全部应用</option>
@@ -25,8 +26,10 @@
 				<option value="-1">未分组</option>
 			</select>
 			-->
+			{% if group_id != -1  %}
 			<a href="javascript:;" id="revise-groupname" class="btn btn-success">修改组名</a>
 			<a href="javascript:;" id="reomve-groupname" class="btn btn-danger">删除当前组</a>
+			{% endif %}
 			<a href="javascript:;" id="add-groupname" class="btn btn-success">新增组</a>
 			<!--
 			<p class="pull-right search-icon"><input type="text" name="" value="" id="search"></p>
@@ -55,7 +58,7 @@
 					<tr id="panel" class="tabline" data-group="{{item.group_id}}" data-id="{{item.service_id}}">
 						<!-- 复选框 -->
 						<td class="bs-checkbox fn-SelectItem">
-							<input name="SelectItem" type="checkbox"  type="checkbox" value="{{item.service_id}}" />
+							<input name="SelectItem" type="checkbox"  type="checkbox" value="{{item.service_id}}" service_alias="{{item.service_alias}}"/>
 						</td>
 						<!-- 应用名  -->
 						<td>
@@ -74,19 +77,33 @@
 						<!-- 类型 -->
 						<td>{{item.service_type}}</td> 
 						<!-- 分组 -->
+						{% with cur_group=serviceGroupIdMap|mkey:item.service_id %}
 						<td class="choose-group-box fn-choose-group">
-							<span class="fn-name">{{item.group_name}}</span>
+							{% with groupName=serviceGroupNameMap|mkey:cur_group %}
+								{% if groupName %}
+									<span class="fn-name">{{groupName}}</span>
+								{% else %}
+									<span class="fn-name">未分组</span>
+								{% endif %}
+							{% endwith %}
+
+
 							<div class="fn-show-select  choose-layer">
 								<select>
-									{% for group in groups %}
-									<option value="{{group.ID}}">{{group.group_name}}</option>
+
+									{% for group in groupList %}
+
+										<option value="{{group.ID}}" >{{group.group_name}}</option>
+
 									{% endfor %}
+
 									<option value="-1">未分组</option>
 								</select>
 								<button class="fn-groupname-sure btn btn-success" data-id="{{item.service_id}}" >√</button>
 								<button class="fn-groupname-close btn btn-danger">×</button>
 							</div>
 						</td>
+						{% endwith %}
 						<!-- 内存  -->
 						<td id="service_memory_{{item.service_id}}">0M</td>
 						<!-- 状态 -->
