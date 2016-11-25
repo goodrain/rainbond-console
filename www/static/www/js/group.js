@@ -399,7 +399,11 @@ $(function(){
                     swal(oData.msg);
                 }
                 if(oData.code == 200){
-                    FnSvg(oData.json_svg,oData.json_svg);
+                    console.log(oData.json_svg);
+                    console.log(oData.json_data);
+                    FnSvg(oData.json_svg,oData.json_data);
+                    
+
                 }
 
             },
