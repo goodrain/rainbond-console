@@ -395,9 +395,10 @@ $(function(){
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success : function(data) {
-                console.log(2);
+               
                 var oData = eval(data);
                 console.log(oData.code);
+                console.log(code);
                 console.log(oData.json_svg);
                 console.log(oData.json_data);
                 FnSvg(oData.json_svg,oData.json_data);
@@ -538,12 +539,12 @@ function FnSvg(json_svg,json_data){
         //FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,"");
         axisXY[AppBot[i]] = [(bot_width*i+bot_width/2),350];
     }
-    //console.log(axisXY);
+    console.log(axisXY);
     for(var key in json_svg){
         if(json_svg[key].length != 0){
-            //console.log(key);
-            //console.log(axisXY[key]);
-            //console.log(json_svg[key]);
+            console.log(key);
+            console.log(axisXY[key]);
+            console.log(json_svg[key]);
             for(var i=0; i<json_svg[key].length; i++){
                 //console.log(axisXY[json_svg[key][i]]);
                 var startX = axisXY[key][0];
