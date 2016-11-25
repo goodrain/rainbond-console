@@ -17,8 +17,8 @@ class ConfigCenter(object):
         self.loadfromDB()
 
     def __getattr__(self, name):
-        if name in self.objects:
-            return self.objects[name]
+        if name in self.configs():
+            return self.configs()[name]
         else:
             if hasattr(base_settings, name):
                 return getattr(base_settings, name)
@@ -28,7 +28,7 @@ class ConfigCenter(object):
     def configs(self):
         result = mcli.getKey(configKey)
         if result is not None:
-            logger.info("from " + result)
+            # logger.info("from " + result)
             return json.loads(result)
         else:
             return self.loadfromDB()
@@ -56,6 +56,7 @@ class ConfigCenter(object):
                 c_value = config.value
                 
             objects[config.key] = c_value
+        mcli.setKey(configKey, json.dumps(objects))
         return objects
 
 custom_config = ConfigCenter()

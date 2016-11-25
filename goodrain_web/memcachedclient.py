@@ -8,8 +8,11 @@ logger = logging.getLogger('default')
 class MemcachedCli(object):
     
     def __init__(self):
-        self.mc = pylibmc.Client([os.environ.get('MEMCACHED_HOST') + ":" + os.environ.get('MEMCACHED_PORT')], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
-    
+        try:
+            self.mc = pylibmc.Client([os.environ.get('MEMCACHED_HOST') + ":" + os.environ.get('MEMCACHED_PORT')], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
+        except Exception as e:
+            logger.exception(e)
+            
     def getKey(self, key):
         try:
             return self.mc.get(key)
