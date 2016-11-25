@@ -250,12 +250,13 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     result["service_alias"] = service_alias
 
         except Exception as e:
+            logger.exception(e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
             TenantServicesPort.objects.filter(service_id=service_id).delete()
             TenantServiceVolume.objects.filter(service_id=service_id).delete()
             ServiceGroup.objects.filter(ID=group.ID).delete()
-            logger.error(e)
+
         return JsonResponse(result, status=200)
 
     def json_loads(self, json_string):
