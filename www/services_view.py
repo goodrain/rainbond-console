@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 from django.shortcuts import redirect
 from django.http import Http404
 
-from www.models.main import TenantRegionPayModel
+from www.models.main import TenantRegionPayModel, ServiceGroupRelation
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
@@ -269,8 +269,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context["tenantServiceInfo"] = self.service
-            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
-            context["tenantServiceList"] = tenantServiceList
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()
             context["totalMemory"] = self.service.min_node * self.service.min_memory
@@ -278,6 +276,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
+            if ServiceGroupRelation.objects.filter(service_id=self.service.service_id).count() > 0:
+                gid = ServiceGroupRelation.objects.get(service_id=self.service.service_id).group_id
+                context["group_id"] = gid
+            else:
+                context["group_id"] = -1
             service_domain = False
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
@@ -342,6 +345,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # service map
                 map = {}
                 sids = [self.service.service_id]
+                tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
                 for tenantService in tenantServiceList:
                     if TenantServicesPort.objects.filter(service_id=tenantService.service_id, is_inner_service=True).exists():
                         sids.append(tenantService.service_id)
