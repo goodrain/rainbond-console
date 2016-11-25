@@ -157,14 +157,16 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 result = {"ok": True, "info": "部署成功"}
             except Exception, e:
                 logger.exception(e)
-                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_deploy', False)
+                monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_deploy', False)
                 result = {"ok": False, "info": "部署失败"}
         elif action == "stop":
             try:
                 for service_id in service_ids:
+                    current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                                    service_id=service_id)
                     body = {}
                     body["operator"] = str(self.user.nick_name)
-                    regionClient.stop(self.service.service_region, service_id, json.dumps(body))
+                    regionClient.stop(current_service.service_region, service_id, json.dumps(body))
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
                     monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_stop', True)
