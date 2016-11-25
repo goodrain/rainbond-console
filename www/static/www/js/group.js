@@ -1,6 +1,6 @@
 $(function(){
     // var ser_alias = $("#app-group").attr("data-serviceAlias");
-   
+
     var tenant_Name = $("#app-group").attr("data-tenantName");
 	// 复选框开始
 	var chackboxnums;
@@ -468,6 +468,12 @@ $(function(){
         return oTag;
     }
     var oSvg = createTag('svg',{'xmlns':svgNS,'width':'100%','height':'600'});
+    var oDefs = createTag('defs',{});
+    var oMarker = createTag('marker',{'id':'markerArrow','markerWidth':'13','markerHeight':'13','refX':'100','refY':'6','orient':'auto'});
+    var oPath = createTag('path',{'d':'M2,2 L2,11 L10,6 L2,2 z','fill':'#28cb75'});
+    oSvg.appendChild(oDefs);
+    oDefs.appendChild(oMarker);
+    oMarker.appendChild(oPath);
     
     var divWidth = oSvgDiv.offsetWidth;
     //console.log(divWidth);
@@ -506,7 +512,7 @@ $(function(){
                 //console.log(endX);
                 var endY = axisXY[json_svg[key][i]][1];
                 //console.log(endY);
-                var oLine = createTag('line',{'x1':startX,'y1':startY,'x2':endX,'y2':endY,'stroke':'#ccc'});
+                var oLine = createTag('line',{'x1':startX,'y1':startY,'x2':endX,'y2':endY,'stroke':'#ccc','marker-end':'url(#markerArrow)'});
                 //console.log(oLine);
                 oSvg.appendChild(oLine);
             }
