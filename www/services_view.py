@@ -269,7 +269,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context["tenantServiceInfo"] = self.service
-            tenantServiceList = context["tenantServiceList"]
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
+            context["tenantServiceList"] = tenantServiceList
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()
             context["totalMemory"] = self.service.min_node * self.service.min_memory
