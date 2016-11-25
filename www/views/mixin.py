@@ -114,3 +114,15 @@ class LeftSideBarMixin(object):
     def get_group_list(self):
         grouplist = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
         return grouplist
+
+    def get_user_tenant(self,user_id):
+        """根据用户的email获取当前用户的所有租户信息"""
+        prt_list = PermRelTenant.objects.filter(user_id=user_id)
+        tenant_id_list = [x.tenant_id for x in prt_list]
+        # 查询租户信息
+        tenant_list = Tenants.objects.filter(pk__in=tenant_id_list)
+        tenant_map_list = []
+        for tenant in list(tenant_list):
+            tenant_map_list.append({"tenant_id": tenant.tenant_id,
+                                    "tenant_name": tenant.tenant_name})
+        return tenant_map_list
