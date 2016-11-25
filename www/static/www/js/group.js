@@ -398,7 +398,7 @@ $(function(){
                
                 var oData = eval(data);
                 console.log(oData.code);
-                console.log(code);
+                
                 console.log(oData.json_svg);
                 console.log(oData.json_data);
                 FnSvg(oData.json_svg,oData.json_data);
