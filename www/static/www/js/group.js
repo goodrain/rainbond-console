@@ -397,15 +397,16 @@ $(function(){
             success : function(data) {
                 console.log(2);
                 var oData = eval(data);
-                if(oData.code == 501 || oData.code == 502){
-                    swal(oData.msg);
-                }
+                console.log(oData.code);
+                console.log(oData.json_svg);
+                console.log(oData.json_data);
                 if(oData.code == 200){
                     console.log(oData.json_svg);
                     console.log(oData.json_data);
                     FnSvg(oData.json_svg,oData.json_data);
+                }else{
+                     swal(oData.msg);
                 }
-                console.log(3);
             },
             error : function() {
                 swal("系统异常,请重试");
