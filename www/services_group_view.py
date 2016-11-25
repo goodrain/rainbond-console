@@ -72,6 +72,10 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         try:
             gid = request.GET.get("gid","")
+            num = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,group_id=gid).count()
+            if num<1:
+                 return self.redirect_to('/apps/{0}/myservice/?gid=-1'.format(self.tenant.tenant_name))
+            
             if gid.strip() != "" and gid != '-1':
                 service_id_list = ServiceGroupRelation.objects.filter(group_id=gid).values("service_id")
                 service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_region=self.response_region,service_id__in=service_id_list)

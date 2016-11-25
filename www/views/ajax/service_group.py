@@ -127,37 +127,33 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 for service_id in service_ids:
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
-                    if current_service.language == "docker":
-                        self._saveAdapterEnv(current_service)
-                    gitUrl = request.POST.get('git_url', None)
-                    if gitUrl is None:
-                        gitUrl = current_service.git_url
-                    body = {}
-                    if current_service.deploy_version == "" or current_service.deploy_version is None:
-                        body["action"] = "deploy"
-                    else:
-                        body["action"] = "upgrade"
-                    current_service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                    current_service.save()
-                    clone_url = current_service.git_url
-                    if current_service.code_from == "github":
-                        code_user = clone_url.split("/")[3]
-                        code_project_name = clone_url.split("/")[4].split(".")[0]
-                        createUser = Users.objects.get(user_id=current_service.creater)
-                        clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
-                    body["deploy_version"] = current_service.deploy_version
-                    body["gitUrl"] = "--branch " + current_service.code_version + " --depth 1 " + clone_url
-                    body["operator"] = str(self.user.nick_name)
-
-                    envs = {}
-                    buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
-                    for benv in buildEnvs:
-                        envs[benv.attr_name] = benv.attr_value
-                    body["envs"] = json.dumps(envs)
-
-                    regionClient.build_service(current_service.service_region, service_id, json.dumps(body))
-                    monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_deploy', True)
-
+                    gitUrl = current_service.git_url
+                    if current_service.category == "application" and gitUrl is not None and gitUrl != "":
+                        body = {}
+                        if current_service.deploy_version == "" or current_service.deploy_version is None:
+                            body["action"] = "deploy"
+                        else:
+                            body["action"] = "upgrade"
+                        current_service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                        current_service.save()
+                        clone_url = current_service.git_url
+                        if current_service.code_from == "github":
+                            code_user = clone_url.split("/")[3]
+                            code_project_name = clone_url.split("/")[4].split(".")[0]
+                            createUser = Users.objects.get(user_id=current_service.creater)
+                            clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+                        body["deploy_version"] = current_service.deploy_version
+                        body["gitUrl"] = "--branch " + current_service.code_version + " --depth 1 " + clone_url
+                        body["operator"] = str(self.user.nick_name)
+    
+                        envs = {}
+                        buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
+                        for benv in buildEnvs:
+                            envs[benv.attr_name] = benv.attr_value
+                        body["envs"] = json.dumps(envs)
+    
+                        regionClient.build_service(current_service.service_region, service_id, json.dumps(body))
+                        monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_deploy', True)
                 result = {"ok": True, "info": "部署成功"}
             except Exception, e:
                 logger.exception(e)
