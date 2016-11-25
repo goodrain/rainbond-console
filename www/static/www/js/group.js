@@ -384,6 +384,7 @@ $(function(){
         $("#tabbtn").addClass("sed");
     }else{
         ///
+        console.log(1);
         $.ajax({
             type : "get",
             url : "/ajax/" + tenant_Name + "/topological/" + groupID,
@@ -394,6 +395,7 @@ $(function(){
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success : function(data) {
+                console.log(2);
                 var oData = eval(data);
                 if(oData.code == 501 || oData.code == 502){
                     swal(oData.msg);
@@ -402,10 +404,8 @@ $(function(){
                     console.log(oData.json_svg);
                     console.log(oData.json_data);
                     FnSvg(oData.json_svg,oData.json_data);
-                    
-
                 }
-
+                console.log(3);
             },
             error : function() {
                 swal("系统异常,请重试");
