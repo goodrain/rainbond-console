@@ -35,4 +35,5 @@ a.tabbtn{width: 24px; height: 24px; background: url('../images/graytab.png') no-
 a.imgbtn.sed{background: url('../images/greenimg.png'); background-size: 24px 24px;}
 a.tabbtn.sed{background: url('../images/greentab.png'); background-size: 24px 24px;}
 
-#svg-box{width:100%;  min-height: 600px; border:1px #ddd solid; background: #f9f9f9;}
+.img-box{border:1px #ddd solid; width: 100%; background: #f9f9f9;}
+#svg-box{width:80%;  min-height: 600px;  margin:0 auto;}

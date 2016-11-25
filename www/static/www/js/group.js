@@ -1,5 +1,6 @@
 $(function(){
     // var ser_alias = $("#app-group").attr("data-serviceAlias");
+   
     var tenant_Name = $("#app-group").attr("data-tenantName");
 	// 复选框开始
 	var chackboxnums;
@@ -255,13 +256,7 @@ $(function(){
                                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                                 },
                                 success : function(msg) {
-                                    if (msg.ok){
-                                        swal(msg.info);
-                                        window.location.reload();
-                                    }else{
-                                        swal(msg.info)
-                                    }
-
+                                    window.location.reload();
                                 },
                                 error : function() {
                                     swal("系统异常,请重试");
