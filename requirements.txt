@@ -10,21 +10,15 @@ httplib2==0.9.1
 simplejson==3.8.0
 urllib3==1.12
 whitenoise==2.0.3
-Pillow==2.9.0
+pillow==2.9.0
 djangorestframework==3.2.3
-Markdown==2.6.2
+markdown==2.6.2
 django-filter==0.11.0
 django-rest-swagger==0.3.4
 requests==2.7.0
-python-dateutil
+python-dateutil==2.4.2
 rsa==3.4.2
 django-oauth-toolkit==0.10.0
-django-braces==1.9.0
-oauthlib==1.0.3
-pyasn1==0.1.9
-python-dateutil==2.4.2
-PyYAML==3.11
-six==1.10.0
 docker-compose
 
 
