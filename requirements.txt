@@ -1,5 +1,6 @@
 Django==1.8.0
 MySQL-python
+pylibmc
 pyzmq
 django-crispy-forms==1.4.0
 addict
