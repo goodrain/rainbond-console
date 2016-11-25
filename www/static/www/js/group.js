@@ -377,32 +377,39 @@ $(function(){
     });
     
     //////图
-    ///
-   
-    $.ajax({
-        type : "post",
-        url : "/ajax/" + tenant_Name + "/topological/" + groupID,
-        //data : {},
-        cache : false,
-        beforeSend : function(xhr, settings) {
-            var csrftoken = $.cookie('csrftoken');
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        },
-        success : function(data) {
-            var oData = eval(data);
-            if(oData.code == 501 || oData.code == 502){
-                swal(oData.msg);
-            }
-            if(oData.code == 200){
-                FnSvg(oData.json_svg,oData.json_svg);
-            }
+    if(groupID == -1){
+        $("#imgbtn").hide().removeClass("sed");
+        $("#imgBox").hide();
+        $("#tabBox").show();
+        $("#tabbtn").addClass("sed");
+    }else{
+        ///
+        $.ajax({
+            type : "post",
+            url : "/ajax/" + tenant_Name + "/topological/" + groupID,
+            //data : {},
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(data) {
+                var oData = eval(data);
+                if(oData.code == 501 || oData.code == 502){
+                    swal(oData.msg);
+                }
+                if(oData.code == 200){
+                    FnSvg(oData.json_svg,oData.json_svg);
+                }
 
-        },
-        error : function() {
-            swal("系统异常,请重试");
-        }
-    });
-    ///
+            },
+            error : function() {
+                swal("系统异常,请重试");
+            }
+        });
+        ///
+    }
+    
     /*
     var json_svg = {
         "service_dep_cname1" :["service_dep_cname2"],
