@@ -77,7 +77,7 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
                 service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_region=self.response_region,service_id__in=service_id_list)
             else:
                 service_id_list = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region).values("service_id")
-                service_list = TenantServiceInfo.objects.exclude(tenant_id=self.tenant.tenant_id,service_region=self.response_region,service_id__in=service_id_list)
+                service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_region=self.response_region).exclude(service_id__in=service_id_list)
 
             sgrs=ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id,region_name=self.response_region)
 
