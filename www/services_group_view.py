@@ -71,26 +71,25 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
         self.check_region()
         context = self.get_context()
         try:
-            gid = request.GET.get("gid","")
-            num = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id,group_id=gid).count()
-            if num<1:
+            gid = request.GET.get("gid", "-1")
+            if gid !="-1" and ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, ID=gid).count() < 1:
                  return self.redirect_to('/apps/{0}/myservice/?gid=-1'.format(self.tenant.tenant_name))
             
             if gid.strip() != "" and gid != '-1':
                 service_id_list = ServiceGroupRelation.objects.filter(group_id=gid).values("service_id")
-                service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_region=self.response_region,service_id__in=service_id_list)
+                service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region, service_id__in=service_id_list)
             else:
                 service_id_list = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region).values("service_id")
-                service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_region=self.response_region).exclude(service_id__in=service_id_list)
+                service_list = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).exclude(service_id__in=service_id_list)
 
-            sgrs=ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id,region_name=self.response_region)
+            sgrs = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
 
-            serviceGroupIdMap={}
+            serviceGroupIdMap = {}
             for sgr in sgrs:
-                serviceGroupIdMap[sgr.service_id]= sgr.group_id
+                serviceGroupIdMap[sgr.service_id] = sgr.group_id
 
-            serviceGroupNameMap={}
-            group_list=context["groupList"]
+            serviceGroupNameMap = {}
+            group_list = context["groupList"]
             group_name = u"未分组"
             group_id = -1
             for group in group_list:
@@ -104,8 +103,8 @@ class MyTenantService(LeftSideBarMixin, AuthedView):
             context["serviceGroupIdMap"] = serviceGroupIdMap
             context["tenantName"] = self.tenantName
             context["curTenant"] = self.tenant
-            context["myAppStatus"]="active"
-            context["group_name"] =group_name
+            context["myAppStatus"] = "active"
+            context["group_name"] = group_name
             context["group_id"] = group_id
         except Exception as e:
             logger.exception(e)
