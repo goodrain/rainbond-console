@@ -443,6 +443,8 @@ $(function(){
     }
     */
 function FnSvg(json_svg,json_data){
+    console.log(json_svg);
+    console.log(json_data);
     var svgNS = 'http://www.w3.org/2000/svg';
     var arrDepApp =[];  //全部依赖别的
     var arrApp =[];  //组合数组  右边所有依赖合并
