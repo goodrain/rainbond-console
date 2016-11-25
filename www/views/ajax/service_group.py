@@ -51,7 +51,7 @@ class UpdateGroupView(LeftSideBarMixin, AuthedView):
         new_group_name = request.POST.get("new_group_name", "")
         group_id = request.POST.get("group_id")
         try:
-            if new_group_name.strip == "" or group_id.strip == "":
+            if new_group_name.strip() == "" or group_id.strip() == "":
                 return JsonResponse({"ok": False, "info": "参数错误"})
             ServiceGroup.objects.filter(ID=group_id).update(group_name=new_group_name)
             return JsonResponse({"ok": True, "info": "修改成功"})
@@ -80,7 +80,7 @@ class UpdateServiceGroupView(LeftSideBarMixin, AuthedView):
         group_id = request.POST.get("group_id", "")
         service_id = request.POST.get("service_id", "")
         try:
-            if group_id.strip == "" or service_id.strip == "":
+            if group_id.strip() == "" or service_id.strip() == "":
                 return JsonResponse({"ok": False, "info": "参数错误"})
             if group_id == "-1":
                 ServiceGroupRelation.objects.filter(service_id=service_id).delete()
