@@ -385,7 +385,7 @@ $(function(){
     }else{
         ///
         $.ajax({
-            type : "post",
+            type : "get",
             url : "/ajax/" + tenant_Name + "/topological/" + groupID,
             //data : {},
             cache : false,
