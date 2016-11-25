@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
-import json
 import os
 import logging
+import pylibmc
 
 logger = logging.getLogger('default')
 

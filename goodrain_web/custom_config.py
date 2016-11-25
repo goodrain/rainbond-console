@@ -1,7 +1,4 @@
-import time
-import random
 import json
-from addict import Dict
 from django.conf import settings as base_settings
 from cadmin.models.main import ConsoleSysConfig
 from goodrain_web.memcachedclient import MemcachedCli

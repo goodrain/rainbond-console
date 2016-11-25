@@ -255,7 +255,13 @@ $(function(){
                                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                                 },
                                 success : function(msg) {
-                                    window.location.reload();
+                                    if (msg.ok){
+                                        swal(msg.info);
+                                        window.location.reload();
+                                    }else{
+                                        swal(msg.info)
+                                    }
+
                                 },
                                 error : function() {
                                     swal("系统异常,请重试");
