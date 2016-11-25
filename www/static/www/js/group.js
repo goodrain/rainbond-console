@@ -1,6 +1,6 @@
 $(function(){
     // var ser_alias = $("#app-group").attr("data-serviceAlias");
-
+    var groupID = $("#group-tit").attr("data-group");
     var tenant_Name = $("#app-group").attr("data-tenantName");
 	// 复选框开始
 	var chackboxnums;
@@ -377,6 +377,33 @@ $(function(){
     });
     
     //////图
+    ///
+   
+    $.ajax({
+        type : "post",
+        url : "/ajax/" + tenant_Name + "/topological/" + groupID,
+        //data : {},
+        cache : false,
+        beforeSend : function(xhr, settings) {
+            var csrftoken = $.cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success : function(data) {
+            var oData = eval(data);
+            if(oData.code == 501 || oData.code == 502){
+                swal(oData.msg);
+            }
+            if(oData.code == 200){
+                FnSvg(oData.json_svg,oData.json_svg);
+            }
+
+        },
+        error : function() {
+            swal("系统异常,请重试");
+        }
+    });
+    ///
+    /*
     var json_svg = {
         "service_dep_cname1" :["service_dep_cname2"],
         "service_dep_cname2" :["service_dep_cname3"],
@@ -400,6 +427,8 @@ $(function(){
         "service_cname9" : {"service_id" : "sernine","service_alias" : "aliasnine"},
        
     }
+    */
+function FnSvg(json_svg,json_data){
     var svgNS = 'http://www.w3.org/2000/svg';
     var arrDepApp =[];  //全部依赖别的
     var arrApp =[];  //组合数组  右边所有依赖合并
@@ -470,7 +499,7 @@ $(function(){
     var oSvg = createTag('svg',{'xmlns':svgNS,'width':'100%','height':'600'});
     var oDefs = createTag('defs',{});
     var oMarker = createTag('marker',{'id':'markerArrow','markerWidth':'13','markerHeight':'13','refX':'100','refY':'6','orient':'auto'});
-    var oPath = createTag('path',{'d':'M2,2 L2,11 L10,6 L2,2 z','fill':'#28cb75'});
+    var oPath = createTag('path',{'d':'M2,2 L2,11 L10,6 L2,2 z','fill':'#ccc'});
     oSvg.appendChild(oDefs);
     oDefs.appendChild(oMarker);
     oMarker.appendChild(oPath);
@@ -481,20 +510,20 @@ $(function(){
     for(var i=0; i<AppTop.length;i++){
         var top_width = divWidth/AppTop.length;
         var top_w = top_width - 20;
-        //FnSvgIcon(top_width,50,i,AppTop[i],top_w,""); 
-        axisXY[AppTop[i]] = [(top_width*i+top_width/2),80];
+        //FnSvgIcon(top_width,20,i,AppTop[i],top_w,""); 
+        axisXY[AppTop[i]] = [(top_width*i+top_width/2),50];
     }
     for(var i=0; i<AppMid.length;i++){
         var mid_width = divWidth/AppMid.length;
         var mid_w = mid_width - 20;
-        //FnSvgIcon(mid_width,250,i,AppMid[i],mid_w,"");
-        axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),280];
+        //FnSvgIcon(mid_width,170,i,AppMid[i],mid_w,"");
+        axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
     }
     for(var i=0; i<AppBot.length;i++){
         var bot_width = divWidth/AppBot.length;
         var bot_w = bot_width - 20;
-        //FnSvgIcon(bot_width,450,i,AppBot[i],bot_w,"");
-        axisXY[AppBot[i]] = [(bot_width*i+bot_width/2),480];
+        //FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,"");
+        axisXY[AppBot[i]] = [(bot_width*i+bot_width/2),350];
     }
     //console.log(axisXY);
     for(var key in json_svg){
@@ -533,19 +562,20 @@ $(function(){
    for(var i=0; i<AppTop.length;i++){
         var top_width = divWidth/AppTop.length;
         var top_w = top_width - 20;
-        FnSvgIcon(top_width,50,i,AppTop[i],top_w,"");  
+        FnSvgIcon(top_width,20,i,AppTop[i],top_w,"");  
     }
     for(var i=0; i<AppMid.length;i++){
         var mid_width = divWidth/AppMid.length;
         var mid_w = mid_width - 20;
-        FnSvgIcon(mid_width,250,i,AppMid[i],mid_w,"");  
+        FnSvgIcon(mid_width,170,i,AppMid[i],mid_w,"");  
     }
     for(var i=0; i<AppBot.length;i++){
         var bot_width = divWidth/AppBot.length;
         var bot_w = bot_width - 20;
-        FnSvgIcon(bot_width,450,i,AppBot[i],bot_w,""); 
+        FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,""); 
     }
     oSvgDiv.appendChild(oSvg);
+}
     //////图
 });
 
