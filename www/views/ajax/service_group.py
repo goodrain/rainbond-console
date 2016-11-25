@@ -30,8 +30,8 @@ class AddGroupView(LeftSideBarMixin, AuthedView):
     def post(self, request, *args, **kwargs):
         group_name = request.POST.get("group_name", "")
         try:
-            if group_name.strip == "":
-                return JsonResponse({"ok": False, "info": "参数错误"})
+            if group_name.strip() == "":
+                return JsonResponse({"ok": False, "info": "组名不能为空"})
             if ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
                                            group_name=group_name).exists():
                 return JsonResponse({"ok": False, "info": "组名已存在"})
