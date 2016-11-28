@@ -442,20 +442,6 @@ function FnSvg(json_svg,json_data){
             this.splice(index, 1);
         }
     };
-    /*
-    for(var key in json_svg){
-        if(json_svg.length == 0){
-            //没有依赖关系
-            console.log("没有依赖关系");
-        }else if(json_svg[key].length == 0){
-            AppBot.push(key);
-        }else if(){
-
-        }else{
-             arrDepApp.push(key);
-            arrApp = arrApp.concat(json_svg[key]);
-        }
-    }*/
     
    for(var key in json_svg){
         key_svg.push(key);
@@ -470,6 +456,10 @@ function FnSvg(json_svg,json_data){
    //
    if(key_svg.length == 0){
         console.log("没有依赖关系");
+        $("#imgbtn").hide().removeClass("sed");
+        $("#imgBox").hide();
+        $("#tabBox").show();
+        $("#tabbtn").addClass("sed");
    }else{
         for(var key in json_svg){
             if(json_svg[key].length == 0){
@@ -509,11 +499,17 @@ function FnSvg(json_svg,json_data){
             AppTop.push(key_svg[i]);
         }
     }
-    console.log(my_svg);
-    console.log(AppTop);
-    console.log(AppMid);
-    console.log(AppBot);
+    //console.log(my_svg);
+    //console.log(AppTop);
+    //console.log(AppMid);
+    //console.log(AppBot);
 
+    var AppBot_B = [];
+    for(i=0;i<AppBot.length;i++){
+        if(AppBot_B.indexOf(AppBot[i])<0){
+            AppBot_B.push(AppBot[i])
+        }
+    }   
     
     //绘图
     var svgNS = 'http://www.w3.org/2000/svg';
@@ -565,12 +561,12 @@ function FnSvg(json_svg,json_data){
             axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
         }
     }
-    if(AppBot.length != 0){
-        for(var i=0; i<AppBot.length;i++){
-            var bot_width = divWidth/AppBot.length;
+    if(AppBot_B.length != 0){
+        for(var i=0; i<AppBot_B.length;i++){
+            var bot_width = divWidth/AppBot_B.length;
             var bot_w = bot_width - 20;
-            //FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,"");
-            axisXY[AppBot[i]] = [(bot_width*i+bot_width/2),350];
+            //FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w,"");
+            axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
         }
     }
     //
@@ -612,12 +608,12 @@ function FnSvg(json_svg,json_data){
             //axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
         }
     }
-    if(AppBot.length != 0){
-        for(var i=0; i<AppBot.length;i++){
-            var bot_width = divWidth/AppBot.length;
+    if(AppBot_B.length != 0){
+        for(var i=0; i<AppBot_B.length;i++){
+            var bot_width = divWidth/AppBot_B.length;
             var bot_w = bot_width - 20;
-            FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,"");
-            //axisXY[AppBot[i]] = [(bot_width*i+bot_width/2),350];
+            FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w,"");
+            //axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
         }
     }
     //
