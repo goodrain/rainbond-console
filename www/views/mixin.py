@@ -116,7 +116,7 @@ class LeftSideBarMixin(object):
         return grouplist
 
     def get_user_tenant(self,user_id):
-        """根据用户的email获取当前用户的所有租户信息"""
+        """根据用户的ID获取当前用户的所有租户信息"""
         prt_list = PermRelTenant.objects.filter(user_id=user_id)
         tenant_id_list = [x.tenant_id for x in prt_list]
         # 查询租户信息
