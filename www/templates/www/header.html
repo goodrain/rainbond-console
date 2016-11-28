@@ -4,6 +4,19 @@
 <!--logo start-->
 <a href="/" class="logo hidden-xs"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" alt="{{CUSTOM_CONFIG.TITLE}}"></a>
 <!--logo end-->
+<!--tenant switch-->
+<div class="nav notify-row" id="tenant_switch">
+    <div class="btn-group">
+        <button class="btn btn-white" type="button">{{current_tenant}}</button>
+        <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
+        <ul id="tenant_select" role="menu" class="dropdown-menu">
+            {% for tenant in tenant_list %}
+            <li><a href="/apps/{{tenant}}/">{{tenant.tenant_name}}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+<!--tenant switch-->
 {% block region_zone %}
 <div class="nav notify-row" id="top_menu">
     <div class="btn-group">

@@ -79,6 +79,8 @@ class LeftSideBarMixin(object):
         context = super(LeftSideBarMixin, self).get_context()
         #context['tenantServiceList'] = self.get_service_list()
         context["groupList"] = self.get_group_list()
+        context["tenant_list"] = self.get_user_tenant(self.user.pk)
+        context["current_tenant"]= self.tenant.tenant_name
         context = self.set_region_info(context)
         return context
 
@@ -121,8 +123,4 @@ class LeftSideBarMixin(object):
         tenant_id_list = [x.tenant_id for x in prt_list]
         # 查询租户信息
         tenant_list = Tenants.objects.filter(pk__in=tenant_id_list)
-        tenant_map_list = []
-        for tenant in list(tenant_list):
-            tenant_map_list.append({"tenant_id": tenant.tenant_id,
-                                    "tenant_name": tenant.tenant_name})
-        return tenant_map_list
+        return tenant_list
