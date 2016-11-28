@@ -536,9 +536,10 @@ function FnSvg(json_svg,json_data){
     oDefs.appendChild(oMarker);
     oMarker.appendChild(oPath);
 
+    
     // 添加图片
     function FnSvgIcon(wid,hei,num,txt,txtWid,url){
-        var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei,'href':'images/app1.png'});
+        var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei,'href':'/static/www/images/app1.png'});
         var oText = createTag('text',{'x':(wid*num+wid/2),'y':hei+70,'font-size':'12','text-anchor':'middle','fill':'#999','lengthAdjust':'spacing'});
         oText.innerHTML = txt;
         var oA= createTag('a',{'href':url});
