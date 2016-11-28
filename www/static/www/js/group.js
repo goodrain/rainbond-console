@@ -617,8 +617,7 @@ function FnSvg(json_svg,json_data){
         for(var i=0; i<AppBot_B.length;i++){
             var bot_width = divWidth/AppBot_B.length;
             var bot_w = bot_width - 20;
-            FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w
-                if);
+            FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w);
             //axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
         }
     }
