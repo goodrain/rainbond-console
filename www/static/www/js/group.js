@@ -534,7 +534,12 @@ function FnSvg(json_svg,json_data){
 
 
     // 添加图片
-    function FnSvgIcon(wid,hei,num,txt,txtWid,url){
+    function FnSvgIcon(wid,hei,num,txt,txtWid){
+        if(json_data[txt]){
+            var url = "/apps/" + tenant_Name + "/" + json_data[txt]["service_alias"] + "/detail/";
+        }else{
+            url = "";
+        }
         var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei,'href':'/static/www/images/app1.png'});
         var oText = createTag('text',{'x':(wid*num+wid/2),'y':hei+70,'font-size':'12','text-anchor':'middle','fill':'#999','lengthAdjust':'spacing'});
         oText.innerHTML = txt;
@@ -549,7 +554,7 @@ function FnSvg(json_svg,json_data){
         for(var i=0; i<AppTop.length;i++){
             var top_width = divWidth/AppTop.length;
             var top_w = top_width - 20;
-            //FnSvgIcon(top_width,30,i,AppTop[i],top_w,""); 
+            //FnSvgIcon(top_width,30,i,AppTop[i],top_w); 
             axisXY[AppTop[i]] = [(top_width*i+top_width/2),50];
         }
     }
@@ -557,7 +562,7 @@ function FnSvg(json_svg,json_data){
         for(var i=0; i<AppMid.length;i++){
             var mid_width = divWidth/AppMid.length;
             var mid_w = mid_width - 20;
-            //FnSvgIcon(mid_width,170,i,AppMid[i],mid_w,"");
+            //FnSvgIcon(mid_width,170,i,AppMid[i],mid_w);
             axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
         }
     }
@@ -565,7 +570,7 @@ function FnSvg(json_svg,json_data){
         for(var i=0; i<AppBot_B.length;i++){
             var bot_width = divWidth/AppBot_B.length;
             var bot_w = bot_width - 20;
-            //FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w,"");
+            //FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w);
             axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
         }
     }
@@ -596,7 +601,7 @@ function FnSvg(json_svg,json_data){
         for(var i=0; i<AppTop.length;i++){
             var top_width = divWidth/AppTop.length;
             var top_w = top_width - 20;
-            FnSvgIcon(top_width,30,i,AppTop[i],top_w,""); 
+            FnSvgIcon(top_width,30,i,AppTop[i],top_w); 
             //axisXY[AppTop[i]] = [(top_width*i+top_width/2),50];
         }
     }
@@ -604,7 +609,7 @@ function FnSvg(json_svg,json_data){
         for(var i=0; i<AppMid.length;i++){
             var mid_width = divWidth/AppMid.length;
             var mid_w = mid_width - 20;
-            FnSvgIcon(mid_width,170,i,AppMid[i],mid_w,"");
+            FnSvgIcon(mid_width,170,i,AppMid[i],mid_w);
             //axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
         }
     }
@@ -612,7 +617,8 @@ function FnSvg(json_svg,json_data){
         for(var i=0; i<AppBot_B.length;i++){
             var bot_width = divWidth/AppBot_B.length;
             var bot_w = bot_width - 20;
-            FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w,"");
+            FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w
+                if);
             //axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
         }
     }
