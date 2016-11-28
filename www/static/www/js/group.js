@@ -417,94 +417,110 @@ $(function(){
         ///
     }
     
-    /*
-    var json_svg = {
-        "service_dep_cname1" :["service_dep_cname2"],
-        "service_dep_cname2" :["service_dep_cname3"],
-        "service_dep_cname3" :[],
-        "service_dep_cname4" :[],
-        "service_dep_cname5" :["service_dep_cname8","service_dep_cname3"],
-        "service_dep_cname6" :["service_dep_cname9"],
-        "service_dep_cname7" :["service_dep_cname3"], 
-        "service_dep_cname8" :["service_dep_cname4"],
-        "service_dep_cname9" :["service_dep_cname3"],
-    }
-    var json_data = {
-        "service_cname1" : {"service_id" : "serone","service_alias" : "aliasone"},
-        "service_cname2" : {"service_id" : "sertwo","service_alias" : "aliastwo"},
-        "service_cname3" : {"service_id" : "serthree","service_alias" : "aliasthree"},
-        "service_cname4" : {"service_id" : "serfour","service_alias" : "aliasfour"},
-        "service_cname5" : {"service_id" : "serfive","service_alias" : "aliasfive"},
-        "service_cname6" : {"service_id" : "sersix","service_alias" : "aliassix"},
-        "service_cname7" : {"service_id" : "serseven","service_alias" : "aliasseven"},
-        "service_cname8" : {"service_id" : "sereight","service_alias" : "aliaseight"},
-        "service_cname9" : {"service_id" : "sernine","service_alias" : "aliasnine"},
-       
-    }
-    */
+    
 function FnSvg(json_svg,json_data){
     console.log(json_svg);
     console.log(json_data);
-    var svgNS = 'http://www.w3.org/2000/svg';
-    var arrDepApp =[];  //全部依赖别的
-    var arrApp =[];  //组合数组  右边所有依赖合并
-    var AppBot =[];
-    var AppTop = [];
-    var AppMid = []; // 中部，即依赖别的
+    var AppBot =[];        // 下部
+    var AppTop = [];      //   上部
+    var AppMid = [];     // 中部，即依赖别的
+    var key_svg = [];    // key
+    var val_svg_arr =[]; // 数组
+    var val_svg = [];    //值
+    var my_svg =[];      // 依赖自己
+    var val_svg_single =[]; // 值数组去重
+
+    Array.prototype.indexOf = function(val) {
+        for (var i = 0; i < this.length; i++) {
+            if (this[i] == val) return i;
+        }
+        return -1;
+    };
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    };
+    /*
     for(var key in json_svg){
-        if(json_svg[key].length == 0){
+        if(json_svg.length == 0){
+            //没有依赖关系
+            console.log("没有依赖关系");
+        }else if(json_svg[key].length == 0){
             AppBot.push(key);
+        }else if(){
+
         }else{
-            arrDepApp.push(key);
+             arrDepApp.push(key);
             arrApp = arrApp.concat(json_svg[key]);
         }
-    }
-    //console.log(AppBot);
-    //console.log(arrDepApp);
-    //console.log(arrApp);
+    }*/
+    
+   for(var key in json_svg){
+        key_svg.push(key);
+        val_svg_arr.push(json_svg[key]);
+        val_svg = val_svg.concat(json_svg[key]);
+   }
+   //console.log(key_svg.length);
+   //console.log(key_svg); 
+   //console.log(val_svg);
+   //console.log(val_svg_arr);
 
-    var AppMB = []; 
-    //数组去重
-    for(i=0;i<arrApp.length;i++){
-        if(AppMB.indexOf(arrApp[i])<0){
-            AppMB.push(arrApp[i])
+   //
+   if(key_svg.length == 0){
+        console.log("没有依赖关系");
+   }else{
+        for(var key in json_svg){
+            if(json_svg[key].length == 0){
+                AppBot.push(key);
+                key_svg.remove(key);
+                val_svg.remove(key);
+            }else{
+                for(var i=0;i<json_svg[key].length; i++){
+                   if(json_svg[key][i] == key){
+                        my_svg.push(key);
+                        val_svg.remove(key);
+                   } 
+                }
+            }
         }
     }
+    console.log(key_svg); 
+    console.log(val_svg);
+   
+    //数组去重
+    for(i=0;i<val_svg.length;i++){
+        if(val_svg_single.indexOf(val_svg[i])<0){
+            val_svg_single.push(val_svg[i])
+        }
+    }    
+    console.log(val_svg_single);
 
-    //console.log(AppMB);
-    var strMB =  AppMB.join("&");
-    strMB = strMB + "&";
-    //console.log(strMB);
-    
-    var strTM = arrDepApp.join("&");
-    strTM = strTM  + "&";
-
-    for(var i=0; i<AppBot.length;i++){
-        var str = AppBot[i] + "&";
-        var rex = new RegExp(str, 'g');
-        strMB = strMB.replace(rex, "");       
+    for(var i=0;i<val_svg_single.length;i++){
+        if(key_svg.indexOf(val_svg_single[i]) == -1){
+            AppBot.push(val_svg_single[i]);
+        }else{
+            AppMid.push(val_svg_single[i]);
+        }
     }
-    //console.log(strMB);
-    var strM = strMB.substring(0,(strMB.length-1));
-    //console.log(strM);
-    
-    AppMid = strM.split("&");
-    
-
-    for(var i=0; i<AppMid.length;i++){
-        var str = AppMid[i] + "&";
-        var rex = new RegExp(str, 'g');
-        strTM  = strTM.replace(rex, "");       
+    for(var i=0;i<key_svg.length;i++){
+        if(val_svg_single.indexOf(key_svg[i]) == -1){
+            AppTop.push(key_svg[i]);
+        }
     }
-    var strT = strTM.substring(0,(strTM.length-1));
-    AppTop =  strT.split("&");
-    //console.log(AppTop);
-    //console.log(AppMid);
+    console.log(my_svg);
+    console.log(AppTop);
+    console.log(AppMid);
+    console.log(AppBot);
 
-    // svg 绘图
+    
+    //绘图
     var svgNS = 'http://www.w3.org/2000/svg';
     var oSvgDiv = document.getElementById("svg-box");
-    var axisXY  = {};
+    var divWidth = oSvgDiv.offsetWidth;
+    var axisXY  = {};  //坐标
+    // 创建函数
     function createTag(tag,objAttr){
         var oTag = document.createElementNS(svgNS , tag);
         for(var attr in objAttr){
@@ -514,39 +530,79 @@ function FnSvg(json_svg,json_data){
     }
     var oSvg = createTag('svg',{'xmlns':svgNS,'width':'100%','height':'600'});
     var oDefs = createTag('defs',{});
-    var oMarker = createTag('marker',{'id':'markerArrow','markerWidth':'13','markerHeight':'13','refX':'100','refY':'6','orient':'auto'});
+    var oMarker = createTag('marker',{'id':'markerArrow','markerWidth':'13','markerHeight':'13','refX':'35','refY':'6','orient':'auto'});
     var oPath = createTag('path',{'d':'M2,2 L2,11 L10,6 L2,2 z','fill':'#ccc'});
     oSvg.appendChild(oDefs);
     oDefs.appendChild(oMarker);
     oMarker.appendChild(oPath);
-    
-    var divWidth = oSvgDiv.offsetWidth;
-    //console.log(divWidth);
-    
-    for(var i=0; i<AppTop.length;i++){
-        var top_width = divWidth/AppTop.length;
-        var top_w = top_width - 20;
-        //FnSvgIcon(top_width,20,i,AppTop[i],top_w,""); 
-        axisXY[AppTop[i]] = [(top_width*i+top_width/2),50];
+
+    // 添加图片
+    function FnSvgIcon(wid,hei,num,txt,txtWid,url){
+        var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei,'href':'images/app1.png'});
+        var oText = createTag('text',{'x':(wid*num+wid/2),'y':hei+70,'font-size':'12','text-anchor':'middle','fill':'#999','lengthAdjust':'spacing'});
+        oText.innerHTML = txt;
+        var oA= createTag('a',{'href':url});
+        var oG = createTag('g',{'style':'cursor:pointer'});
+        oA.appendChild(oText);
+        oA.appendChild(oImg);
+        oG.appendChild(oA);
+        oSvg.appendChild(oG);
     }
-    for(var i=0; i<AppMid.length;i++){
-        var mid_width = divWidth/AppMid.length;
-        var mid_w = mid_width - 20;
-        //FnSvgIcon(mid_width,170,i,AppMid[i],mid_w,"");
-        axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
+    if(AppTop.length != 0){
+        for(var i=0; i<AppTop.length;i++){
+            var top_width = divWidth/AppTop.length;
+            var top_w = top_width - 20;
+            //FnSvgIcon(top_width,30,i,AppTop[i],top_w,""); 
+            axisXY[AppTop[i]] = [(top_width*i+top_width/2),50];
+        }
     }
-    for(var i=0; i<AppBot.length;i++){
-        var bot_width = divWidth/AppBot.length;
-        var bot_w = bot_width - 20;
-        //FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,"");
-        axisXY[AppBot[i]] = [(bot_width*i+bot_width/2),350];
+    if(AppMid.length != 0){
+        for(var i=0; i<AppMid.length;i++){
+            var mid_width = divWidth/AppMid.length;
+            var mid_w = mid_width - 20;
+            //FnSvgIcon(mid_width,170,i,AppMid[i],mid_w,"");
+            axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
+        }
     }
-    console.log(axisXY);
+    if(AppBot.length != 0){
+        for(var i=0; i<AppBot.length;i++){
+            var bot_width = divWidth/AppBot.length;
+            var bot_w = bot_width - 20;
+            //FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,"");
+            axisXY[AppBot[i]] = [(bot_width*i+bot_width/2),350];
+        }
+    }
+    //
+    if(AppTop.length != 0){
+        for(var i=0; i<AppTop.length;i++){
+            var top_width = divWidth/AppTop.length;
+            var top_w = top_width - 20;
+            FnSvgIcon(top_width,30,i,AppTop[i],top_w,""); 
+            //axisXY[AppTop[i]] = [(top_width*i+top_width/2),50];
+        }
+    }
+    if(AppMid.length != 0){
+        for(var i=0; i<AppMid.length;i++){
+            var mid_width = divWidth/AppMid.length;
+            var mid_w = mid_width - 20;
+            FnSvgIcon(mid_width,170,i,AppMid[i],mid_w,"");
+            //axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
+        }
+    }
+    if(AppBot.length != 0){
+        for(var i=0; i<AppBot.length;i++){
+            var bot_width = divWidth/AppBot.length;
+            var bot_w = bot_width - 20;
+            FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,"");
+            //axisXY[AppBot[i]] = [(bot_width*i+bot_width/2),350];
+        }
+    }
+    //
     for(var key in json_svg){
         if(json_svg[key].length != 0){
-            console.log(key);
-            console.log(axisXY[key]);
-            console.log(json_svg[key]);
+            //console.log(key);
+            //console.log(axisXY[key]);
+            //console.log(json_svg[key]);
             for(var i=0; i<json_svg[key].length; i++){
                 //console.log(axisXY[json_svg[key][i]]);
                 var startX = axisXY[key][0];
@@ -563,33 +619,7 @@ function FnSvg(json_svg,json_data){
             }
         }
     }
-    //
-    function FnSvgIcon(wid,hei,num,txt,txtWid,url){
-        var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei,'href':'/static/www/images/app1.png'});
-        var oText = createTag('text',{'x':(wid*num+wid/2),'y':hei+70,'font-size':'12','text-anchor':'middle','fill':'#999','lengthAdjust':'spacing'});
-        oText.innerHTML = txt;
-        var oA= createTag('a',{'href':url});
-        var oG = createTag('g',{'style':'cursor:pointer'});
-        oA.appendChild(oText);
-        oA.appendChild(oImg);
-        oG.appendChild(oA);
-        oSvg.appendChild(oG);
-    }
-   for(var i=0; i<AppTop.length;i++){
-        var top_width = divWidth/AppTop.length;
-        var top_w = top_width - 20;
-        FnSvgIcon(top_width,20,i,AppTop[i],top_w,"");  
-    }
-    for(var i=0; i<AppMid.length;i++){
-        var mid_width = divWidth/AppMid.length;
-        var mid_w = mid_width - 20;
-        FnSvgIcon(mid_width,170,i,AppMid[i],mid_w,"");  
-    }
-    for(var i=0; i<AppBot.length;i++){
-        var bot_width = divWidth/AppBot.length;
-        var bot_w = bot_width - 20;
-        FnSvgIcon(bot_width,320,i,AppBot[i],bot_w,""); 
-    }
+
     oSvgDiv.appendChild(oSvg);
 }
     //////图
