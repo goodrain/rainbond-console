@@ -401,12 +401,16 @@ $(function(){
     	console.log(secdate);
     	//
 		var tenantName = $("#tenantNameValue").val();
+		var compose_group_name = $("#com-name").val()
     	///
     	$.ajax({
             type: "post",
             url: "/apps/"+tenantName+"/compose-params/",
             dataType: "json",
-			data: {"service_configs":JSON.stringify(secdate)},
+			data: {
+					"service_configs":JSON.stringify(secdate),
+					"compose_group_name":compose_group_name
+					},
 			beforeSend : function(xhr, settings) {
 				var csrftoken = $.cookie('csrftoken');
 				xhr.setRequestHeader("X-CSRFToken", csrftoken);

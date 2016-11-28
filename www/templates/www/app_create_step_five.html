@@ -16,6 +16,7 @@
     <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
     <input type="hidden" id="compose_file_id" value="{{compose_file_id}}">
     <input type="hidden" id="parse_error" value="{{parse_error}}">
+    <input type="hidden" id="compose_relations" value="{{compose_relations}}">
     <section class="panel">
         <div class="steptit">
             <span >1，设置镜像来源</span>
@@ -23,16 +24,15 @@
         </div>
         <span class="line"></span>
         <!-- start -->
-
         <div class="tablink">
             <a href="javascript:;" class="sed">总览</a>
             {% for service in service_list %}
-            <a href="javascript:;" {% if forloop.first %} class="sed" {% endif %}>{{service.name}}</a>
+            <a href="javascript:;" >{{service.name}}</a>
             {% endfor %}
         </div>
         <!-- 总览 start -->
-        <section id="overview" class="fn-app-box" style="display:block;">
-            <p><input type="text" value="compose" id="com-name" /></p>
+        <section id="overview" class="fn-app-box" style="display: block;">
+            <p><input type="text" value="{{compose_group_name}}" id="com-name" /></p>
             <div class="view-svg" id="view-svg">
                 
             </div>
@@ -42,7 +42,7 @@
         {% for service in service_list %}
         <input type="hidden" name="depends_on" value="{{service.depends_on}}">
         <input type="hidden" name="image" value="{{service.image}}">
-        <section id="{{service.service_id}}" service_cname="{{service.name}}" service_image="{{service.image}}" class="app-box fn-app-box" {% if forloop.first %} style="display: block;" {% endif %}>
+        <section id="{{service.service_id}}" service_cname="{{service.name}}" service_image="{{service.image}}" class="app-box fn-app-box"  style="none: block;" >
             <!-- 应用端口 start -->
             <section class="box-single">
                 <h3>应用端口</h3>

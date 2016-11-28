@@ -91,10 +91,13 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         try:
             compose_file_id = request.GET.get("id", "")
-            compose_file_path = ComposeServiceRelation.objects.get(compose_file_id=compose_file_id).compose_file.path
+            yaml_file = ComposeServiceRelation.objects.get(compose_file_id=compose_file_id)
+            compose_file_path = yaml_file.compose_file.path
+            context["compose_file_name"] = yaml_file.compose_file.name
             service_list, info = compose_list(compose_file_path)
             tenant_id = self.tenant.tenant_id
             linked = []
+            compose_relations = {}
             if service_list is None:
                 context["parse_error"] = "parse_error"
                 context["parse_error_info"] = info
@@ -116,11 +119,14 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     docker_service.depends_on = self.json_loads(depends_on_json)
                     linked.extend(docker_service.links)
                     linked.extend(docker_service.depends_on)
+                    compose_relations[docker_service.name] = linked
 
+            context["compose_relations"] = json.dumps(compose_relations)
             context["linked_service"] = linked
             context["service_list"] = service_list
             context["compose_file_id"] = compose_file_id
             context["tenantName"] = self.tenant.tenant_name
+            context["compose_group_name"] = "compose"+make_uuid(self.tenant.tenant_id)[-6:]
         except Exception as e:
             context["parse_error"] = "parse_error"
             logger.error(e)
@@ -149,7 +155,9 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                 return JsonResponse(result, status=200)
             service_configs = request.POST.get("service_configs", "")
             service_configs = self.json_loads(service_configs)
-
+            compose_group_name = request.POST.get("compose_group_name","")
+            if compose_group_name is None or compose_group_name.strip() == "":
+                compose_group_name =  "compose"+make_uuid(self.tenant.tenant_id)[-6:]
 
             if service_configs != "":
                 deps = {}
@@ -157,7 +165,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     service_cname = config.get("service_cname")
                     service_id = config.get("service_id")
                     deps[service_cname] = service_id
-                group_name = "compose"+make_uuid(self.tenant.tenant_id)[-6:]
+                group_name = compose_group_name
                 group = ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
                                             group_name=group_name)
 
