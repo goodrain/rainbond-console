@@ -397,12 +397,12 @@ $(function(){
             success : function(data) {
                
                 var oData = eval(data);
-                console.log(oData.code);
+                console.log(oData.status);
                 
                 console.log(oData.json_svg);
                 console.log(oData.json_data);
-                FnSvg(oData.json_svg,oData.json_data);
-                if(oData.code == 200){
+                //FnSvg(oData.json_svg,oData.json_data);
+                if(oData.status == 200){
                     console.log(oData.json_svg);
                     console.log(oData.json_data);
                     FnSvg(oData.json_svg,oData.json_data);
