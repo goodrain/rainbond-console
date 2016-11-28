@@ -447,6 +447,15 @@ class RestartServiceView(BaseAPIView):
             return Response(status=408, data={"success": False, "msg": u"服务不存在"})
         # 启动服务
         limit = request.data.get("limit", True)
+        # 启动依赖服务
+        relation_list = TenantServiceRelation.objects.filter(service_id=service.service_id)
+        if len(relation_list) > 0:
+            dep_service_id_list = [x.dep_service_id for x in list(relation_list)]
+            dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_id_list)
+            dep_service_map = {x.service_id: x for x in dep_service_list}
+            for relation in relation_list:
+                dep_service = dep_service_map.get(relation.dep_service_id)
+                manager.restart_service(tenant, dep_service, username, limit)
         status, success, msg = manager.restart_service(tenant, service, username, limit)
         return Response(status=status, data={"success": success, "msg": msg})
 
