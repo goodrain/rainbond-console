@@ -418,8 +418,8 @@ $(function(){
     
     
 function FnSvg(json_svg,json_data){
-    console.log(json_svg);
-    console.log(json_data);
+    //console.log(json_svg);
+    //console.log(json_data);
     var AppBot =[];        // 下部
     var AppTop = [];      //   上部
     var AppMid = [];     // 中部，即依赖别的
@@ -475,8 +475,8 @@ function FnSvg(json_svg,json_data){
             }
         }
     }
-    console.log(key_svg); 
-    console.log(val_svg);
+    //console.log(key_svg); 
+    //console.log(val_svg);
    
     //数组去重
     for(i=0;i<val_svg.length;i++){
@@ -484,7 +484,7 @@ function FnSvg(json_svg,json_data){
             val_svg_single.push(val_svg[i])
         }
     }    
-    console.log(val_svg_single);
+    //console.log(val_svg_single);
 
     for(var i=0;i<val_svg_single.length;i++){
         if(key_svg.indexOf(val_svg_single[i]) == -1){
