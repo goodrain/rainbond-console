@@ -447,8 +447,8 @@ $(function(){
 		var num = $(this).index();
 		$(".tablink a").removeClass("sed");
 		$(this).addClass("sed");
-		$("section.app-box").hide();
-		$("section.app-box").eq(num).show();
+		$("section.fn-app-box").hide();
+		$("section.fn-app-box").eq(num).show();
 	});
 
 
