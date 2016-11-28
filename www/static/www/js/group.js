@@ -536,7 +536,7 @@ function FnSvg(json_svg,json_data){
     oDefs.appendChild(oMarker);
     oMarker.appendChild(oPath);
 
-    
+
     // 添加图片
     function FnSvgIcon(wid,hei,num,txt,txtWid,url){
         var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei,'href':'/static/www/images/app1.png'});
@@ -574,6 +574,28 @@ function FnSvg(json_svg,json_data){
         }
     }
     //
+    for(var key in json_svg){
+        if(json_svg[key].length != 0){
+            //console.log(key);
+            //console.log(axisXY[key]);
+            //console.log(json_svg[key]);
+            for(var i=0; i<json_svg[key].length; i++){
+                //console.log(axisXY[json_svg[key][i]]);
+                var startX = axisXY[key][0];
+                //console.log(startX);
+                var startY = axisXY[key][1];
+                //console.log(startY);
+                var endX = axisXY[json_svg[key][i]][0];
+                //console.log(endX);
+                var endY = axisXY[json_svg[key][i]][1];
+                //console.log(endY);
+                var oLine = createTag('line',{'x1':startX,'y1':startY,'x2':endX,'y2':endY,'stroke':'#ccc','marker-end':'url(#markerArrow)'});
+                //console.log(oLine);
+                oSvg.appendChild(oLine);
+            }
+        }
+    }
+    //
     if(AppTop.length != 0){
         for(var i=0; i<AppTop.length;i++){
             var top_width = divWidth/AppTop.length;
@@ -599,27 +621,7 @@ function FnSvg(json_svg,json_data){
         }
     }
     //
-    for(var key in json_svg){
-        if(json_svg[key].length != 0){
-            //console.log(key);
-            //console.log(axisXY[key]);
-            //console.log(json_svg[key]);
-            for(var i=0; i<json_svg[key].length; i++){
-                //console.log(axisXY[json_svg[key][i]]);
-                var startX = axisXY[key][0];
-                //console.log(startX);
-                var startY = axisXY[key][1];
-                //console.log(startY);
-                var endX = axisXY[json_svg[key][i]][0];
-                //console.log(endX);
-                var endY = axisXY[json_svg[key][i]][1];
-                //console.log(endY);
-                var oLine = createTag('line',{'x1':startX,'y1':startY,'x2':endX,'y2':endY,'stroke':'#ccc','marker-end':'url(#markerArrow)'});
-                //console.log(oLine);
-                oSvg.appendChild(oLine);
-            }
-        }
-    }
+    
 
     oSvgDiv.appendChild(oSvg);
 }
