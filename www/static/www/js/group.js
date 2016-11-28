@@ -384,7 +384,6 @@ $(function(){
         $("#tabbtn").addClass("sed");
     }else{
         ///
-        console.log(1);
         $.ajax({
             type : "get",
             url : "/ajax/" + tenant_Name + "/topological/" + groupID,
@@ -397,14 +396,14 @@ $(function(){
             success : function(data) {
                
                 var oData = eval(data);
-                console.log(oData.status);
+                //console.log(oData.status);
                 
-                console.log(oData.json_svg);
-                console.log(oData.json_data);
+                //console.log(oData.json_svg);
+                //console.log(oData.json_data);
                 //FnSvg(oData.json_svg,oData.json_data);
                 if(oData.status == 200){
-                    console.log(oData.json_svg);
-                    console.log(oData.json_data);
+                    //console.log(oData.json_svg);
+                    //console.log(oData.json_data);
                     FnSvg(oData.json_svg,oData.json_data);
                 }else{
                      swal(oData.msg);
