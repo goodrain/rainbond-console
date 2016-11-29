@@ -103,6 +103,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                 context["parse_error_info"] = info
             else:
                 for docker_service in service_list:
+                    temp = []
                     service_id = make_uuid(tenant_id)
                     docker_service.service_id = service_id
                     env_var_json = docker_service.environment
@@ -119,7 +120,9 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     docker_service.depends_on = self.json_loads(depends_on_json)
                     linked.extend(docker_service.links)
                     linked.extend(docker_service.depends_on)
-                    compose_relations[docker_service.name] = linked
+                    temp.extend(docker_service.links)
+                    temp.extend(docker_service.depends_on)
+                    compose_relations[docker_service.name] = temp
 
             context["compose_relations"] = json.dumps(compose_relations)
             context["linked_service"] = linked
