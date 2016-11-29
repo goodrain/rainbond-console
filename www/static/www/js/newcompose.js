@@ -687,6 +687,7 @@ $(function(){
 			var oText = $(this).html();
 			if(oText == oHtml){
 				var num = $(this).index();
+				console.log(num);
 			}
 		});
 		$(".tablink a").removeClass("sed");
