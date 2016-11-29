@@ -317,6 +317,14 @@ $(function(){
 		$(this).parent().parent().remove();
 	});
 
+	// 图
+	var json_svg_ = $("#compose_relations").attr("value");
+	var json_svg = JSON.parse(json_svg_);
+	console.log(json_svg_);
+	console.log(json_svg);
+	console.log($("#com-name").val());
+	//图
+
 	///// 提交
     $("#build-app").click(function(){
 		$(this).attr('disabled',true);
@@ -401,7 +409,7 @@ $(function(){
     	console.log(secdate);
     	//
 		var tenantName = $("#tenantNameValue").val();
-		var compose_group_name = $("#com-name").val()
+		var compose_group_name = $("#com-name").val();
     	///
     	$.ajax({
             type: "post",
