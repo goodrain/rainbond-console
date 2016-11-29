@@ -683,11 +683,12 @@ $(function(){
 	$("#view-svg g").click(function(){
 		var oHtml = $(this).find("text").html();
 		console.log(oHtml);
+		var num;
 		$(".tablink a").each(function(){
 			var oText = $(this).html();
 			if(oText == oHtml){
-				var num = $(this).index();
-				console.log(num);
+				num = $(this).index();
+				//console.log(num);
 			}
 		});
 		$(".tablink a").removeClass("sed");
