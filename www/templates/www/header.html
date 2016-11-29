@@ -48,6 +48,16 @@
         </li>
         {% endif%}
 
+        {% if user.is_sys_admin %}
+
+        <li class="hidden-xs">
+            <a href="/share/">
+                <i class="fa fa-file-text-o"></i>
+                <span>数据中心管理</span>
+            </a>
+        </li>
+        {% endif%}
+
         <!-- user login dropdown start-->
         <li class="dropdown">
             <a data-toggle="dropdown" class="dropdown-toggle" href="#">

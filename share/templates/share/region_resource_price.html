@@ -4,26 +4,34 @@
 {% block main-content %}
 <div role="tabpanel" class="tab-pane active">
     <section class="wrapper site-min-height">
-        <div class="panel-body">
-            <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;" id="config_list">
-                <thead>
-                    <tr>
-                        <th>数据中心</th>
-                        <th>内存定价</th>
-                        <th>磁盘定价</th>
-                        <th>流量定价</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>阿里云上海</td>
-                        <td><input type="text" value="0.069/G"></td>
-                        <td><input type="text" value="0.0041/G"></td>
-                        <td><input type="text" value="0.8/G"></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        {% if not region_price_list%}
+            <h2>您还没有注册任何数据中心,请先完成数据中心认证</h2>
+        {% else %}
+        {% for region in region_price_list %}
+            <div class="panel-body">
+                <form action="/region/price/" method="post">
+                    <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;" id="config_list">
+                        <thead>
+                            <tr>
+                                <th>数据中心</th>
+                                <th>内存定价</th>
+                                <th>磁盘定价</th>
+                                <th>流量定价</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{{ region.region }}</td>
+                                <td><input type="text" value="{{ region.memory_price }}/G"></td>
+                                <td><input type="text" value="{{ region.disk_price }}/G"></td>
+                                <td><input type="text" value="{{ region.net_price }}/G"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+            {% endfor %}
+        {% endif%}
     </section>
 </div>
 {% endblock %}
