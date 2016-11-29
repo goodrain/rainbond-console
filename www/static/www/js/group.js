@@ -628,6 +628,14 @@ function FnSvg(json_svg,json_data){
     oSvgDiv.appendChild(oSvg);
 }
     //////图
+
+    $("#svg-box g").click(function(){
+        var oUrl = $(this).children("a").attr("href");
+        console.log(oUrl);
+        if(oUrl != ""){
+            window.location.href = oUrl;
+        }
+    })
 });
 
 
