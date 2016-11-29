@@ -28,6 +28,7 @@ class RegionProvider(BaseModel):
     provider_name = models.CharField(max_length=32, help_text=u"提供商")
     user_id = models.IntegerField(help_text=u"提供商")
 
+
 class RegionResourceProviderPrice(BaseModel):
     class Meta:
         db_table = "region_resource_provider_price"

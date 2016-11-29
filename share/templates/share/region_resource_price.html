@@ -14,17 +14,29 @@
                         <thead>
                             <tr>
                                 <th>数据中心</th>
-                                <th>内存定价</th>
-                                <th>磁盘定价</th>
-                                <th>流量定价</th>
+                                <th>内存基价(G)</th>
+                                <th>内存市价(G)</th>
+                                <th>磁盘基价(G)</th>
+                                <th>磁盘市价(G)</th>
+                                <th>流量基价(G)</th>
+                                <th>流量市价(G)</th>
+                                <th>状态</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td>{{ region.region }}</td>
-                                <td><input type="text" value="{{ region.memory_price }}/G"></td>
-                                <td><input type="text" value="{{ region.disk_price }}/G"></td>
-                                <td><input type="text" value="{{ region.net_price }}/G"></td>
+                                <td><input type="text" name="memory_price" value="{{ region.memory_price }}"></td>
+                                <td>{{ region.trial_memory_price }}"</td>
+                                <td><input type="text" name="disk_price" value="{{ region.disk_price }}"></td>
+                                <td>{{ region.trial_disk_price }}"</td>
+                                <td><input type="text" name="net_price" value="{{ region.net_price }}"></td>
+                                <td>{{ region.trial_net_price }}"</td>
+                                <td>{{ region.status }}"</td>
+                                <th>
+                                    <span><input type="submit" name="action" value="modify">修改</span>
+                                </th>
                             </tr>
                         </tbody>
                     </table>

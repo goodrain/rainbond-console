@@ -16,7 +16,23 @@ class RegionOverviewView(ShareBaseView):
 class RegionResourcePriceView(ShareBaseView):
     def get(self, request, *args, **kwargs):
         provider = self.provider.provider_name
-        region_price_list = list(RegionResourceProviderPrice.objects.filter(provider=provider))
+        provider_price_list = list(RegionResourceProviderPrice.objects.filter(provider=provider))
+
+        region_price_list = []
+        for region_price in provider_price_list:
+            region_info = {}
+            region_info["region"] = region_price.region
+            region_info["memory_price"] = region_price.memory_price
+            region_info["disk_price"] = region_price.disk_price
+            region_info["net_price"] = region_price.net_price
+
+            saler_price = RegionResourceSalesPrice.objects.filter(provider=provider, region=region_price.region)
+            region_info["trial_memory_price"] = saler_price.memory_price
+            region_info["trial_disk_price"] = saler_price.disk_price
+            region_info["trial_net_price"] = saler_price.net_price
+
+            region_price_list.append(region_info)
+
         context = self.get_context()
         context.update({
             "region_price_list": region_price_list
@@ -30,14 +46,19 @@ class RegionResourcePriceView(ShareBaseView):
         net_price = request.POSt.get("net_price", None)
 
         provider = self.provider.name
+        try:
+            provider_price = RegionResourceProviderPrice.objects.get(provider=provider, region=region)
+        except Excetpion:
+            provider_price = RegionResourceProviderPrice()
+            provider_price.region = region
+            provider_price.provider = provider
 
-        provider_price = RegionResourceProviderPrice.objects.get(provider=provider, region=region)
         provider_price.memory_price = memory_price or provider_price.memory_price
         provider_price.disk_price = disk_price or provider_price.disk_price
         provider_price.net_price = net_price or provider_price.net_price
         provider_price.save()
 
-        # 根据数据中心定价按照一定的规则生成平台零售价
+        # 发布这个价格, 根据数据中心定价按照一定的规则生成平台零售价
         trial_price_list = list(RegionResourceSalesPrice.objects.filter(saler="goodrain"))
         if trial_price_list:
             for trial_price in trial_price_list:
