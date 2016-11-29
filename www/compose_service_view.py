@@ -129,7 +129,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
             context["service_list"] = service_list
             context["compose_file_id"] = compose_file_id
             context["tenantName"] = self.tenant.tenant_name
-            context["compose_group_name"] = "compose"+make_uuid(self.tenant.tenant_id)[-6:]
+            context["compose_group_name"] = "compose"+compose_file_id[-6:]
         except Exception as e:
             context["parse_error"] = "parse_error"
             logger.error(e)
