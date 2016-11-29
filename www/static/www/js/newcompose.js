@@ -432,6 +432,7 @@ $(function(){
     
     //绘图
     var svgNS = 'http://www.w3.org/2000/svg';
+    var svgLink="http://www.w3.org/1999/xlink";
     var oSvgDiv = document.getElementById("view-svg");
     var divWidth = oSvgDiv.offsetWidth;
     var axisXY  = {};  //坐标
@@ -443,7 +444,7 @@ $(function(){
         }
         return oTag;
     }
-    var oSvg = createTag('svg',{'xmlns':svgNS,'width':'100%','height':'600'});
+    var oSvg = createTag('svg',{'xmlns':svgNS,'xmlns:xlink':svgLink,'width':'100%','height':'600'});
     var oDefs = createTag('defs',{});
     var oMarker = createTag('marker',{'id':'markerArrow','markerWidth':'13','markerHeight':'13','refX':'35','refY':'6','orient':'auto'});
     var oPath = createTag('path',{'d':'M2,2 L2,11 L10,6 L2,2 z','fill':'#ccc'});
@@ -454,9 +455,10 @@ $(function(){
 
     // 添加图片
     function FnSvgIcon(wid,hei,num,txt,txtWid){
-        var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei,'href':'/static/www/images/app1.png'});
+        var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei});
         var oText = createTag('text',{'x':(wid*num+wid/2),'y':hei+70,'font-size':'12','text-anchor':'middle','fill':'#999','lengthAdjust':'spacing'});
         oText.innerHTML = txt;
+        oImg.setAttributeNS(svgLink,'xlink:href','/static/www/images/app1.png');
         var oA= createTag('a',{'href':"javascript:;"});
         var oG = createTag('g',{'style':'cursor:pointer'});
         oA.appendChild(oText);
