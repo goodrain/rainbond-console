@@ -304,7 +304,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["hasInnerServices"] = True
 
                 envMap = {}
-                envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"))
+                envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"),is_change=False)
                 if len(envVarlist) > 0:
                     for evnVarObj in envVarlist:
                         arr = envMap.get(evnVarObj.service_id)
@@ -449,7 +449,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
                 context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port= -1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port= -1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
