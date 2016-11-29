@@ -12,6 +12,7 @@ from www.tenantservice.baseservice import BaseTenantService
 import json
 from api.views.services.sendapp import AppSendUtil
 from django.conf import settings
+from www.region import RegionInfo
 
 import logging
 logger = logging.getLogger('default')
@@ -370,8 +371,27 @@ class PublishServiceView(APIView):
                 image_url = str(app.logo)
                 logger.debug('send service logo:{}'.format(image_url))
                 apputil.send_image('app_logo', image_url)
+            # 发送请求到所有的数据中心进行数据同步
+            self.downloadImage(serviceInfo)
 
         return Response({"ok": True}, status=200)
+
+    def downloadImage(self, base_info):
+        if base_info is None:
+            return
+        try:
+            download_task = {}
+            if base_info.is_slug():
+                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key, "app_version": base_info.version, "namespace": base_info.namespace, "dep_sids": json.dumps([])}
+                for region in RegionInfo.valid_regions():
+                    logger.info(region)
+                    regionClient.send_task(region, 'app_slug', json.dumps(download_task))
+            else:
+                download_task = {"action": "download_and_deploy", "image": base_info.image, "namespace": base_info.namespace, "dep_sids": json.dumps([])}
+                for region in RegionInfo.valid_regions():
+                    regionClient.send_task(region, 'app_image', json.dumps(download_task))
+        except Exception as e:
+            logger.exception(e)
 
 
 class ReceiveServiceView(APIView):
