@@ -545,6 +545,7 @@ function FnSvg(json_svg,json_data){
         oText.innerHTML = txt;
         oImg.setAttributeNS(svgLink,'xlink:href','/static/www/images/app1.png');
         var oA= createTag('a',{'href':url});
+        oA.setAttributeNS(svgLink,'xlink:href','/static/www/images/app1.png');
         var oG = createTag('g',{'style':'cursor:pointer'});
         oA.appendChild(oText);
         oA.appendChild(oImg);
@@ -628,14 +629,6 @@ function FnSvg(json_svg,json_data){
     oSvgDiv.appendChild(oSvg);
 }
     //////图
-
-    $("#svg-box a").click(function(){
-        var oUrl = $(this).attr("href");
-        console.log(oUrl);
-        if(oUrl != ""){
-            window.location.href = oUrl;
-        }
-    })
 });
 
 
