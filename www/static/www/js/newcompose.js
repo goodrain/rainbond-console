@@ -698,9 +698,9 @@ $(function(){
 		var compose_file_id = $("#compose_file_id").val();
 		var tenantName = $("#tenantNameValue").val();
 		url = "/apps/"+tenantName+"/compose-create?id="+compose_file_id;
-		window.location.href = urlx
-
-
+		window.location.href = url
+	})
+});
 
 
 
