@@ -629,8 +629,8 @@ function FnSvg(json_svg,json_data){
 }
     //////图
 
-    $("#svg-box g").click(function(){
-        var oUrl = $(this).children("a").attr("href");
+    $("#svg-box a").click(function(){
+        var oUrl = $(this).attr("href");
         console.log(oUrl);
         if(oUrl != ""){
             window.location.href = oUrl;
