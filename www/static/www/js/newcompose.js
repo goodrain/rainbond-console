@@ -317,12 +317,22 @@ $(function(){
 		$(this).parent().parent().remove();
 	});
 
+	// 名称 compose 
+	var oldname = $("#com-name").val();
+	$("#com-name").focus(function(){
+	  	$(this).attr("value","");
+	});
+	$("#com-name").blur(function(){
+		if($(this).val()== ""){
+			$(this).attr("value",oldname);
+		}
+	});
 	// 图
 	var json_svg_ = $("#compose_relations").attr("value");
 	var json_svg = JSON.parse(json_svg_);
-	console.log(json_svg_);
-	console.log(json_svg);
-	console.log($("#com-name").val());
+	//console.log(json_svg_);
+	//console.log(json_svg);
+	
 
 	/// svg
 	var AppBot =[];        // 下部
@@ -610,7 +620,8 @@ $(function(){
     	console.log(secdate);
     	//
 		var tenantName = $("#tenantNameValue").val();
-		var compose_group_name = $("#com-name").val();
+		var compose_group_name = $("#com-name").val() == "" ? oldname : $("#com-name").val();
+		
     	///
     	$.ajax({
             type: "post",
