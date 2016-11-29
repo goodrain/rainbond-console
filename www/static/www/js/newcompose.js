@@ -327,6 +327,11 @@ $(function(){
 			$(this).attr("value",oldname);
 		}
 	});
+	$("#com-name").change(function(){
+		if($(this).val()== ""){
+			$(this).attr("value",oldname);
+		}
+	});
 	// 图
 	var json_svg_ = $("#compose_relations").attr("value");
 	var json_svg = JSON.parse(json_svg_);
@@ -452,7 +457,7 @@ $(function(){
         var oImg = createTag('image',{'width':'60px','height':'60px','x':(wid*num+wid/2-30),'y':hei,'href':'/static/www/images/app1.png'});
         var oText = createTag('text',{'x':(wid*num+wid/2),'y':hei+70,'font-size':'12','text-anchor':'middle','fill':'#999','lengthAdjust':'spacing'});
         oText.innerHTML = txt;
-        var oA= createTag('a',{'href':"#"});
+        var oA= createTag('a',{'href':"javascript:;"});
         var oG = createTag('g',{'style':'cursor:pointer'});
         oA.appendChild(oText);
         oA.appendChild(oImg);
@@ -675,18 +680,25 @@ $(function(){
 		$("section.fn-app-box").eq(num).show();
 	});
 
-
+	$("#view-svg g").click(function(){
+		var oHtml = $(this).find("text").html();
+		console.log(oHtml);
+		$(".tablink a").each(function(){
+			var oText = $(this).html();
+			if(oText == oHtml){
+				var num = $(this).index();
+			}
+		});
+		$(".tablink a").removeClass("sed");
+		$(".tablink a").eq(num).addClass("sed");
+		$("section.fn-app-box").hide();
+		$("section.fn-app-box").eq(num).show();
+	});
 	$("#pre_page").click(function () {
 		var compose_file_id = $("#compose_file_id").val();
 		var tenantName = $("#tenantNameValue").val();
 		url = "/apps/"+tenantName+"/compose-create?id="+compose_file_id;
-		window.location.href = url
-	})
-});
-
-
-
-
+		window.location.href = urlx
 
 
 
