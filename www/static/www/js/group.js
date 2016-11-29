@@ -545,7 +545,7 @@ function FnSvg(json_svg,json_data){
         oText.innerHTML = txt;
         oImg.setAttributeNS(svgLink,'xlink:href','/static/www/images/app1.png');
         var oA= createTag('a',{'href':url});
-        oA.setAttributeNS(svgLink,'xlink:href','/static/www/images/app1.png');
+        oA.setAttributeNS(svgLink,'xlink:href',url);
         var oG = createTag('g',{'style':'cursor:pointer'});
         oA.appendChild(oText);
         oA.appendChild(oImg);
