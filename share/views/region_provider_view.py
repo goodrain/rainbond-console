@@ -4,6 +4,7 @@ import logging
 from base_view import ShareBaseView
 from django.template.response import TemplateResponse
 from share.models.main import *
+import decimal
 
 logger = logging.getLogger('default')
 
@@ -26,10 +27,22 @@ class RegionResourcePriceView(ShareBaseView):
             region_info["disk_price"] = region_price.disk_price
             region_info["net_price"] = region_price.net_price
 
-            saler_price = RegionResourceSalesPrice.objects.filter(provider=provider, region=region_price.region)
-            region_info["trial_memory_price"] = saler_price.memory_price
-            region_info["trial_disk_price"] = saler_price.disk_price
-            region_info["trial_net_price"] = saler_price.net_price
+            try:
+                saler_price = RegionResourceSalesPrice.objects.get(provider=provider, region=region_price.region)
+                region_info["trial_memory_price"] = saler_price.memory_price
+                region_info["trial_disk_price"] = saler_price.disk_price
+                region_info["trial_net_price"] = saler_price.net_price
+
+                region_info["trial_package_memory_price"] = saler_price.memory_package_price
+                region_info["trial_package_disk_price"] = saler_price.disk_package_price
+                region_info["trial_package_net_price"] = saler_price.net_package_price
+            except Exception:
+                region_info["trial_memory_price"] = decimal.Decimal(0.0000)
+                region_info["trial_disk_price"] = decimal.Decimal(0.0000)
+                region_info["trial_net_price"] = decimal.Decimal(0.0000)
+                region_info["trial_package_memory_price"] = decimal.Decimal(0.0000)
+                region_info["trial_package_disk_price"] = decimal.Decimal(0.0000)
+                region_info["trial_package_net_price"] = decimal.Decimal(0.0000)
 
             region_price_list.append(region_info)
 
@@ -40,38 +53,36 @@ class RegionResourcePriceView(ShareBaseView):
         return TemplateResponse(request, "share/region_resource_price.html", context)
 
     def post(self, request, *args, **kwargs):
-        region = request.POSt.get("region", None)
+        region = request.POST.get("region", None)
         memory_price = request.POST.get("memory_price", None)
         disk_price = request.POST.get("disk_price", None)
-        net_price = request.POSt.get("net_price", None)
+        net_price = request.POST.get("net_price", None)
 
-        provider = self.provider.name
+        provider = self.provider.provider_name
         try:
             provider_price = RegionResourceProviderPrice.objects.get(provider=provider, region=region)
-        except Excetpion:
+        except Exception:
             provider_price = RegionResourceProviderPrice()
             provider_price.region = region
             provider_price.provider = provider
 
-        provider_price.memory_price = memory_price or provider_price.memory_price
-        provider_price.disk_price = disk_price or provider_price.disk_price
-        provider_price.net_price = net_price or provider_price.net_price
+        provider_price.memory_price = decimal.Decimal(memory_price) or provider_price.memory_price
+        provider_price.disk_price = decimal.Decimal(disk_price) or provider_price.disk_price
+        provider_price.net_price = decimal.Decimal(net_price) or provider_price.net_price
         provider_price.save()
 
         # 发布这个价格, 根据数据中心定价按照一定的规则生成平台零售价
         trial_price_list = list(RegionResourceSalesPrice.objects.filter(saler="goodrain"))
         if trial_price_list:
             for trial_price in trial_price_list:
-                trial_price.memory_price, trial_price.memory_package_price = self.get_trial_price(
-                    provider_price.memory_price)
+                trial_price.memory_price, trial_price.memory_package_price = self.get_trial_price(provider_price.memory_price)
                 trial_price.disk_price, trial_price.disk_package_price = self.get_trial_price(provider_price.disk_price)
                 trial_price.net_price, trial_price.net_package_price = self.get_trial_price(provider_price.net_price)
 
         else:
-            self.save_region_resource_sales_price(provider_price, "goodrain", "appmarket")
             self.save_region_resource_sales_price(provider_price, "goodrain", "goodrain")
 
-        return self.redirect_to("/region/price/")
+        return self.redirect_to("/share/region/price/")
 
     def save_region_resource_sales_price(self, provider_price, saler, saler_channel):
         trial_price = RegionResourceSalesPrice()
@@ -86,9 +97,11 @@ class RegionResourcePriceView(ShareBaseView):
 
     @staticmethod
     def get_trial_price(provider_base_price):
-
-        used_trial_price = provider_base_price * 1.1 * 6
-        package_trial_price = provider_base_price * 1.1 * 2
+        depreciation_rate = decimal.Decimal(1.1)
+        used_profit_rate = decimal.Decimal(6)
+        package_profit_rate = decimal.Decimal(2)
+        used_trial_price = provider_base_price * depreciation_rate * used_profit_rate
+        package_trial_price = provider_base_price * depreciation_rate * package_profit_rate
 
         return used_trial_price, package_trial_price
 

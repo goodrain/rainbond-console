@@ -27,6 +27,7 @@ class RegionProvider(BaseModel):
 
     provider_name = models.CharField(max_length=32, help_text=u"提供商")
     user_id = models.IntegerField(help_text=u"提供商")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
 class RegionResourceProviderPrice(BaseModel):
@@ -54,3 +55,4 @@ class RegionResourceSalesPrice(BaseModel):
     disk_package_price = models.DecimalField(max_digits=10, decimal_places=4, default=0.0000, help_text=u"磁盘包量单价(G)")
     net_price = models.DecimalField(max_digits=10, decimal_places=4, default=0.0000, help_text=u"网络按需单价(G)")
     net_package_price = models.DecimalField(max_digits=10, decimal_places=4, default=0.0000, help_text=u"网络包量单价(G)")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
