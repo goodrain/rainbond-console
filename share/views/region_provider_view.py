@@ -4,7 +4,13 @@ import logging
 from base_view import ShareBaseView
 from django.template.response import TemplateResponse
 from share.models.main import *
+from datetime import datetime as dt
+import datetime as clzdt
+import calendar
+import time
 import decimal
+import json
+import MySQLdb
 
 logger = logging.getLogger('default')
 
@@ -114,8 +120,316 @@ class RegionResourcePriceView(ShareBaseView):
 
 
 class RegionResourceConsumeView(ShareBaseView):
-    def get(self, request, *args, **kwargs):
-        return TemplateResponse(request, "share/region_resource_consume.html", self.get_context())
+    """数据中心消费统计报表"""
+    RULE = '''
+        {
+            "aws-jp-1":{
+                "company":{"disk":0.0236994219653179,"net":1.286127167630058,"memory_money":0.692,"disk_money":0.0164,"net_money":0.89}
+            },
+            "ali-sh":{
+                "company":{"disk":0.0594202898550725,"net":2.898550724637681,"memory_money":0.276,"disk_money":0.0164,"net_money":0.8}
+            },
+            "xunda-bj":{
+                "company":{"disk":0.05967741935483871,"net":3.2258064516129035,"memory_money":0.248,"disk_money":0.0148,"net_money":0.8}
+            }
+        }
+        '''
 
-    def post(self, request, *args, **kwargs):
-        return TemplateResponse(request, "share/region_resource_consume.html", self.get_context())
+    def get(self, request, *args, **kwargs):
+        querymonth = request.GET.get("date", None)
+        if querymonth:
+            month_date = dt.strptime(querymonth, "%Y-%m")
+        else:
+            now = dt.now()
+            month_date = dt(now.year, now.month, 1, 0, 0, 0) - clzdt.timedelta(days=1)
+
+        region = request.GET.get("region", "xunda-bj")
+        logger.info("input: {}, region:{}".format(querymonth, region))
+
+        start_date = dt(month_date.year, month_date.month, 1, 0, 0, 0)
+        last_day = calendar.monthrange(month_date.year, month_date.month)[1]
+        end_date = dt(month_date.year, month_date.month, last_day, 0, 0, 0) + clzdt.timedelta(
+            days=1)
+
+        logger.info("query from {} to {}".format(start_date, end_date))
+        start_timestamp = int(time.mktime(start_date.timetuple()))
+        end_timestamp = int(time.mktime(end_date.timetuple()))
+
+        conn = MySQLConn()
+        datas = conn.fetch_all("""
+                        SELECT tenant_id, statistics_time, SUM(memory) as memory, SUM(disk) as disk, SUM(net) as net
+                        FROM region_resource_consume
+                        WHERE region='{}' and statistics_time > {} and statistics_time <= {}
+                        group by tenant_id, statistics_time
+                    """.format(region, start_timestamp, end_timestamp))
+        if not datas:
+            return TemplateResponse(request, "market/admin/tenant_consume_report.html", self.get_context())
+
+        logger.info("date len : {}".format(len(datas)))
+        pay_mode = self.get_pay_model(region)
+        logger.info("model len : {}".format(len(pay_mode)))
+        logger.info(pay_mode)
+
+        ruleJsonData = json.loads(self.RULE.replace('\n', ''))
+        tenant_consume = {}
+        for tenant_id, statistics_time, memory, disk, net in datas:
+            if tenant_id not in tenant_consume:
+                init_data = {}
+                init_data["tenant_id"] = tenant_id
+                init_data["memory"] = 0
+                init_data["disk"] = 0
+                init_data["net"] = 0
+                init_data["all_memory"] = 0
+                init_data["real_memory"] = 0
+                init_data["all_money"] = 0.00
+                init_data["real_money"] = 0.00
+                init_data["package_money"] = 0.00
+                tenant_consume[tenant_id] = init_data
+
+            all_memory, real_memory = self.cal_pay_month_data(tenant_id, region, statistics_time, pay_mode, int(memory),
+                                                              int(disk), int(net), "company", ruleJsonData)
+
+            data = tenant_consume[tenant_id]
+            data["memory"] = data["memory"] + memory
+            data["disk"] = data["disk"] + disk
+            data["net"] = data["net"] + net
+            data["all_memory"] = data["all_memory"] + all_memory
+            data["real_memory"] = data["real_memory"] + real_memory
+
+        # 计算每个租户的费用
+        for tenant_id, consume_detail in tenant_consume.items():
+            # 全部按需费用
+            consume_detail["real_money"] = self.calculate_fee(region, "company", consume_detail["real_memory"],
+                                                              ruleJsonData)
+            # 包月超出按需费用
+            consume_detail["all_money"] = self.calculate_fee(region, "company", consume_detail["all_memory"],
+                                                             ruleJsonData)
+            # 包月费用
+            consume_detail["package_money"] = self.cal_pay_month_fee(tenant_id, region, pay_mode, start_date, end_date)
+
+        # 关联租户名称
+        tenant_id_list = []
+        for tenant_id in tenant_consume.keys():
+            tenant_id_list.append("'{}'".format(tenant_id))
+        tenant_id_str = ",".join(tenant_id_list)
+        conn = MySQLConn()
+        tenant_names = conn.fetch_all("""
+                            SELECT tenant_id, tenant_name FROM tenant_info WHERE tenant_id in ({})
+                        """.format(tenant_id_str))
+        tenant_name_map = {tenant_id: tenant_name for tenant_id, tenant_name in tenant_names}
+        for tenant_id, consume_detail in tenant_consume.items():
+            consume_detail["tenant_name"] = tenant_name_map.get(tenant_id)
+
+        # 统计所有租户的总消耗
+        total_tenant_count = len(tenant_consume)
+        total_tenant_memory = 0
+        total_tenant_money = 0.00
+
+        total_real_memory = 0
+        total_real_money = 0.00
+
+        total_package_money = 0.00
+
+        for tenant_id, consume_detail in tenant_consume.items():
+            total_real_memory += consume_detail["real_memory"]
+            total_real_money += consume_detail["real_money"]
+
+            total_tenant_memory += consume_detail["all_memory"]
+            total_tenant_money += consume_detail["all_money"]
+
+            total_package_money += consume_detail["package_money"]
+
+        context = self.get_context()
+        context.update({
+            "total_tenant_count": total_tenant_count,
+            "total_tenant_memory": int(total_tenant_memory),
+            "total_tenant_money": total_tenant_money,
+            "total_real_memory": int(total_real_memory),
+            "total_real_money": total_real_money,
+            "total_package_money": total_package_money,
+            "query_month": month_date.strftime("%Y-%m"),
+            "region": region,
+        })
+        return TemplateResponse(request, "market/admin/tenant_consume_report.html", context)
+
+    def get_pay_model(self, region_name):
+        conn = MySQLConn()
+        pay_model_data = conn.fetch_all("""
+                select tenant_id, buy_memory, buy_disk, buy_net, buy_start_time, buy_end_time
+                from tenant_region_pay_model
+                where region_name = '{}'
+            """.format(region_name))
+
+        data = {}
+        for tenant_id, buy_memory, buy_disk, buy_net, buy_start_time, buy_end_time in pay_model_data:
+            if tenant_id not in data:
+                data[tenant_id] = []
+
+            temdata = {}
+            temdata["buy_memory"] = buy_memory
+            temdata["buy_disk"] = buy_disk
+            temdata["buy_net"] = buy_net
+            temdata["buy_start_time"] = buy_start_time
+            temdata["buy_end_time"] = buy_end_time
+            data[tenant_id].append(temdata)
+        return data
+
+    def cal_pay_month_data(self, tenant_id, region, end_time, payModelData, region_cost_memory, region_cost_disk,
+                           region_cost_net, pay_level, rule_json_data):
+        ruleJson = rule_json_data[region]
+        childJson = ruleJson[pay_level]
+
+        all_memory = region_cost_disk * float(childJson['disk']) + region_cost_net * float(
+            childJson['net']) + region_cost_memory
+        real_memory = 0
+
+        if tenant_id not in payModelData:
+            real_memory = all_memory
+        else:
+            buy_disk = 0
+            buy_net = 0
+            buy_memory = 0
+            tenant_model_data = payModelData.get(tenant_id)
+            for model_data in tenant_model_data:
+                buy_start_timestamp = int(time.mktime(model_data["buy_start_time"].timetuple()))
+                buy_end_timestamp = int(time.mktime(model_data["buy_end_time"].timetuple()))
+                if buy_start_timestamp < end_time < buy_end_timestamp:
+                    buy_disk += model_data["buy_disk"]
+                    buy_net += model_data["buy_net"]
+                    buy_memory += model_data["buy_memory"]
+
+            over_disk = 0
+            buy_disk = float(buy_disk * 1024)
+            if region_cost_disk > buy_disk:
+                over_disk = region_cost_disk - buy_disk
+
+            over_net = 0
+            buy_net = float(buy_net * 1024)
+            if region_cost_net > buy_net:
+                over_net = region_cost_net - buy_net
+
+            over_memory = 0
+            buy_memory = float(buy_memory * 1024)
+            if region_cost_memory > buy_memory:
+                over_memory = region_cost_memory - buy_memory
+            # logger.info("{} at {}".format(tenant_id, end_time))
+            # logger.info("memory: {:>8} - {:>8} = {:>8}".format(region_cost_memory, buy_memory, over_memory))
+            # logger.info("disk  : {:>8} - {:>8} = {:>8}".format(region_cost_disk, buy_disk, over_disk))
+            # logger.info("net   : {:>8} - {:>8} = {:>8}".format(region_cost_net, buy_net, over_net))
+            real_memory = over_disk * float(childJson['disk']) + over_net * float(childJson['net']) + over_memory
+
+        logger.info("{}[{}] - {} used {}[{}]M".format(tenant_id, region, end_time, real_memory, all_memory))
+        return int(round(all_memory, 0)), int(round(real_memory, 0))
+
+    def cal_pay_month_fee(self, tenant_id, region_name, pay_mode, static_start_date, static_end_date):
+        if tenant_id not in pay_mode:
+            return 0.00
+
+        conn = MySQLConn()
+        pay_model_data = conn.fetch_all("""
+                    select tenant_id, region_name, pay_model, buy_period, buy_start_time, buy_end_time, buy_money
+                    from tenant_region_pay_model
+                    where region_name = '{}' and tenant_id = '{}'
+                """.format(region_name, tenant_id))
+
+        if not pay_model_data:
+            return 0.00
+
+        real_cost_money = 0.00
+        for tenant_id, region_name, pay_model, buy_period, buy_start_time, buy_end_time, buy_money in pay_model_data:
+            buy_start_date = buy_start_time
+            buy_end_date = buy_end_time
+            logger.info("{}: [{} - {}], cost:{}".format(tenant_id, buy_start_date, buy_end_date, buy_money))
+
+            single_price = float(str(buy_money)) / (buy_end_date - buy_start_date).days
+            consume_days = 0
+            if buy_end_date <= static_start_date or buy_start_date >= static_end_date:
+                continue
+
+            # 购买周期完全包含统计周期
+            if buy_start_date <= static_start_date and buy_end_date >= static_end_date:
+                consume_days = (static_end_date - static_start_date).days
+            # 购买周期完全在统计周期之内, 则以天计算
+            elif buy_start_date > static_start_date and buy_end_date < static_end_date:
+                consume_days = (buy_end_date - buy_start_date).days
+            elif buy_start_date <= static_start_date and buy_end_date < static_end_date:
+                consume_days = (buy_end_date - static_start_date).days
+            elif buy_start_date > static_start_date and buy_end_date >= static_end_date:
+                consume_days = (static_end_date - buy_start_date).days
+            package_cost = single_price * consume_days
+            real_cost_money += package_cost
+            logger.info("{} * {} = {}, total = {}".format(single_price, consume_days, package_cost, real_cost_money))
+
+        return round(real_cost_money, 2)
+
+    def calculate_fee(self, region, pay_level, region_total_memory, rule_json_data):
+        total_money = 0.00
+        try:
+            ruleJson = rule_json_data[region]
+            childJson = ruleJson[pay_level]
+            total_money = total_money + float(childJson['memory_money']) * (region_total_memory / 1024.0)
+        except Exception as e:
+            logger.exception("", e)
+
+        return round(total_money, 2)
+
+class MySQLConn:
+
+    def __init__(self):
+        self.mysql_info = {}
+        self.mysql_info["host"] = "127.0.0.1"
+        self.mysql_info["port"] = 3307
+        self.mysql_info["user"] = "writer"
+        self.mysql_info["passwd"] = "a5bzkEP3bjc"
+        self.mysql_info["db"] = "goodrain"
+
+    def get_connection(self):
+        return MySQLdb.connect(host=self.mysql_info["host"], port=self.mysql_info["port"],
+                               user=self.mysql_info["user"], passwd=self.mysql_info["passwd"],
+                               db=self.mysql_info["db"])
+
+    def close_connection(self, cur, connection):
+        if cur:
+            cur.close()
+        if connection:
+            connection.close()
+
+    def insert_batch(self, sql, args):
+        try:
+            conn = self.get_connection()
+            cur = conn.cursor()
+            cur.executemany(sql, args)
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logger.exception("", e)
+        finally:
+            self.close_connection(cur, conn)
+
+    def fetch_all(self, sql):
+        data = None
+        try:
+            logger.info(sql)
+            conn = self.get_connection()
+            cur = conn.cursor()
+            cur.execute(sql)
+            data = cur.fetchall()
+        except Exception as e:
+            logger.exception("", e)
+        finally:
+            self.close_connection(cur, conn)
+        return data
+
+    def fetch_one(self, sql):
+        data = None
+        try:
+            logger.info(sql)
+            conn = self.get_connection()
+            cur = conn.cursor()
+            cur.execute(sql)
+            data = cur.fetchone()
+        except Exception as e:
+            logger.exception("", e)
+        finally:
+            self.close_connection(cur, conn)
+        return data

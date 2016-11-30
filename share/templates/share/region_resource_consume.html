@@ -2,93 +2,51 @@
 {% load i18n %}
 {% load goodrain_extras %}
 {% block main-content %}
-<section  class="maintop">
-    <div class="container per-box">
-        <!-- row start -->
-        <div class="row">
-            <div class="col-sm-9">
-                <!-- 标题 -->
-                <div class="content-title">
-                    <a class="sed">租户数据中心{{ query_month }}消费明细报表</a>
-                </div>
-                <div class="addformbox">
-                    <form action="/share/region/report/consume/" method="get">
-                        <input type="text" name="date" value="{{ query_month }}" placeholder="输入查询日期,例:2016-10"/>
-                        <select name="region">
-                            <option value="xunda-bj" selected="selected">迅达-北京</option>
-                            <option value="ali-sh">阿里云-上海</option>
-                            <option value="aws-jp-1">亚马逊-日本</option>
-                        </select>
-                        <input type="submit" value="查询">
-                    </form>
-                </div>
-                <!-- 总览 -->
-                <div class="table-box">
-                    <table class="table table-striped">
-                        <thead>
+<div role="tabpanel" class="tab-pane active">
+    <section class="wrapper site-min-height">
+        <div class="panel-body">
+            <div class="content-title">
+                <a class="sed">租户数据中心{{ query_month }}消费明细报表</a>
+            </div>
+            <div class="addformbox">
+                <form action="/share/region/report/consume/" method="get">
+                    <input type="text" name="date" value="{{ query_month }}" placeholder="输入查询日期,例:2016-10"/>
+                    <select name="region">
+                        <option value="xunda-bj" selected="selected">迅达-北京</option>
+                        <option value="ali-sh">阿里云-上海</option>
+                        <option value="aws-jp-1">亚马逊-日本</option>
+                    </select>
+                    <input type="submit" value="查询">
+                </form>
+            </div>
+            <!-- 总览 -->
+            <div class="table-box">
+                <table class="table table-striped table-advance table-hover" style="margin-bottom: 0px;">
+                    <thead>
+                    <tr>
+                        <td>数据中心</td>
+                        <td>总租户数</td>
+                        <td>总消耗资源</td>
+                        <td>资源应付款</td>
+                        <td>扣除包月按需消耗资源</td>
+                        <td>资源实付款</td>
+                        <td>包月实付款</td>
+                    </tr>
+                    </thead>
+                    <tbody>
                         <tr>
-                            <td>数据中心</td>
-                            <td>总租户数</td>
-                            <td>总消耗资源</td>
-                            <td>资源应付款</td>
-                            <td>扣除包月按需消耗资源</td>
-                            <td>资源实付款</td>
-                            <td>包月实付款</td>
+                            <td>{{ region }}</td>
+                            <td>{{ total_tenant_count }}</td>
+                            <td>{{ total_tenant_memory }}</td>
+                            <td>{{ total_tenant_money }}</td>
+                            <td>{{ total_real_memory }}</td>
+                            <td>{{ total_real_money }}</td>
+                            <td>{{ total_package_money }}</td>
                         </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>{{ region }}</td>
-                                <td>{{ total_tenant_count }}</td>
-                                <td>{{ total_tenant_memory }}</td>
-                                <td>{{ total_tenant_money }}</td>
-                                <td>{{ total_real_memory }}</td>
-                                <td>{{ total_real_money }}</td>
-                                <td>{{ total_package_money }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="content-title">
-                    <a class="sed">租户明细</a>
-                </div>
-                 <!-- 明细 -->
-                <div class="table-box">
-                    <table class="table table-striped">
-                        <thead>
-                        <tr>
-                            <td>租户名</td>
-                            <td>内存</td>
-                            <td>磁盘</td>
-                            <td>网络流量</td>
-                            <td>总消耗资源</td>
-                            <td>资源应付款</td>
-                            <td>扣除包月按需消耗资源</td>
-                            <td>资源实付款</td>
-                            <td>包月实付款</td>
-                        </tr>
-                        </thead>
-                        <tbody>
-                            {% for consume in tenant_consume %}
-                            <tr>
-                                <td>{{ consume.tenant_name }}</td>
-                                <td>{{ consume.memory }}</td>
-                                <td>{{ consume.disk }}</td>
-                                <td>{{ consume.net }}</td>
-                                <td>{{ consume.all_memory }}</td>
-                                <td>{{ consume.all_money }}</td>
-                                <td>{{ consume.real_memory }}</td>
-                                <td>{{ consume.real_money }}</td>
-                                <td>{{ consume.package_money }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
-
-</section>
+    </section>
+</div>
 {% endblock %}
