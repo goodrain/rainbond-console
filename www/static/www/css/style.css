@@ -207,7 +207,7 @@ a, a:hover, a:focus {
 }
 
 ul.sidebar-menu , ul.sidebar-menu li ul.sub{
-    margin: -2px 0 0;
+    
     padding: 0;
 }
 
@@ -267,7 +267,7 @@ ul.sidebar-menu li{
 }
 
 ul.sidebar-menu li.sub-menu{
-    line-height: 15px;
+    
 }
 
 ul.sidebar-menu li a span{
