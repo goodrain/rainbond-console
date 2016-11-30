@@ -5,6 +5,7 @@
 <a href="/" class="logo hidden-xs"><img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" alt="{{CUSTOM_CONFIG.TITLE}}"></a>
 <!--logo end-->
 <!--tenant switch-->
+{% if tenant_list|length > 1 %}
 <div class="nav notify-row  hidden-xs" id="tenant_switch">
     <div class="btn-group" style=" border-left: 1px solid #000; margin-left: 35px;">
         <button class="btn btn-white" type="button">{{current_tenant}}</button>
@@ -16,6 +17,7 @@
         </ul>
     </div>
 </div>
+{% endif %}
 <!--tenant switch-->
 {% block region_zone %}
 <div class="nav notify-row" id="top_menu">
