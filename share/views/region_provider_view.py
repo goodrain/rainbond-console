@@ -171,9 +171,9 @@ class RegionResourceConsumeView(ShareBaseView):
             return TemplateResponse(request, "share/region_resource_consume.html", self.get_context())
 
         logger.info("date len : {}".format(len(datas)))
-        pay_mode = self.get_pay_model(region)
-        logger.info("model len : {}".format(len(pay_mode)))
-        logger.info(pay_mode)
+        package_pay_mode = self.get_pacakge_pay_model(region, start_date, end_date)
+        logger.info("model len : {}".format(len(package_pay_mode)))
+        logger.info(package_pay_mode)
 
         tenant_consume = dict()
         for tenant_id, statistics_time, memory, disk, net in datas:
@@ -183,28 +183,43 @@ class RegionResourceConsumeView(ShareBaseView):
                 init_data["memory"] = 0
                 init_data["disk"] = 0
                 init_data["net"] = 0
+                init_data["fee"] = 0
+                init_data["over_memory"] = 0
+                init_data["over_disk"] = 0
+                init_data["over_net"] = 0
+                init_data["over_fee"] = 0
+                init_data["package_day"] = 0
                 init_data["real_money"] = Decimal(0)
                 init_data["package_money"] = Decimal(0)
                 tenant_consume[tenant_id] = init_data
 
-            fee_memory, fee_disk, fee_net = self.cal_pay_month_data(tenant_id, region, statistics_time, pay_mode, int(memory),
-                                                              int(disk), int(net))
-
+            # 如果这是一个包月用户
             data = tenant_consume[tenant_id]
-            data["memory"] += fee_memory
-            data["disk"] += fee_disk
-            data["net"] += fee_net
+            if tenant_id in package_pay_mode:
+                over_memory, over_disk, over_net = self.cal_pay_month_data(tenant_id, region, statistics_time,
+                                                                           package_pay_mode, int(memory),
+                                                                           int(disk), int(net))
+                data["over_memory"] += over_memory
+                data["over_disk"] += over_disk
+                data["over_net"] += over_net
+            else:
+                data["memory"] += memory
+                data["disk"] += disk
+                data["net"] += net
 
         # 计算每个租户的费用
         region_sales_price = get_object_or_404(RegionResourceSalesPrice, region=region)
         for tenant_id, consume_detail in tenant_consume.items():
             # 全部按需费用
-            consume_detail["real_money"] = self.calculate_fee(consume_detail["memory"],
-                                                              consume_detail["disk"],
-                                                              consume_detail["net"],
-                                                              region_sales_price)
+            consume_detail["fee"] = self.calculate_fee(consume_detail["memory"], consume_detail["disk"],
+                                                       consume_detail["net"], region_sales_price)
+            consume_detail["over_fee"] = self.calculate_fee(consume_detail["over_memory"], consume_detail["over_disk"],
+                                                            consume_detail["over_net"], region_sales_price)
+            consume_detail["real_money"] = consume_detail["fee"] + consume_detail["over_fee"]
             # 包月费用
-            consume_detail["package_money"] = Decimal.from_float(self.cal_pay_month_fee(tenant_id, region, pay_mode, start_date, end_date))
+            package_fee, package_day = self.cal_pay_month_fee(tenant_id, region, package_pay_mode, start_date, end_date)
+            consume_detail["package_money"] = Decimal.from_float(package_fee)
+            consume_detail["package_day"] = package_day
 
         # 关联租户名称
         # tenant_id_list = []
@@ -224,6 +239,11 @@ class RegionResourceConsumeView(ShareBaseView):
         total_tenant_net = 0
         total_tenant_disk = 0
 
+        total_over_memory = 0
+        total_over_net = 0
+        total_over_disk = 0
+        total_package_day = 0
+
         total_real_money = Decimal(0)
         total_package_money = Decimal(0)
 
@@ -231,6 +251,11 @@ class RegionResourceConsumeView(ShareBaseView):
             total_tenant_memory += consume_detail["memory"]
             total_tenant_disk += consume_detail["disk"]
             total_tenant_net += consume_detail["net"]
+
+            total_over_memory += consume_detail["over_memory"]
+            total_over_disk += consume_detail["over_disk"]
+            total_over_net += consume_detail["over_net"]
+            total_package_day += consume_detail["package_day"]
 
             total_real_money += consume_detail["real_money"]
             total_package_money += consume_detail["package_money"]
@@ -240,9 +265,17 @@ class RegionResourceConsumeView(ShareBaseView):
         context = self.get_context()
         context.update({
             "region": region,
-            "total_tenant_memory": total_tenant_memory/1024,
-            "total_tenant_disk": total_tenant_disk/1024,
-            "total_tenant_net": total_tenant_net/1024,
+            "total_used_tenant": len(tenant_consume),
+            "total_tenant_memory": total_tenant_memory / 1024,
+            "total_tenant_disk": total_tenant_disk / 1024,
+            "total_tenant_net": total_tenant_net / 1024,
+
+            "total_package_tenant": len(package_pay_mode),
+            "total_package_day": total_package_day,
+            "total_over_memory": total_over_memory / 1024,
+            "total_over_disk": total_over_disk / 1024,
+            "total_over_net": total_over_net / 1024,
+
             "total_real_money": total_real_money.quantize(Decimal('0.00')),
             "total_package_money": total_package_money.quantize(Decimal('0.00')),
             "total_money": total_money.quantize(Decimal('0.00')),
@@ -250,39 +283,45 @@ class RegionResourceConsumeView(ShareBaseView):
         })
         return TemplateResponse(request, "share/region_resource_consume.html", context)
 
-    def get_pay_model(self, region_name):
+    # 获得在统计周期内包月付费记录
+    def get_pacakge_pay_model(self, region_name, static_start_date, static_end_date):
         conn = MySQLConn()
         pay_model_data = conn.fetch_all("""
-                select tenant_id, buy_memory, buy_disk, buy_net, buy_start_time, buy_end_time
-                from tenant_region_pay_model
-                where region_name = '{}'
+                select  tenant_id, buy_start_time, buy_end_time, buy_money, buy_memory, buy_disk, buy_net
+                from    tenant_region_pay_model
+                where   region_name = '{}'
             """.format(region_name))
 
         data = dict()
-        for tenant_id, buy_memory, buy_disk, buy_net, buy_start_time, buy_end_time in pay_model_data:
+        for tenant_id, buy_start_time, buy_end_time, buy_money, buy_memory, buy_disk, buy_net in pay_model_data:
+            if buy_start_time >= static_end_date or buy_end_time <= static_start_date:
+                continue
+
             if tenant_id not in data:
                 data[tenant_id] = []
 
             temdata = dict()
+            temdata["buy_money"] = buy_money
             temdata["buy_memory"] = buy_memory
             temdata["buy_disk"] = buy_disk
             temdata["buy_net"] = buy_net
             temdata["buy_start_time"] = buy_start_time
             temdata["buy_end_time"] = buy_end_time
+
             data[tenant_id].append(temdata)
         return data
 
-    def cal_pay_month_data(self, tenant_id, region, end_time, payModelData, region_cost_memory, region_cost_disk,
+    def cal_pay_month_data(self, tenant_id, region, end_time, package_pay_mode, region_cost_memory, region_cost_disk,
                            region_cost_net):
         real_memory = region_cost_memory
         real_net = region_cost_net
         real_disk = region_cost_disk
 
-        if tenant_id in payModelData:
+        if tenant_id in package_pay_mode:
             buy_disk = 0
             buy_net = 0
             buy_memory = 0
-            tenant_model_data = payModelData.get(tenant_id)
+            tenant_model_data = package_pay_mode.get(tenant_id)
             for model_data in tenant_model_data:
                 buy_start_timestamp = int(time.mktime(model_data["buy_start_time"].timetuple()))
                 buy_end_timestamp = int(time.mktime(model_data["buy_end_time"].timetuple()))
@@ -291,44 +330,33 @@ class RegionResourceConsumeView(ShareBaseView):
                     buy_net += model_data["buy_net"]
                     buy_memory += model_data["buy_memory"]
 
-            buy_disk = float(buy_disk * 1024)
-            if region_cost_disk > buy_disk:
-                real_disk = region_cost_disk - buy_disk
+            buy_disk *= 1024
+            real_disk = region_cost_disk - buy_disk if region_cost_disk > buy_disk else 0
 
-            buy_net = float(buy_net * 1024)
-            if region_cost_net > buy_net:
-                real_net = region_cost_net - buy_net
+            buy_net *= 1024
+            real_net = region_cost_net - buy_net if region_cost_net > buy_net else 0
 
-            buy_memory = float(buy_memory * 1024)
-            if region_cost_memory > buy_memory:
-                real_memory = region_cost_memory - buy_memory
+            buy_memory *= 1024
+            real_memory = region_cost_memory - buy_memory if region_cost_memory > buy_memory else 0
+
             # logger.info("{} at {}".format(tenant_id, end_time))
             # logger.info("memory: {:>8} - {:>8} = {:>8}".format(region_cost_memory, buy_memory, over_memory))
             # logger.info("disk  : {:>8} - {:>8} = {:>8}".format(region_cost_disk, buy_disk, over_disk))
             # logger.info("net   : {:>8} - {:>8} = {:>8}".format(region_cost_net, buy_net, over_net))
 
-
         logger.info("{} - {} used Mem:{}, Disk:{}, Net:{}".format(tenant_id, end_time, real_memory, real_disk, real_net))
-        return int(round(real_memory, 0)), int(round(real_disk, 0)), int(round(real_net, 0))
+        return real_memory, real_disk, real_net
 
-    def cal_pay_month_fee(self, tenant_id, region_name, pay_mode, static_start_date, static_end_date):
-        if tenant_id not in pay_mode:
-            return 0.00
-
-        conn = MySQLConn()
-        pay_model_data = conn.fetch_all("""
-                    select tenant_id, region_name, pay_model, buy_period, buy_start_time, buy_end_time, buy_money
-                    from tenant_region_pay_model
-                    where region_name = '{}' and tenant_id = '{}'
-                """.format(region_name, tenant_id))
-
-        if not pay_model_data:
-            return 0.00
+    def cal_pay_month_fee(self, tenant_id, region_name, package_pay_mode, static_start_date, static_end_date):
+        if tenant_id not in package_pay_mode:
+            return 0.00, 0
 
         real_cost_money = 0.00
-        for tenant_id, region_name, pay_model, buy_period, buy_start_time, buy_end_time, buy_money in pay_model_data:
-            buy_start_date = buy_start_time
-            buy_end_date = buy_end_time
+        total_consume_days = 0
+        for pay_mode in package_pay_mode.get(tenant_id):
+            buy_start_date = pay_mode['buy_start_time']
+            buy_end_date = pay_mode['buy_end_time']
+            buy_money = pay_mode['buy_money']
             logger.info("{}: [{} - {}], cost:{}".format(tenant_id, buy_start_date, buy_end_date, buy_money))
 
             single_price = float(str(buy_money)) / (buy_end_date - buy_start_date).days
@@ -347,10 +375,13 @@ class RegionResourceConsumeView(ShareBaseView):
             elif buy_start_date > static_start_date and buy_end_date >= static_end_date:
                 consume_days = (static_end_date - buy_start_date).days
             package_cost = single_price * consume_days
+
             real_cost_money += package_cost
+            total_consume_days += consume_days
+
             logger.info("{} * {} = {}, total = {}".format(single_price, consume_days, package_cost, real_cost_money))
 
-        return round(real_cost_money, 2)
+        return round(real_cost_money, 2), total_consume_days
 
     def calculate_fee(self, region_total_memory, region_total_disk, region_total_net, region_sales_price):
         total_money = Decimal(0)
