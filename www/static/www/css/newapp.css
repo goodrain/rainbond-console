@@ -48,3 +48,26 @@ em,cite,span{font-style: normal;}
 .tablink a{width: 90px; text-align: center; line-height: 38px; display: inline-block; border:1px #ddd solid; color: #666; text-decoration: none;}
 .tablink a.sed{background: #28cb75; color: #fff;}
 
+/**/
+.newapp-link-box{margin:20px;}
+.newapp-link-box li{float: left; width: 16.66%};
+.newapp-link-box li:nth-child(1){width: 66.66%;}
+.newapp-link-box li p{width: 100%;}
+.newapp-tit{font-size: #303030; font-size: 16px;}
+.newapp-link-box li p a{display: block; width: 25%;}
+.newapp-link-box li p a:nth-child(2),.newapp-link-box li p a:nth-child(3){display: block; width: 100%;}
+.newapp-link-box li p a span{width:100%; background: #fff; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block;}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
