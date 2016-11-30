@@ -50,7 +50,7 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
         context["createApp"] = "active"
         try:
             # 云市最新的应用
-            res, resp = appClient.getRemoteServices(key="newest", limit=5)
+            res, resp = appClient.getRemoteServices(key="download", limit=5)
             if res.status == 200:
                 service_list = json.loads(resp.data)
                 context["service_list"] = service_list
