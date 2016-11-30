@@ -16,6 +16,23 @@ import MySQLdb
 
 logger = logging.getLogger('default')
 
+PRICE_BASE = {
+    "memory": {
+        "depreciation": Decimal(1.2),
+        "used_profit": Decimal(4),
+        "package_profit": Decimal(2),
+    },
+    "disk": {
+        "depreciation": Decimal(1.2),
+        "used_profit": Decimal(4),
+        "package_profit": Decimal(2),
+    },
+    "net": {
+        "depreciation": Decimal(1.0),
+        "used_profit": Decimal(1),
+        "package_profit": Decimal(1),
+    },
+}
 
 class RegionOverviewView(ShareBaseView):
     def get(self, request, *args, **kwargs):
@@ -111,10 +128,10 @@ class RegionResourcePriceView(ShareBaseView):
         trial_price.save()
 
     @staticmethod
-    def get_trial_price(provider_base_price):
-        depreciation_rate = Decimal(1.1)
-        used_profit_rate = Decimal(6)
-        package_profit_rate = Decimal(2)
+    def get_trial_price(resource, provider_base_price):
+        depreciation_rate = PRICE_BASE.get(resource).get("depreciation")
+        used_profit_rate = PRICE_BASE.get(resource).get("used_profit")
+        package_profit_rate = PRICE_BASE.get(resource).get("package_profit")
         used_trial_price = provider_base_price * depreciation_rate * used_profit_rate
         package_trial_price = provider_base_price * depreciation_rate * package_profit_rate
 
@@ -123,20 +140,6 @@ class RegionResourcePriceView(ShareBaseView):
 
 class RegionResourceConsumeView(ShareBaseView):
     """数据中心消费统计报表"""
-    RULE = '''
-        {
-            "aws-jp-1":{
-                "company":{"disk":0.0236994219653179,"net":1.286127167630058,"memory_money":0.692,"disk_money":0.0164,"net_money":0.89}
-            },
-            "ali-sh":{
-                "company":{"disk":0.0594202898550725,"net":2.898550724637681,"memory_money":0.276,"disk_money":0.0164,"net_money":0.8}
-            },
-            "xunda-bj":{
-                "company":{"disk":0.05967741935483871,"net":3.2258064516129035,"memory_money":0.248,"disk_money":0.0148,"net_money":0.8}
-            }
-        }
-        '''
-
     def get(self, request, *args, **kwargs):
         querymonth = request.GET.get("date", None)
         if querymonth:
@@ -172,7 +175,7 @@ class RegionResourceConsumeView(ShareBaseView):
         logger.info("model len : {}".format(len(pay_mode)))
         logger.info(pay_mode)
 
-        tenant_consume = {}
+        tenant_consume = dict()
         for tenant_id, statistics_time, memory, disk, net in datas:
             if tenant_id not in tenant_consume:
                 init_data = dict()
@@ -180,8 +183,8 @@ class RegionResourceConsumeView(ShareBaseView):
                 init_data["memory"] = 0
                 init_data["disk"] = 0
                 init_data["net"] = 0
-                init_data["real_money"] = 0.00
-                init_data["package_money"] = 0.00
+                init_data["real_money"] = Decimal(0)
+                init_data["package_money"] = Decimal(0)
                 tenant_consume[tenant_id] = init_data
 
             fee_memory, fee_disk, fee_net = self.cal_pay_month_data(tenant_id, region, statistics_time, pay_mode, int(memory),
@@ -201,7 +204,7 @@ class RegionResourceConsumeView(ShareBaseView):
                                                               consume_detail["net"],
                                                               region_sales_price)
             # 包月费用
-            consume_detail["package_money"] = self.cal_pay_month_fee(tenant_id, region, pay_mode, start_date, end_date)
+            consume_detail["package_money"] = Decimal.from_float(self.cal_pay_month_fee(tenant_id, region, pay_mode, start_date, end_date))
 
         # 关联租户名称
         # tenant_id_list = []
@@ -241,7 +244,7 @@ class RegionResourceConsumeView(ShareBaseView):
             "total_tenant_net": int(total_tenant_net),
             "total_real_money": total_real_money.quantize(Decimal('0.00')),
             "total_package_money": total_package_money.quantize(Decimal('0.00')),
-            "total_money": total_money,
+            "total_money": total_money.quantize(Decimal('0.00')),
             "query_month": month_date.strftime("%Y-%m"),
         })
         return TemplateResponse(request, "share/region_resource_consume.html", context)
@@ -254,7 +257,7 @@ class RegionResourceConsumeView(ShareBaseView):
                 where region_name = '{}'
             """.format(region_name))
 
-        data = {}
+        data = dict()
         for tenant_id, buy_memory, buy_disk, buy_net, buy_start_time, buy_end_time in pay_model_data:
             if tenant_id not in data:
                 data[tenant_id] = []
