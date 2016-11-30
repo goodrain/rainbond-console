@@ -34,6 +34,7 @@ PRICE_BASE = {
     },
 }
 
+
 class RegionOverviewView(ShareBaseView):
     def get(self, request, *args, **kwargs):
         return TemplateResponse(request, "share/region_overview.html", self.get_context())
@@ -262,6 +263,8 @@ class RegionResourceConsumeView(ShareBaseView):
             logger.debug(consume_detail)
 
         total_money = total_package_money + total_real_money
+
+
         context = self.get_context()
         context.update({
             "region": region,
@@ -395,6 +398,97 @@ class RegionResourceConsumeView(ShareBaseView):
             logger.exception("", e)
 
         return total_money
+
+
+class RegionResourceSettleView(ShareBaseView):
+    def get(self, request, *args, **kwargs):
+        querymonth = request.GET.get("date", None)
+        if querymonth:
+            month_date = dt.strptime(querymonth, "%Y-%m")
+        else:
+            now = dt.now()
+            month_date = dt(now.year, now.month, 1, 0, 0, 0) - clzdt.timedelta(days=1)
+
+        start_date = dt(month_date.year, month_date.month, 1, 0, 0, 0)
+        last_day = calendar.monthrange(month_date.year, month_date.month)[1]
+        end_date = dt(month_date.year, month_date.month, last_day, 0, 0, 0) + clzdt.timedelta(
+            days=1)
+        logger.info("query from {} to {}".format(start_date, end_date))
+
+        provider = self.provider.provider_name
+        provider_settle_list = list(RegionResourceProviderSettle.objects.filter(provider=provider, date=month_date))
+
+        region_settle_list = []
+        for provider_settle in provider_settle_list:
+            total_memory = provider_settle.used_memory + provider_settle.package_memory
+            total_net = provider_settle.used_net + provider_settle.package_net
+            total_disk = provider_settle.used_disk + provider_settle.package_disk
+
+            total_resource_fee = self.cal_resource_fee(total_memory, total_disk, total_net)
+            total_package_fee = self.cal_package_fee(provider_settle.region, start_date, end_date)
+
+            total_fee = total_resource_fee + total_package_fee
+
+            partner_rate = Decimal(0.5)
+            settle_fee = total_fee * partner_rate
+
+            region_settle = dict()
+            region_settle["region"] = provider_settle.region
+            region_settle["total_memory"] = total_memory / 1024
+            region_settle["total_net"] = total_net / 1024
+            region_settle["total_disk"] = total_disk / 1024
+            region_settle["total_resource_fee"] = total_resource_fee.quantize(Decimal('0.00'))
+            region_settle["total_package_fee"] = total_package_fee.quantize(Decimal('0.00'))
+            region_settle["total_fee"] = total_fee.quantize(Decimal('0.00'))
+            region_settle["partner_rate"] = partner_rate
+            region_settle["settle_fee"] = settle_fee.quantize(Decimal('0.00'))
+
+        context = self.get_context()
+        context.update({
+            "region_settle_list": region_settle_list
+        })
+        return TemplateResponse(request, "share/region_resource_settle.html", context)
+
+    def cal_region_pacakge_fee(self, region_name, static_start_date, static_end_date):
+        conn = MySQLConn()
+        pay_model_data = conn.fetch_all("""
+                    select  tenant_id, buy_start_time, buy_end_time, buy_money, buy_memory, buy_disk, buy_net
+                    from    tenant_region_pay_model
+                    where   region_name = '{}'
+                """.format(region_name))
+
+        real_cost_money = 0.00
+        for pay_mode in pay_model_data:
+            tenant_id = pay_mode['tenant_id']
+            buy_start_date = pay_mode['buy_start_time']
+            buy_end_date = pay_mode['buy_end_time']
+            buy_money = pay_mode['buy_money']
+            logger.info("{}: [{} - {}], cost:{}".format(tenant_id, buy_start_date, buy_end_date, buy_money))
+
+            if buy_start_date >= static_end_date or buy_end_date <= static_start_date:
+                continue
+
+            single_price = float(str(buy_money)) / (buy_end_date - buy_start_date).days
+            consume_days = 0
+            if buy_end_date <= static_start_date or buy_start_date >= static_end_date:
+                continue
+
+            # 购买周期完全包含统计周期
+            if buy_start_date <= static_start_date and buy_end_date >= static_end_date:
+                consume_days = (static_end_date - static_start_date).days
+            # 购买周期完全在统计周期之内, 则以天计算
+            elif buy_start_date > static_start_date and buy_end_date < static_end_date:
+                consume_days = (buy_end_date - buy_start_date).days
+            elif buy_start_date <= static_start_date and buy_end_date < static_end_date:
+                consume_days = (buy_end_date - static_start_date).days
+            elif buy_start_date > static_start_date and buy_end_date >= static_end_date:
+                consume_days = (static_end_date - buy_start_date).days
+            package_cost = single_price * consume_days
+
+            real_cost_money += package_cost
+            logger.info("{} * {} = {}, total = {}".format(single_price, consume_days, package_cost, real_cost_money))
+
+        return Decimal.from_float(real_cost_money)
 
 
 class MySQLConn:
