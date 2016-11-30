@@ -17,38 +17,45 @@ class RegionOverviewView(ShareBaseView):
 class RegionResourcePriceView(ShareBaseView):
     def get(self, request, *args, **kwargs):
         provider = self.provider.provider_name
+
         provider_price_list = list(RegionResourceProviderPrice.objects.filter(provider=provider))
+        if not provider_price_list:
+            return TemplateResponse(request, "share/region_resource_price.html", self.get_context())
 
-        region_price_list = []
-        for region_price in provider_price_list:
-            region_info = {}
-            region_info["region"] = region_price.region
-            region_info["memory_price"] = region_price.memory_price
-            region_info["disk_price"] = region_price.disk_price
-            region_info["net_price"] = region_price.net_price
+        region_name_map = {x.region: x for x in provider_price_list}
+        region = request.GET.get("region", "None")
+        if region in region_name_map:
+            region_price = region_name_map.get(region)
+        else:
+            region_price = provider_price_list[0]
 
-            try:
-                saler_price = RegionResourceSalesPrice.objects.get(provider=provider, region=region_price.region)
-                region_info["trial_memory_price"] = saler_price.memory_price
-                region_info["trial_disk_price"] = saler_price.disk_price
-                region_info["trial_net_price"] = saler_price.net_price
+        region_info = dict()
+        region_info["region"] = region_price.region
+        region_info["memory_price"] = region_price.memory_price
+        region_info["disk_price"] = region_price.disk_price
+        region_info["net_price"] = region_price.net_price
 
-                region_info["trial_package_memory_price"] = saler_price.memory_package_price
-                region_info["trial_package_disk_price"] = saler_price.disk_package_price
-                region_info["trial_package_net_price"] = saler_price.net_package_price
-            except Exception:
-                region_info["trial_memory_price"] = decimal.Decimal(0.0000)
-                region_info["trial_disk_price"] = decimal.Decimal(0.0000)
-                region_info["trial_net_price"] = decimal.Decimal(0.0000)
-                region_info["trial_package_memory_price"] = decimal.Decimal(0.0000)
-                region_info["trial_package_disk_price"] = decimal.Decimal(0.0000)
-                region_info["trial_package_net_price"] = decimal.Decimal(0.0000)
+        try:
+            saler_price = RegionResourceSalesPrice.objects.get(provider=provider, region=region_price.region)
+            region_info["trial_memory_price"] = saler_price.memory_price
+            region_info["trial_disk_price"] = saler_price.disk_price
+            region_info["trial_net_price"] = saler_price.net_price
 
-            region_price_list.append(region_info)
+            region_info["trial_package_memory_price"] = saler_price.memory_package_price
+            region_info["trial_package_disk_price"] = saler_price.disk_package_price
+            region_info["trial_package_net_price"] = saler_price.net_package_price
+        except Exception:
+            region_info["trial_memory_price"] = decimal.Decimal(0.0000)
+            region_info["trial_disk_price"] = decimal.Decimal(0.0000)
+            region_info["trial_net_price"] = decimal.Decimal(0.0000)
+            region_info["trial_package_memory_price"] = decimal.Decimal(0.0000)
+            region_info["trial_package_disk_price"] = decimal.Decimal(0.0000)
+            region_info["trial_package_net_price"] = decimal.Decimal(0.0000)
 
         context = self.get_context()
         context.update({
-            "region_price_list": region_price_list
+            "region_name_list": list(region_name_map.keys()),
+            "region": region_info
         })
         return TemplateResponse(request, "share/region_resource_price.html", context)
 
