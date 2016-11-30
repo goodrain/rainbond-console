@@ -107,9 +107,9 @@ class RegionResourcePriceView(ShareBaseView):
         trial_price_list = list(RegionResourceSalesPrice.objects.filter(region=region))
         if trial_price_list:
             for trial_price in trial_price_list:
-                trial_price.memory_price, trial_price.memory_package_price = self.get_trial_price(provider_price.memory_price)
-                trial_price.disk_price, trial_price.disk_package_price = self.get_trial_price(provider_price.disk_price)
-                trial_price.net_price, trial_price.net_package_price = self.get_trial_price(provider_price.net_price)
+                trial_price.memory_price, trial_price.memory_package_price = self.get_trial_price("memory", provider_price.memory_price)
+                trial_price.disk_price, trial_price.disk_package_price = self.get_trial_price("disk", provider_price.disk_price)
+                trial_price.net_price, trial_price.net_package_price = self.get_trial_price("net", provider_price.net_price)
                 trial_price.save()
         else:
             self.save_region_resource_sales_price(provider_price, "goodrain", "goodrain")
@@ -122,9 +122,9 @@ class RegionResourcePriceView(ShareBaseView):
         trial_price.provider = provider_price.provider
         trial_price.saler = saler
         trial_price.saler_channel = saler_channel
-        trial_price.memory_price, trial_price.memory_package_price = self.get_trial_price(provider_price.memory_price)
-        trial_price.disk_price, trial_price.disk_package_price = self.get_trial_price(provider_price.disk_price)
-        trial_price.net_price, trial_price.net_package_price = self.get_trial_price(provider_price.net_price)
+        trial_price.memory_price, trial_price.memory_package_price = self.get_trial_price("memory", provider_price.memory_price)
+        trial_price.disk_price, trial_price.disk_package_price = self.get_trial_price("disk", provider_price.disk_price)
+        trial_price.net_price, trial_price.net_package_price = self.get_trial_price("net", provider_price.net_price)
         trial_price.save()
 
     @staticmethod
@@ -234,14 +234,15 @@ class RegionResourceConsumeView(ShareBaseView):
 
             total_real_money += consume_detail["real_money"]
             total_package_money += consume_detail["package_money"]
+            logger.debug(consume_detail)
 
         total_money = total_package_money + total_real_money
         context = self.get_context()
         context.update({
             "region": region,
-            "total_tenant_memory": int(total_tenant_memory),
-            "total_tenant_disk": int(total_tenant_disk),
-            "total_tenant_net": int(total_tenant_net),
+            "total_tenant_memory": total_tenant_memory/1024,
+            "total_tenant_disk": total_tenant_disk/1024,
+            "total_tenant_net": total_tenant_net/1024,
             "total_real_money": total_real_money.quantize(Decimal('0.00')),
             "total_package_money": total_package_money.quantize(Decimal('0.00')),
             "total_money": total_money.quantize(Decimal('0.00')),
