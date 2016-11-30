@@ -79,17 +79,17 @@ class RegionResourcePriceView(ShareBaseView):
         provider_price.save()
 
         # 发布这个价格, 根据数据中心定价按照一定的规则生成平台零售价
-        trial_price_list = list(RegionResourceSalesPrice.objects.filter(saler="goodrain"))
+        trial_price_list = list(RegionResourceSalesPrice.objects.filter(region=region))
         if trial_price_list:
             for trial_price in trial_price_list:
                 trial_price.memory_price, trial_price.memory_package_price = self.get_trial_price(provider_price.memory_price)
                 trial_price.disk_price, trial_price.disk_package_price = self.get_trial_price(provider_price.disk_price)
                 trial_price.net_price, trial_price.net_package_price = self.get_trial_price(provider_price.net_price)
-
+                trial_price.save()
         else:
             self.save_region_resource_sales_price(provider_price, "goodrain", "goodrain")
 
-        return self.redirect_to("/share/region/price/")
+        return self.redirect_to("/share/region/price/?region={}".format(region))
 
     def save_region_resource_sales_price(self, provider_price, saler, saler_channel):
         trial_price = RegionResourceSalesPrice()
