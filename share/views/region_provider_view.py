@@ -203,9 +203,9 @@ class RegionResourceConsumeView(ShareBaseView):
                 data["over_disk"] += over_disk
                 data["over_net"] += over_net
             else:
-                data["memory"] += memory
-                data["disk"] += disk
-                data["net"] += net
+                data["memory"] += int(memory)
+                data["disk"] += int(disk)
+                data["net"] += int(net)
 
         # 计算每个租户的费用
         region_sales_price = get_object_or_404(RegionResourceSalesPrice, region=region)
@@ -266,15 +266,15 @@ class RegionResourceConsumeView(ShareBaseView):
         context.update({
             "region": region,
             "total_used_tenant": len(tenant_consume),
-            "total_tenant_memory": total_tenant_memory / 1024,
-            "total_tenant_disk": total_tenant_disk / 1024,
-            "total_tenant_net": total_tenant_net / 1024,
+            "total_tenant_memory": round(total_tenant_memory / 1024.0, 4),
+            "total_tenant_disk": round(total_tenant_disk / 1024.0, 4),
+            "total_tenant_net": round(total_tenant_net / 1024.0, 4),
 
             "total_package_tenant": len(package_pay_mode),
             "total_package_day": total_package_day,
-            "total_over_memory": total_over_memory / 1024,
-            "total_over_disk": total_over_disk / 1024,
-            "total_over_net": total_over_net / 1024,
+            "total_over_memory": round(total_over_memory / 1024, 4),
+            "total_over_disk": round(total_over_disk / 1024, 4),
+            "total_over_net": round(total_over_net / 1024, 4),
 
             "total_real_money": total_real_money.quantize(Decimal('0.00')),
             "total_package_money": total_package_money.quantize(Decimal('0.00')),
@@ -344,7 +344,7 @@ class RegionResourceConsumeView(ShareBaseView):
             # logger.info("disk  : {:>8} - {:>8} = {:>8}".format(region_cost_disk, buy_disk, over_disk))
             # logger.info("net   : {:>8} - {:>8} = {:>8}".format(region_cost_net, buy_net, over_net))
 
-        logger.info("{} - {} used Mem:{}, Disk:{}, Net:{}".format(tenant_id, end_time, real_memory, real_disk, real_net))
+        logger.info("{} - {} Mem:{}, Disk:{}, Net:{}".format(tenant_id, end_time, real_memory, real_disk, real_net))
         return real_memory, real_disk, real_net
 
     def cal_pay_month_fee(self, tenant_id, region_name, package_pay_mode, static_start_date, static_end_date):
