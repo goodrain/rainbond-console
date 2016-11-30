@@ -25,23 +25,23 @@
                     <thead>
                     <tr>
                         <td>数据中心</td>
-                        <td>总租户数</td>
-                        <td>总消耗资源</td>
-                        <td>资源应付款</td>
-                        <td>扣除包月按需消耗资源</td>
-                        <td>资源实付款</td>
-                        <td>包月实付款</td>
+                        <td>总消耗内存(G)</td>
+                        <td>总消耗磁盘(G)</td>
+                        <td>总消耗网络(G)</td>
+                        <td>按需资源费用</td>
+                        <td>包月按天折算</td>
+                        <td>总金额</td>
                     </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>{{ region }}</td>
-                            <td>{{ total_tenant_count }}</td>
                             <td>{{ total_tenant_memory }}</td>
-                            <td>{{ total_tenant_money }}</td>
-                            <td>{{ total_real_memory }}</td>
+                            <td>{{ total_tenant_disk }}</td>
+                            <td>{{ total_tenant_net }}</td>
                             <td>{{ total_real_money }}</td>
                             <td>{{ total_package_money }}</td>
+                            <td>{{ total_money }}</td>
                         </tr>
                     </tbody>
                 </table>

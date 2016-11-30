@@ -3,14 +3,16 @@ import logging
 
 from base_view import ShareBaseView
 from django.template.response import TemplateResponse
+from django.shortcuts import get_object_or_404
 from share.models.main import *
 from datetime import datetime as dt
 import datetime as clzdt
 import calendar
 import time
-import decimal
+from decimal import Decimal
 import json
 import MySQLdb
+
 
 logger = logging.getLogger('default')
 
@@ -51,12 +53,12 @@ class RegionResourcePriceView(ShareBaseView):
             region_info["trial_package_disk_price"] = saler_price.disk_package_price
             region_info["trial_package_net_price"] = saler_price.net_package_price
         except Exception:
-            region_info["trial_memory_price"] = decimal.Decimal(0.0000)
-            region_info["trial_disk_price"] = decimal.Decimal(0.0000)
-            region_info["trial_net_price"] = decimal.Decimal(0.0000)
-            region_info["trial_package_memory_price"] = decimal.Decimal(0.0000)
-            region_info["trial_package_disk_price"] = decimal.Decimal(0.0000)
-            region_info["trial_package_net_price"] = decimal.Decimal(0.0000)
+            region_info["trial_memory_price"] = Decimal(0.0000)
+            region_info["trial_disk_price"] = Decimal(0.0000)
+            region_info["trial_net_price"] = Decimal(0.0000)
+            region_info["trial_package_memory_price"] = Decimal(0.0000)
+            region_info["trial_package_disk_price"] = Decimal(0.0000)
+            region_info["trial_package_net_price"] = Decimal(0.0000)
 
         context = self.get_context()
         context.update({
@@ -79,9 +81,9 @@ class RegionResourcePriceView(ShareBaseView):
             provider_price.region = region
             provider_price.provider = provider
 
-        provider_price.memory_price = decimal.Decimal(memory_price) or provider_price.memory_price
-        provider_price.disk_price = decimal.Decimal(disk_price) or provider_price.disk_price
-        provider_price.net_price = decimal.Decimal(net_price) or provider_price.net_price
+        provider_price.memory_price = Decimal(memory_price) or provider_price.memory_price
+        provider_price.disk_price = Decimal(disk_price) or provider_price.disk_price
+        provider_price.net_price = Decimal(net_price) or provider_price.net_price
         provider_price.save()
 
         # 发布这个价格, 根据数据中心定价按照一定的规则生成平台零售价
@@ -110,9 +112,9 @@ class RegionResourcePriceView(ShareBaseView):
 
     @staticmethod
     def get_trial_price(provider_base_price):
-        depreciation_rate = decimal.Decimal(1.1)
-        used_profit_rate = decimal.Decimal(6)
-        package_profit_rate = decimal.Decimal(2)
+        depreciation_rate = Decimal(1.1)
+        used_profit_rate = Decimal(6)
+        package_profit_rate = Decimal(2)
         used_trial_price = provider_base_price * depreciation_rate * used_profit_rate
         package_trial_price = provider_base_price * depreciation_rate * package_profit_rate
 
@@ -163,94 +165,86 @@ class RegionResourceConsumeView(ShareBaseView):
                         group by tenant_id, statistics_time
                     """.format(region, start_timestamp, end_timestamp))
         if not datas:
-            return TemplateResponse(request, "market/admin/tenant_consume_report.html", self.get_context())
+            return TemplateResponse(request, "share/region_resource_consume.html", self.get_context())
 
         logger.info("date len : {}".format(len(datas)))
         pay_mode = self.get_pay_model(region)
         logger.info("model len : {}".format(len(pay_mode)))
         logger.info(pay_mode)
 
-        ruleJsonData = json.loads(self.RULE.replace('\n', ''))
         tenant_consume = {}
         for tenant_id, statistics_time, memory, disk, net in datas:
             if tenant_id not in tenant_consume:
-                init_data = {}
+                init_data = dict()
                 init_data["tenant_id"] = tenant_id
                 init_data["memory"] = 0
                 init_data["disk"] = 0
                 init_data["net"] = 0
-                init_data["all_memory"] = 0
-                init_data["real_memory"] = 0
-                init_data["all_money"] = 0.00
                 init_data["real_money"] = 0.00
                 init_data["package_money"] = 0.00
                 tenant_consume[tenant_id] = init_data
 
-            all_memory, real_memory = self.cal_pay_month_data(tenant_id, region, statistics_time, pay_mode, int(memory),
-                                                              int(disk), int(net), "company", ruleJsonData)
+            fee_memory, fee_disk, fee_net = self.cal_pay_month_data(tenant_id, region, statistics_time, pay_mode, int(memory),
+                                                              int(disk), int(net))
 
             data = tenant_consume[tenant_id]
-            data["memory"] = data["memory"] + memory
-            data["disk"] = data["disk"] + disk
-            data["net"] = data["net"] + net
-            data["all_memory"] = data["all_memory"] + all_memory
-            data["real_memory"] = data["real_memory"] + real_memory
+            data["memory"] += fee_memory
+            data["disk"] += fee_disk
+            data["net"] += fee_net
 
         # 计算每个租户的费用
+        region_sales_price = get_object_or_404(RegionResourceSalesPrice, region=region)
         for tenant_id, consume_detail in tenant_consume.items():
             # 全部按需费用
-            consume_detail["real_money"] = self.calculate_fee(region, "company", consume_detail["real_memory"],
-                                                              ruleJsonData)
-            # 包月超出按需费用
-            consume_detail["all_money"] = self.calculate_fee(region, "company", consume_detail["all_memory"],
-                                                             ruleJsonData)
+            consume_detail["real_money"] = self.calculate_fee(consume_detail["memory"],
+                                                              consume_detail["disk"],
+                                                              consume_detail["net"],
+                                                              region_sales_price)
             # 包月费用
             consume_detail["package_money"] = self.cal_pay_month_fee(tenant_id, region, pay_mode, start_date, end_date)
 
         # 关联租户名称
-        tenant_id_list = []
-        for tenant_id in tenant_consume.keys():
-            tenant_id_list.append("'{}'".format(tenant_id))
-        tenant_id_str = ",".join(tenant_id_list)
-        conn = MySQLConn()
-        tenant_names = conn.fetch_all("""
-                            SELECT tenant_id, tenant_name FROM tenant_info WHERE tenant_id in ({})
-                        """.format(tenant_id_str))
-        tenant_name_map = {tenant_id: tenant_name for tenant_id, tenant_name in tenant_names}
-        for tenant_id, consume_detail in tenant_consume.items():
-            consume_detail["tenant_name"] = tenant_name_map.get(tenant_id)
+        # tenant_id_list = []
+        # for tenant_id in tenant_consume.keys():
+        #     tenant_id_list.append("'{}'".format(tenant_id))
+        # tenant_id_str = ",".join(tenant_id_list)
+        # conn = MySQLConn()
+        # tenant_names = conn.fetch_all("""
+        #                     SELECT tenant_id, tenant_name FROM tenant_info WHERE tenant_id in ({})
+        #                 """.format(tenant_id_str))
+        # tenant_name_map = {tenant_id: tenant_name for tenant_id, tenant_name in tenant_names}
+        # for tenant_id, consume_detail in tenant_consume.items():
+        #     consume_detail["tenant_name"] = tenant_name_map.get(tenant_id)
 
         # 统计所有租户的总消耗
-        total_tenant_count = len(tenant_consume)
         total_tenant_memory = 0
-        total_tenant_money = 0.00
+        total_tenant_net = 0
+        total_tenant_disk = 0
 
-        total_real_memory = 0
-        total_real_money = 0.00
-
-        total_package_money = 0.00
+        total_real_money = Decimal(0)
+        total_package_money = Decimal(0)
 
         for tenant_id, consume_detail in tenant_consume.items():
-            total_real_memory += consume_detail["real_memory"]
+            total_tenant_memory += consume_detail["memory"]
+            total_tenant_disk += consume_detail["disk"]
+            total_tenant_net += consume_detail["net"]
+
             total_real_money += consume_detail["real_money"]
-
-            total_tenant_memory += consume_detail["all_memory"]
-            total_tenant_money += consume_detail["all_money"]
-
             total_package_money += consume_detail["package_money"]
 
+        total_money = total_package_money + total_real_money
         context = self.get_context()
         context.update({
-            "total_tenant_count": total_tenant_count,
-            "total_tenant_memory": int(total_tenant_memory),
-            "total_tenant_money": total_tenant_money,
-            "total_real_memory": int(total_real_memory),
-            "total_real_money": total_real_money,
-            "total_package_money": total_package_money,
-            "query_month": month_date.strftime("%Y-%m"),
             "region": region,
+            "total_tenant_memory": int(total_tenant_memory),
+            "total_tenant_disk": int(total_tenant_disk),
+            "total_tenant_net": int(total_tenant_net),
+            "total_real_money": total_real_money.quantize(Decimal('0.00')),
+            "total_package_money": total_package_money.quantize(Decimal('0.00')),
+            "total_money": total_money,
+            "query_month": month_date.strftime("%Y-%m"),
         })
-        return TemplateResponse(request, "market/admin/tenant_consume_report.html", context)
+        return TemplateResponse(request, "share/region_resource_consume.html", context)
 
     def get_pay_model(self, region_name):
         conn = MySQLConn()
@@ -265,7 +259,7 @@ class RegionResourceConsumeView(ShareBaseView):
             if tenant_id not in data:
                 data[tenant_id] = []
 
-            temdata = {}
+            temdata = dict()
             temdata["buy_memory"] = buy_memory
             temdata["buy_disk"] = buy_disk
             temdata["buy_net"] = buy_net
@@ -275,17 +269,12 @@ class RegionResourceConsumeView(ShareBaseView):
         return data
 
     def cal_pay_month_data(self, tenant_id, region, end_time, payModelData, region_cost_memory, region_cost_disk,
-                           region_cost_net, pay_level, rule_json_data):
-        ruleJson = rule_json_data[region]
-        childJson = ruleJson[pay_level]
+                           region_cost_net):
+        real_memory = region_cost_memory
+        real_net = region_cost_net
+        real_disk = region_cost_disk
 
-        all_memory = region_cost_disk * float(childJson['disk']) + region_cost_net * float(
-            childJson['net']) + region_cost_memory
-        real_memory = 0
-
-        if tenant_id not in payModelData:
-            real_memory = all_memory
-        else:
+        if tenant_id in payModelData:
             buy_disk = 0
             buy_net = 0
             buy_memory = 0
@@ -298,28 +287,25 @@ class RegionResourceConsumeView(ShareBaseView):
                     buy_net += model_data["buy_net"]
                     buy_memory += model_data["buy_memory"]
 
-            over_disk = 0
             buy_disk = float(buy_disk * 1024)
             if region_cost_disk > buy_disk:
-                over_disk = region_cost_disk - buy_disk
+                real_disk = region_cost_disk - buy_disk
 
-            over_net = 0
             buy_net = float(buy_net * 1024)
             if region_cost_net > buy_net:
-                over_net = region_cost_net - buy_net
+                real_net = region_cost_net - buy_net
 
-            over_memory = 0
             buy_memory = float(buy_memory * 1024)
             if region_cost_memory > buy_memory:
-                over_memory = region_cost_memory - buy_memory
+                real_memory = region_cost_memory - buy_memory
             # logger.info("{} at {}".format(tenant_id, end_time))
             # logger.info("memory: {:>8} - {:>8} = {:>8}".format(region_cost_memory, buy_memory, over_memory))
             # logger.info("disk  : {:>8} - {:>8} = {:>8}".format(region_cost_disk, buy_disk, over_disk))
             # logger.info("net   : {:>8} - {:>8} = {:>8}".format(region_cost_net, buy_net, over_net))
-            real_memory = over_disk * float(childJson['disk']) + over_net * float(childJson['net']) + over_memory
 
-        logger.info("{}[{}] - {} used {}[{}]M".format(tenant_id, region, end_time, real_memory, all_memory))
-        return int(round(all_memory, 0)), int(round(real_memory, 0))
+
+        logger.info("{} - {} used Mem:{}, Disk:{}, Net:{}".format(tenant_id, end_time, real_memory, real_disk, real_net))
+        return int(round(real_memory, 0)), int(round(real_disk, 0)), int(round(real_net, 0))
 
     def cal_pay_month_fee(self, tenant_id, region_name, pay_mode, static_start_date, static_end_date):
         if tenant_id not in pay_mode:
@@ -362,19 +348,21 @@ class RegionResourceConsumeView(ShareBaseView):
 
         return round(real_cost_money, 2)
 
-    def calculate_fee(self, region, pay_level, region_total_memory, rule_json_data):
-        total_money = 0.00
+    def calculate_fee(self, region_total_memory, region_total_disk, region_total_net, region_sales_price):
+        total_money = Decimal(0)
         try:
-            ruleJson = rule_json_data[region]
-            childJson = ruleJson[pay_level]
-            total_money = total_money + float(childJson['memory_money']) * (region_total_memory / 1024.0)
+            memory_fee = region_sales_price.memory_price * Decimal.from_float(region_total_memory / 1024.0)
+            disk_fee = region_sales_price.disk_price * Decimal.from_float(region_total_disk / 1024.0)
+            net_fee = region_sales_price.net_price * Decimal.from_float(region_total_net / 1024.0)
+
+            total_money = memory_fee + disk_fee + net_fee
         except Exception as e:
             logger.exception("", e)
 
-        return round(total_money, 2)
+        return total_money
+
 
 class MySQLConn:
-
     def __init__(self):
         self.mysql_info = {}
         self.mysql_info["host"] = "127.0.0.1"
