@@ -19,18 +19,24 @@ logger = logging.getLogger('default')
 
 
 class ShareBaseView(BaseView):
-
+    ADMIN_USERS = [19, 1808, 1987]
     """是否有权限访问share模块"""
     def __init__(self, request, *args, **kwargs):
         BaseView.__init__(self, request, *args, **kwargs)
         if isinstance(request.user, AnonymousUser):
             raise http.Http404
 
-        try:
-            provider = RegionProvider.objects.get(user_id=request.user.user_id)
-        except:
-            raise http.Http404
-        self.provider = provider
+        if request.user.user_id in self.ADMIN_USERS:
+            provider = RegionProvider()
+            provider.provider_name = "goodrain"
+            provider.user_id = 1987
+            self.provider = provider
+        else:
+            try:
+                provider = RegionProvider.objects.get(user_id=request.user.user_id)
+            except:
+                raise http.Http404
+            self.provider = provider
 
     def get_context(self):
         context = super(ShareBaseView, self).get_context()

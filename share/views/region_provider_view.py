@@ -172,15 +172,15 @@ class RegionResourceConsumeView(ShareBaseView):
                 "region": record.region,
                 "report": True,
                 "total_used_tenant": record.used_tenant,
-                "total_tenant_memory": round(record.total_tenant_memory / 1024.0, 4),
-                "total_tenant_disk": round(record.total_tenant_disk / 1024.0, 4),
-                "total_tenant_net": round(record.total_tenant_net / 1024.0, 4),
+                "total_tenant_memory": round(record.used_memory / 1024.0, 4),
+                "total_tenant_disk": round(record.used_memory / 1024.0, 4),
+                "total_tenant_net": round(record.used_net / 1024.0, 4),
 
-                "total_package_tenant": record.total_package_tenant,
-                "total_package_day": record.total_package_day,
-                "total_over_memory": round(record.total_over_memory / 1024, 4),
-                "total_over_disk": round(record.total_over_disk / 1024, 4),
-                "total_over_net": round(record.total_over_net / 1024, 4),
+                "total_package_tenant": record.package_tenant,
+                "total_package_day": record.package_day,
+                "total_over_memory": round(record.package_memory / 1024, 4),
+                "total_over_disk": round(record.package_disk / 1024, 4),
+                "total_over_net": round(record.package_net / 1024, 4),
 
                 "query_month": month_date.strftime("%Y-%m"),
             })
@@ -299,16 +299,18 @@ class RegionResourceConsumeView(ShareBaseView):
         total_money = total_package_money + total_real_money
 
         record = RegionResourceProviderSettle()
+        record.date = querymonth
+        record.provider = provider_name
         record.region = region
-        record.total_used_tenant = len(tenant_consume)
-        record.total_tenant_memory = total_tenant_memory
-        record.total_tenant_disk = total_tenant_disk
-        record.total_tenant_net = total_tenant_net
-        record.total_package_tenant = len(package_pay_mode)
-        record.total_package_day = total_package_day
-        record.total_over_memory = total_over_memory
-        record.total_over_disk = total_over_disk
-        record.total_over_net = total_over_net
+        record.used_tenant = len(tenant_consume)
+        record.used_memory = total_tenant_memory
+        record.used_disk = total_tenant_disk
+        record.used_net = total_tenant_net
+        record.package_tenant = len(package_pay_mode)
+        record.package_day = total_package_day
+        record.package_memory = total_over_memory
+        record.package_disk = total_over_disk
+        record.package_net = total_over_net
         record.save()
 
         context = self.get_context()
@@ -452,6 +454,7 @@ class RegionResourceSettleView(ShareBaseView):
         else:
             now = dt.now()
             month_date = dt(now.year, now.month, 1, 0, 0, 0) - clzdt.timedelta(days=1)
+        querymonth = month_date.strftime("%Y-%m")
 
         start_date = dt(month_date.year, month_date.month, 1, 0, 0, 0)
         last_day = calendar.monthrange(month_date.year, month_date.month)[1]
@@ -460,7 +463,7 @@ class RegionResourceSettleView(ShareBaseView):
         logger.info("query from {} to {}".format(start_date, end_date))
 
         provider = self.provider.provider_name
-        provider_settle_list = list(RegionResourceProviderSettle.objects.filter(provider=provider, date=month_date))
+        provider_settle_list = list(RegionResourceProviderSettle.objects.filter(provider=provider, date=querymonth))
 
         region_settle_list = []
         for provider_settle in provider_settle_list:
@@ -468,8 +471,8 @@ class RegionResourceSettleView(ShareBaseView):
             total_net = provider_settle.used_net + provider_settle.package_net
             total_disk = provider_settle.used_disk + provider_settle.package_disk
 
-            total_resource_fee = self.cal_resource_fee(total_memory, total_disk, total_net)
-            total_package_fee = self.cal_package_fee(provider_settle.region, start_date, end_date)
+            total_resource_fee = self.cal_region_resource_fee(provider_settle.region, total_memory, total_disk, total_net)
+            total_package_fee = self.cal_region_pacakge_fee(provider_settle.region, start_date, end_date)
 
             total_fee = total_resource_fee + total_package_fee
 
@@ -486,6 +489,7 @@ class RegionResourceSettleView(ShareBaseView):
             region_settle["total_fee"] = total_fee.quantize(Decimal('0.00'))
             region_settle["partner_rate"] = partner_rate
             region_settle["settle_fee"] = settle_fee.quantize(Decimal('0.00'))
+            region_settle_list.append(region_settle)
 
         context = self.get_context()
         context.update({
@@ -493,20 +497,33 @@ class RegionResourceSettleView(ShareBaseView):
         })
         return TemplateResponse(request, "share/region_resource_settle.html", context)
 
+    def cal_region_resource_fee(self, region_name, memroy, disk, net):
+        region_sales_price = get_object_or_404(RegionResourceSalesPrice, region=region_name)
+        total_fee = Decimal(0)
+        try:
+            memory_fee = region_sales_price.memory_price * Decimal.from_float(memroy / 1024.0)
+            disk_fee = region_sales_price.disk_price * Decimal.from_float(disk / 1024.0)
+            net_fee = region_sales_price.net_price * Decimal.from_float(net / 1024.0)
+
+            total_fee = memory_fee + disk_fee + net_fee
+        except Exception as e:
+            logger.exception("", e)
+
+        return total_fee
+
     def cal_region_pacakge_fee(self, region_name, static_start_date, static_end_date):
         conn = MySQLConn()
         pay_model_data = conn.fetch_all("""
-                    select  tenant_id, buy_start_time, buy_end_time, buy_money, buy_memory, buy_disk, buy_net
+                    select  tenant_id, buy_start_time, buy_end_time, buy_money
                     from    tenant_region_pay_model
                     where   region_name = '{}'
                 """.format(region_name))
 
         real_cost_money = 0.00
-        for pay_mode in pay_model_data:
-            tenant_id = pay_mode['tenant_id']
-            buy_start_date = pay_mode['buy_start_time']
-            buy_end_date = pay_mode['buy_end_time']
-            buy_money = pay_mode['buy_money']
+        for tenant_id, buy_start_time, buy_end_time, buy_money in pay_model_data:
+            buy_start_date = buy_start_time
+            buy_end_date = buy_end_time
+
             logger.info("{}: [{} - {}], cost:{}".format(tenant_id, buy_start_date, buy_end_date, buy_money))
 
             if buy_start_date >= static_end_date or buy_end_date <= static_start_date:

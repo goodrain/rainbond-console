@@ -62,7 +62,7 @@ class RegionResourceProviderSettle(BaseModel):
     class Meta:
         db_table = "region_resource_provider_settle"
 
-    date = models.DateTimeField(blank=False, null=False, help_text=u"结算月份")
+    date = models.CharField(max_length=16, null=False, help_text=u"结算月份")
     region = models.CharField(max_length=16, null=False, help_text=u"数据中心")
     provider = models.CharField(max_length=32, help_text=u"提供商")
 
