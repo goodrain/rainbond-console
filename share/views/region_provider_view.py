@@ -166,8 +166,11 @@ class RegionResourceConsumeView(ShareBaseView):
         if not self.regions:
             return self.redirect_to("/share/")
 
+        region = request.GET.get("region")
+        if region not in self.regions:
+            region = self.regions.keys()[0]
+
         querymonth = request.GET.get("date", None)
-        region = request.GET.get("region", "xunda-bj")
         logger.info("input: {}, region:{}".format(querymonth, region))
 
         if querymonth:

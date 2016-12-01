@@ -28,9 +28,7 @@ class ShareBaseView(BaseView):
             raise http.Http404
 
         if request.user.user_id in self.ADMIN_USERS:
-            provider = RegionProvider()
-            provider.provider_name = "goodrain"
-            provider.user_id = 1987
+            provider = RegionProvider.objects.get(user_id=1)
         else:
             try:
                 provider = RegionProvider.objects.get(user_id=request.user.user_id)
@@ -48,6 +46,6 @@ class ShareBaseView(BaseView):
         context = super(ShareBaseView, self).get_context()
         context.update({
             "provider": self.provider,
-            "regions": self.regions
+            "regions": self.regions.values()
         })
         return context
