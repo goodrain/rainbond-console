@@ -56,15 +56,15 @@ em,cite,span{font-style: normal;}
 .newapp-tit{font-size: #303030; font-size: 16px;}
 .newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 25%; float: left;}
 .newapp-link-box li .newapp-link a{display: block; width: 100%;}
-.newapp-link-box li .newapp-link a span{background: #fff; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center;}
-.newapp-link-box li .newapp-link a em{width: 88px; height: 72px; margin:20px auto; display: block;}
+.newapp-link-box li .newapp-link a span{background: #fff; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center; padding: 10px 0;}
+.newapp-link-box li .newapp-link a em{width: 88px; height: 72px; margin:0 auto; display: block;}
 .addressicon{ background: url('../images/addressicon.png') no-repeat; }
 .goodcodeicon{background: url('../images/goodcodeicon.png') no-repeat;}
 .githubicon{background: url('../images/githubicon.png') no-repeat;}
 .demoicon{background: url('../images/demoicon.png') no-repeat;}
 .dockericon{background: url('../images/dockericon.png') no-repeat;}
 .composeicon{background: url('../images/composeicon.png') no-repeat;}
-.newapp-link-box li p a cite{font-size: 14px; color: #303030; text-decoration: none;}
+.newapp-link-box li p a cite{font-size: 14px; color: #303030; text-decoration: none; line-height: 20px;}
 
 
 .app-market{margin:20px; background: #fff;  -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; padding:10px;}
@@ -76,7 +76,7 @@ em,cite,span{font-style: normal;}
 .app-market ul{ padding: 0 10px; }
 .app-market ul li{width: 100%; display: none;}
 .app-market ul li p{width: 33.33%; float: left; margin:0;}
-.app-market ul li p a{margin:0 5px;  height: 50px; line-height: 50px; background: url('../images/rightarr.png') no-repeat right middle; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid; border-bottom:0 none; text-align: center; display: block;}
+.app-market ul li p a{margin:0 5px;  height: 50px; line-height: 50px; background: url('../images/rightarr.png') no-repeat; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid; border-bottom:0 none; text-align: center; display: block;}
 .app-market ul li p a:nth-child(5n){border-bottom:1px #ececec solid;}
 .tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px;}
 .gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px;}
