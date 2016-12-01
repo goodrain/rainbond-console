@@ -50,8 +50,8 @@ em,cite,span{font-style: normal;}
 
 /**/
 .newapp-link-box{margin:20px 15px;}
-.newapp-link-box li:nth-child(1){float:left;width: 71.4%;}
-.newapp-link-box li:nth-child(2){float:right; width: 28.5%}
+.newapp-link-box li:nth-child(1){float:left;width: 70%;}
+.newapp-link-box li:nth-child(2){float:right; width: 28%}
 .newapp-link-box li p{width: 100%;}
 .newapp-tit{color: #303030; font-size: 16px; text-indent: 10px;}
 .newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 20%; float: left;}
