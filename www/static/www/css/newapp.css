@@ -53,7 +53,7 @@ em,cite,span{font-style: normal;}
 .newapp-link-box li{float: left; width: 16.66%}
 .newapp-link-box li:nth-child(1){width: 66.66%;}
 .newapp-link-box li p{width: 100%;}
-.newapp-tit{font-size: #303030; font-size: 16px;}
+.wrapper .newapp-tit{font-size: #303030; font-size: 16px; text-indent: 10px;}
 .newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 25%; float: left;}
 .newapp-link-box li .newapp-link a{display: block; width: 100%;}
 .newapp-link-box li .newapp-link a span{background: #fff; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center; padding: 10px 0;}
@@ -67,7 +67,7 @@ em,cite,span{font-style: normal;}
 .newapp-link-box li p a cite{font-size: 14px; color: #303030; text-decoration: none; line-height: 20px;}
 
 
-.app-market{margin:20px; background: #fff;  -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; padding:10px;}
+.app-market{background: #fff;  -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; padding:10px;}
 .tab-tit{font-size: 12px; padding:0 10px 10px;}
 .tab-tit a{text-decoration:none;color: #838383; line-height: 30px; padding: 0 10px;}
 .tab-tit a:hover{color: #28cb75;}
@@ -82,7 +82,6 @@ em,cite,span{font-style: normal;}
 .tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 .gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 
-
-
+.app-market-box{margin:20px;}
 
 
