@@ -68,7 +68,7 @@ em,cite,span{font-style: normal;}
 
 
 .app-market{background: #fff;  -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; padding:10px;}
-.tab-tit{font-size: 12px; padding:0 10px 10px;}
+.tab-tit{font-size: 12px; padding:0 10px 10px; margin-bottom: 0;}
 .tab-tit a{text-decoration:none;color: #838383; line-height: 30px; padding: 0 10px;}
 .tab-tit a:hover{color: #28cb75;}
 .tab-tit a.sed{color: #28cb75;}
