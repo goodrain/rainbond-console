@@ -116,6 +116,7 @@ class BaseTenantService(object):
         tenantServiceInfo["version"] = service.version
         tenantServiceInfo["namespace"] = service.namespace
         tenantServiceInfo["update_version"] = service.update_version
+        tenantServiceInfo["port_type"] = "multi_outer"
         volume_path = ""
         host_path = ""
         if bool(service.volume_mount_path):
@@ -169,6 +170,7 @@ class BaseTenantService(object):
         data["namespace"] = newTenantService.namespace
         data["code_from"] = newTenantService.code_from
         data["dep_sids"] = dep_sids
+        data["port_type"] = newTenantService.port_type
 
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
