@@ -40,7 +40,7 @@
                 {% if hasHttpServices %}
                  <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
         					{% if visit_port_type == "multi_outer" %}
-        						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
+        						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px; height: 30px; line-height: 30px; font-size: 20px; {% if http_outer_service_ports|length < 1 %}display: none{% endif %} ;">
 
         							{% for port in http_outer_service_ports %}
             							{% if port.container_port == serviceDomain.container_port %}
@@ -204,6 +204,7 @@
 	    		  		$("#service_status").html("运行中")
 	    		  		$("#service_status_operate").show()
 	    		  		$("#service_visitor").show()
+						$("#multi_ports").show()
 	    		  		$("#service_status").attr("class","badge badge-sm label-success")
 	    		  	  }else if(obj["status"]=="starting"){
 	    		  	    $("#service_status_value").val("stop")
@@ -214,6 +215,8 @@
                         $("#service_status").html("启动中")
                         $("#service_status_operate").show()
                         $("#service_status").attr("class","badge badge-sm label-success")
+						$("#service_visitor").hide()
+						$("#multi_ports").hide()
 		    		  }else if(obj["status"]=="unusual"){
 		    			$("#service_status_value").val("")
 		    		  	$("#font"+service_id).html("启动")
@@ -230,12 +233,15 @@
 		    		  	$("#service_status_operate").show()
 		    		  	$("#onekey_deploy").show()
 		    		  	$("#onekey_deploy").removeAttr("disabled")
+						$("#multi_ports").hide()
 		    		  	if(obj["status"]=="closed"){
 		    		  		$("#service_status").html("已关闭")
 		    		  		$("#service_status").attr("class","badge badge-sm label-success")
+							$("#multi_ports").hide()
 		    		  	}else{
 		    		  		$("#service_status").html("余额不足已关闭")
 		    		  		$("#service_status").attr("class","badge badge-sm label-danger")
+							$("#multi_ports").hide()
 		    		  	}
 		    		  	$("#service_status_operate").show()
 		    		  	$("#service_visitor").hide();
@@ -250,6 +256,7 @@
 		    			$("#service_status_operate").hide();
 		    			$("#service_visitor").hide();
 		    			$("#service_status").attr("class","badge badge-sm label-success")
+						  $("#multi_ports").hide()
 		    		  }else{
 		    			$("#service_status_value").val("")
 			    		$("#font"+service_id).html("未知")

@@ -53,9 +53,10 @@
       function Fn_make_port_detail (port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
+           var port_type = $("#service_port_type").val()
 
-          if($(".fn-out-servce input:checked").length > 1){
-
+          // if($(".fn-out-servce input:checked").length > 1){
+            if(port_type == "multi_outer"){
                var next_tr = port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
                var next_tr_href = "http://" + next_tr;
             }else{
