@@ -7,7 +7,7 @@
 <!--tenant switch-->
 {% if tenant_list|length > 1 %}
 <div class="nav notify-row  hidden-xs" id="tenant_switch">
-    <div class="btn-group" style=" border-left: 1px solid #000; margin-left: 35px;">
+    <div class="btn-group">
         <button class="btn btn-white" type="button">{{current_tenant}}</button>
         <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
         <ul id="tenant_select" role="menu" class="dropdown-menu">
@@ -21,7 +21,7 @@
 <!--tenant switch-->
 {% block region_zone %}
 <div class="nav notify-row" id="top_menu">
-    <div class="btn-group" style=" border-left: 1px solid #000; margin-left: 35px;">
+    <div class="btn-group">
         <button class="btn btn-white" type="button">{{current_region.label}}</button>
         <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
         <ul id="region_select" role="menu" class="dropdown-menu">

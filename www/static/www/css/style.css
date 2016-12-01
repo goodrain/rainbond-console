@@ -379,7 +379,7 @@ a.logo span {
     color: #FF6C60;
 }
 
-
+a.logo + div{border-left: 1px solid #000; margin-left: 35px;}
 /*notification*/
 
 #top_menu .nav > li, ul.top-menu > li {
