@@ -59,12 +59,22 @@ em,cite,span{font-style: normal;}
 .newapp-link-box li .newapp-link a{display: block; width: 100%;}
 .newapp-link-box li .newapp-link a span{background: #fff; min-height: 152px; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center; padding: 10px 5px;}
 .newapp-link-box li .newapp-link a em{width: 88px; height: 72px; margin:0 auto; display: block;}
-.addressicon{ background: url('../images/addressicon.png') no-repeat; }
-.goodcodeicon{background: url('../images/goodcodeicon.png') no-repeat;}
-.githubicon{background: url('../images/githubicon.png') no-repeat;}
-.demoicon{background: url('../images/demoicon.png') no-repeat;}
-.dockericon{background: url('../images/dockericon.png') no-repeat;}
-.composeicon{background: url('../images/composeicon.png') no-repeat;}
+.addressicon{ background: url('../images/addressicon.png') no-repeat; background-size: 88px 72px;}
+.goodcodeicon{background: url('../images/goodcodeicon.png') no-repeat; background-size: 88px 72px;}
+.githubicon{background: url('../images/githubicon.png') no-repeat; background-size: 88px 72px;}
+.demoicon{background: url('../images/demoicon.png') no-repeat; background-size: 88px 72px;}
+.demo2icon{background: url('../images/demoicon.png') no-repeat; background-size: 88px 72px;}
+.dockericon{background: url('../images/dockericon.png') no-repeat; background-size: 88px 72px;}
+.composeicon{background: url('../images/composeicon.png') no-repeat; background-size: 88px 72px;}
+
+.addressicon:hover{ background: url('../images/addresshover.png') no-repeat; background-size: 88px 72px;}
+.goodcodeicon:hover{background: url('../images/goodcodehover.png') no-repeat; background-size: 88px 72px;}
+.githubicon:hover{background: url('../images/githubhover.png') no-repeat; background-size: 88px 72px;}
+.demoicon:hover{background: url('../images/demohover.png') no-repeat; background-size: 88px 72px;}
+.demo2icon:hover{background: url('../images/demo2hover.png') no-repeat; background-size: 88px 72px;}
+.dockericon:hover{background: url('../images/dockerhover.png') no-repeat; background-size: 88px 72px;}
+.composeicon:hover{background: url('../images/composehover.png') no-repeat; background-size: 88px 72px;}
+
 .newapp-link-box li p a cite{font-size: 14px; color: #303030; text-decoration: none; line-height: 20px; display: inline-block; width: 100%;}
 .newapp-link-box li p a cite.littext{font-size: 12px; color: #838383;}
 
