@@ -81,7 +81,7 @@ em,cite,span{font-style: normal;}
 .app-market ul li p a{margin:0 5px;  height: 50px; line-height: 50px; background: url('../images/rightarr.png') no-repeat right 10px center; color: #303030; padding-right:40px; font-size: 14px;  border-top:1px #ececec solid; border-left:1px #ececec solid; border-right:1px #ececec solid; text-align: center; display: block;}
 .app-market ul li p:nth-child(10) a,.app-market ul li p:nth-child(11) a{border-bottom:1px #ececec solid;}
 .app-market ul li p:first-child a{border-bottom: 0 none;}
-.app-market ul li p:last-child a{border-bottom:1px #ececec solid; color: #28cb75; background-image: none;}
+.app-market ul li p:last-child a{border-bottom:1px #ececec solid; color: #28cb75;}
 .tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 .gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 
