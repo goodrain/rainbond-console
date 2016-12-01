@@ -51,13 +51,13 @@ em,cite,span{font-style: normal;}
 /**/
 .newapp-link-box{margin:20px;}
 .newapp-link-box li{float: left; width: 16.66%};
-.newapp-link-box li.first{width: 66.66%;}
+.newapp-link-box .first{width: 66.66%;}
 .newapp-link-box li p{width: 100%;}
 .newapp-tit{font-size: #303030; font-size: 16px;}
-.newapp-link-box li.first p a{display: block; width: 25%; float: left;}
-.newapp-link-box li p a{display: block; width: 100%;}
-.newapp-link-box li p a span{background: #fff; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px;}
-.newapp-link-box li p a em{width: 88px; height: 72px; margin:20px auto; display: block;}
+.newapp-link-box li.first .newapp-link a{display: block; width: 25%; float: left;}
+.newapp-link-box li .newapp-link a{display: block; width: 100%;}
+.newapp-link-box li .newapp-link a span{background: #fff; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center;}
+.newapp-link-box li .newapp-link a em{width: 88px; height: 72px; margin:20px auto; display: block;}
 .addressicon{ background: url('../images/addressicon.png') no-repeat; }
 .goodcodeicon{background: url('../images/goodcodeicon.png') no-repeat;}
 .githubicon{background: url('../images/githubicon.png') no-repeat;}
@@ -71,6 +71,7 @@ em,cite,span{font-style: normal;}
 .tab-tit{font-size: 12px; padding:0 10px 10px;}
 .tab-tit a{text-decoration:none;color: #838383; line-height: 30px; padding: 0 10px;}
 .tab-tit a:hover{color: #28cb75;}
+.tab-tit a.sed{color: #28cb75;}
 
 .app-market ul{ padding: 0 10px; }
 .app-market ul li{width: 100%; display: none;}
