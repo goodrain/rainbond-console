@@ -143,14 +143,48 @@ class RegionResourceConsumeView(ShareBaseView):
     """数据中心消费统计报表"""
     def get(self, request, *args, **kwargs):
         querymonth = request.GET.get("date", None)
+        region = request.GET.get("region", "xunda-bj")
+        logger.info("input: {}, region:{}".format(querymonth, region))
+
         if querymonth:
             month_date = dt.strptime(querymonth, "%Y-%m")
         else:
             now = dt.now()
             month_date = dt(now.year, now.month, 1, 0, 0, 0) - clzdt.timedelta(days=1)
 
-        region = request.GET.get("region", "xunda-bj")
-        logger.info("input: {}, region:{}".format(querymonth, region))
+        querymonth = month_date.strftime("%Y-%m")
+        now = dt.now()
+        if month_date.year == now.year and month_date.month == now.month:
+            context = self.get_context()
+            context.update({
+                "region": region,
+                "report": False,
+                "query_month": month_date.strftime("%Y-%m"),
+            })
+            return TemplateResponse(request, "share/region_resource_consume.html", context)
+
+        provider_name = self.provider.provider_name
+        record_list = list(RegionResourceProviderSettle.objects.filter(provider=provider_name, region=region, date=querymonth))
+        if record_list:
+            record = record_list[0]
+            context = self.get_context()
+            context.update({
+                "region": record.region,
+                "report": True,
+                "total_used_tenant": record.used_tenant,
+                "total_tenant_memory": round(record.total_tenant_memory / 1024.0, 4),
+                "total_tenant_disk": round(record.total_tenant_disk / 1024.0, 4),
+                "total_tenant_net": round(record.total_tenant_net / 1024.0, 4),
+
+                "total_package_tenant": record.total_package_tenant,
+                "total_package_day": record.total_package_day,
+                "total_over_memory": round(record.total_over_memory / 1024, 4),
+                "total_over_disk": round(record.total_over_disk / 1024, 4),
+                "total_over_net": round(record.total_over_net / 1024, 4),
+
+                "query_month": month_date.strftime("%Y-%m"),
+            })
+            return TemplateResponse(request, "share/region_resource_consume.html", context)
 
         start_date = dt(month_date.year, month_date.month, 1, 0, 0, 0)
         last_day = calendar.monthrange(month_date.year, month_date.month)[1]
@@ -264,10 +298,23 @@ class RegionResourceConsumeView(ShareBaseView):
 
         total_money = total_package_money + total_real_money
 
+        record = RegionResourceProviderSettle()
+        record.region = region
+        record.total_used_tenant = len(tenant_consume)
+        record.total_tenant_memory = total_tenant_memory
+        record.total_tenant_disk = total_tenant_disk
+        record.total_tenant_net = total_tenant_net
+        record.total_package_tenant = len(package_pay_mode)
+        record.total_package_day = total_package_day
+        record.total_over_memory = total_over_memory
+        record.total_over_disk = total_over_disk
+        record.total_over_net = total_over_net
+        record.save()
 
         context = self.get_context()
         context.update({
             "region": region,
+            "report": True,
             "total_used_tenant": len(tenant_consume),
             "total_tenant_memory": round(total_tenant_memory / 1024.0, 4),
             "total_tenant_disk": round(total_tenant_disk / 1024.0, 4),
@@ -279,9 +326,6 @@ class RegionResourceConsumeView(ShareBaseView):
             "total_over_disk": round(total_over_disk / 1024, 4),
             "total_over_net": round(total_over_net / 1024, 4),
 
-            "total_real_money": total_real_money.quantize(Decimal('0.00')),
-            "total_package_money": total_package_money.quantize(Decimal('0.00')),
-            "total_money": total_money.quantize(Decimal('0.00')),
             "query_month": month_date.strftime("%Y-%m"),
         })
         return TemplateResponse(request, "share/region_resource_consume.html", context)

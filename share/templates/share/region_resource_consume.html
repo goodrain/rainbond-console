@@ -4,6 +4,7 @@
 {% block main-content %}
 <div role="tabpanel" class="tab-pane active">
     <section class="wrapper site-min-height">
+        {% if report %}
         <div class="panel-body">
             <div class="addformbox">
                 <form action="/share/region/report/consume/" method="get">
@@ -64,6 +65,11 @@
                 </table>
             </div>
         </div>
+        {% else %}
+        <div class="panel-body">
+            <h3> {{ query_month }} 消费报表未出, 请月底再尝试查询 </h3>
+        </div>
+        {% endif %}
     </section>
 </div>
 {% endblock %}
