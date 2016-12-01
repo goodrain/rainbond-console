@@ -49,12 +49,13 @@ em,cite,span{font-style: normal;}
 .tablink a.sed{background: #28cb75; color: #fff;}
 
 /**/
-.newapp-link-box{margin:20px;}
-.newapp-link-box li{float: left; width: 14.28%}
-.newapp-link-box li:nth-child(1){width: 71.42%;}
+.newapp-link-box{margin:20px 15px;}
+.newapp-link-box li:nth-child(1){float:left;width: 71.4%;}
+.newapp-link-box li:nth-child(2){float:right; width: 28.5%}
 .newapp-link-box li p{width: 100%;}
 .newapp-tit{color: #303030; font-size: 16px; text-indent: 10px;}
 .newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 20%; float: left;}
+.newapp-link-box li:nth-child(2) .newapp-link a{display: block; width: 50%; float: left;}
 .newapp-link-box li .newapp-link a{display: block; width: 100%;}
 .newapp-link-box li .newapp-link a span{background: #fff; min-height: 152px; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center; padding: 10px 5px;}
 .newapp-link-box li .newapp-link a em{width: 88px; height: 72px; margin:0 auto; display: block;}
