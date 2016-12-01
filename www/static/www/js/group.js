@@ -3,7 +3,16 @@ $(function(){
     var groupID = $("#group-tit").attr("data-group");
     var tenant_Name = $("#app-group").attr("data-tenantName");
 	// 复选框开始
-	var chackboxnums;
+	var chackboxnums = $(".fn-SelectItem input:checked").length;
+    if(chackboxnums == 0){
+        $("#batchStart").prop("disabled",true);
+        $("#batchEnd").prop("disabled",true);
+        $("#newStart").prop("disabled",true);
+    }else{
+        $("#batchStart").removeAttr("disabled",true);
+        $("#batchEnd").removeAttr("disabled",true);
+        $("#newStart").removeAttr("disabled",true);
+    }
 	$(".fn-SelectItem input").click(function(){
     	chackboxnums = $(".fn-SelectItem input:checked").length;
     	$("#nums-app p").children("span").html(chackboxnums);
