@@ -63,15 +63,15 @@ em,cite,span{font-style: normal;}
 .goodcodeicon{background: url('../images/goodcodeicon.png') no-repeat; background-size: 88px 72px;}
 .githubicon{background: url('../images/githubicon.png') no-repeat; background-size: 88px 72px;}
 .demoicon{background: url('../images/demoicon.png') no-repeat; background-size: 88px 72px;}
-.demo2icon{background: url('../images/demoicon.png') no-repeat; background-size: 88px 72px;}
+.demoicon2{background: url('../images/dome2.png') no-repeat; background-size: 88px 72px;}
 .dockericon{background: url('../images/dockericon.png') no-repeat; background-size: 88px 72px;}
 .composeicon{background: url('../images/composeicon.png') no-repeat; background-size: 88px 72px;}
 
 .addressicon:hover{ background: url('../images/addresshover.png') no-repeat; background-size: 88px 72px;}
 .goodcodeicon:hover{background: url('../images/goodcodehover.png') no-repeat; background-size: 88px 72px;}
 .githubicon:hover{background: url('../images/githubhover.png') no-repeat; background-size: 88px 72px;}
-.demoicon:hover{background: url('../images/demohover.png') no-repeat; background-size: 88px 72px;}
-.demo2icon:hover{background: url('../images/demo2hover.png') no-repeat; background-size: 88px 72px;}
+.demoicon:hover{background: url('../images/domehover.png') no-repeat; background-size: 88px 72px;}
+.demoicon2:hover{background: url('../images/dome2hover.png') no-repeat; background-size: 88px 72px;}
 .dockericon:hover{background: url('../images/dockerhover.png') no-repeat; background-size: 88px 72px;}
 .composeicon:hover{background: url('../images/composehover.png') no-repeat; background-size: 88px 72px;}
 
