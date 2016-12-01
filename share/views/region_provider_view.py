@@ -35,9 +35,30 @@ PRICE_BASE = {
 }
 
 
+class RegionProviderView(ShareBaseView):
+    def get(self, request, *args, **kwargs):
+        if self.provider.status == 0:
+            return TemplateResponse(request, "share/region_provider_register.html", self.get_context())
+        else:
+            return self.redirect_to("/share/region/")
+
+    def post(self, request, *args, **kwargs):
+        region_provider = get_object_or_404(RegionProvider, pk=request.POST.get("provider_id"))
+        region_provider.provider_name = request.POST.get("provider_name", None) or region_provider.provider_name
+        region_provider.enter_name = request.POST.get("enter_name", None) or region_provider.enter_name
+        # 处理照片上传
+        region_provider.business_prove = request.POST.get("business_prove", None) or region_provider.business_prove
+        region_provider.status = 1
+        region_provider.save()
+        return self.redirect_to("/share/region/")
+
+
 class RegionOverviewView(ShareBaseView):
     def get(self, request, *args, **kwargs):
-        return TemplateResponse(request, "share/region_overview.html", self.get_context())
+        if self.provider.status == 0:
+            return TemplateResponse(request, "share/region_provider_register.html", self.get_context())
+        else:
+            return TemplateResponse(request, "share/region_overview.html", self.get_context())
 
 
 class RegionResourcePriceView(ShareBaseView):
@@ -142,6 +163,9 @@ class RegionResourcePriceView(ShareBaseView):
 class RegionResourceConsumeView(ShareBaseView):
     """数据中心消费统计报表"""
     def get(self, request, *args, **kwargs):
+        if not self.regions:
+            return self.redirect_to("/share/")
+
         querymonth = request.GET.get("date", None)
         region = request.GET.get("region", "xunda-bj")
         logger.info("input: {}, region:{}".format(querymonth, region))
@@ -493,7 +517,8 @@ class RegionResourceSettleView(ShareBaseView):
 
         context = self.get_context()
         context.update({
-            "region_settle_list": region_settle_list
+            "region_settle_list": region_settle_list,
+            "query_month": querymonth,
         })
         return TemplateResponse(request, "share/region_resource_settle.html", context)
 

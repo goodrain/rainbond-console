@@ -1,0 +1,18 @@
+{% extends 'share/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content %}
+<div role="tabpanel" class="tab-pane active">
+    <section class="wrapper site-min-height">
+        <div class="panel-body">
+            <h4>申请成为提供商</h4>
+            <form action="/share/region/provider/" method="post">
+                <input type="hidden" name="provider_id" value="{{ provider.ID }}">
+                公司名称:<input type="text" name="enter_name" value="{{ provider.enter_name }}">
+                公司简称:<input type="text" name="provider_name" value="{{ provider.provider_name }}">
+                营业执照:<input type="text" name="business_prove" value="{{ provider.business_prove }}">
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}

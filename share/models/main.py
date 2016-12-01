@@ -21,13 +21,34 @@ class BaseModel(models.Model):
         return data
 
 
+class Region(BaseModel):
+    class Meta:
+        db_table = "region"
+
+    name = models.CharField(max_length=32, help_text=u"数据中心缩写")
+    show_name = models.CharField(max_length=32, help_text=u"数据中心名称")
+    provider_name = models.CharField(max_length=32, help_text=u"提供商简称")
+    provider_name = models.CharField(max_length=16, default='init',
+                                     help_text=u"数据中心工作状态,prepared|installed|authed|ready|work|stop")
+    api_secret = models.CharField(max_length=32, default='', help_text=u"数据中心操作密钥")
+    api_sign = models.CharField(max_length=32, default='', help_text=u"数据中心api签名")
+    install_secret_key = models.CharField(max_length=32, default='', help_text=u"数据中心安装密钥")
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+
+
 class RegionProvider(BaseModel):
     class Meta:
         db_table = "region_provider"
 
-    provider_name = models.CharField(max_length=32, help_text=u"提供商")
+    provider_name = models.CharField(max_length=32, null=True, default='', help_text=u"提供简称")
+    enter_name = models.CharField(max_length=32, default='', help_text=u"企业名称")
     user_id = models.IntegerField(help_text=u"提供商")
+    is_identify = models.IntegerField(default=0, help_text=u"是否已认证")
+    business_prove = models.CharField(max_length=64, null=True, help_text=u"营业执照照片")
+    remark = models.CharField(max_length=128, null=True, help_text=u"备注信息")
+    status = models.IntegerField(default=0, help_text=u"0:注册未激活 1:已激活 2:锁定 3:注销")
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+    auth_time = models.DateTimeField(blank=True, null=True, help_text=u"认证时间")
 
 
 class RegionResourceProviderPrice(BaseModel):

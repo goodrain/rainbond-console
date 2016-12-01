@@ -10,4 +10,5 @@ urlpatterns = patterns(
     url(r'^region/price/$', login_required(RegionResourcePriceView.as_view())),
     url(r'^region/report/consume/$', login_required(RegionResourceConsumeView.as_view())),
     url(r'^region/settle/$', login_required(RegionResourceSettleView.as_view())),
+    url(r'^region/provider/$', login_required(RegionProviderView.as_view())),
 )

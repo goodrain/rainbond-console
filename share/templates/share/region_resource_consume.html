@@ -10,9 +10,9 @@
                 <form action="/share/region/report/consume/" method="get">
                     <input type="text" name="date" value="{{ query_month }}" placeholder="输入查询日期,例:2016-10"/>
                     <select name="region">
-                        <option value="xunda-bj" selected="selected">迅达-北京</option>
-                        <option value="ali-sh">阿里云-上海</option>
-                        <option value="aws-jp-1">亚马逊-日本</option>
+                        {% for region in regions %}
+                            <option value="{{ region.name }}">{{ region.show_name}}</option>
+                        {% endfor %}
                     </select>
                     <input type="submit" value="查询">
                 </form>
