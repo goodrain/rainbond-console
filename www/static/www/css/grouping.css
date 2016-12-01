@@ -26,7 +26,7 @@ em,cite,span{font-style: normal;}
 .choose-group-box{position: relative;}
 .choose-layer{width: 200px; min-height: 50px; position: absolute; top: 50%; left: 50%; z-index: 99; background: #fff; display: none; margin:5px 0 0 -110px; border:1px #ececec solid; padding:10px;}
 .choose-layer select{width:100px; height: 30px; line-height: 30px;}
-.choose-group-box span{cursor: pointer;}
+.choose-group-box span{cursor: pointer; color: #28cb75; border-bottom: 1px #28cb75 dashed;}
 
 .group-tit{min-width: 80px; height:34px; line-height:34px; color:#666; font-size: 18px;}
 a.imgbtn{width: 24px; height: 24px; background: url('../images/grayimg.png') no-repeat; background-size: 24px 24px; display: inline-block; margin:0 5px;}

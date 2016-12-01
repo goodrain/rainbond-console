@@ -12,17 +12,33 @@ $(function(){
         }else{
             $(".fn-SelectAll input").prop("checked",true);
         }
+        if(chackboxnums == 0){
+            $("#batchStart").prop("disabled",true);
+            $("#batchEnd").prop("disabled",true);
+            $("#newStart").prop("disabled",true);
+        }else{
+            $("#batchStart").removeAttr("disabled",true);
+            $("#batchEnd").removeAttr("disabled",true);
+            $("#newStart").removeAttr("disabled",true);
+        }
     });
     $(".fn-SelectAll input").on("click",function(){
     	if($(".fn-SelectAll input:checked").length == 1){
 			$(".fn-SelectItem input").prop("checked",true);
 			chackboxnums = $(".fn-SelectItem input:checked").length;
     		$("#nums-app p").children("span").html(chackboxnums);
+            $("#batchStart").removeAttr("disabled",true);
+            $("#batchEnd").removeAttr("disabled",true);
+            $("#newStart").removeAttr("disabled",true);
 		}else{
 			$(".fn-SelectItem input").removeAttr("checked");
     		$("#nums-app p").children("span").html("0");
+            $("#batchStart").prop("disabled",true);
+            $("#batchEnd").prop("disabled",true);
+            $("#newStart").prop("disabled",true);
 		}
     });
+
     // 复选框结束
     
     //批量重新部署
