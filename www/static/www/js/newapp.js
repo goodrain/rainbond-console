@@ -501,4 +501,14 @@ $(function(){
                 }  
             });  
     });
+
+
+    //
+    $("#tab-tit a").click(function(){
+    	var indexnum = $(this).index();
+    	$("#tab-tit a").removeClass("sed");
+    	$(this).addClass("sed");
+    	$("#app-market li").hide();
+    	$("#app-market li").eq(indexnum).show();
+    });
 });
