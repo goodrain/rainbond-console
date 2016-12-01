@@ -23,7 +23,7 @@ em,cite,span{font-style: normal;}
 
 .build-app-btn{text-align: center;}
 
-.tit{font-size: 24px; line-height: 50px; color: #555;  }
+.tit{font-size: 24px; line-height: 50px; color: #555;}
 .line{height: 0; width: 100%; display: block; border-top: 1px #f7f7f7 solid; border-bottom: 1px #dfdfdf solid;}
 .smalltit{font-size: 18px; line-height: 50px; color: #555; height: 50px; background: #efefef; border-bottom: 1px #ddd solid; text-indent:20px; margin-bottom: 0;}
 .link{margin-bottom: 0; background:#f5f5f5; padding: 20px; }
@@ -76,10 +76,11 @@ em,cite,span{font-style: normal;}
 .app-market ul{ padding: 0 10px; }
 .app-market ul li{width: 100%; display: none;}
 .app-market ul li p{width: 33.33%; float: left; margin:0;}
-.app-market ul li p a{margin:0 5px;  height: 50px; line-height: 50px; background: url('../images/rightarr.png') no-repeat; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid; border-bottom:0 none; text-align: center; display: block;}
+.app-market ul li p a{margin:0 5px;  height: 50px; line-height: 50px; background: url('../images/rightarr.png') no-repeat right 10px center; color: #303030; padding-right:40px; font-size: 14px;  border-top:1px #ececec solid; border-left:1px #ececec solid; border-right:1px #ececec solid; text-align: center; display: block;}
 .app-market ul li p a:nth-child(5n){border-bottom:1px #ececec solid;}
-.tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px;}
-.gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px;}
+.app-market ul li p a:last-child{border-bottom:1px #ececec solid; color: #28cb75;}
+.tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 2px;}
+.gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 2px;}
 
 
 
