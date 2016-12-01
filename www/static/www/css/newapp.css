@@ -50,11 +50,11 @@ em,cite,span{font-style: normal;}
 
 /**/
 .newapp-link-box{margin:20px;}
-.newapp-link-box li{float: left; width: 16.66%}
-.newapp-link-box li:nth-child(1){width: 66.66%;}
+.newapp-link-box li{float: left; width: 14.28%}
+.newapp-link-box li:nth-child(1){width: 71.42%;}
 .newapp-link-box li p{width: 100%;}
 .newapp-tit{color: #303030; font-size: 16px; text-indent: 10px;}
-.newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 25%; float: left;}
+.newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 20%; float: left;}
 .newapp-link-box li .newapp-link a{display: block; width: 100%;}
 .newapp-link-box li .newapp-link a span{background: #fff; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center; padding: 10px 0;}
 .newapp-link-box li .newapp-link a em{width: 88px; height: 72px; margin:0 auto; display: block;}
@@ -77,8 +77,9 @@ em,cite,span{font-style: normal;}
 .app-market ul li{width: 100%; display: none;}
 .app-market ul li p{width: 33.33%; float: left; margin:0;}
 .app-market ul li p a{margin:0 5px;  height: 50px; line-height: 50px; background: url('../images/rightarr.png') no-repeat right 10px center; color: #303030; padding-right:40px; font-size: 14px;  border-top:1px #ececec solid; border-left:1px #ececec solid; border-right:1px #ececec solid; text-align: center; display: block;}
-.app-market ul li p:nth-child(5n) a{border-bottom:1px #ececec solid;}
-.app-market ul li p:last-child a{border-bottom:1px #ececec solid; color: #28cb75;}
+.app-market ul li p:nth-child(3n+1) a{border-bottom:1px #ececec solid;}
+.app-market ul li p:first-child a{border-bottom: 0 none;}
+.app-market ul li p:last-child a{border-bottom:1px #ececec solid; color: #28cb75; background-image: none;}
 .tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 .gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 
