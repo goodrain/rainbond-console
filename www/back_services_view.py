@@ -433,30 +433,35 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             baseService.add_volume_list(tenant_service, volume.volume_path)
 
     # add by tanm specify tenant app default env
-    def set_tenant_default_env(self, envs):
+    def set_tenant_default_env(self, envs, outer_ports):
         for env in envs:
             if env.attr_name == 'SITE_URL':
                 if self.cookie_region in RegionInfo.valid_regions():
                     port = RegionInfo.region_port(self.cookie_region)
                     domain = RegionInfo.region_domain(self.cookie_region)
                     env.options = 'direct_copy'
-                    env.attr_value = 'http://{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
+                    if len(outer_ports) > 0:
+                        env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, self.serviceAlias, self.tenantName, domain, port)
                     logger.debug("SITE_URL = {} options = {}".format(env.attr_value, env.options))
             elif env.attr_name == 'TRUSTED_DOMAIN':
                 if self.cookie_region in RegionInfo.valid_regions():
                     port = RegionInfo.region_port(self.cookie_region)
                     domain = RegionInfo.region_domain(self.cookie_region)
                     env.options = 'direct_copy'
-                    env.attr_value = '{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
+                    if len(outer_ports) > 0:
+                        env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, self.serviceAlias, self.tenantName, domain, port)
                     logger.debug("TRUSTED_DOMAIN = {} options = {}".format(env.attr_value, env.options))
 
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version, container_port=0, is_change=True)
-
+        outer_ports = AppServicePort.objects.filter(service_key=self.service.service_key,
+                                                    app_version=self.service.version,
+                                                    is_outer_service=True,
+                                                    protocol='http')
         if envs:
             # add by tanm
-            self.set_tenant_default_env(envs)
+            self.set_tenant_default_env(envs, outer_ports)
             # add end
             context['envs'] = envs
             return TemplateResponse(request, 'www/back_service_create_step_2.html', context)

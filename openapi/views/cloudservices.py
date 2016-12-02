@@ -288,6 +288,10 @@ class CloudServiceInstallView(BaseAPIView):
             return Response(status=418, data={"success": False, "msg": u"创建控制台服务失败!"})
         logger.debug("openapi.cloudservice", "install current service now success!")
         env_list = request.data.get("env_list", None)
+        # query service port
+        service_port_list = TenantServicesPort.objects.filter(service_id=newTenantService.service_id,
+                                                              is_outer_service=True,
+                                                              protocol='http')
         if env_list is not None:
             env_var_list = TenantServiceEnvVar.objects.filter(service_id=service_id, tenant_id=tenant.tenant_id, is_change=True)
             env_var_map = {x.attr_name: x for x in list(env_var_list)}
@@ -298,12 +302,16 @@ class CloudServiceInstallView(BaseAPIView):
                 if attr_name == "SITE_URL":
                     port = RegionInfo.region_port(region)
                     domain = RegionInfo.region_domain(region)
-                    attr_value = 'http://{}.{}{}:{}'.format(service_name, tenant.tenant_name, domain, port)
+                    if len(service_port_list) > 0:
+                        port_value = service_port_list[0].container_port
+                        attr_value = 'http://{}.{}.{}{}:{}'.format(port_value, service_name, tenant.tenant_name, domain, port)
                     logger.debug("openapi.cloudservice", "SITE_URL = {}".format(env.attr_value))
                 elif attr_name == "TRUSTED_DOMAIN":
                     port = RegionInfo.region_port(region)
                     domain = RegionInfo.region_domain(region)
-                    attr_value = '{}.{}{}:{}'.format(service_name, tenant.tenant_name, domain, port)
+                    if len(service_port_list) > 0:
+                        port_value = service_port_list[0].container_port
+                        attr_value = '{}.{}.{}{}:{}'.format(port_value, service_name, tenant.tenant_name, domain, port)
                     logger.debug("openapi.cloudservice", "TRUSTED_DOMAIN = {}".format(env.attr_value))
 
                 if env is not None:
@@ -358,9 +366,7 @@ class CloudServiceInstallView(BaseAPIView):
         http_port_str = ":" + http_port_str
         # 只有http服务返回url
         access_url = ""
-        service_port_list = TenantServicesPort.objects.filter(service_id=newTenantService.service_id,
-                                                              is_outer_service=True,
-                                                              protocol='http')
+
         if len(service_port_list) > 0:
             port_value = service_port_list[0].container_port
             access_url = "http://{0}.{1}.{2}{3}{4}".format(port_value,
