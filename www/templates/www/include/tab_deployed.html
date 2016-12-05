@@ -36,15 +36,20 @@
                     {% endif %}
                     
                 {% endifequal %}
-
+				<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">
                 {% if hasHttpServices %}
                  <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
+
         					{% if visit_port_type == "multi_outer" %}
-        						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px; height: 30px; line-height: 30px; font-size: 20px; {% if http_outer_service_ports|length < 2 %}display: none{% endif %} ;">
+								{% if http_outer_service_ports|length == 1 %}
+					                <select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">
+								{% else %}
+						            <select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
+								{% endif %}
 
         							{% for port in http_outer_service_ports %}
             							{% if port.container_port == serviceDomain.container_port %}
-                							<option value="{{ port.container_port }}"
+                							<option value="{{ port.container_port }}
                 									selected="selected">{{ port.container_port }}</option>
                 							{% else %}
                 							<option value="{{ port.container_port }}">{{ port.container_port }}</option>
@@ -184,6 +189,7 @@
 	    return this.replace(/(^\s*)|(\s*$)/g, "");
 	}
 	function checkStatus(){
+		var port_length = $("#port_length").val()
     	$.ajax({
        	  type: "GET",
     		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/detail/",
@@ -204,7 +210,9 @@
 	    		  		$("#service_status").html("运行中")
 	    		  		$("#service_status_operate").show()
 	    		  		$("#service_visitor").show()
-						$("#multi_ports").show()
+						  if(port_length != "1"){
+							  $("#multi_ports").show()
+						  }
 	    		  		$("#service_status").attr("class","badge badge-sm label-success")
 	    		  	  }else if(obj["status"]=="starting"){
 	    		  	    $("#service_status_value").val("stop")
