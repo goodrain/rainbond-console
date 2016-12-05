@@ -27,7 +27,7 @@
             <div class="row">
                 <div class="col-xs-8 text-left">
                 {% ifequal tenantServiceInfo.category "application" %}
-                    {% if user.is_sys_admin or 'app_publish' in user.actions or publish_service %}
+                    {% if user.is_sys_admin %}
                         <button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
                     {% endif %}
                     
