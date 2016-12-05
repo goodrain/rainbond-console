@@ -88,7 +88,9 @@ $(function(){
     		},
     		success : function(msg) {
     			var dataObj = msg;
-    			if (dataObj["status"] == "owed"){
+    			if (dataObj["status"] == "exist") {
+    				swal("服务名已存在");
+    			} else if (dataObj["status"] == "owed"){
     				swal("余额不足请及时充值")
     			} else if (dataObj["status"] == "expired"){
                     swal("试用已到期")

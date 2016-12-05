@@ -656,8 +656,6 @@ $(function(){
 					swal("资源已达上限,无法创建");
 				}else if(status == "over_money"){
 					swal("余额不足无法创建");
-				}else if (status == 'exist'){
-					swal("服务已存在")
 				}else{
 					swal("创建失败")
 				}
