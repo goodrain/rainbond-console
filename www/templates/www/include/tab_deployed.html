@@ -39,7 +39,7 @@
 
                 {% if hasHttpServices %}
                  <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
-        					{% if visit_port_type == "multi_outer" %}
+        					{% if visit_port_type == "multi_outer" and http_outer_service_ports|length > 1 %}
         						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
 
         							{% for port in http_outer_service_ports %}
