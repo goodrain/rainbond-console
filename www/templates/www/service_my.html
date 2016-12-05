@@ -4,6 +4,24 @@
 {% block main-content %}
 
 <section class="wrapper site-min-height">
+	<!-- Google Code for Google adwords #1 Conversion Page -->
+	<script type="text/javascript">
+	/* <![CDATA[ */
+	var google_conversion_id = 867795233;
+	var google_conversion_language = "en";
+	var google_conversion_format = "3";
+	var google_conversion_color = "ffffff";
+	var google_conversion_label = "0_d8CLyEpmwQoYLmnQM";
+	var google_remarketing_only = false;
+	/* ]]> */
+	</script>
+	<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js">
+	</script>
+	<noscript>
+	<div style="display:inline;">
+	<img height="1" width="1" style="border-style:none;" alt="" src="//www.googleadservices.com/pagead/conversion/867795233/?label=0_d8CLyEpmwQoYLmnQM&amp;guid=ON&amp;script=0"/>
+	</div>
+	</noscript>
 	<!-- 免费使用阶段 -->
 	{% if pay_type == "free" and not expired %}
 	<div class="infotips tipsbox">您可以全功能免费使用至 {{ expired_time|date:'Y-m-d H:i:s' }}。<a style="cursor:pointer;" onclick="payed_upgrade('{{tenantName}}','')">点击此处立刻升级为付费用户</a><a class="close" href="#">×</a></div>
