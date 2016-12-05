@@ -59,21 +59,21 @@ em,cite,span{font-style: normal;}
 .newapp-link-box li .newapp-link a{display: block; width: 100%;}
 .newapp-link-box li .newapp-link a span{background: #fff; min-height: 152px; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center; padding: 10px 5px;}
 .newapp-link-box li .newapp-link a em{width: 88px; height: 72px; margin:0 auto; display: block; background: url('../images/newappicon.png') no-repeat; background-size: 704px 144px;}
-.addressicon{ }
-.goodcodeicon{background-position: -88px 0;}
-.githubicon{background-position: -176px 0;}
-.demoicon{background-position: -264px 0;}
-.demoicon2{background-position: -352px 0;}
-.dockericon{background-position: -440px 0;}
-.composeicon{background-position: -528px 0;}
+.addressicon{}
+.newapp-link-box li .newapp-link a em.goodcodeicon{background-position: -88px 0;}
+.newapp-link-box li .newapp-link a em.githubicon{background-position: -176px 0;}
+.newapp-link-box li .newapp-link a em.demoicon{background-position: -264px 0;}
+.newapp-link-box li .newapp-link a em.demoicon2{background-position: -352px 0;}
+.newapp-link-box li .newapp-link a em.dockericon{background-position: -440px 0;}
+.newapp-link-box li .newapp-link a em.composeicon{background-position: -528px 0;}
 
-.addressicon:hover{ background-position: 0 -72px;}
-.goodcodeicon:hover{background-position: -88px -72px;}
-.githubicon:hover{background-position: -176px -72px;}
-.demoicon:hover{background-position: -264px -72px;}
-.demoicon2:hover{background-position: -352px -72px;}
-.dockericon:hover{background-position: -440px -72px;}
-.composeicon:hover{background-position: -528px -72px;}
+.newapp-link-box li .newapp-link a em.addressicon:hover{ background-position: 0 -72px;}
+.newapp-link-box li .newapp-link a em.goodcodeicon:hover{background-position: -88px -72px;}
+.newapp-link-box li .newapp-link a em.githubicon:hover{background-position: -176px -72px;}
+.newapp-link-box li .newapp-link a em.demoicon:hover{background-position: -264px -72px;}
+.newapp-link-box li .newapp-link a em.demoicon2:hover{background-position: -352px -72px;}
+.newapp-link-box li .newapp-link a em.dockericon:hover{background-position: -440px -72px;}
+.newapp-link-box li .newapp-link a em.composeicon:hover{background-position: -528px -72px;}
 
 .newapp-link-box li p a cite{font-size: 14px; color: #303030; text-decoration: none; line-height: 20px; display: inline-block; width: 100%;}
 .newapp-link-box li p a cite.littext{font-size: 12px; color: #838383;}
