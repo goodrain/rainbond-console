@@ -59,6 +59,8 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
                 fr = "private"
             else:
                 fr = "deploy"
+        if fr not in ("private","deploy","hot","new"):
+            fr = "private"
         context["fr"] = fr
         try:
             # # 云市最新的应用
