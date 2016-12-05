@@ -77,7 +77,7 @@ class LeftSideBarMixin(object):
 
     def get_context(self):
         context = super(LeftSideBarMixin, self).get_context()
-        #context['tenantServiceList'] = self.get_service_list()
+        context['tenantServiceList'] = self.get_service_list()
         context["groupList"] = self.get_group_list()
         context["tenant_list"] = self.get_user_tenant(self.user.pk)
         context["current_tenant"]= self.tenant.tenant_name

@@ -7,7 +7,7 @@
 <!--tenant switch-->
 {% if tenant_list|length > 1 %}
 <div class="nav notify-row  hidden-xs" id="tenant_switch">
-    <div class="btn-group" style=" border-left: 1px solid #000; margin-left: 35px;">
+    <div class="btn-group">
         <button class="btn btn-white" type="button">{{current_tenant}}</button>
         <button data-toggle="dropdown" class="btn btn-white dropdown-toggle" type="button"><span class="caret"></span></button>
         <ul id="tenant_select" role="menu" class="dropdown-menu">

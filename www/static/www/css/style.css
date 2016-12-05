@@ -207,7 +207,7 @@ a, a:hover, a:focus {
 }
 
 ul.sidebar-menu , ul.sidebar-menu li ul.sub{
-    margin: -2px 0 0;
+    
     padding: 0;
 }
 
@@ -239,7 +239,7 @@ ul.sidebar-menu li ul.sub li:last-child{
 ul.sidebar-menu li ul.sub li a {
     font-size: 14px;
     padding: 6px 0;
-    line-height: 24px;
+    line-height: 26px;
     height: 36px;
     -webkit-transition: all 0.3s ease;
     -moz-transition: all 0.3s ease;
@@ -248,6 +248,7 @@ ul.sidebar-menu li ul.sub li a {
     transition: all 0.3s ease;
     color: #939da8;
     background: #1f262d;
+    overflow: hidden;
 }
 
 ul.sidebar-menu li ul.sub li a:hover, ul.sidebar-menu li ul.sub li.active a {
@@ -267,7 +268,7 @@ ul.sidebar-menu li{
 }
 
 ul.sidebar-menu li.sub-menu{
-    line-height: 15px;
+    
 }
 
 ul.sidebar-menu li a span{
@@ -379,7 +380,7 @@ a.logo span {
     color: #FF6C60;
 }
 
-
+a.logo + div{border-left: 1px solid #000; margin-left: 35px;}
 /*notification*/
 
 #top_menu .nav > li, ul.top-menu > li {

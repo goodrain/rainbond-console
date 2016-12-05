@@ -138,7 +138,6 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
                     logger.error("service market query newest failed!")
                     logger.error(res, resp)
 
-
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_one.html", context)

@@ -223,14 +223,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
         extends_dict["state-expend"] = u'有状态可水平扩容'
         return extends_dict
 
-     # 端口开放下拉列表选项
-    def multi_port_choices(self):
-        multi_port = {}
-        multi_port["one_outer"] = u'单一端口开放'
-        # multi_port["dif_protocol"] = u'按协议开放'
-        # multi_port["multi_outer"] = u'多端口开放'
-        return multi_port
-
     # 服务挂载卷类型下拉列表选项
     def mnt_share_choices(self):
         mnt_share_type = {}
@@ -415,7 +407,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["git_tag"] = True
                 else:
                     context["git_tag"] = False
-                context["multi_port_choices"] = self.multi_port_choices()
                 context["mnt_share_choices"] = self.mnt_share_choices()
                 context["http_outer_service_ports"] = self.get_outer_service_port()
                 # service git repository

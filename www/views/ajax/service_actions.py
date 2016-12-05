@@ -956,19 +956,19 @@ class ServicePort(AuthedView):
             deal_port.save()
             
             if action == 'close_outer' or action == 'open_outer':
-                # 检查服务已经存在对外端口
-                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                   is_outer_service=True).count()
-                cur_port_type="one_outer"
-                if outer_port_num > 1:
-                    cur_port_type="multi_outer"
-                self.service.port_type = cur_port_type
-                self.service.save()
-                
-                data1 = {"port": int(port)}
-                data1.update({"modified_field": "mult_port", "current_value": True, "port_type":cur_port_type})
-                regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data1))
-                
+                # 兼容旧的服务单端口
+                if self.service.port_type=="one_outer":
+                    # 检查服务已经存在对外端口
+                    outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                                       is_outer_service=True).count()
+                    if outer_port_num > 1:
+                        cur_port_type="multi_outer"
+                        self.service.port_type = cur_port_type
+                        self.service.save()
+                    
+                        data1 = {"port": int(port)}
+                        data1.update({"modified_field": "mult_port", "current_value": True, "port_type":cur_port_type})
+                        regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data1))
             return JsonResponse({"success": True, "info": u"更改成功"}, status=200)
         except Exception as e:
             logger.exception(e)
