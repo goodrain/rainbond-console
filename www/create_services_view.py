@@ -53,14 +53,8 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
         context["is_private"] = sn.instance.is_private()
         context["cloud_assistant"] = sn.instance.cloud_assistant
         fr = request.GET.get("fr", None)
-        if fr is None:
-            # 如果为公有云,会有分享的选项 private
-            if not sn.instance.is_private() and sn.instance.cloud_assistant == "goodrain":
-                fr = "private"
-            else:
-                fr = "deploy"
-        if fr not in ("private","deploy","hot","new"):
-            fr = "private"
+        if fr is None or fr not in ("private","deploy","hot","new"):
+            fr = "hot"
         context["fr"] = fr
         try:
             # # 云市最新的应用
