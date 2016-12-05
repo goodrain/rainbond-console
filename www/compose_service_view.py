@@ -176,11 +176,11 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     service_id = service_config.get("service_id")
                     service_alias = "gr" + service_id[-6:]
                     service_cname = service_config.get("service_cname")
-                    num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
-                    if num > 0:
-                        result["status"] = "exist"
-                        ServiceGroup.objects.filter(ID=group.ID).delete()
-                        return JsonResponse(result, status=200)
+                    # num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
+                    # if num > 0:
+                    #     result["status"] = "exist"
+                    #     ServiceGroup.objects.filter(ID=group.ID).delete()
+                    #     return JsonResponse(result, status=200)
                     port_list = service_config.get("port_list")
                     env_list = service_config.get("env_list")
                     volume_list = service_config.get("volume_list")
