@@ -512,3 +512,7 @@ $(function(){
     	$("#app-market li").eq(indexnum).show();
     });
 });
+function service_create(tenantName, service_key, app_version) {
+	window.location.href = "/apps/" + tenantName
+		+ "/service-deploy/?service_key=" + service_key + "&app_version=" + app_version
+}

@@ -14,7 +14,6 @@
               	<span>新建应用</span>
               </a>
          </li>
-        <li>
         <li class="sub-menu">
             <a class="{{myAppStatus}}" href="javascript:;">
                 <i class="fa fa-laptop"></i>
@@ -30,14 +29,19 @@
             <!--<a class="{{myAppStatus}}" href="/apps/{{tenantName}}/myservice">-->
                 <!--<i class="fa fa-laptop"></i>-->
                 <!--<span>我的应用</span></a>-->
-        </li> 
-              
+        </li>
+
+        {% if not is_private and cloud_assistant == 'goodrain' %}
+        <!--公有云去掉了-->
+        {% else %}
         <li>
             <a class="{{serviceMarketStatus}}" href="/apps/{{tenantName}}/service/">
                 <i class="fa fa-th"></i>
                 <span>应用市场</span>
             </a>
         </li>
+        {% endif %}
+
         <li > 
         	<a class="{{teamStatus}}" href="/apps/{{tenantName}}/team/" >
         		<i class="fa fa-group"></i>

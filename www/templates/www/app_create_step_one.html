@@ -34,67 +34,45 @@
             <p class="newapp-tit">从应用市场开始</p>
             <div class="app-market" id="app-market">
                 <p class="tab-tit" id="tab-tit">
-                    <a href="javascript:;" class="sed">分享的应用</a>
-                    <a href="javascript:;">最近部署的应用</a>
-                    <a href="javascript:;">热门应用</a>
-                    <a href="javascript:;">最新应用</a>
+                    <a href="/apps/{{tenantName}}/service-entrance/?fr=private" {% if fr = "private" %}class="sed"{% endif %}>分享的应用</a>
+                    <a href="/apps/{{tenantName}}/service-entrance/?fr=deploy"{% if fr = "deploy" %} class="sed" {% endif %}>最近部署的应用</a>
+                    <a href="/apps/{{tenantName}}/service-entrance/?fr=hot"{% if fr = "hot" %} class="sed" {% endif %}>热门应用</a>
+                    <a href="/apps/{{tenantName}}/service-entrance/?fr=new"{% if fr = "new" %} class="sed" {% endif %}>最新应用</a>
                 </p>
                 <ul>
-                    <li style="display: block;" class="clearfix">
-                        <p><a href=""><span class="tuanicon"></span>01分享的应用</a></p>
-                        <p><a href=""><span class="gongicon"></span>02分享的应用</a></p>
-                        <p><a href=""><span class="tuanicon"></span>03分享的应用</a></p>
-                        <p><a href=""><span class="tuanicon"></span>04分享的应用</a></p>
-                        <p><a href=""><span class="tuanicon"></span>05分享的应用</a></p>
-                        <p><a href=""><span class="tuanicon"></span>06分享的应用</a></p>
-                        <p><a href=""><span class="tuanicon"></span>07分享的应用</a></p>
-                        <p><a href=""><span class="gongicon"></span>08分享的应用</a></p>
-                        <p><a href=""><span class="gongicon"></span>09分享的应用</a></p>
-                        <p><a href=""><span class="gongicon"></span>10分享的应用</a></p>
-                        <p><a href=""><span class="gongicon"></span>11分享的应用</a></p>
-                        <p><a href="">更多应用</a></p>
+                    <li style="display: block;" class="clearfix" fr="private">
+                        gg{{app_list}}
+                        {% for service in service_list %}
+                        <!--<p onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><a href=""><span class="tuanicon"></span><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>-->
+
+                        {% endfor %}
+                        <!--<p><a href=""><span class="tuanicon"></span>01分享的应用</a></p>-->
+                        <!--<p><a href=""><span class="gongicon"></span>02分享的应用</a></p>-->
+                        <p><a href="http://app.goodrain.com" target="_blank">更多应用</a></p>
                     </li>
-                    <li  class="clearfix">
-                        <p><a href="">01最新部署应用</a></p>
-                        <p><a href="">02最新部署应用</a></p>
-                        <p><a href="">03最新部署应用</a></p>
-                        <p><a href="">04最新部署应用</a></p>
-                        <p><a href="">05最新部署应用</a></p>
-                        <p><a href="">06最新部署应用</a></p>
-                        <p><a href="">07最新部署应用</a></p>
-                        <p><a href="">08最新部署应用</a></p>
-                        <p><a href="">09最新部署应用</a></p>
-                        <p><a href="">10最新部署应用</a></p>
-                        <p><a href="">11最新部署应用</a></p>
-                        <p><a href="">更多应用</a></p>
+                    <li  class="clearfix" fr="deploy">
+                        {% for service in service_list %}
+                        <p onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><a href=""><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
+                        {% endfor %}
+                        <p><a href="http://app.goodrain.com" target="_blank">更多应用</a></p>
                     </li>
-                    <li  class="clearfix">
-                        <p><a href="">01热门应用</a></p>
-                        <p><a href="">02热门应用</a></p>
-                        <p><a href="">03热门应用</a></p>
-                        <p><a href="">04热门应用</a></p>
-                        <p><a href="">05热门应用</a></p>
-                        <p><a href="">06热门应用</a></p>
-                        <p><a href="">07热门应用</a></p>
-                        <p><a href="">08热门应用</a></p>
-                        <p><a href="">09热门应用</a></p>
-                        <p><a href="">10热门应用</a></p>
-                        <p><a href="">11热门应用</a></p>
-                        <p><a href="">更多应用</a></p>
+                    <li  class="clearfix" fr="hot">
+                        {% for service in service_list %}
+                        <p onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><a href=""><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
+                        {% endfor %}
+                        <p><a href="http://app.goodrain.com" target="_blank">更多应用</a></p>
                     </li>
-                    <li  class="clearfix">
-                        <p><a href="">01最新应用</a></p>
-                        <p><a href="">02最新应用</a></p>
-                        <p><a href="">03最新应用</a></p>
-                        <p><a href="">04最新应用</a></p>
-                        <p><a href="">05最新应用</a></p>
-                        <p><a href="">06最新应用</a></p>
-                        <p><a href="">07最新应用</a></p>
-                        <p><a href="">08最新应用</a></p>
-                        <p><a href="">09最新应用</a></p>
-                        <p><a href="">10最新应用</a></p>
-                        <p><a href="">11最新应用</a></p>
-                        <p><a href="">更多应用</a></p>
+                    <li  class="clearfix" fr="new">
+                        {% for service in service_list %}
+                        <p onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><a href=""><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
+                        {% endfor %}
+                        <!--如果为公有云 跳转到云市 http://app.goodrain.com-->
+                        {% if not is_private and cloud_assistant == 'goodrain' %}
+                        <p><a href="http://app.goodrain.com" target="_blank">更多应用</a></p>
+                        {% else %}
+                        <!--社区版和企业版调到原有的应用市场-->
+                        <p><a href="/apps/{{tenantName}}/service/">更多应用</a></p>
+                        {% endif %}
                     </li>
                 </ul>
             </div>
