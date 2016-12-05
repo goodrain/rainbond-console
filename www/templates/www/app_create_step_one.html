@@ -48,8 +48,7 @@
                                 <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
                             {% endif %}
                         {% endfor %}
-                        <!--<p><a href=""><span class="tuanicon"></span>01分享的应用</a></p>-->
-                        <!--<p><a href=""><span class="gongicon"></span>02分享的应用</a></p>-->
+                        <!--公有云跳转到云市-->
                         {% if not is_private and cloud_assistant == 'goodrain' %}
                         <p><a href="http://app.goodrain.com" target="_blank">更多应用</a></p>
                         {% else %}
@@ -61,47 +60,6 @@
                 </ul>
             </div>
         </section>
-        <!--
-    	<p  class="tit">新建应用</p>
-        <span class="line"></span>
-        <div class="link-box">
-            <p class="smalltit">从源码开始</p>
-            <p class="link clearfix">
-                <a href="/apps/{{tenantName}}/app-create/?type=gitlab_manual">指定仓库地址</a>
-                <a href="/apps/{{tenantName}}/app-create/?type=gitlab_new">好雨托管代码</a>
-                <a href="/apps/{{tenantName}}/app-create/?type=github">链接GitHub</a>
-                <a href="/apps/{{tenantName}}/app-create/?type=gitlab_demo">好雨Demo</a>
-            </p>
-        </div>
-        <div class="link-box">
-            <p class="smalltit">从Docker镜像开始</p>
-            <p class="link clearfix">
-                <a href="/apps/{{tenantName}}/image-create/">指定镜像地址</a>
-                <!--<a href="/apps/{{tenantName}}/image-create/">好雨镜像Dome</a>-->
-        <!--
-            </p>
-        </div>
-        -->
-        <!--{% if user.is_sys_admin %}-->
-        <!--
-        <div class="link-box">
-            <p class="smalltit">从compose文件开始</p>
-            <p class="link clearfix">
-                <a href="/apps/{{tenantName}}/compose-create/">上传compose文件</a>
-            </p>
-        </div>
-        -->
-        <!--{% endif %}-->
-        <!--
-        <div class="link-box">
-            <p class="smalltit">从应用市场开始</p>
-            <p class="link-app-market clearfix">
-            {% for service in service_list %}
-                <a href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}"><span>{{service.service_name}}</span><span>{{service.version}}</span></a>
-            {% endfor %}
-                <a href="http://app.goodrain.com" target="_blank" class="more-app">更多应用&gt;&gt;</a>
-            </p>
-        </div>
-        -->
+
 </section>
 {% endblock %}
