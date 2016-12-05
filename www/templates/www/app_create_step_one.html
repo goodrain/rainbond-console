@@ -41,9 +41,8 @@
                 </p>
                 <ul>
                     <li style="display: block;" class="clearfix" fr="private">
-                        gg{{app_list}}
                         {% for service in service_list %}
-                        <!--<p onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><a href=""><span class="tuanicon"></span><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>-->
+                        <p ><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span class="tuanicon"></span><span>{{service.app_alias}}</span><span>{{service.app_version}}</span></a></p>
 
                         {% endfor %}
                         <!--<p><a href=""><span class="tuanicon"></span>01分享的应用</a></p>-->
@@ -52,19 +51,19 @@
                     </li>
                     <li  class="clearfix" fr="deploy">
                         {% for service in service_list %}
-                        <p onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><a href=""><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
+                        <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
                         {% endfor %}
                         <p><a href="http://app.goodrain.com" target="_blank">更多应用</a></p>
                     </li>
                     <li  class="clearfix" fr="hot">
                         {% for service in service_list %}
-                        <p onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><a href=""><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
+                        <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
                         {% endfor %}
                         <p><a href="http://app.goodrain.com" target="_blank">更多应用</a></p>
                     </li>
                     <li  class="clearfix" fr="new">
                         {% for service in service_list %}
-                        <p onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><a href=""><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
+                        <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span>{{service.service_name}}</span><span>{{service.version}}</span></a></p>
                         {% endfor %}
                         <!--如果为公有云 跳转到云市 http://app.goodrain.com-->
                         {% if not is_private and cloud_assistant == 'goodrain' %}

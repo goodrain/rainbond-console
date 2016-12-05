@@ -82,7 +82,7 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
                 # context["tenant_service_list"] = tenant_service_list
                 # context["assistant_service_list"] = assistant_service_list
                 # context["cloud_service_list"] = cloud_service_list
-                context["service_list"] = list(service_list)
+                context["service_list"] = [x for x in service_list]
             elif fr == "deploy":
                 # 当前租户最新部署的应用
                 tenant_id = self.tenant.tenant_id
