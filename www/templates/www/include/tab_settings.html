@@ -110,7 +110,7 @@
                     <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
                 </th>
                 <th>协议类型:
-                    <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
+                    <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/ /ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
                 </th>
                 <th>
                     <button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>
@@ -150,7 +150,8 @@
                      </p>
                   </td>
                   <td>
-                    <div id="showLink{{port.container_port}}">
+                    <div id="showLink{{port.container_port}}" class="">
+                      <!--
                      {% if port.is_outer_service and port.protocol == 'http' %}
                      <span>绑定域名:</span>
                      <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" {% if port.container_port in serviceDomainDict.keys %}value="{{serviceDomainDict|mkey:port.container_port}}"{% endif %} placeholder="请输入新域名，如：www.example.com">
@@ -164,6 +165,24 @@
                         </p>
                       {% endif %}
                     {% endif %}
+                    -->
+                        <span>绑定域名</span>
+                        <div class="domain-box" id="domain-box">
+                          <p>
+                            <span>www.baidu.com</span>
+                            <button type="button" class="port-cancel btn btn-danger btn-xs fn-delete-domain"><i class="fa fa-times"></i></button>
+                          </p>
+                          <p>
+                            <span>www.baidu.com</span>
+                            <button type="button" class="port-cancel btn btn-danger btn-xs fn-delete-domain" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')"><i class="fa fa-times"></i></button>
+                          </p>
+                        </div>
+                        <button type="button" class="btn btn-success btn-xs" id="bind-domain">绑定</button>
+                        <div class="fn-domain-layer  domain-layer">
+                            <input type="text" placeholder="请输入绑定域名:" id="service_app_name_{{port.container_port}}"  />
+                            <button type="button" class="port-save btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')"><i class="fa fa-check"></i></button>
+                            <button type="button" class="port-cancel btn btn-danger btn-xs fn-delete-domain"><i class="fa fa-times"></i></button>
+                        </div>
                     </div>
                   </td>
               </tr>

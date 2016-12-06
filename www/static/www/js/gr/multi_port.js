@@ -271,6 +271,13 @@
         });
       }
 
+      /// ww-2016-12-06 多域名绑定 start
+      $("#bind-domain").click(function(){
+          $(this).prop("disabled","true");
+          
+
+      });
+      /// ww-2016-12-06 多域名绑定 end
 })(jQuery);
 
 
