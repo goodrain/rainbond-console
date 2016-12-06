@@ -166,19 +166,21 @@
                       {% endif %}
                     {% endif %}
                     -->
+                    {% if port.is_outer_service and port.protocol == 'http' %}
                         <span>绑定域名:</span>
                         <div class="domain-box" id="domain-box">
                           <p>
-                            <span>www.baidu.com</span>
-                            <button type="button" class="port-cancel btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')">解绑</button>
+                            <span>{{domain_link}}</span>
+                            <button type="button" class="port-cancel btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','{{domain_link}}')">解绑</button>
                           </p>
                         </div>
                         <button type="button" class="btn btn-success btn-xs" id="bind-domain">绑定</button>
                         <div class="fn-domain-layer  domain-layer">
                             <input type="text" placeholder="请输入绑定域名" id="service_app_name_{{port.container_port}}"  />
-                            <button type="button" class="port-save btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')"><i class="fa fa-check"></i></button>
+                            <button type="button" class="port-save btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','')"><i class="fa fa-check"></i></button>
                             <button type="button" class="btn btn-danger btn-xs fn-delete-domain"><i class="fa fa-times"></i></button>
                         </div>
+                     {% endif %}
                     </div>
                   </td>
               </tr>

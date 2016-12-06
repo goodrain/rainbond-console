@@ -277,6 +277,7 @@
       });
       $(".fn-delete-domain").click(function(){
           $(this).parent("div.fn-domain-layer").hide();
+          $(this).parent("div.fn-domain-layer").children("input").prop("value","");
       });
       /// ww-2016-12-06 多域名绑定 end
 })(jQuery);
