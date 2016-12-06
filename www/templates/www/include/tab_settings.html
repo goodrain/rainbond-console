@@ -170,8 +170,8 @@
                         <span>绑定域名:</span>
                         <div class="domain-box" id="domain-box">
                           <p>
-                            <span>{{domain_link}}</span>
-                            <button type="button" class="port-cancel btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','{{domain_link}}')">解绑</button>
+                            <span>{{serviceDomainDict|mkey:port.container_port}}</span>
+                            <button type="button" class="port-cancel btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','{{serviceDomainDict|mkey:port.container_port}}')">解绑</button>
                           </p>
                         </div>
                         <button type="button" class="btn btn-success btn-xs" id="bind-domain">绑定</button>
