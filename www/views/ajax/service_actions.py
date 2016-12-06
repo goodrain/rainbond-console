@@ -104,7 +104,7 @@ class AppDeploy(AuthedView):
             body["operator"] = str(self.user.nick_name)
 
             envs = {}
-            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
+            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY","SBT_EXTRAS_OPTS"))
             for benv in buildEnvs:
                 envs[benv.attr_name] = benv.attr_value
             body["envs"] = json.dumps(envs)
