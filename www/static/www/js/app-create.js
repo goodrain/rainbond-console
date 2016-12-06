@@ -1,6 +1,19 @@
 var BranchLocalData = {};
 //创建应用
 $(function(){
+     // ww-2016-12-6 选择 groupname start
+    var groupName = $("#group-name option:selected").val();
+    $("#group-name").change(function(){
+        groupName=$("#group-name option:selected").val();
+        console.log(groupName);
+        if(groupName == -2) {
+            console.log(groupName);
+            //FnLayer("请输入新增组名",true,"",true,"");
+            
+        }
+    });
+
+    // ww-2016-12-6 选择 groupname end 
     $('#create_app_name').blur(function(){
         var appName = $(this).val(),
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
