@@ -128,8 +128,11 @@ $(function(){
     var groupName = $("#group-name option:selected").val();
     $("#group-name").change(function(){
         groupName=$("#group-name option:selected").val();
+        console.log(groupName)
         if(groupName == -2) {
+            console.log(-2);
             FnLayer("请输入新增组名",true,"",true,"");
+            console.log(-3);
         }
     });
 
