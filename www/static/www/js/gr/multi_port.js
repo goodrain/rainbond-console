@@ -248,7 +248,7 @@
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "add_port"};
         var add_tr = $(this).closest('table');
         var prefix = serviceAlias.toUpperCase();
-        console(prefix);
+        console.log(prefix);
         add_tr.find('input.tab-alias').val(prefix + add_tr.find('input.tab-port').val());
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
