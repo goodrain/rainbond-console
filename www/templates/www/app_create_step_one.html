@@ -42,10 +42,12 @@
                 <ul>
                     <li style="display: block;" class="clearfix">
                         {% for service in service_list %}
-                            {% if fr == "private" %}
-                                <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span {% if service.status = "private" %}class="tuanicon" {% else %}class="gongicon"{% endif %}></span><span>{{service.app_alias}}</span>&nbsp;&nbsp;<span>{{service.app_version}}</span></a></p>
-                            {% else %}
-                                <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span>{{service.service_name}}</span>&nbsp;&nbsp;<span>{{service.version}}</span></a></p>
+                            {% if forloop.counter < 12 %}
+                                {% if fr == "private" %}
+                                    <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span {% if service.status = "private" %}class="tuanicon" {% else %}class="gongicon"{% endif %}></span><span>{{service.app_alias}}</span>&nbsp;&nbsp;<span>{{service.app_version}}</span></a></p>
+                                {% else %}
+                                    <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span>{{service.service_name}}</span>&nbsp;&nbsp;<span>{{service.version}}</span></a></p>
+                                {% endif %}
                             {% endif %}
                         {% endfor %}
                         <!--公有云跳转到云市-->

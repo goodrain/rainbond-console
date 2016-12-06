@@ -102,7 +102,7 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
                         tenant_service_query = tenant_service_query | (Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
                 if len(service_key_query) > 0:
                     service_list = ServiceInfo.objects.filter(tenant_service_query)
-                    context["service_list"] = service_list[:11]
+                    context["service_list"] = service_list
             elif fr == "hot":
                 # 当前云帮部署最多应用
                 tenant_service_list = TenantServiceInfo.objects.values('service_key', 'version') \
@@ -127,7 +127,7 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
                         tenant_service_query = tenant_service_query | (Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
                 if len(service_key_query) > 0:
                     service_list = ServiceInfo.objects.filter(tenant_service_query)
-                    context["service_list"] = service_list[:11]
+                    context["service_list"] = service_list
             elif fr == "new":
                 # 云市最新的应用
                 res, resp = appClient.getRemoteServices(key="newest", limit=11)
