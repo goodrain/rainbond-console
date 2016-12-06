@@ -41,7 +41,7 @@ class AppDeploy(AuthedView):
             TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
-            
+
     @method_perf_time
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
@@ -75,11 +75,11 @@ class AppDeploy(AuthedView):
             else:
                 data["status"] = "over_money"
             return JsonResponse(data, status=200)
-        
+
         # if docker set adapter env
         if self.service.language == "docker":
             self._saveAdapterEnv(self.service)
-            
+
         try:
             gitUrl = request.POST.get('git_url', None)
             if gitUrl is None:
@@ -682,23 +682,31 @@ class ServiceDomainManager(AuthedView):
                     result["status"] = "exist"
                     return JsonResponse(result)
 
-                num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).count()
+                # num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).count()
                 old_domain_name = "goodrain"
-                if num == 0:
-                    domain = {}
-                    domain["service_id"] = self.service.service_id
-                    domain["service_name"] = tenantService.service_alias
-                    domain["domain_name"] = domain_name
-                    domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    domain["container_port"] = int(container_port)
-                    domaininfo = ServiceDomain(**domain)
-                    domaininfo.save()
-                else:
-                    domain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
-                    old_domain_name = domain.domain_name
-                    domain.domain_name = domain_name
-                    domain.container_port = int(container_port)
-                    domain.save()
+                domain = {}
+                domain["service_id"] = self.service.service_id
+                domain["service_name"] = tenantService.service_alias
+                domain["domain_name"] = domain_name
+                domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                domain["container_port"] = int(container_port)
+                domaininfo = ServiceDomain(**domain)
+                domaininfo.save()
+                # if num == 0:
+                #     domain = {}
+                #     domain["service_id"] = self.service.service_id
+                #     domain["service_name"] = tenantService.service_alias
+                #     domain["domain_name"] = domain_name
+                #     domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                #     domain["container_port"] = int(container_port)
+                #     domaininfo = ServiceDomain(**domain)
+                #     domaininfo.save()
+                # else:
+                #     domain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
+                #     old_domain_name = domain.domain_name
+                #     domain.domain_name = domain_name
+                #     domain.container_port = int(container_port)
+                #     domain.save()
                 data = {}
                 data["service_id"] = self.service.service_id
                 data["new_domain"] = domain_name
@@ -708,14 +716,14 @@ class ServiceDomainManager(AuthedView):
                 regionClient.addUserDomain(self.service.service_region, json.dumps(data))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_add', True)
             elif action == "close":
-                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
+                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port, domain_name=domain_name)
                 data = {}
                 data["service_id"] = servicerDomain.service_id
                 data["domain"] = servicerDomain.domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 data["container_port"] = int(container_port)
                 regionClient.deleteUserDomain(self.service.service_region, json.dumps(data))
-                ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).delete()
+                ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port, domain_name=domain_name).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_delete', True)
             result["status"] = "success"
         except Exception as e:
@@ -954,7 +962,7 @@ class ServicePort(AuthedView):
             regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
             deal_port.save()
-            
+
             if action == 'close_outer' or action == 'open_outer':
                 # 兼容旧的服务单端口
                 if self.service.port_type=="one_outer":
@@ -965,7 +973,7 @@ class ServicePort(AuthedView):
                         cur_port_type="multi_outer"
                         self.service.port_type = cur_port_type
                         self.service.save()
-                    
+
                         data1 = {"port": int(port)}
                         data1.update({"modified_field": "mult_port", "current_value": True, "port_type":cur_port_type})
                         regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data1))
@@ -992,7 +1000,7 @@ class ServicePort(AuthedView):
                 domain = "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region)
                 if settings.STREAM_DOMAIN_URL[service_region] != "":
                     domain = settings.STREAM_DOMAIN_URL[service_region]
-                    
+
                 data["outer_service"] = {
                     "domain": domain,
                     "port": body["port"],

@@ -169,11 +169,14 @@
                     {% if port.is_outer_service and port.protocol == 'http' %}
                         <span>绑定域名:</span>
                         <div class="domain-box" id="domain-box">
-                          <!-- 多个域名 展示--> 
-                          <p>
-                            <span>{{serviceDomainDict|mkey:port.container_port}}</span>
-                            <button type="button" class="port-cancel btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','{{serviceDomainDict|mkey:port.container_port}}')">解绑</button>
-                          </p>
+                          <!-- 多个域名 展示-->
+                            {% for domain_name in serviceDomainDict|mkey:port.container_port %}
+                                <p>
+                                <span>{{domain_name}}</span>
+                                <button type="button" class="port-cancel btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','{{domain_name}}')">解绑</button>
+                                </p>
+                            {% endfor %}
+
                           <!-- 多个域名 展示--> 
                         </div>
                         <button type="button" class="btn btn-success btn-xs" id="bind-domain">绑定</button>

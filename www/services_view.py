@@ -429,7 +429,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     if len(serviceDomainlist) > 0:
                         data = {}
                         for domain in serviceDomainlist:
-                            data[domain.container_port] = domain.domain_name
+                            if data.get(domain.container_port) is None:
+                                data[domain.container_port] = [domain.domain_name]
+                            else:
+                                data[domain.container_port].append(domain.domain_name)
                         context["serviceDomainDict"] = data
 
                 port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
