@@ -150,7 +150,7 @@
                      </p>
                   </td>
                   <td>
-                    <div id="showLink{{port.container_port}}" class="">
+                    <div id="showLink{{port.container_port}}" class="showlink-box">
                       <!--
                      {% if port.is_outer_service and port.protocol == 'http' %}
                      <span>绑定域名:</span>
@@ -166,12 +166,8 @@
                       {% endif %}
                     {% endif %}
                     -->
-                        <span>绑定域名</span>
+                        <span>绑定域名:</span>
                         <div class="domain-box" id="domain-box">
-                          <p>
-                            <span>www.baidu.com</span>
-                            <button type="button" class="port-cancel btn btn-danger btn-xs fn-delete-domain"><i class="fa fa-times"></i></button>
-                          </p>
                           <p>
                             <span>www.baidu.com</span>
                             <button type="button" class="port-cancel btn btn-danger btn-xs fn-delete-domain" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}')"><i class="fa fa-times"></i></button>

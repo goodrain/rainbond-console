@@ -274,7 +274,7 @@
       /// ww-2016-12-06 多域名绑定 start
       $("#bind-domain").click(function(){
           $(this).prop("disabled","true");
-          
+          $(this).next("div.fn-domain-layer").show();
 
       });
       /// ww-2016-12-06 多域名绑定 end

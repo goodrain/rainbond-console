@@ -5652,4 +5652,22 @@ a.guest-on i {
  }
 
 
+/* mach domain */
+.domain-box{}
+.showlink-box{width: 100%; height: 100%; position: relative;}
+.newtab tr td span .domain-box p span{display:inline-block;}
+.domain-layer{ position: absolute; background: #fff; border:1px #eee solid; padding:10px; left: 100px; bottom: 20px; display: none;}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
