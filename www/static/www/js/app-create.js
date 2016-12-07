@@ -1,19 +1,127 @@
 var BranchLocalData = {};
 //创建应用
 $(function(){
-     // ww-2016-12-6 选择 groupname start
+    //// ww-2016-12-6 选择 groupname start
+    //弹出层
+    function FnLayer(textTit,onoff,text,newonoff,tipsText){
+        var sedVal = $("#group-tit").attr("data-group"); // 取应用ID
+        if(sedVal == "0" && !newonoff){
+            swal(tipsText);
+            return false;
+        }else{
+            ///
+            var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
+            var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
+            var oTit = '<p class="layer-tit">'+ textTit +'</p>';
+            var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
+            var oText ='<p class="tipstext">'+ text +'</p>';
+            var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
+            $("body").append(oDiv);
+            $("div.layermain").append(oCloseBtn,oTit);
+            if(onoff){
+               $("div.layermain").append(oInput);
+            }else{
+                $("div.layermain").append(oText);
+            }
+            $("div.layermain").append(oLink);
+            $(".fn-close").click(function(){
+                $("div.layerbg").remove();
+            });
+            $(".fn-sure").click(function(){
+                if(onoff){
+                    if(inputText == ""){
+                        swal("您还没有输入组名！")
+                        return false;
+                    }else{
+                        var inputText = $(".input-css input").val();
+                        if(newonoff){
+                            ///
+                            $.ajax({
+                                type : "post",
+                                url : "/ajax/" + tenant_Name  + "/group/add",
+                                data : {
+                                    group_name : inputText
+                                },
+                                cache : false,
+                                beforeSend : function(xhr, settings) {
+                                    var csrftoken = $.cookie('csrftoken');
+                                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                                },
+                                success : function(msg) {
+                                    if (msg.ok){
+                                        window.location.reload();
+                                    }else{
+                                        swal(msg.info)
+                                    }
+                                },
+                                error : function() {
+                                    swal("系统异常,请重试");
+                                }
+                            });
+                            ///
+                        }else{
+                            ///
+                            $.ajax({
+                                type : "post",
+                                url : "/ajax/" + tenant_Name  + "/group/update",
+                                data : {
+                                    new_group_name : inputText,
+                                    group_id : sedVal
+                                },
+                                cache : false,
+                                beforeSend : function(xhr, settings) {
+                                    var csrftoken = $.cookie('csrftoken');
+                                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                                },
+                                success : function(msg) {
+                                    window.location.reload();
+                                },
+                                error : function() {
+                                    swal("系统异常,请重试");
+                                }
+                            });
+                            ///
+                        }
+                    }
+                }else{
+                    ///
+                    $.ajax({
+                        type : "post",
+                        url : "/ajax/" + tenant_Name  + "/group/delete",
+                        data : {
+                            group_id : sedVal,
+                        },
+                        cache : false,
+                        beforeSend : function(xhr, settings) {
+                            var csrftoken = $.cookie('csrftoken');
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success : function(msg) {
+                            var dataObj = msg;
+                            window.location.href="/apps/"+tenant_Name+"/myservice/?gid=-1";
+                        },
+                        error : function() {
+                            swal("系统异常,请重试");
+                        }
+                    });
+                    ///
+                }
+            });
+            ///
+        }        
+    }
+    //  弹出层
     var groupName = $("#group-name option:selected").val();
     $("#group-name").change(function(){
         groupName=$("#group-name option:selected").val();
         console.log(groupName);
         if(groupName == -2) {
             console.log(groupName);
-            //FnLayer("请输入新增组名",true,"",true,"");
-            
+            FnLayer("请输入新增组名",true,"",true,"");  
         }
     });
+    //// ww-2016-12-6 选择 groupname end 
 
-    // ww-2016-12-6 选择 groupname end 
     $('#create_app_name').blur(function(){
         var appName = $(this).val(),
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
