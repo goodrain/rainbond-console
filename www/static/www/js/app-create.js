@@ -84,13 +84,14 @@ $(function(){
                 result = true;
 
         if (appName == "") {
-            $("#create_app_name").focus()
+            //$("#create_app_name").focus()
             scrollOffset($("#create_app_name").offset());
             $('#create_appname_notice').slideDown();
             return;
         } else {
             $('#create_appname_notice').slideUp();
         }
+        var new_app_group = ;
         var codeStoreSel = $(':radio:checked', $('#sel_code_store')).val();
         if ((codeStoreSel == 'option2' || codeStoreSel == 'option3') && !$('.duigou_icon', $('#code_store_list')).length) {
             // $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').slideDown();
@@ -101,7 +102,7 @@ $(function(){
             swal("服务名太长,不能超过30个字符");
             return;
         }
-        
+         
         // manual git check
         if (codeStoreSel == 'option4') {
             var service_code_clone_url = $('#service_code_clone_url_manual').val()
