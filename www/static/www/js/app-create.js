@@ -160,8 +160,7 @@ $(function(){
     		data : _data,
     		cache : false,
     		beforeSend : function(xhr, settings) {
-                console("serialize data=====> ")
-                console.log(_data);
+                alert("serialize data=====> "+_data);
     			var csrftoken = $.cookie('csrftoken');
     			xhr.setRequestHeader("X-CSRFToken", csrftoken);
     		},
