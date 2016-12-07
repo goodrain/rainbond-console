@@ -4,7 +4,7 @@ from www.service_http import RegionServiceApi
 from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv, AppServiceVolume, ServiceGroup
 from www.tenantservice.baseservice import BaseTenantService
 from www.region import RegionInfo
-
+from www.utils import sn
 import logging
 logger = logging.getLogger('default')
 
@@ -81,6 +81,8 @@ class LeftSideBarMixin(object):
         context["groupList"] = self.get_group_list()
         context["tenant_list"] = self.get_user_tenant(self.user.pk)
         context["current_tenant"]= self.tenant.tenant_name
+        context["is_private"] = sn.instance.is_private()
+        context["cloud_assistant"] = sn.instance.cloud_assistant
         context = self.set_region_info(context)
         return context
 

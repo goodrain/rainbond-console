@@ -44,7 +44,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            context["serviceMarketStatus"] = "active"
+            context["createApp"] = "active"
             context["tenantName"] = self.tenantName
             fr = request.GET.get("fr", "private")
             context["fr"] = fr
@@ -217,7 +217,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
             app_version = request.GET.get("app_version", "")
 
-            context["serviceMarketStatus"] = "active"
+            context["createApp"] = "active"
 
             serviceObj = None
             if app_version:
