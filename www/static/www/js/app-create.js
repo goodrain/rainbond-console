@@ -23,11 +23,12 @@ $(function(){
                 return false;
             }else{
                 var inputText = $(".input-css input").val();
-                ///ajax start 
-                
+                var tenant_name = $("#currentTeantName").val()
+                ///ajax start
+
                 $.ajax({
                     type : "post",
-                    url : "",
+                    url : "/ajax/" + tenant_name  + "/group/add",
                     data : {
                         group_name : inputText
                     },
