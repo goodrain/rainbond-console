@@ -24,7 +24,7 @@ $(function(){
             }else{
                 var inputText = $(".input-css input").val();
                 ///ajax start 
-                /*
+                
                 $.ajax({
                     type : "post",
                     url : "",
@@ -47,7 +47,7 @@ $(function(){
                         swal("系统异常,请重试");
                     }
                 });
-                */
+                
                 ///ajax end
             }
               
