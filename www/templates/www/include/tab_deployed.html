@@ -459,7 +459,7 @@
 //                        msg+="</tr>";
 //                        tindex+=1;
 			    msg+="<p>";
-			    msg+="<a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\")'> 节点"+tindex+"</a>";
+			    msg+="<a href='javascript:void(0);' target='_blank' class='jump"+tindex+"'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\",tindex)'> 节点"+tindex+"</a>";
 			    msg+="</p>";
 			    tindex+=1;
                     }
@@ -476,7 +476,7 @@
         });
     }
     
-    function join_in(ctn_id,host_ip){
+    function join_in(ctn_id,host_ip,a_index){
         if(ctn_id !="" && host_ip !=""){
             $.ajax({
                 type : "POST",
@@ -490,7 +490,8 @@
                 success : function(dataObj) {
                     if (dataObj["success"]) {
 //                      window.location.href="/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/"
-			    window.open("/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/",'_blank');
+//			    window.open("/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/",'_blank');
+			    $('jump'+a_index).attr('href',"/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/");
 			    $('.cur_container_content').slideUp();
                     }else{
                        swal("操作失败")
