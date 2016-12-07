@@ -22,6 +22,7 @@ $(function(){
                 return false;
             }else{
                 var inputText = $(".input-css input").val();
+                ///ajax start 
                 /*
                 $.ajax({
                     type : "post",
@@ -46,6 +47,7 @@ $(function(){
                     }
                 });
                 */
+                ///ajax end
             }
               
         });   
@@ -136,6 +138,7 @@ $(function(){
         }
         $("#first_step").attr('disabled', true);
     	var _data = $("form").serialize();
+        console.log(_data);
         var tenantName= $('#currentTeantName').val();
     	$.ajax({
     		type : "post",
