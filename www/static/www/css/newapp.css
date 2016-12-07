@@ -96,4 +96,8 @@ em,cite,span{font-style: normal;}
 
 .app-market-box{margin:20px;}
 
+.app-market ul li p#no-show-list{width: 100%;}
+.app-market ul li p#no-show-list a{border:0; color: #28cb75; text-decoration: underline; padding:0;}
+.app-market ul li p a:hover{background-image: none;}
+
 
