@@ -492,7 +492,10 @@
 //                      window.location.href="/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/"
 //			    window.open("/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/",'_blank');
 			    $('.jump'+a_index).attr('href',"/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/");
-			    $('.cur_container_content').slideUp();
+			    setTimeout(function(){
+				    $('.cur_container_content').slideUp();
+			    },1000)
+
                     }else{
                        swal("操作失败")
                     }
