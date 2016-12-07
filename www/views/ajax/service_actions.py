@@ -1096,6 +1096,8 @@ class ServiceNewPort(AuthedView):
             port_inner = int(port_inner)
             port_outter = int(port_outter)
 
+            if port_port <= 0:
+                return JsonResponse({"success": False, "code": 400, "info": u"端口需大于零"})
             if port_inner != 0:
                 if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
                     return JsonResponse({"success": False, "code": 400, "info": u"别名不合法"})
