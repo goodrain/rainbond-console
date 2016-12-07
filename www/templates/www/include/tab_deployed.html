@@ -459,10 +459,7 @@
 //                        msg+="</tr>";
 //                        tindex+=1;
 			    msg+="<p>";
-			    msg+="<span>container:";
-			    msg+=tindex;
-			    msg+="</span>"
-			    msg+="<a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\")'> 进入控制台</a>"
+			    msg+="<a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\")'> 节点"+tindex+"</a>";
 			    msg+="</p>";
 			    tindex+=1;
                     }
@@ -492,7 +489,8 @@
                 },
                 success : function(dataObj) {
                     if (dataObj["success"]) {
-                      window.location.href="/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/"
+//                      window.location.href="/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/"
+			    open("/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/",'_blank');
                     }else{
                        swal("操作失败")
                     }
