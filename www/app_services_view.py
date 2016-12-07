@@ -168,7 +168,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     return JsonResponse(data, status=200)
                 codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, code_clone_url, code_id, code_version)
 
-            group_id = request.POST.get("group-name","")
+            group_id = request.POST.get("group_name","")
             # 创建关系
             if group_id != "" and int(group_id) > 0:
                 ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
