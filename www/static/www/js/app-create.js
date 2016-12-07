@@ -22,10 +22,10 @@ $(function(){
                 return false;
             }else{
                 var inputText = $(".input-css input").val();
-                ///
+                /*
                 $.ajax({
                     type : "post",
-                    url : "/ajax/" + tenant_Name  + "/group/add",
+                    url : "",
                     data : {
                         group_name : inputText
                     },
@@ -45,7 +45,7 @@ $(function(){
                         swal("系统异常,请重试");
                     }
                 });
-                ///
+                */
             }
               
         });   
