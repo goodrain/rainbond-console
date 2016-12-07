@@ -373,7 +373,8 @@ a.logo:hover, a.logo:focus {
 }
 
 a.logo img{
-   max-height: 32px;
+    width: 126px;
+   height: auto;
 }
 
 a.logo span {
