@@ -170,7 +170,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
 
             group_id = request.POST.get("group-name","")
             # 创建关系
-            if group_id != "":
+            if group_id != "" and int(group_id) > 0:
                 ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
                                                     tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             # create region tenantservice

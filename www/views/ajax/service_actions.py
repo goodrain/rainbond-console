@@ -4,6 +4,8 @@ import json
 import re
 
 from django.http import JsonResponse
+
+from www.models.main import ServiceGroupRelation
 from www.views import AuthedView
 from www.decorator import perm_required
 
@@ -264,6 +266,7 @@ class ServiceManage(AuthedView):
                 TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServicesPort.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
+                ServiceGroupRelation.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
