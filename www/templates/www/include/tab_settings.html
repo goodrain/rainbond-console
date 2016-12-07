@@ -4,7 +4,7 @@
       <p class="tittext">基础信息</p>
       <div class="panel-body">
         <div class="row">
-            <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-4 control-label" id="appname">{{tenantServiceInfo.service_cname}}</label><a href="javascript:;" id="rename" style="color: #28cb75; text-decoration: underline;">更名</a>
+            <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-4 control-label" id="lit-appname">{{tenantServiceInfo.service_cname}}</label><a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline;">更名</a>
         </div>
 
         {% if tenantServiceInfo.category == "application" and show_git %}
@@ -603,7 +603,7 @@
             }
         })
     }
-    
+
     //// ww-2016-12-6 更改 appname  start
     //弹出层
     function FnLayer(textTit){
@@ -619,7 +619,6 @@
         $(".fn-close").click(function(){
              $("div.layerbg").remove();
              $(".input-css input").prop("value","");
-             $("#group-name").find("option[value='-1']").prop("selected",true);
         });
         $(".fn-sure").click(function(){
             if(inputText == ""){
@@ -627,7 +626,12 @@
                 return false;
             }else{
                 var inputText = $(".input-css input").val();
-                $("#appname").html(inputText);
+                if($("#appname")){
+                  $("#appname").html(inputText);
+                }
+                if($("#lit-appname")){
+                  $("#lit-appname").html(inputText);
+                }
                 $("div.layerbg").remove();
                 $(".input-css input").prop("value","");
                 ///ajax start
@@ -645,9 +649,14 @@
                     },
                     success : function(msg) {
                         if(msg.ok){
-                           $("#appname").html(inputText);
-                           $("div.layerbg").remove();
-                           $(".input-css input").prop("value","");
+                            if($("#appname")){
+                              $("#appname").html(inputText);
+                            }
+                            if($("#lit-appname")){
+                              $("#lit-appname").html(inputText);
+                            }
+                            $("div.layerbg").remove();
+                            $(".input-css input").prop("value","");
                         }else{
                             swal(msg.info);
                         }
@@ -663,7 +672,7 @@
         });   
     }
     //  弹出层
-    $("#rename").click(function(){
+    $(".fn-rename").click(function(){
         FnLayer("请输入新应用名");  
     });
     //// ww-2016-12-7 更改 appname end 
