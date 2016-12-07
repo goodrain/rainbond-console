@@ -5652,17 +5652,4 @@ a.guest-on i {
     border-collapse:collapse;
  }
 
-/*lijh 2016.12.7*/
-section.placeHui{
-    position: relative;
-}
-.placeHui .cur_container_content{
-    display: none;
-    position: absolute;
-    top: 22px;
-    left:0px;
-    padding: 0px 10px;
-    background-color: #F9F9F9;
-}
-
 
