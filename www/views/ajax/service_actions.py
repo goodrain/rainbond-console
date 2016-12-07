@@ -1121,6 +1121,9 @@ class ServiceNewPort(AuthedView):
                 return JsonResponse({"success": False, "code": 409, "info": u"服务至少保留一个端口"})
 
             port_port = request.POST.get("port_port")
+            num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).count()
+            if num > 0:
+                return JsonResponse({"success": False, "code": 409, "info": u"请先解绑该端口绑定的域名"})
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
