@@ -15,6 +15,7 @@ $(function(){
         $("div.layermain").append(oLink);
         $(".fn-close").click(function(){
              $("div.layerbg").remove();
+             $(".input-css input").prop("value","");
              $("#group-name").find("option[value='-1']").prop("selected",true);
         });
         $(".fn-sure").click(function(){
@@ -39,9 +40,18 @@ $(function(){
                     },
                     success : function(msg) {
                         if(msg.ok){
-                        var  group_id = msg.group_id;
-                        var  group_name = msg.group_name;
-                        //    塞值进select,并将组设置为新建的
+                            var  group_id = msg.group_id;
+                            var  group_name = msg.group_name;
+                            var  Option = "<option value=" +  group_id + ">" + group_name + "</option>";
+                            $("div.layerbg").remove();
+                            $(".input-css input").prop("value","");
+                            $("#group-name option").eq(0).after(Option);
+                            $("#group-name option").each(function(){
+                                var oVal = $(this).prop("value");
+                                if(oVal == group_id){
+                                    $(this).prop("selected",true);
+                                }
+                            });
                         }else{
                             swal(msg.info);
                         }
