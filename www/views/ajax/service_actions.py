@@ -1286,15 +1286,16 @@ class ServiceNameChangeView(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         new_service_cname = request.POST.get("new_service_cname","")
-        service_id = request.POST.get("service_id")
+        service_alias = request.POST.get("service_alias")
         result = {}
         try:
             if new_service_cname.strip() != "":
-                TenantServiceInfo.objects.filter(service_id=service_id,tenant_id=self.tenant.tenant_id).update(service_cname=new_service_cname)
+                TenantServiceInfo.objects.filter(service_alias=service_alias,tenant_id=self.tenant.tenant_id).update(service_cname=new_service_cname)
                 result["ok"] = True
                 result["info"] = "修改成功"
                 result["new_service_cname"] = new_service_cname
         except Exception as e:
             logger.exception(e)
-            result["ok"] = True
+            result["ok"] = False
+            result["info"] = "修改失败"
         return JsonResponse(result)

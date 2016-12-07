@@ -49,4 +49,5 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/group/change-group$', UpdateServiceGroupView.as_view()),
 
     url(r'^(?P<tenantName>[\w\-]+)/batch-action$', BatchActionView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/change-service-name', ajax.ServiceNameChangeView.as_view()),
 )
