@@ -52,9 +52,18 @@
                         {% endfor %}
                         <!--公有云跳转到云市-->
                         {% if not is_private and cloud_assistant == 'goodrain' %}
-                            
-                            <p><a {% if fr = "hot" || fr = "deploy" %}href="http://app.goodrain.com/category/0/?order_by=download"{% elseif fr = "new" %}href="http://app.goodrain.com/category/0/?order_by=newest" {% else %}href="http://app.goodrain.com/" {% endif %} target="_blank">更多应用</a></p>
-                            
+                            {% if fr = "hot" %}
+                            <p><a href="http://app.goodrain.com/category/0/?order_by=download" target="_blank">更多应用</a></p>
+                            {% endif %}
+                            {% if fr = "deploy" %}
+                            <p><a href="http://app.goodrain.com/category/0/?order_by=download" target="_blank">更多应用</a></p>
+                            {% endif %}
+                            {% if fr = "private" %}
+                            <p><a href="http://app.goodrain.com/category/0/?order_by=download" target="_blank">更多应用</a></p>
+                            {% endif %}
+                            {% if fr = "new" %}
+                            <p><a href="http://app.goodrain.com/category/0/?order_by=newest" target="_blank">更多应用</a></p>
+                            {% endif %}
                         {% else %}
                         <!--社区版和企业版调到原有的应用市场-->
                         <p><a href="/apps/{{tenantName}}/service/?fr={{fr}}">更多应用</a></p>
