@@ -94,6 +94,8 @@
             }else{
                 var inputText = $(".input-css input").val();
                 $("#appname").html(inputText);
+                $("div.layerbg").remove();
+                $(".input-css input").prop("value","");
                 ///ajax start
                 /*
                 $.ajax({
@@ -110,6 +112,8 @@
                     success : function(msg) {
                         if(msg.ok){
                            $("#appname").html(inputText);
+                           $("div.layerbg").remove();
+                           $(".input-css input").prop("value","");
                         }else{
                             swal(msg.info);
                         }
