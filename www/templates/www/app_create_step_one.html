@@ -75,7 +75,15 @@
         </section>
 <script>
     $(function(){
-
+        if($("#no-show-list")){
+            var oP = $("#app-market ul li p");
+            var oLength = oP.length;
+            if(oLength == 1){
+                $("#no-show-list").show();
+            }else{
+                $("#no-show-list").hide();
+            } 
+        }       
     });
 </script>
 </section>
