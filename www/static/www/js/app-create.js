@@ -58,7 +58,7 @@ $(function(){
         console.log(groupName);
         if(groupName == -2) {
             console.log(groupName);
-            FnLayer("请输入新增组名",true,"",true,"");  
+            FnLayer("请输入新增组名");  
         }
     });
     //// ww-2016-12-6 选择 groupname end 
