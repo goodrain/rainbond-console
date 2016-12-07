@@ -451,12 +451,6 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
                 except Exception as e:
                     logger.error("docker build memory config failed")
                     logger.exception(e)
-            elif self.service.language == "Scala":
-                # 对于xunda、alish机房进行构建代理设置
-                if self.cookie_region in ['ali-sh', 'xunda-bj']:
-                    baseService.saveServiceEnvVar(self.service.tenant_id,
-                                                  self.service.service_id,
-                                                  0, 'PROXY', 'PROXY', 'true', 1, 'inner')
 
             data["status"] = "success"
         except Exception as e:
