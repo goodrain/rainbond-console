@@ -8,7 +8,6 @@ $(function(){
         var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
         var oTit = '<p class="layer-tit">'+ textTit +'</p>';
         var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
-        var oText ='<p class="tipstext">'+ text +'</p>';
         var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
         $("body").append(oDiv);
         $("div.layermain").append(oCloseBtn,oTit);
@@ -57,7 +56,6 @@ $(function(){
         groupName=$("#group-name option:selected").val();
         console.log(groupName);
         if(groupName == -2) {
-            console.log(groupName);
             FnLayer("请输入新增组名");  
         }
     });
