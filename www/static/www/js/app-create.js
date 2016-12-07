@@ -153,16 +153,13 @@ $(function(){
         $("#first_step").attr('disabled', true);
     	var _data = $("form").serialize();
         console.log(_data);
-        alert("serialize data=====> "+_data);
         var tenantName= $('#currentTeantName').val();
-        alert("serialize data=====> "+tenantName);
     	$.ajax({
     		type : "post",
     		url : "/apps/" + tenantName + "/app-create/",
     		data : _data,
     		cache : false,
     		beforeSend : function(xhr, settings) {
-                alert("serialize data=====> "+_data);
     			var csrftoken = $.cookie('csrftoken');
     			xhr.setRequestHeader("X-CSRFToken", csrftoken);
     		},

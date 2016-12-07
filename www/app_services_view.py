@@ -168,11 +168,13 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     return JsonResponse(data, status=200)
                 codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, code_clone_url, code_id, code_version)
 
-            group_id = request.POST.get("group_name","")
+            group_id = request.POST.get("select_group_id", "")
             # 创建关系
-            if group_id != "" and int(group_id) > 0:
-                ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
-                                                    tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+            if group_id != "":
+                group_id = int(group_id)
+                if group_id > 0:
+                    ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
+                                                        tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
