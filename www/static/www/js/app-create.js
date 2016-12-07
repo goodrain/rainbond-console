@@ -24,7 +24,7 @@ $(function(){
                 return false;
             }else{
                 var inputText = $(".input-css input").val();
-                var tenant_name = $("#currentTeantName").val()
+                var tenant_name = $("#currentTeantName").val();
                 ///ajax start
 
                 $.ajax({
