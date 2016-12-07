@@ -53,10 +53,9 @@ $(function(){
         });   
     }
     //  弹出层
-    var groupName = $("#group-name option:selected").val();
     $("#group-name").change(function(){
-        groupName=$("#group-name option:selected").val();
-        console.log(groupName);
+     var groupName=$("#group-name option:selected").val();
+        //console.log(groupName);
         if(groupName == -2) {
             FnLayer("请输入新增组名");  
         }
@@ -91,7 +90,10 @@ $(function(){
         } else {
             $('#create_appname_notice').slideUp();
         }
-        var new_app_group = ;
+        var groupName=$("#group-name option:selected").val();
+        if(groupName == -2){
+            groupName = -1;
+        }
         var codeStoreSel = $(':radio:checked', $('#sel_code_store')).val();
         if ((codeStoreSel == 'option2' || codeStoreSel == 'option3') && !$('.duigou_icon', $('#code_store_list')).length) {
             // $('#create_codestore_notice').removeClass('alert-info').addClass('alert-danger').slideDown();
