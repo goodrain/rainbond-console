@@ -37,7 +37,7 @@ class AddGroupView(LeftSideBarMixin, AuthedView):
                 return JsonResponse({"ok": False, "info": "组名已存在"})
             group_info = ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
                                         group_name=group_name)
-            return JsonResponse({'ok': True, "info": "修改成功","group_id":group_info.ID})
+            return JsonResponse({'ok': True, "info": "修改成功","group_id":group_info.ID,"group_name":group_info.group_name})
         except Exception as e:
             logger.exception(e)
 

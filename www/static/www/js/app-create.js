@@ -38,7 +38,13 @@ $(function(){
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     },
                     success : function(msg) {
-                        window.location.reload();
+                        if(msg.ok){
+                        var  group_id = msg.group_id;
+                        var  group_name = msg.group_name;
+                        //    塞值进select,并将组设置为新建的
+                        }else{
+                            swal(msg.info);
+                        }
                     },
                     error : function() {
                         swal("系统异常,请重试");
