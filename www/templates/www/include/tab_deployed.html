@@ -36,20 +36,15 @@
                     {% endif %}
                     
                 {% endifequal %}
-				<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">
+
                 {% if hasHttpServices %}
                  <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
-
         					{% if visit_port_type == "multi_outer" %}
-								{% if http_outer_service_ports|length == 1 %}
-					                <select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">
-								{% else %}
-						            <select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
-								{% endif %}
+        						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px; height: 30px; line-height: 30px; font-size: 20px; {% if http_outer_service_ports|length < 2 %}display: none{% endif %} ;">
 
         							{% for port in http_outer_service_ports %}
             							{% if port.container_port == serviceDomain.container_port %}
-                							<option value="{{ port.container_port }}
+                							<option value="{{ port.container_port }}"
                 									selected="selected">{{ port.container_port }}</option>
                 							{% else %}
                 							<option value="{{ port.container_port }}">{{ port.container_port }}</option>
@@ -58,9 +53,9 @@
 
         						</select>
         					{%endif%}
-                   
+
                 {% endif  %}
-                 
+
                 {% ifequal tenantServiceInfo.service_type "mysql" %}
                   {% if service_manager.deployed %}
                     {% if 'manage_service' in user.actions %}
@@ -87,23 +82,24 @@
       </section>
     </div>
   </div>
-  
+
   {% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
   <div class="row">
     <div class="col-lg-12 text-left">
-       <section class="panel">
+       <section class="panel placeHui">
          <header class="panel-heading"><button name="join_container" id="join_container" onclick="join_container();"/> 管理容器 </header>
-         <table class="table table-hover">
-           <thead>
-             <tr>
-               <th>容器名</th>
-               <th>操作</th>
-             </tr>
-           </thead>
-           <tbody id="cur_container_content">
-            
-           </tbody>
-         </table>
+	 <div class="cur_container_content"></div>
+         <!--<table class="table table-hover">-->
+           <!--<thead>-->
+             <!--<tr>-->
+               <!--<th>容器名</th>-->
+               <!--<th>操作</th>-->
+             <!--</tr>-->
+           <!--</thead>-->
+           <!--<tbody id="cur_container_content">-->
+            <!---->
+           <!--</tbody>-->
+         <!--</table>-->
        </section>
      </div>
   </div>
@@ -134,7 +130,7 @@
 	</div>
 	{% endif %}
  -->
- 
+
   {% if 'manage_service' in user.actions %}
   {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
   <div class="row">
@@ -189,7 +185,6 @@
 	    return this.replace(/(^\s*)|(\s*$)/g, "");
 	}
 	function checkStatus(){
-		var port_length = $("#port_length").val()
     	$.ajax({
        	  type: "GET",
     		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/detail/",
@@ -210,9 +205,7 @@
 	    		  		$("#service_status").html("运行中")
 	    		  		$("#service_status_operate").show()
 	    		  		$("#service_visitor").show()
-						  if(port_length != "1"){
-							  $("#multi_ports").show()
-						  }
+						$("#multi_ports").show()
 	    		  		$("#service_status").attr("class","badge badge-sm label-success")
 	    		  	  }else if(obj["status"]=="starting"){
 	    		  	    $("#service_status_value").val("stop")
@@ -283,7 +276,7 @@
       	  	}
        })
     }
-	
+
 	function getLog(){
 		$.ajax({
        	  type: "GET",
@@ -317,10 +310,10 @@
       	  	}
        })
 	}
-	
+
 	$(document).ready(function () {
     	checkStatus();
-    	getLog(); 
+    	getLog();
     	setInterval("checkStatus()", 6000);
     	extPushWebSocketClient.prototype = {
    			onMessage : function(msg) {
@@ -328,7 +321,7 @@
        				var msgs = msg.split(":")
        				if(msgs[0].trim()=="deploy"){
        					var newMsg = msg.substr(7)
-       					log = eval("(" + newMsg + ")");  
+       					log = eval("(" + newMsg + ")");
        					var showlog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
        					if(log["status"] == "end"){
        						showlog = showlog+" 用时"+log["cost_time"]+"s";
@@ -387,13 +380,13 @@
     		}else{
     			$("#compile_"+event_id+"").show();
     			$("#showlog_"+event_id+"").html("隐藏构建日志")
-    		}        		
+    		}
 		}else{
 			$("#compile_"+event_id+"").hide();
 			$("#showlog_"+event_id+"").html("显示构建日志")
-		}        	
+		}
     }
-    
+
     function do_rollback(event_id,deploy_version){
     	swal({
     		title : "确定恢复当前版本吗？",
@@ -443,7 +436,7 @@
     		}
     	});
     }
-    
+
     function join_container(){
         $.ajax({
             type : "GET",
@@ -458,17 +451,23 @@
                 var tindex=1
                 for(var key in dataObj){
                     if(key != "split"){
-                        msg+="<tr>";
-                        msg+="<td>container:";
-                        msg+=tindex;
-                        msg+="</td>"
-                        msg+="<td><a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\")'> 进入控制台</a></td>"
-                        msg+="</tr>";
-                        tindex+=1;
+//                        msg+="<tr>";
+//                        msg+="<td>container:";
+//                        msg+=tindex;
+//                        msg+="</td>"
+//                        msg+="<td><a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\")'> 进入控制台</a></td>"
+//                        msg+="</tr>";
+//                        tindex+=1;
+			    msg+="<p>";
+			    msg+="<a href='javascript:void(0);' target='_blank' class='jump"+tindex+"'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\",\""+tindex+"\")'> 节点"+tindex+"</a>";
+			    msg+="</p>";
+			    tindex+=1;
                     }
-                } 
+                }
                 if(msg!=""){
-                    $("#cur_container_content").html(msg)
+//                    $("#cur_container_content").html(msg)
+			$('.cur_container_content').html(msg);
+			$('.cur_container_content').slideToggle();
                 }
             },
             error : function() {
@@ -476,8 +475,8 @@
             }
         });
     }
-    
-    function join_in(ctn_id,host_ip){
+
+    function join_in(ctn_id,host_ip,a_index){
         if(ctn_id !="" && host_ip !=""){
             $.ajax({
                 type : "POST",
@@ -490,7 +489,10 @@
                 },
                 success : function(dataObj) {
                     if (dataObj["success"]) {
-                      window.location.href="/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/"
+//                      window.location.href="/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/"
+//			    window.open("/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/",'_blank');
+			    $('.jump'+a_index).attr('href',"/apps/{{tenantName}}/{{tenantServiceInfo.service_alias}}/docker/");
+			    $('.cur_container_content').slideUp();
                     }else{
                        swal("操作失败")
                     }
