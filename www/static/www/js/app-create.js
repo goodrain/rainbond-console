@@ -37,11 +37,7 @@ $(function(){
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     },
                     success : function(msg) {
-                        if (msg.ok){
-                            window.location.reload();
-                        }else{
-                            swal(msg.info)
-                        }
+                        window.location.reload();
                     },
                     error : function() {
                         swal("系统异常,请重试");
