@@ -15,6 +15,7 @@ $(function(){
         $("div.layermain").append(oLink);
         $(".fn-close").click(function(){
              $("div.layerbg").remove();
+             $("#group-name").find("option[value='-1']").attr("selected",true);
         });
         $(".fn-sure").click(function(){
             if(inputText == ""){
