@@ -110,10 +110,10 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             # get base service
             service = ServiceInfo.objects.get(service_key="application")
             # create console tenant service
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
-            if num > 0:
-                data["status"] = "exist"
-                return JsonResponse(data, status=200)
+            # num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
+            # if num > 0:
+            #     data["status"] = "exist"
+            #     return JsonResponse(data, status=200)
 
             # calculate resource
             tempService = TenantServiceInfo()
