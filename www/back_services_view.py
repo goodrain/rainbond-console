@@ -8,7 +8,7 @@ from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
-                        AppServiceVolume, AppService)
+                        AppServiceVolume, AppService, ServiceGroupRelation)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService
 from www.monitorservice.monitorhook import MonitorHook
@@ -301,10 +301,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "empty"
                 return JsonResponse(result, status=200)
 
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
-            if num > 0:
-                result["status"] = "exist"
-                return JsonResponse(result, status=200)
+            # num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
+            # if num > 0:
+            #     result["status"] = "exist"
+            #     return JsonResponse(result, status=200)
 
             service = None
             if app_version:
@@ -382,6 +382,14 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             # create console service
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service_cname, service, self.user.pk, region=self.response_region)
+
+            group_id = request.POST.get("select_group_id", "")
+            # 创建关系
+            if group_id != "":
+                group_id = int(group_id)
+                if group_id > 0:
+                    ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
+                                                        tenant_id=self.tenant.tenant_id, region_name=self.response_region)
 
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             result["status"] = "success"
