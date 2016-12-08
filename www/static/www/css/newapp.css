@@ -49,7 +49,7 @@ em,cite,span{font-style: normal;}
 .tablink a.sed{background: #28cb75; color: #fff;}
 
 /**/
-.newapp-link-box{margin:20px 15px;}
+.newapp-link-box{margin:20px 5px;}
 .newapp-link-box li:nth-child(1){float:left;width: 70%;}
 .newapp-link-box li:nth-child(2){float:right; width: 28%}
 .newapp-link-box li p{width: 100%;}
@@ -94,7 +94,7 @@ em,cite,span{font-style: normal;}
 .tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 .gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
 
-.app-market-box{margin:20px;}
+.app-market-box{margin:20px 5px;}
 
 .app-market ul li p#no-show-list{width: 100%; text-align: center; font-size: 16px; line-height: 50px;}
 .app-market ul li p#no-show-list a{border:0; color: #28cb75; text-decoration: underline; padding:0; margin:0; display: inline; font-size: 16px;}
