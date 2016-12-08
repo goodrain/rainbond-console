@@ -90,6 +90,7 @@ class BaseView(BaseObject, View):
         self.kwargs = kwargs
         self.user = request.user
         self.init_request(*args, **kwargs)
+        self.cookie_tenant_name = self.request.COOKIES.get('tenant_name', None)
 
     @classonlymethod
     def as_view(cls):

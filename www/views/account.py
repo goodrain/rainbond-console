@@ -61,7 +61,7 @@ class Login(BaseView):
         if tenants_has:
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)
-            tenant_name = tenant.tenant_name
+            tenant_name = tenant.tenant_name if self.cookie_tenant_name is None else self.cookie_tenant_name
             return self.redirect_to('/apps/{0}/'.format(tenant_name))
         else:
             logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
