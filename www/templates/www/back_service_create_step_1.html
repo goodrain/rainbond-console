@@ -37,6 +37,18 @@
 								style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">请输入应用名！</div>
 						</div>
 					</div>
+					 <div class="form-group ">
+	                	<label for="create_app_name" class="control-label col-lg-2 app_name">选择分组</label>
+	                	<div class="col-lg-8">
+		                    <select id="group-name" name="select_group_id">
+		                    	<option value="-1">未分组</option>
+								{% for group in groupList %}
+									<option value="{{group.ID}}" >{{group.group_name}}</option>
+								{% endfor %}
+								<option value="-2">新建组</option>
+							</select>
+		                </div>
+		            </div>
 					<div class="form-group ">
 						<label for="create_app_name"
 							class="control-label col-lg-2 app_name">内存大小</label>
