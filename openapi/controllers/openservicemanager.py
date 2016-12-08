@@ -82,6 +82,7 @@ class OpenTenantServiceManager(object):
         tenantServiceInfo["creater"] = creater
         tenantServiceInfo["total_memory"] = service.min_node * service.min_memory
         tenantServiceInfo["service_origin"] = service_origin
+        tenantServiceInfo["port_type"] = "one_outer"
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
@@ -116,6 +117,7 @@ class OpenTenantServiceManager(object):
         data["namespace"] = newTenantService.namespace
         data["code_from"] = newTenantService.code_from
         data["dep_sids"] = dep_sids
+        data["port_type"] = newTenantService.port_type
         if hasattr(newTenantService, "service_origin"):
             data["service_origin"] = newTenantService.service_origin
 

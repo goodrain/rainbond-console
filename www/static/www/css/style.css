@@ -373,7 +373,8 @@ a.logo:hover, a.logo:focus {
 }
 
 a.logo img{
-   max-height: 32px;
+    width: 126px;
+   height: auto;
 }
 
 a.logo span {
@@ -5619,15 +5620,6 @@ a.guest-on i {
 .addtab tr td span{padding-right: 5px;}
 .addtab tr td input{width:100px; height: 20px;}
 .addtab tr td select{ width:100px; height: 20px; }
-
-
-
-
-
-
-
-
-
 
 
 
