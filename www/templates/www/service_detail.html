@@ -97,9 +97,10 @@
                 
                 $.ajax({
                     type : "post",
-                    url : "",
+                    url : "/ajax/{{tenantName}}/change-service-name",
                     data : {
-                        app_name : inputText
+                        new_service_cname : inputText,
+                        service_alias : "{{serviceAlias}}"
                     },
                     cache : false,
                     beforeSend : function(xhr, settings) {
