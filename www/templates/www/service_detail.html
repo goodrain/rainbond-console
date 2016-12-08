@@ -92,16 +92,9 @@
                 return false;
             }else{
                 var inputText = $(".input-css input").val();
-                if($("#appname")){
-                  $("#appname").html(inputText);
-                }
-                if($("#lit-appname")){
-                  $("#lit-appname").html(inputText);
-                }
-                $("div.layerbg").remove();
-                $(".input-css input").prop("value","");
+                
                 ///ajax start
-                /*
+                
                 $.ajax({
                     type : "post",
                     url : "",
@@ -131,7 +124,7 @@
                         swal("系统异常,请重试");
                     }
                 });
-                */
+                
                 ///ajax end
             }
               
