@@ -5648,7 +5648,7 @@ a.guest-on i {
 .domain-box{}
 .showlink-box{width: 100%; height: 100%; position: relative;}
 .newtab tr td .domain-box span{display:inline-block;}
-.domain-layer{ position: absolute;background: #fff; border:1px #ddd solid; padding:10px; left:0px; bottom:0px; display: none; width: 230px;}
+.domain-layer{ position: absolute;background: #fff; border:1px #ddd solid; padding:10px; left:0px; bottom:0px; display: none; min-width: 230px;}
 
 
 
