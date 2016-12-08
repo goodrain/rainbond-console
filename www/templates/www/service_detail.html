@@ -76,7 +76,7 @@
         var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
         var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
         var oTit = '<p class="layer-tit">'+ textTit +'</p>';
-        var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
+        var oInput ='<p class="input-css"><input type="text" value="" /></p>';
         var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
         $("body").append(oDiv);
         $("div.layermain").append(oCloseBtn,oTit);
@@ -87,14 +87,13 @@
              $(".input-css input").prop("value","");
         });
         $(".fn-sure").click(function(){
+            var inputText = $(".input-css input").val();
              console.log(2);
             if(inputText == ""){
                 console.log(1);
-                alert("您还没有输入应用名！")
+                swal("您还没有输入应用名！")
                 return false;
             }else{
-                var inputText = $(".input-css input").val();
-                
                 ///ajax start
                 
                 $.ajax({
