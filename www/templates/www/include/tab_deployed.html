@@ -36,7 +36,7 @@
                     {% endif %}
                     
                 {% endifequal %}
-
+					<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">
                 {% if hasHttpServices %}
                  <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
         					{% if visit_port_type == "multi_outer" %}
@@ -204,7 +204,9 @@
 	    		  		$("#service_status").html("运行中")
 	    		  		$("#service_status_operate").show()
 	    		  		$("#service_visitor").show()
-						$("#multi_ports").show()
+						  if(port_length != "1"){
+							  $("#multi_ports").show();
+						  }
 	    		  		$("#service_status").attr("class","badge badge-sm label-success")
 	    		  	  }else if(obj["status"]=="starting"){
 	    		  	    $("#service_status_value").val("stop")
