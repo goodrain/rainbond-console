@@ -61,11 +61,6 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
         except Exception, e:
             logger.error(e)
 
-    def update_response(self, response):
-        if self.tenantName != self.cookie_tenant_name:
-            response.set_cookie('tenant_name', self.tenantName)
-        return response
-
     @never_cache
     @perm_required('tenant.tenant_access')
     def get(self, request, *args, **kwargs):

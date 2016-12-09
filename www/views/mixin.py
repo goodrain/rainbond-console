@@ -69,10 +69,14 @@ class LeftSideBarMixin(object):
 
         self.cookie_region = self.request.COOKIES.get('region', None)
         self.response_region = self.tenant.region if self.cookie_region is None else self.cookie_region
+        self.cookie_tenant_name = self.request.COOKIES.get('tenant_name', None)
+        self.response_tenant_name = self.tenant.tenant_name if self.cookie_tenant_name is None else self.cookie_tenant_name
 
     def update_response(self, response):
         if self.response_region != self.cookie_region:
             response.set_cookie('region', self.response_region)
+        if self.response_tenant_name != self.cookie_tenant_name:
+            response.set_cookie('tenant_name', self.response_tenant_name)
         return response
 
     def get_context(self):
