@@ -67,6 +67,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
         self.check_region()
         context = self.get_context()
         try:
+            self.response_tenant_name = self.tenant
             logger.debug('monitor.user', str(self.user.pk))
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
             context["tenantServiceList"] = tenantServiceList
