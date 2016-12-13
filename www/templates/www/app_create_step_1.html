@@ -296,6 +296,106 @@
                 <!--  05 Demo end -->
 			</div>
 			<!-- 基本信息 end -->
+			<!-- 配套信息 start -->
+            <div class="infor-fm-box">
+                <h4 class="step-tit">配套信息</h4>
+                <div class="fm-input-radio clearfix">
+                    <label>应用内存:</label>
+                    <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
+                    <label class="radio-bg" for="MoneyBefore"></label>
+                    <label for="MoneyBefore" class="radio-text">预付费提前采购</label>
+                    <input type="radio" name="Memory" value="After" id="MoneyAfter" />
+                    <label class="radio-bg"  for="MoneyAfter"></label>
+                    <label for="MoneyAfter" class="radio-text">按使用后付费</label>
+                    <a class="mark-box"><span class="mark-icon"></span></a>
+                </div>
+                <div class="fm-input-range clearfix">
+                    <label>单节点内存:</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose" id="OneMemoryWid"></span>
+                        <input type="range" min="128" max="2048"  step="128" id="OneMemory" value="128"／>
+                    </p>
+                    <span><cite id="OneMemoryText">128</cite>M</span>
+                </div>
+                <div class="fm-input-range clearfix">
+                    <label>节点数:</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose" id="NodeWid"></span>
+                        <input type="range" min="1" max="10"  step="1" id="NodeNum" value="1"／>
+                    </p>
+                    <span><cite id="NodeText">1</cite>个</span>
+                </div>
+                <div class="fm-text clearfix">
+                    <label>预估费用:</label>
+                    <span><cite>12</cite>元／月</span>
+                </div>
+                <div class="fm-input-radio clearfix">
+                    <label>流量:</label>
+                    <input type="radio" name="flow" value="flow" id="flow" checked="true" />
+                    <label class="radio-bg" for="flow"></label>
+                    <label class="radio-text" for="flow">按使用次数付费</label>
+                </div>
+                <div class="fm-text clearfix">
+                    <label>预估费用:</label>
+                    <span><cite>12</cite>元／月</span>
+                </div>
+                <div class="fm-choose-box clearfix">
+                    <label>部署支持:</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">一键部署</a>
+                        <a href="javascript:;" class="sed">一键回滚</a>
+                        <a href="javascript:;">滚动升级</a>
+                    </p>
+                </div>
+                <div class="fm-choose-box clearfix">
+                    <label>资源支持:</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">独立资源</a>
+                        <a href="javascript:;" class="sed">负载均衡</a>
+                        <a href="javascript:;">弹性伸缩</a>
+                        <a href="javascript:;">高可用</a>
+                        <a href="javascript:;">三分快照</a>
+                    </p>
+                </div>
+                <div class="fm-choose-box clearfix">
+                    <label>日志监控:</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">性能分析／告警</a>
+                        <a href="javascript:;" class="sed">业务监控／告警</a>
+                        <a href="javascript:;">分布式日志</a>
+                    </p>
+                </div>
+                <div class="fm-choose-box clearfix">
+                    <label>服务监控:</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">工作日9:00-18:00</a>
+                    </p>
+                </div>
+            </div>
+            <!-- 配套信息 end -->
+            <!-- 费用估算 start -->
+            <div class="infor-fm-box" style="border-bottom: 0 none;">
+                <h4 class="step-tit">费用估算</h4>
+                <div class="fm-input-range clearfix">
+                    <label>预付费项目购买时长:</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose" id="TimeLongWid"></span>
+                        <input type="range" min="1" max="12"  step="1" id="TimeLong" value="1"／>
+                    </p>
+                    <span><cite id="TimeLongText">1</cite>小时</span>    
+                </div>
+                <div class="fm-money clearfix">
+                    <label>预付费总费用:</label>
+                    <span><cite>123.00</cite>元</span>
+                </div>
+                <div class="fm-btn clearfix">
+                    <a href="javascript:;" class="greenbtn">下一步</a>
+                </div>
+            </div>
+            <!-- 费用估算 end -->          
         </form>
 	</section>
     <!-- new app build end -->
