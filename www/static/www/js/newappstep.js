@@ -36,19 +36,19 @@ $(function(){
     // 输入框输入样式
 
     // 01 输入用户名
-    $('#create_app_name').blur(function(){
+    $('#create_name').blur(function(){
         var appName = $(this).val();
         //var checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/;
         //var result = true;
         if(appName == ""){
-            $('#create_appname_notice').slideDown();
+            $('#create_name_notice').slideDown();
             return;
         }else{
-            $('#create_appname_notice').slideUp();
+            $('#create_name_notice').slideUp();
         }
     });
     // 01 end 
-    
+
     //03 公开项目
     $('#service_code_url').blur(function(){
         var appurl= $(this).val();
@@ -71,7 +71,7 @@ $(function(){
         }
     });
     //04 自建Git
-
+    // github 
 });
 
 
