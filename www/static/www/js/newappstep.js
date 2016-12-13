@@ -72,6 +72,39 @@ $(function(){
     });
     //04 自建Git
     // github 
+
+
+
+    //项目 地址
+    function loadObj(_url,listWrap){
+        $.ajax({
+            type: "GET",
+            url: _url,
+            cache: false,
+            success: function(msg){
+                var dataObj = msg;
+                if(dataObj["status"] == "unauthorized"){
+                    window.open(dataObj["url"], "_parent");
+                }else if(dataObj["status"]=="success"){
+                    var dataList=dataObj["data"];
+                    var htmlmsg="";
+                    for(var i=0;i<dataList.length;i++){
+                        data = dataList[i];
+                        htmlmsg +='<option idx="'+ i +'" data="'+data["code_id"]+ 'id="repos_'+data["code_id"] + '" name="repos_'+data["code_id"]+'" value='+data["code_repos"] +'">';
+                        htmlmsg += data["code_user"]+'/'+data["code_project_name"] + '</option>';
+                    }
+                    $(listWrap).html(htmlmsg);
+                    $('#waiting').hide();
+                    listWrap.slideDown();
+                }else{
+                    $('#waiting').html("无可用仓库");
+                }
+            },
+            error: function(){
+                console.log("系统异常");
+            }
+        });
+    }
 });
 
 

@@ -240,14 +240,15 @@
                 {% if cur_type == "github" %}
                 <div class="fm-select clearfix" data-action="Github">
                     <label>Github项目:</label>
-                    <select>
-                        <option value="-1">请选择一个项目</option>
+					<p id="waiting">仓库连接中，请稍候......</p>
+                    <select id="code_github_list">
+                        
                     </Select>
                 </div>
                 <div class="fm-select clearfix" data-action="Github">
                     <label>版本:</label>
                     <select>
-                        <option value="-1">请先选择版本</option>
+                        <option value="0">请先选择版本</option>
                     </Select>
                 </div>
                 {% endif %}
@@ -258,7 +259,7 @@
                 	{% if cur_type == "gitlab_exit" %}
                 <div class="fm-select clearfix" data-action="GRGit">
                     <label>好雨Git项目:</label>
-                    <select>
+                    <select id="">
                         <option value="-1">请选择一个项目</option>
                         <option value="-1">新建项目</option>
                     </Select>
