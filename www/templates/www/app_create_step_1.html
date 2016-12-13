@@ -1,11 +1,14 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
-
+{% load goodrain_extras %}
+{% load static %}
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/grouping.css" %}' />
 {% endblock %}
-
+{% block extrajs %}
+<script src='{% static "www/js/group.js" %}'></script>
+{% endblock %}
 
 {% block main-content%}
 
