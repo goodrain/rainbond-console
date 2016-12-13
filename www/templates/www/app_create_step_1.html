@@ -213,24 +213,87 @@
                     </select>
                 </div>
                 <!-- 01 公开项目 -->
+                {% if cur_type == "gitlab_manual" %}
                 <div class="fm-input-text clearfix" data-action="openObj">
                     <label>代码源:</label><input type="text" name="" value="" placeholder="请输入一个公开项目的Git地址"  id="service_code_url" />
                 </div>
                 <p class="fm-tips" id="service_code_url_tips">代码仓库地址不能为空！</p>
+                {% endif %}
                 <!-- 01 -->
                 <!--  02 自建Git start-->
+                {% if cur_type == "gitlab_new" %}
                 <div class="fm-input-text clearfix" data-action="buildGit">
                     <label>自建Git:</label><input type="text" name="" value="" placeholder="请输入一个自建Git的代码仓库地址" id="my_git_url" />
                 </div>
                 <p class="fm-tips" id="my_git_url_tips">代码仓库地址不能为空！</p>
-                <div class="code-box" data-action="buildGit">
+                <div class="code-box clearfix" data-action="buildGit">
                      <label>使用提示:</label>
                      <p>
                         <span>自建Git,请将将下列内容添加到git用户的ssh列表中,授权平台获取您的代码:</span>
                         <cite>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1 builder</cite>
                      </p>
                 </div>
+                {% endif %}
                 <!-- 02 自建Git end -->
+                <!--  03 关联Github start-->
+                {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
+                {% if cur_type == "github" %}
+                <div class="fm-select clearfix" data-action="Github">
+                    <label>Github项目:</label>
+                    <select>
+                        <option value="-1">请选择一个项目</option>
+                    </Select>
+                </div>
+                <div class="fm-select clearfix" data-action="Github">
+                    <label>版本:</label>
+                    <select>
+                        <option value="-1">请先选择版本</option>
+                    </Select>
+                </div>
+                {% endif %}
+                {% endif %}
+                <!--  03 关联Github end-->
+                <!--  04 好雨Git已有项目 start-->
+                {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
+                	{% if cur_type == "gitlab_exit" %}
+                <div class="fm-select clearfix" data-action="GRGit">
+                    <label>好雨Git项目:</label>
+                    <select>
+                        <option value="-1">请选择一个项目</option>
+                        <option value="-1">新建项目</option>
+                    </Select>
+                </div>
+                <div class="fm-select clearfix" data-action="GRGit">
+                    <label>版本:</label>
+                    <select>
+                        <option value="-1">请先选择版本</option>
+                    </Select>
+                </div>
+                	{% endif %}
+                {% endif %}
+                <!--  04 好雨Git已有项目 end-->
+                <!--  05 Demo start-->
+                {% if cur_type == "gitlab_demo" %}
+                <div class="fm-select clearfix" data-action="GemoObj">
+                    <label>Demo:</label>
+                    <select>
+                        <option value="http://code.goodrain.com/demo/2048.git">http://code.goodrain.com/demo/2048.git</option>
+                        <option value="http://code.goodrain.com/demo/static-hello.git">http://code.goodrain.com/demo/static-hello.git</option>
+                        <option value="http://code.goodrain.com/demo/php-hello.git">http://code.goodrain.com/demo/php-hello.git</option>
+                        <option value="http://code.goodrain.com/demo/python-hello.git">http://code.goodrain.com/demo/python-hello.git</option>
+                        <option value="http://code.goodrain.com/demo/nodejs-hello.git">http://code.goodrain.com/demo/nodejs-hello.git</option>
+                        <option value="http://code.goodrain.com/demo/go-hello.git">http://code.goodrain.com/demo/go-hello.git</option>
+                        <option value="http://code.goodrain.com/demo/java-spring-boot-demo.git">http://code.goodrain.com/demo/java-spring-boot-demo.git</option>
+                    </Select>
+                </div>
+                <div class="fm-select clearfix" data-action="GemoObj">
+                    <label>版本:</label>
+                    <select>
+                        <option value="http://code.goodrain.com/demo/2048.git">请先选择项目</option>
+                    </Select>
+                </div>
+                {% endif %}
+                <!--  05 Demo end -->
 			</div>
 			<!-- 基本信息 end -->
         </form>
