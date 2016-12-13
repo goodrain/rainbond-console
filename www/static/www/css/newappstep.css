@@ -1,0 +1,99 @@
+ul,ul li{list-style: none;}
+a:hover{text-decoration: none;}
+div.applisttit{ margin:20px 20px 0; background: url('../images/titicon.png') no-repeat; height: 48px; line-height: 48px; color: #666;  clear:both; color: #666666; font-size: 30px; line-height: 48px; text-indent: 60px;}
+em,cite,span{font-style: normal;}
+cite,em{font-style:normal;}
+a:link{ text-decoration: none;}
+a:visited{ text-decoration: none;}
+a:hover{ text-decoration: none;}
+a:active{text-decoration: none;}
+
+
+
+body{background: #f0f5f8;}
+.main-box{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px;  margin:20px; padding:30px 20px;}
+.main-tit{color: #28cb75; font-size: 24px; margin:0; text-align: center;font-weight: 100; line-height: 1;}
+.app-step{width: 80%; margin:50px auto 20px;}
+.app-step p{width: 25%; float: left; height: 80px; text-align: center;}
+.app-step p span,.app-step p cite{display: inline-block;}
+.app-step p span{background: #c7c7c7; width: 36px; height: 36px;  font-size: 24px; line-height: 36px; text-align: center; -moz-border-radius:36px; -webkit-border-radius:36px; border-radius:36px; color: #fff;}
+.app-step p cite{width: 100%; text-align: center; color: #838383; font-size: 16px; line-height: 1; padding-top: 26px;}
+.app-step p.sed span{background: #00d777;}
+.app-step p.sed cite{color: #00d777;}
+.step-tit{color: #303030; font-size:18px; text-align: center;}
+
+
+/* from start */
+::-webkit-input-placeholder { color:#303030;}
+::-moz-placeholder { color:#303030; } /* firefox 19+ */
+:-ms-input-placeholder { color:#303030; } /* ie */
+input:-moz-placeholder { color:#303030; }
+select,input{ appearance:none; -moz-appearance:none; -webkit-appearance:none;  -moz-border-radius:0; -webkit-border-radius:0; border-radius: 0; background:#fff;}
+/*滑块 start */
+input[type="range"] {-webkit-appearance: none; background: transparent;} /* 清除自带样式 加圆角 */
+input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none;}    
+input[type="range"]::-webkit-slider-runnable-track {background: transparent; height: 10px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px;}/* 给轨道自定义样式 圆角颜色高度*/
+input[type="range"]:focus {outline: none;} /* 取消自带的获取焦点时的样式 */
+input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none; height: 26px; width: 26px;margin-top: -6px; /*使滑块超出轨道部分的偏移量相等*/ background: url('../images/range.png') no-repeat; background-size:26px 26px;} 
+
+input[type="range"]::-moz-range-progress {background:#28cb75; height: 10px; border-radius: 10px;} /*FF*/
+input[type="range"]::-ms-fill-lower {/*进度条已填充的部分*/height: 10px; border-radius: 10px; background: #28cb75;} /*IE*/
+input[type="range"]::-ms-fill-upper {/*进度条未填充的部分*/ height: 10px; border-radius: 10px; background: transparent;} /*IE*/
+input[type="range"]:focus::-ms-fill-lower {background:#28cb75;}
+input[type="range"]:focus::-ms-fill-upper {background: transparent;}
+
+/* 滑块  end */
+
+.infor-fm-box{border-bottom: 1px #ececec solid; padding: 10px 0; }
+.fm-input-text,.fm-select,.fm-input-radio,.fm-input-range,.fm-text,.fm-choose-box,.fm-money,.fm-btn,.code-box{padding:10px 0 0; max-width: 500px; margin: 0 auto;}
+.infor-fm-box label{width: 140px; color: #303030; font-size: 14px; float: left; display: inline-block; text-align: right; margin-right:20px; line-height: 30px;}
+.fm-input-text input{width:330px; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px;}
+.fm-select select{width:330px; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px; background: url('../images/selecticon.png') no-repeat right top; background-size: 30px 30px;}
+.fm-input-radio input{float: left; display: none;}
+.fm-input-radio label.radio-bg{width:16px; height: 16px; background: url('../images/radio.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
+.fm-input-radio input:checked + label.radio-bg{width:16px; height: 16px; background: url('../images/radiochecked.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
+.fm-input-radio label.radio-text{text-align: left; width:auto;}
+
+.code-box p{float: left; width: 330px;}
+.code-box p span{color: #838383; font-size: 12px; line-height: 20px; padding:4px 0 0 0; display: block;} 
+.code-box p cite{color: #303030; font-size: 14px; line-height: 20px; display: block; word-break:break-all; border:1px #d5d5d5 dashed; padding:5px;}
+.mark-box{width: 2px; height: 30px; position: relative; float: left;}
+.mark-icon{width: 13px; height: 13px; background: url('../images/markicon.png')no-repeat; background-size: 13px 13px; display: block;}
+
+
+.fm-input-range input{ width: 220px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range span{width: 80px; float: left; display: inline-block; font-size: 14px; line-height: 30px; padding-left: 5px;}
+
+
+.fm-text span{ color: #303030; font-size: 14px; float: left; display: inline-block; text-align: left; line-height: 30px;}
+
+.btn-cho-box{width: 330px; display: block; float: left; margin-bottom: 0;}
+.btn-cho-box  a{display: inline-block; color:#303030; background: #fff; border:1px #ececec solid; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; min-width: 90px; height: 28px; line-height: 28px; text-align: center; margin:0 10px 10px 0; float: left; padding:0 10px;}
+.btn-cho-box  a.sed{color: #fff; background: #28cb75; border:1px #28cb75 solid;}
+
+.fm-money span{color: #28cb75; font-size: 24px; line-height: 30px;}
+
+.fm-btn{text-align: center; margin-bottom: 40px;}
+.fm-btn a{display: inline-block;}
+
+.greenbtn{background: #28cb75; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; }
+.greenbtn:hover{color: #fff;}
+
+.fm-input-range .range-box{width: 220px; height: 26px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
+.fm-input-range .range-box .renge-bg{width: 220px; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
+.fm-input-range .range-box .range-choose{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px;position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
+
+.fm-tips{color: #ea1616; max-width: 500px; margin: 0 auto; line-height: 20px; text-indent: 160px; display:none;}
+
+
+
+
+
+
+
+
+
+
+
+
+/* from end */
