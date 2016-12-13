@@ -3,25 +3,9 @@
 
 {% block extracss %}
 {{ block.super }}
-<style>
-    code {
-        text-indent:0;
-        border-color:#000;
-        border-style:dashed;
-        border-width:1px;
-        display:block;
-        font-size:12px;
-        font-family:Courier, Calibri,"宋体";
-        margin:10px 0 0 0;
-        padding:10px 0 10px 5px;
-        -moz-border-radius:5px;
-        background:#f5f5f5;
-        color:#000;
-        word-wrap: break-word;
-        word-break: break-all;
-    }
-</style>
+<link rel="stylesheet" href='{% static "www/css/grouping.css" %}' />
 {% endblock %}
+
 
 {% block main-content%}
 
