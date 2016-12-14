@@ -254,7 +254,7 @@
                             
                         </Select>
                     </div>
-                    <div class="fm-select clearfix">
+                    <div class="fm-select clearfix" id="gh_branchbox">
                         <label>版本:</label>
                         <select id="gh_branch">
                             <option value="">请先选择项目</option>
@@ -305,7 +305,7 @@
                 <div class="fm-select clearfix">
                     <label>版本:</label>
                     <select>
-                        <option value="http://code.goodrain.com/demo/2048.git">请先选择项目</option>
+                        <option value="master">master</option>
                     </Select>
                 </div>
                 {% endif %}
@@ -315,6 +315,7 @@
 			<!-- 配套信息 start -->
             <div class="infor-fm-box">
                 <h4 class="step-tit">配套信息</h4>
+                <!-- 01 -->
                 <div class="fm-input-radio clearfix">
                     <label>应用内存:</label>
                     <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
@@ -343,25 +344,34 @@
                     </p>
                     <span><cite id="NodeText">1</cite>个</span>
                 </div>
-                <div class="fm-text clearfix">
-                    <label>预估费用:</label>
-                    <span><cite>12</cite>元／月</span>
+                <!-- 02 -->
+                <div class="fm-choose-box clearfix">
+                    <label>应用存储:</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">分布式存储</a>
+                        <a href="javascript:;">SSD</a>
+                        
+                    </p>
                 </div>
+                <!-- 03 -->
                 <div class="fm-input-radio clearfix">
                     <label>流量:</label>
                     <input type="radio" name="flow" value="flow" id="flow" checked="true" />
                     <label class="radio-bg" for="flow"></label>
-                    <label class="radio-text" for="flow">按使用次数付费</label>
+                    <label class="radio-text" for="flow">按使用后付费</label>
                 </div>
+                <!--
                 <div class="fm-text clearfix">
                     <label>预估费用:</label>
                     <span><cite>12</cite>元／月</span>
                 </div>
+                -->
+                <!-- 04 -->
                 <div class="fm-choose-box clearfix">
                     <label>部署支持:</label>
                     <p class="btn-cho-box clearfix">
                         <a href="javascript:;">一键部署</a>
-                        <a href="javascript:;" class="sed">一键回滚</a>
+                        <a href="javascript:;">一键回滚</a>
                         <a href="javascript:;">滚动升级</a>
                     </p>
                 </div>
@@ -369,7 +379,7 @@
                     <label>资源支持:</label>
                     <p class="btn-cho-box clearfix">
                         <a href="javascript:;">独立资源</a>
-                        <a href="javascript:;" class="sed">负载均衡</a>
+                        <a href="javascript:;">负载均衡</a>
                         <a href="javascript:;">弹性伸缩</a>
                         <a href="javascript:;">高可用</a>
                         <a href="javascript:;">三分快照</a>
@@ -379,7 +389,7 @@
                     <label>日志监控:</label>
                     <p class="btn-cho-box clearfix">
                         <a href="javascript:;">性能分析／告警</a>
-                        <a href="javascript:;" class="sed">业务监控／告警</a>
+                        <a href="javascript:;">业务监控／告警</a>
                         <a href="javascript:;">分布式日志</a>
                     </p>
                 </div>
@@ -400,9 +410,9 @@
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose" id="TimeLongWid"></span>
-                        <input type="range" min="1" max="12"  step="1" id="TimeLong" value="1"／>
+                        <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
                     </p>
-                    <span><cite id="TimeLongText">1</cite>小时</span>    
+                    <span><cite id="TimeLongText">1</cite>个月</span>    
                 </div>
                 <div class="fm-money clearfix">
                     <label>预付费总费用:</label>
