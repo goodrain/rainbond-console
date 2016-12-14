@@ -112,7 +112,7 @@ $(function(){
                     var htmlmsg="";
                     for(var i=0;i<dataList.length;i++){
                         data = dataList[i];
-                        htmlmsg +='<option idx="'+ i +'" data="'+data["code_id"]+ 'id="repos_'+data["code_id"] + '" name="repos_'+data["code_id"]+'" value='+data["code_repos"] +'">';
+                        htmlmsg +='<option idx="'+ i +'" data="'+data["code_id"]'+ ' id="repos_'+data["code_id"] + '" name="repos_'+data["code_id"]+'" value='+data["code_repos"] +'">';
                         htmlmsg += data["code_user"]+'/'+data["code_project_name"] + '</option>';
                     }
                     $(listWrap).html(htmlmsg);
