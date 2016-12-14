@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 from django.conf import settings
+from django.http.response import HttpResponseRedirect
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
@@ -280,7 +281,10 @@ class Logout(BaseView):
             # 判断是否MicroMessenger
             if is_weixin(request):
                 return self.redirect_to("/wechat/logout")
-            return self.redirect_to(settings.LOGIN_URL)
+            response = HttpResponseRedirect(settings.LOGIN_URL)
+            response.delete_cookie('tenant_name')
+            return response
+            # return self.redirect_to(settings.LOGIN_URL)
 
     @never_cache
     def post(self, request, *args, **kwargs):
