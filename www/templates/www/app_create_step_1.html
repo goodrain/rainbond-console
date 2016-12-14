@@ -219,7 +219,7 @@
                 </div>
                 <!-- 01 公开项目 -->
                 {% if cur_type == "gitlab_manual" %}
-                <span style="display: none"; data-action="gitlab_manual"></span>
+                <span style="display: none"; data-action="gitlab_manual" class="fn-way"></span>
                 <div class="fm-input-text clearfix">
                     <label>代码源:</label><input type="text" name="" value="" placeholder="请输入一个公开项目的Git地址"  id="service_code_url" />
                 </div>
@@ -245,7 +245,7 @@
                 <!--  03 关联Github start-->
                 {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
                 {% if cur_type == "github" %}
-                <span style="display: none"; data-action="github"></span>
+                <span style="display: none"; data-action="github" class="fn-way"></span>
                 <div class="fm-select clearfix">
                     <label>Github项目:</label>
 					<p id="waiting">仓库连接中，请稍候......</p>
@@ -265,7 +265,7 @@
                 <!--  04 好雨Git已有项目 start-->
                 {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
                 	{% if cur_type == "gitlab_exit" %}
-                <span style="display: none"; data-action="gitlab_exit"></span>
+                <span style="display: none"; data-action="gitlab_exit" class="fn-way"></span>
                 <div class="fm-select clearfix">
                     <label>好雨Git项目:</label>
                     <select id="code_gr_list">
@@ -284,7 +284,7 @@
                 <!--  04 好雨Git已有项目 end-->
                 <!--  05 Demo start-->
                 {% if cur_type == "gitlab_demo" %}
-                <span style="display: none"; data-action="gitlab_demo"></span>
+                <span style="display: none"; data-action="gitlab_demo" class="fn-way"></span>
                 <div class="fm-select clearfix" data-action="GemoObj">
                     <label>Demo:</label>
                     <select>
@@ -381,6 +381,7 @@
                 <div class="fm-choose-box clearfix">
                     <label>服务监控:</label>
                     <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">工作日9:00-18:00</a>
                         <a href="javascript:;">工作日9:00-18:00</a>
                     </p>
                 </div>

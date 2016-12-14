@@ -75,11 +75,13 @@ $(function(){
 
     var way_value = $(".fn-way").attr("data-action");
     if(way_value == "gitlab_exit"){
+        console.log(1);
         $('#service_code_from').val("gitlab_exit");
         var tenantName= $('#currentTeantName').val();
         _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
         loadObj(_url);
     }else if(way_value == "github"){
+        console.log(2);
         $('#service_code_from').val("github");
         var tenantName= $('#currentTeantName').val();
         _url = "/ajax/"+tenantName+"/code_repos?action=github";
