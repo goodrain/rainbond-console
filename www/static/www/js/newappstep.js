@@ -94,11 +94,7 @@ $(function(){
     function loadObj(_url){
         var listWrap;
         var service_code_from = $('#service_code_from').val();
-        if(service_code_from == "github"){
-            listWrap = $("#code_github_list");
-        }else{
-            listWrap = $("#code_gr_list");
-        }
+        
         $.ajax({
             type: "GET",
             url: _url,
@@ -107,6 +103,8 @@ $(function(){
                 var dataObj = msg;
                 if(dataObj["status"] == "unauthorized"){
                     window.open(dataObj["url"], "_parent");
+                    $("#code_github_list").hide();
+                    $("#gh_branch").hide();
                 }else if(dataObj["status"]=="success"){
                     var dataList=dataObj["data"];
                     var htmlmsg="";
@@ -115,9 +113,22 @@ $(function(){
                         htmlmsg +='<option idx="'+ i +'" data="'+data["code_id"]+ '" id="repos_'+data["code_id"] + '" name="repos_'+data["code_id"]+'" value='+data["code_repos"] +'">';
                         htmlmsg += data["code_user"]+'/'+data["code_project_name"] + '</option>';
                     }
-                    $(listWrap).html(htmlmsg);
-                    $('#waiting').hide();
-                    listWrap.slideDown();
+                    if(service_code_from == "github"){
+                        listWrap = $("#code_github_list");
+                        if(htmlmsg){
+                            $(listWrap).html(htmlmsg);
+                            $("#waiting").hide();
+                        }
+                    }else{
+                        listWrap = $("#code_gr_list");
+                        if(htmlmsg){
+                            htmlmsg += '<option value="newobj">新建项目</option>';
+                            $(listWrap).html(htmlmsg);
+                        }else{
+                           $(listWrap).html('<option value="newobj">新建项目</option>'); 
+                        }
+                    }                    
+
                     $(listWrap).change(function(){
                          var sedoption = $(listWrap).find('option:selectd');
                          console.log(sedoption);

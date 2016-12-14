@@ -246,9 +246,9 @@
                 {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
                 {% if cur_type == "github" %}
                 <span style="display: none"; data-action="github" class="fn-way"></span>
+                <p id="waiting">仓库连接中，请稍候......</p>
                 <div class="fm-select clearfix">
                     <label>Github项目:</label>
-					<p id="waiting">仓库连接中，请稍候......</p>
                     <select id="code_github_list">
                         
                     </Select>
@@ -266,6 +266,7 @@
                 {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
                 	{% if cur_type == "gitlab_exit" %}
                 <span style="display: none"; data-action="gitlab_exit" class="fn-way"></span>
+                <p id="waiting">仓库连接中，请稍候......</p>
                 <div class="fm-select clearfix">
                     <label>好雨Git项目:</label>
                     <select id="code_gr_list">
