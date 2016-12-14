@@ -96,6 +96,14 @@ $(function(){
                     $(listWrap).html(htmlmsg);
                     $('#waiting').hide();
                     listWrap.slideDown();
+                    $(listWrap).change(function(){
+                         var sedoption = $(listWrap).find('option:selectd');
+                         console.log(sedoption);
+                         var service_code_id=$(sedoption).attr("data");
+                         var clone_url = $('#repos_'+service_code_id).val();
+                         var service_code_from = $('#service_code_from').val();
+                         Fnbranch(service_code_from,service_code_id,clone_url);  
+                    });
                 }else{
                     $('#waiting').html("无可用仓库");
                 }
@@ -105,6 +113,22 @@ $(function(){
             }
         });
     }
+
+    // 项目分支 
+    function  Fnbranch(code_from,code_id,clone_url){
+        var action="";
+        var user ="";
+        var repos ="";
+        if(code_from=="gitlab_exit"){
+            action="gitlab";
+        }else if(code_from=="github"){
+            action="github";
+            user =  clone_url.split("/")[3];
+            repos = clone_url.split("/")[4].split(".")[0];
+        }
+        var tenantName= $('#currentTeantName').val();
+    }
+    //
 });
 
 
