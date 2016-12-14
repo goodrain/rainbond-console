@@ -219,7 +219,8 @@
                 </div>
                 <!-- 01 公开项目 -->
                 {% if cur_type == "gitlab_manual" %}
-                <div class="fm-input-text clearfix" data-action="openObj">
+                <span style="display: none"; data-action="gitlab_manual"></span>
+                <div class="fm-input-text clearfix">
                     <label>代码源:</label><input type="text" name="" value="" placeholder="请输入一个公开项目的Git地址"  id="service_code_url" />
                 </div>
                 <p class="fm-tips" id="service_code_url_tips">代码仓库地址不能为空！</p>
@@ -227,11 +228,12 @@
                 <!-- 01 -->
                 <!--  02 自建Git start-->
                 {% if cur_type == "gitlab_new" %}
-                <div class="fm-input-text clearfix" data-action="buildGit">
+                <span style="display: none"; data-action="gitlab_new" class="fn-way"></span>
+                <div class="fm-input-text clearfix">
                     <label>自建Git:</label><input type="text" name="" value="" placeholder="请输入一个自建Git的代码仓库地址" id="my_git_url" />
                 </div>
                 <p class="fm-tips" id="my_git_url_tips">代码仓库地址不能为空！</p>
-                <div class="code-box clearfix" data-action="buildGit">
+                <div class="code-box clearfix">
                      <label>使用提示:</label>
                      <p>
                         <span>自建Git,请将将下列内容添加到git用户的ssh列表中,授权平台获取您的代码:</span>
@@ -243,17 +245,18 @@
                 <!--  03 关联Github start-->
                 {% if CUSTOM_CONFIG.GITHUB_SERVICE_API %}
                 {% if cur_type == "github" %}
-                <div class="fm-select clearfix" data-action="Github">
+                <span style="display: none"; data-action="github"></span>
+                <div class="fm-select clearfix">
                     <label>Github项目:</label>
 					<p id="waiting">仓库连接中，请稍候......</p>
                     <select id="code_github_list">
                         
                     </Select>
                 </div>
-                <div class="fm-select clearfix" data-action="Github">
+                <div class="fm-select clearfix">
                     <label>版本:</label>
-                    <select>
-                        <option value="0">请先选择版本</option>
+                    <select id="gh_branch">
+                        <option value="">请先选择项目</option>
                     </Select>
                 </div>
                 {% endif %}
@@ -262,17 +265,18 @@
                 <!--  04 好雨Git已有项目 start-->
                 {% if CUSTOM_CONFIG.GITLAB_SERVICE_API %}
                 	{% if cur_type == "gitlab_exit" %}
-                <div class="fm-select clearfix" data-action="GRGit">
+                <span style="display: none"; data-action="gitlab_exit"></span>
+                <div class="fm-select clearfix">
                     <label>好雨Git项目:</label>
-                    <select id="">
+                    <select id="code_gr_list">
                         <option value="-1">请选择一个项目</option>
                         <option value="-1">新建项目</option>
                     </Select>
                 </div>
-                <div class="fm-select clearfix" data-action="GRGit">
+                <div class="fm-select clearfix">
                     <label>版本:</label>
-                    <select>
-                        <option value="-1">请先选择版本</option>
+                    <select id="gr_branch">
+                        <option value="">请先选择项目</option>
                     </Select>
                 </div>
                 	{% endif %}
@@ -280,6 +284,7 @@
                 <!--  04 好雨Git已有项目 end-->
                 <!--  05 Demo start-->
                 {% if cur_type == "gitlab_demo" %}
+                <span style="display: none"; data-action="gitlab_demo"></span>
                 <div class="fm-select clearfix" data-action="GemoObj">
                     <label>Demo:</label>
                     <select>
@@ -292,7 +297,7 @@
                         <option value="http://code.goodrain.com/demo/java-spring-boot-demo.git">http://code.goodrain.com/demo/java-spring-boot-demo.git</option>
                     </Select>
                 </div>
-                <div class="fm-select clearfix" data-action="GemoObj">
+                <div class="fm-select clearfix">
                     <label>版本:</label>
                     <select>
                         <option value="http://code.goodrain.com/demo/2048.git">请先选择项目</option>

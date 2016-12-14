@@ -73,10 +73,30 @@ $(function(){
     //04 自建Git
     // github 
 
-
+    var way_value = $(".fn-way").attr("data-action");
+    if(way_value == "gitlab_exit"){
+        $('#service_code_from').val("gitlab_exit");
+        var tenantName= $('#currentTeantName').val();
+        _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
+        loadObj(_url);
+    }else if(way_value == "github"){
+        $('#service_code_from').val("github");
+        var tenantName= $('#currentTeantName').val();
+        _url = "/ajax/"+tenantName+"/code_repos?action=github";
+        loadRepos(_url);
+    }else{
+        return;
+    }
 
     //项目 地址
-    function loadObj(_url,listWrap){
+    function loadObj(_url){
+        var listWrap;
+        var service_code_from = $('#service_code_from').val();
+        if(service_code_from == "github"){
+            listWrap = $("#code_github_list");
+        }else{
+            listWrap = $("#code_gr_list");
+        }
         $.ajax({
             type: "GET",
             url: _url,
@@ -101,7 +121,6 @@ $(function(){
                          console.log(sedoption);
                          var service_code_id=$(sedoption).attr("data");
                          var clone_url = $('#repos_'+service_code_id).val();
-                         var service_code_from = $('#service_code_from').val();
                          Fnbranch(service_code_from,service_code_id,clone_url);  
                     });
                 }else{
@@ -119,14 +138,61 @@ $(function(){
         var action="";
         var user ="";
         var repos ="";
+        var branch_box;
         if(code_from=="gitlab_exit"){
             action="gitlab";
+            branch_box = $("#gr_branch");
         }else if(code_from=="github"){
             action="github";
             user =  clone_url.split("/")[3];
             repos = clone_url.split("/")[4].split(".")[0];
+            branch_box = $("#gh_branch");
         }
         var tenantName= $('#currentTeantName').val();
+        //
+        if(action != ""){
+            ///
+            $.ajax({
+                type : "POST",
+                url : "/ajax/"+tenantName+"/code_repos",
+                data : "action=" + action + "&code_id="+code_id+"&user="+user+"&repos="+repos,
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    var dataObj = msg;
+                    if(dataObj["status"] == "unauthorized") {
+                        window.open(dataObj["url"],"_parent");
+                    }else if(dataObj["status"] == "success"){
+                        var dataList=dataObj["data"];
+                        var htmlmsg="";
+                        var codeId = dataObj['code_id'];
+                        if(typeof BranchLocalData[codeId] == 'undefined'){
+                            BranchLocalData[codeId] = dataList;
+                        }
+                        for(var i=0;i<dataList.length;i++){
+                            data = dataList[i];
+                            htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>';
+                        }
+                        var htmlno = '<option value="0">暂无可选分支</option>';
+                        if(htmlmsg){
+                            $(branch_box).html(htmlmsg);
+                        }else{
+                            $(branch_box).html(htmlno);
+                        }  
+                    }else {
+                       swal("操作失败");
+                    }
+                },
+                error : function() {
+                    console.log("系统异常");
+                }
+            });
+            ///
+        }
+        //
     }
     //
 });
