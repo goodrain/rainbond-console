@@ -298,16 +298,16 @@
    	  			var logList = dataObj["log"]
    	  			if(typeof(logList) !="undefined"){
    	  				for(var i=0;i<logList.length;i++){
-    	  				var log = logList[i]
-    	  				var tmpLog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
-       					if(log["status"] == "end"){
-       						tmpLog = tmpLog+" 用时"+log["cost_time"]+"s";
-       					}
-    	  				tmpLog = "<label>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
-    	  				tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
-    	  				showlog =showlog + tmpLog
-    	  			}
-    	  			$("#keylog").html(showlog)
+						var log = logList[i]
+						var tmpLog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
+						if(log["status"] == "end"){
+							tmpLog = tmpLog+" 用时"+log["cost_time"]+"s";
+						}
+						tmpLog = "<label>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
+						tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
+						showlog =showlog + tmpLog
+					}
+					$("#keylog").html(showlog)
    	  			}
     		  },
     		  error: function(){
@@ -374,8 +374,9 @@
        	    		  },
        	    	  	  success: function(msg) {
        	    	  		var dataObj = msg;
+				  console.log(dataObj);
        	    	  		var log = dataObj["log"];
-       	    	  		$("#compile_"+event_id+"").html(log)
+       	    	  		$("#compile_"+event_id+"").html(log);
        	    	  		$("#showlog_"+event_id+"").html("隐藏构建日志")
        	    		  },
        	    		  error: function(){
