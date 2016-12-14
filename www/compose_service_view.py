@@ -248,6 +248,8 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
 
                     self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
+                    if len(depends_services_list) > 0:
+                        self.saveAdapterEnv(newTenantService)
                     baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
                                                       self.user.nick_name, dep_sids=json.dumps([]))
                     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
@@ -291,3 +293,10 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
 
         for volume in volumes:
             baseService.add_volume_list(tenant_serivce, volume["volume_path"])
+
+    def saveAdapterEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+            TenantServiceEnvVar.objects.create(**attr)
