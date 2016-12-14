@@ -233,7 +233,7 @@
         </div>
     </div>
 </section>
-    {% if tenantServiceInfo.category == "application" %}
+    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.language == "docker-image" %}
     <section class="tabbox">
         <p class="tittext">持久化数据设置<span>(设置后需要重启服务)</span></p>
         <div class="panel-body">
