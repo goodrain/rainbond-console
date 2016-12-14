@@ -81,7 +81,7 @@ $(function(){
         _url = "/ajax/"+tenantName+"/code_repos?action=gitlab";
         loadObj(_url);
     }else if(way_value == "github"){
-        console.log(2);
+        console.log(1);
         $('#service_code_from').val("github");
         var tenantName= $('#currentTeantName').val();
         _url = "/ajax/"+tenantName+"/code_repos?action=github";
@@ -112,7 +112,7 @@ $(function(){
                     var htmlmsg="";
                     for(var i=0;i<dataList.length;i++){
                         data = dataList[i];
-                        htmlmsg +='<option idx="'+ i +'" data="+ 'data["code_id"]'+ 'id="repos_'+data["code_id"] + '" name="repos_'+data["code_id"]+'" value='+data["code_repos"] +'">';
+                        htmlmsg +='<option idx="'+ i +'" data="'+data["code_id"]+ 'id="repos_'+data["code_id"] + '" name="repos_'+data["code_id"]+'" value='+data["code_repos"] +'">';
                         htmlmsg += data["code_user"]+'/'+data["code_project_name"] + '</option>';
                     }
                     $(listWrap).html(htmlmsg);
