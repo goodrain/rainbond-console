@@ -247,18 +247,20 @@
                 {% if cur_type == "github" %}
                 <span style="display: none"; data-action="github" class="fn-way"></span>
                 <p id="waiting">仓库连接中，请稍候......</p>
-                <div class="fm-select clearfix">
-                    <label>Github项目:</label>
-                    <select id="code_github_list">
-                        
-                    </Select>
-                </div>
-                <div class="fm-select clearfix">
-                    <label>版本:</label>
-                    <select id="gh_branch">
-                        <option value="">请先选择项目</option>
-                    </Select>
-                </div>
+                <section id="Githubbox">
+                    <div class="fm-select clearfix">
+                        <label>Github项目:</label>
+                        <select id="code_github_list">
+                            
+                        </Select>
+                    </div>
+                    <div class="fm-select clearfix">
+                        <label>版本:</label>
+                        <select id="gh_branch">
+                            <option value="">请先选择项目</option>
+                        </Select>
+                    </div>
+                </section>
                 {% endif %}
                 {% endif %}
                 <!--  03 关联Github end-->
@@ -267,19 +269,21 @@
                 	{% if cur_type == "gitlab_exit" %}
                 <span style="display: none"; data-action="gitlab_exit" class="fn-way"></span>
                 <p id="waiting">仓库连接中，请稍候......</p>
-                <div class="fm-select clearfix">
-                    <label>好雨Git项目:</label>
-                    <select id="code_gr_list">
-                        <option value="-1">请选择一个项目</option>
-                        <option value="-1">新建项目</option>
-                    </Select>
-                </div>
-                <div class="fm-select clearfix">
-                    <label>版本:</label>
-                    <select id="gr_branch">
-                        <option value="">请先选择项目</option>
-                    </Select>
-                </div>
+                <section id="gitlabbox">
+                    <div class="fm-select clearfix">
+                        <label>好雨Git项目:</label>
+                        <select id="code_gr_list">
+                            <option value="-1">请选择一个项目</option>
+                            <option value="-1">新建项目</option>
+                        </Select>
+                    </div>
+                    <div class="fm-select clearfix" id="">
+                        <label>版本:</label>
+                        <select id="gr_branch">
+                            <option value="">请先选择项目</option>
+                        </Select>
+                    </div>
+                </select>
                 	{% endif %}
                 {% endif %}
                 <!--  04 好雨Git已有项目 end-->
