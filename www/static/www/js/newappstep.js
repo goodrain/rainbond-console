@@ -100,7 +100,6 @@ $(function(){
             success: function(msg){
                 var dataObj = msg;
                 if(dataObj["status"] == "unauthorized"){
-
                     window.open(dataObj["url"], "_parent");
                 }else if(dataObj["status"]=="success"){
                     var dataList=dataObj["data"];
@@ -126,7 +125,7 @@ $(function(){
                             $(listWrap).html(htmlmsg);
                         }else{
                             $(listWrap).html('<option value="newobj">新建项目</option>'); 
-                            $("#gitlabbox").show();
+
                             $("#waiting").hide();
                             $(listWrap).html(htmlmsg);
                         }

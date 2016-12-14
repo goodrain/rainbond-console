@@ -86,7 +86,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .fm-tips{color: #ea1616; max-width: 500px; margin: 0 auto; line-height: 20px; text-indent: 160px; display:none;}
 
 
-#waiting{width: max-width: 500px; margin: 0 auto; text-indent: 160px;}
+#waiting{max-width: 500px; margin: 0 auto; text-indent: 160px;}
 #Githubbox{display: none;}
 #gitlabbox{display: none;}
 
