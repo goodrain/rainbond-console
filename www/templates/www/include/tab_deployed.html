@@ -373,11 +373,26 @@
        	    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
        	    		  },
        	    	  	  success: function(msg) {
-       	    	  		var dataObj = msg;
+				  var dataObj = msg;
 				  console.log(dataObj);
-       	    	  		var log = dataObj["log"];
-       	    	  		$("#compile_"+event_id+"").html(log);
-       	    	  		$("#showlog_"+event_id+"").html("隐藏构建日志")
+				  var log = dataObj["log"];
+				  var newLog = log.split('</br>');
+				  var len = 3;
+				  var logLen = newLog.length;
+				  if( logLen > len )
+				  {
+					  var str = "";
+					  for( var i = logLen-len; i<logLen; i++ )
+					  {
+						  str = str + newLog[i] + "</br>";
+					  }
+					  $("#compile_"+event_id+"").html(str);
+					  console.log(str);
+				  }
+				  else{
+					  $("#compile_"+event_id+"").html(log);
+				  }
+				  $("#showlog_"+event_id+"").html("隐藏构建日志")
        	    		  },
        	    		  error: function(){
        	    			//swal("系统异常");
