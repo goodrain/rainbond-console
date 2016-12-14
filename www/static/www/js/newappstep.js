@@ -125,14 +125,14 @@ $(function(){
                             $(listWrap).html(htmlmsg);
                         }else{
                             $(listWrap).html('<option value="newobj">新建项目</option>'); 
-                             $("#gitlabbox").show();
+                            $("#gitlabbox").show();
                             $("#waiting").hide();
-                            $(listWrap).html(htmlmsg);
                         }
                     }                    
 
+
                     $(listWrap).change(function(){
-                         var sedoption = $(listWrap).find('option:selectd');
+                         var sedoption = $('option:selectd',listWrap);
                          console.log(sedoption);
                          var service_code_id=$(sedoption).attr("data");
                          var clone_url = $('#repos_'+service_code_id).val();
