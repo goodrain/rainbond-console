@@ -24,10 +24,10 @@ body{background: #f0f5f8;}
 
 
 /* from start */
-::-webkit-input-placeholder { color:#303030;}
-::-moz-placeholder { color:#303030; } /* firefox 19+ */
-:-ms-input-placeholder { color:#303030; } /* ie */
-input:-moz-placeholder { color:#303030; }
+::-webkit-input-placeholder { color:#838383;}
+::-moz-placeholder { color:#838383; } /* firefox 19+ */
+:-ms-input-placeholder { color:#838383; } /* ie */
+input:-moz-placeholder { color:#838383; }
 select,input{ appearance:none; -moz-appearance:none; -webkit-appearance:none;  -moz-border-radius:0; -webkit-border-radius:0; border-radius: 0; background:#fff;}
 /*滑块 start */
 input[type="range"] {-webkit-appearance: none; background: transparent;} /* 清除自带样式 加圆角 */
