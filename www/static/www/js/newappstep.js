@@ -125,7 +125,7 @@ $(function(){
                             $(listWrap).html(htmlmsg);
                         }else{
                             $(listWrap).html('<option value="newobj">新建项目</option>'); 
-
+                             $("#gitlabbox").show();
                             $("#waiting").hide();
                             $(listWrap).html(htmlmsg);
                         }
