@@ -135,8 +135,10 @@ $(function(){
                     if(grbranch == "newobj"){
                         $("#gr_branchbox").hide();
                     }
-                     var sedoption = $('option:selectd',listWrap);
+                     var sedoption = $(listWrap).children("option:selected");
+
                      console.log(sedoption);
+                     cosole.log($(sedoption).attr("data"));
 ;                     
                     $(listWrap).change(function(){
                          var sedoption = $('option:selectd',listWrap);
