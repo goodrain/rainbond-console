@@ -133,13 +133,11 @@ $(function(){
                     var grbranch = $("#code_gr_list option:selected").attr("value");
                     
                     if(grbranch == "newobj"){
-                        console.log(grbranch);
                         $("#gr_branchbox").hide();
-                        console.log(1);
                     }
-                    
-                 
-                     
+                     var sedoption = $('option:selectd',listWrap);
+                     console.log(sedoption);
+;                     
                     $(listWrap).change(function(){
                          var sedoption = $('option:selectd',listWrap);
                          console.log(sedoption);
