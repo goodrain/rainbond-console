@@ -131,9 +131,11 @@ $(function(){
                     }                    
 
                     var grbranch = $("#code_gr_list option:selected").attr("value");
-                    console.log(grbranch);
+                    
                     if(grbranch == "newobj"){
+                        console.log(grbranch);
                         $("#gh_branchbox").hide();
+                        console.log(1);
                     }
                     
                  
