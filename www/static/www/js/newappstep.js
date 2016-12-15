@@ -135,17 +135,17 @@ $(function(){
                     if(grbranch == "newobj"){
                         $("#gr_branchbox").hide();
                     }
-                     var sedoption = $(listWrap).children("option:selected");
-
-                     console.log(sedoption);
-                     cosole.log($(sedoption).attr("data"));
-;                     
+                    var sedoption = $(listWrap).children("option:selected");
+                    var service_code_id=$(sedoption).attr("data");
+                    var clone_url = $('#repos_'+service_code_id).val();
+                    Fnbranch(service_code_from,service_code_id,clone_url);
+                    
+                                       
                     $(listWrap).change(function(){
-                         var sedoption = $('option:selectd',listWrap);
-                         console.log(sedoption);
-                         var service_code_id=$(sedoption).attr("data");
-                         var clone_url = $('#repos_'+service_code_id).val();
-                         Fnbranch(service_code_from,service_code_id,clone_url);  
+                        var sedoption = $(listWrap).children("option:selected");
+                        var service_code_id=$(sedoption).attr("data");
+                        var clone_url = $('#repos_'+service_code_id).val();
+                        Fnbranch(service_code_from,service_code_id,clone_url);  
                     });
                 }else{
                     $('#waiting').html("无可用仓库");
