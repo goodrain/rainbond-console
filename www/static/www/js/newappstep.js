@@ -19,7 +19,9 @@ $(function(){
 	        //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
 	        //result.innerHTML = range.value;
 	    }, false);
+        range.addEventListener("mouseover", function() {
 
+        },false);
 	    // 滑动时显示选择的值
 	    range.addEventListener("change", function() {
 	        result.innerHTML = range.value;
@@ -29,7 +31,7 @@ $(function(){
     
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",256,2048);
     FnRange("NodeNum","NodeText","NodeWid",1,10);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",9,12);
+    FnRange("TimeLong","TimeLongText","TimeLongWid",9,24);
 
     // 滑动框 结束
 
@@ -134,6 +136,8 @@ $(function(){
                     
                     if(grbranch == "newobj"){
                         $("#gr_branchbox").hide();
+                    }else{
+                        $("#gr_branchbox").show();
                     }
                     var sedoption = $(listWrap).children("option:selected");
                     var service_code_id=$(sedoption).attr("data");
@@ -145,7 +149,12 @@ $(function(){
                         var sedoption = $(listWrap).children("option:selected");
                         var service_code_id=$(sedoption).attr("data");
                         var clone_url = $('#repos_'+service_code_id).val();
-                        Fnbranch(service_code_from,service_code_id,clone_url);  
+                        Fnbranch(service_code_from,service_code_id,clone_url); 
+                        if(grbranch == "newobj"){
+                            $("#gr_branchbox").hide();
+                        }else{
+                            $("#gr_branchbox").show();
+                        } 
                     });
                 }else{
                     $('#waiting').html("无可用仓库");
