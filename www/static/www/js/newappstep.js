@@ -19,9 +19,6 @@ $(function(){
 	        //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
 	        //result.innerHTML = range.value;
 	    }, false);
-        range.addEventListener("mouseover", function() {
-
-        },false);
 	    // 滑动时显示选择的值
 	    range.addEventListener("change", function() {
 	        result.innerHTML = range.value;
