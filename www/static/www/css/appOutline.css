@@ -1,0 +1,67 @@
+button{
+    border:none;
+}
+.appOutline{
+    padding: 10px;
+    background-color: #f0f5f8;
+}
+.appOutline ul.outlineTop{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.appOutline ul.outlineTop li{
+    width: 220px;
+    height: 220px;
+    float: left;
+    border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    background-color: #ffffff;
+    margin: 5px;
+}
+.appOutline ul li p{
+    padding: 10px 30px;
+}
+.appOutline ul li p.text-center{
+    font-size: 24px;
+    font-weight: 100;
+}
+.alternative{
+    padding: 20px;
+}
+.alternative .alterLeft{
+    float: left;
+}
+.alternative .alterRight{
+    float: right;
+}
+.alternative button{
+    color: #28cb75;
+}
+.alternative .alterRight ul li.button{
+    float: right;
+    margin-left: 30px;
+}
+.alternative .alterRight ul li button.bgColor{
+    text-align: center;
+    align-items: center;
+    background-color: #28cb75;
+    color: #ffffff;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    height: 30px;
+    padding:0px 20px;
+}
+
+
+/*清楚浮动*/
+.clearfix:after{
+    clear: both;
+    content: ".";
+    display: block;
+    width: 0;
+    height:0;
+    visibility: hidden;
+}

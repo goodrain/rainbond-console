@@ -1,0 +1,42 @@
+/*ljh 2016-12-09*/
+/*两个表格部分*/
+.cost{
+    background-color: #f0f5f8;
+    overflow: hidden;
+    padding: 20px;
+}
+/*计费方式表格*/
+.cost-fun{
+    padding: 10px 25px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    overflow: hidden;
+}
+table span{
+    margin-right: 5px;
+}
+/*计费明细表格*/
+.cost-detail{
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    overflow: hidden;
+}
+.cost-detail table th{
+    min-width: 70px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+.cost-detail table td{
+    min-width: 50px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+.cost p.cost-title{
+    font-size: 18px;
+    margin-top: 30px;
+    margin-bottom: 13px;
+    margin-left: 40px;
+}†

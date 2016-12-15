@@ -4,6 +4,19 @@
 
 {% load goodrain_extras %}
 
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/appOutline.css" %}' />
+{% endblock %}
+
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/tablePublic.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/cost.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/cost.js" %}'></script>
+{% endblock %}
 
 {% block main-content %}
 
@@ -46,6 +59,9 @@
                 <li {% if fr = "share" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1?fr=share">分享</a>
                 </li>
+                <li {% if fr = "cost" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1?fr=cost">分享</a>
+                </li>
                 {% endif %}
             </ul>
         </header>
@@ -64,6 +80,8 @@
                 {% include 'www/include/tab_settings.html' %}
                 {% elif fr == "resource" %}
                 {% include 'www/resource/monitorDetail.html' %}
+                {% elif fr == "cost" %}
+                {% include 'www/resource/tab_cost.html' %}
                 {% endif %}
             </div>
         </div>
