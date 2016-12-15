@@ -5,7 +5,7 @@
 	<div class="appOutline">
 		<ul class="outlineTop clearfix">
 			<li>
-				<p>运行中</p>
+				<p id="service_status" name="service_status">未知</p>
 				<p class="text-center">
 					<img src="{% static "www/img/appOutline/appOutline-1.png" %}"/>
 				</p>
@@ -16,7 +16,7 @@
 				<p class="text-center">
 					<img src="{% static "www/img/appOutline/appOutline-2.png" %}"/>
 				</p>
-				<p class="text-center">512MB✖️2</p>
+				<p class="text-center" id="service_memory" name="service_memory">{{totalMemory}}M</p>
 			</li>
 			<li>
 				<p>当前使用磁盘</p>
@@ -90,11 +90,11 @@
 	<div class="row">
 		<div class="col-sm-3">
 			<p>状态</p>
-			<span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">未知</span>
+			<span class="badge badge-sm label-success" style="font-size:18pt">未知</span>
 		</div>
 		<div class="col-sm-3">
 			<p>内存使用</p>
-			<p style="font-size:18pt" id="service_memory" name="service_memory">{{totalMemory}}M</p>
+			<p style="font-size:18pt">0M</p>
 		</div>
 		<!--<div class="col-sm-3">
                   <p>磁盘占用</p>
