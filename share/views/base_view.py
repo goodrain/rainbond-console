@@ -20,7 +20,7 @@ logger = logging.getLogger('default')
 
 
 class ShareBaseView(BaseView):
-    ADMIN_USERS = [19, 1808, 1987]
+    ADMIN_USERS = [19, 1808, 1987, 1375]
     """是否有权限访问share模块"""
     def __init__(self, request, *args, **kwargs):
         BaseView.__init__(self, request, *args, **kwargs)

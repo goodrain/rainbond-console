@@ -6,6 +6,7 @@ from django.template.response import TemplateResponse
 from django.shortcuts import get_object_or_404
 from share.models.main import *
 from datetime import datetime as dt
+from share.manager.region_provier import RegionProviderManager, RegionBo
 import datetime as clzdt
 import calendar
 import time
@@ -474,6 +475,8 @@ class RegionResourceConsumeView(ShareBaseView):
 
 
 class RegionResourceSettleView(ShareBaseView):
+    region_provider_manager = RegionProviderManager()
+
     def get(self, request, *args, **kwargs):
         querymonth = request.GET.get("date", None)
         if querymonth:
@@ -526,9 +529,9 @@ class RegionResourceSettleView(ShareBaseView):
         return TemplateResponse(request, "share/region_resource_settle.html", context)
 
     def cal_region_resource_fee(self, region_name, memroy, disk, net):
-        region_sales_price = get_object_or_404(RegionResourceSalesPrice, region=region_name)
         total_fee = Decimal(0)
         try:
+            region_sales_price = self.region_provider_manager.get_work_region_by_name(region_name)
             memory_fee = region_sales_price.memory_price * Decimal.from_float(memroy / 1024.0)
             disk_fee = region_sales_price.disk_price * Decimal.from_float(disk / 1024.0)
             net_fee = region_sales_price.net_price * Decimal.from_float(net / 1024.0)

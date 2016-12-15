@@ -28,7 +28,7 @@ class Region(BaseModel):
     name = models.CharField(max_length=32, help_text=u"数据中心缩写")
     show_name = models.CharField(max_length=32, help_text=u"数据中心名称")
     provider_name = models.CharField(max_length=32, help_text=u"提供商简称")
-    provider_name = models.CharField(max_length=16, default='init',
+    work_status = models.CharField(max_length=16, default='prepared',
                                      help_text=u"数据中心工作状态,prepared|installed|authed|ready|work|stop")
     api_secret = models.CharField(max_length=32, default='', help_text=u"数据中心操作密钥")
     api_sign = models.CharField(max_length=32, default='', help_text=u"数据中心api签名")
@@ -106,3 +106,12 @@ class RegionResourceProviderSettle(BaseModel):
     settle_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"实际结算费用")
 
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
+
+
+class RegionProperty(BaseModel):
+    class Meta:
+        db_table = "region_property"
+
+    region = models.CharField(max_length=16, null=False, help_text=u"数据中心")
+    property = models.CharField(max_length=32, help_text=u"属性名")
+    value = models.CharField(max_length=64, help_text=u"属性值")

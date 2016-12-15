@@ -9,6 +9,7 @@ from openapi.views.tenants import *
 from openapi.views.token import *
 from openapi.views.users import *
 from openapi.views.wechat import *
+from openapi.views.region import *
 
 
 urlpatterns = patterns(
@@ -35,6 +36,9 @@ urlpatterns = patterns(
     url(r'^v1/services/(?P<service_name>[\w\-]+)/domain$', DomainController.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/published', PublishedView.as_view()),
     url(r'^v1/services/(?P<service_name>[\w\-]+)/upgrade', UpgradeView.as_view()),
+
+    # share module for region
+    url(r'^v1/share/region/price$', RegionPriceQueryView.as_view()),
 
     url(r'^v2/services/(?P<service_name>[\w\-]+)/install$', CloudServiceInstallView.as_view()),
     url(r'^v2/services/(?P<service_id>[\w\-]+)/update$', UpdateServiceView.as_view()),
