@@ -29,6 +29,7 @@ $(function(){
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",256,2048);
     FnRange("NodeNum","NodeText","NodeWid",1,10);
     FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
+    FnRange("Disk","DiskText","DiskWid",100,300);
 
     // 滑动框 结束
 
