@@ -5,11 +5,11 @@
 	<div class="appOutline">
 		<ul class="outlineTop clearfix">
 			<li>
-				<p id="service_status" name="service_status">未知</p>
+				<p>状态</p>
 				<p class="text-center">
 					<img src="{% static "www/img/appOutline/appOutline-1.png" %}"/>
 				</p>
-				<p></p>
+				<p id="service_status" name="service_status">未知</p>
 			</li>
 			<li>
 				<p>当前使用内存</p>
@@ -23,21 +23,21 @@
 				<p class="text-center">
 					<img src="{% static "www/img/appOutline/appOutline-3.png" %}"/>
 				</p>
-				<p class="text-center">1.2GB</p>
+				<p class="text-center">未知</p>
 			</li>
 			<li>
 				<p>上一小时流量</p>
 				<p class="text-center">
 					<img src="{% static "www/img/appOutline/appOutline-4.png" %}"/>
 				</p>
-				<p class="text-center">1.2GB</p>
+				<p class="text-center">未知</p>
 			</li>
 			<li>
 				<p>上一小时费用</p>
 				<p class="text-center">
 					<img src="{% static "www/img/appOutline/appOutline-5.png" %}"/>
 				</p>
-				<p class="text-center">12元</p>
+				<p class="text-center">未知</p>
 			</li>
 		</ul>
 		<div class="alternative clearfix">
@@ -87,15 +87,15 @@
 		</div>
 	</div>
 
-	<div class="row">
-		<div class="col-sm-3">
-			<p>状态</p>
-			<span class="badge badge-sm label-success" style="font-size:18pt">未知</span>
-		</div>
-		<div class="col-sm-3">
-			<p>内存使用</p>
-			<p style="font-size:18pt">0M</p>
-		</div>
+	<!--<div class="row">-->
+		<!--<div class="col-sm-3">-->
+			<!--<p>状态</p>-->
+			<!--<span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">未知</span>-->
+		<!--</div>-->
+		<!--<div class="col-sm-3">-->
+			<!--<p>内存使用</p>-->
+			<!--<p style="font-size:18pt" id="service_memory" name="service_memory">{{totalMemory}}M</p>-->
+		<!--</div>-->
 		<!--<div class="col-sm-3">
                   <p>磁盘占用</p>
                   <p style="font-size:18pt" id="service_disk" name="service_disk">0M</p>
@@ -105,7 +105,7 @@
                   <p style="font-size:18pt" id="service_network" name="service_network">0K</p>
                 </div>
                  -->
-	</div>
+	<!--</div>-->
 	<div class="row">
 		<div class="col-lg-12">
 			<section class="panel text-left">
