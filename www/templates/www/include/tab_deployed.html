@@ -345,12 +345,29 @@
        				}else if(msgs[0].trim()=="compile"){
        					var event_id= msgs[1]
        					var newMsg = msg.substr(25)
-       					var arr=$("#compile_"+event_id+"").html().split('<br>');
-   						if(arr[0].trim() != newMsg.trim()){
-   							var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
-           					$("#compile_"+event_id+"").html(finalMsg)
-           					$("#compile_"+event_id+"").show();
-   						}
+       				  //
+                if( $("#compile_"+event_id+"").html() )
+                {
+                  var arr=$("#compile_"+event_id+"").html().split('<br>');
+                  if(arr[0].trim() != newMsg.trim()){
+                    var len = 999;
+                    var arrLength = arr.length;
+                    if( arrLength > len )
+                    {
+                      arr.pop();
+                      var str = arr.join("</br>");
+                      var finalMsg = newMsg +"<br/>"+ str;
+                    }
+                    else{
+                      var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
+                    }
+                    $("#compile_"+event_id+"").html(finalMsg)
+                    $("#compile_"+event_id+"").show();
+                  }
+                }else{
+                  $("#compile_"+event_id+"").html(newMsg);
+                }
+                //
        				}
    				}
    			}
@@ -375,8 +392,31 @@
        	    	  	  success: function(msg) {
        	    	  		var dataObj = msg;
        	    	  		var log = dataObj["log"];
-       	    	  		$("#compile_"+event_id+"").html(log)
-       	    	  		$("#showlog_"+event_id+"").html("隐藏构建日志")
+                    //
+                    var newLog = log.split('</br>');
+                    var len = 1000;
+                    var logLen = newLog.length;
+                    var str = "";
+                    if( logLen>len )
+                    {
+                      for( var i = logLen-len; i<logLen-1; i++ )
+                      {
+                        str = newLog[i] + "</br>" + str;
+                      }
+                    }
+                    else{
+                      str = newLog[logLen-2];
+                      for( var i = logLen-3; i>=0; i-- )
+                      {
+                      str = str + "</br>" + newLog[i];
+                      }
+                    }
+                    var address = location.href.split("?");
+                    var more = '</br><a href="'+address[0]+'?fr=log'+'">更多日志</a>';
+                    str = str + more;
+                    $("#compile_"+event_id+"").html(str);
+                    $("#showlog_"+event_id+"").html("隐藏构建日志");
+                    //
        	    		  },
        	    		  error: function(){
        	    			//swal("系统异常");
