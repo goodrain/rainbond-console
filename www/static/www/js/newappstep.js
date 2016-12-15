@@ -133,6 +133,8 @@ $(function(){
                     
                     if(grbranch == "newobj"){
                         $("#gr_branchbox").hide();
+                    }else{
+                        $("#gr_branchbox").show();
                     }
                     var sedoption = $(listWrap).children("option:selected");
                     var service_code_id=$(sedoption).attr("data");
@@ -145,7 +147,11 @@ $(function(){
                         var service_code_id=$(sedoption).attr("data");
                         var clone_url = $('#repos_'+service_code_id).val();
                         Fnbranch(service_code_from,service_code_id,clone_url); 
-                       
+                        if(grbranch == "newobj"){
+                            $("#gr_branchbox").hide();
+                        }else{
+                            $("#gr_branchbox").show();
+                        } 
                     });
                 }else{
                     $('#waiting').html("无可用仓库");
