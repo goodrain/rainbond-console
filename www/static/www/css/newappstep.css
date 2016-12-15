@@ -68,7 +68,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .fm-text span{ color: #303030; font-size: 14px; float: left; display: inline-block; text-align: left; line-height: 30px;}
 
 .btn-cho-box{width: 330px; display: block; float: left; margin-bottom: 0;}
-.btn-cho-box  a{display: inline-block; color:#28cb75; background:#fff url('../images/btnchoright.png') no-repeat right 1px bottom 1px; background-size: 28px 24px; border:1px #28cb75 solid; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; min-width: 90px; height: 28px; line-height: 28px; text-align: center; margin:0 10px 10px 0; float: left; padding:0 20px;}
+.btn-cho-box  a{display: inline-block; color:#28cb75; background:#fff url('../images/btnchoright.png') no-repeat right 1px bottom 1px; background-size:15px 15px; border:1px #28cb75 solid; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; min-width: 90px; height: 28px; line-height: 28px; text-align: center; margin:0 10px 10px 0; float: left; padding:0 10px;}
 .btn-cho-box  a.sed{color: #fff; background: #28cb75; border:1px #28cb75 solid;}
 
 .fm-money span{color: #28cb75; font-size: 24px; line-height: 30px;}
