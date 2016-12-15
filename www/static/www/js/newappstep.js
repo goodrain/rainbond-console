@@ -134,7 +134,7 @@ $(function(){
                     
                     if(grbranch == "newobj"){
                         console.log(grbranch);
-                        $("#gh_branchbox").hide();
+                        $("#gr_branchbox").hide();
                         console.log(1);
                     }
                     
