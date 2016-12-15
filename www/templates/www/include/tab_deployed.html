@@ -36,6 +36,7 @@
                     {% endif %}
                     
                 {% endifequal %}
+
 					<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">
                 {% if hasHttpServices %}
                  <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
@@ -73,6 +74,17 @@
                 {% if updateService %}
                     <button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i>服务更新</button>
                 {% endif %}
+                <!-- -->
+                 
+                      <button name="join_container" class="btn btn-success"  id="join_container" onclick="join_container();"/> 管理容器 </header>
+                      <div style="width: 300px; height: auto; position: relative; z-index: 9; top: 30px; left: -150px;">
+                          <table width="100%;" class="table table-hover">
+                            <tbody id="cur_container_content">
+                            </tbody>
+                          </table>
+                      </div>
+                 
+                <!-- -->
                 </div>
                 {% if 'manage_service' in user.actions %}
                 <div class="col-xs-4 text-right">
@@ -85,7 +97,7 @@
       </section>
     </div>
   </div>
-
+  <!--
   {% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
   <div class="row">
     <div class="col-lg-12 text-left">
@@ -106,7 +118,7 @@
      </div>
   </div>
   {% endif %}
-
+  -->
 <!--
 	{% if user.is_sys_admin %}
 	<div class="row">
