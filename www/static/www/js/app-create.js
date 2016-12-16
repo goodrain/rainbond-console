@@ -1,3 +1,4 @@
+/*
 var BranchLocalData = {};
 //创建应用
 $(function(){
@@ -391,4 +392,4 @@ function projectVersion(code_from,code_id,clone_url){
 function scrollOffset(scroll_offset) { 
 	$("body,html").animate({scrollTop: scroll_offset.top - 70}, 0); 
 } 
-
+*/
