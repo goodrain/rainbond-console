@@ -18,28 +18,38 @@ $(function(){
 	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
             if(maxnum == 8192){
-                console.log(range.value);
                 if(range.value >= 128 || range.value < 256){
+                    console.log(range.value);
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 || range.value < 512){
+                    console.log(range.value);
                     result.innerHTML = "256M";
                 }else if(range.value >= 512 || range.value < 1024){
+                    console.log(range.value);
                     result.innerHTML = "512M";
                 }else if(range.value >= 1024 || range.value < 2048){
+                    console.log(range.value);
                     result.innerHTML = "1G";
                 }else if(range.value >= 2048 || range.value < 3072){
+                    console.log(range.value);
                     result.innerHTML = "2G";
                 }else if(range.value >= 3072 || range.value < 4096){
+                    console.log(range.value);
                     result.innerHTML = "3G";
                 }else if(range.value >= 4096 || range.value < 5120){
+                    console.log(range.value);
                     result.innerHTML = "4G";
                 }else if(range.value >= 5120 || range.value < 6144){
+                    console.log(range.value);
                     result.innerHTML = "5G";
                 }else if(range.value >= 6144 || range.value < 7168){
+                    console.log(range.value);
                     result.innerHTML = "6G";
                 }else if(range.value >= 7168 || range.value < 8100){
+                    console.log(range.value);
                     result.innerHTML = "7G";
                 }else{
+                    console.log(range.value);
                     result.innerHTML = "8G";
                 }
             }else{
@@ -54,28 +64,38 @@ $(function(){
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
             if(maxnum == 8192){
-                console.log(range.value);
                 if(range.value >= 128 || range.value < 256){
+                    console.log(range.value);
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 || range.value < 512){
+                    console.log(range.value);
                     result.innerHTML = "256M";
                 }else if(range.value >= 512 || range.value < 1024){
+                    console.log(range.value);
                     result.innerHTML = "512M";
                 }else if(range.value >= 1024 || range.value < 2048){
+                    console.log(range.value);
                     result.innerHTML = "1G";
                 }else if(range.value >= 2048 || range.value < 3072){
+                    console.log(range.value);
                     result.innerHTML = "2G";
                 }else if(range.value >= 3072 || range.value < 4096){
+                    console.log(range.value);
                     result.innerHTML = "3G";
                 }else if(range.value >= 4096 || range.value < 5120){
+                    console.log(range.value);
                     result.innerHTML = "4G";
                 }else if(range.value >= 5120 || range.value < 6144){
+                    console.log(range.value);
                     result.innerHTML = "5G";
                 }else if(range.value >= 6144 || range.value < 7168){
+                    console.log(range.value);
                     result.innerHTML = "6G";
                 }else if(range.value >= 7168 || range.value < 8100){
+                    console.log(range.value);
                     result.innerHTML = "7G";
                 }else{
+                    console.log(range.value);
                     result.innerHTML = "8G";
                 }
             }else{
