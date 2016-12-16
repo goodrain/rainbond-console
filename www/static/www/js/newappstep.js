@@ -228,8 +228,8 @@ $(function(){
 
     $("#BtnFirst").click(function(){
         var appname = $("#create_name").val();
-        var groupname = $("#group-name option:selectd").html();
-        var groupid = $("#group-name option:selectd").attr("value");
+        var groupname = $("#group-name option:selected").html();
+        var groupid = $("#group-name option:selected").attr("value");
         var myWay = $(".fn-way").attr("data-action");
         var code_url;
         var code_id;
