@@ -42,7 +42,7 @@
 		</ul>
 		<div class="alternative clearfix">
 			<div class="alterLeft">
-				<ul>
+				<ul class="clearfix">
 					{% if hasHttpServices %}
 					<li class="button">
 						<div class="btn-group">
@@ -96,8 +96,8 @@
 					</li>
 				</ul>
 			</div>
-			<li class="alterRight">
-				<ul>
+			<div class="alterRight">
+				<ul class="clearfix">
 					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
 					<li class="button">
 						<!--<div class="btn-group">-->
