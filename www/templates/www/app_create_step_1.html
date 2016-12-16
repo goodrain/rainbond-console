@@ -251,13 +251,13 @@
                     <div class="fm-select clearfix">
                         <label>Github项目:</label>
                         <select id="code_github_list">
-                            
+                            <option value="-1" data="-1">请选择一个项目</option>
                         </Select>
                     </div>
                     <div class="fm-select clearfix">
                         <label>版本:</label>
                         <select id="gh_branch">
-                            <option value="">请先选择项目</option>
+                            <option value="-1" data="-1">请先选择项目</option>
                         </Select>
                     </div>
                 </section>
@@ -273,14 +273,13 @@
                     <div class="fm-select clearfix">
                         <label>好雨Git项目:</label>
                         <select id="code_gr_list">
-                            <option value="-1">请选择一个项目</option>
-                            <option value="-1">新建项目</option>
+                            <option value="-1" data="-1">请选择一个项目</option>
                         </Select>
                     </div>
                     <div class="fm-select clearfix" id="gr_branchbox">
                         <label>版本:</label>
                         <select id="gr_branch">
-                            <option value="">请先选择项目</option>
+                            <option value="-1" data="-1">请先选择项目</option>
                         </Select>
                     </div>
                 </select>
@@ -290,9 +289,9 @@
                 <!--  05 Demo start-->
                 {% if cur_type == "gitlab_demo" %}
                 <span style="display: none"; data-action="gitlab_demo" class="fn-way"></span>
-                <div class="fm-select clearfix" data-action="GemoObj">
+                <div class="fm-select clearfix">
                     <label>Demo:</label>
-                    <select>
+                    <select id="Democode">
                         <option value="http://code.goodrain.com/demo/2048.git">http://code.goodrain.com/demo/2048.git</option>
                         <option value="http://code.goodrain.com/demo/static-hello.git">http://code.goodrain.com/demo/static-hello.git</option>
                         <option value="http://code.goodrain.com/demo/php-hello.git">http://code.goodrain.com/demo/php-hello.git</option>
@@ -304,7 +303,7 @@
                 </div>
                 <div class="fm-select clearfix">
                     <label>版本:</label>
-                    <select>
+                    <select id="Demobranch">
                         <option value="master">master</option>
                     </Select>
                 </div>
@@ -434,7 +433,7 @@
                     <span><cite>123.00</cite>元</span>
                 </div>
                 <div class="fm-btn clearfix">
-                    <a href="javascript:;" class="greenbtn">下一步</a>
+                    <a href="javascript:;" class="greenbtn" id="BtnFirst">下一步</a>
                 </div>
             </div>
             <!-- 费用估算 end -->          
