@@ -85,7 +85,8 @@ $(function(){
         _url = "/ajax/"+tenantName+"/code_repos?action=github";
         loadObj(_url);
     }else{
-        return;
+        //return;
+        console.log(1);
     }
 
     //项目 地址
