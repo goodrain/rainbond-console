@@ -228,7 +228,7 @@ $(function(){
     }
     //项目分支 
 
-    $("#BtnFirst").click(function(){
+    $(".BtnFirst").click(function(){
         alert(1);
     });
 })
