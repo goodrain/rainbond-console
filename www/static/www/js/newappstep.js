@@ -237,66 +237,7 @@ $(function(){
         var code_branch_id;
         console.log("01" + myWay);
         console.log("01" + appname + "--" + groupname + "--" + groupid + "--" + code_url + "--" + code_id + "--" +code_branch + "--" + code_branch_id );
-        if(appname == ""){
-            $("#create_name_notice").show();
-            return;
-        }else{
-            $("#create_name_notice").hide();
-        }
-        if(myWay == "gitlab_manual"){
-            //01
-            code_url =$("#service_code_url").val(); 
-            if(code_url == ""){
-                $("#service_code_url_tips").show();
-                return;
-            }else{
-                $("#service_code_url_tips").hide();
-            }
-            //01
-        }else if(myWay == "gitlab_new"){
-            //02
-            code_url =$("#my_git_url").val(); 
-            if(code_url == ""){
-                $("#my_git_url_tips").show();
-                return;
-            }else{
-                $("#my_git_url_tips").hide();
-            }
-            //02
-        }else if(myWay == "github"){
-            //03
-            code_id = $("#code_github_list").attr("date");
-            if(code_id == "-1"){
-                return;
-            }else{
-                code_url =$("#code_github_list option:selected").val();
-                code_id = $("#code_github_list option:selected").attr("data"); 
-                code_branch = $("#gh_branch option:selected").val();
-                code_branch_id = $("#gh_branch option:selected").attr("data");
-            }
-            //03
-        }else if(myWay == "gitlab_exit"){
-            //04
-            code_id = $("code_gr_list").attr("date");
-            if(code_id == "-1"){
-                return;
-            }else{
-                code_url =$("#code_gr_list option:selected").val();
-                code_id = $("#code_gr_list option:selected").attr("data"); 
-                code_branch = $("#gr_branch option:selected").val();
-                code_branch_id = $("#gr_branch option:selected").attr("data");
-            }
-            //04
-        }else if(myWay == "gitlab_demo"){
-            //05
-            code_url = $("#Democode option:selected").val();
-            code_branch = $("#Demobranch option:selected").val();
-            //05
-        }else{
-            return;
-        }
-        console.log(myWay);
-        console.log(appname + "--" + groupname + "--" + groupid + "--" + code_url + "--" + code_id + "--" +code_branch + "--" + code_branch_id );
+        
     });
 })
 
