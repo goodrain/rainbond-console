@@ -235,6 +235,8 @@ $(function(){
         var code_id;
         var code_branch;
         var code_branch_id;
+        console.log("01" + myWay);
+        console.log("01" + appname + "--" + groupname + "--" + groupid + "--" + code_url + "--" + code_id + "--" +code_branch + "--" + code_branch_id );
         if(appname == ""){
             $("#create_name_notice").show();
             return;
