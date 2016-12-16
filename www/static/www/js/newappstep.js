@@ -229,24 +229,7 @@ $(function(){
     //项目分支 
 
     // 下一步 提交 
-    $("#BtnFirst").click(function(){
-        console.log(1);
-        var appname = $("#create_name").val();
-        if(appname == ""){
-            $("#create_name_notice").show();
-            return;
-        }else{
-            $("#create_name_notice").hide();
-        }
-        var groupname = $("#group-name option:selectd").html();
-        var groupid = $("#group-name option:selectd").val();
-        var myWay = $(".fn-way").attr("data-action");
-        var code_url;
-        var code_id;
-        var code_branch;
-        var code_branch_id;
-        
-    });
+    $("#BtnFirst").click(function(){alert(1)});
    
 });
 
