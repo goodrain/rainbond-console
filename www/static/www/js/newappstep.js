@@ -230,8 +230,10 @@ $(function(){
 
     // 下一步 提交 
 
-   
-});
+   $("#BtnFirst").on("click",function(){
+        alert(1);
+   });
+})
 
 
 
