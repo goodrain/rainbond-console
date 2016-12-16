@@ -21,28 +21,10 @@ $(function(){
 	    }, false);
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
-            if(maxnum == 8192){
-                wid.style.width = range.value/maxnum*100 + "%";
-            }else{
-                result.innerHTML = range.value;
-                wid.style.width = range.value/maxnum*100 + "%";
-            }
+	        result.innerHTML = range.value;
+	        wid.style.width = range.value/maxnum*100 + "%";
 	    }, false);
-        range.addEventListener("change", function() {
-            if(maxnum == 8192){
-                if(range.value == 128){
-                    result.innerHTML = "128M";
-                }else if(range.value == 256){
-                    result.innerHTML = "256M";
-                }else if(range.value == 512){
-                    result.innerHTML = "512M";
-                }else if(range.value == 1024 || range.value == 2048 || range.value == 3072 || range.value == 4096 || range.value == 5120 || range.value == 6144|| range.value == 7168 || range.value == 8192){
-                     result.innerHTML = range.value/1024 + "G";
-                }else{
-                    console.log(2);
-                }
-            }
-        }, false);
+        
 	}
     
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
