@@ -296,13 +296,7 @@ $(function(){
         }else{
             return;
         }
-         console.log(appname);
-         console.log(groupname);
-         console.log(groupid);
-         console.log(code_url);
-         console.log(code_id);
-         console.log(code_branch);
-         console.log(code_branch_id);
+         
     });
    
 });
