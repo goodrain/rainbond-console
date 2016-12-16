@@ -9,11 +9,42 @@ $(function(){
 		var o = document.createElement('input');
 	    o.type = 'range';
 	    if ( o.type === 'text' ) alert('不好意思，你的浏览器还不够酷，试试最新的浏览器吧。');
+        if(maxnum == 8192){
+            result.innerHTML = "128M";
+        }else{
+           result.innerHTML = cachedRangeValue; 
+        }
 	    range.value = cachedRangeValue;
-	    result.innerHTML = cachedRangeValue;
 	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
-	    	result.innerHTML = range.value;
+            if(maxnum == 8192){
+                if(range.value >= 128 || range.value < 256){
+                    result.innerHTML = "128M";
+                }else if(range.value >= 256 || range.value < 512){
+                    result.innerHTML = "256M";
+                }else if(range.value >= 512 || range.value < 1024){
+                    result.innerHTML = "512M";
+                }else if(range.value >= 1024 || range.value < 2048){
+                    result.innerHTML = "1G";
+                }else if(range.value >= 2048 || range.value < 3072){
+                    result.innerHTML = "2G";
+                }else if(range.value >= 3072 || range.value < 4096){
+                    result.innerHTML = "3G";
+                }else if(range.value >= 4096 || range.value < 5120){
+                    result.innerHTML = "4G";
+                }else if(range.value >= 5120 || range.value < 6144){
+                    result.innerHTML = "5G";
+                }else if(range.value >= 6144 || range.value < 7168){
+                    result.innerHTML = "6G";
+                }else if(range.value >= 7168 || range.value < 8100){
+                    result.innerHTML = "7G";
+                }else{
+                    result.innerHTML = "8G";
+                }
+            }else{
+               result.innerHTML = range.value; 
+            }
+	    	
 	        wid.style.width = range.value/maxnum*100 + "%";
 	        //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
 	        //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
@@ -21,16 +52,43 @@ $(function(){
 	    }, false);
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
-	        result.innerHTML = range.value;
+            if(maxnum == 8192){
+                if(range.value >= 128 || range.value < 256){
+                    result.innerHTML = "128M";
+                }else if(range.value >= 256 || range.value < 512){
+                    result.innerHTML = "256M";
+                }else if(range.value >= 512 || range.value < 1024){
+                    result.innerHTML = "512M";
+                }else if(range.value >= 1024 || range.value < 2048){
+                    result.innerHTML = "1G";
+                }else if(range.value >= 2048 || range.value < 3072){
+                    result.innerHTML = "2G";
+                }else if(range.value >= 3072 || range.value < 4096){
+                    result.innerHTML = "3G";
+                }else if(range.value >= 4096 || range.value < 5120){
+                    result.innerHTML = "4G";
+                }else if(range.value >= 5120 || range.value < 6144){
+                    result.innerHTML = "5G";
+                }else if(range.value >= 6144 || range.value < 7168){
+                    result.innerHTML = "6G";
+                }else if(range.value >= 7168 || range.value < 8100){
+                    result.innerHTML = "7G";
+                }else{
+                    result.innerHTML = "8G";
+                }
+            }else{
+               result.innerHTML = range.value; 
+            }
 	        wid.style.width = range.value/maxnum*100 + "%";
 	    }, false);
-        
+
 	}
     
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
     FnRange("NodeNum","NodeText","NodeWid",1,100);
     FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
     FnRange("Disk","DiskText","DiskWid",1,1000);
+    
 
     // 滑动框 结束
 
