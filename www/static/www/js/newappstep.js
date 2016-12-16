@@ -11,10 +11,10 @@ $(function(){
 	    if ( o.type === 'text' ) alert('不好意思，你的浏览器还不够酷，试试最新的浏览器吧。');
 	    range.value = cachedRangeValue;
 	    result.innerHTML = cachedRangeValue;
-	    wid.style.width = range.value/(maxnum-num)*100 + "%";
+	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
 	    	result.innerHTML = range.value;
-	        wid.style.width = range.value/(maxnum-num)*100 + "%";
+	        wid.style.width = range.value/maxnum*100 + "%";
 	        //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
 	        //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
 	        //result.innerHTML = range.value;
@@ -22,7 +22,7 @@ $(function(){
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
 	        result.innerHTML = range.value;
-	        wid.style.width = range.value/(maxnum-num)*100 + "%";
+	        wid.style.width = range.value/maxnum*100 + "%";
 	    }, false);
 	}
     
@@ -228,6 +228,9 @@ $(function(){
     }
     //项目分支 
 
+    $("#BtnFirst").click(function(){
+        alert(1);
+    });
 })
 
 
