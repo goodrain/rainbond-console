@@ -230,6 +230,7 @@ $(function(){
 
     // 下一步 提交 
     $("#BtnFirst").click(function(){
+        console.log(1);
         var appname = $("#create_name").val();
         if(appname == ""){
             $("#create_name_notice").show();
@@ -244,19 +245,7 @@ $(function(){
         var code_id;
         var code_branch;
         var code_branch_id;
-        if(myWay == "gitlab_manual"){
-            //01
-            console.log(1);
-            code_url =$("#service_code_url").val(); 
-            if(code_url == ""){
-                $("#service_code_url_tips").show();
-                return;
-            }else{
-                $("#service_code_url_tips").hide();
-            }
-            //01
-        }
-        console.log(appname+"--"+groupname);
+        
     });
    
 });
