@@ -331,16 +331,16 @@
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose" id="OneMemoryWid"></span>
-                        <input type="range" min="128" max="2048"  step="128" id="OneMemory" value="128"／>
+                        <input type="range" min="0" max="2048"  step="128" id="OneMemory" value="512"／>
                     </p>
-                    <span><cite id="OneMemoryText">128</cite>M</span>
+                    <span><cite id="OneMemoryText">512</cite>M</span>
                 </div>
-                <div class="fm-input-range clearfix">
+                <div class="fm-input-range clearfix" style="padding-bottom:30px;">
                     <label>节点数:</label>
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose" id="NodeWid"></span>
-                        <input type="range" min="1" max="10"  step="1" id="NodeNum" value="1"／>
+                        <input type="range" min="0" max="10"  step="1" id="NodeNum" value="1"／>
                     </p>
                     <span><cite id="NodeText">1</cite>个</span>
                 </div>
@@ -350,11 +350,29 @@
                     <p class="btn-cho-box clearfix">
                         <a href="javascript:;">分布式存储</a>
                         <a href="javascript:;">SSD</a>
-                        
                     </p>
                 </div>
-                <!-- 03 -->
                 <div class="fm-input-radio clearfix">
+                    <label>使用方法:</label>
+                    <input type="radio" name="Disk" value="DiskBefore" id="DiskBefore" checked="true" />
+                    <label class="radio-bg" for="DiskBefore"></label>
+                    <label for="DiskBefore" class="radio-text">预付费提前采购</label>
+                    <input type="radio" name="Disk" value="DiskAfter" id="DiskAfter" />
+                    <label class="radio-bg"  for="DiskAfter"></label>
+                    <label for="DiskAfter" class="radio-text">按使用后付费</label>
+                    <a class="mark-box"><span class="mark-icon"></span></a>
+                </div>
+                <div class="fm-input-range clearfix" style="padding-bottom:30px;">
+                    <label>磁盘:</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose" id="DiskWid"></span>
+                        <input type="range" min="0" max="300"  step="100" id="Disk" value="100"／>
+                    </p>
+                    <span><cite id="DiskText">100</cite>M</span>
+                </div>
+                <!-- 03 -->
+                <div class="fm-input-radio clearfix" style="padding-bottom:30px;">
                     <label>流量:</label>
                     <input type="radio" name="flow" value="flow" id="flow" checked="true" />
                     <label class="radio-bg" for="flow"></label>
@@ -393,13 +411,6 @@
                         <a href="javascript:;">分布式日志</a>
                     </p>
                 </div>
-                <div class="fm-choose-box clearfix">
-                    <label>服务监控:</label>
-                    <p class="btn-cho-box clearfix">
-                        <a href="javascript:;">工作日9:00-18:00</a>
-                        <a href="javascript:;">工作日9:00-18:00</a>
-                    </p>
-                </div>
             </div>
             <!-- 配套信息 end -->
             <!-- 费用估算 start -->
@@ -410,12 +421,16 @@
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose" id="TimeLongWid"></span>
-                        <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
+                        <input type="range" min="0" max="24"  step="1" id="TimeLong" value="3"／>
                     </p>
-                    <span><cite id="TimeLongText">1</cite>个月</span>    
+                    <span><cite id="TimeLongText">3</cite>个月</span>    
                 </div>
                 <div class="fm-money clearfix">
                     <label>预付费总费用:</label>
+                    <span><cite>123.00</cite>元</span>
+                </div>
+                <div class="fm-money clearfix">
+                    <label>按使用后付费:</label>
                     <span><cite>123.00</cite>元</span>
                 </div>
                 <div class="fm-btn clearfix">

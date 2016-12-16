@@ -20,15 +20,16 @@ $(function(){
 	        //result.innerHTML = range.value;
 	    }, false);
 	    // 滑动时显示选择的值
-	    range.addEventListener("change", function() {
+	    range.addEventListener("input", function() {
 	        result.innerHTML = range.value;
 	        wid.style.width = range.value/maxnum*100 + "%";
 	    }, false);
 	}
     
-    FnRange("OneMemory","OneMemoryText","OneMemoryWid",256,2048);
+    FnRange("OneMemory","OneMemoryText","OneMemoryWid",512,2048);
     FnRange("NodeNum","NodeText","NodeWid",1,10);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
+    FnRange("TimeLong","TimeLongText","TimeLongWid",3,24);
+    FnRange("Disk","DiskText","DiskWid",100,300);
 
     // 滑动框 结束
 
