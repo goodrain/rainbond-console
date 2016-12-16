@@ -21,12 +21,31 @@ $(function(){
 	    }, false);
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
-	        result.innerHTML = range.value;
-	        wid.style.width = range.value/maxnum*100 + "%";
+            if(maxnum == 8192){
+                if(range.value < 1024 && range.value >= 512 ){
+                    range.setAttribute("step", 512);
+                    result.innerHTML = range.value + "M";
+                }else if(range.value < 512 && range.value >= 256){
+                    range.setAttribute("step", 256);
+                     result.innerHTML = range.value + "M";
+                }else if(range.value < 256){
+                    range.setAttribute("step", 128);
+                    result.innerHTML = range.value + "M";
+                }else{
+                   range.setAttribute("step", 1024); 
+                    result.innerHTML = range.value/1024 + "G";
+                }
+                wid.style.width = range.value/maxnum*100 + "%";
+            }else{
+                result.innerHTML = range.value;
+                wid.style.width = range.value/maxnum*100 + "%";
+            }
+	        //result.innerHTML = range.value;
+	        //wid.style.width = range.value/maxnum*100 + "%";
 	    }, false);
 	}
     
-    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
+    FnRange("OneMemory","OneMemoryText","OneMemoryWid",1024,8192);
     FnRange("NodeNum","NodeText","NodeWid",1,100);
     FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
     FnRange("Disk","DiskText","DiskWid",1,1000);
