@@ -13,49 +13,49 @@ $(function(){
 	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
             if(maxnum == 8192){
-                if(range.value >= 128 || range.value < 256){
+               if(range.value >= 128 || range.value < 256){
                     console.log(range.value);
                     result.innerHTML = "128M";
-                    console.log(1);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 256 || range.value < 512){
                     console.log(range.value);
                     result.innerHTML = "256M";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 512 || range.value < 1024){
                     console.log(range.value);
                     result.innerHTML = "512M";
-                    console.log(3);
+                    cconsole.log(result.innerHTML);
                 }else if(range.value >= 1024 || range.value < 2048){
                     console.log(range.value);
                     result.innerHTML = "1G";
-                    console.log(2);
+                   console.log(result.innerHTML);
                 }else if(range.value >= 2048 || range.value < 3072){
                     console.log(range.value);
                     result.innerHTML = "2G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 3072 || range.value < 4096){
                     console.log(range.value);
                     result.innerHTML = "3G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 4096 || range.value < 5120){
                     console.log(range.value);
                     result.innerHTML = "4G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 5120 || range.value < 6144){
                     console.log(range.value);
                     result.innerHTML = "5G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 6144 || range.value < 7168){
                     console.log(range.value);
                     result.innerHTML = "6G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 7168 || range.value < 8100){
                     console.log(range.value);
                     result.innerHTML = "7G";
                 }else{
                     console.log(range.value);
                     result.innerHTML = "8G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }
             }else{
                result.innerHTML = range.value; 
@@ -72,46 +72,46 @@ $(function(){
                 if(range.value >= 128 || range.value < 256){
                     console.log(range.value);
                     result.innerHTML = "128M";
-                    console.log(1);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 256 || range.value < 512){
                     console.log(range.value);
                     result.innerHTML = "256M";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 512 || range.value < 1024){
                     console.log(range.value);
                     result.innerHTML = "512M";
-                    console.log(3);
+                    cconsole.log(result.innerHTML);
                 }else if(range.value >= 1024 || range.value < 2048){
                     console.log(range.value);
                     result.innerHTML = "1G";
-                    console.log(2);
+                   console.log(result.innerHTML);
                 }else if(range.value >= 2048 || range.value < 3072){
                     console.log(range.value);
                     result.innerHTML = "2G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 3072 || range.value < 4096){
                     console.log(range.value);
                     result.innerHTML = "3G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 4096 || range.value < 5120){
                     console.log(range.value);
                     result.innerHTML = "4G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 5120 || range.value < 6144){
                     console.log(range.value);
                     result.innerHTML = "5G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 6144 || range.value < 7168){
                     console.log(range.value);
                     result.innerHTML = "6G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }else if(range.value >= 7168 || range.value < 8100){
                     console.log(range.value);
                     result.innerHTML = "7G";
                 }else{
                     console.log(range.value);
                     result.innerHTML = "8G";
-                    console.log(2);
+                    console.log(result.innerHTML);
                 }
             }else{
                result.innerHTML = range.value; 
