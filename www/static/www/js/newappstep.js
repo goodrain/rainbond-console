@@ -228,12 +228,6 @@ $(function(){
 
     $("#BtnFirst").click(function(){
         var appname = $("#create_name").val();
-        if(appname == ""){
-            $("#create_name_notice").show();
-            return;
-        }else{
-            $("#create_name_notice").hide();
-        }
         var groupname = $("#group-name option:selectd").html();
         var groupid = $("#group-name option:selectd").val();
         var myWay = $(".fn-way").attr("data-action");
@@ -241,6 +235,12 @@ $(function(){
         var code_id;
         var code_branch;
         var code_branch_id;
+        if(appname == ""){
+            $("#create_name_notice").show();
+            return;
+        }else{
+            $("#create_name_notice").hide();
+        }
         if(myWay == "gitlab_manual"){
             //01
             code_url =$("#service_code_url").val(); 
