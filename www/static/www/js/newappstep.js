@@ -83,7 +83,7 @@ $(function(){
         $('#service_code_from').val("github");
         var tenantName= $('#currentTeantName').val();
         _url = "/ajax/"+tenantName+"/code_repos?action=github";
-        loadRepos(_url);
+        loadObj(_url);
     }else{
         return;
     }
@@ -201,9 +201,6 @@ $(function(){
                         var dataList=dataObj["data"];
                         var htmlmsg="";
                         var codeId = dataObj['code_id'];
-                        if(typeof BranchLocalData[codeId] == 'undefined'){
-                            BranchLocalData[codeId] = dataList;
-                        }
                         for(var i=0;i<dataList.length;i++){
                             data = dataList[i];
                             htmlmsg +='<option value="'+data["version"]+'">'+data["version"]+'</option>';
