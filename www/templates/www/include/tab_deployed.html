@@ -59,19 +59,35 @@
 			<div class="alterRight">
 				<ul>
 					<li class="button">
+						<!--<div class="btn-group">-->
+							<!--<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">-->
+								<!--管理容器 <span class="caret"></span>-->
+							<!--</button>-->
+							<!--<ul class="dropdown-menu" role="menu" style="left: -65px;">-->
+								<!--<li><a href="#">容器1</a></li>-->
+								<!--<li><a href="#">容器2</a></li>-->
+								<!--<li><a href="#">容器3</a></li>-->
+								<!--&lt;!&ndash;分割线&ndash;&gt;-->
+								<!--&lt;!&ndash;<li class="divider"></li>&ndash;&gt;-->
+								<!--<li><a href="#">容器4</a></li>-->
+							<!--</ul>-->
+						<!--</div>-->
 						<div class="btn-group">
-							<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-								管理容器 <span class="caret"></span>
-							</button>
-							<ul class="dropdown-menu" role="menu" style="left: -65px;">
-								<li><a href="#">容器1</a></li>
-								<li><a href="#">容器2</a></li>
-								<li><a href="#">容器3</a></li>
-								<!--分割线-->
-								<!--<li class="divider"></li>-->
-								<li><a href="#">容器4</a></li>
+							<button type="button" name="join_container" class="btn btn-default dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
+							<!--<div style="width: 300px; height: auto; position: relative; z-index: 9; top: 30px;">-->
+								<!--<table width="100%;" class="table table-hover">-->
+									<!--<tbody id="cur_container_content">-->
+									<!--</tbody>-->
+								<!--</table>-->
+							<!--</div>-->
+							<ul class="dropdown-menu" role="menu" style="left: -65px;" id="cur_container_content">
+								<!--<li><a href="#">容器1</a></li>-->
+								<!--<li><a href="#">容器2</a></li>-->
+								<!--<li><a href="#">容器3</a></li>-->
+								<!--<li><a href="#">容器4</a></li>-->
 							</ul>
 						</div>
+
 					</li>
 					<li class="button">
 						<button class="bgColor">关闭</button>
@@ -79,13 +95,11 @@
 					<li class="button">
 						<button class="bgColor">重启</button>
 					</li>
-					<!--<li class="button">-->
-						<!--<button class="bgColor">重新部署</button>-->
 
 					{% ifequal tenantServiceInfo.category "application" %}
 					{% if user.is_sys_admin %}
 					<li class="button">
-						<button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
+						<button type="button" class="bgColor" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
 					</li>
 					{% endif %}
 
@@ -96,7 +110,7 @@
 					{% endif %}
 
 					{% endifequal %}
-					<!--</li>-->
+
 				</ul>
 			</div>
 		</div>
@@ -178,13 +192,13 @@
 								{% endif %}
 								<!-- -->
 								{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
-								<button name="join_container" class="btn btn-success"  id="join_container" onclick="join_container();"/> 管理容器 </button>
-								<div style="width: 300px; height: auto; position: relative; z-index: 9; top: 30px;">
-									<table width="100%;" class="table table-hover">
-										<tbody id="cur_container_content">
-										</tbody>
-									</table>
-								</div>
+								<!--<button name="join_container" class="btn btn-success"  id="join_container" onclick="join_container();"/> 管理容器 </button>-->
+								<!--<div style="width: 300px; height: auto; position: relative; z-index: 9; top: 30px;">-->
+									<!--<table width="100%;" class="table table-hover">-->
+										<!--<tbody id="cur_container_content">-->
+										<!--</tbody>-->
+									<!--</table>-->
+								<!--</div>-->
 								{% endif %}
 								<!-- -->
 						</div>
@@ -586,12 +600,9 @@
                 var tindex=1
                 for(var key in dataObj){
                     if(key != "split"){
-                        msg+="<tr>";
-                        msg+="<td>container:";
+                        msg+="<li>";
                         msg+=tindex;
-                        msg+="</td>"
-                        msg+="<td><a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\")'> 进入控制台</a></td>"
-                        msg+="</tr>";
+                        msg+="<a href='javascript:void(0);'  onclick='join_in(\""+key+"\",\""+dataObj[key]+"\")'> 节点"+tindex+"</a></li>"
                         tindex+=1;
                     }
                 }
