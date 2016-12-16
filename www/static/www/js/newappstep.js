@@ -9,11 +9,6 @@ $(function(){
 		var o = document.createElement('input');
 	    o.type = 'range';
 	    if ( o.type === 'text' ) alert('不好意思，你的浏览器还不够酷，试试最新的浏览器吧。');
-        if(maxnum == 8192){
-            result.innerHTML = "128M";
-        }else{
-           result.innerHTML = cachedRangeValue; 
-        }
 	    range.value = cachedRangeValue;
 	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
