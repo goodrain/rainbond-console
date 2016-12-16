@@ -20,7 +20,7 @@ $(function(){
 	        //result.innerHTML = range.value;
 	    }, false);
 	    // 滑动时显示选择的值
-	    range.addEventListener("change", function() {
+	    range.addEventListener("input", function() {
 	        result.innerHTML = range.value;
 	        wid.style.width = range.value/maxnum*100 + "%";
 	    }, false);
