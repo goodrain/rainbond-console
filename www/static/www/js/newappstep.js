@@ -26,10 +26,10 @@ $(function(){
 	    }, false);
 	}
     
-    FnRange("OneMemory","OneMemoryText","OneMemoryWid",512,2048);
-    FnRange("NodeNum","NodeText","NodeWid",1,10);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",3,24);
-    FnRange("Disk","DiskText","DiskWid",100,300);
+    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
+    FnRange("NodeNum","NodeText","NodeWid",1,100);
+    FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
+    FnRange("Disk","DiskText","DiskWid",1,1000);
 
     // 滑动框 结束
 
@@ -229,7 +229,7 @@ $(function(){
     //项目分支 
 
     // 下一步 提交 
-    $("#BtnFirst").click(function(){alert(1)});
+
    
 });
 
