@@ -18,6 +18,7 @@ $(function(){
 	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
             if(maxnum == 8192){
+                console.log(1);
                 if(range.value >= 128 || range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 || range.value < 512){
@@ -53,6 +54,7 @@ $(function(){
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
             if(maxnum == 8192){
+                console.log(2);
                 if(range.value >= 128 || range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 || range.value < 512){
