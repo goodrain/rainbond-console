@@ -296,8 +296,9 @@ $(function(){
         }else{
             return;
         }
+         console.log(appname,groupname,groupid,code_url,code_id,code_branch,code_branch_id);
     });
-    console.log(appname,groupname,groupid,code_url,code_id,code_branch,code_branch_id);
+   
 });
 
 
