@@ -93,6 +93,13 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 .price-box{display: none;}
 
+.mainbox{width: 100%; min-height: 400px; }
+.second-tips{font-size: 18px; line-height: 100px; text-align: center;}
+.seconbtn{margin:30px auto 100px;}
+
+.second-tit{text-align: center; font-size: 20px; line-height: 50px;}
+.second-tips-loading{width: 90%; max-width: 500px; margin:20px auto; text-align: center;}
+.second-tips-loading span{color: #838383; font-size: 14px; line-height: 20px; text-align: center; width: 100%; display:block; }
 
 
 /* from end */
