@@ -12,7 +12,7 @@ $(function(){
 	    range.value = cachedRangeValue;
 	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
-            if(maxnum == "OneMemory"){
+            if(inputid == "OneMemory"){
                 if(range.value >= 128 && range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
@@ -48,7 +48,7 @@ $(function(){
 	    }, false);
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
-            if(maxnum == "OneMemory"){
+            if(inputid == "OneMemory"){
                 if(range.value >= 128 && range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
@@ -369,6 +369,27 @@ $(function(){
         var code_branch_id;
         var memory_onoff = $("#MoneyBefore").prop("checked");
         var disk_onoff = $("#DiskBefore").prop("checked");
+        if(memory_onoff == true && disk_onoff == true){
+            var memory_num = parseInt($("#OneMemoryText").html());
+            var node_num = parseInt($("#NodeText").html());
+            var disk_num = parseInt($("#NodeText").html());
+            var time_num = parseInt($("#TimeLongText").html());
+        }else if(memory_onoff == true && disk_onoff == false ){
+            var memory_num = parseInt($("#OneMemoryText").html());
+            var node_num = parseInt($("#NodeText").html());
+            var disk_num = 0;
+            var time_num = parseInt($("#TimeLongText").html());
+        }else if(memory_onoff == false && disk_onoff == true){
+            var memory_num = 0;
+            var node_num = 0;
+            var disk_num = parseInt($("#NodeText").html());
+            var time_num = parseInt($("#TimeLongText").html());
+        }else{
+            var memory_num = 0;
+            var node_num = 0;
+            var disk_num = 0;
+            var time_num = 0;
+        }
         if(appname == ""){
             $("#create_name_notice").show();
             return;
