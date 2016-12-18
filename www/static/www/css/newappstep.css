@@ -45,7 +45,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 /* 滑块  end */
 
 .infor-fm-box{border-bottom: 1px #ececec solid; padding: 10px 0; }
-.fm-input-text,.fm-select,.fm-input-radio,.fm-input-range,.fm-text,.fm-choose-box,.fm-money,.fm-btn,.code-box{padding:10px 0 0; max-width: 500px; margin: 0 auto;}
+.fm-input-text,.fm-select,.fm-input-radio,.fm-input-range,.fm-text,.fm-choose-box,.fm-money,.fm-btn,.code-box,.fm-aft-money{padding:10px 0 0; max-width: 500px; margin: 0 auto;}
 .infor-fm-box label{width: 140px; color: #303030; font-size: 14px; float: left; display: inline-block; text-align: right; margin-right:20px; line-height: 30px;}
 .fm-input-text input{width:330px; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px;}
 .fm-select select{width:330px; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px; background: #fff; -moz-border-radius:0; -webkit-border-radius:0; border-radius: 0;}
@@ -72,6 +72,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .btn-cho-box  a.sed{color: #fff; background: #28cb75; border:1px #28cb75 solid;}
 
 .fm-money span{color: #28cb75; font-size: 24px; line-height: 30px;}
+.fm-aft-money span{color:#303030; font-size:18px; line-height:24px;}
 
 .fm-btn{text-align: center; margin-bottom: 40px;}
 .fm-btn a{display: inline-block;}
@@ -90,7 +91,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 #Githubbox{display: none;}
 #gitlabbox{display: none;}
 
-
+.price-box{display: none;}
 
 
 

@@ -44,6 +44,7 @@ $(function(){
 	        //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
 	        //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
 	        //result.innerHTML = range.value;
+            FnPrice();
 	    }, false);
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
@@ -76,7 +77,6 @@ $(function(){
             }
 	        wid.style.width = range.value/maxnum*100 + "%";
 	    }, false);
-
 	}
     
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
@@ -84,8 +84,77 @@ $(function(){
     FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
     FnRange("Disk","DiskText","DiskWid",1,1000);
     
-
     // 滑动框 结束
+    
+    //计算价格
+    var before_memory= $("#price-box").attr("data-before-memory");
+    var before_disk= $("#price-box").attr("data-before-disk");
+    var before_net= $("#price-box").attr("data-before-net");
+    var after_memory= $("#price-box").attr("data-after-memory");
+    var after_disk= $("#price-box").attr("data-after-disk");
+    var after_net= $("#price-box").attr("data-after-net");
+    $("#aft-memory").html(after_memory);
+    $("#aft-disk").html(after_disk);
+    $("#aft-net").html(after_net);
+    
+
+    function FnPrice(){
+        var  memory_num = parseInt(document.getElementById("OneMemoryText").innerHTML);
+        if(memory_num < 1000){
+            memory_num = memory_num * 1024;
+        }
+        var node_num = parseInt(document.getElementById("NodeText").innerHTML);
+        var Disk_num = parseInt(document.getElementById("DiskText").innerHTML);
+        var time_num = parseInt(document.getElementById("TimeLongText").innerHTML);
+        var memory_onoff = document.getElementById("MoneyBefore").checked;
+        var disk_onoff = document.getElementById("DiskBefore").checked;
+        var onehour;
+        //计算
+        if(memory_onoff == true && disk_onoff == true){
+            onehour = before_memory * memory_num  +  before_disk * Disk_num;
+            Fnmemory();
+        }else if(memory_onoff == true && disk_onoff == flase){
+            onehour = before_memory * memory_num;
+            Fnmemory();
+        }else if(memory_onoff == flase && disk_onoff == true){
+            onehour = before_disk * Disk_num;
+            Fnmemory();
+        }else{
+            onehour = 0;
+            Fnmemory();
+        }
+        //计算 
+        function Fnmemory(){
+            var total_money= onehour * 24 * time_num  *30 * 4;
+            var buy_money;
+            if(time_num>=12){
+                buy_money = onehour * 24 * time_num *1.5 *30;
+            }else{
+                buy_money = onehour * 24 * time_num *2*30;
+            }
+            $("#need-money").html(buy_money.toFixed(2));
+        }
+    }
+    ///
+    function toDecimal2(x){
+        var f = parseFloat(x);
+        if (isNaN(f)) {
+            return false;
+        }
+        var f = Math.round(x * 100) / 100;
+        var s = f.toString();
+        var rs = s.indexOf('.');
+        if (rs < 0) {
+            rs = s.length;
+            s += '.';
+        }
+        while (s.length <= rs + 2) {
+            s += '0';
+        }
+        return s;
+    }
+    ///
+    // 计算价格结束
 
     // 输入框输入样式
 
@@ -140,7 +209,7 @@ $(function(){
         loadObj(_url);
     }else{
         //return;
-        console.log(1);
+        console.log("");
     }
 
     //项目 地址
@@ -289,6 +358,8 @@ $(function(){
         var code_id;
         var code_branch;
         var code_branch_id;
+        var memory_onoff = $("#MoneyBefore").prop("checked");
+        var disk_onoff = $("#DiskBefore").prop("checked");
         if(appname == ""){
             $("#create_name_notice").show();
             return;
