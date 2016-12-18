@@ -13,50 +13,28 @@ $(function(){
 	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
             if(maxnum == 8192){
-               if(range.value >= 128 && range.value < 256){
-                    console.log(1);
-                    console.log(result.innerHTML);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                if(range.value >= 128 && range.value < 256){
+                    result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
-                    console.log(2);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "256M";
                 }else if(range.value >= 512 && range.value < 1024){
-                    console.log(3);
-                    result.innerHTML = range.value;
-                    cconsole.log(result.innerHTML);
+                    result.innerHTML = "512M";
                 }else if(range.value >= 1024 && range.value < 2048){
-                    console.log(4);
-                    result.innerHTML = range.value;
-                   console.log(result.innerHTML);
+                    result.innerHTML = "1G";
                 }else if(range.value >= 2048 && range.value < 3072){
-                    console.log(5);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "2G";
                 }else if(range.value >= 3072 && range.value < 4096){
-                    console.log(6);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "3G";
                 }else if(range.value >= 4096 && range.value < 5120){
-                    console.log(7);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "4G";
                 }else if(range.value >= 5120 && range.value < 6144){
-                    console.log(8);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "5G";
                 }else if(range.value >= 6144 && range.value < 7168){
-                    console.log(9);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "6G";
                 }else if(range.value >= 7168 && range.value < 8100){
-                    console.log(10);
-                    result.innerHTML = range.value;
+                   result.innerHTML = "7G";
                 }else{
-                    console.log(11);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                   result.innerHTML = "8G";
                 }
             }else{
                result.innerHTML = range.value; 
@@ -70,50 +48,28 @@ $(function(){
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
             if(maxnum == 8192){
-                 if(range.value >= 128 && range.value < 256){
-                    console.log(1);
-                    console.log(result.innerHTML);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                if(range.value >= 128 && range.value < 256){
+                    result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
-                    console.log(2);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "256M";
                 }else if(range.value >= 512 && range.value < 1024){
-                    console.log(3);
-                    result.innerHTML = range.value;
-                    cconsole.log(result.innerHTML);
+                    result.innerHTML = "512M";
                 }else if(range.value >= 1024 && range.value < 2048){
-                    console.log(4);
-                    result.innerHTML = range.value;
-                   console.log(result.innerHTML);
+                    result.innerHTML = "1G";
                 }else if(range.value >= 2048 && range.value < 3072){
-                    console.log(5);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "2G";
                 }else if(range.value >= 3072 && range.value < 4096){
-                    console.log(6);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "3G";
                 }else if(range.value >= 4096 && range.value < 5120){
-                    console.log(7);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "4G";
                 }else if(range.value >= 5120 && range.value < 6144){
-                    console.log(8);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "5G";
                 }else if(range.value >= 6144 && range.value < 7168){
-                    console.log(9);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                    result.innerHTML = "6G";
                 }else if(range.value >= 7168 && range.value < 8100){
-                    console.log(10);
-                    result.innerHTML = range.value;
+                   result.innerHTML = "7G";
                 }else{
-                    console.log(11);
-                    result.innerHTML = range.value;
-                    console.log(result.innerHTML);
+                   result.innerHTML = "8G";
                 }
             }else{
                result.innerHTML = range.value; 
