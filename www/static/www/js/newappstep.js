@@ -12,7 +12,7 @@ $(function(){
 	    range.value = cachedRangeValue;
 	    wid.style.width = range.value/maxnum*100 + "%";
 	    range.addEventListener("mouseup", function() {
-            if(maxnum == 8192){
+            if(maxnum == "OneMemory"){
                 if(range.value >= 128 && range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
@@ -48,7 +48,7 @@ $(function(){
 	    }, false);
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
-            if(maxnum == 8192){
+            if(maxnum == "OneMemory"){
                 if(range.value >= 128 && range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
@@ -79,10 +79,19 @@ $(function(){
 	    }, false);
 	}
     
-    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
-    FnRange("NodeNum","NodeText","NodeWid",1,100);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
-    FnRange("Disk","DiskText","DiskWid",1,1000);
+    var onoff= Boolean(document.getElementById("price-box").getAttribute("data-user"));
+    if(onoff){
+        FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
+        FnRange("NodeNum","NodeText","NodeWid",1,100);
+        FnRange("Disk","DiskText","DiskWid",1,1000);
+        FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
+    }else{
+        FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,512);
+        FnRange("NodeNum","NodeText","NodeWid",1,1);
+        FnRange("TimeLong","TimeLongText","TimeLongWid",1,1);
+        FnRange("Disk","DiskText","DiskWid",1,1);
+    }
+   
     
     // 滑动框 结束
     
