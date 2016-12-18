@@ -79,8 +79,8 @@ $(function(){
 	    }, false);
 	}
     
-    var onoff= Boolean(document.getElementById("price-box").getAttribute("data-user"));
-    if(onoff){
+    var onoff= document.getElementById("price-box").getAttribute("data-user");
+    if(onoff == "true"){
         FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
         FnRange("NodeNum","NodeText","NodeWid",1,100);
         FnRange("Disk","DiskText","DiskWid",1,1000);
