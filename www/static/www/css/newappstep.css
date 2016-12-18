@@ -72,7 +72,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .btn-cho-box  a.sed{color: #fff; background: #28cb75; border:1px #28cb75 solid;}
 
 .fm-money span{color: #28cb75; font-size: 24px; line-height: 30px;}
-.fm-aft-money span{color:#303030; font-size:18px; line-height:24px;}
+.fm-aft-money span{color:#303030; font-size:14px; line-height:30px;}
 
 .fm-btn{text-align: center; margin-bottom: 40px;}
 .fm-btn a{display: inline-block;}

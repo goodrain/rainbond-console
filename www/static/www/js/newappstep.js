@@ -96,7 +96,7 @@ $(function(){
     $("#aft-memory").html(after_memory);
     $("#aft-disk").html(after_disk);
     $("#aft-net").html(after_net);
-    
+
 
     function FnPrice(){
         var  memory_num = parseInt(document.getElementById("OneMemoryText").innerHTML);
@@ -113,10 +113,10 @@ $(function(){
         if(memory_onoff == true && disk_onoff == true){
             onehour = before_memory * memory_num  +  before_disk * Disk_num;
             Fnmemory();
-        }else if(memory_onoff == true && disk_onoff == flase){
+        }else if(memory_onoff == true && disk_onoff != true){
             onehour = before_memory * memory_num;
             Fnmemory();
-        }else if(memory_onoff == flase && disk_onoff == true){
+        }else if(memory_onoff != true && disk_onoff == true){
             onehour = before_disk * Disk_num;
             Fnmemory();
         }else{
