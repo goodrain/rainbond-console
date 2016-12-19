@@ -80,10 +80,10 @@ $(function(){
 	    }, false);
 	}
     
-    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
-    FnRange("NodeNum","NodeText","NodeWid",1,100);
-    FnRange("Disk","DiskText","DiskWid",1,1000);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
+    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
+    FnRange("NodeNum","NodeText","NodeWid",1);
+    FnRange("Disk","DiskText","DiskWid",1);
+    FnRange("TimeLong","TimeLongText","TimeLongWid",1);
     
    
    
