@@ -162,10 +162,14 @@ $(function(){
 
     // 显示 隐藏
     $("#MoneyBefore").change(function(){
+        console.log(1);
         var onoff = $("#MoneyBefore").prop("checked");
+        onsole.log(onoff);
         if(onoff == true){
+            console.log(2);
             $(".fn-memory-node").show();
         }else{
+            console.log(3);
             $(".fn-memory-node").hide();
         }
     });
