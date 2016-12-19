@@ -313,7 +313,7 @@ ul.sidebar-menu li a i {
 }
 
 ul.sidebar-menu li a:hover i, ul.sidebar-menu li a:focus i {
-    color: #93d4f1;
+    color: #fff;
 }
 
 ul.sidebar-menu li a.active i {
