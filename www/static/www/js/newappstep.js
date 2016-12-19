@@ -1,6 +1,6 @@
 $(function(){
 	// 滑块 开始 
-	function FnRange(inputid,textid,widid,num,maxnum){
+	function FnRange(inputid,textid,widid,num,maxnum,stopnum){
 		var range= document.getElementById(inputid);
 		var result = document.getElementById(textid);
 		var wid = document.getElementById(widid);
@@ -39,7 +39,6 @@ $(function(){
             }else{
                result.innerHTML = range.value; 
             }
-	    	
 	        wid.style.width = range.value/maxnum*100 + "%";
 	        //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
 	        //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
@@ -76,21 +75,16 @@ $(function(){
                result.innerHTML = range.value; 
             }
 	        wid.style.width = range.value/maxnum*100 + "%";
+
 	    }, false);
 	}
     
-    var onoff= document.getElementById("price-box").getAttribute("data-user");
-    if(onoff == "true"){
-        FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
-        FnRange("NodeNum","NodeText","NodeWid",1,100);
-        FnRange("Disk","DiskText","DiskWid",1,1000);
-        FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
-    }else{
-        FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,512);
-        FnRange("NodeNum","NodeText","NodeWid",1,1);
-        FnRange("TimeLong","TimeLongText","TimeLongWid",1,1);
-        FnRange("Disk","DiskText","DiskWid",1,1);
-    }
+    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128,8192);
+    FnRange("NodeNum","NodeText","NodeWid",1,100);
+    FnRange("Disk","DiskText","DiskWid",1,1000);
+    FnRange("TimeLong","TimeLongText","TimeLongWid",1,24);
+    
+   
    
     
     // 滑动框 结束
@@ -105,7 +99,7 @@ $(function(){
     $("#aft-memory").html(after_memory);
     $("#aft-disk").html(after_disk);
     $("#aft-net").html(after_net);
-
+    FnPrice();
 
     function FnPrice(){
         var  memory_num = parseInt(document.getElementById("OneMemoryText").innerHTML);
