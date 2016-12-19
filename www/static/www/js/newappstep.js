@@ -485,6 +485,65 @@ $(function(){
         }
         console.log(myWay);
         console.log(appname + "--" + groupname + "--" + groupid + "--" + code_url + "--" + code_id + "--" +code_branch + "--" + code_branch_id + "///" +  memory_onoff + "--" +  disk_onoff + "///" + memory_num + "--" + node_num + "--" + disk_num + "--" + time_num);
+        ///
+        $("#BtnFirst").attr('disabled', true);
+        var tenantName= $('#currentTeantName').val();
+        $.ajax({
+            type : "post",
+            url : "/apps/" + tenantName + "/app-create/",
+            data : {
+                "name" : appname,
+                "groupname" : groupname,
+                "groupid" : groupid,
+                "code_url" : code_url,
+                "code_id" : code_id,
+                "code_branch" : code_branch,
+                "code_branch_id" : code_branch_id,
+                "memory_onoff" : memory_onoff,
+                "disk_onoff" : disk_onoff,
+                "memory_num" : memory_num,
+                "node_num" : node_num,
+                "disk_num" : disk_num,
+                "time_num" : time_num
+            },
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "exist") {
+                    swal("服务名已存在");
+                } else if (dataObj["status"] == "owed"){
+                    swal("余额不足请及时充值")
+                } else if (dataObj["status"] == "expired"){
+                    swal("试用已到期")
+                } else if (dataObj["status"] == "over_memory") {
+                    swal("资源已达上限，不能创建");
+                } else if (dataObj["status"] == "over_money") {
+                    swal("余额不足，不能创建");
+                } else if (dataObj["status"] == "empty") {
+                    swal("应用名称不能为空");
+                }else if (dataObj["status"] == "code_from") {
+                    swal("应用资源库未选择");
+                }else if (dataObj["status"] == "code_repos") {
+                    swal("代码仓库异常");
+                }else if (dataObj["status"] == "success") {
+                    service_alias = dataObj["service_alias"]
+                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-dependency/";
+                } else {
+                    swal("创建失败");
+                }
+                $("#BtnFirst").attr('disabled', false);
+            },
+            error : function() {
+                swal("系统异常,请重试");
+                $("#BtnFirst").attr('disabled', false);
+            }
+        });
+        ///
+
     });
 })
 
