@@ -246,7 +246,7 @@ ul.sidebar-menu li ul.sub li a {
     -o-transition: all 0.3s ease;
     -ms-transition: all 0.3s ease;
     transition: all 0.3s ease;
-    color: #939da8;
+    color: #838383;
     background: #1f262d;
     overflow: hidden;
 }
@@ -276,7 +276,7 @@ ul.sidebar-menu li a span{
 }
 
 ul.sidebar-menu li a{
-    color: #aeb2b7;
+    color: #fff;
     text-decoration: none;
     display: block;
     padding: 15px 0 15px 10px;
@@ -317,7 +317,7 @@ ul.sidebar-menu li a:hover i, ul.sidebar-menu li a:focus i {
 }
 
 ul.sidebar-menu li a.active i {
-    color: #93d4f1;
+    color: #fff;
 }
 
 
