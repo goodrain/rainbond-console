@@ -290,14 +290,14 @@ ul.sidebar-menu li a{
 }
 
 ul.sidebar-menu li a:hover{
-    background-color: #27a9e3;
+    background-color: #28cb75;
     background-image: none;
     color: #fff;
     display: block;
 }
 
 ul.sidebar-menu li a.active, ul.sidebar-menu li a:focus {
-    background:#27a9e3 url('../images/menu-active.png') no-repeat right center;
+    background:#28cb75 url('../images/menu-active.png') no-repeat right center;
     color: #fff;
     display: block;
     -webkit-transition: all 0.3s ease;
