@@ -162,21 +162,33 @@ $(function(){
 
     // 显示 隐藏
     $("#MoneyBefore").change(function(){
-        console.log(1);
         var onoff = $("#MoneyBefore").prop("checked");
-        console.log(onoff);
         if(onoff == true){
-            console.log(2);
             $(".fn-memory-node").show();
         }else{
-            console.log(3);
             $(".fn-memory-node").hide();
         }
     });
-
+    $("#MoneyAfter").change(function(){
+        console.log(1);
+        var onoff = $("#MoneyAfter").prop("checked");
+        if(onoff == false){
+            $(".fn-memory-node").show();
+        }else{
+            $(".fn-memory-node").hide();
+        }
+    });
     $("#DiskBefore").change(function(){
         var onoff = $("#DiskBefore").prop("checked");
         if(onoff == true){
+            $(".fn-disk").show();
+        }else{
+            $(".fn-disk").hide();
+        }
+    });
+    $("#DiskAfter").change(function(){
+        var onoff = $("#After").prop("checked");
+        if(onoff == false){
             $(".fn-disk").show();
         }else{
             $(".fn-disk").hide();
