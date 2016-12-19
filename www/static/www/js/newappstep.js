@@ -164,7 +164,7 @@ $(function(){
     $("#MoneyBefore").change(function(){
         console.log(1);
         var onoff = $("#MoneyBefore").prop("checked");
-        onsole.log(onoff);
+        console.log(onoff);
         if(onoff == true){
             console.log(2);
             $(".fn-memory-node").show();
