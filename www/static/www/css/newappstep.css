@@ -61,7 +61,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .mark-icon{width: 13px; height: 13px; background: url('../images/markicon.png')no-repeat; background-size: 13px 13px; display: block;}
 
 
-.fm-input-range input{ width: 220px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range input{width: 220px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
 .fm-input-range span{width: 80px; float: left; display: inline-block; font-size: 14px; line-height: 30px; padding-left: 5px;}
 
 
@@ -82,7 +82,11 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 .fm-input-range .range-box{width: 220px; height: 26px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
 .fm-input-range .range-box .renge-bg{width: 220px; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
-.fm-input-range .range-box .range-choose{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px;position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
+.fm-input-range .range-box .range-choose{width:220px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
+.fm-input-range .range-box .range-choose cite{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; display: block;}
+
+.fm-input-range  .range-box.nouser input{width: 20px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range  .range-box.nouser .range-choose{width:20px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
 
 .fm-tips{color: #ea1616; max-width: 500px; margin: 0 auto; line-height: 20px; text-indent: 160px; display:none;}
 

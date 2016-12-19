@@ -1,9 +1,10 @@
 $(function(){
 	// 滑块 开始 
-	function FnRange(inputid,textid,widid,num,maxnum,stopnum){
+	function FnRange(inputid,textid,widid,num){
 		var range= document.getElementById(inputid);
 		var result = document.getElementById(textid);
 		var wid = document.getElementById(widid);
+        var maxnum = range.getAttribute("max");
 		cachedRangeValue = /*localStorage.rangeValue ? localStorage.rangeValue :*/ num; 
 		// 检测浏览器
 		var o = document.createElement('input');
