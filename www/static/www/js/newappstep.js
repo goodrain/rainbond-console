@@ -99,12 +99,13 @@ $(function(){
     $("#aft-memory").html(after_memory);
     $("#aft-disk").html(after_disk);
     $("#aft-net").html(after_net);
+
     FnPrice();
 
     function FnPrice(){
         var  memory_num = parseInt(document.getElementById("OneMemoryText").innerHTML);
-        if(memory_num < 1000){
-            memory_num = memory_num * 1024;
+        if(memory_num > 10){
+            memory_num = memory_num / 1024;
         }
         var node_num = parseInt(document.getElementById("NodeText").innerHTML);
         var Disk_num = parseInt(document.getElementById("DiskText").innerHTML);
@@ -128,14 +129,14 @@ $(function(){
         }
         //计算 
         function Fnmemory(){
-            var total_money= onehour * 24 * time_num  *30 * 4;
+            var total_money= onehour * 24 * time_num  *30 * 4 * node_num;
             var buy_money;
             if(time_num>=12){
                 buy_money = onehour * 24 * time_num *1.5 *30;
             }else{
                 buy_money = onehour * 24 * time_num *2*30;
             }
-            $("#need-money").html(buy_money.toFixed(2));
+            $("#need-money").html(total_money.toFixed(2));
         }
     }
     ///
