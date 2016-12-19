@@ -168,6 +168,7 @@ $(function(){
         }else{
             $(".fn-memory-node").hide();
         }
+        FnPrice();
     });
     $("#MoneyAfter").change(function(){
         console.log(1);
@@ -177,6 +178,7 @@ $(function(){
         }else{
             $(".fn-memory-node").hide();
         }
+        FnPrice();
     });
     $("#DiskBefore").change(function(){
         var onoff = $("#DiskBefore").prop("checked");
@@ -185,6 +187,7 @@ $(function(){
         }else{
             $(".fn-disk").hide();
         }
+        FnPrice();
     });
     $("#DiskAfter").change(function(){
         var onoff = $("#After").prop("checked");
@@ -193,6 +196,7 @@ $(function(){
         }else{
             $(".fn-disk").hide();
         }
+        FnPrice();
     });
     // 输入框输入样式
 
@@ -479,7 +483,7 @@ $(function(){
             return;
         }
         console.log(myWay);
-        console.log(appname + "--" + groupname + "--" + groupid + "--" + code_url + "--" + code_id + "--" +code_branch + "--" + code_branch_id );
+        console.log(appname + "--" + groupname + "--" + groupid + "--" + code_url + "--" + code_id + "--" +code_branch + "--" + code_branch_id + "///" +  memory_onoff + "--" +  disk_onoff + "///" + memory_num + "--" + node_num + "--" + disk_num + "--" + time_num);
     });
 })
 
