@@ -160,6 +160,24 @@ $(function(){
     ///
     // 计算价格结束
 
+    // 显示 隐藏
+    $("#MoneyBefore").change(function(){
+        var onoff = $("#MoneyBefore").prop("checked");
+        if(onoff == true){
+            $(".fn-memory-node").show();
+        }else{
+            $(".fn-memory-node").hide();
+        }
+    });
+
+    $("#DiskBefore").change(function(){
+        var onoff = $("#DiskBefore").prop("checked");
+        if(onoff == true){
+            $(".fn-disk").show();
+        }else{
+            $(".fn-disk").hide();
+        }
+    });
     // 输入框输入样式
 
     // 01 输入用户名
@@ -215,7 +233,7 @@ $(function(){
         //return;
         console.log("");
     }
-
+     
     //项目 地址
     function loadObj(_url){
         var listWrap;
@@ -353,6 +371,7 @@ $(function(){
     }
     //项目分支 
 
+    //提交 
     $("#BtnFirst").click(function(){
         var appname = $("#create_name").val();
         var groupname = $("#group-name option:selected").html();
