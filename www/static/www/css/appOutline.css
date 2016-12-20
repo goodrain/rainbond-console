@@ -18,6 +18,7 @@ button{
     -moz-border-radius: 8px;
     background-color: #ffffff;
     margin: 5px;
+    padding-top: 10px;
 }
 .appOutline ul li p{
     padding: 10px 30px;
@@ -52,7 +53,7 @@ button{
 .alternative .alterLeft ul li.button button,select{
     margin-right: 10px;
 }
-.alternative .alterRight ul li button.bgColor{
+.alternative ul li button.bgColor{
     text-align: center;
     vertical-align: middle;
     background-color: #28cb75;
