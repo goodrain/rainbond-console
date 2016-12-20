@@ -56,7 +56,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 .code-box p{float: left; width: 70%;}
 .code-box p span{color: #838383; font-size: 12px; line-height: 20px; padding:4px 0 0 0; display: block;} 
-.code-box p cite{color: #303030; font-size: 14px; line-height: 20px; display: block; word-break:break-all; border:1px #d5d5d5 dashed; padding:5px;}
+.code-box p cite{color: #838383; font-size: 12px; line-height: 20px; display: block; word-break:break-all; border:1px #d5d5d5 dashed; padding:5px;}
 .mark-box{width: 2px; height: 30px; position: relative; float: left;}
 .mark-icon{width: 13px; height: 13px; background: url('../images/markicon.png')no-repeat; background-size: 13px 13px; display: block;}
 
