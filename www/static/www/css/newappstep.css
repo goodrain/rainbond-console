@@ -34,7 +34,7 @@ input[type="range"] {-webkit-appearance: none; background: transparent;} /* 清�
 input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none;}    
 input[type="range"]::-webkit-slider-runnable-track {background: transparent; height: 10px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px;}/* 给轨道自定义样式 圆角颜色高度*/
 input[type="range"]:focus {outline: none;} /* 取消自带的获取焦点时的样式 */
-input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none; height: 26px; width: 26px;margin-top: -6px; /*使滑块超出轨道部分的偏移量相等*/ background: url('../images/range.png') no-repeat; background-size:26px 26px;} 
+input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none; height: 20px; width: 20px;margin-top: -4px; /*使滑块超出轨道部分的偏移量相等*/ background: url('../images/range.png') no-repeat; background-size:20px 20px;} 
 
 input[type="range"]::-moz-range-progress {background:#28cb75; height: 10px; border-radius: 10px;} /*FF*/
 input[type="range"]::-ms-fill-lower {/*进度条已填充的部分*/height: 10px; border-radius: 10px; background: #28cb75;} /*IE*/
@@ -80,15 +80,15 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .greenbtn{background: #28cb75; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; }
 .greenbtn:hover{color: #fff;}
 
-.fm-input-range .range-box{width: 60%; height: 26px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
+.fm-input-range .range-box{width: 60%; height: 20px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
 .fm-input-range .range-box .renge-bg{width:100%; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
 .fm-input-range .range-box .range-choose{width:100%; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
 .fm-input-range .range-box .range-choose cite{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; display: block;}
 
-.fm-input-range  .range-box.nouser input{width:20%; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range  .range-box.nouser input{width:20%; height: 20px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
 .fm-input-range  .range-box.nouser .range-choose{width:20%; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
-.fm-input-range  .range-box.nouser02 input{width:24px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
-.fm-input-range  .range-box.nouser02 .range-choose{width:24px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
+.fm-input-range  .range-box.nouser02 input{width:20px; height: 20px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range  .range-box.nouser02 .range-choose{width:20px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
 
 .fm-tips{color: #ea1616; max-width:80%; margin: 0 auto; line-height: 20px; text-indent: 150px; display:none;}
 
