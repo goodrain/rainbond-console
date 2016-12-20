@@ -480,6 +480,7 @@ $(function(){
         var appname = $("#create_name").val();
         var groupname = $("#group-name option:selected").html();
         var groupid = $("#group-name option:selected").attr("value");
+        var service_code_from = "gitlab_new";
         var myWay = $(".fn-way").attr("data-action");
         var code_url;
         var code_id;
@@ -515,6 +516,7 @@ $(function(){
             $("#create_name_notice").hide();
         }
         if(myWay == "gitlab_manual"){
+            service_code_from = "gitlab_manual";
             //01
             code_url =$("#service_code_url").val(); 
             if(code_url == ""){
@@ -525,6 +527,7 @@ $(function(){
             }
             //01
         }else if(myWay == "gitlab_new"){
+            service_code_from = "gitlab_new";
             //02
             code_url =$("#my_git_url").val(); 
             if(code_url == ""){
@@ -535,6 +538,7 @@ $(function(){
             }
             //02
         }else if(myWay == "github"){
+            service_code_from = "github";
             //03
             code_id = $("#code_github_list").attr("date");
             if(code_id == "-1"){
@@ -547,6 +551,7 @@ $(function(){
             }
             //03
         }else if(myWay == "gitlab_exit"){
+            service_code_from = "gitlab_exit";
             //04
             code_id = $("code_gr_list").attr("date");
             if(code_id == "-1"){
@@ -559,6 +564,7 @@ $(function(){
             }
             //04
         }else if(myWay == "gitlab_demo"){
+            service_code_from = "gitlab_manual";
             //05
             code_url = $("#Democode option:selected").val();
             code_branch = $("#Demobranch option:selected").val();
@@ -578,11 +584,10 @@ $(function(){
                 "create_app_name" : appname,
                 "groupname" : groupname,
                 "select_group_id" : groupid,
-                "service_code_from":myWay,
+                "service_code_from":service_code_from,
                 "service_code_clone_url" : code_url,
-                "code_id" : code_id,
+                "service_code_id" : code_id,
                 "service_code_version" : code_branch,
-                "service_code_id" : code_branch_id,
                 "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
                 "disk_pay_method" : disk_onoff ? "prepaid":"postpaid",
                 "service_min_memory" : memory_num,
