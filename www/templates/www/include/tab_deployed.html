@@ -83,22 +83,29 @@
 							{% ifequal tenantServiceInfo.service_type "mysql" %}
 								{% if service_manager.deployed %}
 									{% if 'manage_service' in user.actions %}
-									<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>
+									<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');">管理</button>
 									{% endif %}
 								{% else %}
 									{% if 'manage_service' in user.actions %}
-									<button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>添加管理服务</button>
+									<button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');">添加管理服务</button>
 									{% endif %}
 								{% endif %}
 							{% endifequal %}
 							{% if updateService %}
-							<button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i>服务更新</button>
+							<button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" >服务更新</button>
 							{% endif %}
 					</li>
 				</ul>
 			</div>
 			<div class="alterRight">
 				<ul class="clearfix">
+					{% ifequal tenantServiceInfo.category "application" %}
+					{% if user.is_sys_admin %}
+					<li class="button">
+						<button type="button" class="bgColor" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');">发布</button>
+					</li>
+					{% endif %}
+					{% endifequal %}
 					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
 					<li class="button">
 						<div class="btn-group">
@@ -123,11 +130,11 @@
 					<!--</li>-->
 
 					{% ifequal tenantServiceInfo.category "application" %}
-					{% if user.is_sys_admin %}
-					<li class="button">
-						<button type="button" class="bgColor" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
-					</li>
-					{% endif %}
+					<!--{% if user.is_sys_admin %}-->
+					<!--<li class="button">-->
+						<!--<button type="button" class="bgColor" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>-->
+					<!--</li>-->
+					<!--{% endif %}-->
 
 					{% if 'code_deploy' in user.actions %}
 					<li class="button">
