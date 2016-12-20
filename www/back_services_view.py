@@ -283,7 +283,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
 
-            if tenantAccountService.isExpired(self.tenant):
+            if tenantAccountService.isExpired(self.tenant,self.service):
                 result["status"] = "expired"
                 return JsonResponse(result, status=200)
 

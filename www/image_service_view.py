@@ -158,9 +158,9 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
-            if tenantAccountService.isExpired(self.tenant):
-                result["status"] = "expired"
-                return JsonResponse(result, status=200)
+            # if tenantAccountService.isExpired(self.tenant,self.service):
+            #     result["status"] = "expired"
+            #     return JsonResponse(result, status=200)
 
             service = ServiceInfo()
             service.service_key = "0000"

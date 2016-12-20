@@ -649,22 +649,26 @@ class TenantUsedResource(object):
                 if tm <= tenant.limit_memory:
                     result = True
             elif tenant.pay_type == "payed":
-                tm = self.calculate_real_used_resource(tenant) + newAddMemory
-                guarantee_memory = self.calculate_guarantee_resource(tenant)
-                logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
-                if tm - guarantee_memory <= 102400:
-                    ruleJson = self.feerule[cur_service.service_region]
-                    unit_money = 0
-                    if tenant.pay_level == "personal":
-                        unit_money = float(ruleJson['personal_money'])
-                    elif tenant.pay_level == "company":
-                        unit_money = float(ruleJson['company_money'])
-                    total_money = unit_money * (tm * 1.0 / 1024)
-                    logger.debug(tenant.tenant_id + " use memory " + str(tm) + " used money " + str(total_money))
-                    if tenant.balance >= total_money:
-                        result = True
-                    else:
-                        rt_type = "money"
+                result = True
+                # 租户欠费时无法创建
+                if tenant.balance < 0:
+                    rt_type = 'money'
+                # tm = self.calculate_real_used_resource(tenant) + newAddMemory
+                # guarantee_memory = self.calculate_guarantee_resource(tenant)
+                # logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
+                # if tm - guarantee_memory <= 102400:
+                #     ruleJson = self.feerule[cur_service.service_region]
+                #     unit_money = 0
+                #     if tenant.pay_level == "personal":
+                #         unit_money = float(ruleJson['personal_money'])
+                #     elif tenant.pay_level == "company":
+                #         unit_money = float(ruleJson['company_money'])
+                #     total_money = unit_money * (tm * 1.0 / 1024)
+                #     logger.debug(tenant.tenant_id + " use memory " + str(tm) + " used money " + str(total_money))
+                #     if tenant.balance >= total_money:
+                #         result = True
+                #     else:
+                #         rt_type = "money"
             elif tenant.pay_type == "unpay":
                 result = True
         return rt_type, result
@@ -692,8 +696,13 @@ class TenantAccountService(object):
                 return True
         return False
 
-    def isExpired(self, tenant):
-        if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
+    # def isExpired(self, tenant):
+    #     if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
+    #         return True
+    #     return False
+
+    def isExpired(self, tenant, service):
+        if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
             return True
         return False
 
@@ -716,17 +725,17 @@ class TenantAccountService(object):
 
         return flag
 
-    def isCloseToMonthlyExpired(self, tenant, region_name):
-        tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
-        if len(tenant_region_pay_list) == 0:
-            return False
-        tag = 1
-        for pay_model in tenant_region_pay_list:
-            if pay_model.buy_end_time > datetime.datetime.now():
-                timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
-                if timedelta > 0 and timedelta < 3:
-                    return True
-        return False
+    # def isCloseToMonthlyExpired(self, tenant, region_name):
+    #     tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
+    #     if len(tenant_region_pay_list) == 0:
+    #         return False
+    #     tag = 1
+    #     for pay_model in tenant_region_pay_list:
+    #         if pay_model.buy_end_time > datetime.datetime.now():
+    #             timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
+    #             if timedelta > 0 and timedelta < 3:
+    #                 return True
+    #     return False
 
 
 class TenantRegionService(object):

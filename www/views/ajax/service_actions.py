@@ -53,7 +53,7 @@ class AppDeploy(AuthedView):
             data["status"] = "owed"
             return JsonResponse(data, status=200)
 
-        if tenantAccountService.isExpired(self.tenant):
+        if tenantAccountService.isExpired(self.tenant, self.service):
             data["status"] = "expired"
             return JsonResponse(data, status=200)
 
@@ -133,7 +133,7 @@ class ServiceManage(AuthedView):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
 
-        if tenantAccountService.isExpired(self.tenant):
+        if tenantAccountService.isExpired(self.tenant,self.service):
             result["status"] = "expired"
             return JsonResponse(result, status=200)
 
@@ -310,7 +310,7 @@ class ServiceUpgrade(AuthedView):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
 
-        if tenantAccountService.isExpired(self.tenant):
+        if tenantAccountService.isExpired(self.tenant,self.service):
             result["status"] = "expired"
             return JsonResponse(result, status=200)
 

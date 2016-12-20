@@ -153,9 +153,9 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
 
-            if tenantAccountService.isExpired(self.tenant):
-                result["status"] = "expired"
-                return JsonResponse(result, status=200)
+            # if tenantAccountService.isExpired(self.tenant,self.service):
+            #     result["status"] = "expired"
+            #     return JsonResponse(result, status=200)
             service_configs = request.POST.get("service_configs", "")
             service_configs = self.json_loads(service_configs)
             compose_group_name = request.POST.get("compose_group_name","")

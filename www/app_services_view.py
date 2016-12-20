@@ -7,7 +7,8 @@ from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import JsonResponse
 
-from www.models.main import ServiceGroupRelation
+from share.manager.region_provier import RegionProviderManager
+from www.models.main import ServiceGroupRelation, ServiceAttachInfo
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -19,6 +20,7 @@ from www.utils.crypt import make_uuid
 from django.conf import settings
 from www.servicetype import ServiceType
 from www.utils import sn
+import datetime
 
 logger = logging.getLogger('default')
 
@@ -29,7 +31,7 @@ tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 codeRepositoriesService = CodeRepositoriesService()
 tenantRegionService = TenantRegionService()
-
+rpmManager = RegionProviderManager()
 
 class AppCreateView(LeftSideBarMixin, AuthedView):
 
@@ -37,7 +39,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js','www/js/app-create.js')
+            'www/js/respond.min.js')
         return media
 
     @never_cache
@@ -59,6 +61,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
         try:
             type = request.GET.get("type", "gitlab_new")
+            if type not in("gitlab_new","gitlab_manual","github","gitlab_exit","gitlab_demo",):
+                type = "gitlab_new"
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"
             request.session["app_tenant"] = self.tenantName
@@ -70,6 +74,16 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             context["is_private"] = sn.instance.is_private()
             response.delete_cookie('app_status')
             response.delete_cookie('app_an')
+
+            regionBo = rpmManager.get_work_region_by_name(self.tenant.tenant_name)
+            context['pre_paid_memory_price'] = regionBo.memory_package_price
+            context['post_paid_memory_price'] = regionBo.memory_trial_price
+            context['pre_paid_disk_price'] = regionBo.disk_package_price
+            context['post_paid_disk_price'] = regionBo.disk_trial_price
+            context['post_paid_net_price'] = regionBo.net_trial_price
+            # 是否为免费租户
+            context['is_tenant_free'] = (self.tenant.pay_type == "free")
+
         except Exception as e:
             logger.exception(e)
         return response
@@ -93,9 +107,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 data["status"] = "owed"
                 return JsonResponse(data, status=200)
 
-            if tenantAccountService.isExpired(self.tenant):
-                data["status"] = "expired"
-                return JsonResponse(data, status=200)
+            # if tenantAccountService.isExpired(self.tenant,self.service):
+            #     data["status"] = "expired"
+            #     return JsonResponse(data, status=200)
 
             service_desc = ""
             service_cname = request.POST.get("create_app_name", "")
@@ -109,6 +123,12 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 return JsonResponse(data, status=200)
             # get base service
             service = ServiceInfo.objects.get(service_key="application")
+            # 根据页面参数获取节点数和每个节点的内存大小
+            min_memory = int(request.POST.get("service_min_memory", 128))
+            min_node= int(request.POST.get("service_min_node", 1))
+            service.min_memory = min_memory
+            service.min_node = min_node
+
             # create console tenant service
             # num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
             # if num > 0:
@@ -130,6 +150,21 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 return JsonResponse(data, status=200)
 
             service_alias = "gr"+service_id[-6:]
+            # save service attach info
+            memory_pay_method = request.POST.get("memory_pay_method", "prepaid")
+            disk_pay_method = request.POST.get("disk_pay_method", "prepaid")
+            pre_paid_period = int(request.POST.get("disk_pay_method", 1))
+            pre_paid_money = int(request.POST.get("disk_pay_method", 0))
+            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            ServiceAttachInfo.objects.create(tenant_id=tenant_id,
+                                             service_id=service_id,
+                                             memory_pay_method=memory_pay_method,
+                                             disk_pay_method=disk_pay_method,
+                                             pre_paid_period=pre_paid_period,
+                                             pre_paid_money=pre_paid_money,
+                                             create_time=create_time)
+
+
             # create console service
             service.desc = service_desc
             newTenantService = baseService.create_service(

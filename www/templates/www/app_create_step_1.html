@@ -197,11 +197,19 @@
         </div>
         <form id="commentForm" method="post" action="" novalidate="novalidate">
             <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
-            <input type="hidden" id="service_code_from" name="service_code_from" value="gitlab_new">
+            <input type="hidden" id="service_code_from" name="service_code_from" value="{{cur_type}}">
             <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
             <input type="hidden" id="service_code_version" name="service_code_version" value="">
             <input type="hidden" id="service_code_id" name="service_code_id" value="">
-			<!-- 基本信息  start-->
+            <!--单价信息-->
+            <input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price" value="{{pre_paid_memory_price}}">
+            <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price" value="{{post_paid_memory_price}}">
+            <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price" value="{{pre_paid_disk_price}}">
+            <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price" value="{{post_paid_disk_price}}">
+            <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
+			<!--是否为付费用户-->
+            <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
+            <!-- 基本信息  start-->
 			<div class="infor-fm-box">
 				<h4 class="step-tit">基本信息</h4>
 				<div class="fm-input-text clearfix">
@@ -283,7 +291,7 @@
                             <option value="-1" data="-1">请先选择项目</option>
                         </Select>
                     </div>
-                </select>
+                </section>
                 	{% endif %}
                 {% endif %}
                 <!--  04 好雨Git已有项目 end-->
