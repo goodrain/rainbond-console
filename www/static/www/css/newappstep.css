@@ -17,7 +17,7 @@ body{background: #f0f5f8;}
 .app-step p{width: 25%; float: left; height: 80px; text-align: center;}
 .app-step p span,.app-step p cite{display: inline-block;}
 .app-step p span{background: #c7c7c7; width: 36px; height: 36px;  font-size: 24px; line-height: 36px; text-align: center; -moz-border-radius:36px; -webkit-border-radius:36px; border-radius:36px; color: #fff;}
-.app-step p cite{width: 100%; text-align: center; color: #838383; font-size: 16px; line-height: 1; padding-top: 26px;}
+.app-step p cite{width: 100%; text-align: center; color: #838383; font-size: 16px; line-height: 1; padding-top: 10px;}
 .app-step p.sed span{background: #00d777;}
 .app-step p.sed cite{color: #00d777;}
 .step-tit{color: #838383; font-size:18px; text-align: center;}
@@ -47,27 +47,27 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .infor-fm-box{ padding: 10px 0; }
 .fm-input-text,.fm-select,.fm-input-radio,.fm-input-range,.fm-text,.fm-choose-box,.fm-money,.fm-btn,.code-box,.fm-aft-money{padding:10px 0 0; max-width:80%; margin: 0 auto;}
 .infor-fm-box label{width: 140px; color: #838383; font-size: 14px; float: left; display: inline-block; text-align: right; margin-right:10px; line-height: 30px; font-weight: 100;}
-.fm-input-text input{width:60%; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px;}
-.fm-select select{width:60%; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px; background: #fff; -moz-border-radius:0; -webkit-border-radius:0; border-radius: 0;}
+.fm-input-text input{width:70%; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px;}
+.fm-select select{width:70%; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px; background: #fff; -moz-border-radius:0; -webkit-border-radius:0; border-radius: 0;}
 .fm-input-radio input{float: left; display: none;}
 .fm-input-radio label.radio-bg{width:16px; height: 16px; background: url('../images/radio.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
 .fm-input-radio input:checked + label.radio-bg{width:16px; height: 16px; background: url('../images/radiochecked.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:7px 5px 0 0;}
 .fm-input-radio label.radio-text{text-align: left; width:auto; color: #303030;}
 
-.code-box p{float: left; width: 60%;}
+.code-box p{float: left; width: 70%;}
 .code-box p span{color: #838383; font-size: 12px; line-height: 20px; padding:4px 0 0 0; display: block;} 
 .code-box p cite{color: #303030; font-size: 14px; line-height: 20px; display: block; word-break:break-all; border:1px #d5d5d5 dashed; padding:5px;}
 .mark-box{width: 2px; height: 30px; position: relative; float: left;}
 .mark-icon{width: 13px; height: 13px; background: url('../images/markicon.png')no-repeat; background-size: 13px 13px; display: block;}
 
 
-.fm-input-range input{width: 220px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
-.fm-input-range span{width: 80px; float: left; display: inline-block; font-size: 14px; line-height: 30px; padding-left: 5px; color: #303030;}
+.fm-input-range input{width: 100%; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range span{width: 20%; float: left; display: inline-block; font-size: 14px; line-height: 30px; padding-left: 5px; color: #303030;}
 
 
 .fm-text span{ color: #303030; font-size: 14px; float: left; display: inline-block; text-align: left; line-height: 30px;}
 
-.btn-cho-box{width: 60%; display: block; float: left; margin-bottom: 0;}
+.btn-cho-box{width:70%; display: block; float: left; margin-bottom: 0;}
 .btn-cho-box  a{display: inline-block; color:#28cb75; background:#fff url('../images/btnchoright.png') no-repeat right 1px bottom 1px; background-size:15px 15px; border:1px #28cb75 solid; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px;  height: 28px; line-height: 28px; text-align: center; margin:0 10px 10px 0; float: left; padding:0 20px;}
 .btn-cho-box  a.sed{color: #fff; background: #28cb75; border:1px #28cb75 solid;}
 
@@ -80,8 +80,8 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .greenbtn{background: #28cb75; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; }
 .greenbtn:hover{color: #fff;}
 
-.fm-input-range .range-box{width: 220px; height: 26px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
-.fm-input-range .range-box .renge-bg{width: 220px; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
+.fm-input-range .range-box{width: 60%; height: 26px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
+.fm-input-range .range-box .renge-bg{width: ; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
 .fm-input-range .range-box .range-choose{width:220px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
 .fm-input-range .range-box .range-choose cite{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; display: block;}
 
@@ -90,7 +90,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .fm-input-range  .range-box.nouser02 input{width:24px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
 .fm-input-range  .range-box.nouser02 .range-choose{width:24px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
 
-.fm-tips{color: #ea1616; max-width: 500px; margin: 0 auto; line-height: 20px; text-indent: 160px; display:none;}
+.fm-tips{color: #ea1616; max-width:80%; margin: 0 auto; line-height: 20px; text-indent: 150px; display:none;}
 
 
 #waiting{max-width:80%; margin: 0 auto; text-indent: 160px;}
