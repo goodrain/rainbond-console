@@ -280,7 +280,7 @@ $(function(){
                         listWrap = $("#code_github_list");
                         if(htmlmsg){
                             $("#waiting").hide();
-                            $("Githubbox").show();
+                            $("#Githubbox").show();
                             $(listWrap).html(htmlmsg);
                         }
                     }else{
