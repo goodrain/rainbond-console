@@ -506,14 +506,14 @@ $(function(){
                 "service_code_from":myWay,
                 "service_code_clone_url" : code_url,
                 "code_id" : code_id,
-                "code_branch" : code_branch,
-                "code_branch_id" : code_branch_id,
-                "memory_onoff" : memory_onoff,
-                "disk_onoff" : disk_onoff,
-                "memory_num" : memory_num,
-                "node_num" : node_num,
+                "service_code_version" : code_branch,
+                "service_code_id" : code_branch_id,
+                "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
+                "disk_pay_method" : disk_onoff ? "prepaid":"postpaid",
+                "service_min_memory" : memory_num,
+                "service_min_node" : node_num,
                 "disk_num" : disk_num,
-                "time_num" : time_num
+                "pre_paid_period" : time_num
             },
             cache : false,
             beforeSend : function(xhr, settings) {

@@ -2,6 +2,7 @@
 import logging
 import json
 
+from dateutil import relativedelta
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
@@ -153,15 +154,23 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             # save service attach info
             memory_pay_method = request.POST.get("memory_pay_method", "prepaid")
             disk_pay_method = request.POST.get("disk_pay_method", "prepaid")
-            pre_paid_period = int(request.POST.get("disk_pay_method", 1))
+            pre_paid_period = int(request.POST.get("pre_paid_period", 1))
             pre_paid_money = int(request.POST.get("disk_pay_method", 0))
+            disk = int(request.POST.get("disk_num") , 0)
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+            endTime = datetime.datetime.now() + relativedelta(months=int(pre_paid_period))
             ServiceAttachInfo.objects.create(tenant_id=tenant_id,
                                              service_id=service_id,
                                              memory_pay_method=memory_pay_method,
                                              disk_pay_method=disk_pay_method,
+                                             min_memory=min_memory,
+                                             min_node=min_node,
+                                             disk=disk,
                                              pre_paid_period=pre_paid_period,
                                              pre_paid_money=pre_paid_money,
+                                             buy_start_time=startTime,
+                                             buy_end_time=endTime,
                                              create_time=create_time)
 
 
