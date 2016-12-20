@@ -174,14 +174,14 @@ $(function(){
         FnPrice();
     });
     $("#MoneyAfter").change(function(){
-        console.log(1);
+        
         var onoff = $("#MoneyAfter").prop("checked");
         if(onoff == false){
             //$(".fn-memory-node").show();
-            $("#aft-memory-box").show();
+            $("#aft-memory-box").hide();
         }else{
             //$(".fn-memory-node").hide();
-            $("#aft-memory-box").hide();
+            $("#aft-memory-box").show();
         }
         FnPrice();
     });
@@ -200,10 +200,10 @@ $(function(){
         var onoff = $("#After").prop("checked");
         if(onoff == false){
             $(".fn-disk").show();
-            $("#aft-disk-box").show();
+            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").hide();
+            $("#aft-disk-box").show();
         }
         FnPrice();
     });
