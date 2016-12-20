@@ -113,7 +113,7 @@
 					{% if 'manage_service' in user.actions %}
 					<li class="button">
 						<input type="hidden" id="service_status_value" name="service_status_value" value="" />
-						<button type="button" class="bgColor btn-danger" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
+						<button type="button" class="bgColor" style="background-color: #FF6C61" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
 					</li>
 					{% endif %}
 
