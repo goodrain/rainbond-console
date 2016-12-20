@@ -635,6 +635,14 @@ $(function(){
 
     });
 
+    
+    //tips
+    $(".fn-tips").mouseup(function(){
+        var text = $(this).attr("")
+    });
+    $(".fn-tips").mouseout(function(){
+        
+    });
 
 })
 
