@@ -76,7 +76,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             response.delete_cookie('app_status')
             response.delete_cookie('app_an')
 
-            regionBo = rpmManager.get_work_region_by_name(self.tenant.tenant_name)
+            regionBo = rpmManager.get_work_region_by_name(self.response_region)
             context['pre_paid_memory_price'] = regionBo.memory_package_price
             context['post_paid_memory_price'] = regionBo.memory_trial_price
             context['pre_paid_disk_price'] = regionBo.disk_package_price
