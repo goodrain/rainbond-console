@@ -83,16 +83,16 @@
 							{% ifequal tenantServiceInfo.service_type "mysql" %}
 								{% if service_manager.deployed %}
 									{% if 'manage_service' in user.actions %}
-									<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');">管理</button>
+									<button type="button" class="bgColor" id="service_visitor" onclick="window.open('{{service_manager.url}}');">管理</button>
 									{% endif %}
 								{% else %}
 									{% if 'manage_service' in user.actions %}
-									<button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');">添加管理服务</button>
+									<button type="button" class="bgColor" id="service_visitor" onclick="window.open('{{service_manager.url}}');">添加管理服务</button>
 									{% endif %}
 								{% endif %}
 							{% endifequal %}
 							{% if updateService %}
-							<button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" >服务更新</button>
+							<button type="button" class="bgColor" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" >服务更新</button>
 							{% endif %}
 					</li>
 				</ul>
