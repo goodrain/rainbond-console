@@ -43,52 +43,53 @@
 		<div class="alternative clearfix">
 			<div class="alterLeft">
 				<ul class="clearfix">
+					<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">
 					{% if hasHttpServices %}
-					<li class="button">
-						<div class="btn-group">
-							<!--<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">-->
-							<!--访问 <span class="caret"></span>-->
-							<!--</button>-->
-							<!--<ul class="dropdown-menu" role="menu">-->
-							<!--<li><a href="#">链接1</a></li>-->
-							<!--<li><a href="#">链接2</a></li>-->
-							<!--<li><a href="#">链接3</a></li>-->
-							<!--<li><a href="#">链接4</a></li>-->
-							<!--</ul>-->
-							<button type="button" style="background-color: #FFFFFF" class="btn dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
-						</div>
-					</li>
-					{% if visit_port_type == "multi_outer" %}
-					{% if http_outer_service_ports|length == 1 %}
-					<li class="button">
-						<select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">
+						<li class="button">
+							<div class="btn-group">
+								<!--<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">-->
+								<!--访问 <span class="caret"></span>-->
+								<!--</button>-->
+								<!--<ul class="dropdown-menu" role="menu">-->
+								<!--<li><a href="#">链接1</a></li>-->
+								<!--<li><a href="#">链接2</a></li>-->
+								<!--<li><a href="#">链接3</a></li>-->
+								<!--<li><a href="#">链接4</a></li>-->
+								<!--</ul>-->
+								<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
+							</div>
+						</li>
+						{% if visit_port_type == "multi_outer" %}
+							{% if http_outer_service_ports|length == 1 %}
+								<li class="button">
+								<select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">
 							{% else %}
-							<select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
-								{% endif %}
-								{% for port in http_outer_service_ports %}
+								<select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
+							{% endif %}
+							{% for port in http_outer_service_ports %}
 								{% if port.container_port == serviceDomain.container_port %}
 								<option value="{{ port.container_port }}"
 									selected="selected">{{ port.container_port }}</option>
 								{% else %}
 								<option value="{{ port.container_port }}">{{ port.container_port }}</option>
 								{% endif %}
-								{% endfor %}
+							{% endfor %}
 
 							</select>
-							{%endif%}
+						{%endif%}
 
-							{% endif  %}
+					{% endif  %}
 
 							{% ifequal tenantServiceInfo.service_type "mysql" %}
-							{% if service_manager.deployed %}
-							{% if 'manage_service' in user.actions %}
-							<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>
-							{% endif %}
-							{% else %}
-							{% if 'manage_service' in user.actions %}
-							<button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>添加管理服务</button>
-							{% endif %}
-							{% endif %}
+								{% if service_manager.deployed %}
+									{% if 'manage_service' in user.actions %}
+									<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>
+									{% endif %}
+								{% else %}
+									{% if 'manage_service' in user.actions %}
+									<button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>添加管理服务</button>
+									{% endif %}
+								{% endif %}
 							{% endifequal %}
 							{% if updateService %}
 							<button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i>服务更新</button>
@@ -101,7 +102,7 @@
 					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
 					<li class="button">
 						<div class="btn-group">
-							<button type="button" name="join_container" style="background-color: #ffffff" class="btn dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
+							<button type="button" name="join_container" class="bgColor dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
 							<ul class="dropdown-menu" role="menu" style="left: -65px;" id="cur_container_content">
 								<!--<li><a href="#">节点1</a></li>-->
 							</ul>
@@ -117,9 +118,6 @@
 					</li>
 					{% endif %}
 
-					<!--<li class="button">-->
-						<!--<button class="bgColor">关闭</button>-->
-					<!--</li>-->
 					<!--<li class="button">-->
 						<!--<button class="bgColor">重启</button>-->
 					<!--</li>-->
@@ -163,13 +161,13 @@
                 </div>
                  -->
 	<!--</div>-->
-	<div class="row">
-		<div class="col-lg-12">
-			<section class="panel text-left">
+	<!--<div class="row">-->
+		<!--<div class="col-lg-12">-->
+			<!--<section class="panel text-left">-->
 				<!--<header class="panel-heading">控制</header>-->
-				<div class="panel-body">
-					<div class="row">
-						<div class="col-xs-8 text-left">
+				<!--<div class="panel-body">-->
+					<!--<div class="row">-->
+						<!--<div class="col-xs-8 text-left">-->
 							<!--{% ifequal tenantServiceInfo.category "application" %}-->
 							<!--{% if user.is_sys_admin %}-->
 							<!--<button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>-->
@@ -181,7 +179,7 @@
 
 							<!--{% endifequal %}-->
 
-							<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">
+							<!--<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">-->
 							<!--{% if hasHttpServices %}-->
 							<!--<button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>-->
 							<!--{% if visit_port_type == "multi_outer" %}-->
@@ -229,18 +227,18 @@
 								<!--</div>-->
 								<!--{% endif %}-->
 								<!-- -->
-						</div>
+						<!--</div>-->
 						<!--{% if 'manage_service' in user.actions %}-->
 						<!--<div class="col-xs-4 text-right">-->
 							<!--<input type="hidden" id="service_status_value" name="service_status_value" value="" />-->
 							<!--<button type="button" class="btn btn-danger" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>-->
 						<!--</div>-->
 						<!--{% endif %}-->
-					</div>
-				</div>
-			</section>
-		</div>
-	</div>
+					<!--</div>-->
+				<!--</div>-->
+			<!--</section>-->
+		<!--</div>-->
+	<!--</div>-->
 	<!--
         {% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
         <div class="row">
