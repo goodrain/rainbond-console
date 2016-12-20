@@ -68,6 +68,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             context["app_an"] = app_an
             context["cur_type"] = type
             context["is_private"] = sn.instance.is_private()
+            context["cloud_assistant"] = sn.instance.cloud_assistant()
             response.delete_cookie('app_status')
             response.delete_cookie('app_an')
         except Exception as e:
