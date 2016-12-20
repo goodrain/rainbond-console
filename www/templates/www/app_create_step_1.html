@@ -230,7 +230,7 @@
                 {% if cur_type == "gitlab_manual" %}
                 <span style="display: none"; data-action="gitlab_manual" class="fn-way"></span>
                 <div class="fm-input-text clearfix">
-                    <label>代码源:</label><input type="text" name="" value="" placeholder="请输入一个公开项目的Git地址"  id="service_code_url" />
+                    <label>代码源</label><input type="text" name="" value="" placeholder="请输入一个公开项目的Git地址"  id="service_code_url" />
                 </div>
                 <p class="fm-tips" id="service_code_url_tips">代码仓库地址不能为空！</p>
                 {% endif %}
@@ -280,7 +280,7 @@
                 <p id="waiting">仓库连接中，请稍候......</p>
                 <section id="gitlabbox">
                     <div class="fm-select clearfix">
-                        <label>好雨Git项目:</label>
+                        <label>好雨Git项目</label>
                         <select id="code_gr_list">
                             <option value="-1" data="-1">请选择一个项目</option>
                         </Select>
@@ -311,7 +311,7 @@
                     </Select>
                 </div>
                 <div class="fm-select clearfix">
-                    <label>版本:</label>
+                    <label>版本</label>
                     <select id="Demobranch">
                         <option value="master">master</option>
                     </Select>
@@ -336,7 +336,7 @@
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node">
                     <label>单节点内存</label>
-                    {% if is_tenant_free" %}
+                    {% if is_tenant_free %}
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
@@ -376,14 +376,14 @@
                 </div>
                 <!-- 02 -->
                 <div class="fm-choose-box clearfix">
-                    <label>应用存储:</label>
+                    <label>应用存储</label>
                     <p class="btn-cho-box clearfix">
                         <a href="javascript:;">分布式存储</a>
                         <a href="javascript:;">SSD</a>
                     </p>
                 </div>
                 <div class="fm-input-radio clearfix">
-                    <label>使用方法:</label>
+                    <label>使用方法</label>
                     <input type="radio" name="Disk" value="DiskBefore" id="DiskBefore" checked="true" />
                     <label class="radio-bg" for="DiskBefore"></label>
                     <label for="DiskBefore" class="radio-text">预付费提前采购</label>
@@ -393,7 +393,7 @@
                     <a class="mark-box"><span class="mark-icon"></span></a>
                 </div>
                 <div class="fm-input-range clearfix fn-disk" style="padding-bottom:30px;">
-                    <label>磁盘:</label>
+                    <label>磁盘</label>
                     {% if is_tenant_free %}
                     <p class="range-box">
                         <span class="renge-bg"></span>
@@ -414,7 +414,7 @@
                 </div>
                 <!-- 03 -->
                 <div class="fm-input-radio clearfix" style="padding-bottom:30px;">
-                    <label>流量:</label>
+                    <label>流量</label>
                     <input type="radio" name="flow" value="flow" id="flow" checked="true" />
                     <label class="radio-bg" for="flow"></label>
                     <label class="radio-text" for="flow">按使用后付费</label>
@@ -427,7 +427,7 @@
                 -->
                 <!-- 04 -->
                 <div class="fm-choose-box clearfix">
-                    <label>部署支持:</label>
+                    <label>部署支持</label>
                     <p class="btn-cho-box clearfix">
                         <a href="javascript:;">一键部署</a>
                         <a href="javascript:;">一键回滚</a>
@@ -435,7 +435,7 @@
                     </p>
                 </div>
                 <div class="fm-choose-box clearfix">
-                    <label>资源支持:</label>
+                    <label>资源支持</label>
                     <p class="btn-cho-box clearfix">
                         <a href="javascript:;">独立资源</a>
                         <a href="javascript:;">负载均衡</a>
@@ -445,7 +445,7 @@
                     </p>
                 </div>
                 <div class="fm-choose-box clearfix">
-                    <label>日志监控:</label>
+                    <label>日志监控</label>
                     <p class="btn-cho-box clearfix">
                         <a href="javascript:;">性能分析／告警</a>
                         <a href="javascript:;">业务监控／告警</a>
@@ -458,7 +458,7 @@
             <div class="infor-fm-box" style="border-bottom: 0 none;">
                 <h4 class="step-tit">费用估算</h4>
                 <div class="fm-input-range clearfix">
-                    <label>预付费项目购买时长:</label>
+                    <label>预付费项目购买时长</label>
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="TimeLongWid"></cite></span>
@@ -467,11 +467,11 @@
                     <span><cite id="TimeLongText">1</cite>个月</span>    
                 </div>
                 <div class="fm-money clearfix">
-                    <label>预付费总费用:</label>
+                    <label>预付费总费用</label>
                     <span><cite id="need-money">123.00</cite>元</span>
                 </div>
                 <div class="fm-aft-money clearfix">
-                    <label>按使用后付费:</label>
+                    <label>按使用后付费</label>
                     <p><span id="aft-memory-box" style="display: none;">内存<cite id="aft-memory"></cite>元／GB／小时；</span><span id="aft-disk-box">磁盘<cite id="aft-disk"></cite>元／GB／小时；</span><span id="aft-net-box">流量<cite id="aft-net"></cite>元／GB／小时</span></p>
                 </div>
                 <div class="fm-btn clearfix">
