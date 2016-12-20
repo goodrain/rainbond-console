@@ -20,7 +20,7 @@ body{background: #f0f5f8;}
 .app-step p cite{width: 100%; text-align: center; color: #838383; font-size: 16px; line-height: 1; padding-top: 26px;}
 .app-step p.sed span{background: #00d777;}
 .app-step p.sed cite{color: #00d777;}
-.step-tit{color: #303030; font-size:18px; text-align: center;}
+.step-tit{color: #838383; font-size:18px; text-align: center;}
 
 
 /* from start */
@@ -44,9 +44,9 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 /* 滑块  end */
 
-.infor-fm-box{border-bottom: 1px #ececec solid; padding: 10px 0; }
+.infor-fm-box{ padding: 10px 0; }
 .fm-input-text,.fm-select,.fm-input-radio,.fm-input-range,.fm-text,.fm-choose-box,.fm-money,.fm-btn,.code-box,.fm-aft-money{padding:10px 0 0; max-width: 500px; margin: 0 auto;}
-.infor-fm-box label{width: 140px; color: #303030; font-size: 14px; float: left; display: inline-block; text-align: right; margin-right:20px; line-height: 30px;}
+.infor-fm-box label{width: 140px; color: #838383; font-size: 14px; float: left; display: inline-block; text-align: right; margin-right:20px; line-height: 30px; font-weight: 100;}
 .fm-input-text input{width:330px; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px;}
 .fm-select select{width:330px; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px; background: #fff; -moz-border-radius:0; -webkit-border-radius:0; border-radius: 0;}
 .fm-input-radio input{float: left; display: none;}

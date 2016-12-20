@@ -217,7 +217,7 @@
                 </div>
                 <p class="fm-tips" id="create_name_notice">请输入应用名！</p>
                 <div class="fm-select clearfix">
-                    <label>选择分组:</label>
+                    <label>选择分组</label>
                     <select id="group-name" name="select_group_id">
                         <option value="-1">未分组</option>
                         {% for group in groupList %}
@@ -239,11 +239,11 @@
                 {% if cur_type == "gitlab_new" %}
                 <span style="display: none"; data-action="gitlab_new" class="fn-way"></span>
                 <div class="fm-input-text clearfix">
-                    <label>自建Git:</label><input type="text" name="" value="" placeholder="请输入一个自建Git的代码仓库地址" id="my_git_url" />
+                    <label>自建Git</label><input type="text" name="" value="" placeholder="请输入一个自建Git的代码仓库地址" id="my_git_url" />
                 </div>
                 <p class="fm-tips" id="my_git_url_tips">代码仓库地址不能为空！</p>
                 <div class="code-box clearfix">
-                     <label>使用提示:</label>
+                     <label>使用提示</label>
                      <p>
                         <span>自建Git,请将将下列内容添加到git用户的ssh列表中,授权平台获取您的代码:</span>
                         <cite>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1 builder</cite>
@@ -258,13 +258,13 @@
                 <p id="waiting">仓库连接中，请稍候......</p>
                 <section id="Githubbox">
                     <div class="fm-select clearfix">
-                        <label>Github项目:</label>
+                        <label>Github项目</label>
                         <select id="code_github_list">
                             <option value="-1" data="-1">请选择一个项目</option>
                         </Select>
                     </div>
                     <div class="fm-select clearfix">
-                        <label>版本:</label>
+                        <label>版本</label>
                         <select id="gh_branch">
                             <option value="-1" data="-1">请先选择项目</option>
                         </Select>
@@ -286,7 +286,7 @@
                         </Select>
                     </div>
                     <div class="fm-select clearfix" id="gr_branchbox">
-                        <label>版本:</label>
+                        <label>版本</label>
                         <select id="gr_branch">
                             <option value="-1" data="-1">请先选择项目</option>
                         </Select>
@@ -299,7 +299,7 @@
                 {% if cur_type == "gitlab_demo" %}
                 <span style="display: none"; data-action="gitlab_demo" class="fn-way"></span>
                 <div class="fm-select clearfix">
-                    <label>Demo:</label>
+                    <label>Demo</label>
                     <select id="Democode">
                         <option value="http://code.goodrain.com/demo/2048.git">http://code.goodrain.com/demo/2048.git</option>
                         <option value="http://code.goodrain.com/demo/static-hello.git">http://code.goodrain.com/demo/static-hello.git</option>
@@ -325,7 +325,7 @@
                 <h4 class="step-tit">配套信息</h4>
                 <!-- 01 -->
                 <div class="fm-input-radio clearfix">
-                    <label>应用内存:</label>
+                    <label>应用内存</label>
                     <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
                     <label class="radio-bg" for="MoneyBefore"></label>
                     <label for="MoneyBefore" class="radio-text">预付费提前采购</label>
@@ -335,8 +335,8 @@
                     <a class="mark-box"><span class="mark-icon"></span></a>
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node">
-                    <label>单节点内存:</label>
-                    {% if cur_type == "is_tenant_free" %}
+                    <label>单节点内存</label>
+                    {% if is_tenant_free" %}
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
@@ -355,8 +355,8 @@
                     <span><cite id="OneMemoryText">128M</cite></span>
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node" style="padding-bottom:30px;">
-                    <label>节点数:</label>
-                    {% if cur_type == "is_tenant_free" %}
+                    <label>节点数</label>
+                    {% if is_tenant_free %}
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="NodeWid"></cite></span>
@@ -394,7 +394,7 @@
                 </div>
                 <div class="fm-input-range clearfix fn-disk" style="padding-bottom:30px;">
                     <label>磁盘:</label>
-                    {% if cur_type == "is_tenant_free" %}
+                    {% if is_tenant_free %}
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="DiskWid"></cite></span>
