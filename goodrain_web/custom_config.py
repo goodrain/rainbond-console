@@ -1,18 +1,43 @@
-import time
-import random
 import json
-from addict import Dict
 from django.conf import settings as base_settings
 from cadmin.models.main import ConsoleSysConfig
+from goodrain_web.memcachedclient import MemcachedCli
 
 import logging
 
 logger = logging.getLogger('default')
 
-class ConfigCenter(object):
-    objects = {}
+mcli = MemcachedCli()
 
+configKey = "SYS_C_F_K"
+
+class ConfigCenter(object):
+        
     def __init__(self):
+        self.loadfromDB()
+
+    def __getattr__(self, name):
+        if name in self.configs():
+            return self.configs()[name]
+        else:
+            if hasattr(base_settings, name):
+                return getattr(base_settings, name)
+            else:
+                return None
+
+    def configs(self):
+        result = mcli.getKey(configKey)
+        if result is not None:
+            # logger.info("from " + result)
+            return json.loads(result)
+        else:
+            return self.loadfromDB()
+
+    def reload(self):
+        mcli.setKey(configKey, json.dumps(self.loadfromDB()))
+
+    def loadfromDB(self):
+        objects = {}
         configs = ConsoleSysConfig.objects.all()
         for config in configs:
             if config.type == "int":
@@ -29,44 +54,9 @@ class ConfigCenter(object):
                     c_value = json.loads(config.value)
             else:
                 c_value = config.value
-
-            self.objects[config.key] = c_value
-
-    def __getattr__(self, name):
-        if name in self.objects:
-            return self.objects[name]
-        else:
-            if hasattr(base_settings, name):
-                return getattr(base_settings, name)
-            else:
-                return None
-
-    def configs(self):
-        #logger.info(id(self))
-        #logger.info(self.objects)
-        return self.objects
-
-    def reload(self):
-        configs = ConsoleSysConfig.objects.all()
-        self.objects = {}
-        for config in configs:
-            c_value = ""
-            if config.type == "int":
-                c_value = int(config.value)
-            elif config.type == "list":
-                c_value = eval(config.value)
-            elif config.type == "boolean":
-                if config.value == "0":
-                    c_value = False
-                else:
-                    c_value = True
-            elif config.type == "json":
-                if config.value is not None and config.value != "":
-                    c_value = json.loads(config.value)
-            else:
-                c_value = config.value
-            if c_value != "":
-                self.objects[config.key] = c_value
-
+                
+            objects[config.key] = c_value
+        mcli.setKey(configKey, json.dumps(objects))
+        return objects
 
 custom_config = ConfigCenter()

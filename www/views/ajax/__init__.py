@@ -5,6 +5,15 @@ from code_actions import *
 from graph import ServiceGraph
 from valid import FormValidView
 from service_market import *
+from service_monitor import *
+from service_group import *
+from service_group_actions import *
 
-__all__ = ('ServiceIdentity', 'InviteServiceUser', 'TenantIdentity', 'InviteTenantUser', 'FormValidView', 'ServiceGraph'
-           , 'RemoteServiceMarketAjax')
+__all__ = ('ServiceIdentity',
+           'InviteServiceUser',
+           'TenantIdentity',
+           'InviteTenantUser',
+           'FormValidView',
+           'ServiceGraph',
+           'RemoteServiceMarketAjax',
+           'TopologicalGraphView')

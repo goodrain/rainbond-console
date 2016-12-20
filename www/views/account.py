@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 from django.conf import settings
+from django.http.response import HttpResponseRedirect
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
@@ -61,7 +62,8 @@ class Login(BaseView):
         if tenants_has:
             tenant_pk = tenants_has[0].tenant_id
             tenant = Tenants.objects.get(pk=tenant_pk)
-            tenant_name = tenant.tenant_name
+            response_tenant_name = self.request.COOKIES.get('tenant_name', None)
+            tenant_name = tenant.tenant_name if response_tenant_name is None else response_tenant_name
             return self.redirect_to('/apps/{0}/'.format(tenant_name))
         else:
             logger.error('account.login_error', 'user {0} with id {1} has no tenants to redirect login'.format(
@@ -284,7 +286,10 @@ class Logout(BaseView):
             # 判断是否MicroMessenger
             if is_weixin(request):
                 return self.redirect_to("/wechat/logout")
-            return self.redirect_to(settings.LOGIN_URL)
+            response = HttpResponseRedirect(settings.LOGIN_URL)
+            response.delete_cookie('tenant_name')
+            return response
+            # return self.redirect_to(settings.LOGIN_URL)
 
     @never_cache
     def post(self, request, *args, **kwargs):
@@ -548,9 +553,9 @@ class Registation(BaseView):
                     if tenants_num == 0:
                         self.form.add_error("", "current version console only auth one tenant!")
                         return self.get_response()
-                # if tenants_num != 0:
-                    # logger.info("account.register", "private console only one tenant")
-                    # return self.get_response()
+                        # if tenants_num != 0:
+                        # logger.info("account.register", "private console only one tenant")
+                        # return self.get_response()
 
             user = Users(email=email, nick_name=nick_name,
                          phone=phone, client_ip=self.get_client_ip(request), rf=rf)
@@ -560,12 +565,12 @@ class Registation(BaseView):
 
             # 根据资源是否首先判断公有云、私有云注册
             # todo 暂时解决方案,后续需根据数据中心配置修改
-            
+
             expired_day = 7
             if hasattr(settings, "TENANT_VALID_TIME"):
                 expired_day = int(settings.TENANT_VALID_TIME)
             expire_time = datetime.datetime.now() + datetime.timedelta(days=expired_day)
-            
+
             if not is_private:
                 if settings.MODULES["Memory_Limit"]:
                     tenant = Tenants.objects.create(

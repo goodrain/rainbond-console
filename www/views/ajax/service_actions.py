@@ -4,6 +4,8 @@ import json
 import re
 
 from django.http import JsonResponse
+
+from www.models.main import ServiceGroupRelation
 from www.views import AuthedView
 from www.decorator import perm_required
 
@@ -41,7 +43,7 @@ class AppDeploy(AuthedView):
             TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
-            
+
     @method_perf_time
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
@@ -75,11 +77,11 @@ class AppDeploy(AuthedView):
             else:
                 data["status"] = "over_money"
             return JsonResponse(data, status=200)
-        
+
         # if docker set adapter env
         if self.service.language == "docker":
             self._saveAdapterEnv(self.service)
-            
+
         try:
             gitUrl = request.POST.get('git_url', None)
             if gitUrl is None:
@@ -104,7 +106,7 @@ class AppDeploy(AuthedView):
             body["operator"] = str(self.user.nick_name)
 
             envs = {}
-            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
+            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY","SBT_EXTRAS_OPTS"))
             for benv in buildEnvs:
                 envs[benv.attr_name] = benv.attr_value
             body["envs"] = json.dumps(envs)
@@ -264,6 +266,7 @@ class ServiceManage(AuthedView):
                 TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServicesPort.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
+                ServiceGroupRelation.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
@@ -682,23 +685,31 @@ class ServiceDomainManager(AuthedView):
                     result["status"] = "exist"
                     return JsonResponse(result)
 
-                num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).count()
+                # num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).count()
                 old_domain_name = "goodrain"
-                if num == 0:
-                    domain = {}
-                    domain["service_id"] = self.service.service_id
-                    domain["service_name"] = tenantService.service_alias
-                    domain["domain_name"] = domain_name
-                    domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    domain["container_port"] = int(container_port)
-                    domaininfo = ServiceDomain(**domain)
-                    domaininfo.save()
-                else:
-                    domain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
-                    old_domain_name = domain.domain_name
-                    domain.domain_name = domain_name
-                    domain.container_port = int(container_port)
-                    domain.save()
+                domain = {}
+                domain["service_id"] = self.service.service_id
+                domain["service_name"] = tenantService.service_alias
+                domain["domain_name"] = domain_name
+                domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                domain["container_port"] = int(container_port)
+                domaininfo = ServiceDomain(**domain)
+                domaininfo.save()
+                # if num == 0:
+                #     domain = {}
+                #     domain["service_id"] = self.service.service_id
+                #     domain["service_name"] = tenantService.service_alias
+                #     domain["domain_name"] = domain_name
+                #     domain["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                #     domain["container_port"] = int(container_port)
+                #     domaininfo = ServiceDomain(**domain)
+                #     domaininfo.save()
+                # else:
+                #     domain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
+                #     old_domain_name = domain.domain_name
+                #     domain.domain_name = domain_name
+                #     domain.container_port = int(container_port)
+                #     domain.save()
                 data = {}
                 data["service_id"] = self.service.service_id
                 data["new_domain"] = domain_name
@@ -708,14 +719,14 @@ class ServiceDomainManager(AuthedView):
                 regionClient.addUserDomain(self.service.service_region, json.dumps(data))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_add', True)
             elif action == "close":
-                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port)
+                servicerDomain = ServiceDomain.objects.get(service_id=self.service.service_id, container_port=container_port, domain_name=domain_name)
                 data = {}
                 data["service_id"] = servicerDomain.service_id
                 data["domain"] = servicerDomain.domain_name
                 data["pool_name"] = self.tenantName + "@" + self.serviceAlias + ".Pool"
                 data["container_port"] = int(container_port)
                 regionClient.deleteUserDomain(self.service.service_region, json.dumps(data))
-                ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port).delete()
+                ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=container_port, domain_name=domain_name).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'domain_delete', True)
             result["status"] = "success"
         except Exception as e:
@@ -954,21 +965,21 @@ class ServicePort(AuthedView):
             regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_outer', True)
             deal_port.save()
-            
+
             if action == 'close_outer' or action == 'open_outer':
-                # 检查服务已经存在对外端口
-                outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                                   is_outer_service=True).count()
-                cur_port_type="one_outer"
-                if outer_port_num > 1:
-                    cur_port_type="multi_outer"
-                self.service.port_type = cur_port_type
-                self.service.save()
-                
-                data1 = {"port": int(port)}
-                data1.update({"modified_field": "mult_port", "current_value": True, "port_type":cur_port_type})
-                regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data1))
-                
+                # 兼容旧的服务单端口
+                if self.service.port_type=="one_outer":
+                    # 检查服务已经存在对外端口
+                    outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                                       is_outer_service=True).count()
+                    if outer_port_num > 1:
+                        cur_port_type="multi_outer"
+                        self.service.port_type = cur_port_type
+                        self.service.save()
+
+                        data1 = {"port": int(port)}
+                        data1.update({"modified_field": "mult_port", "current_value": True, "port_type":cur_port_type})
+                        regionClient.manageServicePort(self.service.service_region, self.service.service_id, json.dumps(data1))
             return JsonResponse({"success": True, "info": u"更改成功"}, status=200)
         except Exception as e:
             logger.exception(e)
@@ -992,7 +1003,7 @@ class ServicePort(AuthedView):
                 domain = "{0}.{1}.{2}-s1.goodrain.net".format(self.service.service_alias, self.tenant.tenant_name, cur_region)
                 if settings.STREAM_DOMAIN_URL[service_region] != "":
                     domain = settings.STREAM_DOMAIN_URL[service_region]
-                    
+
                 data["outer_service"] = {
                     "domain": domain,
                     "port": body["port"],
@@ -1085,6 +1096,8 @@ class ServiceNewPort(AuthedView):
             port_inner = int(port_inner)
             port_outter = int(port_outter)
 
+            if port_port <= 0:
+                return JsonResponse({"success": False, "code": 400, "info": u"端口需大于零"})
             if port_inner != 0:
                 if not re.match(r'^[A-Z][A-Z0-9_]*$', port_alias):
                     return JsonResponse({"success": False, "code": 400, "info": u"别名不合法"})
@@ -1113,6 +1126,9 @@ class ServiceNewPort(AuthedView):
                 return JsonResponse({"success": False, "code": 409, "info": u"服务至少保留一个端口"})
 
             port_port = request.POST.get("port_port")
+            num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).count()
+            if num > 0:
+                return JsonResponse({"success": False, "code": 409, "info": u"请先解绑该端口绑定的域名"})
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
@@ -1264,3 +1280,22 @@ class ContainerStatsView(AuthedView):
         except Exception as e:
             logger.exception(e)
         return JsonResponse(data)
+
+
+class ServiceNameChangeView(AuthedView):
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        new_service_cname = request.POST.get("new_service_cname","")
+        service_alias = request.POST.get("service_alias")
+        result = {}
+        try:
+            if new_service_cname.strip() != "":
+                TenantServiceInfo.objects.filter(service_alias=service_alias,tenant_id=self.tenant.tenant_id).update(service_cname=new_service_cname)
+                result["ok"] = True
+                result["info"] = "修改成功"
+                result["new_service_cname"] = new_service_cname
+        except Exception as e:
+            logger.exception(e)
+            result["ok"] = False
+            result["info"] = "修改失败"
+        return JsonResponse(result)

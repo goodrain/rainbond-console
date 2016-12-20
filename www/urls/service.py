@@ -1,11 +1,15 @@
 from django.conf.urls import patterns, url
 
+from www.services_group_view import *
+from www.compose_service_view import ComposeServiceDeploy, ComposeServiceParams
 from www.create_services_view import CreateServiceEntranceView
 from www.image_service_view import ImageServiceDeploy, ImageParamsViews
 from www.services_view import *
 from www.app_services_view import *
 from www.back_services_view import *
 from www.charging_view import *
+from www.views.ajax import UpdateGroupView
+from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
 from www.views.service import TeamInfo
 from django.contrib.auth.decorators import login_required
 from www import alipay_view
@@ -13,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from www.views.servicepublish import PublishServiceView, PublishServiceRelationView, PublishServiceDetailView
 from www.views.serviceshare import *
 from www.views.consume import *
+from  www.views.servicemonitor import *
 
 urlpatterns = patterns(
     '',
@@ -66,8 +71,19 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
+
+
+    url(r'^/myservice/$', login_required(MyTenantService.as_view())),
+    
+
     # image_service
     url(r'^/image-create/$', login_required(ImageServiceDeploy.as_view())),
     url(r'^/image-params/$', login_required(ImageParamsViews.as_view())),
+    # docker-compose
+    url(r'^/compose-create/$', login_required(ComposeServiceDeploy.as_view())),
+    url(r'^/compose-params/$', login_required(ComposeServiceParams.as_view())),
+    # new monitor service source
+    #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
+    #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),
 
 )

@@ -27,7 +27,7 @@
             <div class="row">
                 <div class="col-xs-8 text-left">
                 {% ifequal tenantServiceInfo.category "application" %}
-                    {% if user.is_sys_admin or 'app_publish' in user.actions or publish_service %}
+                    {% if user.is_sys_admin %}
                         <button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>
                     {% endif %}
                     
@@ -37,25 +37,29 @@
                     
                 {% endifequal %}
 
+					<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">
                 {% if hasHttpServices %}
                  <button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
-        					{% if visit_port_type == "multi_outer" %}
-        						<select class="form-control-inline" id="multi_ports" name="multi_port_bind" style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
+					{% if visit_port_type == "multi_outer" %}
+						{% if http_outer_service_ports|length == 1 %}
+							<select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">
+						{% else %}
+							<select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
+						{% endif %}
+						{% for port in http_outer_service_ports %}
+							{% if port.container_port == serviceDomain.container_port %}
+								<option value="{{ port.container_port }}"
+										selected="selected">{{ port.container_port }}</option>
+								{% else %}
+								<option value="{{ port.container_port }}">{{ port.container_port }}</option>
+							{% endif %}
+						{% endfor %}
 
-        							{% for port in http_outer_service_ports %}
-            							{% if port.container_port == serviceDomain.container_port %}
-                							<option value="{{ port.container_port }}"
-                									selected="selected">{{ port.container_port }}</option>
-                							{% else %}
-                							<option value="{{ port.container_port }}">{{ port.container_port }}</option>
-            							{% endif %}
-        							{% endfor %}
+        					</select>
+        			{%endif%}
 
-        						</select>
-        					{%endif%}
-                   
                 {% endif  %}
-                 
+
                 {% ifequal tenantServiceInfo.service_type "mysql" %}
                   {% if service_manager.deployed %}
                     {% if 'manage_service' in user.actions %}
@@ -70,6 +74,17 @@
                 {% if updateService %}
                     <button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i>服务更新</button>
                 {% endif %}
+                <!-- -->
+                 {% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
+                      <button name="join_container" class="btn btn-success"  id="join_container" onclick="join_container();"/> 管理容器 </button>
+                      <div style="width: 300px; height: auto; position: relative; z-index: 9; top: 30px;">
+                          <table width="100%;" class="table table-hover">
+                            <tbody id="cur_container_content">
+                            </tbody>
+                          </table>
+                      </div>
+                 {% endif %}
+                <!-- -->
                 </div>
                 {% if 'manage_service' in user.actions %}
                 <div class="col-xs-4 text-right">
@@ -82,7 +97,7 @@
       </section>
     </div>
   </div>
-  
+  <!--
   {% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
   <div class="row">
     <div class="col-lg-12 text-left">
@@ -96,14 +111,14 @@
              </tr>
            </thead>
            <tbody id="cur_container_content">
-            
+
            </tbody>
          </table>
        </section>
      </div>
   </div>
   {% endif %}
-
+  -->
 <!--
 	{% if user.is_sys_admin %}
 	<div class="row">
@@ -129,7 +144,7 @@
 	</div>
 	{% endif %}
  -->
- 
+
   {% if 'manage_service' in user.actions %}
   {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
   <div class="row">
@@ -184,6 +199,7 @@
 	    return this.replace(/(^\s*)|(\s*$)/g, "");
 	}
 	function checkStatus(){
+		var port_length = $("#port_length").val()
     	$.ajax({
        	  type: "GET",
     		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/detail/",
@@ -204,6 +220,9 @@
 	    		  		$("#service_status").html("运行中")
 	    		  		$("#service_status_operate").show()
 	    		  		$("#service_visitor").show()
+						  if(port_length != "1"){
+							  $("#multi_ports").show();
+						  }
 	    		  		$("#service_status").attr("class","badge badge-sm label-success")
 	    		  	  }else if(obj["status"]=="starting"){
 	    		  	    $("#service_status_value").val("stop")
@@ -214,6 +233,8 @@
                         $("#service_status").html("启动中")
                         $("#service_status_operate").show()
                         $("#service_status").attr("class","badge badge-sm label-success")
+						$("#service_visitor").hide()
+						$("#multi_ports").hide()
 		    		  }else if(obj["status"]=="unusual"){
 		    			$("#service_status_value").val("")
 		    		  	$("#font"+service_id).html("启动")
@@ -230,12 +251,15 @@
 		    		  	$("#service_status_operate").show()
 		    		  	$("#onekey_deploy").show()
 		    		  	$("#onekey_deploy").removeAttr("disabled")
+						$("#multi_ports").hide()
 		    		  	if(obj["status"]=="closed"){
 		    		  		$("#service_status").html("已关闭")
 		    		  		$("#service_status").attr("class","badge badge-sm label-success")
+							$("#multi_ports").hide()
 		    		  	}else{
 		    		  		$("#service_status").html("余额不足已关闭")
 		    		  		$("#service_status").attr("class","badge badge-sm label-danger")
+							$("#multi_ports").hide()
 		    		  	}
 		    		  	$("#service_status_operate").show()
 		    		  	$("#service_visitor").hide();
@@ -250,6 +274,7 @@
 		    			$("#service_status_operate").hide();
 		    			$("#service_visitor").hide();
 		    			$("#service_status").attr("class","badge badge-sm label-success")
+						  $("#multi_ports").hide()
 		    		  }else{
 		    			$("#service_status_value").val("")
 			    		$("#font"+service_id).html("未知")
@@ -268,7 +293,7 @@
       	  	}
        })
     }
-	
+
 	function getLog(){
 		$.ajax({
        	  type: "GET",
@@ -302,10 +327,10 @@
       	  	}
        })
 	}
-	
+
 	$(document).ready(function () {
     	checkStatus();
-    	getLog(); 
+    	getLog();
     	setInterval("checkStatus()", 6000);
     	extPushWebSocketClient.prototype = {
    			onMessage : function(msg) {
@@ -313,7 +338,7 @@
        				var msgs = msg.split(":")
        				if(msgs[0].trim()=="deploy"){
        					var newMsg = msg.substr(7)
-       					log = eval("(" + newMsg + ")");  
+       					log = eval("(" + newMsg + ")");
        					var showlog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
        					if(log["status"] == "end"){
        						showlog = showlog+" 用时"+log["cost_time"]+"s";
@@ -332,12 +357,29 @@
        				}else if(msgs[0].trim()=="compile"){
        					var event_id= msgs[1]
        					var newMsg = msg.substr(25)
-       					var arr=$("#compile_"+event_id+"").html().split('<br>');
-   						if(arr[0].trim() != newMsg.trim()){
-   							var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
-           					$("#compile_"+event_id+"").html(finalMsg)
-           					$("#compile_"+event_id+"").show();
-   						}
+       				  //
+                if( $("#compile_"+event_id+"").html() )
+                {
+                  var arr=$("#compile_"+event_id+"").html().split('<br>');
+                  if(arr[0].trim() != newMsg.trim()){
+                    var len = 999;
+                    var arrLength = arr.length;
+                    if( arrLength > len )
+                    {
+                      arr.pop();
+                      var str = arr.join("</br>");
+                      var finalMsg = newMsg +"<br/>"+ str;
+                    }
+                    else{
+                      var finalMsg = newMsg +"<br/>"+ $("#compile_"+event_id+"").html()
+                    }
+                    $("#compile_"+event_id+"").html(finalMsg)
+                    $("#compile_"+event_id+"").show();
+                  }
+                }else{
+                  $("#compile_"+event_id+"").html(newMsg);
+                }
+                //
        				}
    				}
    			}
@@ -362,8 +404,31 @@
        	    	  	  success: function(msg) {
        	    	  		var dataObj = msg;
        	    	  		var log = dataObj["log"];
-       	    	  		$("#compile_"+event_id+"").html(log)
-       	    	  		$("#showlog_"+event_id+"").html("隐藏构建日志")
+                    //
+                    var newLog = log.split('</br>');
+                    var len = 1000;
+                    var logLen = newLog.length;
+                    var str = "";
+                    if( logLen>len )
+                    {
+                      for( var i = logLen-len; i<logLen-1; i++ )
+                      {
+                        str = newLog[i] + "</br>" + str;
+                      }
+                    }
+                    else{
+                      str = newLog[logLen-2];
+                      for( var i = logLen-3; i>=0; i-- )
+                      {
+                      str = str + "</br>" + newLog[i];
+                      }
+                    }
+                    var address = location.href.split("?");
+                    var more = '</br><a href="'+address[0]+'?fr=log'+'">更多日志</a>';
+                    str = str + more;
+                    $("#compile_"+event_id+"").html(str);
+                    $("#showlog_"+event_id+"").html("隐藏构建日志");
+                    //
        	    		  },
        	    		  error: function(){
        	    			//swal("系统异常");
@@ -372,13 +437,13 @@
     		}else{
     			$("#compile_"+event_id+"").show();
     			$("#showlog_"+event_id+"").html("隐藏构建日志")
-    		}        		
+    		}
 		}else{
 			$("#compile_"+event_id+"").hide();
 			$("#showlog_"+event_id+"").html("显示构建日志")
-		}        	
+		}
     }
-    
+
     function do_rollback(event_id,deploy_version){
     	swal({
     		title : "确定恢复当前版本吗？",
@@ -428,7 +493,7 @@
     		}
     	});
     }
-    
+
     function join_container(){
         $.ajax({
             type : "GET",
@@ -451,7 +516,7 @@
                         msg+="</tr>";
                         tindex+=1;
                     }
-                } 
+                }
                 if(msg!=""){
                     $("#cur_container_content").html(msg)
                 }
@@ -461,7 +526,7 @@
             }
         });
     }
-    
+
     function join_in(ctn_id,host_ip){
         if(ctn_id !="" && host_ip !=""){
             $.ajax({

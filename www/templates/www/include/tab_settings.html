@@ -4,10 +4,10 @@
       <p class="tittext">基础信息</p>
       <div class="panel-body">
         <div class="row">
-            <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-10 control-label">{{tenantServiceInfo.service_cname}}</label>
+            <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-8 control-label" id="lit-appname">{{tenantServiceInfo.service_cname}}<a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; padding-left: 10px;">更名</a></label>
         </div>
 
-        {% if tenantServiceInfo.category == "application" %}
+        {% if tenantServiceInfo.category == "application" and show_git %}
             <div class="row">
                 <label class="col-xs-2 control-label text-right">Git仓库</label>
                 <label class="col-xs-6 control-label">
@@ -86,6 +86,7 @@
           
       </div>
   </section>
+    <input type="hidden" id="service_port_type" value="{{tenantServiceInfo.port_type}}">
 
   <!-- 多端口修改开始 -->
   <section class="tabbox">
@@ -130,7 +131,9 @@
                   </td>
                   <td>
                       <span>使用别名:</span>
+
                       <a href="#" class="edit-port-alias" data-title="更改别名" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.port_alias}}">{{port.port_alias}}_HOST:{{port.port_alias}}_PORT</a>
+
                   </td>
               </tr>
               <tr port="{{port.container_port}}">
@@ -145,7 +148,8 @@
                      </p>
                   </td>
                   <td>
-                    <div id="showLink{{port.container_port}}">
+                    <div id="showLink{{port.container_port}}" class="showlink-box">
+                      <!--
                      {% if port.is_outer_service and port.protocol == 'http' %}
                      <span>绑定域名:</span>
                      <input type="text" class="form-control" id="service_app_name_{{port.container_port}}" {% if port.container_port in serviceDomainDict.keys %}value="{{serviceDomainDict|mkey:port.container_port}}"{% endif %} placeholder="请输入新域名，如：www.example.com">
@@ -159,6 +163,27 @@
                         </p>
                       {% endif %}
                     {% endif %}
+                    -->
+                    {% if port.is_outer_service and port.protocol == 'http' %}
+                        <span>绑定域名:</span>
+                        <div class="domain-box" id="domain-box">
+                          <!-- 多个域名 展示-->
+                            {% for domain_name in serviceDomainDict|mkey:port.container_port %}
+                                <p>
+                                <span>{{domain_name}}</span>
+                                <button type="button" class="port-cancel btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','{{domain_name}}')">解绑</button>
+                                </p>
+                            {% endfor %}
+
+                          <!-- 多个域名 展示--> 
+                        </div>
+                        <button type="button" class="btn btn-success btn-xs fn-bind-domain">绑定</button>
+                        <div class="fn-domain-layer  domain-layer">
+                            <input type="text" placeholder="请输入绑定域名" id="service_app_name_{{port.container_port}}"  />
+                            <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','')"><i class="fa fa-check"></i></button>
+                            <button type="button" class="btn btn-danger btn-xs fn-delete-domain"><i class="fa fa-times"></i></button>
+                        </div>
+                     {% endif %}
                     </div>
                   </td>
               </tr>
@@ -206,44 +231,45 @@
         </div>
     </div>
 </section>
-<section class="tabbox">
-    <p class="tittext">持久化数据设置<span>(设置后需要重启服务)</span></p>
-    <div class="panel-body">
-        <div class="row">
-            <div class="col-xs-12">
-                <table class="table table-hover" id="volume_table">
-                    <thead>
-                        <tr>
-                            <th>挂载路径</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for volume in volume_list %}
-                        <tr>
-                            <td>{{volume.volume_path}}</td>
-                            <td>
-                                {% if tenantServiceInfo.category == "application" %}
-                                <button type="button" class="btn btn-danger btn-xs"
-                                        data-id="{{volume.ID}}" onclick="cancel_volume(this);">
-                                    <i class="fa fa-trash-o"></i>
-                                </button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% if tenantServiceInfo.category == "application" %}
-                <div id="edit_volume_div"></div>
-                <div class="clearfix" style="padding: 8px;"></div>
-                <button type="button" class="btn btn-success" id="add_volume_attr" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
-                {% endif %}
+    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.language == "docker-image" %}
+    <section class="tabbox">
+        <p class="tittext">持久化数据设置<span>(设置后需要重启服务)</span></p>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-xs-12">
+                    <table class="table table-hover" id="volume_table">
+                        <thead>
+                            <tr>
+                                <th>挂载路径</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for volume in volume_list %}
+                            <tr>
+                                <td>{{volume.volume_path}}</td>
+                                <td>
+                                    {% if tenantServiceInfo.category == "application" %}
+                                    <button type="button" class="btn btn-danger btn-xs"
+                                            data-id="{{volume.ID}}" onclick="cancel_volume(this);">
+                                        <i class="fa fa-trash-o"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <div id="edit_volume_div"></div>
+                    <div class="clearfix" style="padding: 8px;"></div>
+                    <button type="button" class="btn btn-success" id="add_volume_attr" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
+
+                </div>
             </div>
         </div>
-    </div>
-</section>
-
+    </section>
+    {% endif %}
 
    
   <section class="tabbox">
@@ -575,4 +601,5 @@
             }
         })
     }
+
 </script>

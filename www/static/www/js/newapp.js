@@ -459,25 +459,60 @@ $(function(){
         })
         ///
     });
-    //提交文件
+
+	function progressHandling(e) {
+		var percentComplete = Math.round(e.loaded * 100 / e.total);
+		console.log(percentComplete)
+	}
+	
+    //上传compose文件
     $("#nextcomposestep").click(function(){
         var formData = new FormData($("#myForm")[0]);
+		var tenantName = $("#tenantNameValue").val();
+
+		upload_url = "/apps/"+tenantName+"/compose-create/"
         $.ajax({  
-                url : url,  
+                url : upload_url,  
                 type : 'POST',  
                 data : formData,  
                 processData : false,  
-                contentType : false,  
+                contentType : false,
+				xhr: function() {
+					myXhr = $.ajaxSettings.xhr();
+					if(myXhr.upload){
+						myXhr.upload.addEventListener('progress', progressHandling, false);
+					}
+					return myXhr;
+				},
                 beforeSend: function (xhr, settings) {
                     var csrftoken = $.cookie('csrftoken');
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
-                success : function(responseStr) {  
-                                     
+                success : function(responseStr) { 
+					if(responseStr.success){
+						window.location.href = "/apps/"+tenantName+"/compose-params?id="+responseStr.compose_file_id
+
+					}else{
+						swal("文件上传异常")
+					}
                 },  
                 error : function(responseStr) {  
                    
                 }  
             });  
     });
+
+
+    //
+    // $("#tab-tit a").click(function(){
+    // 	var indexnum = $(this).index();
+    // 	$("#tab-tit a").removeClass("sed");
+    // 	$(this).addClass("sed");
+    // 	$("#app-market li").hide();
+    // 	$("#app-market li").eq(indexnum).show();
+    // });
 });
+function service_create(tenantName, service_key, app_version) {
+	window.location.href = "/apps/" + tenantName
+		+ "/service-deploy/?service_key=" + service_key + "&app_version=" + app_version
+}

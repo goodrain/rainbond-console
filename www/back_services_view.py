@@ -8,7 +8,7 @@ from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
-                        AppServiceVolume, AppService)
+                        AppServiceVolume, AppService, ServiceGroupRelation)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService
 from www.monitorservice.monitorhook import MonitorHook
@@ -44,7 +44,7 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            context["serviceMarketStatus"] = "active"
+            context["createApp"] = "active"
             context["tenantName"] = self.tenantName
             fr = request.GET.get("fr", "private")
             context["fr"] = fr
@@ -223,7 +223,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
             app_version = request.GET.get("app_version", "")
 
-            context["serviceMarketStatus"] = "active"
+            context["createApp"] = "active"
 
             serviceObj = None
             if app_version:
@@ -307,10 +307,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "empty"
                 return JsonResponse(result, status=200)
 
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
-            if num > 0:
-                result["status"] = "exist"
-                return JsonResponse(result, status=200)
+            # num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
+            # if num > 0:
+            #     result["status"] = "exist"
+            #     return JsonResponse(result, status=200)
 
             service = None
             if app_version:
@@ -389,6 +389,14 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             newTenantService = baseService.create_service(
                 service_id, tenant_id, service_alias, service_cname, service, self.user.pk, region=self.response_region)
 
+            group_id = request.POST.get("select_group_id", "")
+            # 创建关系
+            if group_id != "":
+                group_id = int(group_id)
+                if group_id > 0:
+                    ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
+                                                        tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             result["status"] = "success"
             result["service_id"] = service_id
@@ -439,30 +447,35 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
             baseService.add_volume_list(tenant_service, volume.volume_path)
 
     # add by tanm specify tenant app default env
-    def set_tenant_default_env(self, envs):
+    def set_tenant_default_env(self, envs, outer_ports):
         for env in envs:
             if env.attr_name == 'SITE_URL':
                 if self.cookie_region in RegionInfo.valid_regions():
                     port = RegionInfo.region_port(self.cookie_region)
                     domain = RegionInfo.region_domain(self.cookie_region)
                     env.options = 'direct_copy'
-                    env.attr_value = 'http://{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
+                    if len(outer_ports) > 0:
+                        env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, self.serviceAlias, self.tenantName, domain, port)
                     logger.debug("SITE_URL = {} options = {}".format(env.attr_value, env.options))
             elif env.attr_name == 'TRUSTED_DOMAIN':
                 if self.cookie_region in RegionInfo.valid_regions():
                     port = RegionInfo.region_port(self.cookie_region)
                     domain = RegionInfo.region_domain(self.cookie_region)
                     env.options = 'direct_copy'
-                    env.attr_value = '{}.{}{}:{}'.format(self.serviceAlias, self.tenantName, domain, port)
+                    if len(outer_ports) > 0:
+                        env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, self.serviceAlias, self.tenantName, domain, port)
                     logger.debug("TRUSTED_DOMAIN = {} options = {}".format(env.attr_value, env.options))
 
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version, container_port=0, is_change=True)
-
+        outer_ports = AppServicePort.objects.filter(service_key=self.service.service_key,
+                                                    app_version=self.service.version,
+                                                    is_outer_service=True,
+                                                    protocol='http')
         if envs:
             # add by tanm
-            self.set_tenant_default_env(envs)
+            self.set_tenant_default_env(envs, outer_ports)
             # add end
             context['envs'] = envs
             return TemplateResponse(request, 'www/back_service_create_step_2.html', context)

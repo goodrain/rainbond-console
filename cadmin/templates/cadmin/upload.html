@@ -4,16 +4,16 @@
 {% block main-content %}
 <div role="tabpanel" class="tab-pane active">
     <section class="wrapper site-min-height">
-
+        <h3>公司LOGO</h3>
         <form class="form-horizontal" method="post" id="upload_logo"
               enctype="multipart/form-data" action="">
             <div class="form-group">
-                <label class="col-sm-2 control-label">公司LOGO:</label>
-                <div class="col-sm-8">
-                    <div id="logodiv" class="appimg">
-                        <img id="imgShow" width="140" height="140" src="{{data.logo}}" >
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10">
+                    <div id="logodiv" class="appimg" style="margin: 20px 0 10px; ">
+                        <img id="imgShow" width="140"  src="{{data.logo}}" >
                     </div>
-                    <input type="file" id="logo" name="logo"/>
+                    <input type="file" id="logo" name="logo" />
                 </div>
             </div>
         </form>

@@ -10,6 +10,7 @@
 {% if tenantServiceInfo %}
 <section class="wrapper">
     <section class="panel">
+        <p><span style="font-size: 18px; line-height: 30px; color: #666;" id="appname">{{tenantServiceInfo.service_cname}}</span><a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; font-size:14px; line-height: 30px; padding-left:10px;">更名</a></p>
         <header class="panel-heading tab-bg-dark-navy-blue ">
             <ul class="nav nav-tabs" id="nav-tabs">
                 <li {% if fr = "deployed" %} class="active" {% endif %}>
@@ -61,11 +62,80 @@
                 {% include 'www/include/tab_log.html' %}
                 {% elif fr == "settings" %}
                 {% include 'www/include/tab_settings.html' %}
+                {% elif fr == "resource" %}
+                {% include 'www/resource/monitorDetail.html' %}
                 {% endif %}
             </div>
         </div>
     </section>
 </section>
+<script type="text/javascript">
+    //// ww-2016-12-7 更改 appname  start
+    //弹出层
+    function FnLayer(textTit){
+        var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
+        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
+        var oTit = '<p class="layer-tit">'+ textTit +'</p>';
+        var oInput ='<p class="input-css"><input type="text" value="" /></p>';
+        var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
+        $("body").append(oDiv);
+        $("div.layermain").append(oCloseBtn,oTit);
+        $("div.layermain").append(oInput);
+        $("div.layermain").append(oLink);
+        $(".fn-close").click(function(){
+             $("div.layerbg").remove();
+             $(".input-css input").prop("value","");
+        });
+        $(".fn-sure").click(function(){
+            var inputText = $(".input-css input").val();
+            if(inputText == ""){
+                swal("您还没有输入应用名！")
+                return false;
+            }else{
+                ///ajax start
+                
+                $.ajax({
+                    type : "post",
+                    url : "/ajax/{{tenantName}}/change-service-name",
+                    data : {
+                        new_service_cname : inputText,
+                        service_alias : "{{serviceAlias}}"
+                    },
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        if(msg.ok){
+                           if($("#appname")){
+                              $("#appname").html(inputText);
+                            }
+                            if($("#lit-appname")){
+                              $("#lit-appname").html(inputText);
+                            }
+                           $("div.layerbg").remove();
+                           $(".input-css input").prop("value","");
+                        }else{
+                            swal(msg.info);
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+                
+                ///ajax end
+            }
+              
+        });   
+    }
+    //  弹出层
+    $(".fn-rename").click(function(){
+        FnLayer("请输入新应用名");  
+    });
+    //// ww-2016-12-7 更改 appname end 
+</script>
 {% endif %}
 
 {% endblock %}

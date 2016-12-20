@@ -135,6 +135,8 @@ $(function(){
             $('div[data-action="demobox"]').show();
         }
     });
+
+
 });
 
 function scrollOffset(scroll_offset) { 

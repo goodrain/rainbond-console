@@ -66,7 +66,8 @@ class RemoteServiceMarketAjax(AuthedView):
                 return redirect('/apps/{0}/service/'.format(self.tenantName))
             else:
                 # 下载成功
-                self.downloadImage(base_info)
+                if service_key != "application":
+                    self.downloadImage(base_info)
                 # 回写数据
                 if callback != "0":
                     appClient.post_statics_tenant(self.tenant.tenant_id, callback)

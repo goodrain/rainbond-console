@@ -52,7 +52,7 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                 context["image_url"] = imags.image_url
                 context["service_id"] = service_id
         except Exception as e:
-            pass
+            logger.error(e)
         return TemplateResponse(self.request, "www/app_create_step_two.html", context)
 
     @never_cache
@@ -206,6 +206,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                                                           self.user.pk,
                                                           region=self.response_region)
             newTenantService.code_from = "image_manual"
+            newTenantService.language = "docker-image"
             newTenantService.save()
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
@@ -228,7 +229,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
     def save_ports_envs_and_volumes(self, ports, envs, volumes, tenant_serivce):
         """保存端口,环境变量和持久化目录"""
         for port in ports:
-            baseService.addServicePort(tenant_serivce, False, container_port=port["container_port"],
+            baseService.addServicePort(tenant_serivce, False, container_port=int(port["container_port"]),
                                        protocol=port["protocol"], port_alias=port["port_alias"],
                                        is_inner_service=port["is_inner_service"],
                                        is_outer_service=port["is_outer_service"])

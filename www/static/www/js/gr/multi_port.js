@@ -53,13 +53,17 @@
       function Fn_make_port_detail (port_show) {
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
-          if($(".fn-out-servce input:checked").length > 1){
+           var port_type = $("#service_port_type").val()
+
+          // if($(".fn-out-servce input:checked").length > 1){
+            if(port_type == "multi_outer"){
                var next_tr = port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
                var next_tr_href = "http://" + next_tr;
             }else{
                var next_tr = event.outer_service.domain + ':' + event.outer_service.port;
                var next_tr_href = "http://" + next_tr;
             }
+
           $("#port_show_" + port_show).find("a").html(next_tr).attr("href",next_tr_href);
         });
       }
@@ -243,7 +247,9 @@
       function port_save(event) {
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "add_port"};
         var add_tr = $(this).closest('table');
-        add_tr.find('input.tab-alias').val('S' + add_tr.find('input.tab-port').val());
+        var prefix = serviceAlias.toUpperCase();
+        console.log(prefix);
+        add_tr.find('input.tab-alias').val(prefix + add_tr.find('input.tab-port').val());
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
@@ -267,6 +273,15 @@
         });
       }
 
+      /// ww-2016-12-06 多域名绑定 start
+      $(".fn-bind-domain").click(function(){
+          $(this).next("div.fn-domain-layer").show();
+      });
+      $(".fn-delete-domain").click(function(){
+          $(this).parent("div.fn-domain-layer").hide();
+          $(this).parent("div.fn-domain-layer").children("input").prop("value","");
+      });
+      /// ww-2016-12-06 多域名绑定 end
 })(jQuery);
 
 

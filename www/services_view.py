@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 from django.shortcuts import redirect
 from django.http import Http404
 
-from www.models.main import TenantRegionPayModel
+from www.models.main import TenantRegionPayModel, ServiceGroupRelation
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
@@ -52,16 +52,13 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                 self.response_region = region
             else:
                 raise Http404
-                # if region == 'xunda-bj':
-                #self.response_region = region
-                # else:
-                #    raise Http404
 
         if self.cookie_region == 'aws-bj-1':
             self.response_region == 'ali-sh'
 
         try:
-            t_region, created = TenantRegionInfo.objects.get_or_create(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+            t_region, created = TenantRegionInfo.objects.get_or_create(
+                tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             self.tenant_region = t_region
         except Exception, e:
             logger.error(e)
@@ -72,16 +69,17 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
         self.check_region()
         context = self.get_context()
         try:
+            self.response_tenant_name = self.tenant
             logger.debug('monitor.user', str(self.user.pk))
-            # num = TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_region=self.response_region).count()
-            # if num < 1:
-            #     return self.redirect_to('/apps/{0}/app-create/'.format(self.tenant.tenant_name))
-            tenantServiceList = context["tenantServiceList"]
+            tenantServiceList = baseService.get_service_list(
+                self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
+            context["tenantServiceList"] = tenantServiceList
             context["totalAppStatus"] = "active"
             context["totalFlow"] = 0
             context["totalAppNumber"] = len(tenantServiceList)
             context["tenantName"] = self.tenantName
-            totalNum = PermRelTenant.objects.filter(tenant_id=self.tenant.ID).count()
+            totalNum = PermRelTenant.objects.filter(
+                tenant_id=self.tenant.ID).count()
             context["totalNum"] = totalNum
             context["curTenant"] = self.tenant
             context["tenant_balance"] = self.tenant.balance
@@ -89,20 +87,26 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             context["pay_type"] = self.tenant.pay_type
             context["expired"] = tenantAccountService.isExpired(self.tenant)
             context["expired_time"] = self.tenant.expired_time
-            status = tenantAccountService.get_monthly_payment(self.tenant,self.tenant.region)
+            status = tenantAccountService.get_monthly_payment(
+                self.tenant, self.tenant.region)
             context["monthly_payment_status"] = status
-            if status !=0:
-                list = TenantRegionPayModel.objects.filter(tenant_id=self.tenant.tenant_id,region_name=self.tenant.region).order_by("-buy_end_time")
+            if status != 0:
+                list = TenantRegionPayModel.objects.filter(
+                    tenant_id=self.tenant.tenant_id, region_name=self.tenant.region).order_by("-buy_end_time")
                 context["buy_end_time"] = list[0].buy_end_time
 
             if self.tenant_region.service_status == 0:
-                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
-                regionClient.unpause(self.response_region, self.tenant_region.tenant_id)
+                logger.debug(
+                    "tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
+                regionClient.unpause(
+                    self.response_region, self.tenant_region.tenant_id)
                 self.tenant_region.service_status = 1
                 self.tenant_region.save()
             elif self.tenant_region.service_status == 3:
-                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
-                regionClient.systemUnpause(self.response_region, self.tenant_region.tenant_id)
+                logger.debug(
+                    "tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
+                regionClient.systemUnpause(
+                    self.response_region, self.tenant_region.tenant_id)
                 self.tenant_region.service_status = 1
                 self.tenant_region.save()
         except Exception as e:
@@ -206,7 +210,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 app_version = '4.4.12'
                 if self.service.version == "5.6.30":
                     app_version = '4.6.3'
-                service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin&app_version={1}'.format(self.tenant.tenant_name, app_version)
+                service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin&app_version={1}'.format(
+                    self.tenant.tenant_name, app_version)
         return service_manager
 
     def memory_choices(self):
@@ -247,14 +252,16 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
     # 获取所有的开放的http对外端口
     def get_outer_service_port(self):
-        out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http')
+        out_service_port_list = TenantServicesPort.objects.filter(
+            service_id=self.service.service_id, is_outer_service=True, protocol='http')
         return out_service_port_list
 
     @never_cache
     @perm_required('view_service')
     def get(self, request, *args, **kwargs):
         self.response_region = self.service.service_region
-        self.tenant_region = TenantRegionInfo.objects.get(tenant_id=self.service.tenant_id, region_name=self.service.service_region)
+        self.tenant_region = TenantRegionInfo.objects.get(
+            tenant_id=self.service.tenant_id, region_name=self.service.service_region)
         context = self.get_context()
         context["tenantName"] = self.tenantName
         context['serviceAlias'] = self.serviceAlias
@@ -268,25 +275,37 @@ class TenantService(LeftSideBarMixin, AuthedView):
             if self.service.category == "application":
                 # forbidden blank page
                 if self.service.code_version is None or self.service.code_version == "" or (self.service.git_project_id == 0 and self.service.git_url is None):
-                    codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
-                    self.service = TenantServiceInfo.objects.get(service_id=self.service.service_id)
+                    codeRepositoriesService.initRepositories(
+                        self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
+                    self.service = TenantServiceInfo.objects.get(
+                        service_id=self.service.service_id)
                 # no upload code
                 if self.service.language == "" or self.service.language is None:
                     codeRepositoriesService.codeCheck(self.service)
                     return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-                tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-                if tse.user_dependency is None or tse.user_dependency == "":
-                    return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                if self.service.code_from not in ("image_manual"):
+                    tse = TenantServiceEnv.objects.get(
+                        service_id=self.service.service_id)
+                    if tse.user_dependency is None or tse.user_dependency == "":
+                        return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context["tenantServiceInfo"] = self.service
-            tenantServiceList = context["tenantServiceList"]
             context["myAppStatus"] = "active"
             context["perm_users"] = self.get_user_perms()
-            context["totalMemory"] = self.service.min_node * self.service.min_memory
+            context["totalMemory"] = self.service.min_node * \
+                self.service.min_memory
             context["tenant"] = self.tenant
             context["region_name"] = self.service.service_region
-            context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
-            context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
+            context["websocket_uri"] = settings.WEBSOCKET_URL[
+                self.service.service_region]
+            context["wild_domain"] = settings.WILD_DOMAINS[
+                self.service.service_region]
+            if ServiceGroupRelation.objects.filter(service_id=self.service.service_id).count() > 0:
+                gid = ServiceGroupRelation.objects.get(
+                    service_id=self.service.service_id).group_id
+                context["group_id"] = gid
+            else:
+                context["group_id"] = -1
             service_domain = False
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
@@ -302,7 +321,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
                 # inner service
                 innerPorts = {}
-                tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
+                tsps = TenantServicesPort.objects.filter(
+                    service_id=self.service.service_id, is_inner_service=True)
                 for tsp in tsps:
                     innerPorts[tsp.container_port] = True
 
@@ -310,7 +330,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["hasInnerServices"] = True
 
                 envMap = {}
-                envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"))
+                envVarlist = TenantServiceEnvVar.objects.filter(
+                    service_id=self.service.service_id, scope__in=("outer", "both"), is_change=False)
                 if len(envVarlist) > 0:
                     for evnVarObj in envVarlist:
                         arr = envMap.get(evnVarObj.service_id)
@@ -321,28 +342,34 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["envMap"] = envMap
 
                 containerPortList = []
-                opend_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id,is_inner_service=True)
+                opend_service_port_list = TenantServicesPort.objects.filter(
+                    service_id=self.service.service_id, is_inner_service=True)
                 if len(opend_service_port_list) > 0:
                     for opend_service_port in opend_service_port_list:
-                        containerPortList.append(opend_service_port.container_port)
+                        containerPortList.append(
+                            opend_service_port.container_port)
                 context["containerPortList"] = containerPortList
-                
+
                 if self.service.code_from != "image_manual":
-                    baseservice = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
+                    baseservice = ServiceInfo.objects.get(
+                        service_key=self.service.service_key, version=self.service.version)
                     if baseservice.update_version != self.service.update_version:
                         context["updateService"] = True
 
                 context["docker_console"] = settings.MODULES["Docker_Console"]
-                context["publish_service"] = settings.MODULES["Publish_Service"]
+                context["publish_service"] = settings.MODULES[
+                    "Publish_Service"]
 
                 # get port type
                 context["visit_port_type"] = self.service.port_type
                 if self.service.port_type == "multi_outer":
-                    context["http_outer_service_ports"] = self.get_outer_service_port()
+                    context[
+                        "http_outer_service_ports"] = self.get_outer_service_port()
 
             elif fr == "relations":
                 # service relationships
-                tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
+                tsrs = TenantServiceRelation.objects.filter(
+                    service_id=self.service.service_id)
                 relationsids = []
                 if len(tsrs) > 0:
                     for tsr in tsrs:
@@ -351,6 +378,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 # service map
                 map = {}
                 sids = [self.service.service_id]
+                tenantServiceList = baseService.get_service_list(
+                    self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
                 for tenantService in tenantServiceList:
                     if TenantServicesPort.objects.filter(service_id=tenantService.service_id, is_inner_service=True).exists():
                         sids.append(tenantService.service_id)
@@ -360,7 +389,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["serviceMap"] = map
                 # env map
                 envMap = {}
-                envVarlist = TenantServiceEnvVar.objects.filter(service_id__in=sids, scope__in=("outer", "both"))
+                envVarlist = TenantServiceEnvVar.objects.filter(
+                    service_id__in=sids, scope__in=("outer", "both"))
                 for evnVarObj in envVarlist:
                     arr = envMap.get(evnVarObj.service_id)
                     if arr is None:
@@ -370,7 +400,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["envMap"] = envMap
 
                 # add dir mnt
-                mtsrs = TenantServiceMountRelation.objects.filter(service_id=self.service.service_id)
+                mtsrs = TenantServiceMountRelation.objects.filter(
+                    service_id=self.service.service_id)
                 mntsids = []
                 if len(mtsrs) > 0:
                     for mnt in mtsrs:
@@ -380,16 +411,19 @@ class TenantService(LeftSideBarMixin, AuthedView):
             elif fr == "statistic":
                 context['statistic_type'] = self.statistic_type
                 if self.service.service_type in ('mysql',):
-                    context['ws_topic'] = '{0}.{1}.statistic'.format(''.join(list(self.tenant.tenant_id)[1::2]), ''.join(list(self.service.service_id)[::2]))
+                    context['ws_topic'] = '{0}.{1}.statistic'.format(''.join(
+                        list(self.tenant.tenant_id)[1::2]), ''.join(list(self.service.service_id)[::2]))
                 else:
-                    context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
+                    context['ws_topic'] = '{0}.{1}.statistic'.format(
+                        self.tenant.tenant_name, self.service.service_alias)
             elif fr == "log":
                 pass
             elif fr == "settings":
                 nodeList = []
                 memoryList = []
                 try:
-                    sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
+                    sem = ServiceExtendMethod.objects.get(
+                        service_key=self.service.service_key, app_version=self.service.version)
                     nodeList.append(sem.min_node)
                     next_node = sem.min_node + sem.step_node
                     while(next_node <= sem.max_node):
@@ -404,26 +438,34 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         num = num + 1
                         next_memory = sem.min_memory * pow(2, num)
                 except Exception as e:
-                    pass
+                    nodeList.append(1)
+                    memoryList.append(str(self.service.min_memory))
+                    memoryList.append("1024")
+                    memoryList.append("2048")
+                    memoryList.append("4096")
+                    memoryList.append("8192")
+
                 context["nodeList"] = nodeList
                 context["memoryList"] = memoryList
                 context["memorydict"] = self.memory_choices()
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
-                if custom_config.GITLAB_SERVICE_API :
+                if custom_config.GITLAB_SERVICE_API:
                     context["git_tag"] = True
                 else:
                     context["git_tag"] = False
-                context["multi_port_choices"] = self.multi_port_choices()
                 context["mnt_share_choices"] = self.mnt_share_choices()
-                context["http_outer_service_ports"] = self.get_outer_service_port()
+                context[
+                    "http_outer_service_ports"] = self.get_outer_service_port()
                 # service git repository
                 try:
-                    context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
+                    context["httpGitUrl"] = codeRepositoriesService.showGitUrl(
+                        self.service)
                     if self.service.code_from == "gitlab_manual":
                         href_url = self.service.git_url
                         if href_url.startswith('git@'):
-                            href_url = "http://" + href_url.replace(":", "/")[4:]
+                            href_url = "http://" + \
+                                href_url.replace(":", "/")[4:]
                         context["href_url"] = href_url
                 except Exception as e:
                     pass
@@ -433,25 +475,37 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     # if domain_num == 1:
                     #     domain = ServiceDomain.objects.get(service_id=self.service.service_id)
                     #     context["serviceDomain"] = domain
-                    serviceDomainlist = ServiceDomain.objects.filter(service_id=self.service.service_id)
+                    serviceDomainlist = ServiceDomain.objects.filter(
+                        service_id=self.service.service_id)
                     if len(serviceDomainlist) > 0:
                         data = {}
                         for domain in serviceDomainlist:
-                            data[domain.container_port] = domain.domain_name
+                            if data.get(domain.container_port) is None:
+                                data[domain.container_port] = [
+                                    domain.domain_name]
+                            else:
+                                data[domain.container_port].append(
+                                    domain.domain_name)
                         context["serviceDomainDict"] = data
 
-                port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+                port_list = TenantServicesPort.objects.filter(
+                    service_id=self.service.service_id)
+                outer_port_exist = reduce(
+                    lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
                 context["ports"] = list(port_list)
                 context["outer_port_exist"] = outer_port_exist
                 # 付费用户或者免费用户的mysql,免费用户的docker
-                context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
+                context[
+                    "outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
-                context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope="inner").exclude(container_port=-1)
+                context["port_auth"] = (
+                    self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
+                context["envs"] = TenantServiceEnvVar.objects.filter(
+                    service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port=-1)
 
                 # 获取挂载信息,查询
-                volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
+                volume_list = TenantServiceVolume.objects.filter(
+                    service_id=self.service.service_id)
                 # result_list = []
                 # for volume in list(volume_list):
                 #     tmp_path = volume.volume_path
@@ -459,18 +513,28 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 #     volume.volume_path = tmp_path.replace("/app", "", 1)
                 # result_list.append(volume)
                 context["volume_list"] = volume_list
+
+                if self.service.code_from is not None and self.service.code_from in ("image_manual"):
+                    context["show_git"] = False
+                else:
+                    context["show_git"] = True
+
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             if self.tenant_region.service_status == 0:
-                logger.debug("tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
-                regionClient.unpause(self.service.service_region, self.tenant_region.tenant_id)
+                logger.debug(
+                    "tenant.pause", "unpause tenant_id=" + self.tenant_region.tenant_id)
+                regionClient.unpause(
+                    self.service.service_region, self.tenant_region.tenant_id)
                 self.tenant_region.service_status = 1
                 self.tenant_region.save()
 
             elif self.tenant_region.service_status == 3:
-                logger.debug("tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
-                regionClient.systemUnpause(self.service.service_region, self.tenant_region.tenant_id)
+                logger.debug(
+                    "tenant.pause", "system unpause tenant_id=" + self.tenant_region.tenant_id)
+                regionClient.systemUnpause(
+                    self.service.service_region, self.tenant_region.tenant_id)
                 self.tenant_region.service_status = 1
                 self.tenant_region.save()
         except Exception as e:
@@ -509,7 +573,8 @@ class ServiceLatestLog(AuthedView):
             context = self.get_context()
             data = {}
             data['number'] = 1000
-            body = regionClient.latest_log(self.service.service_region, self.service.service_id, json.dumps(data))
+            body = regionClient.latest_log(
+                self.service.service_region, self.service.service_id, json.dumps(data))
             context["lines"] = body["lines"]
         except Exception as e:
             logger.exception(e)
@@ -527,10 +592,12 @@ class ServiceHistoryLog(AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
-            body = regionClient.history_log(self.service.service_region, self.service.service_id)
+            body = regionClient.history_log(
+                self.service.service_region, self.service.service_id)
             context["log_paths"] = body["log_path"]
             context["tenantService"] = self.service
-            context["log_domain"] = settings.LOG_DOMAIN[self.service.service_region]
+            context["log_domain"] = settings.LOG_DOMAIN[
+                self.service.service_region]
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)
@@ -545,7 +612,8 @@ class ServiceDockerContainer(AuthedView):
     @never_cache
     def get(self, request, *args, **kwargs):
         context = self.get_context()
-        response = redirect(get_redirect_url("/apps/{0}/{1}/detail/".format(self.tenantName, self.serviceAlias), request))
+        response = redirect(get_redirect_url(
+            "/apps/{0}/{1}/detail/".format(self.tenantName, self.serviceAlias), request))
         try:
             docker_c_id = request.COOKIES.get('docker_c_id', '')
             docker_h_id = request.COOKIES.get('docker_h_id', '')
@@ -556,14 +624,18 @@ class ServiceDockerContainer(AuthedView):
                 context["service_id"] = docker_s_id
                 context["ctn_id"] = docker_c_id
                 context["host_id"] = t_docker_h_id
-                context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
+                context["md5"] = md5fun(
+                    self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
                 pro = settings.DOCKER_WSS_URL.get("type", "ws")
                 if pro == "ws":
-                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
+                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[
+                        self.service.service_region] + "/ws?nodename=" + t_docker_h_id
                 else:
-                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
+                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[
+                        self.service.service_region] + "/ws?nodename=" + t_docker_h_id
 
-                response = TemplateResponse(self.request, "www/console.html", context)
+                response = TemplateResponse(
+                    self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')
             response.delete_cookie('docker_s_id')

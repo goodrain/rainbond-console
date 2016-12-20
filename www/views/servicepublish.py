@@ -90,7 +90,7 @@ class PublishServiceDetailView(LeftSideBarMixin, AuthedView):
             init_data.update({
                 'service_key': make_uuid(self.serviceAlias),
                 'app_version': "0.0.1",
-                'app_alias': self.service.service_alias,
+                'app_alias': self.service.service_cname,
                 'min_node': self.service.min_node,
                 'min_memory': self.service.min_memory,
                 'volume_mount_path': self.service.volume_mount_path,

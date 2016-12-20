@@ -6,6 +6,8 @@ from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
 from django.http import JsonResponse
+
+from www.models.main import ServiceGroupRelation
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -108,10 +110,10 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             # get base service
             service = ServiceInfo.objects.get(service_key="application")
             # create console tenant service
-            num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
-            if num > 0:
-                data["status"] = "exist"
-                return JsonResponse(data, status=200)
+            # num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
+            # if num > 0:
+            #     data["status"] = "exist"
+            #     return JsonResponse(data, status=200)
 
             # calculate resource
             tempService = TenantServiceInfo()
@@ -166,6 +168,13 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     return JsonResponse(data, status=200)
                 codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, code_clone_url, code_id, code_version)
 
+            group_id = request.POST.get("select_group_id", "")
+            # 创建关系
+            if group_id != "":
+                group_id = int(group_id)
+                if group_id > 0:
+                    ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
+                                                        tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             # create region tenantservice
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)

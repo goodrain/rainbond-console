@@ -2,6 +2,8 @@ from django.conf.urls import patterns, url
 from www.tests import *
 from www.services_view import *
 from www.views import ajax
+from www.views.ajax import UpdateGroupView, BatchActionView
+from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
 
 urlpatterns = patterns(
     '',
@@ -38,5 +40,14 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/volume', ajax.ServiceVolumeView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-mnt-share-type', ajax.MntShareTypeView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/container-stats', ajax.ContainerStatsView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/resource/monitor', ajax.ServiceMonitorQuery.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/topological/(?P<group_id>\d+)', ajax.TopologicalGraphView.as_view()),
+    # service group
+    url(r'^(?P<tenantName>[\w\-]+)/group/add$', AddGroupView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/group/update$', UpdateGroupView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/group/delete$', DeleteGroupView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/group/change-group$', UpdateServiceGroupView.as_view()),
 
+    url(r'^(?P<tenantName>[\w\-]+)/batch-action$', BatchActionView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/change-service-name', ajax.ServiceNameChangeView.as_view()),
 )

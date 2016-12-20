@@ -207,12 +207,12 @@ a, a:hover, a:focus {
 }
 
 ul.sidebar-menu , ul.sidebar-menu li ul.sub{
-    margin: -2px 0 0;
+    
     padding: 0;
 }
 
 ul.sidebar-menu {
-    padding-top: 55px;
+    padding-top: 52px;
     background: #1f262d;
 }
 
@@ -239,15 +239,16 @@ ul.sidebar-menu li ul.sub li:last-child{
 ul.sidebar-menu li ul.sub li a {
     font-size: 14px;
     padding: 6px 0;
-    line-height: 24px;
+    line-height: 26px;
     height: 36px;
     -webkit-transition: all 0.3s ease;
     -moz-transition: all 0.3s ease;
     -o-transition: all 0.3s ease;
     -ms-transition: all 0.3s ease;
     transition: all 0.3s ease;
-    color: #939da8;
+    color: #838383;
     background: #1f262d;
+    overflow: hidden;
 }
 
 ul.sidebar-menu li ul.sub li a:hover, ul.sidebar-menu li ul.sub li.active a {
@@ -267,7 +268,7 @@ ul.sidebar-menu li{
 }
 
 ul.sidebar-menu li.sub-menu{
-    line-height: 15px;
+    
 }
 
 ul.sidebar-menu li a span{
@@ -275,7 +276,7 @@ ul.sidebar-menu li a span{
 }
 
 ul.sidebar-menu li a{
-    color: #aeb2b7;
+    color: #fff;
     text-decoration: none;
     display: block;
     padding: 15px 0 15px 10px;
@@ -289,14 +290,14 @@ ul.sidebar-menu li a{
 }
 
 ul.sidebar-menu li a:hover{
-    background-color: #27a9e3;
+    background-color: #28cb75;
     background-image: none;
     color: #fff;
     display: block;
 }
 
 ul.sidebar-menu li a.active, ul.sidebar-menu li a:focus {
-    background:#27a9e3 url('../images/menu-active.png') no-repeat right center;
+    background:#28cb75 url('../images/menu-active.png') no-repeat right center;
     color: #fff;
     display: block;
     -webkit-transition: all 0.3s ease;
@@ -312,11 +313,11 @@ ul.sidebar-menu li a i {
 }
 
 ul.sidebar-menu li a:hover i, ul.sidebar-menu li a:focus i {
-    color: #93d4f1;
+    color: #fff;
 }
 
 ul.sidebar-menu li a.active i {
-    color: #93d4f1;
+    color: #fff;
 }
 
 
@@ -354,7 +355,7 @@ ul.sidebar-menu li a.active i {
     margin-top: 52px;
     padding: 15px;
     width: 100%;
-    background-color: #eeeeee;
+    background-color: #f0f5f8;
     min-height: 700px;
 }
 
@@ -372,14 +373,15 @@ a.logo:hover, a.logo:focus {
 }
 
 a.logo img{
-   max-height: 32px;
+    width: 126px;
+   height: auto;
 }
 
 a.logo span {
     color: #FF6C60;
 }
 
-
+a.logo + div{border-left: 1px solid #000; margin-left: 35px;}
 /*notification*/
 
 #top_menu .nav > li, ul.top-menu > li {
@@ -388,8 +390,6 @@ a.logo span {
 
 .notify-row {
     float: left;
-    margin-left: 35px;
-    border-left: 1px solid #000;
 }
 
 .notify-row .notification span.label {
@@ -5625,15 +5625,6 @@ a.guest-on i {
 
 
 
-
-
-
-
-
-
-
-
-
 .consume_detail th,.consume_detail td{
             height: 40px;
  }
@@ -5651,6 +5642,32 @@ a.guest-on i {
     border:1px #ddd solid;
     border-collapse:collapse;
  }
+
+
+/* mach domain */
+.domain-box{}
+.showlink-box{width: 100%; height: 100%; position: relative;}
+.newtab tr td .domain-box span{display:inline-block;}
+.domain-layer{ position: absolute;background: #fff; border:1px #ddd solid; padding:10px; left:0px; bottom:0px; display: none; min-width: 230px;}
+
+
+
+.layerbg{width: 100%; height: 100%;  background: rgba(0,0,0,.5); position: fixed;  top: 0; left: 0; z-index: 99;}
+.layermain{width: 300px; height: 200px; background: #fff; position: absolute; top: 50%; left: 50%; margin:-160px 0 0 -110px; padding:10px;}
+.closebtn{width: 30px; height: 30px; font-size: 20px; color: red; line-height: 30px; text-align: center; position: absolute; top: 5px; right: 5px;}
+.layer-tit{color: #666; font-size: 16px; line-height: 30px;}
+.layerlink{width: 100%; height: 30px; text-align: center; padding-top: 20px;}
+.layerlink a{width: 80px; height: 30px; color: #fff; background: #28cb75; display: inline-block;  line-height: 30px; text-align: center; margin:0 10px;}
+.tipstext{line-height: 30px; color: #666; font-size: 18px; text-align: center; padding:30px 0 10px;}
+.input-css{width: 100%; padding-top: 10px; text-align: center;}
+.input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px;}
+
+
+
+
+
+
+
 
 
 

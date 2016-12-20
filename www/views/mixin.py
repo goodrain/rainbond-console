@@ -1,10 +1,10 @@
 # -*- coding: utf8 -*-
 from django.http import Http404
 from www.service_http import RegionServiceApi
-from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv, AppServiceVolume
+from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv, AppServiceVolume, ServiceGroup
 from www.tenantservice.baseservice import BaseTenantService
 from www.region import RegionInfo
-
+from www.utils import sn
 import logging
 logger = logging.getLogger('default')
 
@@ -69,15 +69,24 @@ class LeftSideBarMixin(object):
 
         self.cookie_region = self.request.COOKIES.get('region', None)
         self.response_region = self.tenant.region if self.cookie_region is None else self.cookie_region
+        self.cookie_tenant_name = self.request.COOKIES.get('tenant_name', None)
+        self.response_tenant_name = self.tenant.tenant_name if self.cookie_tenant_name is None else self.cookie_tenant_name
 
     def update_response(self, response):
         if self.response_region != self.cookie_region:
             response.set_cookie('region', self.response_region)
+        if self.response_tenant_name != self.cookie_tenant_name:
+            response.set_cookie('tenant_name', self.response_tenant_name)
         return response
 
     def get_context(self):
         context = super(LeftSideBarMixin, self).get_context()
         context['tenantServiceList'] = self.get_service_list()
+        context["groupList"] = self.get_group_list()
+        context["tenant_list"] = self.get_user_tenant(self.user.pk)
+        context["current_tenant"]= self.tenant.tenant_name
+        context["is_private"] = sn.instance.is_private()
+        context["cloud_assistant"] = sn.instance.cloud_assistant
         context = self.set_region_info(context)
         return context
 
@@ -108,5 +117,16 @@ class LeftSideBarMixin(object):
                 services.insert(0, s)
                 services.remove(s)
                 break
-
         return services
+    
+    def get_group_list(self):
+        grouplist = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+        return grouplist
+
+    def get_user_tenant(self,user_id):
+        """根据用户的ID获取当前用户的所有租户信息"""
+        prt_list = PermRelTenant.objects.filter(user_id=user_id)
+        tenant_id_list = [x.tenant_id for x in prt_list]
+        # 查询租户信息
+        tenant_list = Tenants.objects.filter(pk__in=tenant_id_list)
+        return tenant_list

@@ -1,5 +1,6 @@
 from django.template.defaulttags import register
 import datetime
+from django.utils.datastructures import SortedDict
 
 @register.filter
 def mkey(d, key):

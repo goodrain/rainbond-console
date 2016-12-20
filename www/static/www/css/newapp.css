@@ -23,12 +23,12 @@ em,cite,span{font-style: normal;}
 
 .build-app-btn{text-align: center;}
 
-.tit{font-size: 24px; line-height: 50px; color: #555;  }
+.tit{font-size: 24px; line-height: 50px; color: #555;}
 .line{height: 0; width: 100%; display: block; border-top: 1px #f7f7f7 solid; border-bottom: 1px #dfdfdf solid;}
 .smalltit{font-size: 18px; line-height: 50px; color: #555; height: 50px; background: #efefef; border-bottom: 1px #ddd solid; text-indent:20px; margin-bottom: 0;}
 .link{margin-bottom: 0; background:#f5f5f5; padding: 20px; }
 .link-box{border: 1px #ddd solid;}
-.link a{padding:15px; background: #28cb75; color: #fff; font-size: 18px; line-height: 1; display:block; float: left; margin-right: 10px; text-align: center;}
+.link a{padding:15px; background: #28cb75; color: #fff; font-size: 18px; line-height: 1; display:block; float: left; margin: 5px; text-align: center;}
 .link-app-market{margin-bottom: 0; background:#f5f5f5; padding: 20px;}
 .link-app-market a{ height: 50px; padding: 0 15px; background: #28cb75; color: #fff; line-height: 1; display:block; float: left; margin-right: 10px; text-align: center; margin-bottom: 10px;}
 .link-app-market a span:nth-child(1){font-size: 18px; padding-top: 10px; display: block;}
@@ -42,5 +42,62 @@ em,cite,span{font-style: normal;}
 .fm-link p label{ font-size: 18px;  color: #555; }
 .fm-link p input{border: #c6c6c6 1px solid;  background:#fff; width: 80%;}
 .fm-link a{display: block; margin:20px auto; width: 160px;}
+
+.fn-app-box{display: none;}
+.tablink{width: 100%; height: 40px; border-bottom: 1px #ddd solid; margin-top: 10px; padding:0 20px;}
+.tablink a{width: 90px; text-align: center; line-height: 38px; display: inline-block; border:1px #ddd solid; color: #666; text-decoration: none;}
+.tablink a.sed{background: #28cb75; color: #fff;}
+
+/**/
+.newapp-link-box{margin:20px 5px;}
+.newapp-link-box li:nth-child(1){float:left;width: 70%;}
+.newapp-link-box li:nth-child(2){float:right; width: 28%}
+.newapp-link-box li p{width: 100%;}
+.newapp-tit{color: #303030; font-size: 16px; text-indent: 10px;}
+.newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 20%; float: left;}
+.newapp-link-box li:nth-child(2) .newapp-link a{display: block; width: 50%; float: left;}
+.newapp-link-box li .newapp-link a{display: block; width: 100%;}
+.newapp-link-box li .newapp-link a span{background: #fff; min-height: 152px; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 5px; text-align: center; padding: 10px 5px;}
+.newapp-link-box li .newapp-link a em{width: 88px; height: 72px; margin:0 auto; display: block; background: url('../images/newappicon.png') no-repeat; background-size: 704px 144px;}
+.addressicon{}
+.newapp-link-box li .newapp-link a em.goodcodeicon{background-position: -88px 0;}
+.newapp-link-box li .newapp-link a em.githubicon{background-position: -176px 0;}
+.newapp-link-box li .newapp-link a em.demoicon{background-position: -264px 0;}
+.newapp-link-box li .newapp-link a em.demoicon2{background-position: -352px 0;}
+.newapp-link-box li .newapp-link a em.dockericon{background-position: -440px 0;}
+.newapp-link-box li .newapp-link a em.composeicon{background-position: -528px 0;}
+
+.newapp-link-box li .newapp-link a em.addressicon:hover{ background-position: 0 -72px;}
+.newapp-link-box li .newapp-link a em.goodcodeicon:hover{background-position: -88px -72px;}
+.newapp-link-box li .newapp-link a em.githubicon:hover{background-position: -176px -72px;}
+.newapp-link-box li .newapp-link a em.demoicon:hover{background-position: -264px -72px;}
+.newapp-link-box li .newapp-link a em.demoicon2:hover{background-position: -352px -72px;}
+.newapp-link-box li .newapp-link a em.dockericon:hover{background-position: -440px -72px;}
+.newapp-link-box li .newapp-link a em.composeicon:hover{background-position: -528px -72px;}
+
+.newapp-link-box li p a cite{font-size: 14px; color: #303030; text-decoration: none; line-height: 20px; display: inline-block; width: 100%;}
+.newapp-link-box li p a cite.littext{font-size: 12px; color: #838383;}
+
+
+.app-market{background: #fff;  -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; padding:10px;}
+.tab-tit{font-size: 12px; padding:0 10px 10px; margin-bottom: 0;}
+.tab-tit a{text-decoration:none;color: #838383; line-height: 30px; padding: 0 10px;}
+.tab-tit a:hover{color: #28cb75;}
+.tab-tit a.sed{color: #28cb75;}
+
+.app-market ul{ padding: 0 10px; }
+.app-market ul li{width: 100%; display: none;}
+.app-market ul li p{width: 33.33%; float: left; margin:0;}
+.app-market ul li p a{margin:0 5px 10px;  height: 50px; line-height: 50px; overflow: hidden; color: #303030; padding-right:40px; font-size: 14px;  border:1px #ececec solid;  text-align: center; display: block;}
+.app-market ul li p a:hover{background: url('../images/rightarr.png') no-repeat right 10px center; text-decoration: underline; color: #28cb75;}
+.app-market ul li p:last-child a{color: #28cb75;}
+.tuanicon{width: 20px; height: 20px; background: url('../images/tuan.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
+.gongicon{width: 20px; height: 20px; background: url('../images/gong.png') no-repeat; display: inline-block; margin-right: 5px; position: relative; top: 5px;}
+
+.app-market-box{margin:20px 5px;}
+
+.app-market ul li p#no-show-list{width: 100%; text-align: center; font-size: 16px; line-height: 50px;}
+.app-market ul li p#no-show-list a{border:0; color: #28cb75; text-decoration: underline; padding:0; margin:0; display: inline; font-size: 16px;}
+.app-market ul li p#no-show-list a:hover{background-image: none;}
 
 
