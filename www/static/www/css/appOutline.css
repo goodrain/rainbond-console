@@ -27,6 +27,10 @@ button{
     font-size: 24px;
     font-weight: 100;
 }
+.appOutline ul li p.text-center img{
+    width: 50px;
+    height: 50px;
+}
 .alternative{
     padding: 20px;
 }
@@ -45,7 +49,9 @@ button{
 }
 .alternative .alterLeft ul li.button{
     float: left;
-    margin-left: 20px;
+}
+.alternative .alterLeft ul li.button button,select{
+    margin-right: 10px;
 }
 .alternative .alterRight ul li button.bgColor{
     text-align: center;
