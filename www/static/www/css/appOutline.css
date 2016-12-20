@@ -55,14 +55,12 @@ button{
 }
 .alternative .alterRight ul li button.bgColor{
     text-align: center;
-    align-items: center;
+    vertical-align: middle;
     background-color: #28cb75;
     color: #ffffff;
-    border-radius: 5px;
-    -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
-    height: 30px;
-    padding:0px 20px;
+    padding:6px 12px;
+    font-size: 14px;
+    font-weight: 400;
 }
 
 

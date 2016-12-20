@@ -100,32 +100,10 @@
 				<ul class="clearfix">
 					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
 					<li class="button">
-						<!--<div class="btn-group">-->
-							<!--<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">-->
-								<!--管理容器 <span class="caret"></span>-->
-							<!--</button>-->
-							<!--<ul class="dropdown-menu" role="menu" style="left: -65px;">-->
-								<!--<li><a href="#">容器1</a></li>-->
-								<!--<li><a href="#">容器2</a></li>-->
-								<!--<li><a href="#">容器3</a></li>-->
-								<!--&lt;!&ndash;分割线&ndash;&gt;-->
-								<!--&lt;!&ndash;<li class="divider"></li>&ndash;&gt;-->
-								<!--<li><a href="#">容器4</a></li>-->
-							<!--</ul>-->
-						<!--</div>-->
 						<div class="btn-group">
 							<button type="button" name="join_container" style="background-color: #ffffff" class="btn dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
-							<!--<div style="width: 300px; height: auto; position: relative; z-index: 9; top: 30px;">-->
-								<!--<table width="100%;" class="table table-hover">-->
-									<!--<tbody id="cur_container_content">-->
-									<!--</tbody>-->
-								<!--</table>-->
-							<!--</div>-->
 							<ul class="dropdown-menu" role="menu" style="left: -65px;" id="cur_container_content">
-								<!--<li><a href="#">容器1</a></li>-->
-								<!--<li><a href="#">容器2</a></li>-->
-								<!--<li><a href="#">容器3</a></li>-->
-								<!--<li><a href="#">容器4</a></li>-->
+								<!--<li><a href="#">节点1</a></li>-->
 							</ul>
 						</div>
 
@@ -135,16 +113,16 @@
 					{% if 'manage_service' in user.actions %}
 					<li class="button">
 						<input type="hidden" id="service_status_value" name="service_status_value" value="" />
-						<button type="button" class="btn btn-danger" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
+						<button type="button" class="bgColor" style="background-color: #FF6C61" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
 					</li>
 					{% endif %}
 
 					<!--<li class="button">-->
 						<!--<button class="bgColor">关闭</button>-->
 					<!--</li>-->
-					<li class="button">
-						<button class="bgColor">重启</button>
-					</li>
+					<!--<li class="button">-->
+						<!--<button class="bgColor">重启</button>-->
+					<!--</li>-->
 
 					{% ifequal tenantServiceInfo.category "application" %}
 					{% if user.is_sys_admin %}
