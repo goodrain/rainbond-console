@@ -81,12 +81,12 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .greenbtn:hover{color: #fff;}
 
 .fm-input-range .range-box{width: 60%; height: 26px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
-.fm-input-range .range-box .renge-bg{width: ; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
-.fm-input-range .range-box .range-choose{width:220px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
+.fm-input-range .range-box .renge-bg{width:100%; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
+.fm-input-range .range-box .range-choose{width:100%; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
 .fm-input-range .range-box .range-choose cite{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; display: block;}
 
-.fm-input-range  .range-box.nouser input{width:60px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
-.fm-input-range  .range-box.nouser .range-choose{width:60px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
+.fm-input-range  .range-box.nouser input{width:20%; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range  .range-box.nouser .range-choose{width:20%; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
 .fm-input-range  .range-box.nouser02 input{width:24px; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
 .fm-input-range  .range-box.nouser02 .range-choose{width:24px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
 
