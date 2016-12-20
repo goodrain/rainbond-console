@@ -165,9 +165,11 @@ $(function(){
     $("#MoneyBefore").change(function(){
         var onoff = $("#MoneyBefore").prop("checked");
         if(onoff == true){
-            $(".fn-memory-node").show();
+            // $(".fn-memory-node").show();
+            $("#aft-memory-box").hide();
         }else{
-            $(".fn-memory-node").hide();
+            //$(".fn-memory-node").hide();
+            $("#aft-memory-box").show();
         }
         FnPrice();
     });
@@ -175,9 +177,11 @@ $(function(){
         console.log(1);
         var onoff = $("#MoneyAfter").prop("checked");
         if(onoff == false){
-            $(".fn-memory-node").show();
+            //$(".fn-memory-node").show();
+            $("#aft-memory-box").show();
         }else{
-            $(".fn-memory-node").hide();
+            //$(".fn-memory-node").hide();
+            $("#aft-memory-box").hide();
         }
         FnPrice();
     });
@@ -185,8 +189,10 @@ $(function(){
         var onoff = $("#DiskBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
+            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
+            $("#aft-disk-box").show();
         }
         FnPrice();
     });
@@ -194,8 +200,10 @@ $(function(){
         var onoff = $("#After").prop("checked");
         if(onoff == false){
             $(".fn-disk").show();
+            $("#aft-disk-box").show();
         }else{
             $(".fn-disk").hide();
+            $("#aft-disk-box").hide();
         }
         FnPrice();
     });

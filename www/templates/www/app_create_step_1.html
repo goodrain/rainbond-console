@@ -336,13 +336,14 @@
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node">
                     <label>单节点内存:</label>
-                    <!-- user 
+                    {% if cur_type == "is_tenant_free" %}
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
                         <input type="range" min="128" max="8192"  step="128" id="OneMemory" value="128"／>
                     </p>
                     <!-- user -->
+                    {% else %}
                     <!-- no user -->
                     <p class="range-box nouser">
                         <span class="renge-bg"></span>
@@ -350,17 +351,19 @@
                         <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="128"／>
                     </p>
                     <!-- no user -->
+                    {% endif %}
                     <span><cite id="OneMemoryText">128M</cite></span>
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node" style="padding-bottom:30px;">
                     <label>节点数:</label>
-                    <!-- user 
+                    {% if cur_type == "is_tenant_free" %}
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="NodeWid"></cite></span>
                         <input type="range" min="1" max="100"  step="1" id="NodeNum" value="1"／>
                     </p>
                     <!-- user -->
+                    {% else %}
                     <!-- no user -->
                     <p class="range-box nouser02">
                         <span class="renge-bg"></span>
@@ -368,6 +371,7 @@
                         <input type="range" min="1" max="1"  step="1" id="NodeNum" value="1"／>
                     </p>
                     <!-- no user -->
+                    {% endif %}
                     <span><cite id="NodeText">1</cite>个</span>
                 </div>
                 <!-- 02 -->
@@ -390,13 +394,14 @@
                 </div>
                 <div class="fm-input-range clearfix fn-disk" style="padding-bottom:30px;">
                     <label>磁盘:</label>
-                    <!-- user 
+                    {% if cur_type == "is_tenant_free" %}
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="DiskWid"></cite></span>
                         <input type="range" min="1" max="1000"  step="1" id="Disk" value="1"／>
                     </p>
                     <!-- user -->
+                    {% else %}
                     <!-- no user -->
                     <p class="range-box nouser02">
                         <span class="renge-bg"></span>
@@ -404,6 +409,7 @@
                         <input type="range" min="1" max="1"  step="1" id="Disk" value="1"／>
                     </p>
                     <!-- no user -->
+                    {% endif %}
                     <span><cite id="DiskText">1</cite>G</span>
                 </div>
                 <!-- 03 -->
@@ -466,7 +472,7 @@
                 </div>
                 <div class="fm-aft-money clearfix">
                     <label>按使用后付费:</label>
-                    <span>内存<cite id="aft-memory"></cite>元／GB／小时；磁盘<cite id="aft-disk"></cite>元／GB／小时；流量<cite id="aft-net"></cite>元／GB／小时</span>
+                    <p><span id="aft-memory-box">内存<cite id="aft-memory"></cite>元／GB／小时；</span><span id="aft-disk-box">磁盘<cite id="aft-disk"></cite>元／GB／小时；</span><span id="aft-net-box">流量<cite id="aft-net"></cite>元／GB／小时</span></p>
                 </div>
                 <div class="fm-btn clearfix">
                     <a class="greenbtn" id="BtnFirst" style="cursor: pointer;">下一步</a>
