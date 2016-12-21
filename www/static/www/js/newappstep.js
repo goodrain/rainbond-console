@@ -650,7 +650,7 @@ $(function(){
         var othisheight = $(this).height();
         if(pos == "top"){
             //
-            $(".tips-box").css({"top":y-oDivheight});
+            $(".tips-box").css({"top":y-oDivheight -5});
             if(oDivwidth > othiswid){
                 $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
             }else if(oDivwidth < othiswid){
@@ -662,7 +662,7 @@ $(function(){
             //
         }else if(pos == "bottom"){
             //
-            $(".tips-box").css({"top":y + othisheight});
+            $(".tips-box").css({"top":y + othisheight + 5});
             if(oDivwidth > othiswid){
                 $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
             }else if(oDivwidth < othiswid){
@@ -673,10 +673,10 @@ $(function(){
             $(".tips-box").find("cite").addClass("bottom");
             //
         }else if(pos == "left"){
-            $(".tips-box").css({"top":y+5,"left":x-othiswid});
+            $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
              $(".tips-box").find("cite").addClass("left");
         }else if(pos == "right"){
-            $(".tips-box").css({"top":y+5,"left":x+othiswid});
+            $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
              $(".tips-box").find("cite").addClass("right");
         }else{
             //
