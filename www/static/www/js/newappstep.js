@@ -388,18 +388,19 @@ $(function(){
                         $("#gr_branchbox").hide();
                     }else{
                         $("#gr_branchbox").show();
-                        //Fnbranch(service_code_from,service_code_id,clone_url);
+                        Fnbranch(service_code_from,service_code_id,clone_url);
                     }
 
                     $(listWrap).change(function(){
                         var sedoption = $(listWrap).children("option:selected");
                         var service_code_id=$(sedoption).attr("data");
                         var clone_url = $('#repos_'+service_code_id).val();
+                        var grbranch = $("#code_gr_list option:selected").attr("value");
                         if(grbranch == "newobj"){
                             $("#gr_branchbox").hide();
                         }else{
                             $("#gr_branchbox").show();
-                             //Fnbranch(service_code_from,service_code_id,clone_url); 
+                            Fnbranch(service_code_from,service_code_id,clone_url); 
                         } 
                     });
                 }else{
