@@ -637,7 +637,7 @@ $(function(){
 
     
     //tips
-    $(".fn-tips").mouseup(function(){
+    $(".fn-tips").mouseover(function(){
         var tips = $(this).attr("data-tips");
         var x = $(this).offset().left;
         var y = $(this).offset().top;
