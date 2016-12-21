@@ -388,9 +388,9 @@ $(function(){
                         $("#gr_branchbox").hide();
                     }else{
                         $("#gr_branchbox").show();
-                        Fnbranch(service_code_from,service_code_id,clone_url);
+                        //Fnbranch(service_code_from,service_code_id,clone_url);
                     }
-                                 
+
                     $(listWrap).change(function(){
                         var sedoption = $(listWrap).children("option:selected");
                         var service_code_id=$(sedoption).attr("data");
@@ -399,7 +399,7 @@ $(function(){
                             $("#gr_branchbox").hide();
                         }else{
                             $("#gr_branchbox").show();
-                             Fnbranch(service_code_from,service_code_id,clone_url); 
+                             //Fnbranch(service_code_from,service_code_id,clone_url); 
                         } 
                     });
                 }else{
