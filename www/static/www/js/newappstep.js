@@ -643,7 +643,7 @@ $(function(){
         var y = $(this).offset().top;
         var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
         $("body").append(oDiv);
-        var oDivheight = oDiv.height();
+        var oDivheight = $(".tips-box").height();
         var othiswid = $(this).width();
         $(".tips-box").css({"left":x + 10,"top":y- oDivheight - 5});
     });
