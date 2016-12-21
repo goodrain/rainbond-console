@@ -476,7 +476,6 @@
    	  			var logList = dataObj["log"]
    	  			if(typeof(logList) !="undefined"){
    	  				for(var i=0;i<logList.length;i++){
-						console.log(logList[i]);
 						var log = logList[i]
 						var tmpLog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
 						if(log["status"] == "end"){
@@ -510,7 +509,7 @@
 						if(log["status"] == "end"){
 							showlog = showlog+" 用时"+log["cost_time"]+"s";
 						}
-						showlog = "<label style='text-decoration: underline'>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
+						showlog = "<label style='text-decoration: underline'>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;text-decoration: underline;line-height: 21px;'></p>"
 						if($("#event_"+log["event_id"]).length>0){
 							$("#event_"+log["event_id"]).html(showlog)
 						}else{
@@ -574,7 +573,7 @@
 							}
 						}
 						var address = location.href.split("?");
-						var more = '</br><a href="'+address[0]+'?fr=log'+'" style="color: #fff;text-decoration: underline">更多日志</a>';
+						var more = '</br><a href="'+address[0]+'?fr=log'+'" style="text-decoration: underline">更多日志</a>';
 						str = str + more;
 						$("#compile_"+event_id+"").html(str);
 						$("#showlog_"+event_id+"").html("隐藏构建日志");
