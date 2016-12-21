@@ -643,7 +643,9 @@ $(function(){
         var y = $(this).offset().top;
         var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
         $("body").append(oDiv);
-        $(".tips-box").css({"left":x + 10,"bottom":y-5});
+        var oDivheight = oDiv.height();
+        var othiswid = $(this).width();
+        $(".tips-box").css({"left":x + 10,"top":y- oDivheight - 5});
     });
     $(".fn-tips").mouseout(function(){
         $(".tips-box").remove();
