@@ -2,7 +2,7 @@
 import logging
 import json
 
-from dateutil import relativedelta
+from dateutil.relativedelta import relativedelta
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponse
@@ -42,6 +42,19 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js')
         return media
+
+    def get_estimate_service_fee(self, service_attach_info):
+        """根据附加信心获取服务的预估价格"""
+        total_price = 0
+        regionBo = rpmManager.get_work_region_by_name(self.response_region)
+        pre_paid_memory_price = regionBo.memory_package_price
+        pre_paid_disk_price = regionBo.disk_package_price
+        if service_attach_info.memory_pay_method == "prepaid":
+            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024 * pre_paid_memory_price
+        if service_attach_info.disk_pay_method == "prepaid":
+            total_price += service_attach_info.disk / 1024 * pre_paid_disk_price
+        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
+        return round(total_price, 2)
 
     @never_cache
     @perm_required('create_service')
@@ -126,7 +139,10 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             service = ServiceInfo.objects.get(service_key="application")
             # 根据页面参数获取节点数和每个节点的内存大小
             min_memory = int(request.POST.get("service_min_memory", 128))
-            min_node= int(request.POST.get("service_min_node", 1))
+            # 将G转换为M
+            if min_memory < 128:
+                min_memory *= 1024
+            min_node = int(request.POST.get("service_min_node", 1))
             service.min_memory = min_memory
             service.min_node = min_node
 
@@ -155,24 +171,28 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             memory_pay_method = request.POST.get("memory_pay_method", "prepaid")
             disk_pay_method = request.POST.get("disk_pay_method", "prepaid")
             pre_paid_period = int(request.POST.get("pre_paid_period", 1))
-            pre_paid_money = int(request.POST.get("disk_pay_method", 0))
-            disk = int(request.POST.get("disk_num") , 0)
+            disk = int(request.POST.get("disk_num", 1))
+            # 将G转换为M
+            if disk < 1024:
+                disk *= 1024
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
             endTime = datetime.datetime.now() + relativedelta(months=int(pre_paid_period))
-            ServiceAttachInfo.objects.create(tenant_id=tenant_id,
-                                             service_id=service_id,
-                                             memory_pay_method=memory_pay_method,
-                                             disk_pay_method=disk_pay_method,
-                                             min_memory=min_memory,
-                                             min_node=min_node,
-                                             disk=disk,
-                                             pre_paid_period=pre_paid_period,
-                                             pre_paid_money=pre_paid_money,
-                                             buy_start_time=startTime,
-                                             buy_end_time=endTime,
-                                             create_time=create_time)
-
+            # 保存配套信息
+            sai = ServiceAttachInfo()
+            sai.tenant_id = tenant_id
+            sai.service_id = service_id
+            sai.memory_pay_method = memory_pay_method
+            sai.disk_pay_method = disk_pay_method
+            sai.min_memory = min_memory
+            sai.min_node = min_node
+            sai.disk = disk
+            sai.pre_paid_period = pre_paid_period
+            sai.buy_start_time = startTime
+            sai.buy_end_time = endTime
+            sai.create_time = create_time
+            sai.pre_paid_money = self.get_estimate_service_fee(sai)
+            sai.save()
 
             # create console service
             service.desc = service_desc
@@ -235,6 +255,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
+            ServiceGroupRelation.objects.filter(service_id=service_id)
             monitorhook.serviceMonitor(self.user.nick_name, tempTenantService, 'create_service_error', False)
             data["status"] = "failure"
         return JsonResponse(data, status=200)
