@@ -301,28 +301,30 @@
 		<div class="col-lg-12 text-left">
 			<section class="panel">
 				<header class="panel-heading">连接信息</header>
-				<table class="table table-hover">
-					<thead>
-					<tr>
-						<th>说明</th>
-						<th>变量名</th>
-						<th>变量值</th>
-					</tr>
-					</thead>
-					<tbody>
-					{% for curServiceEnvVar in curServiceEnvVarList %}
-					{% if curServiceEnvVar.name != "" %}
-					{% if containerPortList|hasvalue:curServiceEnvVar.container_port or curServiceEnvVar.container_port < 1 %}
-					<tr>
-						<td>{{curServiceEnvVar.name}}</td>
-						<td>{{curServiceEnvVar.attr_name}}</td>
-						<td>{{curServiceEnvVar.attr_value}}</td>
-					</tr>
-					{% endif %}
-					{% endif %}
-					{% endfor %}
-					</tbody>
-				</table>
+				<div class="connectTable">
+					<table>
+						<thead>
+						<tr>
+							<th>说明</th>
+							<th>变量名</th>
+							<th>变量值</th>
+						</tr>
+						</thead>
+						<tbody>
+						{% for curServiceEnvVar in curServiceEnvVarList %}
+						{% if curServiceEnvVar.name != "" %}
+						{% if containerPortList|hasvalue:curServiceEnvVar.container_port or curServiceEnvVar.container_port < 1 %}
+						<tr>
+							<td>{{curServiceEnvVar.name}}</td>
+							<td>{{curServiceEnvVar.attr_name}}</td>
+							<td>{{curServiceEnvVar.attr_value}}</td>
+						</tr>
+						{% endif %}
+						{% endif %}
+						{% endfor %}
+						</tbody>
+					</table>
+				</div>
 			</section>
 		</div>
 	</div>
