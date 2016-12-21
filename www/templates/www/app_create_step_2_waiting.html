@@ -1,0 +1,206 @@
+{% extends 'www/raster.html' %} {% load i18n %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+{% endblock %}
+{% block main-content%}
+<section class="wrapper site-min-height">
+	<!-- page start-->
+	<!--
+	<section class="panel">
+
+		<div class="panel-body">
+			<div class=" form">
+				<form class="cmxform form-horizontal tasi-form" id="commentForm"
+					method="post" action="" novalidate="novalidate">
+					<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+					<input type="hidden" id="service_name" name="service_name" value="{{tenantService.service_alias}}" />
+					<input type="hidden" id="language" name="language" value="{{tenantService.language}}" />
+					<div class="form-group">
+						<div class="col-lg-12 text-center">
+							<img src="/static/www/img/step-2.png" width="80%" style="padding-bottom: 50px;padding-top: 30px;"/>
+						</div>
+					</div>
+					<div class="form-group ">
+						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">已有服务</label>
+						{% if deployTenantServices %}
+							<div class="col-lg-10">
+								{% for deployCache in deployTenantServices %}
+							   <div class="col-xs-2">
+								<label class="checkbox-inline"> <input type="checkbox"
+									name="delineCheckbox1"
+									value="{{deployCache.service_id}}_{{deployCache.service_type}}_{{deployCache.version}}">
+									{{deployCache.service_cname}}
+								</label>
+								</div>
+								{% endfor %}
+							</div>
+
+						{% endif %}
+						<input type="hidden" id="hasService" name="hasService" value="">
+					</div>
+					<div class="form-group">
+						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">新建服务</label>
+						{% if cacheServiceList %}
+						<div class="col-lg-10">
+								{% for cache in cacheServiceList %}
+								<div class="col-xs-4">
+									<label class="checkbox-inline"> <input type="checkbox"
+										name="inlineCheckbox1"
+										value="{{cache.service_key}}_{{cache.service_type}}_{{cache.version}}">
+										{{cache.service_name}}_{{cache.version}}
+									</label>
+								</div>
+								{% endfor %}
+							<input type="hidden" id="createService" name="createService" value="">
+						</div>
+						{% endif %}
+					</div>
+					<div class="form-group">
+						<label class="col-sm-2 control-label col-lg-2" for="inputSuccess">文件服务路径</label>
+						<div class="col-lg-10">
+								<div title="该路径下的所有文件不会丢失" >
+									/data
+								</div>
+						</div>
+					</div>
+					<div class="col-lg-offset-3 col-lg-6 " style="padding-top: 50px;padding-bottom: 20px;">
+						<button type="button" id="service_dependency_finished" class="btn btn-lg btn-info btn-block">下一步</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</section>
+	-->
+	<!-- page end-->
+	<section class="main-box">
+		<h3 class="main-tit">新建自定义应用</h3>
+        <div class="app-step clearfix">
+            <p><span>1</span><cite>创建应用</cite></p>
+            <p class="sed"><span>2</span><cite>代码同步</cite></p>
+            <p><span>3</span><cite>应用设置</cite></p>
+            <p><span>4</span><cite>高级选项</cite></p>
+        </div>
+	    <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+			<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+			<input type="hidden" id="service_name" name="service_name" value="{{tenantService.service_alias}}" />
+	        <div class = "mainbox">
+	        	<div class="second-loading" id="second-loading">
+	        		<p class="second-tit">正在从仓库同步代码！</p>
+	        		<p class="second-tips-loading">
+	        			<span>代码源：</span>
+	        			<span>由于代码量及网络环境差异，等待时间可能较长。</span>
+	        			<span>你可以关闭当前页面去 处理其他事务，稍后可在我的应用中继续操作。</span>
+	        		</p>
+	        	</div>
+	        	<p class="second-tips" id="git_code_upload" style="display: none;">代码已同步，语言为PHP！</p>
+	        	<div style="text-align: center;">
+	        		<a class="greenbtn seconbtn" id="BtnSecond" style="cursor: pointer;">下一步</a>
+	        		<a class="graybtn seconbtn" id="Btndelete" style="cursor: pointer;" onclick="app_create_delete();">取消</a>
+	        	</div>
+	        </div>
+    	</form>
+    </section>
+</section>
+<script>
+var gitcodechecktimmer;
+var requestNumber = 0
+$(function() {
+	$('#BtnSecond').attr('disabled', "true");
+	getGitCodeCheck();
+	$('#BtnSecond').click(
+		function() {
+			var tenantName = $('#tenantName').val();
+			var service_name = $('#service_name').val();
+			window.location.href = "/apps/" + tenantName + "/"+ service_name + "/app-language/";
+	});
+});
+
+function getGitCodeCheck() {
+	var tenantName = $('#tenantName').val();
+	var service_name = $('#service_name').val();
+	if (service_name != "" && service_name != undefined) {
+		requestNumber = requestNumber + 1
+		$.ajax({
+			type : "GET",
+			url : "/ajax/" + tenantName + "/" + service_name
+					+ "/check/?requestNumber=" + requestNumber,
+			cache : false,
+			success : function(msg) {
+				var dataObj = msg;
+				if (dataObj["status"] == "checked") {
+					clearTimeout(gitcodechecktimmer);
+					$("#second-loading").hide();
+					$("#git_code_upload").show();
+					$("#git_code_upload").html(
+							"代码已提交，语言识别为 " + dataObj["language"]);
+					$("#BtnSecond").removeAttr('disabled')
+				} else if (dataObj["status"] == "check_error") {
+					$("#second-loading").hide();
+					$("#git_code_upload").show();
+					$("#git_code_upload").html("语言未识别，请重新提交代码...");
+				}
+			},
+			error : function() {
+				// swal("系统异常");
+			}
+		})
+		
+		gitcodechecktimmer=setTimeout("getGitCodeCheck()",1000*Math.ceil(requestNumber / 5)+3000)
+	}
+}
+
+function app_create_delete() {
+	swal({
+		title: "确定要停止创建当前的应用吗？",
+		type: "warning",
+	    showCancelButton: true,
+		confirmButtonColor: "#DD6B55",
+		confirmButtonText: "确定",
+		cancelButtonText: "取消",
+		closeOnConfirm: false,
+		closeOnCancel: false
+	}, function (isConfirm) {
+		if(isConfirm) {
+			var tenantName = $('#tenantName').val();
+			var service_name = $('#service_name').val();
+			$.ajax({
+				type : "POST",
+				url : "/ajax/" + tenantName + "/" + service_name + "/manage/",
+				data : "action=delete",
+				cache : false,
+				beforeSend : function(xhr, settings) {
+					var csrftoken = $.cookie('csrftoken');
+					xhr.setRequestHeader("X-CSRFToken", csrftoken);
+					swal({
+						title: "正在执行删除操作，请稍候...",
+						text: "5秒后自动关闭",
+						timer: 5000,
+						showConfirmButton : false
+					});
+				},
+				success : function(msg) {
+					var dataObj = msg
+					if (dataObj["status"] == "success") {
+						swal("操作成功");
+						window.location.href = "/apps/"+tenantName+"/service-entrance/"
+					} else if (dataObj["status"] == "often") {
+						swal("上次操作正在进行中，稍后再试")
+					}else if (dataObj["status"] == "dependency") {
+						swal("当前服务被依赖不能删除");
+					} else {
+						swal("操作失败");
+					}
+				},
+				error : function() {
+					swal("系统异常");
+				}
+			});
+		}else{
+			swal.close();
+		}
+	});
+}
+</script>
+{% endblock %}

@@ -370,7 +370,7 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js', 'www/js/app-waiting.js')
+            'www/js/respond.min.js')
         return media
 
     @never_cache
@@ -384,27 +384,27 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
 
             context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
 
-            tenantServiceRelations = TenantServiceRelation.objects.filter(
-                tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
-            if len(tenantServiceRelations) > 0:
-                dpsids = []
-                for tsr in tenantServiceRelations:
-                    dpsids.append(tsr.dep_service_id)
-                deployTenantServices = TenantServiceInfo.objects.filter(service_id__in=dpsids)
-                context["deployTenantServices"] = deployTenantServices
-                # 获取服务的端口信息
-                dep_port_list = TenantServicesPort.objects.filter(service_id__in=dpsids)
-                port_map = {x.service_id: x for x in list(dep_port_list)}
-                context["port_map"] = port_map
-                authList = TenantServiceAuth.objects.filter(service_id__in=dpsids)
-                if len(authList) > 0:
-                    authMap = {}
-                    for auth in authList:
-                        authMap[auth.service_id] = auth
-                    context["authMap"] = authMap
+            # tenantServiceRelations = TenantServiceRelation.objects.filter(
+            #     tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+            # if len(tenantServiceRelations) > 0:
+            #     dpsids = []
+            #     for tsr in tenantServiceRelations:
+            #         dpsids.append(tsr.dep_service_id)
+            #     deployTenantServices = TenantServiceInfo.objects.filter(service_id__in=dpsids)
+            #     context["deployTenantServices"] = deployTenantServices
+            #     # 获取服务的端口信息
+            #     dep_port_list = TenantServicesPort.objects.filter(service_id__in=dpsids)
+            #     port_map = {x.service_id: x for x in list(dep_port_list)}
+            #     context["port_map"] = port_map
+            #     authList = TenantServiceAuth.objects.filter(service_id__in=dpsids)
+            #     if len(authList) > 0:
+            #         authMap = {}
+            #         for auth in authList:
+            #             authMap[auth.service_id] = auth
+            #         context["authMap"] = authMap
         except Exception as e:
             logger.exception(e)
-        return TemplateResponse(self.request, "www/app_create_step_3_waiting.html", context)
+        return TemplateResponse(self.request, "www/app_create_step_2_waiting.html", context)
 
 
 class AppLanguageCodeView(LeftSideBarMixin, AuthedView):

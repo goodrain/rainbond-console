@@ -620,7 +620,7 @@ $(function(){
                     swal("代码仓库异常");
                 }else if (dataObj["status"] == "success") {
                     service_alias = dataObj["service_alias"]
-                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-dependency/";
+                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
                 } else {
                     swal("创建失败");
                 }
