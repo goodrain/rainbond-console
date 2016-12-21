@@ -702,8 +702,9 @@ class TenantAccountService(object):
     #     return False
 
     def isExpired(self, tenant, service):
-        if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
-            return True
+        # if service.expired_time is not None:
+        #     if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
+        #         return True
         return False
 
     def get_monthly_payment(self, tenant, region_name):

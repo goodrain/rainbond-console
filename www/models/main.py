@@ -525,6 +525,7 @@ class TenantServiceInfoDelete(BaseModel):
     port_type = models.CharField(max_length=15, default='multi_outer', help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
+    expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
 
 
 class TenantServiceLog(BaseModel):
