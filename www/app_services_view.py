@@ -146,12 +146,6 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             service.min_memory = min_memory
             service.min_node = min_node
 
-            # create console tenant service
-            # num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
-            # if num > 0:
-            #     data["status"] = "exist"
-            #     return JsonResponse(data, status=200)
-
             # calculate resource
             tempService = TenantServiceInfo()
             tempService.min_memory = service.min_memory
@@ -256,6 +250,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
             ServiceGroupRelation.objects.filter(service_id=service_id)
+            ServiceAttachInfo.objects.filter(service_id=service_id)
             monitorhook.serviceMonitor(self.user.nick_name, tempTenantService, 'create_service_error', False)
             data["status"] = "failure"
         return JsonResponse(data, status=200)
