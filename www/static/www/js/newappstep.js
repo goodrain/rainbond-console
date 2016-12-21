@@ -429,6 +429,7 @@ $(function(){
             repos = clone_url.split("/")[4].split(".")[0];
             branch_box = $("#gh_branch");
         }
+        $(branch_box).html('<option value="wait">请稍等分支加载中</option>')
         var tenantName= $('#currentTeantName').val();
         //
         if(action != ""){
