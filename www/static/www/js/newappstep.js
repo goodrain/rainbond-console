@@ -658,6 +658,7 @@ $(function(){
             }else{
                 $(".tips-box").css({"left":x});
             }
+            $(".tips-box cite").addClass("top");
             //
         }else if(pos == "bottom"){
             //
@@ -669,11 +670,14 @@ $(function(){
             }else{
                 $(".tips-box").css({"left":x});
             }
+            $(".tips-box cite").addClass("bottom");
             //
         }else if(pos == "left"){
-            $(".tips-box").css({"top":y,"left":x-oDivwidth});
+            $(".tips-box").css({"top":y,"left":x-othiswid});
+            $(".tips-box cite").addClass("left");
         }else if(pos == "right"){
-            $(".tips-box").css({"top":y,"left":x+oDivwidth});
+            $(".tips-box").css({"top":y,"left":x+othiswid});
+            $(".tips-box cite").addClass("right");
         }else{
             //
             $(".tips-box").css({"top":y-oDivheight});
