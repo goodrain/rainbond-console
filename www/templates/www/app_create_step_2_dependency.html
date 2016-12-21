@@ -1,4 +1,10 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% block main-content%}
+{% extends 'www/raster.html' %} {% load i18n %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+{% endblock %}
+{% block main-content%}
 <section class="wrapper site-min-height">
 	<!-- page start-->
 	<!--
