@@ -643,7 +643,7 @@ $(function(){
         var y = $(this).offset().top;
         var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
         $("body").append(oDiv);
-        oDiv.css({"left":x + 10,"top":y-5});
+        $(".tips-box").css({"left":x + 10,"top":y-5});
     });
     $(".fn-tips").mouseout(function(){
         $(".tips-box").remove();
