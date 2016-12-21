@@ -673,10 +673,10 @@ $(function(){
             $(".tips-box").find("cite").addClass("bottom");
             //
         }else if(pos == "left"){
-            $(".tips-box").css({"top":y-10,"left":x-othiswid});
+            $(".tips-box").css({"top":y+10,"left":x-othiswid});
              $(".tips-box").find("cite").addClass("left");
         }else if(pos == "right"){
-            $(".tips-box").css({"top":y-10,"left":x+othiswid});
+            $(".tips-box").css({"top":y+10,"left":x+othiswid});
              $(".tips-box").find("cite").addClass("right");
         }else{
             //
