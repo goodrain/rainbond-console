@@ -325,16 +325,16 @@
                 <h4 class="step-tit">配套信息</h4>
                 <!-- 01 -->
                 <div class="fm-input-radio clearfix">
-                    <label data-tips="应用内存" class="fn-tips">应用内存</label>
+                    <label data-tips="应用内存" data-position="right" class="fn-tips" >应用内存</label>
                     <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
                     <label class="radio-bg" for="MoneyBefore"></label>
-                    <label for="MoneyBefore" class="radio-text fn-tips" data-tips="预付费提前采购">预付费提前采购</label>
+                    <label for="MoneyBefore" class="radio-text fn-tips" data-position="top" data-tips="预付费提前采购">预付费提前采购</label>
                     <input type="radio" name="Memory" value="After" id="MoneyAfter" />
                     <label class="radio-bg"  for="MoneyAfter"></label>
-                    <label for="MoneyAfter" class="radio-text fn-tips" data-tips="按使用后付费">按使用后付费</label>
+                    <label for="MoneyAfter" class="radio-text fn-tips" data-position="bottom" data-tips="按使用后付费">按使用后付费</label>
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node">
-                    <label>单节点内存</label>
+                    <label class="fn-tips" data-position="left" data-tips="单节点内存单节点内存">单节点内存</label>
                     {% if is_tenant_free %}
                     <p class="range-box nouser">
                         <span class="renge-bg"></span>

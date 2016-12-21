@@ -636,20 +636,61 @@ $(function(){
     });
 
     
-    //tips
+    ////tips
     $(".fn-tips").mouseover(function(){
         var tips = $(this).attr("data-tips");
+        var pos = $(this).attr("data-position");
         var x = $(this).offset().left;
         var y = $(this).offset().top;
         var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
         $("body").append(oDiv);
         var oDivheight = $(".tips-box").height();
+        var oDivwidth = $(".tips-box").width();
         var othiswid = $(this).width();
-        $(".tips-box").css({"left":x + 10,"top":y- oDivheight - 5});
+        var othisheight = $(this).height();
+        if(pos == "top"){
+            //
+            $(".tips-box").css({"top":y-oDivheight});
+            if(oDivwidth > othiswid){
+                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+            }else if(oDivwidth < othiswid){
+                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+            }else{
+                $(".tips-box").css({"left":x});
+            }
+            //
+        }else if(pos == "bottom"){
+            //
+            $(".tips-box").css({"top":y+oDivheight});
+            if(oDivwidth > othiswid){
+                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+            }else if(oDivwidth < othiswid){
+                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+            }else{
+                $(".tips-box").css({"left":x});
+            }
+            //
+        }else if(pos == "left"){
+            $(".tips-box").css({"top":y,"left":x-oDivwidth});
+        }else if(pos == "right"){
+            $(".tips-box").css({"top":y,"left":x+oDivwidth});
+        }else{
+            //
+            $(".tips-box").css({"top":y-oDivheight});
+            if(oDivwidth > othiswid){
+                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+            }else if(oDivwidth < othiswid){
+                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+            }else{
+                $(".tips-box").css({"left":x});
+            }
+            //
+        }        
     });
     $(".fn-tips").mouseout(function(){
         $(".tips-box").remove();
     });
+    ////tips end
 })
 
 
