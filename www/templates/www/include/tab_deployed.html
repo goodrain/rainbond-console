@@ -476,6 +476,7 @@
    	  			var logList = dataObj["log"]
    	  			if(typeof(logList) !="undefined"){
    	  				for(var i=0;i<logList.length;i++){
+						console.log(logList[i]);
 						var log = logList[i]
 						var tmpLog = log["create_time"]+" @"+log["user_id"] +" "+log["desc"]
 						if(log["status"] == "end"){
