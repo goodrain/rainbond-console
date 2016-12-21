@@ -62,7 +62,7 @@
 										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick='visit("{{ port.container_port }}")'><i class="fa fa-eye"></i>访问</button>
 										{% endfor %}
 									{% else %}
-										<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><i class="fa fa-eye"></i>访问</button>
+										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown"><i class="fa fa-eye"></i>访问</button>
 										<ul class="dropdown-menu" role="menu">
 										{% for port in http_outer_service_ports %}
 											<li><a href="javascript:void(0)" onclick='visit("{{ port.container_port }}")'>{{ port.container_port }}</a></li>
