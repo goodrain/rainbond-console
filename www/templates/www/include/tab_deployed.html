@@ -481,7 +481,7 @@
 						if(log["status"] == "end"){
 							tmpLog = tmpLog+" 用时"+log["cost_time"]+"s";
 						}
-						tmpLog = "<label>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
+						tmpLog = "<label style='text-decoration: underline;line-height: 21px;'>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;text-decoration: underline;line-height: 21px;'></p>"
 						tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
 						showlog =showlog + tmpLog
 					}
@@ -509,7 +509,7 @@
 						if(log["status"] == "end"){
 							showlog = showlog+" 用时"+log["cost_time"]+"s";
 						}
-						showlog = "<label>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
+						showlog = "<label style='text-decoration: underline'>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;'></p>"
 						if($("#event_"+log["event_id"]).length>0){
 							$("#event_"+log["event_id"]).html(showlog)
 						}else{
@@ -573,7 +573,7 @@
 							}
 						}
 						var address = location.href.split("?");
-						var more = '</br><a href="'+address[0]+'?fr=log'+'">更多日志</a>';
+						var more = '</br><a href="'+address[0]+'?fr=log'+'" style="color: #fff;text-decoration: underline">更多日志</a>';
 						str = str + more;
 						$("#compile_"+event_id+"").html(str);
 						$("#showlog_"+event_id+"").html("隐藏构建日志");
