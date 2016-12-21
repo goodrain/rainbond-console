@@ -86,7 +86,7 @@ $(function(){
 	    o.type = 'range';
 	    if ( o.type === 'text' ) alert('不好意思，你的浏览器还不够酷，试试最新的浏览器吧。');
 	    range.value = cachedRangeValue;
-	    wid.style.width = range.value/maxnum*100 + "%";
+	    wid.style.width = (range.value-num)/(maxnum*100-num) + "%";
 	    range.addEventListener("mouseup", function() {
             if(inputid == "OneMemory"){
                 if(range.value >= 128 && range.value < 256){
@@ -115,7 +115,7 @@ $(function(){
             }else{
                result.innerHTML = range.value; 
             }
-	        wid.style.width = range.value/maxnum*100 + "%";
+	        wid.style.width = (range.value-num)/(maxnum*100-num) + "%";
 	        //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
 	        //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
 	        //result.innerHTML = range.value;
@@ -150,7 +150,7 @@ $(function(){
             }else{
                result.innerHTML = range.value; 
             }
-	        wid.style.width = range.value/maxnum*100 + "%";
+	        wid.style.width = (range.value-num)/(maxnum*100-num) + "%";
 
 	    }, false);
 	}
