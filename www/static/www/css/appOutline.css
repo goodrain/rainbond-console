@@ -28,7 +28,14 @@ button{
     font-weight: 100;
 }
 .appOutline ul li p.pImg{
+    display: table;
     height: 80px;
+    text-align: center;
+    width: 100%;
+}
+.appOutline ul li p.pImg span{
+    display: table-cell;
+    vertical-align: middle;
 }
 .alternative{
     padding: 20px;

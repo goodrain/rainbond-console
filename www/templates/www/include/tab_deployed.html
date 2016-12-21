@@ -7,35 +7,35 @@
 			<li>
 				<p style="text-align: left">状态</p>
 				<p class="text-center pImg">
-					<img src="{% static "www/img/appOutline/appOutline-1.png" %}"/>
+					<span><img src="{% static "www/img/appOutline/appOutline-1.png" %}"/></span>
 				</p>
 				<p id="service_status" name="service_status">未知</p>
 			</li>
 			<li>
 				<p style="text-align: left">当前使用内存</p>
 				<p class="text-center pImg">
-					<img src="{% static "www/img/appOutline/appOutline-2.png" %}"/>
+					<span><img src="{% static "www/img/appOutline/appOutline-2.png" %}"/></span>
 				</p>
 				<p class="text-center" id="service_memory" name="service_memory">{{totalMemory}}M</p>
 			</li>
 			<li>
 				<p style="text-align: left">当前使用磁盘</p>
 				<p class="text-center pImg">
-					<img src="{% static "www/img/appOutline/appOutline-3.png" %}"/>
+					<span><img style="height: 48px" src="{% static "www/img/appOutline/appOutline-3.png" %}"/></span>
 				</p>
 				<p class="text-center">未知</p>
 			</li>
 			<li>
 				<p style="text-align: left">上一小时流量</p>
 				<p class="text-center pImg">
-					<img src="{% static "www/img/appOutline/appOutline-4.png" %}"/>
+					<span><img src="{% static "www/img/appOutline/appOutline-4.png" %}"/></span>
 				</p>
 				<p class="text-center">未知</p>
 			</li>
 			<li>
 				<p style="text-align: left">上一小时费用</p>
 				<p class="text-center pImg">
-					<img src="{% static "www/img/appOutline/appOutline-5.png" %}"/>
+					<span><img src="{% static "www/img/appOutline/appOutline-5.png" %}"/></span>
 				</p>
 				<p class="text-center">未知</p>
 			</li>
@@ -80,20 +80,21 @@
 
 					{% endif  %}
 
-							{% ifequal tenantServiceInfo.service_type "mysql" %}
-								{% if service_manager.deployed %}
-									{% if 'manage_service' in user.actions %}
-									<button type="button" class="bgColor" id="service_visitor" onclick="window.open('{{service_manager.url}}');">管理</button>
-									{% endif %}
-								{% else %}
-									{% if 'manage_service' in user.actions %}
-									<button type="button" class="bgColor" id="service_visitor" onclick="window.open('{{service_manager.url}}');">添加管理服务</button>
-									{% endif %}
-								{% endif %}
-							{% endifequal %}
-							{% if updateService %}
-							<button type="button" class="bgColor" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" >服务更新</button>
+					{% ifequal tenantServiceInfo.service_type "mysql" %}
+						{% if service_manager.deployed %}
+							{% if 'manage_service' in user.actions %}
+							<button type="button" class="bgColor" id="service_visitor" onclick="window.open('{{service_manager.url}}');">管理</button>
 							{% endif %}
+						{% else %}
+							{% if 'manage_service' in user.actions %}
+							<button type="button" class="bgColor" id="service_visitor" onclick="window.open('{{service_manager.url}}');">添加管理服务</button>
+							{% endif %}
+						{% endif %}
+					{% endifequal %}
+					{% if updateService %}
+					<button type="button" class="bgColor" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" >服务更新</button>
+					{% endif %}
+
 					</li>
 				</ul>
 			</div>
