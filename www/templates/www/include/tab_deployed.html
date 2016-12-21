@@ -538,53 +538,60 @@
     	});
 
 	function do_logshow(event_id,deploy_version){
-    		if($("#showlog_"+event_id+"").html() == "显示构建日志"){
-    			if($("#compile_"+event_id+"").html() == ""){
-    				$("#compile_"+event_id+"").show();
-    				$.ajax({
-       	       	  			type: "GET",
-       	    		  		url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
-       	    		  		data: "action=compile&event_id="+event_id,
-       	    		  		cache: false,
-       	    		  		beforeSend: function(xhr, settings){
-       	    		      			var csrftoken = $.cookie('csrftoken');
-       	    		      			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-       	    		  		},
+		if($("#showlog_"+event_id+"").html() == "显示构建日志"){
+			if($("#compile_"+event_id+"").html() == ""){
+				$("#compile_"+event_id+"").show();
+				$.ajax({
+					type: "GET",
+					url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
+					data: "action=compile&event_id="+event_id,
+					cache: false,
+					beforeSend: function(xhr, settings){
+						var csrftoken = $.cookie('csrftoken');
+						xhr.setRequestHeader("X-CSRFToken", csrftoken);
+					},
 					success: function(msg) {
 						var dataObj = msg;
-						console.log(dataObj);
 						var log = dataObj["log"];
+						//
 						var newLog = log.split('</br>');
-						var len = 3;
+						var len = 1000;
 						var logLen = newLog.length;
-						if( logLen > len )
+						var str = "";
+						if( logLen>len )
 						{
-							var str = "";
-							for( var i = logLen-len; i<logLen; i++ )
+							for( var i = logLen-len; i<logLen-1; i++ )
 							{
-								str = str + newLog[i] + "</br>";
+								str = newLog[i] + "</br>" + str;
 							}
-							$("#compile_"+event_id+"").html(str);
-							console.log(str);
 						}
 						else{
-							$("#compile_"+event_id+"").html(log);
+							str = newLog[logLen-2];
+							for( var i = logLen-3; i>=0; i-- )
+							{
+								str = str + "</br>" + newLog[i];
+							}
 						}
-						$("#showlog_"+event_id+"").html("隐藏构建日志")
+						var address = location.href.split("?");
+						var more = '</br><a href="'+address[0]+'?fr=log'+'">更多日志</a>';
+						str = str + more;
+						$("#compile_"+event_id+"").html(str);
+						$("#showlog_"+event_id+"").html("隐藏构建日志");
+						//
 					},
-       	    		  		error: function(){
-       	    					//swal("系统异常");
-       	      	      			}
-          	    		})
-    			}else{
+					error: function(){
+						//swal("系统异常");
+					}
+				})
+			}else{
 				$("#compile_"+event_id+"").show();
 				$("#showlog_"+event_id+"").html("隐藏构建日志")
-    			}
+			}
 		}else{
 			$("#compile_"+event_id+"").hide();
 			$("#showlog_"+event_id+"").html("显示构建日志")
 		}
-    	}
+	}
 
     	function do_rollback(event_id,deploy_version){
     		swal({
