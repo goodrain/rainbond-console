@@ -79,6 +79,7 @@ button{
 .connectTable table{
     text-align: left;
     vertical-align: middle;
+    width: 100%;
 }
 .connectTable table th{
     height: 40px;
