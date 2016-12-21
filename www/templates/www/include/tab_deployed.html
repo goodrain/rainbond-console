@@ -56,27 +56,41 @@
 								<!--<li><a href="#">链接3</a></li>-->
 								<!--<li><a href="#">链接4</a></li>-->
 								<!--</ul>-->
+								{% if visit_port_type == "multi_outer" %}
+									{% if http_outer_service_ports|length == 1 %}
+										{% for port in http_outer_service_ports %}
+										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick='visit("{{ port.container_port }}")'><i class="fa fa-eye"></i>访问</button>
+										{% endfor %}
+									{% else %}
+										<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><i class="fa fa-eye"></i>访问</button>
+										<ul class="dropdown-menu" role="menu">
+										{% for port in http_outer_service_ports %}
+											<li><a href="javascript:void(0)" onclick='visit("{{ port.container_port }}")'>{{ port.container_port }}</a></li>
+										{% endfor %}
+									{% endif %}
+								{% else %}
 								<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
+								{% endif %}
 							</div>
 						</li>
-						{% if visit_port_type == "multi_outer" %}
-							{% if http_outer_service_ports|length == 1 %}
-								<li class="button">
-								<select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">
-							{% else %}
-								<select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">
-							{% endif %}
-							{% for port in http_outer_service_ports %}
-								{% if port.container_port == serviceDomain.container_port %}
-								<option value="{{ port.container_port }}"
-									selected="selected">{{ port.container_port }}</option>
-								{% else %}
-								<option value="{{ port.container_port }}">{{ port.container_port }}</option>
-								{% endif %}
-							{% endfor %}
+						<!--{% if visit_port_type == "multi_outer" %}-->
+							<!--{% if http_outer_service_ports|length == 1 %}-->
+								<!--<li class="button">-->
+								<!--<select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">-->
+							<!--{% else %}-->
+								<!--<select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">-->
+							<!--{% endif %}-->
+							<!--{% for port in http_outer_service_ports %}-->
+								<!--{% if port.container_port == serviceDomain.container_port %}-->
+								<!--<option value="{{ port.container_port }}"-->
+									<!--selected="selected">{{ port.container_port }}</option>-->
+								<!--{% else %}-->
+								<!--<option value="{{ port.container_port }}">{{ port.container_port }}</option>-->
+								<!--{% endif %}-->
+							<!--{% endfor %}-->
 
-							</select>
-						{%endif%}
+							<!--</select>-->
+						<!--{%endif%}-->
 
 					{% endif  %}
 
@@ -676,12 +690,15 @@
         	}
     	}
 
-    	function visit() {
-		var port = $("#multi_ports").val();
+    	function visit(port) {
+//		var port = $("#multi_ports").val();
 
-		var url = "http://"+port+".{{serviceAlias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
+		var url;
 		if(port==""||port == null){
 			url = "http://{{serviceAlias}}"+".{{tenantName}}{{wild_domain}}{{http_port_str}}"
+		}
+		else{
+			url = "http://"+port+".{{serviceAlias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
 		}
 		window.open(url)
 	}
