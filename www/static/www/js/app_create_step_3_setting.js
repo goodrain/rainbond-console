@@ -165,7 +165,7 @@ $(function () {
                 var onOff = true;
                 for( var j = 0; j<appNameLen; j++ )
                 {
-                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].value )
+                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].data-action )
                     {
                         onOff = false;
                         break;
