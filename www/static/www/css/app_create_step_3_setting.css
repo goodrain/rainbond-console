@@ -1,0 +1,204 @@
+ul,ul li{list-style: none;}
+a:hover{text-decoration: none;}
+div.applisttit{ margin:20px 20px 0; background: url('../images/titicon.png') no-repeat; height: 48px; line-height: 48px; color: #666;  clear:both; color: #666666; font-size: 30px; line-height: 48px; text-indent: 60px;}
+em,cite,span{font-style: normal;}
+cite,em{font-style:normal;}
+a:link{ text-decoration: none;}
+a:visited{ text-decoration: none;}
+a:hover{ text-decoration: none;}
+a:active{text-decoration: none;}
+select{outline: none}
+input{outline: none}
+button{outline: none}
+
+
+
+body{background: #f0f5f8;}
+.main-box{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px;  margin:20px; padding:30px 20px;position: relative;}
+.main-tit{color: #28cb75; font-size: 24px; margin:0; text-align: center;font-weight: 100; line-height: 1;}
+.app-step{width: 80%; margin:50px auto 20px;}
+.app-step p{width: 25%; float: left; height: 80px; text-align: center;}
+.app-step p span,.app-step p cite{display: inline-block;}
+.app-step p span{background: #c7c7c7; width: 36px; height: 36px;  font-size: 24px; line-height: 36px; text-align: center; -moz-border-radius:36px; -webkit-border-radius:36px; border-radius:36px; color: #fff;}
+.app-step p cite{width: 100%; text-align: center; color: #838383; font-size: 16px; line-height: 1; padding-top: 26px;}
+.app-step p.sed span{background: #00d777;}
+.app-step p.sed cite{color: #00d777;}
+.step-tit{color: #303030; font-size:18px; text-align: center;}
+
+
+
+.main-box table{
+    border: 1px solid #ececec;
+}
+.main-box table th{
+    padding-left: 50px;
+}
+.main-box table td{
+    padding-left: 50px;
+    padding-right: 50px;
+    position: relative;
+}
+.main-box table tr.addPort,tr.addContent{
+    display: none;
+}
+.main-box table td select{
+    color: #28cb75;
+}
+.main-box table td a,input{
+    display: inline-block;
+    width: 80px;
+}
+.main-box table tr span,span{
+    margin-right: 30px;
+    cursor: pointer;
+    position: absolute;
+}
+.main-box table tr.addPort span.add,span.addEnviroment{
+    left: 0px;
+}
+.main-box table tr.addPort span.noAdd,span.noAddEnviroment{
+    left: 50px;
+}
+.main-box table td.openAdd{
+    color: #28cb75;
+    margin: 0;
+    text-align: center;
+}
+.main-box table td img.rubbish,.openAdd,.openAddEnviroment{
+    cursor: pointer;
+    text-align: center;
+}
+
+.main-box h4{
+    margin-left: 30px;
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+.contentBlock{
+    border:1px solid #ececec;
+    padding: 20px 60px;
+    height: 275px;
+}
+.contentBlock p{
+    margin: 16px 0px;
+    margin-left: 30px;
+}
+.contentBlock ul{
+    padding: 0px;
+    min-height: 93px;
+    margin-left: 30px;
+}
+.contentBlock ul.clearfix li{
+    float: left;
+    width: 25%;
+    min-width: 150px;
+    margin-bottom: 10px;
+}
+.contentBlock li a{
+    color: #303030;
+    margin-right: 17px;
+}
+.contentBlock p.blockBottom{
+    text-align: center;
+}
+.contentBlock p.blockBottom button{
+    background-color: #28cb75;
+    color: #ffffff;
+    border:none;
+    padding: 8px 20px;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+}
+
+.fileBlock .contentBlock ul li{
+    margin-bottom: 10px;
+}
+p.next{
+    text-align: center;
+    margin: 30px 0px 0px 0px;
+}
+p.next button.submit{
+    margin-left: 60px;
+    background-color: #28cb75;
+    color: #ffffff;
+    border:none;
+    padding: 8px 20px;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+}
+
+/*弹出层*/
+.above{
+    position: absolute;
+    top:0;
+    left:0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    height:100%;
+    width: 100%;
+}
+.above .del{
+    position: absolute;
+    top: 10px;
+    right:10px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    background-color: #f7f7f7;
+    text-align: center;
+    align-items: center;
+    cursor: pointer;
+}
+.above .depend{
+    width: 961px;
+    height: 360px;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    position: absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    margin: auto;
+}
+.above p.bottom {
+    text-align: right;
+}
+.above p.bottom button{
+    outline: none;
+    border:none;
+    text-align: center;
+    align-items: center;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    height: 30px;
+    padding:0px 20px;
+}
+.above p.bottom button.sure{
+    background-color: #28cb75;
+    color: #ffffff;
+}
+.above p.bottom button.cancel{
+    background-color: #ffffff;
+    border:1px solid #ececec;
+    color: #28cb75;
+}
+
+.above .depend ul.clearfix li{
+    float: left;
+    width: 25%;
+    margin-right: 50px;
+}
+
+.checkbox{width: 56px; height: 28px;}
+.checkbox input{display: none;}
+.checkbox label.check-bg{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;  display: block; margin:7px 5px 0 0;}
+.checkbox input:checked + label.check-bg{width:56px; height:28px; background: url('../images/checked.png') no-repeat;    display: block;  margin:7px 5px 0 0;}

@@ -1,0 +1,243 @@
+{% extends 'www/raster.html' %}{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/bootstrap.min.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/tablePublic.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/app_create_step_3_setting.css" %}' />
+{% endblock %}
+
+<section class="main-box">
+    <h3 class="main-tit">新建自定义应用</h3>
+    <div class="app-step clearfix">
+        <p class="sed" ><span>1</span><cite style="letter-spacing: ">创建应用</cite></p>
+        <p class="sed"><span>2</span><cite>同步代码</cite></p>
+        <p class="sed"><span>3</span><cite>应用设置</cite></p>
+        <p><span>4</span><cite>高级选项</cite></p>
+    </div>
+    <h4>端口管理</h4>
+    <table>
+        <thead>
+        <tr>
+            <th>容器端口</th>
+            <th>协议</th>
+            <th>对内服务</th>
+            <th colspan="2">外部服务</th>
+        </tr>
+        </thead>
+        <tbody class="port">
+        <tr data-port="5000port">
+            <td>
+                <a href="javascript:void(0);" class="portNum edit-port">5000</a>
+            </td>
+            <td>
+                <select data-port-http="5000Http">
+                    <option>HTTP</option>
+                    <option>Stream</option>
+                </select>
+            </td>
+            <td>
+                <div class="checkbox">
+                    <input type="checkbox" name="" value="" id="5000inner" />
+                    <label class="check-bg" for="5000inner"></label>
+                </div>
+            </td>
+            <td>
+                <div class="checkbox">
+                    <input type="checkbox" name="" value="" id="5000outer" checked="true" />
+                    <label class="check-bg" for="5000outer"></label>
+                </div>
+            </td>
+            <td>
+                <img class="rubbish" src="images/rubbish.png"/>
+            </td>
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr class="addPort">
+            <td>
+                <input type="number" class="add_port">
+            </td>
+            <td>
+                <select class="add_http">
+                    <option>HTTP</option>
+                    <option>Stream</option>
+                </select>
+            </td>
+            <td>
+                <div class="checkbox">
+                    <input type="checkbox" name="" value="" id="addInner" checked="fasle" />
+                    <label class="check-bg" for="addInner"></label>
+                </div>
+            </td>
+            <td>
+                <div class="checkbox">
+                    <input type="checkbox" name="" value="" id="addOuter" checked="false" />
+                    <label class="check-bg" for="addOuter"></label>
+                </div>
+            </td>
+            <td>
+                <span class="add">✅</span>
+                <span class="noAdd">❌</span>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="5" class="openAdd">
+                <span>新增容器端口</span>
+            </td>
+        </tr>
+        </tfoot>
+    </table>
+    <div class="clearfix">
+        <div class="serviceBlock">
+            <h4>服务依赖</h4>
+            <div class="contentBlock">
+                <b>应用持久化目录：</b>
+                <p>点击应用名称，可以查看访问该应用的相关信息</p>
+                <ul class="clearfix applicationName">
+                    <li>
+                        <a href="javascript:void(0);" class="appName">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                    <li>
+                        <a href="javascript:void(0);" class="appName">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                    <li>
+                        <a href="javascript:void(0);" class="appName">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                    <li>
+                        <a href="javascript:void(0);" class="appName">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                    <li>
+                        <a href="javascript:void(0);" class="appName">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                    <li>
+                        <a href="javascript:void(0);" class="appName">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                </ul>
+                <p class="blockBottom">
+                    <button class="addDepend">新增依赖</button>
+                </p>
+            </div>
+        </div>
+        <div class="fileBlock">
+            <h4>文件存储</h4>
+            <div class="contentBlock">
+                <b>应用持久化目录：</b>
+                <p>当前应用所在目录为／opp／，使用持久化目录，请注意路径关系</p>
+                <ul class="clearfix">
+                    <li>
+                        <a href="javascript:void(0);">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                    <li>
+                        <a href="javascript:void(0);">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                    <li>
+                        <a href="javascript:void(0);">当前应用名</a>
+                        <img src="images/rubbish.png" class="delLi"/>
+                    </li>
+                </ul>
+                <p class="blockBottom">
+                    <button style="margin-right: 28px">为当前应用新设持久化目录</button>
+                    <button>挂载其他应用的持久化目录</button>
+                </p>
+            </div>
+        </div>
+        <h4>环境变量</h4>
+        <table>
+            <thead>
+            <tr>
+                <th>名称</th>
+                <th>变量名</th>
+                <th>值</th>
+                <th>删除</th>
+            </tr>
+            </thead>
+            <tbody class="enviroment">
+            <tr>
+                <td>
+                    变量名称一
+                </td>
+                <td>
+                    <a href="javascript:void(0);" class="enviromentKey key1">username</a>
+                </td>
+                <td>
+                    <a href="javascript:void(0);" class="enviromentValue value1">username</a>
+                </td>
+                <td>
+                    <img class="rubbish" src="images/rubbish.png"/>
+                </td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr class="addContent">
+                <td>
+                    新增环境变量
+                </td>
+                <td>
+                    <input type="text" class="enviroKey">
+                </td>
+                <td>
+                    <input type="text" class="enviroValue">
+                </td>
+                <td>
+                    <span class="addEnviroment">✅</span>
+                    <span class="noAddEnviroment">❌</span>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4" class="openAddEnviroment">
+                    <span>新增环境变量</span>
+                </td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+    <p class="next"><button class="submit">下一步</button></p>
+    <div class="above">
+        <div class="depend">
+            <div class="del" title="关闭">x</div>
+            <div>
+                <ul class="clearfix">
+                    <li>
+                        <input type="checkbox" value="服务一">服务一
+                    </li>
+                    <li>
+                        <input type="checkbox" value="服务二">服务二
+                    </li>
+                    <li>
+                        <input type="checkbox" value="服务三">服务三
+                    </li>
+                    <li>
+                        <input type="checkbox" value="服务四">服务四
+                    </li>
+                    <li>
+                        <input type="checkbox" value="服务五">服务五
+                    </li>
+                    <li>
+                        <input type="checkbox" value="服务六">服务六
+                    </li>
+                </ul>
+            </div>
+            <p class="bottom">
+                <button class="sure">确认</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+    </div>
+</section>
+
+{% block extrajs %}
+<script src='{% static "www/js/jquery.min.js" %}'></script>
+<script src='{% static "www/js/bootstrap.min.js" %}'></script>
+<script src='{% static "www/js/bootstrap-editable.min.js" %}'></script>
+<script src='{% static "www/js/app_create_step_3_setting.js" %}'></script>
+{% endblock %}
