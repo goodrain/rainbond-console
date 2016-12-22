@@ -124,7 +124,7 @@ $(function () {
             }
             if( onOff )
             {
-                var str = '<tr><a href="javascript:void(0);" class="enviromentName">'+$(".enviroName").val()+'</a></td>';
+                var str = '<tr><td><a href="javascript:void(0);" class="enviromentName">'+$(".enviroName").val()+'</a></td>';
                 str += '<td><a href="javascript:void(0);" class="enviromentKey key'+(len+1)+'">'+$(".enviroKey").val()+'</a></td>';
                 str += '<td><a href="javascript:void(0);" class="enviromentValue value'+(len+1)+'">'+$(".enviroValue").val()+'</a></td>';
                 str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
