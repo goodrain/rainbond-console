@@ -165,7 +165,7 @@ $(function () {
                 var onOff = true;
                 for( var j = 0; j<appNameLen; j++ )
                 {
-                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].data-action )
+                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-action") )
                     {
                         onOff = false;
                         break;
@@ -174,7 +174,7 @@ $(function () {
                 if( onOff )
                 {
                     var str = '';
-                    str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].value+'</a>';
+                    str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
