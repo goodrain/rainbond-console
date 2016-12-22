@@ -957,10 +957,10 @@ class ServicePort(AuthedView):
             if not success:
                 return JsonResponse({"success": False, "info": reason, "code": 400}, status=400)
             else:
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port, is_outer_service=True).count()>0:
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port, is_outer_service=True).count()>0:
                     return JsonResponse({"success": False, "code": 409, "info": u"请关闭对外服务"})
             
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port, is_inner_service=True).count()>0:
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port, is_inner_service=True).count()>0:
                     return JsonResponse({"success": False, "code": 409, "info": u"请关闭对内服务"})
             
                 old_port = deal_port.container_port
