@@ -1129,6 +1129,14 @@ class ServiceNewPort(AuthedView):
             num = ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).count()
             if num > 0:
                 return JsonResponse({"success": False, "code": 409, "info": u"请先解绑该端口绑定的域名"})
+            
+            if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port, is_outer_service=True).count()>0:
+                return JsonResponse({"success": False, "code": 409, "info": u"请关闭对外服务"})
+            
+            if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port, is_inner_service=True).count()>0:
+                return JsonResponse({"success": False, "code": 409, "info": u"请关闭对内服务"})
+            
+            
             TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
             ServiceDomain.objects.filter(service_id=self.service.service_id, container_port=port_port).delete()
