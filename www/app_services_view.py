@@ -9,7 +9,7 @@ from django.http.response import HttpResponse
 from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
-from www.models.main import ServiceGroupRelation, ServiceAttachInfo
+from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -400,6 +400,45 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_2_waiting.html", context)
+
+
+class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
+    """服务设置"""
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
+            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
+            'www/js/respond.min.js')
+        return media
+
+    @never_cache
+    @perm_required('create_service')
+    def get(self, request, *args, **kwargs):
+        try:
+            context = self.get_context()
+            context["myAppStatus"] = "active"
+            context["tenantName"] = self.tenantName
+            context["tenantService"] = self.service
+            deployTenantServices = TenantServiceInfo.objects.filter(
+                tenant_id=self.tenant.tenant_id,
+                service_region=self.response_region,
+                service_origin='assistant').exclude(category='application')
+            context["deployTenantServices"] = deployTenantServices
+            context["service_envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port= -1)
+            port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
+            context["service_ports"] = list(port_list)
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/app_create_step_3_setting.html", context)
+
+    @never_cache
+    @perm_required('create_service')
+    def post(self, request, *args, **kwargs):
+        try:
+            pass
+        except Exception as e:
+            logger.exception(e)
+
 
 
 class AppLanguageCodeView(LeftSideBarMixin, AuthedView):

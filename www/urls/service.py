@@ -29,6 +29,8 @@ urlpatterns = patterns(
 
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-waiting/$', login_required(AppWaitingCodeView.as_view())),
 
+    url(r'^/(?P<serviceAlias>[\w\-]+)/app-setting/$', login_required(AppSettingsView.as_view())),
+
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-language/$', login_required(AppLanguageCodeView.as_view())),
 
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),
