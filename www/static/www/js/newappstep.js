@@ -166,12 +166,12 @@ $(function(){
     // 滑动框 结束
     
     //计算价格
-    var before_memory= $("#price-box").attr("data-before-memory");
-    var before_disk= $("#price-box").attr("data-before-disk");
-    var before_net= $("#price-box").attr("data-before-net");
-    var after_memory= $("#price-box").attr("data-after-memory");
-    var after_disk= $("#price-box").attr("data-after-disk");
-    var after_net= $("#price-box").attr("data-after-net");
+    var before_memory= $("#pre_paid_memory_price").attr("value");
+    var before_disk= $("#pre_paid_disk_price").attr("value");
+    var before_net= $("#post_paid_net_price").attr("value");
+    var after_memory= $("#post_paid_memory_price").attr("value");
+    var after_disk= $("#post_paid_disk_price").attr("value");
+    var after_net= $("#post_paid_net_price").attr("value");
     $("#aft-memory").html(after_memory);
     $("#aft-disk").html(after_disk);
     $("#aft-net").html(after_net);
