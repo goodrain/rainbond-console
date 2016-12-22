@@ -7,35 +7,35 @@
 			<li>
 				<p style="text-align: left">状态</p>
 				<p class="text-center pImg">
-					<span><img src="{% static "www/img/appOutline/appOutline-1.png" %}"/></span>
+					<span><img id="service_status-img" src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
 				</p>
 				<p id="service_status" name="service_status">未知</p>
 			</li>
 			<li>
 				<p style="text-align: left">当前使用内存</p>
 				<p class="text-center pImg">
-					<span><img src="{% static "www/img/appOutline/appOutline-2.png" %}"/></span>
+					<span><img src="{% static "www/img/appOutline/appOutline2.png" %}"/></span>
 				</p>
 				<p class="text-center" id="service_memory" name="service_memory">{{totalMemory}}M</p>
 			</li>
 			<li>
 				<p style="text-align: left">当前使用磁盘</p>
 				<p class="text-center pImg">
-					<span><img style="height: 48px" src="{% static "www/img/appOutline/appOutline-3.png" %}"/></span>
+					<span><img style="height: 48px" src="{% static "www/img/appOutline/appOutline3.png" %}"/></span>
 				</p>
 				<p class="text-center">未知</p>
 			</li>
 			<li>
 				<p style="text-align: left">上一小时流量</p>
 				<p class="text-center pImg">
-					<span><img src="{% static "www/img/appOutline/appOutline-4.png" %}"/></span>
+					<span><img src="{% static "www/img/appOutline/appOutline4.png" %}"/></span>
 				</p>
 				<p class="text-center">未知</p>
 			</li>
 			<li>
 				<p style="text-align: left">上一小时费用</p>
 				<p class="text-center pImg">
-					<span><img src="{% static "www/img/appOutline/appOutline-5.png" %}"/></span>
+					<span><img src="{% static "www/img/appOutline/appOutline5.png" %}"/></span>
 				</p>
 				<p class="text-center">未知</p>
 			</li>
@@ -384,6 +384,7 @@
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#service_status").html("运行中")
+						$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline0.png")
 						$("#service_status_operate").show()
 						$("#service_visitor").show()
 						if(port_length != "1"){
@@ -420,6 +421,7 @@
 						$("#multi_ports").hide()
 						if(obj["status"]=="closed"){
 							$("#service_status").html("已关闭")
+							$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline1.png")
 							$("#service_status").attr("class","text-center")
 							$("#multi_ports").hide()
 						}else{
