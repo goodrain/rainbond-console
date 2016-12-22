@@ -1,13 +1,20 @@
 {% extends 'www/raster.html' %} 
-
 {% load i18n %} 
-
 {% load goodrain_extras %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/newappstep.js" %}'></script>
+{% endblock %}
 
 {% block main-content%}
 
 <section class="wrapper site-min-height">
 	<!-- page start-->
+	<!--
 	<section class="panel">
 		<div class="panel-body">
 			<div class=" form">
@@ -88,8 +95,9 @@
 							<div id="create_dependency_service_notice" class="alert alert-danger"
 									role="alert"
 									style="padding: 8px 12px; margin: 5px 0 0 0; display: none;">当前服务依赖的服务不能为空</div>
-						</div-->
-					{% endif %}
+						</div
+					{% endif %}-->
+					<!--
 					<div class="col-lg-offset-3 col-lg-6 ">
 						<button type="button" id="back_service_step1"
 							class="btn btn-lg btn-success btn-block">下一步</button>
@@ -99,6 +107,203 @@
 		</div>
 	</section>
 	<!-- page end-->
+
+    
+    <!-- new start -->
+    <section class="main-box">
+    	<p class="price-box" id="price-box" data-user="true" data-before-memory="0.069"   data-before-disk="0.208"   data-before-net="0.8" data-after-memory="0.069" data-after-disk="0.0041" data-after-net="0.8" >价格设置</p>
+    	<h3 class="main-tit">创建{{service.service_name}}</h3>
+    	<form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+    		<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+			<input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
+			<input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
+			<!-- -->
+			<input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price" value="{{pre_paid_memory_price}}">
+            <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price" value="{{post_paid_memory_price}}">
+            <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price" value="{{pre_paid_disk_price}}">
+            <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price" value="{{post_paid_disk_price}}">
+            <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
+			<!-- -->
+			<input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
+			<!-- 基本信息  start-->
+			<div class="infor-fm-box">
+				<h4 class="step-tit">基本信息</h4>
+				<div class="fm-input-text clearfix">
+                    <label for="create_app_name">应用名</label><input type="text" id="create_name" name="create_name" value="" placeholder="请输入应用名，支持中英文"  />
+                </div>
+                <p class="fm-tips" id="create_name_notice">请输入应用名！</p>
+                <div class="fm-select clearfix">
+                    <label>选择分组</label>
+                    <select id="group-name" name="select_group_id">
+                        <option value="-1">未分组</option>
+                        {% for group in groupList %}
+                        <option value="{{group.ID}}" >{{group.group_name}}</option>
+                        {% endfor %}
+                        <option value="-2">新建组</option>
+                    </select>
+                </div>
+			</div>
+			<!-- 基本信息  end -->
+			<!-- 配套信息 start -->
+            <div class="infor-fm-box">
+                <h4 class="step-tit">配套信息</h4>
+                <!-- 01 -->
+                <div class="fm-input-radio clearfix">
+                    <label data-tips="应用内存" data-position="right" class="fn-tips" >应用内存</label>
+                    <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
+                    <label class="radio-bg" for="MoneyBefore"></label>
+                    <label for="MoneyBefore" class="radio-text fn-tips" data-position="top" data-tips="预付费提前采购">预付费提前采购</label>
+                    <input type="radio" name="Memory" value="After" id="MoneyAfter" />
+                    <label class="radio-bg"  for="MoneyAfter"></label>
+                    <label for="MoneyAfter" class="radio-text fn-tips" data-position="bottom" data-tips="按使用后付费">按使用后付费</label>
+                </div>
+                <div class="fm-input-range clearfix fn-memory-node">
+                    <label class="fn-tips" data-position="left" data-tips="单节点内存单节点内存">单节点内存</label>
+                    {% if is_tenant_free %}
+                    <p class="range-box nouser">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
+                        <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="128"／>
+                    </p>
+                    <!-- user -->
+                    {% else %}
+                    <!-- no user -->
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
+                        <input type="range" min="128" max="8192"  step="128" id="OneMemory" value="128"／>
+                    </p>
+                    <!-- no user -->
+                    {% endif %}
+                    <span><cite id="OneMemoryText">128M</cite></span>
+                </div>
+                <div class="fm-input-range clearfix fn-memory-node" style="padding-bottom:30px;">
+                    <label>节点数</label>
+                    {% if is_tenant_free %}
+                    <p class="range-box nouser02">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="NodeWid"></cite></span>
+                        <input type="range" min="1" max="1"  step="1" id="NodeNum" value="1"／>
+                    </p>
+                    <!-- user -->
+                    {% else %}
+                    <!-- no user -->
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="NodeWid"></cite></span>
+                        <input type="range" min="1" max="100"  step="1" id="NodeNum" value="1"／>
+                    </p>
+                    <!-- no user -->
+                    {% endif %}
+                    <span><cite id="NodeText">1</cite>个</span>
+                </div>
+                <!-- 02 -->
+                <div class="fm-choose-box clearfix">
+                    <label>应用存储</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">分布式存储</a>
+                        <a href="javascript:;">SSD</a>
+                    </p>
+                </div>
+                <div class="fm-input-radio clearfix">
+                    <label>使用方法</label>
+                    <input type="radio" name="Disk" value="DiskBefore" id="DiskBefore" checked="true" />
+                    <label class="radio-bg" for="DiskBefore"></label>
+                    <label for="DiskBefore" class="radio-text">预付费提前采购</label>
+                    <input type="radio" name="Disk" value="DiskAfter" id="DiskAfter" />
+                    <label class="radio-bg"  for="DiskAfter"></label>
+                    <label for="DiskAfter" class="radio-text">按使用后付费</label>
+                </div>
+                <div class="fm-input-range clearfix fn-disk" style="padding-bottom:30px;">
+                    <label>磁盘</label>
+                    {% if is_tenant_free %}
+                    <p class="range-box nouser02">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="DiskWid"></cite></span>
+                        <input type="range" min="1" max="1"  step="1" id="Disk" value="1"／>
+                    </p>
+                    <!-- user -->
+                    {% else %}
+                    <!-- no user -->
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="DiskWid"></cite></span>
+                        <input type="range" min="1" max="1000"  step="1" id="Disk" value="1"／>
+                    </p>
+                    <!-- no user -->
+                    {% endif %}
+                    <span><cite id="DiskText">1</cite>G</span>
+                </div>
+                <!-- 03 -->
+                <div class="fm-input-radio clearfix" style="padding-bottom:30px;">
+                    <label>流量</label>
+                    <input type="radio" name="flow" value="flow" id="flow" checked="true" />
+                    <label class="radio-bg" for="flow"></label>
+                    <label class="radio-text" for="flow">按使用后付费</label>
+                </div>
+                <!--
+                <div class="fm-text clearfix">
+                    <label>预估费用:</label>
+                    <span><cite>12</cite>元／月</span>
+                </div>
+                -->
+                <!-- 04 -->
+                <div class="fm-choose-box clearfix">
+                    <label>部署支持</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">一键部署</a>
+                        <a href="javascript:;">一键回滚</a>
+                        <a href="javascript:;">滚动升级</a>
+                    </p>
+                </div>
+                <div class="fm-choose-box clearfix">
+                    <label>资源支持</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">独立资源</a>
+                        <a href="javascript:;">负载均衡</a>
+                        <a href="javascript:;">弹性伸缩</a>
+                        <a href="javascript:;">高可用</a>
+                        <a href="javascript:;">三份快照</a>
+                    </p>
+                </div>
+                <div class="fm-choose-box clearfix">
+                    <label>日志监控</label>
+                    <p class="btn-cho-box clearfix">
+                        <a href="javascript:;">性能分析/告警</a>
+                        <a href="javascript:;">业务监控/告警</a>
+                        <a href="javascript:;">分布式日志</a>
+                    </p>
+                </div>
+            </div>
+            <!-- 配套信息 end -->
+            <!-- 费用估算 start -->
+            <div class="infor-fm-box" style="border-bottom: 0 none;">
+                <h4 class="step-tit">费用估算</h4>
+                <div class="fm-input-range clearfix">
+                    <label>预付费项目购买时长</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="TimeLongWid"></cite></span>
+                        <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
+                    </p>
+                    <span><cite id="TimeLongText">1</cite>个月</span>    
+                </div>
+                <div class="fm-money clearfix">
+                    <label>预付费总费用</label>
+                    <span><cite id="need-money">123.00</cite>元</span>
+                </div>
+                <div class="fm-aft-money clearfix">
+                    <label>按使用后付费</label>
+                    <p><span id="aft-memory-box" style="display: none;">内存<cite id="aft-memory"></cite>元/GB/小时；</span><span id="aft-disk-box" style="display: none;">磁盘<cite id="aft-disk"></cite>元/GB/小时；</span><span id="aft-net-box">流量<cite id="aft-net"></cite>元/GB/小时</span></p>
+                </div>
+                <div class="fm-btn clearfix">
+                    <a class="greenbtn" id="back_service_step1" style="cursor: pointer;">下一步</a>
+                </div>
+            </div>
+            <!-- 费用估算 end -->          
+    	</form>
+    </section>
+    <!-- new end -->
 </section>
 <script type="text/javascript">
 	$(document).ready(function () {
