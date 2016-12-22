@@ -77,7 +77,6 @@ body{background: #f0f5f8;}
 .contentBlock{
     border:1px solid #ececec;
     padding: 20px 60px;
-    height: 275px;
     background-color: #FFFFFF;
 }
 .contentBlock p{
@@ -86,7 +85,7 @@ body{background: #f0f5f8;}
 }
 .contentBlock ul{
     padding: 0px;
-    min-height: 93px;
+    min-height: 30px;
     margin-left: 30px;
 }
 .contentBlock ul.clearfix li{
@@ -120,7 +119,6 @@ p.next{
     margin: 30px 0px 0px 0px;
 }
 p.next button.submit{
-    margin-left: 60px;
     background-color: #28cb75;
     color: #ffffff;
     border:none;
@@ -197,6 +195,18 @@ p.next button.submit{
     float: left;
     width: 25%;
     margin-right: 50px;
+}
+
+p.catalogue{
+    display: none;
+}
+p.catalogue input{
+    width: 300px;
+    margin-left: 20px;
+}
+p.catalogue span{
+    margin-left: 20px;
+    cursor: pointer;
 }
 
 .checkbox{width: 56px; height: 28px;}

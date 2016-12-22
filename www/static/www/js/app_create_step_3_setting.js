@@ -129,6 +129,7 @@ $(function () {
                 str += '<td><a href="javascript:void(0);" class="enviromentValue value'+(len+1)+'">'+$(".enviroValue").val()+'</a></td>';
                 str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 $(str).appendTo(".enviroment");
+                $(".enviroName").val('');
                 $(".enviroKey").val('');
                 $(".enviroValue").val('');
                 $(".addContent").css({"display":"none"});
@@ -182,5 +183,27 @@ $(function () {
             }
         }
         $(".above").css({"display":"none"});
+    });
+
+    //新设持久化目录
+    $(".addCata").on("click",function(){
+        $("p.catalogue").css({"display":"block"});
+    })
+    $(".addCatalogue").on("click",function(){
+        if( $(".catalogueContent").val() )
+        {
+            var str = '<li><a href="javascript:void(0);">/app/'+$(".catalogueContent").val()+'</a>';
+            str += '<img src="images/rubbish.png" class="delLi"/></li>';
+            $(str).appendTo(".fileBlock ul.clearfix");
+            $("p.catalogue").css({"display":"none"});
+            $(".catalogueContent").val("");
+            delLi();
+        }
+        else{
+            alert("请输入目录～～");
+        }
+    });
+    $(".noAddCatalogue").on("click",function(){
+        $("p.catalogue").css({"display":"none"});
     });
 });
