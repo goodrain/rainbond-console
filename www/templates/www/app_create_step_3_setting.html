@@ -39,7 +39,7 @@
             </td>
             <td>
                 <select data-port-http="5000Http">
-                    <option>HttP</option>
+                    <option>Http</option>
                     <option>Stream</option>
                 </select>
             </td>
@@ -67,7 +67,7 @@
             </td>
             <td>
                 <select class="add_http">
-                    <option>HttP</option>
+                    <option>Http</option>
                     <option>Stream</option>
                 </select>
             </td>
@@ -170,13 +170,13 @@
             <tbody class="enviroment">
             <tr>
                 <td>
-                    变量名称一
+                    <a href="javascript:void(0);" class="enviromentName">变量名称</a>
                 </td>
                 <td>
-                    <a href="javascript:void(0);" class="enviromentKey key1">username</a>
+                    <a href="javascript:void(0);" class="enviromentKey key1">userKey</a>
                 </td>
                 <td>
-                    <a href="javascript:void(0);" class="enviromentValue value1">username</a>
+                    <a href="javascript:void(0);" class="enviromentValue value1">userValue</a>
                 </td>
                 <td>
                     <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
@@ -186,7 +186,7 @@
             <tfoot>
             <tr class="addContent">
                 <td>
-                    新增环境变量
+                    <input type="text" class="enviroName">
                 </td>
                 <td>
                     <input type="text" class="enviroKey">

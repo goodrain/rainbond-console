@@ -49,7 +49,7 @@ $(function () {
                 else{
                     oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
-                oTr += '<td><img class="rubbish" src="/static／www/images/rubbish.png"/></td></tr>';
+                oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 newTr.innerHTML = oTr;
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
@@ -110,8 +110,7 @@ $(function () {
         $(".addContent").css({"display":"table-row"});
     });
     $(".addEnviroment").on("click",function(){
-        var numArr = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
-        if( $(".enviroKey").val() && $(".enviroValue").val() )
+        if( $(".enviroKey").val() && $(".enviroValue").val() && $(".enviroName").val() )
         {
             var len = $(".enviromentKey").length;
             var onOff = true;
@@ -125,10 +124,10 @@ $(function () {
             }
             if( onOff )
             {
-                var str = '<tr><td>变量名称'+numArr[len]+'</td>';
+                var str = '<tr><a href="javascript:void(0);" class="enviromentName">'+$(".enviroName").val()+'</a></td>';
                 str += '<td><a href="javascript:void(0);" class="enviromentKey key'+(len+1)+'">'+$(".enviroKey").val()+'</a></td>';
                 str += '<td><a href="javascript:void(0);" class="enviromentValue value'+(len+1)+'">'+$(".enviroValue").val()+'</a></td>';
-                str += '<td><img class="rubbish" src="/static／www/images/rubbish.png"/></td></tr>';
+                str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 $(str).appendTo(".enviroment");
                 $(".enviroKey").val('');
                 $(".enviroValue").val('');
@@ -175,7 +174,7 @@ $(function () {
                 {
                     var str = '';
                     str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].value+'</a>';
-                    str += '<img src="/static／www/images/rubbish.png" class="delLi"/></li>';
+                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
                 }
