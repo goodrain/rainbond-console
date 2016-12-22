@@ -132,6 +132,7 @@ $(function () {
                 $(".enviroKey").val('');
                 $(".enviroValue").val('');
                 $(".addContent").css({"display":"none"});
+                delPort();
             }
         }
         else{
