@@ -4,6 +4,7 @@
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/newapp.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
 {% endblock %}
 {% block extrajs %}
 <script src='{% static "www/js/newcompose.js" %}'></script>
@@ -17,12 +18,11 @@
     <input type="hidden" id="compose_file_id" value="{{compose_file_id}}">
     <input type="hidden" id="parse_error" value="{{parse_error}}">
     <input type="hidden" id="compose_relations" value="{{compose_relations}}">
-    <section class="panel-body">
-        <div class="steptit">
-            <span class="hidden-xs">1，设置镜像来源</span>
-            <span class="sed">2，设置应用参数</span>
+    <section class="main-box">
+        <div class="app-step clearfix two">
+            <p><span>1</span><cite>设置镜像来源</cite></p>
+            <p class="sed"><span>2</span><cite>设置应用参数</cite></p>
         </div>
-        <span class="line"></span>
         <!-- start -->
         <div class="tablink">
             <a href="javascript:;" class="sed">总览</a>
