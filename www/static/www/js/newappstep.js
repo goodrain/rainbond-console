@@ -297,7 +297,17 @@ $(function(){
         }
     });
     // 01 end 
-
+    //  镜像地址 start
+    $('#mirror-address').blur(function(){
+        var mirrorName = $(this).val();
+        if(mirrorName == ""){
+            $('#mirror_address_notice').slideDown();
+            return;
+        }else{
+            $('#mirror_address_notice').slideUp();
+        }
+    });
+    // 镜像地址  end
     //03 公开项目
     $('#service_code_url').blur(function(){
         var appurl= $(this).val();
@@ -499,13 +509,13 @@ $(function(){
             var disk_num = 0;
             var time_num = parseInt($("#TimeLongText").html());
         }else if(memory_onoff == false && disk_onoff == true){
-            var memory_num = 0;
-            var node_num = 0;
+            var memory_num = parseInt($("#OneMemoryText").html());
+            var node_num = parseInt($("#NodeText").html());
             var disk_num = parseInt($("#NodeText").html());
             var time_num = parseInt($("#TimeLongText").html());
         }else{
-            var memory_num = 0;
-            var node_num = 0;
+            var memory_num = parseInt($("#OneMemoryText").html());
+            var node_num = parseInt($("#NodeText").html());
             var disk_num = 0;
             var time_num = 0;
         }
@@ -660,13 +670,13 @@ $(function(){
             var disk_num = 0;
             var time_num = parseInt($("#TimeLongText").html());
         }else if(memory_onoff == false && disk_onoff == true){
-            var memory_num = 0;
-            var node_num = 0;
+            var memory_num = parseInt($("#NodeText").html());
+            var node_num = parseInt($("#NodeText").html());
             var disk_num = parseInt($("#NodeText").html());
             var time_num = parseInt($("#TimeLongText").html());
         }else{
-            var memory_num = 0;
-            var node_num = 0;
+            var memory_num = parseInt($("#NodeText").html());
+            var node_num = parseInt($("#NodeText").html());
             var disk_num = 0;
             var time_num = 0;
         }
@@ -736,6 +746,115 @@ $(function(){
     }); 
     /// 从应用提交
     
+    /// 从镜像地址提交 
+    $("#mirror_first").click(function(){
+        var appname = $("#create_name").val();
+        var groupname = $("#group-name option:selected").html();
+        var groupid = $("#group-name option:selected").attr("value");
+        var service_code_from = "gitlab_new";
+        var myWay = $(".fn-way").attr("data-action");
+        var code_url;
+        var code_id;
+        var code_branch;
+        var code_branch_id;
+        var memory_onoff = $("#MoneyBefore").prop("checked");
+        var disk_onoff = $("#DiskBefore").prop("checked");
+        if(memory_onoff == true && disk_onoff == true){
+            var memory_num = parseInt($("#OneMemoryText").html());
+            var node_num = parseInt($("#NodeText").html());
+            var disk_num = parseInt($("#NodeText").html());
+            var time_num = parseInt($("#TimeLongText").html());
+        }else if(memory_onoff == true && disk_onoff == false ){
+            var memory_num = parseInt($("#OneMemoryText").html());
+            var node_num = parseInt($("#NodeText").html());
+            var disk_num = 0;
+            var time_num = parseInt($("#TimeLongText").html());
+        }else if(memory_onoff == false && disk_onoff == true){
+            var memory_num = parseInt($("#OneMemoryText").html());
+            var node_num = parseInt($("#NodeText").html());
+            var disk_num = parseInt($("#NodeText").html());
+            var time_num = parseInt($("#TimeLongText").html());
+        }else{
+            var memory_num = parseInt($("#OneMemoryText").html());
+            var node_num = parseInt($("#NodeText").html());
+            var disk_num = 0;
+            var time_num = 0;
+        }
+        if(appname == ""){
+            $("#create_name_notice").show();
+            return;
+        }else{
+            $("#create_name_notice").hide();
+        }
+        $('#mirror-address').blur(function(){
+            var mirrorName = $(this).val();
+            if(mirrorName == ""){
+                $('#mirror_address_notice').slideDown();
+                return;
+            }else{
+                $('#mirror_address_notice').slideUp();
+            }
+        });
+        ///
+        $("#mirror_first").attr('disabled', true);
+        var tenantName= $('#currentTeantName').val();
+        $.ajax({
+            type : "post",
+            url : "/apps/" + tenantName + "/app-create/",
+            data : {
+                "create_app_name" : appname,
+                "groupname" : groupname,
+                "select_group_id" : groupid,
+                "mirrorName" : mirrorName,
+                "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
+                "disk_pay_method" : disk_onoff ? "prepaid":"postpaid",
+                "service_min_memory" : memory_num,
+                "service_min_node" : node_num,
+                "disk_num" : disk_num,
+                "pre_paid_period" : time_num
+            },
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "exist") {
+                    swal("服务名已存在");
+                } else if (dataObj["status"] == "owed"){
+                    swal("余额不足请及时充值")
+                } else if (dataObj["status"] == "expired"){
+                    swal("试用已到期")
+                } else if (dataObj["status"] == "over_memory") {
+                    swal("资源已达上限，不能创建");
+                } else if (dataObj["status"] == "over_money") {
+                    swal("余额不足，不能创建");
+                } else if (dataObj["status"] == "empty") {
+                    swal("应用名称不能为空");
+                }else if (dataObj["status"] == "code_from") {
+                    swal("应用资源库未选择");
+                }else if (dataObj["status"] == "code_repos") {
+                    swal("代码仓库异常");
+                }else if (dataObj["status"] == "success") {
+                    service_alias = dataObj["service_alias"]
+                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
+                } else {
+                    swal("创建失败");
+                }
+                $("#mirror_first").attr('disabled', false);
+            },
+            error : function() {
+                swal("系统异常,请重试");
+                $("#BtnFirst").attr('disabled', false);
+            }
+        });
+        ///
+
+    }); 
+    /// 从镜像地址提交
+    
+
     ////tips
     $(".fn-tips").mouseover(function(){
         var tips = $(this).attr("data-tips");
