@@ -57,11 +57,11 @@ $(function () {
                 editPort();
             }
             else{
-                alert("端口号冲突～～");
+                swal("端口号冲突～～");
             }
         }
         else{
-            alert("请输入正确的端口号～～");
+            swal("请输入正确的端口号～～");
         }
         $(".add_port").val("");
     });
@@ -117,7 +117,7 @@ $(function () {
             for( var i = 0; i<len; i++ )
             {
                 if( $(".enviroKey").val() == $(".enviromentKey")[i].innerHTML ){
-                    alert("变量名冲突～～");
+                    swal("变量名冲突～～");
                     onOff = false;
                     break;
                 }
@@ -190,7 +190,6 @@ $(function () {
         if( $(".catalogueContent").val() )
         {
             var service_name = $("#service_name").val();
-            alert(service_name)
             var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
             str += '<em>/app/'+$(".catalogueContent").val()+'</em>';
             str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
@@ -200,7 +199,7 @@ $(function () {
             delLi();
         }
         else{
-            alert("请输入目录～～");
+            swal("请输入目录～～");
         }
     });
     $(".noAddCatalogue").on("click",function(){
