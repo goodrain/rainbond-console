@@ -192,7 +192,7 @@ $(function () {
     $(".addCatalogue").on("click",function(){
         if( $(".catalogueContent").val() )
         {
-            var str = '<li><a href="javascript:void(0);">/app/'+$(".catalogueContent").val()+'</a>';
+            var str = '<li><a href="javascript:void(0);" class="path_name">/app/'+$(".catalogueContent").val()+'</a>';
             str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
             $(str).appendTo(".fileBlock ul.clearfix");
             $("p.catalogue").css({"display":"none"});
@@ -206,4 +206,50 @@ $(function () {
     $(".noAddCatalogue").on("click",function(){
         $("p.catalogue").css({"display":"none"});
     });
+
+    //点击"下一步"，提交内容
+    $(".submit").on("click",function(){
+        var portLen = $("tbody.port tr").length;
+        var portArr = [];
+        for( var i = 0; i<portLen; i++ )
+        {
+            var port_json = {};
+            port_json["container_port"] = $("tbody.port tr").eq(i).find("td").eq(0).children("a").html();
+            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(1).children("select").val();
+            port_json["is_inner_service"] = $("tbody.port tr").eq(i).find("td").eq(2).find("input").prop("checked")?1:0;
+            port_json["is_outer_service"] = $("tbody.port tr").eq(i).find("td").eq(3).find("input").prop("checked")?1:0;
+            portArr[i] = port_json;
+        }
+        //console.log(JSON.stringify(portArr));
+
+        var appLen = $(".path_name").length;
+        var appArr = [];
+        for( var j = 0; j<appLen; j++ )
+        {
+            var app_json = {};
+            app_json["volume_path"] = $(".path_name").eq(j).html();
+            appArr[j] = app_json;
+        }
+        //console.log(JSON.stringify(appArr));
+
+        var enviromentLen = $(".enviromentName").length;
+        var enviromentArr = [];
+        for( var k = 0; k<enviromentLen; k++ )
+        {
+            var enviroment_json = {};
+            enviroment_json["name"] = $("tbody.enviroment tr").eq(k).find("td").eq(0).children("a").html();
+            enviroment_json["attr_name"] = $("tbody.enviroment tr").eq(k).find("td").eq(1).children("a").html();
+            enviroment_json["attr_value"] = $("tbody.enviroment tr").eq(k).find("td").eq(2).children("a").html();
+            enviromentArr[k] = enviroment_json;
+        }
+        //console.log(JSON.stringify(enviromentArr));
+
+        var service_config = {
+            "port_list" : JSON.stringify(portArr),
+            "env_list" : JSON.stringify(enviromentArr),
+            "volume_list" : JSON.stringify(appArr)
+        }
+        console.log(service_config);
+    })
+
 });
