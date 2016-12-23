@@ -109,7 +109,9 @@ body{background: #f0f5f8;}
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
 }
-
+.contentBlock em{
+    margin-right: 10px;
+}
 .fileBlock .contentBlock ul li{
     margin-bottom: 10px;
 }
@@ -205,7 +207,7 @@ p.next button.submit{
 
 .above .applicationMes{
     width: 800px;
-    height: 800px;
+    height: 500px;
     display: none;
     padding: 30px;
     background-color: #ffffff;
@@ -213,6 +215,7 @@ p.next button.submit{
     -webkit-border-radius: 10px;
     -moz-border-radius: 10px;
     position: absolute;
+    overflow-y: scroll;
     top:0;
     left:0;
     right:0;
@@ -221,7 +224,8 @@ p.next button.submit{
 }
 .above .otherApp{
     width: 800px;
-    height: 400px;
+    height: 500px;
+    overflow-y: scroll;
     display: none;
     padding: 30px;
     background-color: #ffffff;
