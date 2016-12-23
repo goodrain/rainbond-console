@@ -275,6 +275,7 @@ $(function () {
     appMes();
     function appMes(){
         $(".appName").on("click",function(){
+            console.log(1);
             $(".applicationMes").css({"display":"block"});
             $(".otherApp").css({"display":"none"});
             $(".depend").css({"display":"none"});
