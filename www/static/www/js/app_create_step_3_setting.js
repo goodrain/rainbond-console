@@ -176,6 +176,7 @@ $(function () {
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
+                    appMes();
                 }
             }
         }
@@ -271,12 +272,15 @@ $(function () {
         $(".above").css({"display":"block"});
     })
     //依赖应用相关信息
-    $(".appName").on("click",function(){
-        $(".applicationMes").css({"display":"block"});
-        $(".otherApp").css({"display":"none"});
-        $(".depend").css({"display":"none"});
-        $(".above").css({"display":"block"});
-    });
+    appMes();
+    function appMes(){
+        $(".appName").on("click",function(){
+            $(".applicationMes").css({"display":"block"});
+            $(".otherApp").css({"display":"none"});
+            $(".depend").css({"display":"none"});
+            $(".above").css({"display":"block"});
+        });
+    }
     //挂载其他应用持久化目录
     $(".addOtherApp").on("click",function(){
         $(".applicationMes").css({"display":"none"});
