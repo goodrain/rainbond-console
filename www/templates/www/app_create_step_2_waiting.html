@@ -77,7 +77,7 @@
 	<section class="main-box">
 		<h3 class="main-tit">新建自定义应用</h3>
         <div class="app-step clearfix">
-            <p><span>1</span><cite>创建应用</cite></p>
+            <p class="sed"><span>1</span><cite>创建应用</cite></p>
             <p class="sed"><span>2</span><cite>代码同步</cite></p>
             <p><span>3</span><cite>应用设置</cite></p>
             <p><span>4</span><cite>高级选项</cite></p>
@@ -93,11 +93,12 @@
 	        			<span>由于代码量及网络环境差异，等待时间可能较长。</span>
 	        			<span>你可以关闭当前页面去 处理其他事务，稍后可在我的应用中继续操作。</span>
 	        		</p>
+	        		<p class="waitbtn">请稍等</p>
 	        	</div>
 	        	<p class="second-tips" id="git_code_upload" style="display: none;">代码已同步，语言为PHP！</p>
-	        	<div style="text-align: center;">
-	        		<button class="greenbtn seconbtn" id="BtnSecond" style="cursor: pointer;">下一步</button>
-	        		<button class="graybtn seconbtn" id="Btndelete" style="cursor: pointer;" onclick="app_create_delete();">停止创建</button>
+	        	<div style="text-align: center;" id="git_btn" style="display: none;">
+	        		<a class="greenbtn seconbtn" id="BtnSecond" style="cursor: pointer;">下一步</a>
+	        		<a class="graybtn seconbtn" id="Btndelete" style="cursor: pointer;" onclick="app_create_delete();">停止创建</a>
 	        	</div>
 	        </div>
     	</form>
@@ -107,7 +108,7 @@
 var gitcodechecktimmer;
 var requestNumber = 0
 $(function() {
-	$('#BtnSecond').attr('disabled', "true");
+	//$('#BtnSecond').attr('disabled', "true");
 	getGitCodeCheck();
 	$('#BtnSecond').click(
 		function() {
@@ -133,12 +134,14 @@ function getGitCodeCheck() {
 					clearTimeout(gitcodechecktimmer);
 					$("#second-loading").hide();
 					$("#git_code_upload").show();
+					$("#git_btn").show();
 					$("#git_code_upload").html(
 							"代码已提交，语言识别为 " + dataObj["language"]);
-					$("#BtnSecond").removeAttr('disabled')
+					//$("#BtnSecond").removeAttr('disabled')
 				} else if (dataObj["status"] == "check_error") {
 					$("#second-loading").hide();
 					$("#git_code_upload").show();
+					$("#git_btn").show();
 					$("#git_code_upload").html("语言未识别，请重新提交代码...");
 				}
 			},
