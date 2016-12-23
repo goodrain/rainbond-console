@@ -9,7 +9,7 @@ from django.http.response import HttpResponse
 from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
-from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar
+from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar, TenantServiceMountRelation
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -411,6 +411,21 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             'www/js/respond.min.js')
         return media
 
+    def save_ports_envs_and_volumes(self, ports, envs, volumes, tenant_serivce):
+        """保存端口,环境变量和持久化目录"""
+        for port in ports:
+            baseService.addServicePort(tenant_serivce, False, container_port=int(port["container_port"]),
+                                       protocol=port["protocol"], port_alias=port["port_alias"],
+                                       is_inner_service=port["is_inner_service"],
+                                       is_outer_service=port["is_outer_service"])
+
+        for env in envs:
+            baseService.saveServiceEnvVar(tenant_serivce.tenant_id, tenant_serivce.service_id, 0,
+                                          env["name"], env["attr_name"], env["attr_value"], True, "inner")
+
+        for volume in volumes:
+            baseService.add_volume_list(tenant_serivce, volume["volume_path"])
+
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
@@ -427,6 +442,24 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             context["service_envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port= -1)
             port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
             context["service_ports"] = list(port_list)
+            dpsids = []
+
+            for hasService in deployTenantServices:
+                dpsids.append(hasService.service_id)
+            hasTenantServiceEnvs = TenantServiceEnvVar.objects.filter(service_id__in=dpsids)
+            # 一个服务id对应一条服务的环境变量
+            env_map = {env.service_id: env for env in list(hasTenantServiceEnvs)}
+            context["env_map"] = env_map
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
+            context["tenantServiceList"] = tenantServiceList
+            # 挂载目录
+            mtsrs = TenantServiceMountRelation.objects.filter(service_id=self.service.service_id)
+            mntsids = []
+            if len(mtsrs) > 0:
+                for mnt in mtsrs:
+                    mntsids.append(mnt.dep_service_id)
+            context["mntsids"] = mntsids
+
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_3_setting.html", context)
@@ -435,9 +468,51 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         try:
-            pass
+            # 端口信息
+            port_list = json.loads(request.POST.get("port_list", "[]"))
+            # 环境变量信息
+            env_list = json.loads(request.POST.get("env_list", "[]"))
+            # 持久化目录信息
+            volume_list = json.loads(request.POST.get("volume_list", "[]"))
+            # 依赖服务id
+            depIds = request.POST.get("depIds", "")
+            # 挂载目录
+            mnt_list = json.loads(request.POST.get("mnt_list","[]"))
+
+            # 将刚开始创建的5000端口删除
+            for port in port_list:
+                service_port = TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                                 service_id=self.service.service_id,
+                                                                 container_port=port.container_port)
+                if service_port.exists():
+                    # 将原有的删除
+                    TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                      container_port=port.container_port).delete()
+                    TenantServiceEnvVar.objects.filter(service_id=self.service.service_id,
+                                                       container_port=port.container_port).delete()
+                    data = {"action": "delete", "port_ports": [port.container_port]}
+                    regionClient.createServicePort(self.service.service_region, self.service.service_id,
+                                                   json.dumps(data))
+
+            newTenantService = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                             service_id=self.service.service_id)
+            self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
+
+            baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
+                                              self.user.nick_name)
+            logger.debug(depIds)
+            if depIds is not None and depIds != "":
+                serviceIds = depIds.split(",")
+                for sid in serviceIds:
+                    try:
+                        baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, sid, self.response_region)
+                    except Exception as e:
+                        logger.exception(e)
+            data["status"] = "success"
+
         except Exception as e:
             logger.exception(e)
+            data["status"] = "failure"
 
 
 
