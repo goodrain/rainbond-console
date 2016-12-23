@@ -335,9 +335,9 @@
                 <div class="fm-input-range clearfix fn-memory-node">
                     <label>单节点内存</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser fn-tips" data-tips="免费用户单应用内存最大1G，全部应用总内存最大1G；付费用户单应用内存最大8G，总内存无限制；">
+                    <p class="range-box nouser">
                         <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
+                        <span class="range-choose fn-tips" data-tips="免费用户单应用内存最大1G，全部应用总内存最大1G；付费用户单应用内存最大8G，总内存无限制；"><cite id="OneMemoryWid"></cite></span>
                         <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="128"／>
                     </p>
                     <!-- user -->
