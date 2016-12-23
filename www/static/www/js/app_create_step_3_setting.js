@@ -172,7 +172,7 @@ $(function () {
                 if( onOff )
                 {
                     var str = '';
-                    str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].getAttribute("data-name")+'</a>';
+                    str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
@@ -189,7 +189,9 @@ $(function () {
     $(".addCatalogue").on("click",function(){
         if( $(".catalogueContent").val() )
         {
-            var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">当前新应用</a>';
+            var service_name = $("#service_name").val();
+            alert(service_name)
+            var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
             str += '<em>/app/'+$(".catalogueContent").val()+'</em>';
             str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
             $(str).appendTo(".fileBlock ul.clearfix");
@@ -224,7 +226,7 @@ $(function () {
         for( var j = 0; j<appLen; j++ )
         {
             var app_json = {};
-            app_json["volume_name"] = $(".add_pathName").eq(j).html();
+            app_json["volume_name"] = $("#service_name").val();
             app_json["volume_path"] = $(".add_pathName").eq(j).parent().children("em").html();
             appArr[j] = app_json;
         }

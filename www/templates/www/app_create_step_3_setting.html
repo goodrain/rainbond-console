@@ -17,7 +17,7 @@
 <section class="main-box wrapper site-min-height">
     <input type="hidden" id="tenantName" value="{{tenantName}}">
     <input type="hidden" id="tenantService" value="{{tenantService}}">
-
+    <input type="hidden" id="service_name" value="{{tenantService.service_cname}}">
     <h3 class="main-tit">新建自定义应用</h3>
     <div class="app-step clearfix">
         <p class="sed" ><span>1</span><cite style="letter-spacing: ">创建应用</cite></p>
@@ -265,6 +265,25 @@
                     </tr>
                     </thead>
                     <tbody>
+                    {% for tenantSer in tenantServiceList %}
+                    {% if tenantSer.service_alias != tenantServiceInfo.service_alias and tenantSer.host_path %}
+                    <tr>
+                        <td>{{tenantSer.service_cname}}</td>
+                        <td>/mnt/{{tenantSer.service_alias}}</td>
+                        <td class="text-center">
+                            <input type="checkbox" class="addOther" data-name="{{tenantSer.service_cname}}" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}">
+                            <!--{% if 'manage_service' in user.actions or user.is_sys_admin %}-->
+                            <!--{% if tenantSer.service_id not in mntsids %}-->
+                            <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('add','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">挂载</button>-->
+                            <!--{% else %}-->
+                            <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('cancel','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">取消挂载</button>-->
+                            <!--{% endif %}-->
+                            <!--{% endif %}-->
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+
                     <tr>
                         <td>ssd</td>
                         <td>/app/service</td>
@@ -272,20 +291,7 @@
                             <input type="checkbox" class="addOther" data-name="ssd" data-path="/app/service" data-otherName="SSD">
                         </td>
                     </tr>
-                    <tr>
-                        <td>we</td>
-                        <td>/app/dvfd</td>
-                        <td>
-                            <input type="checkbox" class="addOther" data-name="we" data-path="/app/dvfd" data-otherName="WE">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>wedwe</td>
-                        <td>/app/seice</td>
-                        <td>
-                            <input type="checkbox" class="addOther" data-name="wedwe" data-path="/app/seice" data-otherName="WEDWE">
-                        </td>
-                    </tr>
+
                     </tbody>
                 </table>
             </div>
