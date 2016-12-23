@@ -561,7 +561,13 @@ $(function(){
             }
             //03
         }else if(myWay == "gitlab_exit"){
-            service_code_from = "gitlab_exit";
+            var grbranch = $("#code_gr_list option:selected").attr("value");
+            if(grbranch == "newobj"){
+                service_code_from = "gitlab_new";
+            }else{
+                service_code_from = "gitlab_exit";
+            }
+
             //04
             code_id = $("code_gr_list").attr("date");
             if(code_id == "-1"){
