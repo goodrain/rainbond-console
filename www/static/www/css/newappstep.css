@@ -86,7 +86,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .greenbtn{background: #28cb75; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 10px; }
 .greenbtn:hover{color: #fff;}
 
-.graybtn{background: #838383; color: #303030; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 10px;}
+.graybtn{background: #ececec; color: #303030; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 10px;}
 .graybtn:hover{color: #303030;}
 
 .fm-input-range .range-box{width: 60%; height: 20px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
