@@ -49,7 +49,7 @@ $(function () {
                 else{
                     oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
-                oTr += '<td><img class="rubbish" src="images/rubbish.png"/></td></tr>';
+                oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 newTr.innerHTML = oTr;
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
@@ -127,7 +127,7 @@ $(function () {
                 var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port enviromentKey key'+(len+1)+'">'+$(".enviroName").val()+'</a></td>';
                 str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey key'+(len+1)+'">'+$(".enviroKey").val()+'</a></td>';
                 str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue value'+(len+1)+'">'+$(".enviroValue").val()+'</a></td>';
-                str += '<td><img class="rubbish" src="images/rubbish.png"/></td></tr>';
+                str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 $(str).appendTo(".enviroment");
                 $(".enviroKey").val('');
                 $(".enviroValue").val('');
@@ -173,7 +173,7 @@ $(function () {
                 {
                     var str = '';
                     str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].getAttribute("data-name")+'</a>';
-                    str += '<img src="images/rubbish.png" class="delLi"/></li>';
+                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
                 }
@@ -191,7 +191,7 @@ $(function () {
         {
             var str = '<li><a href="javascript:void(0);"  class="path_name">新加应用</a>';
             str += '<em>/app/'+$(".catalogueContent").val()+'</em>';
-            str += '<img src="images/rubbish.png" class="delLi"/></li>';
+            str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
             $(str).appendTo(".fileBlock ul.clearfix");
             $("p.catalogue").css({"display":"none"});
             $(".catalogueContent").val("");
@@ -290,9 +290,9 @@ $(function () {
         {
             if( $("input.addOther").eq(i).is(":checked") )
             {
-                var str = '<li><a href="javascript:void(0);"  class="otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
+                var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
                 str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
-                str += '<img src="images/rubbish.png" class="delLi"/></li>';
+                str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                 $(str).appendTo(".fileBlock ul.clearfix");
                 $(".applicationMes").css({"display":"none"});
                 $(".above").css({"display":"none"});
