@@ -83,11 +83,14 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .fm-btn{text-align: center; margin-bottom: 40px;}
 .fm-btn a{display: inline-block;}
 
-.greenbtn{background: #28cb75; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 10px; }
+.greenbtn{background: #28cb75; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 20px; }
 .greenbtn:hover{color: #fff;}
 
 .graybtn{background: #ececec; color: #303030; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 10px;}
 .graybtn:hover{color: #303030;}
+
+.redbtn{background: #f63a47; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 20px;}
+.redbtn:hover{color: #fff;}
 
 .fm-input-range .range-box{width: 60%; height: 20px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
 .fm-input-range .range-box .renge-bg{width:100%; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
