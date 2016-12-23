@@ -113,7 +113,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 .mainbox{width: 100%; min-height: 400px; }
 .second-tips{font-size: 18px; line-height: 100px; text-align: center;}
-.seconbtn{margin:30px auto 100px; border: 0 none;}
+.seconbtn{margin:30px 20px 100px; border: 0 none;}
 
 .second-tit{text-align: center; font-size: 28px; line-height: 50px; color: #28cb75;}
 .second-tips-loading{width: 90%; max-width: 500px; margin:30px auto 30px; text-align: center;}
