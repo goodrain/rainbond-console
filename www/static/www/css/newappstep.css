@@ -115,7 +115,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .second-tit{text-align: center; font-size: 28px; line-height: 50px; color: #28cb75;}
 .second-tips-loading{width: 90%; max-width: 500px; margin:30px auto 30px; text-align: center;}
 .second-tips-loading span{color: #838383; font-size: 14px; line-height: 20px; text-align: center; width: 100%; display:block; }
-.second-tips-loading span cite{color: #28cb75;}
+.second-tips-loading span cite{color: #303030;}
 
 /* from end */
 
