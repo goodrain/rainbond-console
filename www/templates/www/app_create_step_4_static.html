@@ -1,6 +1,13 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% block main-content%}
+{% extends 'www/raster.html' %} {% load i18n %} 
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+{% endblock %}
+{% block main-content%}
 <section class="wrapper site-min-height">
 	<!-- page start-->
+	<!--
 	<section class="panel">
 		<div class="panel-body">
 			<div class=" form">
@@ -30,6 +37,37 @@
 			</div>
 		</div>
 	</section>
+	-->
 	<!-- page end-->
+	<!-- -->
+	<section class="main-box">
+		<h3 class="main-tit">新建自定义应用</h3>
+        <div class="app-step clearfix">
+            <p><span>1</span><cite>创建应用</cite></p>
+            <p><span>2</span><cite>代码同步</cite></p>
+            <p><span>3</span><cite>应用设置</cite></p>
+            <p class="sed"><span>4</span><cite>高级选项</cite></p>
+        </div>
+        <form id="commentForm" method="post" action="" novalidate="novalidate">
+			<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+			<input type="hidden" id="service_name" name="service_name" value="{{tenantService.service_alias}}" />
+			<input type="hidden" id="language" name="language" value="{{tenantService.language}}" />
+			<div class="infor-fm-box">
+				<div class="fm-select clearfix">
+                    <label>web服务器</label>
+                    <select id="service_server" name="service_server">
+						<option value="apache">apache</option>
+						<option value="apache" selected="selected">nginx（默认）</option>
+					</select>
+                </div>
+			</div>
+			<div class="infor-fm-box">
+				<div class="fm-btn clearfix">
+                    <a class="greenbtn"  style="cursor: pointer;" id="language_btn">下一步</a>
+                </div>
+            </div>
+		</form>
+    </section>
+	<!-- -->
 </section>
 {% endblock %}
