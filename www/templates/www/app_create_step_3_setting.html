@@ -213,6 +213,62 @@
                 <button class="cancel">取消</button>
             </p>
         </div>
+        <div class="applicationMes">
+            <div class="del" title="关闭">x</div>
+            <div>
+                <h3>应用相关信息</h3>
+                <div>
+                    <ul>
+                        <li></li>
+                    </ul>
+                </div>
+            </div>
+            <p class="bottom">
+                <button class="cancel">关闭</button>
+            </p>
+        </div>
+        <div class="otherApp">
+            <div class="del" title="关闭">x</div>
+            <div>
+                <h3>挂载其他应用</h3>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>服务名称</th>
+                        <th>共享目录</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>ssd</td>
+                        <td>/app/service</td>
+                        <td>
+                            <input type="checkbox" class="addOther" data-name="ssd" data-path="/app/service" data-otherName="SSD">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>we</td>
+                        <td>/app/dvfd</td>
+                        <td>
+                            <input type="checkbox" class="addOther" data-name="we" data-path="/app/dvfd" data-otherName="WE">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>wedwe</td>
+                        <td>/app/seice</td>
+                        <td>
+                            <input type="checkbox" class="addOther" data-name="wedwe" data-path="/app/seice" data-otherName="WEDWE">
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="bottom">
+                <button class="sureAddOther btn-success">确认</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
     </div>
 </section>
 {% endblock %}

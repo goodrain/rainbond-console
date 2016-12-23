@@ -21,9 +21,9 @@ $(function () {
             if( addOnoff )
             {
                 var newTr = document.createElement("tr");
-                var arr = ['Http','Stream'];
+                var arr = ['http','stream'];
                 var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port">'+$(".add_port").val()+'</a></td>';
-                oTr += '<td><select data-port-http="'+$(".add_port").val()+'Http">';
+                oTr += '<td><select data-port-http="'+$(".add_port").val()+'http">';
                 for( var i = 0; i < 2; i++ )
                 {
                     if( $('.add_http').val() == arr[i] )
@@ -49,7 +49,7 @@ $(function () {
                 else{
                     oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
-                oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+                oTr += '<td><img class="rubbish" src="images/rubbish.png"/></td></tr>';
                 newTr.innerHTML = oTr;
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
@@ -110,7 +110,7 @@ $(function () {
         $(".addContent").css({"display":"table-row"});
     });
     $(".addEnviroment").on("click",function(){
-        if( $(".enviroKey").val() && $(".enviroValue").val() && $(".enviroName").val() )
+        if( $(".enviroKey").val() && $(".enviroValue").val() )
         {
             var len = $(".enviromentKey").length;
             var onOff = true;
@@ -124,16 +124,16 @@ $(function () {
             }
             if( onOff )
             {
-                var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port">'+$(".enviroName").val()+'</a></td>';
+                var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port enviromentKey key'+(len+1)+'">'+$(".enviroName").val()+'</a></td>';
                 str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey key'+(len+1)+'">'+$(".enviroKey").val()+'</a></td>';
                 str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue value'+(len+1)+'">'+$(".enviroValue").val()+'</a></td>';
-                str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+                str += '<td><img class="rubbish" src="images/rubbish.png"/></td></tr>';
                 $(str).appendTo(".enviroment");
-                $(".enviroName").val('');
                 $(".enviroKey").val('');
                 $(".enviroValue").val('');
                 $(".addContent").css({"display":"none"});
                 delPort();
+                editPort();
             }
         }
         else{
@@ -145,10 +145,7 @@ $(function () {
         $(".enviroKey").val('');
         $(".enviroValue").val('');
     });
-    //打开弹出层，选择服务依赖
-    $(".addDepend").on("click",function(){
-        $(".above").css({"display":"block"});
-    })
+
     //关闭弹出层
     $("button.cancel").on("click",function(){
         $(".above").css({"display":"none"});
@@ -156,7 +153,7 @@ $(function () {
     $(".del").on("click",function(){
         $(".above").css({"display":"none"});
     });
-    $(".sure").on("click",function(){
+    $(".sureAddDepend").on("click",function(){
         var len = $(".depend input").length;
         for( var i = 0; i<len; i++ )
         {
@@ -166,7 +163,7 @@ $(function () {
                 var onOff = true;
                 for( var j = 0; j<appNameLen; j++ )
                 {
-                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-action") )
+                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-name") )
                     {
                         onOff = false;
                         break;
@@ -175,8 +172,8 @@ $(function () {
                 if( onOff )
                 {
                     var str = '';
-                    str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
-                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+                    str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].getAttribute("data-name")+'</a>';
+                    str += '<img src="images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
                 }
@@ -192,8 +189,9 @@ $(function () {
     $(".addCatalogue").on("click",function(){
         if( $(".catalogueContent").val() )
         {
-            var str = '<li><a href="javascript:void(0);" class="path_name">/app/'+$(".catalogueContent").val()+'</a>';
-            str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+            var str = '<li><a href="javascript:void(0);"  class="path_name">新加应用</a>';
+            str += '<em>/app/'+$(".catalogueContent").val()+'</em>';
+            str += '<img src="images/rubbish.png" class="delLi"/></li>';
             $(str).appendTo(".fileBlock ul.clearfix");
             $("p.catalogue").css({"display":"none"});
             $(".catalogueContent").val("");
@@ -207,7 +205,6 @@ $(function () {
         $("p.catalogue").css({"display":"none"});
     });
 
-    //点击"下一步"，提交内容
     $(".submit").on("click",function(){
         var portLen = $("tbody.port tr").length;
         var portArr = [];
@@ -244,12 +241,65 @@ $(function () {
         }
         //console.log(JSON.stringify(enviromentArr));
 
+        var otherAppNameLen = $(".otherAppName").length;
+        var otherAppNameArr = [];
+        for( var m = 0; m<otherAppNameLen; m++ )
+        {
+            var otherAppName_json = {};
+            otherAppName_json["name"] = $(".otherAppName").eq(m).html();
+            otherAppName_json["path"] = $(".otherAppName").eq(m).parent().children("em").html();
+            otherAppName_json["otherName"] = $(".otherAppName").eq(m).attr("data-otherName");
+            otherAppNameArr[m] = otherAppName_json;
+        }
+
         var service_config = {
             "port_list" : JSON.stringify(portArr),
             "env_list" : JSON.stringify(enviromentArr),
-            "volume_list" : JSON.stringify(appArr)
+            "volume_list" : JSON.stringify(appArr),
+            "mnt_list" : JSON.stringify(otherAppNameArr)
         }
         console.log(service_config);
-    })
+    });
 
+    //打开弹出层，选择服务依赖
+    $(".addDepend").on("click",function(){
+        $(".applicationMes").css({"display":"none"});
+        $(".otherApp").css({"display":"none"});
+        $(".depend").css({"display":"block"});
+        $(".above").css({"display":"block"});
+    })
+    //依赖应用相关信息
+    $(".appName").on("click",function(){
+        $(".applicationMes").css({"display":"block"});
+        $(".otherApp").css({"display":"none"});
+        $(".depend").css({"display":"none"});
+        $(".above").css({"display":"block"});
+    });
+    //挂载其他应用持久化目录
+    $(".addOtherApp").on("click",function(){
+        $(".applicationMes").css({"display":"none"});
+        $(".depend").css({"display":"none"});
+        $(".otherApp").css({"display":"block"});
+        $(".above").css({"display":"block"});
+    });
+
+    //挂载其他应用服务
+    $(".sureAddOther").on("click",function(){
+        var len = $("input.addOther").length;
+        for( var i = 0; i<len; i++ )
+        {
+            if( $("input.addOther").eq(i).is(":checked") )
+            {
+                var str = '<li><a href="javascript:void(0);"  class="otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
+                str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
+                str += '<img src="images/rubbish.png" class="delLi"/></li>';
+                $(str).appendTo(".fileBlock ul.clearfix");
+                $(".applicationMes").css({"display":"none"});
+                $(".above").css({"display":"none"});
+                delLi();
+            }
+        }
+        $(".applicationMes").css({"display":"none"});
+        $(".above").css({"display":"none"});
+    });
 });
