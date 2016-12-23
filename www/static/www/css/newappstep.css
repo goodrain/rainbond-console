@@ -73,7 +73,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 .btn-cho-box p{display: inline-block;  float: left;  color: #303030; height: 30px; margin: 0 10px 0 0;}
 .btn-cho-box p input{display: none;}
-.btn-cho-box p input + label.cho-bg{ width: 16px; height: 16px; background: url('../images/nocheckmany.png') no-repeat; float: left; display: block; margin: 6px 5px 0 0; }
+.btn-cho-box p input + label.cho-bg{ width: 16px; height: 16px; background: url('../images/nochechmany.png') no-repeat; float: left; display: block; margin: 6px 5px 0 0; }
 .btn-cho-box p input:checked + label.cho-bg{ width: 16px; height: 16px; background: url('../images/checkmany.png') no-repeat;    display: block; float: left; margin: 6px 5px 0 0;}
 .btn-cho-box p label.cho-text{font-size: 14px; line-height: 30px; color: #303030; float: left; text-align: left; width: auto;}
 
