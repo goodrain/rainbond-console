@@ -189,7 +189,7 @@ $(function () {
     $(".addCatalogue").on("click",function(){
         if( $(".catalogueContent").val() )
         {
-            var str = '<li><a href="javascript:void(0);"  class="path_name">新加应用</a>';
+            var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">当前新应用</a>';
             str += '<em>/app/'+$(".catalogueContent").val()+'</em>';
             str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
             $(str).appendTo(".fileBlock ul.clearfix");
@@ -219,12 +219,13 @@ $(function () {
         }
         //console.log(JSON.stringify(portArr));
 
-        var appLen = $(".path_name").length;
+        var appLen = $(".add_pathName").length;
         var appArr = [];
         for( var j = 0; j<appLen; j++ )
         {
             var app_json = {};
-            app_json["volume_path"] = $(".path_name").eq(j).html();
+            app_json["volume_name"] = $(".add_pathName").eq(j).html();
+            app_json["volume_path"] = $(".add_pathName").eq(j).parent().children("em").html();
             appArr[j] = app_json;
         }
         //console.log(JSON.stringify(appArr));
