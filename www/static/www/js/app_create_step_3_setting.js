@@ -163,7 +163,7 @@ $(function () {
                 var onOff = true;
                 for( var j = 0; j<appNameLen; j++ )
                 {
-                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-name") )
+                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-action") )
                     {
                         onOff = false;
                         break;
@@ -293,13 +293,26 @@ $(function () {
         {
             if( $("input.addOther").eq(i).is(":checked") )
             {
-                var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
-                str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
-                str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
-                $(str).appendTo(".fileBlock ul.clearfix");
-                $(".applicationMes").css({"display":"none"});
-                $(".above").css({"display":"none"});
-                delLi();
+                var length = $(".otherAppName").length;
+                var onOff = true;
+                for( var j = 0; j<length; j++ )
+                {
+                    if( $("input.addOther").eq(i).attr("data-otherName") == $(".otherAppName").eq(j).attr("data-otherName") )
+                    {
+                        onOff = false;
+                        break;
+                    }
+                }
+                if( onOff )
+                {
+                    var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
+                    str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
+                    str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+                    $(str).appendTo(".fileBlock ul.clearfix");
+                    $(".applicationMes").css({"display":"none"});
+                    $(".above").css({"display":"none"});
+                    delLi();
+                }
             }
         }
         $(".applicationMes").css({"display":"none"});
