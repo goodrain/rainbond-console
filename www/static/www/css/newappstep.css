@@ -71,6 +71,12 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .btn-cho-box  a{display: inline-block; color:#28cb75; background:#fff url('../images/btnchoright.png') no-repeat right 1px bottom 1px; background-size:15px 15px; border:1px #28cb75 solid; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px;  height: 28px; line-height: 28px; text-align: center; margin:0 10px 10px 0; float: left; padding:0 20px;}
 .btn-cho-box  a.sed{color: #fff; background: #28cb75; border:1px #28cb75 solid;}
 
+.btn-cho-box p{display: inline-block;  float: left;  color: #303030; height: 30px; margin: 0 10px 0 0;}
+.btn-cho-box p input{display: none;}
+.btn-cho-box p input + label.cho-bg{ width: 16px; height: 16px; background: url('../images/nocheckmany.png') no-repeat; float: left; display: block; margin: 6px 5px 0 0; }
+.btn-cho-box p input:checked + label.cho-bg{ width: 16px; height: 16px; background: url('../images/checkmany.png') no-repeat;    display: block; float: left; margin: 6px 5px 0 0;}
+.btn-cho-box p label.cho-text{font-size: 14px; line-height: 30px; color: #303030; float: left;}
+
 .fm-money span{color: #28cb75; font-size: 24px; line-height: 30px;}
 .fm-aft-money span{color:#303030; font-size:14px; line-height:30px;}
 
@@ -104,7 +110,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 .mainbox{width: 100%; min-height: 400px; }
 .second-tips{font-size: 18px; line-height: 100px; text-align: center;}
-.seconbtn{margin:30px auto 100px;}
+.seconbtn{margin:30px auto 100px; border: 0 none;}
 
 .second-tit{text-align: center; font-size: 20px; line-height: 50px;}
 .second-tips-loading{width: 90%; max-width: 500px; margin:20px auto; text-align: center;}
