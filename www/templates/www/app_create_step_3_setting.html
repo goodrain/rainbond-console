@@ -192,7 +192,7 @@
                 <ul class="clearfix">
                     {% for deployTenantService in deployTenantServices %}
                     <li>
-                        <input id="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" type="checkbox" value="{{deployTenantService.service_id}}_{{deployTenantService.service_type}}_{{deployTenantService.version}}" data-action="{{deployTenantService.service_cname}}_{{deployTenantService.version}}">
+                        <input id="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" type="checkbox" value="{{deployTenantService.service_id}}_{{deployTenantService.service_type}}_{{deployTenantService.version}}" data-action="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" data-serviceId="{deployTenantService.service_id}}">
                         <label for="{{deployTenantService.service_cname}}_{{deployTenantService.version}}">{{deployTenantService.service_cname}}_{{deployTenantService.version}}</label>
                     </li>
                     {% endfor %}
