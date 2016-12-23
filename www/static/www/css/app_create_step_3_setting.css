@@ -48,7 +48,7 @@ body{background: #f0f5f8;}
     display: inline-block;
     width: 80px;
 }
-.main-box table tr span,span{
+.main-box table tr span.add,span.noAdd,span.addEnviroment,span.noAddEnviroment{
     margin-right: 30px;
     cursor: pointer;
     position: absolute;
@@ -171,6 +171,7 @@ p.next button.submit{
 }
 .above p.bottom {
     text-align: right;
+    margin-top: 20px;
 }
 .above p.bottom button{
     outline: none;
@@ -201,7 +202,7 @@ p.next button.submit{
 
 .above .applicationMes{
     width: 800px;
-    height: 400px;
+    height: 800px;
     display: none;
     padding: 30px;
     background-color: #ffffff;
@@ -217,7 +218,7 @@ p.next button.submit{
 }
 .above .otherApp{
     width: 800px;
-    height: 600px;
+    height: 400px;
     display: none;
     padding: 30px;
     background-color: #ffffff;
@@ -232,6 +233,13 @@ p.next button.submit{
     margin: auto;
 }
 
+.applicationMes ul li{
+    width: 33%;
+    float: left;
+}
+.applicationMes p{
+    font-size: 12px;
+}
 
 
 p.catalogue{
