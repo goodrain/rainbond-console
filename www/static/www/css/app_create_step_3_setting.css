@@ -196,8 +196,12 @@ p.next button.submit{
 
 .above .depend ul.clearfix li{
     float: left;
-    width: 25%;
-    margin-right: 50px;
+    width: 33%;
+}
+.above .depend ul.clearfix li input{
+    width: 30px;
+    height: 30px;
+    margin: 10px;
 }
 
 .above .applicationMes{
