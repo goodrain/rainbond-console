@@ -172,7 +172,7 @@ $(function () {
                 if( onOff )
                 {
                     var str = '';
-                    str += '<li><a href="javascript:void(0);" class="appName">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
+                    str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-serviceId")+'" class="appName">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
@@ -275,7 +275,7 @@ $(function () {
     appMes();
     function appMes(){
         $(".appName").on("click",function(){
-            console.log(1);
+            console.log($(this).attr("data-serviceId"));
             $(".applicationMes").css({"display":"block"});
             $(".otherApp").css({"display":"none"});
             $(".depend").css({"display":"none"});
