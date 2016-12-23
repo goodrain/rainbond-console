@@ -233,8 +233,6 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                                        protocol=port["protocol"], port_alias=port["port_alias"],
                                        is_inner_service=port["is_inner_service"],
                                        is_outer_service=port["is_outer_service"])
-            logger.info(port["container_port"], "*", port["protocol"], "*", port["port_alias"], "*",
-                        port["is_inner_service"], "*", port["is_outer_service"])
 
         for env in envs:
             baseService.saveServiceEnvVar(tenant_serivce.tenant_id, tenant_serivce.service_id, 0,
