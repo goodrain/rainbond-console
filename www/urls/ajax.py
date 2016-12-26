@@ -4,6 +4,7 @@ from www.services_view import *
 from www.views import ajax
 from www.views.ajax import UpdateGroupView, BatchActionView
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
+from www.views.service import CreateServiceDepInfo
 
 urlpatterns = patterns(
     '',
@@ -50,4 +51,5 @@ urlpatterns = patterns(
 
     url(r'^(?P<tenantName>[\w\-]+)/batch-action$', BatchActionView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/change-service-name', ajax.ServiceNameChangeView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/create/dep-info', CreateServiceDepInfo.as_view()),
 )

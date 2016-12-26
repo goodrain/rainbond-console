@@ -275,13 +275,44 @@ $(function () {
     appMes();
     function appMes(){
         $(".appName").on("click",function(){
-            console.log($(this).attr("data-serviceId"));
+            var service_id = $(this).attr("data-serviceId");
+            console.log(service_id);
+            getServiceInfo(service_id);
             $(".applicationMes").css({"display":"block"});
             $(".otherApp").css({"display":"none"});
             $(".depend").css({"display":"none"});
             $(".above").css({"display":"block"});
         });
     }
+    function getServiceInfo(service_id){
+        var tenant_name = $("#tenantName").val();
+        $.ajax({
+            type : "post",
+            url : "/ajax/" + tenant_name  + "/create/dep-info",
+            data : {
+                service_id : service_id
+            },
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                if(msg.ok){
+                    
+                    var env_map = msg.obj;
+                    console.log(env_map)
+                    
+                }else{
+                    swal(msg.info);
+                }
+            },
+            error : function() {
+                swal("系统异常,请重试");
+            }
+        });
+    }
+
     //挂载其他应用持久化目录
     $(".addOtherApp").on("click",function(){
         $(".applicationMes").css({"display":"none"});

@@ -447,9 +447,11 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             for hasService in deployTenantServices:
                 dpsids.append(hasService.service_id)
             hasTenantServiceEnvs = TenantServiceEnvVar.objects.filter(service_id__in=dpsids)
-            # 一个服务id对应一条服务的环境变量
+            # 已有服务的一个服务id对应一条服务的环境变量
             env_map = {env.service_id: env for env in list(hasTenantServiceEnvs)}
             context["env_map"] = env_map
+
+            # 除当前服务外的所有的服务
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
             context["tenantServiceList"] = tenantServiceList
             # 挂载目录

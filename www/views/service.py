@@ -1,7 +1,8 @@
 # -*- coding: utf8 -*-
-
+from django.http.response import JsonResponse
 from django.template.response import TemplateResponse
 
+from www.models.main import TenantServiceEnvVar, TenantServicesPort
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import Users, PermRelTenant
@@ -81,3 +82,45 @@ class TeamInfo(LeftSideBarMixin, AuthedView):
     @perm_required('tenant_access')
     def get(self, request, *args, **kwargs):
         return self.get_response()
+
+
+class CreateServiceDepInfo(LeftSideBarMixin, AuthedView):
+    def get_context(self):
+        """获取上下文对象"""
+        context = super(CreateServiceDepInfo, self).get_context()
+        return context
+
+    @perm_required('tenant_access')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        try:
+            # 通过service_id 获取该服务的链接信息
+            service_id = request.POST.get("service_id", "")
+            if service_id.strip() != "":
+                envVarlist = TenantServiceEnvVar.objects.filter(service_id=service_id, scope__in=("outer", "both"),
+                                                                is_change=False)
+
+                containerPortMap = {}
+                opened_service_port_list = TenantServicesPort.objects.filter(service_id=service_id,
+                                                                             is_inner_service=True)
+                if len(opened_service_port_list) > 0:
+                    for opened_service_port in opened_service_port_list:
+                        containerPortMap[opened_service_port.container_port] = opened_service_port.port_alias
+
+                containerPortKeys = containerPortMap.keys()
+                # {"端口号":"端口号对应的环境变量"}
+                env_map = {}
+                for env_var in list(envVarlist):
+                    if env_var.container_port in containerPortKeys or env_var.container_port < 1:
+                        arr = env_map.get(env_var.container_port)
+                        if arr is None:
+                            arr = []
+                        env_var.port_alias = containerPortMap.get(env_var.container_port)
+                        arr.append(env_var)
+                        env_map[env_var.container_port] = arr
+
+                result = {"ok": True, "obj": env_map}
+        except Exception as e:
+            result = {"ok": False, "info": '获取服务信息异常'}
+            logger.exception(e)
+        return JsonResponse(result)
