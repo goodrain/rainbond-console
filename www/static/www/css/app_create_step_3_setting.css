@@ -45,32 +45,9 @@
    
 }
 .contentBlock ul{
-    padding: 0px;
-    min-height: 30px;
-    margin-left: 30px;
-}
-.contentBlock ul.clearfix li{
-    float: left;
-    width: 25%;
-    min-width: 150px;
-    margin-bottom: 10px;
-}
-.contentBlock li a{
-    color: #303030;
-    margin-right: 17px;
-}
-.contentBlock p.blockBottom{
-   
-}
-.contentBlock p.blockBottom button{
   
 }
-.contentBlock em{
-    margin-right: 10px;
-}
-.fileBlock .contentBlock ul li{
-    margin-bottom: 10px;
-}
+
 p.next{
     text-align: center;
     margin: 30px 0px 0px 0px;

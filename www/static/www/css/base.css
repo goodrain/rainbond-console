@@ -21,7 +21,7 @@ a:active{text-decoration: none;}
 body{background: #f0f5f8;}
 .main-box{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px;  margin:5px; padding:30px 20px;}
 .main-tit{color: #28cb75; font-size: 24px; margin:0; text-align: center;font-weight: 100; line-height: 1; margin-top: 20px;}
-.column-tit{ color: #303030; font-size: 18px; text-indent: 20px; line-height: 40px; font-weight: 100; }
+.column-tit{ color: #303030; font-size: 18px; text-indent: 20px; line-height: 40px; font-weight: 100;     margin-top: 20px;}
 /* base start  */
 
 
