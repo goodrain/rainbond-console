@@ -9,7 +9,7 @@ from django.shortcuts import redirect
 from www.service_http import RegionServiceApi
 from www.utils.url import get_redirect_url
 from www.monitorservice.monitorhook import MonitorHook
-
+from www.models.activity import TenantActivity
 import logging
 logger = logging.getLogger('default')
 
@@ -105,6 +105,9 @@ def notify_url(request, tenantName):
                 tenant.balance = tenant.balance + tenantRecharge.money + tempMoney
                 # tenant.pay_type = 'payed'
                 tenant.save()
+                # 删除activity998,结束后需要删除
+                TenantActivity.objects.filter(tenant_id=tenantRecharge.tenant_id).delete()
+
                 # charging owed money
                 last_money = 0.0
                 openServiceTag = True
