@@ -96,8 +96,8 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 .checkbox{width: 56px; height: 28px;} /* 开关 */
 .checkbox input{display: none;}
-.checkbox label.check-bg{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;  display: block; margin:7px 5px 0 0;}
-.checkbox input:checked + label.check-bg{width:56px; height:28px; background: url('../images/checked.png') no-repeat;    display: block; float: left; margin:7px 5px 0 0;}
+.checkbox label.check-bg{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;  display: block;  margin:0;}
+.checkbox input:checked + label.check-bg{width:56px; height:28px; background: url('../images/checked.png') no-repeat;  display: block; float: left; margin:0;}
 /* form  end */
 
 
