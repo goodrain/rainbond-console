@@ -12,16 +12,14 @@
     display: none;
 }
 .main-box table td select{
-    color: #28cb75;
+  
 }
 .main-box table td a,input{
     display: inline-block;
     width: 80px;
 }
 .main-box table tr span.add,span.noAdd,span.addEnviroment,span.noAddEnviroment{
-    margin-right: 30px;
-    cursor: pointer;
-    position: absolute;
+   
 }
 .main-box table tr.addPort span.add,span.addEnviroment{
     left: 0px;

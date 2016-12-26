@@ -115,6 +115,9 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 .redbtn{background: #f63a47; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 20px;}
 .redbtn:hover{color: #fff;}
+
+.lit-btn-green{ width: 22px;  height: 22px; background: #28cb75; display: inline-block; color: #fff; font-size: 12px; line-height: 22px; text-align: center;}
+.lit-btn-red{ width: 22px;  height: 22px; background: #f63a47; display: inline-block; color: #fff; font-size: 12px; line-height: 22px; text-align: center;}
 /* btn end */
 
 
