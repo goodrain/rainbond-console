@@ -43,8 +43,9 @@ p.blockBottom{width: 100%; text-align: center;}
 
 p.next button.submit{background:#28cb75; color: #fff;  border:none;  border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; display: inline-block;}
 
-input.catalogueContent{width:50%; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px;}
-.addContent td input{width:100px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px; margin-right: 10px;}
+p.catalogue{ display: none; margin-bottom: 10px;}
+input.catalogueContent{width:200px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px; margin: 0 10px;}
+.addContent td input{width:100px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px;}
 
 
 
