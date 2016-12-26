@@ -37,9 +37,9 @@ p.blockBottom{width: 100%; text-align: center;}
 
 .contentBlock{border:1px solid #f7f7f7; padding: 20px;}
 .contentBlock b{font-weight: 100; color: #303030;}
-.contentBlock p{text-indent: 30px; color: #838383;}
+.contentBlock p{text-indent: 30px; color: #838383; line-height: 20px; margin:10px 0;}
 
-
+.openAddEnviroment span{}
 
 
 
