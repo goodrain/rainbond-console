@@ -132,10 +132,12 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 /*  table start */
 .tab-box{width: 100%;}
 table.tab-box tbody tr,table tfoot tr{border-left: 1px #ececec solid; border-right: 1px #ececec solid; border-bottom: 1px #f7f7f7 solid;}
-table.tab-box thead tr{background: #f7f7f7; height: 40px;  text-align: left;}
-table.tab-box td{font-size: 14px; min-height: 80px;}
-table.tab-box td,table.tab-box th{border-collapse:collapse; padding:0 10px;  font-size: 16px;}
+table.tab-box thead tr{background: #f7f7f7; height: 40px;  text-align: left; font-size: 16px; color: #303030; font-weight: 100;}
+table.tab-box td{font-size: 14px; height: 80px;}
+table.tab-box td,table.tab-box th{border-collapse:collapse; padding:0 20px; }
+table.tab-box td select{height: 28px;}
 
+.openAdd span{color: #fff; background: #28cb75; font-size: 14px; line-height: 30px; display: inline-block; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; height: 30px;  padding:0 30px;}
 /*  table end */
 
 
