@@ -234,7 +234,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                     ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
                                                         tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             # create region tenantservice
-            baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
+            # 第一步创建时不在region上创建service,再第3步设置时再创建,否则第三部无法创建
+            # baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
             # create service env
             # baseService.create_service_env(tenant_id, service_id, self.response_region)
@@ -469,6 +470,7 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
     @never_cache
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
+        data = {}
         try:
             # 端口信息
             port_list = json.loads(request.POST.get("port_list", "[]"))
@@ -485,16 +487,13 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             for port in port_list:
                 service_port = TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id,
                                                                  service_id=self.service.service_id,
-                                                                 container_port=port.container_port)
+                                                                 container_port=int(port["container_port"]))
                 if service_port.exists():
                     # 将原有的删除
                     TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                      container_port=port.container_port).delete()
+                                                      container_port=int(port["container_port"])).delete()
                     TenantServiceEnvVar.objects.filter(service_id=self.service.service_id,
-                                                       container_port=port.container_port).delete()
-                    data = {"action": "delete", "port_ports": [port.container_port]}
-                    regionClient.createServicePort(self.service.service_region, self.service.service_id,
-                                                   json.dumps(data))
+                                                       container_port=int(port["container_port"])).delete()
 
             newTenantService = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                              service_id=self.service.service_id)

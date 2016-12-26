@@ -210,13 +210,16 @@ $(function () {
     $(".submit").on("click",function(){
         var portLen = $("tbody.port tr").length;
         var portArr = [];
+        var service_alias = $("#service_alias").val();
         for( var i = 0; i<portLen; i++ )
         {
             var port_json = {};
-            port_json["container_port"] = $("tbody.port tr").eq(i).find("td").eq(0).children("a").html();
+            var container_port = $("tbody.port tr").eq(i).find("td").eq(0).children("a").html();
+            port_json["container_port"] = container_port
             port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(1).children("select").val();
             port_json["is_inner_service"] = $("tbody.port tr").eq(i).find("td").eq(2).find("input").prop("checked")?1:0;
             port_json["is_outer_service"] = $("tbody.port tr").eq(i).find("td").eq(3).find("input").prop("checked")?1:0;
+            port_json["port_alias"] = service_alias.toUpperCase()+container_port;
             portArr[i] = port_json;
         }
         //console.log(JSON.stringify(portArr));
@@ -262,11 +265,11 @@ $(function () {
             "mnt_list" : JSON.stringify(otherAppNameArr)
         }
         var service_alias = $("#service_alias").val();
-        var tenantName = $("#tenantName").val()
+        var tenantName = $("#tenantName").val();
 
         $.ajax({
             type : "post",
-            url : "/apps/" + tenantName + "/"+ service_name + "/app-setting/",
+            url : "/apps/" + tenantName + "/"+ service_alias + "/app-setting/",
             data : service_config,
             cache : false,
             beforeSend : function(xhr, settings) {
