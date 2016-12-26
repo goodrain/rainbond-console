@@ -148,10 +148,10 @@ $(function () {
 
     //关闭弹出层
     $("button.cancel").on("click",function(){
-        $(".above").css({"display":"none"});
+        $(".layer-body-bg").css({"display":"none"});
     });
     $(".del").on("click",function(){
-        $(".above").css({"display":"none"});
+        $(".layer-body-bg").css({"display":"none"});
     });
     $(".sureAddDepend").on("click",function(){
         var len = $(".depend input").length;
@@ -180,7 +180,7 @@ $(function () {
                 }
             }
         }
-        $(".above").css({"display":"none"});
+        $(".layer-body-bg").css({"display":"none"});
     });
 
     //新设持久化目录
@@ -294,7 +294,7 @@ $(function () {
         $(".applicationMes").css({"display":"none"});
         $(".otherApp").css({"display":"none"});
         $(".depend").css({"display":"block"});
-        $(".above").css({"display":"block"});
+        $(".layer-body-bg").css({"display":"block"});
     })
     //依赖应用相关信息
     appMes();
@@ -306,7 +306,7 @@ $(function () {
             $(".applicationMes").css({"display":"block"});
             $(".otherApp").css({"display":"none"});
             $(".depend").css({"display":"none"});
-            $(".above").css({"display":"block"});
+            $(".layer-body-bg").css({"display":"block"});
         });
     }
     function getServiceInfo(service_id){
@@ -374,7 +374,7 @@ $(function () {
         $(".applicationMes").css({"display":"none"});
         $(".depend").css({"display":"none"});
         $(".otherApp").css({"display":"block"});
-        $(".above").css({"display":"block"});
+        $(".layer-body-bg").css({"display":"block"});
     });
 
     //挂载其他应用服务
@@ -401,12 +401,12 @@ $(function () {
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".fileBlock ul.clearfix");
                     $(".applicationMes").css({"display":"none"});
-                    $(".above").css({"display":"none"});
+                    $(".layer-body-bg").css({"display":"none"});
                     delLi();
                 }
             }
         }
         $(".applicationMes").css({"display":"none"});
-        $(".above").css({"display":"none"});
+        $(".layer-body-bg").css({"display":"none"});
     });
 });

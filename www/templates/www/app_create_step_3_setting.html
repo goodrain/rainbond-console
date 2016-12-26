@@ -178,32 +178,35 @@
             </table>
         </div>
         <p class="next"><button class="submit">下一步</button></p>
-        <!-- layer start -->
-        <div class="layer-body-bg">
-            <div class="">
-                <!-- 01 start -->
-                <div class="depend">
-                    <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                    <div>
-                        <ul class="clearfix">
-                            {% for deployTenantService in deployTenantServices %}
-                            <li>
-                                <input id="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" type="checkbox" value="{{deployTenantService.service_id}}_{{deployTenantService.service_type}}_{{deployTenantService.version}}" data-action="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" data-serviceId="{{deployTenantService.service_id}}">
-                                <label for="{{deployTenantService.service_cname}}_{{deployTenantService.version}}">{{deployTenantService.service_cname}}_{{deployTenantService.version}}</label>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <p class="bottom">
-                        <button class="sureAddDepend btn-success">确认</button>
-                        <button class="cancel">取消</button>
-                    </p>
-                </div>
-                <!-- 01 end -->
-                <!-- 02 start -->
-                <div class="applicationMes">
-                    <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                        <div class="appendDiv">
+    </section>
+    <!-- end -->
+</section>
+<!-- layer start -->
+<div class="layer-body-bg">
+    <div class="layer-body">
+        <!-- 01 start -->
+        <div class="depend">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <div>
+                <ul class="clearfix">
+                    {% for deployTenantService in deployTenantServices %}
+                    <li>
+                         <input id="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" type="checkbox" value="{{deployTenantService.service_id}}_{{deployTenantService.service_type}}_{{deployTenantService.version}}" data-action="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" data-serviceId="{{deployTenantService.service_id}}">
+                        <label for="{{deployTenantService.service_cname}}_{{deployTenantService.version}}">{{deployTenantService.service_cname}}_{{deployTenantService.version}}</label>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <p class="bottom">
+                <button class="sureAddDepend btn-success">确认</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+        <!-- 01 end -->
+        <!-- 02 start -->
+        <div class="applicationMes">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <div class="appendDiv">
                             <!--<ul class="clearfix">-->
                                 <!--<li>应用：abc</li>-->
                                 <!--<li>容器端口：5000</li>-->
@@ -243,33 +246,33 @@
                                 <!--</tr>-->
                                 <!--</tbody>-->
                             <!--</table>-->
-                        </div>
-                    <p class="bottom">
-                        <button class="cancel">关闭</button>
-                    </p>
-                </div>
-                <!-- 02 end -->
-                <!-- 03 start -- >
-                <div class="otherApp">
-                    <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                    <div>
-                        <h3>挂载其他应用</h3>
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>服务名称</th>
-                                <th>共享目录</th>
-                                <th>操作</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for tenantSer in tenantServiceList %}
-                            {% if tenantSer.service_alias != tenantServiceInfo.service_alias and tenantSer.host_path %}
-                            <tr>
-                                <td>{{tenantSer.service_cname}}</td>
-                                <td>/mnt/{{tenantSer.service_alias}}</td>
-                                <td class="text-center">
-                                    <input type="checkbox" class="addOther" data-name="{{tenantSer.service_cname}}" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}">
+            </div>
+            <p class="bottom">
+                <button class="cancel">关闭</button>
+            </p>
+        </div>
+        <!-- 02 end -->
+        <!-- 03 start -- >
+        <div class="otherApp">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <div>
+                <h3>挂载其他应用</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>服务名称</th>
+                            <th>共享目录</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tenantSer in tenantServiceList %}
+                        {% if tenantSer.service_alias != tenantServiceInfo.service_alias and tenantSer.host_path %}
+                        <tr>
+                            <td>{{tenantSer.service_cname}}</td>
+                            <td>/mnt/{{tenantSer.service_alias}}</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="addOther" data-name="{{tenantSer.service_cname}}" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}">
                                     <!--{% if 'manage_service' in user.actions or user.is_sys_admin %}-->
                                     <!--{% if tenantSer.service_id not in mntsids %}-->
                                     <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('add','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">挂载</button>-->
@@ -277,32 +280,27 @@
                                     <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('cancel','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">取消挂载</button>-->
                                     <!--{% endif %}-->
                                     <!--{% endif %}-->
-                                </td>
-                            </tr>
-                            {% endif %}
-                            {% endfor %}
-
-                            <tr>
-                                <td>ssd</td>
-                                <td>/app/service</td>
-                                <td>
-                                    <input type="checkbox" class="addOther" data-name="ssd" data-path="/app/service" data-otherName="SSD">
-                                </td>
-                            </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="bottom">
-                        <button class="sureAddOther btn-success">确认</button>
-                        <button class="cancel">取消</button>
-                    </p>
-                </div>
-                <!-- 03 end -->
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        <tr>
+                            <td>ssd</td>
+                            <td>/app/service</td>
+                            <td>
+                                <input type="checkbox" class="addOther" data-name="ssd" data-path="/app/service" data-otherName="SSD">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
+            <p class="bottom">
+                <button class="sureAddOther btn-success">确认</button>
+                <button class="cancel">取消</button>
+            </p>
         </div>
-        <!-- layer end -->
-    </section>
-    <!-- end -->
-</section>
+        <!-- 03 end -->
+    </div>
+</div>
+<!-- layer end -->
 {% endblock %}
