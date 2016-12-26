@@ -267,7 +267,7 @@
                     </thead>
                     <tbody>
                         {% for tenantSer in tenantServiceList %}
-                        {% if tenantSer.service_alias != tenantServiceInfo.service_alias and tenantSer.host_path %}
+                        {% if tenantSer.service_alias != tenantService.service_alias and tenantSer.host_path %}
                         <tr>
                             <td>{{tenantSer.service_cname}}</td>
                             <td>/mnt/{{tenantSer.service_alias}}</td>
