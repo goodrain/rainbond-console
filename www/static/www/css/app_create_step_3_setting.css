@@ -3,8 +3,10 @@
   
 }
 .main-box table th{
+
    
 }
+
 .main-box table td{
    
 }
@@ -38,10 +40,7 @@
 }
 
 
-.contentBlock{
-    border:1px solid #ececec;
-    padding: 20px 60px;
-}
+
 .contentBlock p{
     margin: 16px 0px;
     margin-left: 30px;
@@ -62,16 +61,10 @@
     margin-right: 17px;
 }
 .contentBlock p.blockBottom{
-    text-align: center;
+   
 }
 .contentBlock p.blockBottom button{
-    background-color: #28cb75;
-    color: #ffffff;
-    border:none;
-    padding: 8px 20px;
-    border-radius: 5px;
-    -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
+  
 }
 .contentBlock em{
     margin-right: 10px;
