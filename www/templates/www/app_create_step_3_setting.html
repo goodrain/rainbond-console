@@ -4,6 +4,7 @@
 
 {% block extracss %}
 {{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
 <link rel="stylesheet" href='{% static "www/css/tablePublic.css" %}' />
 <link rel="stylesheet" href='{% static "www/css/app_create_step_3_setting.css" %}' />
 {% endblock %}
@@ -14,146 +15,51 @@
 {% endblock %}
 
 {% block main-content%}
-<section class="main-box wrapper site-min-height">
-    <input type="hidden" id="tenantName" value="{{tenantName}}">
-    <input type="hidden" id="tenantService" value="{{tenantService}}">
-    <input type="hidden" id="service_name" value="{{tenantService.service_cname}}">
-    <h3 class="main-tit">新建自定义应用</h3>
-    <div class="app-step clearfix">
-        <p class="sed" ><span>1</span><cite style="letter-spacing: ">创建应用</cite></p>
-        <p class="sed"><span>2</span><cite>同步代码</cite></p>
-        <p class="sed"><span>3</span><cite>应用设置</cite></p>
-        <p><span>4</span><cite>高级选项</cite></p>
-    </div>
-    <h4>端口管理</h4>
-    <table>
-        <thead>
-        <tr>
-            <th>容器端口</th>
-            <th>协议</th>
-            <th>对内服务</th>
-            <th colspan="2">外部服务</th>
-        </tr>
-        </thead>
-        <tbody class="port">
-        <tr data-port="5000port">
-            <td>
-                <a href="javascript:void(0);" class="portNum edit-port">5000</a>
-            </td>
-            <td>
-                <select data-port-http="5000Http">
-                    <option>http</option>
-                    <option>stream</option>
-                </select>
-            </td>
-            <td>
-                <div class="checkbox">
-                    <input type="checkbox" name="" value="" id="5000inner" />
-                    <label class="check-bg" for="5000inner"></label>
-                </div>
-            </td>
-            <td>
-                <div class="checkbox">
-                    <input type="checkbox" name="" value="" id="5000outer" checked="true" />
-                    <label class="check-bg" for="5000outer"></label>
-                </div>
-            </td>
-            <td>
-                <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
-            </td>
-        </tr>
-        </tbody>
-        <tfoot>
-        <tr class="addPort">
-            <td>
-                <input type="number" class="add_port">
-            </td>
-            <td>
-                <select class="add_http">
-                    <option>http</option>
-                    <option>stream</option>
-                </select>
-            </td>
-            <td>
-                <div class="checkbox">
-                    <input type="checkbox" name="" value="" id="addInner" checked="fasle" />
-                    <label class="check-bg" for="addInner"></label>
-                </div>
-            </td>
-            <td>
-                <div class="checkbox">
-                    <input type="checkbox" name="" value="" id="addOuter" checked="false" />
-                    <label class="check-bg" for="addOuter"></label>
-                </div>
-            </td>
-            <td class="operation">
-                <span class="add">✅</span>
-                <span class="noAdd">❌</span>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="5" class="openAdd">
-                <span>新增容器端口</span>
-            </td>
-        </tr>
-        </tfoot>
-    </table>
-    <div class="clearfix">
-        <div class="serviceBlock">
-            <h4>服务依赖</h4>
-            <div class="contentBlock">
-                <b>应用持久化目录：</b>
-                <p>点击应用名称，可以查看访问该应用的相关信息</p>
-                <ul class="clearfix applicationName">
-                    <!--<li>-->
-                        <!--<a href="javascript:void(0);" class="appName">当前应用名</a>-->
-                        <!--<img src="{% static "www/images/rubbish.png" %}" class="delLi"/>-->
-                    <!--</li>-->
-                </ul>
-                <p class="blockBottom">
-                    <button class="addDepend">新增依赖</button>
-                </p>
-            </div>
+<section class="wrapper site-min-height">
+    <!-- start -->
+    <section class="main-box">
+        <input type="hidden" id="tenantName" value="{{tenantName}}">
+        <input type="hidden" id="tenantService" value="{{tenantService}}">
+        <input type="hidden" id="service_name" value="{{tenantService.service_cname}}">
+        <h3 class="main-tit">新建自定义应用</h3>
+        <div class="app-step clearfix">
+            <p class="sed" ><span>1</span><cite style="letter-spacing: ">创建应用</cite></p>
+            <p class="sed"><span>2</span><cite>同步代码</cite></p>
+            <p class="sed"><span>3</span><cite>应用设置</cite></p>
+            <p><span>4</span><cite>高级选项</cite></p>
         </div>
-        <div class="fileBlock">
-            <h4>文件存储</h4>
-            <div class="contentBlock">
-                <b>应用持久化目录：</b>
-                <p>当前应用所在目录为／app／，使用持久化目录，请注意路径关系</p>
-                <ul class="clearfix">
-
-                </ul>
-                <p class="catalogue">
-                    /app/<input type="text" class="catalogueContent">
-                    <span class="addCatalogue">✅</span>
-                    <span class="noAddCatalogue">❌</span>
-                </p>
-                <p class="blockBottom">
-                    <button style="margin-right: 28px" class="addCata">为当前应用新设持久化目录</button>
-                    <button class="addOtherApp">挂载其他应用的持久化目录</button>
-                </p>
-            </div>
-        </div>
-        <h4>环境变量</h4>
+        <h4>端口管理</h4>
         <table>
             <thead>
             <tr>
-                <th>名称</th>
-                <th>变量名</th>
-                <th>值</th>
-                <th>删除</th>
+                <th>容器端口</th>
+                <th>协议</th>
+                <th>对内服务</th>
+                <th colspan="2">外部服务</th>
             </tr>
             </thead>
-            <tbody class="enviroment">
-            <tr>
+            <tbody class="port">
+            <tr data-port="5000port">
                 <td>
-                    <a href="javascript:void(0);" class="enviromentName edit-port">变量名称</a>
+                    <a href="javascript:void(0);" class="portNum edit-port">5000</a>
                 </td>
                 <td>
-                    <a href="javascript:void(0);" class="enviromentKey key1 edit-port">userKey</a>
+                    <select data-port-http="5000Http">
+                        <option>http</option>
+                        <option>stream</option>
+                    </select>
                 </td>
                 <td>
-                    <a href="javascript:void(0);" class="enviromentValue value1 edit-port">userValue</a>
+                    <div class="checkbox">
+                        <input type="checkbox" name="" value="" id="5000inner" />
+                        <label class="check-bg" for="5000inner"></label>
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox">
+                        <input type="checkbox" name="" value="" id="5000outer" checked="true" />
+                        <label class="check-bg" for="5000outer"></label>
+                    </div>
                 </td>
                 <td>
                     <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
@@ -161,146 +67,245 @@
             </tr>
             </tbody>
             <tfoot>
-            <tr class="addContent">
+            <tr class="addPort">
                 <td>
-                    <input type="text" class="enviroName">
+                    <input type="number" class="add_port">
                 </td>
                 <td>
-                    <input type="text" class="enviroKey">
+                    <select class="add_http">
+                        <option>http</option>
+                        <option>stream</option>
+                    </select>
                 </td>
                 <td>
-                    <input type="text" class="enviroValue">
+                    <div class="checkbox">
+                        <input type="checkbox" name="" value="" id="addInner" checked="fasle" />
+                        <label class="check-bg" for="addInner"></label>
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox">
+                        <input type="checkbox" name="" value="" id="addOuter" checked="false" />
+                        <label class="check-bg" for="addOuter"></label>
+                    </div>
                 </td>
                 <td class="operation">
-                    <span class="addEnviroment">✅</span>
-                    <span class="noAddEnviroment">❌</span>
+                    <span class="add">✅</span>
+                    <span class="noAdd">❌</span>
                 </td>
             </tr>
             <tr>
-                <td colspan="4" class="openAddEnviroment">
-                    <span>新增环境变量</span>
+                <td colspan="5" class="openAdd">
+                    <span>新增容器端口</span>
                 </td>
             </tr>
             </tfoot>
         </table>
-    </div>
-    <p class="next"><button class="submit">下一步</button></p>
-    <div class="above">
-        <div class="depend">
-            <div class="del" title="关闭">x</div>
-            <div>
-                <ul class="clearfix">
-                    {% for deployTenantService in deployTenantServices %}
-                    <li>
-                        <input id="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" type="checkbox" value="{{deployTenantService.service_id}}_{{deployTenantService.service_type}}_{{deployTenantService.version}}" data-action="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" data-serviceId="{{deployTenantService.service_id}}">
-                        <label for="{{deployTenantService.service_cname}}_{{deployTenantService.version}}">{{deployTenantService.service_cname}}_{{deployTenantService.version}}</label>
-                    </li>
-                    {% endfor %}
-                </ul>
+        <div class="clearfix">
+            <div class="serviceBlock">
+                <h4>服务依赖</h4>
+                <div class="contentBlock">
+                    <b>应用持久化目录：</b>
+                    <p>点击应用名称，可以查看访问该应用的相关信息</p>
+                    <ul class="clearfix applicationName">
+                        <!--<li>-->
+                            <!--<a href="javascript:void(0);" class="appName">当前应用名</a>-->
+                            <!--<img src="{% static "www/images/rubbish.png" %}" class="delLi"/>-->
+                        <!--</li>-->
+                    </ul>
+                    <p class="blockBottom">
+                        <button class="addDepend">新增依赖</button>
+                    </p>
+                </div>
             </div>
-            <p class="bottom">
-                <button class="sureAddDepend btn-success">确认</button>
-                <button class="cancel">取消</button>
-            </p>
+            <div class="fileBlock">
+                <h4>文件存储</h4>
+                <div class="contentBlock">
+                    <b>应用持久化目录：</b>
+                    <p>当前应用所在目录为／app／，使用持久化目录，请注意路径关系</p>
+                    <ul class="clearfix">
+
+                    </ul>
+                    <p class="catalogue">
+                        /app/<input type="text" class="catalogueContent">
+                        <span class="addCatalogue">✅</span>
+                        <span class="noAddCatalogue">❌</span>
+                    </p>
+                    <p class="blockBottom">
+                        <button style="margin-right: 28px" class="addCata">为当前应用新设持久化目录</button>
+                        <button class="addOtherApp">挂载其他应用的持久化目录</button>
+                    </p>
+                </div>
+            </div>
+            <h4>环境变量</h4>
+            <table>
+                <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>变量名</th>
+                    <th>值</th>
+                    <th>删除</th>
+                </tr>
+                </thead>
+                <tbody class="enviroment">
+                <tr>
+                    <td>
+                        <a href="javascript:void(0);" class="enviromentName edit-port">变量名称</a>
+                    </td>
+                    <td>
+                        <a href="javascript:void(0);" class="enviromentKey key1 edit-port">userKey</a>
+                    </td>
+                    <td>
+                        <a href="javascript:void(0);" class="enviromentValue value1 edit-port">userValue</a>
+                    </td>
+                    <td>
+                        <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr class="addContent">
+                    <td>
+                        <input type="text" class="enviroName">
+                    </td>
+                    <td>
+                        <input type="text" class="enviroKey">
+                    </td>
+                    <td>
+                        <input type="text" class="enviroValue">
+                    </td>
+                    <td class="operation">
+                        <span class="addEnviroment">✅</span>
+                        <span class="noAddEnviroment">❌</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="openAddEnviroment">
+                        <span>新增环境变量</span>
+                    </td>
+                </tr>
+                </tfoot>
+            </table>
         </div>
-        <div class="applicationMes">
-            <div class="del" title="关闭">x</div>
-            <div>
-                <h3>应用相关信息</h3>
+        <p class="next"><button class="submit">下一步</button></p>
+        <div class="above">
+            <div class="depend">
+                <div class="del" title="关闭">x</div>
                 <div>
                     <ul class="clearfix">
-                        <li>应用：abc</li>
-                        <li>容器端口：5000</li>
-                        <li>端口别名：ABC</li>
-                        <p>修改端口别名，会引起对内服务变量名的改变，请记得修改代码中正在使用的变量名。</p>
+                        {% for deployTenantService in deployTenantServices %}
+                        <li>
+                            <input id="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" type="checkbox" value="{{deployTenantService.service_id}}_{{deployTenantService.service_type}}_{{deployTenantService.version}}" data-action="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" data-serviceId="{{deployTenantService.service_id}}">
+                            <label for="{{deployTenantService.service_cname}}_{{deployTenantService.version}}">{{deployTenantService.service_cname}}_{{deployTenantService.version}}</label>
+                        </li>
+                        {% endfor %}
                     </ul>
-                    <h4>对内服务环境变量</h4>
-                    <p>其他服务可以直接使用环境变量值访问当前服务。如果想使用环境变量访问，必须指明两个服务之间的依赖关系。</p>
+                </div>
+                <p class="bottom">
+                    <button class="sureAddDepend btn-success">确认</button>
+                    <button class="cancel">取消</button>
+                </p>
+            </div>
+            <div class="applicationMes">
+                <div class="del" title="关闭">x</div>
+                <div>
+                    <h3>应用相关信息</h3>
+                    <div>
+                        <ul class="clearfix">
+                            <li>应用：abc</li>
+                            <li>容器端口：5000</li>
+                            <li>端口别名：ABC</li>
+                            <p>修改端口别名，会引起对内服务变量名的改变，请记得修改代码中正在使用的变量名。</p>
+                        </ul>
+                        <h4>对内服务环境变量</h4>
+                        <p>其他服务可以直接使用环境变量值访问当前服务。如果想使用环境变量访问，必须指明两个服务之间的依赖关系。</p>
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>环境变量</th>
+                                <th>值</th>
+                                <th>说明</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>xxx-HOST</td>
+                                <td>127.0.0.1</td>
+                                <td>服务地址</td>
+                            </tr>
+                            <tr>
+                                <td>xxx-POST</td>
+                                <td>1234</td>
+                                <td>服务端口</td>
+                            </tr>
+                            <tr>
+                                <td>xxx-username</td>
+                                <td>odmin</td>
+                                <td>用户名</td>
+                            </tr>
+                            <tr>
+                                <td>xxx-PASSWORD</td>
+                                <td>1234</td>
+                                <td>服务端口</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p class="bottom">
+                    <button class="cancel">关闭</button>
+                </p>
+            </div>
+            <div class="otherApp">
+                <div class="del" title="关闭">x</div>
+                <div>
+                    <h3>挂载其他应用</h3>
                     <table>
                         <thead>
                         <tr>
-                            <th>环境变量</th>
-                            <th>值</th>
-                            <th>说明</th>
+                            <th>服务名称</th>
+                            <th>共享目录</th>
+                            <th>操作</th>
                         </tr>
                         </thead>
                         <tbody>
+                        {% for tenantSer in tenantServiceList %}
+                        {% if tenantSer.service_alias != tenantServiceInfo.service_alias and tenantSer.host_path %}
                         <tr>
-                            <td>xxx-HOST</td>
-                            <td>127.0.0.1</td>
-                            <td>服务地址</td>
+                            <td>{{tenantSer.service_cname}}</td>
+                            <td>/mnt/{{tenantSer.service_alias}}</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="addOther" data-name="{{tenantSer.service_cname}}" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}">
+                                <!--{% if 'manage_service' in user.actions or user.is_sys_admin %}-->
+                                <!--{% if tenantSer.service_id not in mntsids %}-->
+                                <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('add','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">挂载</button>-->
+                                <!--{% else %}-->
+                                <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('cancel','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">取消挂载</button>-->
+                                <!--{% endif %}-->
+                                <!--{% endif %}-->
+                            </td>
                         </tr>
+                        {% endif %}
+                        {% endfor %}
+
                         <tr>
-                            <td>xxx-POST</td>
-                            <td>1234</td>
-                            <td>服务端口</td>
+                            <td>ssd</td>
+                            <td>/app/service</td>
+                            <td>
+                                <input type="checkbox" class="addOther" data-name="ssd" data-path="/app/service" data-otherName="SSD">
+                            </td>
                         </tr>
-                        <tr>
-                            <td>xxx-username</td>
-                            <td>odmin</td>
-                            <td>用户名</td>
-                        </tr>
-                        <tr>
-                            <td>xxx-PASSWORD</td>
-                            <td>1234</td>
-                            <td>服务端口</td>
-                        </tr>
+
                         </tbody>
                     </table>
                 </div>
+                <p class="bottom">
+                    <button class="sureAddOther btn-success">确认</button>
+                    <button class="cancel">取消</button>
+                </p>
             </div>
-            <p class="bottom">
-                <button class="cancel">关闭</button>
-            </p>
         </div>
-        <div class="otherApp">
-            <div class="del" title="关闭">x</div>
-            <div>
-                <h3>挂载其他应用</h3>
-                <table>
-                    <thead>
-                    <tr>
-                        <th>服务名称</th>
-                        <th>共享目录</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for tenantSer in tenantServiceList %}
-                    {% if tenantSer.service_alias != tenantServiceInfo.service_alias and tenantSer.host_path %}
-                    <tr>
-                        <td>{{tenantSer.service_cname}}</td>
-                        <td>/mnt/{{tenantSer.service_alias}}</td>
-                        <td class="text-center">
-                            <input type="checkbox" class="addOther" data-name="{{tenantSer.service_cname}}" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}">
-                            <!--{% if 'manage_service' in user.actions or user.is_sys_admin %}-->
-                            <!--{% if tenantSer.service_id not in mntsids %}-->
-                            <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('add','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">挂载</button>-->
-                            <!--{% else %}-->
-                            <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('cancel','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">取消挂载</button>-->
-                            <!--{% endif %}-->
-                            <!--{% endif %}-->
-                        </td>
-                    </tr>
-                    {% endif %}
-                    {% endfor %}
-
-                    <tr>
-                        <td>ssd</td>
-                        <td>/app/service</td>
-                        <td>
-                            <input type="checkbox" class="addOther" data-name="ssd" data-path="/app/service" data-otherName="SSD">
-                        </td>
-                    </tr>
-
-                    </tbody>
-                </table>
-            </div>
-            <p class="bottom">
-                <button class="sureAddOther btn-success">确认</button>
-                <button class="cancel">取消</button>
-            </p>
-        </div>
-    </div>
+    </section>
+    <!-- end -->
 </section>
 {% endblock %}

@@ -1,31 +1,3 @@
-ul,ul li{list-style: none;}
-a:hover{text-decoration: none;}
-div.applisttit{ margin:20px 20px 0; background: url('../images/titicon.png') no-repeat; height: 48px; line-height: 48px; color: #666;  clear:both; color: #666666; font-size: 30px; line-height: 48px; text-indent: 60px;}
-em,cite,span{font-style: normal;}
-cite,em{font-style:normal;}
-a:link{ text-decoration: none;}
-a:visited{ text-decoration: none;}
-a:hover{ text-decoration: none;}
-a:active{text-decoration: none;}
-select{outline: none}
-input{outline: none}
-button{outline: none}
-
-
-
-body{background: #f0f5f8;}
-.main-box{background: #fff;padding:30px 20px;position: relative;}
-.main-tit{color: #28cb75; font-size: 24px; margin:0; text-align: center;font-weight: 100; line-height: 1;}
-.app-step{width: 80%; margin:50px auto 20px;}
-.app-step p{width: 25%; float: left; height: 80px; text-align: center;}
-.app-step p span,.app-step p cite{display: inline-block;}
-.app-step p span{background: #c7c7c7; width: 36px; height: 36px;  font-size: 24px; line-height: 36px; text-align: center; -moz-border-radius:36px; -webkit-border-radius:36px; border-radius:36px; color: #fff;}
-.app-step p cite{width: 100%; text-align: center; color: #838383; font-size: 16px; line-height: 1; padding-top: 26px;}
-.app-step p.sed span{background: #00d777;}
-.app-step p.sed cite{color: #00d777;}
-.step-tit{color: #303030; font-size:18px; text-align: center;}
-
-
 
 .main-box table{
     border: 1px solid #ececec;
