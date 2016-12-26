@@ -116,8 +116,12 @@ class CreateServiceDepInfo(LeftSideBarMixin, AuthedView):
                         if arr is None:
                             arr = []
                         env_var.port_alias = containerPortMap.get(env_var.container_port)
-                        arr.append(env_var)
+
+                        arr.append(
+                            {"port_alias": env_var.port_alias, "name": env_var.name, "attr_name": env_var.attr_name,
+                             "attr_value": env_var.attr_value})
                         env_map[env_var.container_port] = arr
+
 
                 result = {"ok": True, "obj": env_map}
         except Exception as e:
