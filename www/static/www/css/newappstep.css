@@ -37,14 +37,14 @@ p.blockBottom{width: 100%; text-align: center;}
 
 .contentBlock{border:1px solid #f7f7f7; padding: 20px;}
 .contentBlock b{font-weight: 100; color: #303030;}
-.contentBlock p{text-indent: 30px; color: #838383; line-height: 20px; margin:10px 0;}
+.contentBlock .tips{text-indent: 30px; color: #838383; line-height: 20px; margin:10px 0;}
 
 .openAddEnviroment span{color: #fff; background: #28cb75; font-size: 14px; line-height: 30px; display: inline-block; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; height: 30px;  padding:0 30px;}
 
 p.next button.submit{background:#28cb75; color: #fff;  border:none;  border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; display: inline-block;}
 
-
-
+input.catalogueContent{width:50%; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px;}
+.addContent td input{width:100px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px;}
 
 
 
