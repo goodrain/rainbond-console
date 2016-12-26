@@ -4,6 +4,7 @@
 {% load staticfiles %}
 {% block extracss %}
 {{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
 <link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
 {% endblock %}
 {% block extrajs %}
