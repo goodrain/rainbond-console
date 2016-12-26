@@ -75,16 +75,7 @@ p.next{
     text-align: center;
     margin: 30px 0px 0px 0px;
 }
-p.next button.submit{
-    margin-left: 60px;
-    background-color: #28cb75;
-    color: #ffffff;
-    border:none;
-    padding: 8px 20px;
-    border-radius: 5px;
-    -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
-}
+
 
 /*弹出层*/
 .above{
