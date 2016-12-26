@@ -29,7 +29,7 @@
             <p class="sed"><span>3</span><cite>应用设置</cite></p>
             <p><span>4</span><cite>高级选项</cite></p>
         </div>
-        <h4>端口管理</h4>
+        <h4 class="column-tit">端口管理</h4>
         <table class="tab-box">
             <thead>
                 <tr>
@@ -104,7 +104,7 @@
         </table>
         <div class="clearfix">
             <div class="serviceBlock">
-                <h4 class="tit">服务依赖</h4>
+                <h4 class="column-tit">服务依赖</h4>
                 <div class="contentBlock">
                     <b>应用持久化目录：</b>
                     <p>点击应用名称，可以查看访问该应用的相关信息</p>
@@ -120,7 +120,7 @@
                 </div>
             </div>
             <div class="fileBlock">
-                <h4>文件存储</h4>
+                <h4 class="column-tit">文件存储</h4>
                 <div class="contentBlock">
                     <b>应用持久化目录：</b>
                     <p>当前应用所在目录为/app/，使用持久化目录，请注意路径关系</p>
@@ -138,31 +138,31 @@
                     </p>
                 </div>
             </div>
-            <h4>环境变量</h4>
-            <table>
+            <h4 class="column-tit">环境变量</h4>
+            <table class="tab-box">
                 <thead>
-                <tr>
-                    <th>名称</th>
-                    <th>变量名</th>
-                    <th>值</th>
-                    <th>删除</th>
-                </tr>
+                    <tr>
+                        <th>名称</th>
+                        <th>变量名</th>
+                        <th>值</th>
+                        <th>删除</th>
+                    </tr>
                 </thead>
                 <tbody class="enviroment">
-                <tr>
-                    <td>
-                        <a href="javascript:void(0);" class="enviromentName edit-port">变量名称</a>
-                    </td>
-                    <td>
-                        <a href="javascript:void(0);" class="enviromentKey key1 edit-port">userKey</a>
-                    </td>
-                    <td>
-                        <a href="javascript:void(0);" class="enviromentValue value1 edit-port">userValue</a>
-                    </td>
-                    <td>
-                        <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
-                    </td>
-                </tr>
+                    <tr>
+                        <td>
+                            <a href="javascript:void(0);" class="enviromentName edit-port">变量名称</a>
+                        </td>
+                        <td>
+                            <a href="javascript:void(0);" class="enviromentKey key1 edit-port">userKey</a>
+                        </td>
+                        <td>
+                            <a href="javascript:void(0);" class="enviromentValue value1 edit-port">userValue</a>
+                        </td>
+                        <td>
+                            <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
+                        </td>
+                    </tr>
                 </tbody>
                 <tfoot>
                 <tr class="addContent">
