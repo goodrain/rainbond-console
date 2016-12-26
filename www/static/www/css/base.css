@@ -11,6 +11,9 @@ a:link{ text-decoration: none;}
 a:visited{ text-decoration: none;}
 a:hover{ text-decoration: none;}
 a:active{text-decoration: none;}
+.clearfix:after{visibility:hidden;display:block;font-size:0;content:" ";clear:both;height:0;}
+.clearfix{zoom:1;}
+.clear{clear:both; height:0; font-size:0; overflow:hidden;}
 /* css reset end */
 
 
@@ -105,11 +108,9 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
 /*  btn start */
 .waitbtn{background: #78798c; color: #fff;  font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 auto;}
+
 .greenbtn{background: #28cb75; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 20px; }
 .greenbtn:hover{color: #fff;}
-
-.graybtn{background: #ececec; color: #303030; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 10px;}
-.graybtn:hover{color: #303030;}
 
 .redbtn{background: #f63a47; color: #fff; display: inline-block; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 20px;}
 .redbtn:hover{color: #fff;}

@@ -1,3 +1,6 @@
+/* ww - 2016-12-26 */
+
+/* 新建应用 */
 .app-step{width: 80%; margin:50px auto 20px;}
 .app-step p{width: 25%; float: left; height: 80px; text-align: center;}
 .app-step p span,.app-step p cite{display: inline-block;}
@@ -8,7 +11,6 @@
 .step-tit{color: #838383; font-size:18px; text-align: center;}
 .app-step.two p{width: 50%;} 
 
-
 #waiting{max-width:80%; margin: 0 auto; text-indent: 160px;}
 #Githubbox{display: none;}
 #gitlabbox{display: none;}
@@ -17,14 +19,14 @@
 
 .mainbox{width: 100%; min-height: 400px; }
 .second-tips{font-size: 18px; line-height: 100px; text-align: center;}
-.seconbtn{margin:30px 20px 100px; border: 0 none;}
+.seconbtn{margin:30px 20px 0; border: 0 none;}
 
 .second-tit{text-align: center; font-size: 28px; line-height: 50px; color: #28cb75;}
-.second-tips-loading{width: 90%; max-width: 500px; margin:30px auto 30px; text-align: center;}
+.second-tips-loading{width: 90%; max-width: 600px; margin:30px auto 30px; text-align: center;}
 .second-tips-loading span{color: #838383; font-size: 14px; line-height: 20px; text-align: center; width: 100%; display:block; }
 .second-tips-loading span cite{color: #303030;}
 
-/* from end */
+
 
 
 
