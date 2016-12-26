@@ -95,8 +95,8 @@
 	        		</p>
 	        		<p class="waitbtn">请稍等</p>
 	        	</div>
-	        	<div id="git_code_upload" style="display: none;">
-		        	<p class="second-tit"  >代码已同步，语言为PHP！</p>
+	        	<div  style="display: none;" id="git-success">
+		        	<p class="second-tit" id="git_code_upload" >代码已同步，语言为PHP！</p>
 		        	<p class="second-tips-loading">
 		        		<span>代码源：<cite>{{httpGitUrl}}</cite></span>
 		        	</p>
@@ -138,14 +138,14 @@ function getGitCodeCheck() {
 				if (dataObj["status"] == "checked") {
 					clearTimeout(gitcodechecktimmer);
 					$("#second-loading").hide();
-					$("#git_code_upload").show();
+					$("#git-success").show();
 					$("#git_btn").show();
 					$("#git_code_upload").html(
 							"代码已提交，语言识别为 " + dataObj["language"]);
 					//$("#BtnSecond").removeAttr('disabled')
 				} else if (dataObj["status"] == "check_error") {
 					$("#second-loading").hide();
-					$("#git_code_upload").show();
+					$("#git-success").show();
 					$("#git_btn").show();
 					$("#git_code_upload").html("语言未识别，请重新提交代码...");
 				}
