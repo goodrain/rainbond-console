@@ -1,106 +1,14 @@
 
-.main-box table{
-  
-}
-.main-box table th{
-
-   
-}
-
-.main-box table td{
-   
-}
-.main-box table tr.addPort,tr.addContent{
-    display: none;
-}
-.main-box table td select{
-  
-}
-.main-box table td a,input{
-    display: inline-block;
-    width: 80px;
-}
-.main-box table tr span.add,span.noAdd,span.addEnviroment,span.noAddEnviroment{
-   
-}
-.main-box table tr.addPort span.add,span.addEnviroment{
-    left: 0px;
-}
-.main-box table tr.addPort span.noAdd,span.noAddEnviroment{
-    left: 50px;
-}
-.main-box table td.openAdd{
-    color: #28cb75;
-    margin: 0;
-    text-align: center;
-}
-.main-box table td img.rubbish,.openAdd,.openAddEnviroment{
-    cursor: pointer;
-    text-align: center;
-}
-
-
-
-.contentBlock p{
-   
-}
-.contentBlock ul{
-  
-}
-
-p.next{
-    text-align: center;
-    margin: 30px 0px 0px 0px;
-}
 
 
 /*弹出层*/
-.above{
-    position: absolute;
-    top:0;
-    left:0;
-    background: rgba(0,0,0,0.6);
-    display: none;
-    height:100%;
-    width: 100%;
-}
-.above .del{
-    position: absolute;
-    top: 10px;
-    right:10px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    -webkit-border-radius: 50%;
-    -moz-border-radius: 50%;
-    background-color: #f7f7f7;
-    text-align: center;
-    align-items: center;
-    cursor: pointer;
-    vertical-align: middle;
-}
-.above .depend{
-    width: 800px;
-    height: 400px;
-    display: none;
-    padding: 30px;
-    background-color: #ffffff;
-    border-radius: 10px;
-    -webkit-border-radius: 10px;
-    -moz-border-radius: 10px;
-    position: absolute;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
-    margin: auto;
-    overflow-y: scroll;
-}
-.above p.bottom {
+
+
+ p.bottom {
     text-align: right;
     margin-top: 20px;
 }
-.above p.bottom button{
+ p.bottom button{
     outline: none;
     border:none;
     text-align: center;
@@ -111,59 +19,27 @@ p.next{
     height: 30px;
     padding:0px 20px;
 }
-.above p.bottom button.sure{
+ p.bottom button.sure{
     background-color: #28cb75;
     color: #ffffff;
 }
-.above p.bottom button.cancel{
+ p.bottom button.cancel{
     background-color: #ffffff;
     border:1px solid #ececec;
     color: #28cb75;
 }
 
-.above .depend ul.clearfix li{
+ .depend ul.clearfix li{
     float: left;
     width: 33%;
 }
-.above .depend ul.clearfix li input{
+ .depend ul.clearfix li input{
     width: 30px;
     margin: 10px;
 }
 
-.above .applicationMes{
-    width: 800px;
-    height: 500px;
-    display: none;
-    padding: 30px;
-    background-color: #ffffff;
-    border-radius: 10px;
-    -webkit-border-radius: 10px;
-    -moz-border-radius: 10px;
-    position: absolute;
-    overflow-y: scroll;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
-    margin: auto;
-}
-.above .otherApp{
-    width: 800px;
-    height: 500px;
-    overflow-y: scroll;
-    display: none;
-    padding: 30px;
-    background-color: #ffffff;
-    border-radius: 10px;
-    -webkit-border-radius: 10px;
-    -moz-border-radius: 10px;
-    position: absolute;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
-    margin: auto;
-}
+
+
 
 .applicationMes ul li{
     width: 33%;
@@ -174,15 +50,6 @@ p.next{
 }
 
 
-p.catalogue{
-    display: none;
-}
-p.catalogue input{
-   
-}
-p.catalogue span{
-   
-    cursor: pointer;
-}
+
 
 
