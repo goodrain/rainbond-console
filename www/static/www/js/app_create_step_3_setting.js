@@ -261,7 +261,7 @@ $(function () {
             "volume_list" : JSON.stringify(appArr),
             "mnt_list" : JSON.stringify(otherAppNameArr)
         }
-        var service_name = $("#service_name").val();
+        var service_alias = $("#service_alias").val();
         var tenantName = $("#tenantName").val()
 
         $.ajax({
@@ -275,7 +275,7 @@ $(function () {
             },
             success : function(msg) {
                 if (msg["status"] == "success") {
-                    window.location.href = "/apps/" + tenantName + "/"+ service_name + "/app-language/"
+                    window.location.href = "/apps/" + tenantName + "/"+ service_alias + "/app-language/"
                 }else{
                     swal("配置失败")
                 }
