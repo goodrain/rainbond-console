@@ -1,14 +1,12 @@
 
 .main-box table{
-    border: 1px solid #ececec;
+  
 }
 .main-box table th{
-    padding-left: 50px;
+   
 }
 .main-box table td{
-    padding-left: 50px;
-    padding-right: 50px;
-    position: relative;
+   
 }
 .main-box table tr.addPort,tr.addContent{
     display: none;
@@ -235,7 +233,3 @@ p.catalogue span{
 }
 
 
-.checkbox{width: 56px; height: 28px;}
-.checkbox input{display: none;}
-.checkbox label.check-bg{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;  display: block; margin:7px 5px 0 0;}
-.checkbox input:checked + label.check-bg{width:56px; height:28px; background: url('../images/checked.png') no-repeat;    display: block;  margin:7px 5px 0 0;}

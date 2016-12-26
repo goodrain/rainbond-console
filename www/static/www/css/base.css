@@ -21,6 +21,7 @@ a:active{text-decoration: none;}
 body{background: #f0f5f8;}
 .main-box{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px;  margin:5px; padding:30px 20px;}
 .main-tit{color: #28cb75; font-size: 24px; margin:0; text-align: center;font-weight: 100; line-height: 1;}
+.column-tit{ color: #303030; font-size: 18px; text-indent: 20px; line-height: 40px; font-weight: 100; }
 /* base start  */
 
 
@@ -128,4 +129,16 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .tips-box p cite.right{border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-right: 6px solid #28cb75; left:-16px; top: 6px; }
 /* tips */
 
-/* 调js */
+/*  table start */
+.tab-box{width: 100%;}
+table.tab-box tbody tr,table tfoot tr{border-left: 1px #ececec solid; border-bottom: 1px #f7f7f7 solid;}
+table.tab-box thead tr{background: #f7f7f7; height: 40px; font-size: 16px;  text-align: left;}
+table.tab-box td{border-collapse:collapse;}
+
+/*  table end */
+
+
+
+
+
+

@@ -30,81 +30,81 @@
             <p><span>4</span><cite>高级选项</cite></p>
         </div>
         <h4>端口管理</h4>
-        <table>
+        <table class="tab-box">
             <thead>
-            <tr>
-                <th>容器端口</th>
-                <th>协议</th>
-                <th>对内服务</th>
-                <th colspan="2">外部服务</th>
-            </tr>
+                <tr>
+                    <th>容器端口</th>
+                    <th>协议</th>
+                    <th>对内服务</th>
+                    <th colspan="2">外部服务</th>
+                </tr>
             </thead>
             <tbody class="port">
-            <tr data-port="5000port">
-                <td>
-                    <a href="javascript:void(0);" class="portNum edit-port">5000</a>
-                </td>
-                <td>
-                    <select data-port-http="5000Http">
-                        <option>http</option>
-                        <option>stream</option>
-                    </select>
-                </td>
-                <td>
-                    <div class="checkbox">
-                        <input type="checkbox" name="" value="" id="5000inner" />
-                        <label class="check-bg" for="5000inner"></label>
-                    </div>
-                </td>
-                <td>
-                    <div class="checkbox">
-                        <input type="checkbox" name="" value="" id="5000outer" checked="true" />
-                        <label class="check-bg" for="5000outer"></label>
-                    </div>
-                </td>
-                <td>
-                    <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
-                </td>
-            </tr>
+                <tr data-port="5000port">
+                    <td>
+                        <a href="javascript:void(0);" class="portNum edit-port">5000</a>
+                    </td>
+                    <td>
+                        <select data-port-http="5000Http">
+                            <option>http</option>
+                            <option>stream</option>
+                        </select>
+                    </td>
+                    <td>
+                        <div class="checkbox">
+                            <input type="checkbox" name="" value="" id="5000inner" />
+                            <label class="check-bg" for="5000inner"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="checkbox">
+                            <input type="checkbox" name="" value="" id="5000outer" checked="true" />
+                            <label class="check-bg" for="5000outer"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
+                    </td>
+                </tr>
             </tbody>
             <tfoot>
-            <tr class="addPort">
-                <td>
-                    <input type="number" class="add_port">
-                </td>
-                <td>
-                    <select class="add_http">
-                        <option>http</option>
-                        <option>stream</option>
-                    </select>
-                </td>
-                <td>
-                    <div class="checkbox">
-                        <input type="checkbox" name="" value="" id="addInner" checked="fasle" />
-                        <label class="check-bg" for="addInner"></label>
-                    </div>
-                </td>
-                <td>
-                    <div class="checkbox">
-                        <input type="checkbox" name="" value="" id="addOuter" checked="false" />
-                        <label class="check-bg" for="addOuter"></label>
-                    </div>
-                </td>
-                <td class="operation">
-                    <span class="add">✅</span>
-                    <span class="noAdd">❌</span>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="5" class="openAdd">
-                    <span>新增容器端口</span>
-                </td>
-            </tr>
+                <tr class="addPort">
+                    <td>
+                        <input type="number" class="add_port">
+                    </td>
+                    <td>
+                        <select class="add_http">
+                            <option>http</option>
+                            <option>stream</option>
+                        </select>
+                    </td>
+                    <td>
+                        <div class="checkbox">
+                            <input type="checkbox" name="" value="" id="addInner" checked="fasle" />
+                            <label class="check-bg" for="addInner"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="checkbox">
+                            <input type="checkbox" name="" value="" id="addOuter" checked="false" />
+                            <label class="check-bg" for="addOuter"></label>
+                        </div>
+                    </td>
+                    <td class="operation">
+                        <span class="add">✅</span>
+                        <span class="noAdd">❌</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="openAdd">
+                        <span>新增容器端口</span>
+                    </td>
+                </tr>
             </tfoot>
         </table>
         <div class="clearfix">
             <div class="serviceBlock">
-                <h4>服务依赖</h4>
+                <h4 class="tit">服务依赖</h4>
                 <div class="contentBlock">
                     <b>应用持久化目录：</b>
                     <p>点击应用名称，可以查看访问该应用的相关信息</p>
@@ -123,7 +123,7 @@
                 <h4>文件存储</h4>
                 <div class="contentBlock">
                     <b>应用持久化目录：</b>
-                    <p>当前应用所在目录为／app／，使用持久化目录，请注意路径关系</p>
+                    <p>当前应用所在目录为/app/，使用持久化目录，请注意路径关系</p>
                     <ul class="clearfix">
 
                     </ul>
