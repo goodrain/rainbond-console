@@ -130,7 +130,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 /* tips */
 
 /*  table start */
-.tab-box{width: 100%;}
+.tab-box{width: 100%; margin-bottom: 20px;}
 table.tab-box tbody tr,table tfoot tr{border-left: 1px #ececec solid; border-right: 1px #ececec solid; border-bottom: 1px #f7f7f7 solid;}
 table.tab-box thead tr{background: #f7f7f7; height: 40px;  text-align: left; font-size: 16px; color: #303030; font-weight: 100;}
 table.tab-box td{font-size: 14px; height: 80px;}
