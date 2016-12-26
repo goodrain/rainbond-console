@@ -478,8 +478,8 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             volume_list = json.loads(request.POST.get("volume_list", "[]"))
             # 依赖服务id
             depIds = request.POST.get("depIds", "")
-            # 挂载目录
-            mnt_list = json.loads(request.POST.get("mnt_list","[]"))
+            # 挂载其他服务目录
+            service_alias_list = json.loads(request.POST.get("mnt_list","[]"))
 
             # 将刚开始创建的5000端口删除
             for port in port_list:
@@ -499,6 +499,10 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             newTenantService = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                              service_id=self.service.service_id)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
+            # 创建挂载目录
+            for dep_service_alias in service_alias_list:
+                baseService.create_service_mnt(self.tenant.tenant_id, self.service.service_id, dep_service_alias,
+                                               self.service.service_region)
 
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
                                               self.user.nick_name)
@@ -515,6 +519,7 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
         except Exception as e:
             logger.exception(e)
             data["status"] = "failure"
+        return JsonResponse(data,status=200)
 
 
 

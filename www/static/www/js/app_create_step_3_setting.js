@@ -261,6 +261,31 @@ $(function () {
             "volume_list" : JSON.stringify(appArr),
             "mnt_list" : JSON.stringify(otherAppNameArr)
         }
+        var service_name = $("#service_name").val();
+        var tenantName = $("#tenantName").val()
+
+        $.ajax({
+            type : "post",
+            url : "/apps/" + tenantName + "/"+ service_name + "/app-setting/",
+            data : service_config,
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                if (msg["status"] == "success") {
+                    window.location.href = "/apps/" + tenantName + "/"+ service_name + "/app-language/"
+                }else{
+                    swal("配置失败")
+                }
+            },
+            error : function() {
+                swal("系统异常,请重试");
+                $("#BtnFirst").attr('disabled', false);
+            }
+        });
+        
         console.log(service_config);
     });
 
