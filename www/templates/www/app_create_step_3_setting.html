@@ -40,25 +40,26 @@
                 </tr>
             </thead>
             <tbody class="port">
+                {% for port in service_ports %}
                 <tr data-port="5000port">
                     <td>
-                        <a href="javascript:void(0);" class="portNum edit-port">5000</a>
+                        <a href="javascript:void(0);" class="portNum edit-port">{{port.container_port}}</a>
                     </td>
                     <td>
                         <select data-port-http="5000Http">
-                            <option>http</option>
-                            <option>stream</option>
+                            <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>http</option>
+                            <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>stream</option>
                         </select>
                     </td>
                     <td>
                         <div class="checkbox">
-                            <input type="checkbox" name="" value="" id="5000inner" />
+                            <input type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true" {% endif %}/>
                             <label class="check-bg" for="5000inner"></label>
                         </div>
                     </td>
                     <td>
                         <div class="checkbox">
-                            <input type="checkbox" name="" value="" id="5000outer" checked="true" />
+                            <input type="checkbox" name="" value="" id="5000outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
                             <label class="check-bg" for="5000outer"></label>
                         </div>
                     </td>
@@ -66,6 +67,7 @@
                         <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
                     </td>
                 </tr>
+                {% endfor %}
             </tbody>
             <tfoot>
                 <tr class="addPort">
