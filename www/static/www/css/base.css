@@ -132,8 +132,9 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 /*  table start */
 .tab-box{width: 100%;}
 table.tab-box tbody tr,table tfoot tr{border-left: 1px #ececec solid; border-bottom: 1px #f7f7f7 solid;}
-table.tab-box thead tr{background: #f7f7f7; height: 40px; font-size: 16px;  text-align: left;}
-table.tab-box td{border-collapse:collapse;}
+table.tab-box thead tr{background: #f7f7f7; height: 40px;  text-align: left;}
+table.tab-box td{font-size: 14px; height: 80px; line-height: 80px;}
+table.tab-box td,table.tab-box th{border-collapse:collapse; padding:0 10px;  font-size: 16px;}
 
 /*  table end */
 
