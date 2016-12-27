@@ -4,18 +4,15 @@
 /*弹出层*/
 
 
- p.bottom {
-    text-align: right;
-    margin-top: 20px;
-}
+ p.bottom {text-align: right; padding: 20px;}
  p.bottom button{
     outline: none;
     border:none;
     text-align: center;
     align-items: center;
-    border-radius: 5px;
-    -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
     height: 30px;
     padding:0px 20px;
 }
