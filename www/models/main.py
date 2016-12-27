@@ -882,3 +882,10 @@ class ServiceAttachInfo(BaseModel):
     buy_start_time = models.DateTimeField(help_text=u"购买开始时间")
     buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+
+class ServiceCreateStep(BaseModel):
+    class Meta:
+        db_table = 'service_create_step'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    app_step = models.IntegerField(default=1, help_text=u"创建应用的步数")

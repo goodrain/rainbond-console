@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 from django.shortcuts import redirect
 from django.http import Http404
 
-from www.models.main import TenantRegionPayModel, ServiceGroupRelation
+from www.models.main import TenantRegionPayModel, ServiceGroupRelation, ServiceCreateStep
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
@@ -252,14 +252,27 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if self.service.code_version is None or self.service.code_version == "" or (self.service.git_project_id == 0 and self.service.git_url is None):
                     codeRepositoriesService.initRepositories(self.tenant, self.user, self.service, "gitlab_new", "", "", "master")
                     self.service = TenantServiceInfo.objects.get(service_id=self.service.service_id)
-                # no upload code
-                if self.service.language == "" or self.service.language is None:
-                    codeRepositoriesService.codeCheck(self.service)
-                    return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-                if self.service.code_from not in ("image_manual"):
-                    tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-                    if tse.user_dependency is None or tse.user_dependency == "":
+
+                if ServiceCreateStep.objects.filter(service_id=self.service.service_id,
+                                                    tenant_id=self.tenant.tenant_id).count() > 0:
+                    app_step = ServiceCreateStep.objects.get(service_id=self.service.service_id,
+                                                             tenant_id=self.tenant.tenant_id).app_step
+                    if app_step == 2:
+                        codeRepositoriesService.codeCheck(self.service)
                         return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                    if app_step == 3:
+                        return self.redirect_to('/apps/{0}/{1}/app-setting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                    if app_step == 4:
+                        return self.redirect_to('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
+
+                # # no upload code
+                # if self.service.language == "" or self.service.language is None:
+                #     codeRepositoriesService.codeCheck(self.service)
+                #     return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+                # if self.service.code_from not in ("image_manual"):
+                #     tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
+                #     if tse.user_dependency is None or tse.user_dependency == "":
+                #         return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
 
             context["tenantServiceInfo"] = self.service
             context["myAppStatus"] = "active"

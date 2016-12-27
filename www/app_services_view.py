@@ -10,7 +10,7 @@ from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
 from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar, TenantServiceMountRelation, \
-    TenantServiceVolume
+    TenantServiceVolume, ServiceCreateStep
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -98,6 +98,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             context['post_paid_net_price'] = regionBo.net_trial_price
             # 是否为免费租户
             context['is_tenant_free'] = (self.tenant.pay_type == "free")
+
 
         except Exception as e:
             logger.exception(e)
@@ -381,6 +382,11 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
 
             context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
 
+            service_step = ServiceCreateStep()
+            service_step.tenant_id = self.tenant.tenant_id
+            service_step.service_id = self.service.service_id
+            service_step.app_step = 2
+            service_step.save()
             # tenantServiceRelations = TenantServiceRelation.objects.filter(
             #     tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
             # if len(tenantServiceRelations) > 0:
@@ -463,6 +469,8 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
                 for mnt in mtsrs:
                     mntsids.append(mnt.dep_service_id)
             context["mntsids"] = mntsids
+
+            ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).update(app_step=3)
 
         except Exception as e:
             logger.exception(e)
@@ -573,6 +581,7 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             context["keylist"] = keylist
             context["memorydict"] = memdict
             return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
+        ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).update(app_step=4)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)
 
     def memory_choices(self, free=False):
@@ -650,6 +659,7 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
                     logger.exception(e)
 
             data["status"] = "success"
+            ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).delete()
         except Exception as e:
             logger.exception(e)
             data["status"] = "failure"
