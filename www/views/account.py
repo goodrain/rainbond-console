@@ -622,7 +622,25 @@ class Registation(BaseView):
                     if tenant.pay_type == "free":
                         tenant.pay_type = 'payed'
                         tenant.pay_level = 'company'
+                        tenant.balance = 998
                         tenant.save()
+                    # 添加金额
+                    try:
+                        tr = TenantRecharge(tenant_id=tenant.tenant_id,
+                                            user_id=1,
+                                            user_name="System",
+                                            order_no=datetime.datetime.now().strftime('%Y%m%d%H%M%S'),
+                                            recharge_type='xd_act_new',
+                                            money=998,
+                                            subject='goodrain rechare',
+                                            body='xunda Christmas activity',
+                                            show_url='https://user.goodrain.com/apps/{0}/recharge'.format(tenant_name),
+                                            status='TRADE_SUCCESS',
+                                            trade_no='',
+                                            time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        tr.save()
+                    except Exception as e:
+                        logger.exception(e)
 
             user = authenticate(username=nick_name, password=password)
             login(request, user)
