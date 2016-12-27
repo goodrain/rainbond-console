@@ -382,11 +382,13 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
 
             context["httpGitUrl"] = codeRepositoriesService.showGitUrl(self.service)
 
-            service_step = ServiceCreateStep()
-            service_step.tenant_id = self.tenant.tenant_id
-            service_step.service_id = self.service.service_id
-            service_step.app_step = 2
-            service_step.save()
+            if ServiceCreateStep.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                service_id=self.service.service_id).exists():
+                ServiceCreateStep.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                 service_id=self.service.service_id).update(app_step=2)
+            else:
+                ServiceCreateStep.objects.create(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id,
+                                                 app_step=2)
             # tenantServiceRelations = TenantServiceRelation.objects.filter(
             #     tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
             # if len(tenantServiceRelations) > 0:

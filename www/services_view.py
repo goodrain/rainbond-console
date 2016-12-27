@@ -257,6 +257,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                                                     tenant_id=self.tenant.tenant_id).count() > 0:
                     app_step = ServiceCreateStep.objects.get(service_id=self.service.service_id,
                                                              tenant_id=self.tenant.tenant_id).app_step
+                    logger.debug("create service step" + str(app_step))
                     if app_step == 2:
                         codeRepositoriesService.codeCheck(self.service)
                         return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
