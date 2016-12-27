@@ -224,6 +224,14 @@ $(function () {
         }
         //console.log(JSON.stringify(portArr));
 
+        var appNameLen = $(".appName").length;
+        var appNameArr = [];
+        for( var n = 0; n<appNameLen; n++ )
+        {
+            appNameArr.push($(".appName").eq(n).attr("data-serviceid"))
+        }
+        console.log(appNameArr);
+
         var appLen = $(".add_pathName").length;
         var appArr = [];
         for( var j = 0; j<appLen; j++ )
@@ -262,7 +270,8 @@ $(function () {
             "port_list" : JSON.stringify(portArr),
             "env_list" : JSON.stringify(enviromentArr),
             "volume_list" : JSON.stringify(appArr),
-            "mnt_list" : JSON.stringify(otherAppNameArr)
+            "mnt_list" : JSON.stringify(otherAppNameArr),
+            "depend_list" : JSON.stringify(appNameArr)
         }
         var service_alias = $("#service_alias").val();
         var tenantName = $("#tenantName").val();
