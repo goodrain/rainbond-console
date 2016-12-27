@@ -4932,7 +4932,7 @@ tr.odd.gradeX td.sorting_1, tr.even.gradeX td.sorting_1, table.display tr.even.g
     margin-bottom: 5px;
     border-radius: 4px;
     -webkit-border-radius: 4px;
-    color: #797979;
+    color: #838383;
     -webkit-transition: all 0.3s ease;
     -moz-transition: all 0.3s ease;
     -o-transition: all 0.3s ease;
@@ -4941,7 +4941,7 @@ tr.odd.gradeX td.sorting_1, tr.even.gradeX td.sorting_1, table.display tr.even.g
 }
 
 .vertical-menu li a:hover, .vertical-menu li a:focus, .vertical-menu li.active a {
-    background: #2A3542;
+    background: #28cb75;
     width: 100%;
     float: left;
     padding: 10px;
