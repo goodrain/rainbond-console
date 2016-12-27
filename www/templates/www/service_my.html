@@ -106,10 +106,9 @@
 		</div>
 	</div>
 
-	
 
 	<section class="panel">
-		<input type="hidden" value="{% if activity_id == "998" %}{{activity_id}}{% else %}{% static "0" %}{% endif %}"  id="activity_id" />
+		<input type="hidden" value="{{activity_id}}"  id="activity_id" />
 		<script>
 			$(function(){
 				//var activity_id = $("#activity_id").attr("value");
@@ -151,6 +150,10 @@
 						}else{
 							console.log(activity_value);
 						}
+						if(activity_value == ""){
+							activity_value = 0;
+						}
+						console.log(activity_value);
   						setCookie('activity_id',activity_value,365);	
   					}
 				}
