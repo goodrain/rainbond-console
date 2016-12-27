@@ -9,7 +9,8 @@ from django.http.response import HttpResponse
 from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
-from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar, TenantServiceMountRelation
+from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar, TenantServiceMountRelation, \
+    TenantServiceVolume
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -515,6 +516,14 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             data["status"] = "success"
 
         except Exception as e:
+            TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
+            TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
+            TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
+            TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
+            for dep_service_alias in service_alias_list:
+                baseService.cancel_service_mnt(self.tenant.tenant_id, self.service.service_id, dep_service_alias,
+                                               self.service.service_region)
+            regionClient.delete(self.service.service_region, self.service.service_id)
             logger.exception(e)
             data["status"] = "failure"
         return JsonResponse(data,status=200)
