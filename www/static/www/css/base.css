@@ -98,6 +98,10 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .checkbox input{display: none;}
 .checkbox label.check-bg{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;  display: block;  margin:0;}
 .checkbox input:checked + label.check-bg{width:56px; height:28px; background: url('../images/checked.png') no-repeat;  display: block; float: left; margin:0;}
+
+input.cho-input{display: none;}
+input.cho-input + label.cho-bg{ width: 16px; height: 16px; background: url('../images/nochechmany.png') no-repeat; float: left; display: block; margin: 6px 5px 0 0;  background-size: 16px 16px; }
+input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: url('../images/checkmany.png') no-repeat;    display: block; float: left; margin: 6px 5px 0 0; background-size: 16px 16px;}
 /* form  end */
 
 /*  btn start */
