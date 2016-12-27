@@ -4,27 +4,6 @@
 /*弹出层*/
 
 
- p.bottom {text-align: right; padding: 20px;}
- p.bottom button{
-    outline: none;
-    border:none;
-    text-align: center;
-    align-items: center;
-    border-radius: 6px;
-    -webkit-border-radius: 6px;
-    -moz-border-radius: 6px;
-    height: 30px;
-    padding:0px 20px;
-}
- p.bottom button.sure{
-    background-color: #28cb75;
-    color: #ffffff;
-}
- p.bottom button.cancel{
-    background-color: #ffffff;
-    border:1px solid #ececec;
-    color: #28cb75;
-}
 
  .depend ul.clearfix li{
     float: left;
