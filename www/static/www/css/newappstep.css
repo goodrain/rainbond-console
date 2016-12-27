@@ -55,7 +55,7 @@ input.catalogueContent{width:200px; color: #303030; height: 28px; border:1px #d5
 
 .depend,.applicationMes,.otherApp{ width: 100%; height: 100%;  position: relative; display: none; }
 .del{width: 24px; height: 24px; background: #fff; position: absolute; border-radius:50%; -webkit-border-radius:50%; -moz-border-radius:50%; top: -30px; right: -30px; font-size: 18px; line-height: 24px; text-align: center; color: #474747;}
- p.bottom {text-align: right; padding: 20px;}
+ p.bottom {text-align: right; padding: 20px 0;}
  p.bottom button{outline: none; border:none; text-align: center; border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; height: 30px; padding:0px 20px; line-height: 30px; display: inline-block; margin:0 10px;}
  p.bottom button.sure{ background-color: #28cb75; color: #ffffff;}
  p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; color: #28cb75; }
