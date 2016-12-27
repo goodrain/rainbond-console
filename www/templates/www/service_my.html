@@ -109,7 +109,7 @@
 	
 
 	<section class="panel">
-		<input type="hidden" value="{% if activity_id %}{{activity_id}}{% else %}{% static "0" %}{% endif %}"  id="activity_id" />
+		<input type="hidden" value="{% if activity_id == "998" %}{{activity_id}}{% else %}{% static "0" %}{% endif %}"  id="activity_id" />
 		<script>
 			$(function(){
 				//var activity_id = $("#activity_id").attr("value");
