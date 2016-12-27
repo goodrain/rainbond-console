@@ -109,15 +109,53 @@
 	
 
 	<section class="panel">
-		<input type="hidden" value="{{activity_id}}"  id="activity_id" />
+		<input type="hidden" value="998"  id="activity_id" />
 		<script>
 			$(function(){
-				var activity_id = $("#activity_id").attr("value");
-				if(activity_id == "998"){
-					swal("恭喜您！获得「无礼物 不圣诞」活动鼓励金：998元！已经充值进迅达云余额，请尽情享用吧！");
-				}else{
-					console.log(activity_id);
+				//var activity_id = $("#activity_id").attr("value");
+				//if(activity_id == "998"){
+					//swal("恭喜您！获得「无礼物 不圣诞」活动鼓励金：998元！已经充值进迅达云余额，请尽情享用吧！");
+				//}else{
+					//console.log(activity_id);
+				//}
+				//cookie start 
+				//取cookie
+				function getCookie(c_name){
+					if (document.cookie.length>0){
+ 						c_start=document.cookie.indexOf(c_name + "=")
+  						if (c_start!=-1){ 
+    						c_start=c_start + c_name.length+1 ;
+    						c_end=document.cookie.indexOf(";",c_start);
+    						if (c_end==-1) c_end=document.cookie.length;
+    						return unescape(document.cookie.substring(c_start,c_end));
+    					} 
+  					}
+					return ""
 				}
+				// 设置 cookie
+				function setCookie(c_name,value,expiredays){
+					var exdate=new Date();
+					exdate.setDate(exdate.getDate()+expiredays);
+					document.cookie=c_name+ "=" +escape(value)+((expiredays==null) ? "" : ";expires="+exdate.toGMTString());
+				}
+				//检查cookie
+				function checkCookie(){
+					activity_id=getCookie('activity_id');
+					console.log(activity_id);
+					if (activity_id!=null && activity_id!=""){
+						console.log(activity_id);
+					}else{
+  						var activity_value = $("#activity_id").attr("value");
+						if(activity_value == "998"){
+							swal("恭喜您！获得「无礼物 不圣诞」活动鼓励金：998元！已经充值进迅达云余额，请尽情享用吧！");
+						}else{
+							console.log(activity_value);
+						}
+  						setCookie('activity_id',activity_value,365);	
+  					}
+				}
+				//cookie end 
+				checkCookie();
 			});
 		</script>
 		<table class="table table-striped table-advance table-hover">
