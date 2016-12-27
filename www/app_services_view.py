@@ -479,7 +479,7 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             # 持久化目录信息
             volume_list = json.loads(request.POST.get("volume_list", "[]"))
             # 依赖服务id
-            depIds = request.POST.get("depIds", "")
+            depIds = json.loads(request.POST.get("depend_list", "[]"))
             # 挂载其他服务目录
             service_alias_list = json.loads(request.POST.get("mnt_list","[]"))
 
@@ -506,13 +506,12 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
                                               self.user.nick_name)
             logger.debug(depIds)
-            if depIds is not None and depIds != "":
-                serviceIds = depIds.split(",")
-                for sid in serviceIds:
-                    try:
-                        baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, sid, self.response_region)
-                    except Exception as e:
-                        logger.exception(e)
+            for sid in depIds:
+                try:
+                    baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, sid, self.response_region)
+                except Exception as e:
+                    logger.exception(e)
+
             data["status"] = "success"
 
         except Exception as e:
