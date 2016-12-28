@@ -90,7 +90,7 @@ class SelectedServiceView(APIView):
 
     def put(self, request, serviceId, format=None):
         """
-        更新服务属性
+        更新服务属性,只针对docker image
         ---
         parameters:
             - name: attribute_list
@@ -111,9 +111,9 @@ class SelectedServiceView(APIView):
             service = TenantServiceInfo.objects.get(service_id=serviceId)
             regionClient.update_service(service.service_region, serviceId, data)
             # 添加端口
+            default_port_del = True
+            region_port_list = []
             if port_list:
-                region_port_list = []
-                default_port_del = True
                 for port in port_list.keys():
                     if int(port) == 5000:
                         default_port_del = False
@@ -140,21 +140,21 @@ class SelectedServiceView(APIView):
                             "is_outer_service": False
                         }
                         region_port_list.append(port_info)
-                if default_port_del:
-                    # 删除region的5000
-                    data = {"action": "delete", "port_ports": [5000]}
-                    regionClient.createServicePort(service.service_region,
-                                                   service.service_id,
-                                                   json.dumps(data))
-                    # 删除console的5000
-                    TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
-                                                      service_id=service.service_id,
-                                                      container_port=5000).delete()
-                if len(region_port_list) > 0:
-                    data = {"action": "add", "ports": region_port_list}
-                    regionClient.createServicePort(service.service_region,
-                                                   service.service_id,
-                                                   json.dumps(data))
+            if default_port_del:
+                # 删除region的5000
+                data = {"action": "delete", "port_ports": [5000]}
+                regionClient.createServicePort(service.service_region,
+                                               service.service_id,
+                                               json.dumps(data))
+                # 删除console的5000
+                TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
+                                                  service_id=service.service_id,
+                                                  container_port=5000).delete()
+            if len(region_port_list) > 0:
+                data = {"action": "add", "ports": region_port_list}
+                regionClient.createServicePort(service.service_region,
+                                               service.service_id,
+                                               json.dumps(data))
             # 添加持久化记录
             if volume_list:
                 for volume_path in volume_list:
