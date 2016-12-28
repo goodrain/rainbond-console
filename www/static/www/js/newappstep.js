@@ -941,11 +941,12 @@ $(function(){
     $("#compose_file").on("change",function(){
         var filePath=$(this).val();
         if(filePath.indexOf("yml")!=-1){
-            //var arr=filePath.split('\\');
-            //var fileName=arr[arr.length-1];
-            $(".file span").html(filePath);
+            var arr=filePath.split('\\');
+            var fileName=arr[arr.length-1];
+            console.log(fileName)
+            $(this).next("span").html(fileName);
         }else{
-            $(".file span").html("请重新上传！");
+            $(this).next("span").html("请重新上传！");
             return false;
         }
     });
