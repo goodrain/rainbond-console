@@ -102,6 +102,10 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 input.cho-input{display: none;}
 input.cho-input + label.cho-bg{ width: 16px; height: 16px; background: url('../images/nochechmany.png') no-repeat; float: left; display: block; margin: 6px 5px 0 0;  background-size: 16px 16px; }
 input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: url('../images/checkmany.png') no-repeat;    display: block; float: left; margin: 6px 5px 0 0; background-size: 16px 16px;}
+
+.file-box{float: left; position: relative;}
+.file-box input{ opacity: 0; filter: alpha(opacity=0); cursor: pointer; position: absolute; top: 0; left: 0;  border: 0 none;}
+.file-text{background: #ececec; height: 30px; border: 1px #f7f7f7 solid;  color: #303030; line-height: 30px; text-align: center; width: 150px;}
 /* form  end */
 
 /*  btn start */
