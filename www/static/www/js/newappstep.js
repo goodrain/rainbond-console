@@ -938,7 +938,7 @@ $(function(){
     ////tips end
 
     //
-    $(".file").on("change","input[type='file']",function(){
+    $("#compose_file").on("change",function(){
         var filePath=$(this).val();
         if(filePath.indexOf("yml")!=-1){
             //var arr=filePath.split('\\');
