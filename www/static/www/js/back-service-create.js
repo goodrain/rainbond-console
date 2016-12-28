@@ -306,7 +306,7 @@ $(function(){
         }
     }
     
-    $("#OneMemoryText").html(small_memory + "M");
+   
     $("#OneMemory").attr("min",small_memory);
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",small_memory);
     FnRange("NodeNum","NodeText","NodeWid",1);
