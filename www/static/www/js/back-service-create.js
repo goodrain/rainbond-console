@@ -289,6 +289,17 @@ $(function(){
     
    
     var small_memory = $("#small-memory").attr("value");
+    var is_tenant_free = $("#is_tenant_free").attr("value");
+    if(is_tenant_free == "True"){
+        if(small_memory > 1024){
+            swal("内存不够！");
+        }
+    }
+    if(small_memory >= 1024){
+        $("#OneMemoryText").html(small_memory/1024 + "G");
+    }else{
+        $("#OneMemoryText").html(small_memory + "M");
+    }
     $("#OneMemoryText").html(small_memory + "M");
     $("#OneMemory").attr("min",small_memory);
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",small_memory);
@@ -437,6 +448,16 @@ $(function(){
     /// 从应用提交
     //提交 
     $("#back_service_step1").click(function(){
+        //
+        var small_memory = $("#small-memory").attr("value");
+        var is_tenant_free = $("#is_tenant_free").attr("value");
+        if(is_tenant_free == "True"){
+            if(small_memory > 1024){
+                swal("内存不够！");
+            }
+            return false;
+        }
+        //
         var appname = $("#create_name").val();
         var groupname = $("#group-name option:selected").html();
         var groupid = $("#group-name option:selected").attr("value");
@@ -537,6 +558,23 @@ $(function(){
     ///
     $("#back_service_step2").click(function(){
         var sel_val = $("#dependency_service option:selected").attr("value");
+        var envs = [];
+        var flag = false
+        $('.tb tr').each(function() {
+            var env = {};
+            $(this).find('[name^=attr]').each(function(event) {
+                i = $(this);
+                name = $(this).attr('name');
+                value = $(this).val() || i.html();
+                if (value) {
+                    env[name] = value;
+                } else {
+                    showMessage("有未填写的内容");
+                    flag = true
+                }
+            });
+            envs.push(env);
+        });
         ///
          $("#back_service_step2").attr('disabled', true);
         var tenantName= $('#currentTeantName').val();
@@ -544,7 +582,8 @@ $(function(){
             type : "post",
             url : "/apps/" + tenantName + "/app-create/",
             data : {
-                "sel_val" : sel_val
+                "sel_val" : sel_val,
+                "envs": envs
             },
             cache : false,
             beforeSend : function(xhr, settings) {

@@ -13,7 +13,7 @@
 
 <section class="wrapper site-min-height">
     <section class="main-box">
-        <h3 class="main-tit">创建{{service.service_name}}</h3>
+        <h3 class="main-tit">{{service_key.upper}}完善配置</h3>
         <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
             <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
             <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
@@ -120,34 +120,22 @@
             <table class="tab-box">
                 <thead>
                     <tr>
-                        <th>名称</th>
-                        <th>变量名</th>
-                        <th>值</th>
+                        <th>变量名称</th>
+                        <th>变量值</th>
                     </tr>
                 </thead>
                 <tbody>
+                   {% for env in envs %}
                     <tr>
-                        <td>
-                           myapp
-                        </td>
-                        <td>
-                           myapp
-                        </td>
-                        <td>
-                           132123
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                           myapp
-                        </td>
-                        <td>
-                           myapp
-                        </td>
-                        <td>
-                           132123
-                        </td>
-                    </tr>
+                        <td name="attr_name">{{env.attr_name}}</td>
+                        {% if 'direct_copy' in env.options %}
+                            <td name="attr_value">{{env.attr_value}}</td>
+                        {% else %}
+                            <td><input name="attr_value" placeholder="举例: {{env.attr_value}}"></td>
+                        {% endif %}
+                        </tr>
+                    {% endfor %}
+                   
                 </tbody>
             </table>
             <div class="infor-fm-box">
