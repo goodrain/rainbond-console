@@ -105,7 +105,7 @@ input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: u
 
 .file-box{float: left; position: relative;}
 .file-box input{ opacity: 0; filter: alpha(opacity=0); cursor: pointer; position: absolute; top: 0; left: 0;  border: 0 none; z-index: 10;}
-.file-text{background: #ebebeb; border: 1px #ececec solid;  color: #303030;  text-align: center; padding:5px 20px; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; z-index: 1; position: absolute; }
+.file-text{background: #ebebeb; border: 1px #ececec solid;  color: #303030;  text-align: center; padding:5px 20px; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; z-index: 1; position: absolute; top: 0; left: 0;}
 /* form  end */
 
 /*  btn start */
