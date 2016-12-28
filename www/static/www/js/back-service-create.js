@@ -292,7 +292,7 @@ $(function(){
     var is_tenant_free = $("#is_tenant_free").attr("value");
     if(is_tenant_free == "True"){
         if(small_memory > 1024){
-            swal("内存不够！");
+            swal("免费用户应用内存最多1G！");
         }
     }
     if(small_memory >= 1024){
@@ -503,7 +503,7 @@ $(function(){
         var tenantName= $('#currentTeantName').val();
         $.ajax({
             type : "post",
-            url : "/apps/" + tenantName + "/app-create/",
+            url : "/apps/" + tenantName + "/service-deploy/",
             data : {
                 "create_app_name" : appname,
                 "groupname" : groupname,
