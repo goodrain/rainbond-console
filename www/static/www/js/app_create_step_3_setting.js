@@ -303,12 +303,18 @@ $(function () {
 
     //打开弹出层，选择服务依赖
     $(".addDepend").on("click",function(){
-        var arrleft = $("#main-content").attr("style").split(":");
-        if(arrleft[1] == " 210px;"){
-            $(".layer-body-bg").css({"marginLeft":"-210px;"});
+        var marleft = $("#main-content").attr("style");
+        if(marleft){
+            var arrleft = marleft.split(":");
+           if(arrleft[1] == " 210px;"){
+                $(".layer-body-bg").css({"left":"-210px;"});
+            }else{
+                $(".layer-body-bg").css({"left":"0px;"});
+            } 
         }else{
-            $(".layer-body-bg").css({"marginLeft":"0px;"});
+            $(".layer-body-bg").css({"left":"-210px;"});
         }
+        
         $(".applicationMes").css({"display":"none"});
         $(".otherApp").css({"display":"none"});
         $(".depend").css({"display":"block"});
@@ -321,11 +327,16 @@ $(function () {
             var service_id = $(this).attr("data-serviceId");
             console.log(service_id);
             getServiceInfo(service_id);
-            var arrleft = $("#main-content").attr("style").split(":");
-            if(arrleft[1] == " 210px;"){
-                $(".layer-body-bg").css({"marginLeft":"-210px;"});
+            var marleft = $("#main-content").attr("style");
+            if(marleft){
+                var arrleft = marleft.split(":");
+               if(arrleft[1] == " 210px;"){
+                    $(".layer-body-bg").css({"left":"-210px;"});
+                }else{
+                    $(".layer-body-bg").css({"left":"0px;"});
+                } 
             }else{
-                $(".layer-body-bg").css({"marginLeft":"0px;"});
+                $(".layer-body-bg").css({"left":"-210px;"});
             }
             $(".applicationMes").css({"display":"block"});
             $(".otherApp").css({"display":"none"});
@@ -395,11 +406,16 @@ $(function () {
 
     //挂载其他应用持久化目录
     $(".addOtherApp").on("click",function(){
-        var arrleft = $("#main-content").attr("style").split(":");
-        if(arrleft[1] == " 210px;"){
-            $(".layer-body-bg").css({"marginLeft":"-210px;"});
+        var marleft = $("#main-content").attr("style");
+        if(marleft){
+            var arrleft = marleft.split(":");
+           if(arrleft[1] == " 210px;"){
+                $(".layer-body-bg").css({"left":"-210px;"});
+            }else{
+                $(".layer-body-bg").css({"left":"0px;"});
+            } 
         }else{
-            $(".layer-body-bg").css({"marginLeft":"0px;"});
+            $(".layer-body-bg").css({"left":"-210px;"});
         }
         $(".applicationMes").css({"display":"none"});
         $(".depend").css({"display":"none"});
