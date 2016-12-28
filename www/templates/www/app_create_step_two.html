@@ -83,17 +83,17 @@
                     <label data-tips="应用内存" data-position="right" class="fn-tips" >应用内存</label>
                     <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
                     <label class="radio-bg" for="MoneyBefore"></label>
-                    <label for="MoneyBefore" class="radio-text fn-tips" data-position="top" data-tips="预付费提前采购">预付费提前采购</label>
+                    <label for="MoneyBefore" class="radio-text fn-tips" data-tips="预付费提前采购，单价相对便宜，适用于业务相对稳定的项目；预付费转为按使用付费模式，在当前购买额度用完后才会生效；预付费模式仅支持扩容。">预付费提前采购</label>
                     <input type="radio" name="Memory" value="After" id="MoneyAfter" />
                     <label class="radio-bg"  for="MoneyAfter"></label>
-                    <label for="MoneyAfter" class="radio-text fn-tips" data-position="bottom" data-tips="按使用后付费">按使用后付费</label>
+                    <label for="MoneyAfter" class="radio-text fn-tips" data-tips="按使用后付费，单价略贵，适用于业务高速发展中的项目；按使用付费转为预付费模式，即时生效；按使用付费模式支持扩容和缩容。">按使用后付费</label>
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node">
-                    <label class="fn-tips" data-position="left" data-tips="单节点内存单节点内存">单节点内存</label>
+                    <label>单节点内存</label>
                     {% if is_tenant_free %}
                     <p class="range-box nouser">
                         <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
+                        <span class="range-choose fn-tips" data-tips="免费用户单应用内存最大1G，全部应用总内存最大1G；付费用户单应用内存最大8G，总内存无限制；"><cite id="OneMemoryWid"></cite></span>
                         <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="128"／>
                     </p>
                     <!-- user -->
@@ -111,7 +111,7 @@
                 <div class="fm-input-range clearfix fn-memory-node" style="padding-bottom:30px;">
                     <label>节点数</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser02">
+                    <p class="range-box nouser02 fn-tips" data-tips="免费用户单应用只能创建1个节点；付费用户最多可创建100个节点；">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="NodeWid"></cite></span>
                         <input type="range" min="1" max="1"  step="1" id="NodeNum" value="1"／>
@@ -137,16 +137,16 @@
                     </div>
                 </div>
                 <div class="fm-input-radio clearfix">
-                    <label>使用方法</label>
+                    <label>付费方式</label>
                     <input type="radio" name="Disk" value="DiskBefore" id="DiskBefore" checked="true" />
                     <label class="radio-bg" for="DiskBefore"></label>
-                    <label for="DiskBefore" class="radio-text">预付费提前采购</label>
+                    <label for="DiskBefore"  class="radio-text fn-tips" data-tips="预付费提前采购，单价相对便宜，适用于业务相对稳定的项目；预付费转为按使用付费模式，在当前购买额度用完后才会生效；预付费模式仅支持扩容。">预付费提前采购</label>
                     <input type="radio" name="Disk" value="DiskAfter" id="DiskAfter" />
                     <label class="radio-bg"  for="DiskAfter"></label>
-                    <label for="DiskAfter" class="radio-text">按使用后付费</label>
+                    <label for="DiskAfter" class="radio-text fn-tips" data-tips="按使用后付费，单价略贵，适用于业务高速发展中的项目；按使用付费转为预付费模式，即时生效；按使用付费模式支持扩容和缩容。">按使用后付费</label>
                 </div>
                 <div class="fm-input-range clearfix fn-disk" style="padding-bottom:30px;">
-                    <label>磁盘</label>
+                    <label>存储容量</label>
                     {% if is_tenant_free %}
                     <p class="range-box nouser02">
                         <span class="renge-bg"></span>
@@ -167,10 +167,10 @@
                 </div>
                 <!-- 03 -->
                 <div class="fm-input-radio clearfix" style="padding-bottom:30px;">
-                    <label>流量</label>
+                    <label>外网访问流量</label>
                     <input type="radio" name="flow" value="flow" id="flow" checked="true" />
                     <label class="radio-bg" for="flow"></label>
-                    <label class="radio-text" for="flow">按使用后付费</label>
+                    <label  class="radio-text fn-tips" for="flow" data-tips="应用开放对外访问才会计算流量；目前仅支持按使用后付费，请保持账户有一定余额；">按使用后付费</label>
                 </div>
                 <!--
                 <div class="fm-text clearfix">
