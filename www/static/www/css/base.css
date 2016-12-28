@@ -103,33 +103,10 @@ input.cho-input{display: none;}
 input.cho-input + label.cho-bg{ width: 16px; height: 16px; background: url('../images/nochechmany.png') no-repeat; float: left; display: block; margin: 6px 5px 0 0;  background-size: 16px 16px; }
 input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: url('../images/checkmany.png') no-repeat;    display: block; float: left; margin: 6px 5px 0 0; background-size: 16px 16px;}
 
-.file-box{float: left; position: relative;}
-.file {
-    position: relative;
-    display: inline-block;
-    background: #D0EEFF;
-    border: 1px solid #99D3F5;
-    border-radius: 4px;
-    padding: 4px 12px;
-    overflow: hidden;
-    color: #1E88C7;
-    text-decoration: none;
-    text-indent: 0;
-    line-height: 20px;
-}
-.file input {
-    position: absolute;
-    font-size: 100px;
-    right: 0;
-    top: 0;
-    opacity: 0;
-}
-.file:hover {
-    background: #AADFFD;
-    border-color: #78C3F3;
-    color: #004974;
-    text-decoration: none;
-}
+.file-box{float: left;}
+.file { position: relative; display: inline-block; background: #f7f7f7; border: 1px solid #ededed; border-radius: 6px; padding: 4px 12px; overflow: hidden; color: #303030; text-decoration: none; text-indent: 0; line-height: 20px;}
+.file input { position: absolute; font-size: 100px; right: 0; top: 0; opacity: 0;}
+
 /* form  end */
 
 /*  btn start */
