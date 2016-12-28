@@ -32,35 +32,37 @@
         <table class="tab-box">
             <thead>
                 <tr>
-                    <th>容器端口</th>
-                    <th>协议</th>
-                    <th>对内服务</th>
-                    <th colspan="2">外部服务</th>
+                    <th>端口</th>
+                    <th>对外服务</th>
+                    <th>外部访问</th>
+                    <th colspan="2">访问方式</th>
                 </tr>
             </thead>
             <tbody class="port">
                 {% for port in service_ports %}
                 <tr data-port="5000port">
                     <td>
-                        <a href="javascript:void(0);" class="portNum edit-port">{{port.container_port}}</a>
+                        <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{port.container_port}}</a>
                     </td>
                     <td>
-                        <select data-port-http="5000Http">
-                            <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>http</option>
-                            <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>stream</option>
-                        </select>
-                    </td>
-                    <td>
-                        <div class="checkbox">
+                        <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
                             <input type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true" {% endif %}/>
                             <label class="check-bg" for="5000inner"></label>
+                            <a href="javascript:;">详情</a>
                         </div>
                     </td>
                     <td>
-                        <div class="checkbox">
+                        <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
                             <input type="checkbox" name="" value="" id="5000outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
                             <label class="check-bg" for="5000outer"></label>
+                            <a href="javascript:;">详情</a>
                         </div>
+                    </td>
+                    <td>
+                        <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                            <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
+                            <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>
+                        </select>
                     </td>
                     <td>
                         <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
@@ -71,25 +73,25 @@
             <tfoot>
                 <tr class="addPort">
                     <td>
-                        <input type="number" class="add_port">
+                        <input type="number" class="add_port fn-tips" data-tips="为了保证安全，服务端口支持范围为 1025~65535，如您的编码中提供对外服务端口不在此范围内，请修改编码。">
                     </td>
                     <td>
-                        <select class="add_http">
-                            <option>http</option>
-                            <option>stream</option>
-                        </select>
-                    </td>
-                    <td>
-                        <div class="checkbox">
+                        <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
                             <input type="checkbox" name="" value="" id="addInner" checked="fasle" />
                             <label class="check-bg" for="addInner"></label>
                         </div>
                     </td>
                     <td>
-                        <div class="checkbox">
+                        <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
                             <input type="checkbox" name="" value="" id="addOuter" checked="false" />
                             <label class="check-bg" for="addOuter"></label>
                         </div>
+                    </td>
+                    <td>
+                        <select class="add_http fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                            <option>HTTP</option>
+                            <option>非HTTP</option>
+                        </select>
                     </td>
                     <td class="operation">
                         <span class="add lit-btn-green"><i class="fa fa-check"></i></span>
