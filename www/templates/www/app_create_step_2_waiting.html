@@ -141,7 +141,7 @@ function getGitCodeCheck() {
 					$("#git-success").show();
 					$("#git_btn").show();
 					$("#git_code_upload").html(
-							"代码已提交，语言识别为 " + dataObj["language"]);
+							"代码已同步，语言识别为 " + dataObj["language"]);
 					//$("#BtnSecond").removeAttr('disabled')
 				} else if (dataObj["status"] == "check_error") {
 					$("#second-loading").hide();
