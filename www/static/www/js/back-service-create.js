@@ -287,7 +287,9 @@ $(function(){
         }, false);
     }
     
-    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
+   
+    var small_memory = $("#small-memory").attr("value");
+    FnRange("OneMemory","OneMemoryText","OneMemoryWid",small_memory);
     FnRange("NodeNum","NodeText","NodeWid",1);
     FnRange("Disk","DiskText","DiskWid",1);
     FnRange("TimeLong","TimeLongText","TimeLongWid",1);
