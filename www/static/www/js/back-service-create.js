@@ -289,6 +289,8 @@ $(function(){
     
    
     var small_memory = $("#small-memory").attr("value");
+    $("#OneMemoryText").html(small_memory + "M");
+    $("#OneMemory").attr("min",small_memory);
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",small_memory);
     FnRange("NodeNum","NodeText","NodeWid",1);
     FnRange("Disk","DiskText","DiskWid",1);
