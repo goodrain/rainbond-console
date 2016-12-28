@@ -941,9 +941,9 @@ $(function(){
     $(".file").on("change","input[type='file']",function(){
         var filePath=$(this).val();
         if(filePath.indexOf("yml")!=-1){
-            var arr=filePath.split('\\');
-            var fileName=arr[arr.length-1];
-            $(".file span").html(fileName);
+            //var arr=filePath.split('\\');
+            //var fileName=arr[arr.length-1];
+            $(".file span").html(filePath);
         }else{
             $(".file span").html("请重新上传！");
             return false;
