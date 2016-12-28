@@ -124,7 +124,7 @@ input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: u
 
 
 /* tips */
-.tips-box{max-width:200px; background: #28cb75; min-height: 20px; padding: 0 10px;  -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; position: absolute; z-index: 1999;}
+.tips-box{max-width:200px; background: #28cb75; min-height: 20px; padding:10px;  -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; position: absolute; z-index: 1999;}
 .tips-box p{margin:0; width: 100%; position: relative;}
 .tips-box p span{display: inline-block; width: 100%; font-size: 14px; line-height: 20px; color: #fff; font-weight: 100;}
 .tips-box p cite{ width: 0; height: 0;  position: absolute;}
