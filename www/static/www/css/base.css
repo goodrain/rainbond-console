@@ -120,6 +120,7 @@ input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: u
 
 .lit-btn-green{ width: 22px;  height: 22px; background: #28cb75; display: inline-block; color: #fff; font-size: 12px; line-height: 22px; text-align: center;}
 .lit-btn-red{ width: 22px;  height: 22px; background: #f63a47; display: inline-block; color: #fff; font-size: 12px; line-height: 22px; text-align: center;}
+button.greenbtn,button.redbtn,button.lit-btn-green{ border: 0 none;}
 /* btn end */
 
 
