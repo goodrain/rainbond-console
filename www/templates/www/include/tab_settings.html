@@ -250,12 +250,10 @@
                             <tr>
                                 <td>{{volume.volume_path}}</td>
                                 <td>
-                                    {% if tenantServiceInfo.category == "application" %}
                                     <button type="button" class="btn btn-danger btn-xs"
                                             data-id="{{volume.ID}}" onclick="cancel_volume(this);">
                                         <i class="fa fa-trash-o"></i>
                                     </button>
-                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
