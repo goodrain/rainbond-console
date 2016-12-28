@@ -105,7 +105,7 @@ input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: u
 
 .file-box{float: left; position: relative;}
 .file-box input{ opacity: 0; filter: alpha(opacity=0); cursor: pointer; position: absolute; top: 0; left: 0;  border: 0 none;}
-.file-text{background: #ececec; height: 30px; border: 1px #f7f7f7 solid;  color: #303030; line-height: 30px; text-align: center; width: 150px;}
+.file-text{background: #ebebeb; height: 30px; border: 1px #ececec solid;  color: #303030; line-height: 30px; text-align: center; padding:0 20px; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px;}
 /* form  end */
 
 /*  btn start */
@@ -132,6 +132,7 @@ input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: u
 .tips-box p cite.left{border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid #28cb75; right: -16px; top:6px; }
 .tips-box p cite.right{border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-right: 6px solid #28cb75; left:-16px; top: 6px; }
 /* tips */
+
 
 /*  table start */
 .tab-box{width: 100%;}
