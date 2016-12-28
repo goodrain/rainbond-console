@@ -895,6 +895,13 @@ class TenantSelectView(BaseView):
         tenant_names = self.get_tenant_names()
         # 获取配置的可用数据中心列表
         regions = RegionInfo.register_choices()
+        # 判断是否活动用户activity998
+        xunda_region = [("xunda-bj", u'\u8fc5\u8fbe\u4e91[\u5317\u4eac]')]
+        tenant_list = Tenants.objects.filter(tenant_name__in=tenant_names)
+        count = 0
+        for tenant in tenant_list:
+            ta_num = TenantActivity.objects.filter(tenant_id=tenant.tenant_id).count()
+            count += ta_num
         # 获取用户动作
         action = request.GET.get("action", None)
         # 远程安装(云市)下,需要看是否指定默认安装选项,如果有匹配选项则直接重定向到安装页,否则跳到选择页
@@ -906,6 +913,8 @@ class TenantSelectView(BaseView):
 
             # 获取数据中心选择模式
             region = request.GET.get('region', None)
+            if count > 0:
+                region = "xunda-bj"
 
             logger.debug("select regin {} from {}".format(region, regions))
             # 如果用户只属于一个团队并且有数据中心的选择模式参数
@@ -940,6 +949,8 @@ class TenantSelectView(BaseView):
         # 用户自己选择团队跟机房
         context = self.get_context()
         context.update({"tenant_names": tenant_names, "regions": regions})
+        if count > 0:
+            context["regions"] = xunda_region
 
         logger.debug("install app by user self, response select_tenant.html!")
         return TemplateResponse(request, 'www/account/select_tenant.html', context)
