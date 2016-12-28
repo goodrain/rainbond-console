@@ -511,6 +511,21 @@ $(function(){
     // 	$("#app-market li").hide();
     // 	$("#app-market li").eq(indexnum).show();
     // });
+
+    //
+    $("#compose_file").on("change",function(){
+        var filePath=$(this).val();
+        if(filePath.indexOf("yml")!=-1){
+            var arr=filePath.split('\\');
+            var fileName=arr[arr.length-1];
+            console.log(fileName)
+            $(this).next("span").html(fileName);
+        }else{
+            $(this).next("span").html("请重新上传！");
+            return false;
+        }
+    });
+    //
 });
 function service_create(tenantName, service_key, app_version) {
 	window.location.href = "/apps/" + tenantName
