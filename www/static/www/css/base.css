@@ -3,7 +3,7 @@
 /* css reset  start */
 html,body,div,p,ul,li,ul li,ol,h1, h2, h3, h4, h5, h6, hr, p, blockquote,dl, dt, dd, ul, ol, li,pre, form, fieldset, legend, button, input, textarea,th, td{margin:0; padding:0;}
 ul,li,ul li {list-style: none;}
-body, button, input, select, textarea{ word-wrap: break-word; word-break: break-all; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; font-size: 14px;  font-family:  "PingFang SC",Helvetica,Arial,"Hiragino Sans GB","Microsoft Yahei",STHeiTi,sans-serif;}
+body, button, input, select, textarea{ word-wrap: break-word; word-break: break-all; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; font-size: 14px; }
 a, a:hover, a:focus {text-decoration: none; outline: none;}
 a,a img{border: 0;}
 em,cite,span{font-style: normal;}
