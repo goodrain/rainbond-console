@@ -1206,7 +1206,7 @@ class ServiceVolumeView(AuthedView):
                 volume_path = request.POST.get("volume_path")
                 # category = self.service.category
                 language = self.service.language
-                if self.service.is_image():
+                if self.service.image != "goodrain.me/runner":
                     if not volume_path.startswith("/"):
                         result["status"] = "failure"
                         result["code"] = "303"
