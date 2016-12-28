@@ -106,7 +106,7 @@ input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: u
 .file-box{float: left;}
 .file { position: relative; display: inline-block; background: #f7f7f7; border: 1px solid #ededed; border-radius: 6px; padding: 4px 12px; overflow: hidden; color: #303030; text-decoration: none; text-indent: 0; line-height: 20px;}
 .file input { position: absolute; font-size: 100px; right: 0; top: 0; opacity: 0;}
-
+.file:hover{color: #303030;}
 /* form  end */
 
 /*  btn start */
