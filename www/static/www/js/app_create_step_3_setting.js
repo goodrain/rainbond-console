@@ -360,7 +360,7 @@ $(function () {
             success : function(msg) {
                 if(msg.ok){
                     var env_map = msg.obj;
-                    var info_div = '<div class="port_info"><h3>应用相关信息</h3>';
+                    var info_div = '<div class="port_info"><p class="layer-tit">应用相关信息</p>';
                     for (var port in env_map){
                         var envs = env_map[port];
                         if( port != -1 )
@@ -368,8 +368,8 @@ $(function () {
                             info_div += '<ul class="clearfix"><li>应用:'+tenant_name+'</li>';
                             info_div += '<li>容器端口:'+port+'</li><li>端口别名:'+envs[0].port_alias+'</li>'
                             info_div += '<p>修改端口别名，会引起对内服务变量名的改变，请记得修改代码中正在使用的变量名。</p>'
-                            info_div += '</ul><h4>对内服务环境变量</h4><p>其他服务可以直接使用环境变量值访问当前服务。如果想使用环境变量访问，必须指明两个服务之间的依赖关系。</p>';
-                            info_div += '<table><thead><tr><th>环境变量</th><th>值</th><th>说明</th></tr></thead><tbody>';
+                            info_div += '</ul><p class="layer-tit">对内服务环境变量</p><p>其他服务可以直接使用环境变量值访问当前服务。如果想使用环境变量访问，必须指明两个服务之间的依赖关系。</p>';
+                            info_div += '<table class="tab-box lit"><thead><tr><th>环境变量</th><th>值</th><th>说明</th></tr></thead><tbody>';
                             var len = envs.length;
                             for( var i = 0; i<len; i++ ){
                                 info_div += '<tr><td>'+envs[i].attr_name+'</td>';
