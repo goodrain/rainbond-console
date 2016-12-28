@@ -295,9 +295,12 @@ $(function(){
             swal("免费用户应用内存最多1G！");
         }
     }
+    console.log(1);
     if(small_memory >= 1024){
+        console.log(2);
         $("#OneMemoryText").html(small_memory/1024 + "G");
     }else{
+        console.log(3);
         $("#OneMemoryText").html(small_memory + "M");
     }
     $("#OneMemoryText").html(small_memory + "M");
