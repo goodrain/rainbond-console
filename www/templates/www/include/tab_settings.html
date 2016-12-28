@@ -231,7 +231,6 @@
         </div>
     </div>
 </section>
-    {% if tenantServiceInfo.category == "application" or tenantServiceInfo.language == "docker-image" %}
     <section class="tabbox">
         <p class="tittext">持久化数据设置<span>(设置后需要重启服务)</span></p>
         <div class="panel-body">
@@ -249,12 +248,10 @@
                             <tr>
                                 <td>{{volume.volume_path}}</td>
                                 <td>
-                                    {% if tenantServiceInfo.category == "application" %}
                                     <button type="button" class="btn btn-danger btn-xs"
                                             data-id="{{volume.ID}}" onclick="cancel_volume(this);">
                                         <i class="fa fa-trash-o"></i>
                                     </button>
-                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -263,13 +260,12 @@
 
                     <div id="edit_volume_div"></div>
                     <div class="clearfix" style="padding: 8px;"></div>
-                    <button type="button" class="btn btn-success" id="add_volume_attr" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
+                    <button type="button" class="btn btn-success" id="add_volume_attr" data-language="{{tenantServiceInfo.image}}">新增持久化设置</button>
 
                 </div>
             </div>
         </div>
     </section>
-    {% endif %}
 
    
   <section class="tabbox">
@@ -426,7 +422,7 @@
                     .attr("id", "edit_volume_div_input")
                     .attr("placeholder", "请输入持久化目录");
             var input_span = $("<span />").addClass("col-xs-2").html("/app");
-            if (tmp_language == "docker") {
+            if (tmp_language != "goodrain.me/runner") {
                 $("<div />").addClass("col-xs-6")
                         .append(input).appendTo($("#edit_volume_div"));
             } else {
