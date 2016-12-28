@@ -873,36 +873,50 @@ $(function(){
         var oDivwidth = $(".tips-box").width();
         var othiswid = $(this).width();
         var othisheight = $(this).height();
-        if(pos == "top"){
-            //
-            $(".tips-box").css({"top":y-oDivheight -5});
-            if(oDivwidth > othiswid){
-                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-            }else if(oDivwidth < othiswid){
-                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+        if(pos){
+            if(pos == "top"){
+                //
+                $(".tips-box").css({"top":y-oDivheight -5});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                 $(".tips-box").find("cite").addClass("top");
+                //
+            }else if(pos == "bottom"){
+                //
+                $(".tips-box").css({"top":y + othisheight + 5});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                $(".tips-box").find("cite").addClass("bottom");
+                //
+            }else if(pos == "left"){
+                $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+                 $(".tips-box").find("cite").addClass("left");
+            }else if(pos == "right"){
+                $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+                 $(".tips-box").find("cite").addClass("right");
             }else{
-                $(".tips-box").css({"left":x});
-            }
-             $(".tips-box").find("cite").addClass("top");
-            //
-        }else if(pos == "bottom"){
-            //
-            $(".tips-box").css({"top":y + othisheight + 5});
-            if(oDivwidth > othiswid){
-                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-            }else if(oDivwidth < othiswid){
-                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-            }else{
-                $(".tips-box").css({"left":x});
-            }
-            $(".tips-box").find("cite").addClass("bottom");
-            //
-        }else if(pos == "left"){
-            $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
-             $(".tips-box").find("cite").addClass("left");
-        }else if(pos == "right"){
-            $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
-             $(".tips-box").find("cite").addClass("right");
+                //
+                $(".tips-box").css({"top":y-oDivheight});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                 $(".tips-box").find("cite").addClass("top");
+                //
+            }         
         }else{
             //
             $(".tips-box").css({"top":y-oDivheight});
@@ -913,9 +927,10 @@ $(function(){
             }else{
                 $(".tips-box").css({"left":x});
             }
-             $(".tips-box").find("cite").addClass("top");
+            $(".tips-box").find("cite").addClass("top");
             //
-        }        
+        }
+        
     });
     $(".fn-tips").mouseout(function(){
         $(".tips-box").remove();
