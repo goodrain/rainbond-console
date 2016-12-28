@@ -76,7 +76,7 @@
 	-->
 	<!-- page end-->
 	<section class="main-box">
-		<h3 class="main-tit">新建自定义应用</h3>
+		<h3 class="main-tit">创建自研应用</h3>
         <div class="app-step clearfix">
             <p class="sed"><span>1</span><cite>创建应用</cite></p>
             <p class="sed"><span>2</span><cite>代码同步</cite></p>
@@ -90,13 +90,13 @@
 	        	<div class="second-loading" id="second-loading">
 	        		<p class="second-tit">正在从仓库同步代码！</p>
 	        		<p class="second-tips-loading">
-	        			<span>代码源：<cite>{{httpGitUrl}}</cite> 由于代码量及网络环境差异，</span>
-	        			<span>等待时间可能较长。你可以关闭当前页面去处理其他事务，稍后可在我的应用中继续操作。</span>
+	        			<span>代码源：<cite>{{httpGitUrl}}</cite> 由于代码量及网络环境差异，等待时间可能较长。你可以关闭当前页面去处理其他事务，稍后可在我的应用中继续操作。</span>
+	        			<span>如果是通过好雨 Git 新建的项目，请往上述地址提交代码。Git 用户名：xxx@xxx.xxx 密码：同登录密码。</span>
 	        		</p>
 	        		<p class="waitbtn">请稍等</p>
 	        	</div>
 	        	<div  style="display: none;" id="git-success">
-		        	<p class="second-tit" id="git_code_upload" >代码已同步，语言为PHP！</p>
+		        	<p class="second-tit" id="git_code_upload" ></p>
 		        	<p class="second-tips-loading">
 		        		<span>代码源：<cite>{{httpGitUrl}}</cite></span>
 		        	</p>

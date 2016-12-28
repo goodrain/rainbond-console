@@ -188,7 +188,7 @@
 
     <!-- new app build start -->
 	<section class="main-box">
-		<h3 class="main-tit">新建自定义应用</h3>
+		<h3 class="main-tit">创建自研应用</h3>
         <div class="app-step clearfix">
             <p class="sed"><span>1</span><cite>创建应用</cite></p>
             <p><span>2</span><cite>代码同步</cite></p>
@@ -230,7 +230,7 @@
                 {% if cur_type == "gitlab_manual" %}
                 <span style="display: none"; data-action="gitlab_manual" class="fn-way"></span>
                 <div class="fm-input-text clearfix">
-                    <label>代码源</label><input type="text" name="" value="" placeholder="请输入一个公开项目的Git地址"  id="service_code_url" />
+                    <label>代码源</label><input type="text" name="" value="" placeholder="请输入一个公开项目的 Git 地址。"  id="service_code_url" />
                 </div>
                 <p class="fm-tips" id="service_code_url_tips">代码仓库地址不能为空！</p>
                 {% endif %}
@@ -239,13 +239,13 @@
                 {% if cur_type == "gitlab_new" %}
                 <span style="display: none"; data-action="gitlab_new" class="fn-way"></span>
                 <div class="fm-input-text clearfix">
-                    <label>自建Git</label><input type="text" name="" value="" placeholder="请输入一个自建Git的代码仓库地址" id="my_git_url" />
+                    <label>自建Git</label><input type="text" name="" value="" placeholder="请输入自建 Git 的代码仓库地址。" id="my_git_url" class="fn-tips" data-tips="请将下列内容添加自建 Git 的 git 用户的 ssh 列表中，授权平台可以获取您的代码。" />
                 </div>
                 <p class="fm-tips" id="my_git_url_tips">代码仓库地址不能为空！</p>
                 <div class="code-box clearfix">
                      <label> </label>
                      <p>
-                        <span>自建Git,请将将下列内容添加到git用户的ssh列表中,授权平台获取您的代码:</span>
+                        <span>授权key：</span>
                         <cite>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCy97mlKJo1xPoDYejmeK0bMhM6O/leVuLF/U0ry/NLWatfkl1R69NIX6TpW/hVFjGXRZTz56V37jLOVQWq24dQaLIXyFqxZwJnakZzX/b6K3sKb6Y+dDZdktcPEVLUQPWHs6gm0tUgbvgywulEVuTgAt5fYwa1rG48zmgCHlU4a6jWT8iQ9D2Lqpf4ZYZnUOOGB6AmaABfCBSCFDj8ihIz00Hp77s42gxRhn/iQJE9ZrDYWnxN0cUAxvLpB1jCANFR4Zc5FslHUp4tLVNMdDeqi8OPZMj4G6yWclwa3Uqfu7yd3gqik4nI1jaRLL9Lq/2GgA20MvCFWqtvcBJ2Tcv1 builder</cite>
                      </p>
                 </div>
@@ -258,7 +258,7 @@
                 <p id="waiting">仓库连接中，请稍候......</p>
                 <section id="Githubbox">
                     <div class="fm-select clearfix">
-                        <label>Github项目</label>
+                        <label>Github 项目</label>
                         <select id="code_github_list">
                             <option value="-1" data="-1">请选择一个项目</option>
                         </Select>
@@ -280,7 +280,7 @@
                 <p id="waiting">仓库连接中，请稍候......</p>
                 <section id="gitlabbox">
                     <div class="fm-select clearfix">
-                        <label>好雨Git项目</label>
+                        <label>好雨 Git 项目</label>
                         <select id="code_gr_list">
                             <option value="-1" data="-1">请选择一个项目</option>
                         </Select>
@@ -301,16 +301,16 @@
                 <div class="fm-select clearfix">
                     <label>Demo</label>
                     <select id="Democode">
-                        <option value="http://code.goodrain.com/demo/2048.git">http://code.goodrain.com/demo/2048.git</option>
-                        <option value="http://code.goodrain.com/demo/static-hello.git">http://code.goodrain.com/demo/static-hello.git</option>
-                        <option value="http://code.goodrain.com/demo/php-hello.git">http://code.goodrain.com/demo/php-hello.git</option>
-                        <option value="http://code.goodrain.com/demo/python-hello.git">http://code.goodrain.com/demo/python-hello.git</option>
-                        <option value="http://code.goodrain.com/demo/nodejs-hello.git">http://code.goodrain.com/demo/nodejs-hello.git</option>
-                        <option value="http://code.goodrain.com/demo/go-hello.git">http://code.goodrain.com/demo/go-hello.git</option>
-                        <option value="http://code.goodrain.com/demo/java-spring-boot-demo.git">http://code.goodrain.com/demo/java-spring-boot-demo.git</option>
+                        <option value="http://code.goodrain.com/demo/2048.git">2048小游戏</option>
+                        <option value="http://code.goodrain.com/demo/static-hello.git">静态Web：hello worle !</option>
+                        <option value="http://code.goodrain.com/demo/php-hello.git">PHP：hello world !</option>
+                        <option value="http://code.goodrain.com/demo/python-hello.git">Python：hello world !</option>
+                        <option value="http://code.goodrain.com/demo/nodejs-hello.git">node.js：hello world !</option>
+                        <option value="http://code.goodrain.com/demo/go-hello.git">Golang：hello world !</option>
+                        <option value="http://code.goodrain.com/demo/java-spring-boot-demo.git">java-spring-boot-demo</option>
                     </Select>
                 </div>
-                <div class="fm-select clearfix">
+                <div class="fm-select clearfix" style="display: none;">
                     <label>版本</label>
                     <select id="Demobranch">
                         <option value="master">master</option>
@@ -324,19 +324,10 @@
             <div class="infor-fm-box">
                 <h4 class="step-tit">配套信息</h4>
                 <!-- 01 -->
-                <div class="fm-input-radio clearfix">
-                    <label>应用内存</label>
-                    <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
-                    <label class="radio-bg" for="MoneyBefore"></label>
-                    <label for="MoneyBefore" class="radio-text fn-tips" data-tips="预付费采购内存，整体费用相对便宜，但不支持缩容，适用于相对稳定的项目。若要转为每小时扣费，在当前付费周期结束后才会生效。">预付费</label>
-                    <input type="radio" name="Memory" value="After" id="MoneyAfter" />
-                    <label class="radio-bg"  for="MoneyAfter"></label>
-                    <label for="MoneyAfter" class="radio-text fn-tips" data-tips="内存按小时扣费，单价略高，但支持随时扩容和缩容，适用于高速发展中的项目。可转为预付费模式，即时生效。">每小时扣费</label>
-                </div>
                 <div class="fm-input-range clearfix fn-memory-node">
-                    <label>单节点内存</label>
+                    <label>应用单节点内存</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G；付费用户单应用内存最大8G，总内存无限制；">
+                    <p class="range-box nouser fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户单应用内存最大8G，总内存无限制。">
                         <span class="renge-bg"></span>
                         <span class="range-choose fn-tips"><cite id="OneMemoryWid"></cite></span>
                         <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="128"／>
@@ -356,7 +347,7 @@
                 <div class="fm-input-range clearfix fn-memory-node" style="padding-bottom:30px;">
                     <label>节点数</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser02 fn-tips" data-tips="新用户单应用只能创建1个节点；付费用户最多可创建100个节点；">
+                    <p class="range-box nouser02 fn-tips" data-tips="新用户单应用只能创建1个节点，付费用户可创建100个节点。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="NodeWid"></cite></span>
                         <input type="range" min="1" max="1"  step="1" id="NodeNum" value="1"／>
@@ -373,6 +364,15 @@
                     {% endif %}
                     <span><cite id="NodeText">1</cite>个</span>
                 </div>
+                <div class="fm-input-radio clearfix">
+                    <label>内存使用方式</label>
+                    <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
+                    <label class="radio-bg" for="MoneyBefore"></label>
+                    <label for="MoneyBefore" class="radio-text fn-tips" data-tips="预付费采购内存，整体费用相对便宜，但不支持缩容，适用于相对稳定的项目。若要转为每小时扣费，在当前付费周期结束后才会生效。">预付费</label>
+                    <input type="radio" name="Memory" value="After" id="MoneyAfter" />
+                    <label class="radio-bg"  for="MoneyAfter"></label>
+                    <label for="MoneyAfter" class="radio-text fn-tips" data-tips="内存按小时扣费，单价略高，但支持随时扩容和缩容，适用于高速发展中的项目。可转为预付费模式，即时生效。">每小时扣费</label>
+                </div>
                 <!-- 02 -->
                 <div class="fm-choose-box clearfix">
                     <label>磁盘存储</label>
@@ -382,7 +382,7 @@
                     </div>
                 </div>
                 <div class="fm-input-radio clearfix">
-                    <label>使用方式</label>
+                    <label>磁盘使用方式</label>
                     <input type="radio" name="Disk" value="DiskBefore" id="DiskBefore" checked="true" />
                     <label class="radio-bg" for="DiskBefore"></label>
                     <label for="DiskBefore" class="radio-text fn-tips" data-tips="提前定额采购存储，整体费用相对便宜，但不支持缩容，适用于相对稳定的项目。若要转为按使用付费，在当前付费周期结束后才会生效。">提前定额购买</label>
@@ -391,9 +391,9 @@
                     <label for="DiskAfter" class="radio-text fn-tips" data-tips="存储按小时扣费，单价略贵，由于存储量是逐步增多的，所以仍然很合算，适用于发展中的项目。可转为预付费模式，即时生效。">按使用每小时扣费</label>
                 </div>
                 <div class="fm-input-range clearfix fn-disk" style="padding-bottom:30px;">
-                    <label>购买容量</label>
+                    <label>购买额度</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser02 fn-tips" data-tips="新用户单应用存储容量最大1G；付费用户最大1000G；">
+                    <p class="range-box nouser02 fn-tips" data-tips="新用户单应用可购买容量最大1G，付费用户最大1000G。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="DiskWid"></cite></span>
                         <input type="range" min="1" max="1"  step="1" id="Disk" value="1"／>
@@ -466,11 +466,11 @@
                 </div>
                 <div class="fm-money clearfix">
                     <label>应用购买费用</label>
-                    <span class="fn-tips"  data-tips="创建和调试应用时，无需支付费用，在应用正常运行后，才会提请您支付该费用。"><cite id="need-money">123.00</cite>元</span>
+                    <span class="fn-tips"  data-tips="创建和调试应用时，无需支付费用，应用正常运行后才会提请您支付该费用。"><cite id="need-money">123.00</cite>元</span>
                 </div>
                 <div class="fm-aft-money clearfix">
                     <label>按小时结算项</label>
-                    <p><span id="aft-memory-box" style="display: none;" class="fn-tips" data-tips="创建和调试应用时，内存是免费的，在应用正常运行后，才会按小时扣除费用，请保持您的账户有一定的可用额度。">内存<cite id="aft-memory"></cite>元/GB·小时；</span><span id="aft-disk-box" style="display: none;" class="fn-tips" data-tips="创建和调试应用时，磁盘是免费的，在应用正常运行后，才会按小时扣除费用，请保持您的账户有一定的可用额度。">磁盘<cite id="aft-disk"></cite>元/GB·小时；</span><span id="aft-net-box" class="fn-tips" data-tips="创建和调试应用时，流量是免费的，在应用正常运行后，才会按小时扣除费用，请保持您的账户有一定的可用额度。">流量<cite id="aft-net"></cite>元/GB</span></p>
+                    <p><span id="aft-memory-box" style="display: none;" class="fn-tips" data-tips="创建和调试应用时，内存是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">内存<cite id="aft-memory"></cite>元/GB·小时；</span><span id="aft-disk-box" style="display: none;" class="fn-tips" data-tips="创建和调试应用时，磁盘是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">磁盘<cite id="aft-disk"></cite>元/GB·小时；</span><span id="aft-net-box" class="fn-tips" data-tips="创建和调试应用时，流量是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">流量<cite id="aft-net"></cite>元/GB</span></p>
                 </div>
                 <div class="fm-btn clearfix">
                     <a class="greenbtn" id="BtnFirst" style="cursor: pointer;">免费创建应用</a>
