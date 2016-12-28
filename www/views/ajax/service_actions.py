@@ -106,7 +106,7 @@ class AppDeploy(AuthedView):
             body["operator"] = str(self.user.nick_name)
 
             envs = {}
-            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY","SBT_EXTRAS_OPTS"))
+            buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
             for benv in buildEnvs:
                 envs[benv.attr_name] = benv.attr_value
             body["envs"] = json.dumps(envs)
@@ -266,7 +266,7 @@ class ServiceManage(AuthedView):
                 TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
                 TenantServicesPort.objects.filter(service_id=self.service.service_id).delete()
                 TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
-                ServiceGroupRelation.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).delete()
+                ServiceGroupRelation.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
@@ -957,10 +957,10 @@ class ServicePort(AuthedView):
             if not success:
                 return JsonResponse({"success": False, "info": reason, "code": 400}, status=400)
             else:
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port, is_outer_service=True).count()>0:
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port, is_outer_service=True).count() > 0:
                     return JsonResponse({"success": False, "code": 400, "info": u"请关闭对外服务"}, status=400)
             
-                if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port, is_inner_service=True).count()>0:
+                if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=deal_port.container_port, is_inner_service=True).count() > 0:
                     return JsonResponse({"success": False, "code": 400, "info": u"请关闭对内服务"}, status=400)
             
                 old_port = deal_port.container_port
@@ -974,12 +974,12 @@ class ServicePort(AuthedView):
 
             if action == 'close_outer' or action == 'open_outer':
                 # 兼容旧的服务单端口
-                if self.service.port_type=="one_outer":
+                if self.service.port_type == "one_outer":
                     # 检查服务已经存在对外端口
                     outer_port_num = TenantServicesPort.objects.filter(service_id=self.service.service_id,
                                                                        is_outer_service=True).count()
                     if outer_port_num > 1:
-                        cur_port_type="multi_outer"
+                        cur_port_type = "multi_outer"
                         self.service.port_type = cur_port_type
                         self.service.save()
 
@@ -1136,10 +1136,10 @@ class ServiceNewPort(AuthedView):
             if num > 0:
                 return JsonResponse({"success": False, "code": 409, "info": u"请先解绑该端口绑定的域名"})
             
-            if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port, is_outer_service=True).count()>0:
+            if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port, is_outer_service=True).count() > 0:
                 return JsonResponse({"success": False, "code": 409, "info": u"请关闭对外服务"})
             
-            if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port, is_inner_service=True).count()>0:
+            if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port, is_inner_service=True).count() > 0:
                 return JsonResponse({"success": False, "code": 409, "info": u"请关闭对内服务"})
             
             
@@ -1236,7 +1236,11 @@ class ServiceVolumeView(AuthedView):
                             result["status"] = "failure"
                             result["code"] = "306"
                             return JsonResponse(result)
-
+                
+                if self.service.host_path is None or self.service.host_path == "":
+                    self.service.host_path = "/grdata/tenant/" + self.service.tenant_id + "/service/" + self.service.service_id
+                    self.service.save()
+                    
                 volume_id = baseService.create_service_volume(self.service, volume_path)
                 if volume_id:
                     result["volume"] = {
@@ -1299,12 +1303,12 @@ class ContainerStatsView(AuthedView):
 class ServiceNameChangeView(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
-        new_service_cname = request.POST.get("new_service_cname","")
+        new_service_cname = request.POST.get("new_service_cname", "")
         service_alias = request.POST.get("service_alias")
         result = {}
         try:
             if new_service_cname.strip() != "":
-                TenantServiceInfo.objects.filter(service_alias=service_alias,tenant_id=self.tenant.tenant_id).update(service_cname=new_service_cname)
+                TenantServiceInfo.objects.filter(service_alias=service_alias, tenant_id=self.tenant.tenant_id).update(service_cname=new_service_cname)
                 result["ok"] = True
                 result["info"] = "修改成功"
                 result["new_service_cname"] = new_service_cname
