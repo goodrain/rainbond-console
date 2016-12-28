@@ -12,6 +12,7 @@ function service_update(tenantName, service_key, app_version, update_version) {
 
 //创建应用
 $(function(){
+    /*
     $('#create_service_name').blur(function(){
         var appName = $(this).val(),
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
@@ -25,7 +26,7 @@ $(function(){
         }
     });
     //第一步
-    /*
+    
     $('#back_service_step1').click(function(){
         var appName = $('#create_service_name').val(),
             checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/,
@@ -529,6 +530,57 @@ $(function(){
 
     }); 
     /// 从应用提交
+    ///
+    $("#back_service_step2").click(function(){
+        var sel_val = $("#dependency_service option:selected").attr("value");
+        ///
+         $("#back_service_step2").attr('disabled', true);
+        var tenantName= $('#currentTeantName').val();
+        $.ajax({
+            type : "post",
+            url : "/apps/" + tenantName + "/app-create/",
+            data : {
+                "sel_val" : sel_val
+            },
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "exist") {
+                    swal("服务名已存在");
+                } else if (dataObj["status"] == "owed"){
+                    swal("余额不足请及时充值")
+                } else if (dataObj["status"] == "expired"){
+                    swal("试用已到期")
+                } else if (dataObj["status"] == "over_memory") {
+                    swal("资源已达上限，不能创建");
+                } else if (dataObj["status"] == "over_money") {
+                    swal("余额不足，不能创建");
+                } else if (dataObj["status"] == "empty") {
+                    swal("应用名称不能为空");
+                }else if (dataObj["status"] == "code_from") {
+                    swal("应用资源库未选择");
+                }else if (dataObj["status"] == "code_repos") {
+                    swal("代码仓库异常");
+                }else if (dataObj["status"] == "success") {
+                    service_alias = dataObj["service_alias"]
+                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
+                } else {
+                    swal("创建失败");
+                }
+                $("#back_service_step2").attr('disabled', false);
+            },
+            error : function() {
+                swal("系统异常,请重试");
+                $("#BtnFirst").attr('disabled', false);
+            }
+        });
+        ///
+    });
+    ///
     ////tips
     $(".fn-tips").mouseover(function(){
         var tips = $(this).attr("data-tips");

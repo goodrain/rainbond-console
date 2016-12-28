@@ -13,7 +13,149 @@
 
 <section class="wrapper site-min-height">
     <section class="main-box">
-        
+        <h3 class="main-tit">创建{{service.service_name}}</h3>
+        <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+            <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+            <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
+            <input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
+            <!-- -->
+            <input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price" value="{{pre_paid_memory_price}}">
+            <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price" value="{{post_paid_memory_price}}">
+            <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price" value="{{pre_paid_disk_price}}">
+            <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price" value="{{post_paid_disk_price}}">
+            <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
+            <!-- -->
+            <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
+            <!-- -->
+            <h4 class="column-tit">端口管理</h4>
+            <table class="tab-box">
+                <thead>
+                    <tr>
+                        <th>容器端口</th>
+                        <th>协议</th>
+                        <th>对内服务</th>
+                        <th>外部服务</th>
+                    </tr>
+                </thead>
+                <tbody class="port">
+                    <tr data-port="5000port">
+                        <td>
+                           500
+                        </td>
+                        <td>
+                            http
+                        </td>
+                        <td>
+                            <div class="checkbox">
+                                <input type="checkbox" name="" value="" id="5000inner" checked="true" disabled="true" />
+                                <label class="check-bg" for="5000inner"></label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="checkbox">
+                                <input type="checkbox" name="" value="" id="5000outer" disabled="true"  />
+                                <label class="check-bg" for="5000outer"></label>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <!-- -->
+            <h4 class="column-tit">服务依赖</h4>
+            <div class="infor-fm-box">
+                 <div class="fm-select clearfix">
+                    {% if dependecy_services %}
+                        {% for key, deployed_services in dependecy_services.items %}
+                        <label for="inputSuccess">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}服务</label>
+                            <select name="dependency_service" id="dependency_service">
+                                <option value="__new__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">新建</option>
+                                {% if deployed_services %}
+                                {% for d_service in deployed_services %}
+                                <option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}">{{d_service.service_cname}}</option>
+                                {% endfor %}
+                                {% endif %}
+                            </select>
+                        {% endfor %}   
+                    {% endif %}
+                </div>
+            </div>
+            <!-- -->
+            <h4 class="column-tit">持久化目录</h4>
+            <table class="tab-box">
+                <thead>
+                    <tr>
+                        <th>应用名</th>
+                        <th>持久化目录</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                           myapp
+                        </td>
+                        <td>
+                           /mnt/gr17fcec
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                           myapp
+                        </td>
+                        <td>
+                           /mnt/gr17fcec
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                           myapp
+                        </td>
+                        <td>
+                           /mnt/gr17fcec
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <!-- -->
+            <h4 class="column-tit">环境变量</h4>
+            <table class="tab-box">
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>变量名</th>
+                        <th>值</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                           myapp
+                        </td>
+                        <td>
+                           myapp
+                        </td>
+                        <td>
+                           132123
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                           myapp
+                        </td>
+                        <td>
+                           myapp
+                        </td>
+                        <td>
+                           132123
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="infor-fm-box">
+                <div class="fm-btn clearfix">
+                    <button class="greenbtn" id="back_service_step2" style="cursor: pointer;">下一步</button>
+                </div>
+            </div>
+        </form>
     </section>
 </section>
 <script type="text/javascript">
