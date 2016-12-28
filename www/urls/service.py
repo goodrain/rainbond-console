@@ -37,6 +37,8 @@ urlpatterns = patterns(
 
     url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra/?$', ServiceDeployExtraView.as_view()),
 
+    url(r'^/(?P<serviceAlias>[\w\-]+)/deploy/setting/?$', ServiceDeploySettingView.as_view()),
+
     url(r'^/service/$', login_required(ServiceMarket.as_view())),
 
     url(r'^/service-deploy/$', login_required(ServiceMarketDeploy.as_view())),

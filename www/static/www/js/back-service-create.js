@@ -467,12 +467,7 @@ $(function(){
         var appname = $("#create_name").val();
         var groupname = $("#group-name option:selected").html();
         var groupid = $("#group-name option:selected").attr("value");
-        var service_code_from = "gitlab_new";
         var myWay = $(".fn-way").attr("data-action");
-        var code_url;
-        var code_id;
-        var code_branch;
-        var code_branch_id;
         var memory_onoff = $("#MoneyBefore").prop("checked");
         var disk_onoff = $("#DiskBefore").prop("checked");
         if(memory_onoff == true && disk_onoff == true){
@@ -507,11 +502,15 @@ $(function(){
         ///
         $("#back_service_step1").attr('disabled', true);
         var tenantName= $('#currentTeantName').val();
+        var service_key = $("#service_key").val();
+        var app_version = $("#app_version").val();
         $.ajax({
             type : "post",
             url : "/apps/" + tenantName + "/service-deploy/",
             data : {
                 "create_app_name" : appname,
+                "service_key" : service_key,
+                "app_version" :app_version,
                 "groupname" : groupname,
                 "select_group_id" : groupid,
                 "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
@@ -528,8 +527,8 @@ $(function(){
             },
             success : function(msg) {
                 var dataObj = msg;
-                if (dataObj["status"] == "exist") {
-                    swal("服务名已存在");
+                if (dataObj["status"] == "notexist"){
+                    swal("所选的服务类型不存在");
                 } else if (dataObj["status"] == "owed"){
                     swal("余额不足请及时充值")
                 } else if (dataObj["status"] == "expired"){
@@ -539,14 +538,10 @@ $(function(){
                 } else if (dataObj["status"] == "over_money") {
                     swal("余额不足，不能创建");
                 } else if (dataObj["status"] == "empty") {
-                    swal("应用名称不能为空");
-                }else if (dataObj["status"] == "code_from") {
-                    swal("应用资源库未选择");
-                }else if (dataObj["status"] == "code_repos") {
-                    swal("代码仓库异常");
+                    swal("服务名称不能为空");
                 }else if (dataObj["status"] == "success") {
                     service_alias = dataObj["service_alias"]
-                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
+                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/deploy/setting/";
                 } else {
                     swal("创建失败");
                 }
