@@ -117,14 +117,14 @@
             </table>
             <!-- -->
             <h4 class="column-tit">环境变量</h4>
-            <table class="tab-box">
+            <table class="tab-box ">
                 <thead>
                     <tr>
                         <th>变量名称</th>
                         <th>变量值</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="tb">
                    {% for env in envs %}
                     <tr>
                         <td name="attr_name">{{env.attr_name}}</td>
