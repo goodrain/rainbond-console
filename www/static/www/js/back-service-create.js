@@ -289,12 +289,9 @@ $(function(){
     
    
     var small_memory = $("#small-memory").attr("value");
+    console.log(small_memory);
     var is_tenant_free = $("#is_tenant_free").attr("value");
-    if(is_tenant_free == "True"){
-        if(small_memory > 1024){
-            swal("免费用户应用内存最多1G！");
-        }
-    }
+    console.log(is_tenant_free);
     console.log(1);
     if(small_memory >= 1024){
         console.log(2);
@@ -303,6 +300,12 @@ $(function(){
         console.log(3);
         $("#OneMemoryText").html(small_memory + "M");
     }
+    if(is_tenant_free == "True"){
+        if(small_memory > 1024){
+            swal("免费用户应用内存最多1G！");
+        }
+    }
+    
     $("#OneMemoryText").html(small_memory + "M");
     $("#OneMemory").attr("min",small_memory);
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",small_memory);
