@@ -1,5 +1,44 @@
 /*ljh 2016-12-09*/
 /*两个表格部分*/
+table{
+    width: 100%;
+    border-collapse: collapse;
+    color: #838383;
+    border-top:1px solid #ececec;
+    border-bottom: 1px solid #ececec;
+}
+/*表格标题*/
+table caption{
+    padding: 10px 13px;
+    font-size: 18px;
+    color: #303030;
+}
+/*表格中的a标签交互样式*/
+table a:link{
+    color: #28cb75;
+    text-decoration: underline;
+}
+table a:hover{
+    cursor: pointer;
+}
+/*表格th的大小与背景色*/
+table th{
+    border-top:1px solid #ececec;
+    border-bottom: 1px solid #ececec;
+    background-color: #f7f7f7;
+    font-size: 16px;
+    color: #303030;
+    height: 40px;
+}
+/*表格td的大小60px与颜色*/
+table td{
+    border-top:1px solid #ececec;
+    border-bottom: 1px solid #ececec;
+    background-color: #ffffff;
+    color: #838383;
+    font-size: 14px;
+    height: 60px;
+}
 .cost{
     background-color: #f0f5f8;
     overflow: hidden;
