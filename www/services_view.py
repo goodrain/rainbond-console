@@ -475,6 +475,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 else:
                     context["show_git"] = True
 
+            elif fr == "cost":
+                pass
+
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 

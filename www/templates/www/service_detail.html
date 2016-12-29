@@ -51,6 +51,9 @@
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1?fr=share">分享</a>
                 </li>
                 {% endif %}
+                <li {% if fr = "cost" %} class="active" {% endif %}>
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=cost">费用</a>
+                </li>
             </ul>
         </header>
 
@@ -68,6 +71,8 @@
                 {% include 'www/include/tab_settings.html' %}
                 {% elif fr == "resource" %}
                 {% include 'www/resource/monitorDetail.html' %}
+                {% elif fr == "cost" %}
+                {% include 'www/include/tab_cost.html' %}
                 {% endif %}
             </div>
         </div>
