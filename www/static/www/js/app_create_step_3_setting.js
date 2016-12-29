@@ -134,6 +134,7 @@ $(function () {
                     str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue value'+(len+1)+'">'+$(".enviroValue").val()+'</a></td>';
                     str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                     $(str).appendTo(".enviroment");
+                    $(".enviroName").val('');
                     $(".enviroKey").val('');
                     $(".enviroValue").val('');
                     $(".addContent").css({"display":"none"});
@@ -141,7 +142,7 @@ $(function () {
                     editPort();
                 }
                 else{
-                    swal("变量名只能由大写字母与数字组成～～");
+                    swal("变量名由大写字母开头，可以加入数字～～");
                 }
             }
         }
