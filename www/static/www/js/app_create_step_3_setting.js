@@ -3,10 +3,20 @@ $(function () {
     $(".openAdd").on("click",function(){
         $(".addPort").css({"display":"table-row"});
     });
+    $(".add_port").onblur(function(){
+        var portNum = parseInt($(".add_port").val());
+        if( portNum>1024 && portNum<65536 )
+        {
+            $(this).parents('tr').find('p.checkTip').css({"display":"none"});
+        }
+        else{
+            $(this).parents('tr').find('p.checkTip').css({"display":"block"});
+        }
+    })
     //确定添加端口号
     $(".add").on("click",function(){
         var portNum = parseInt($(".add_port").val());
-        if( portNum>1025 && portNum<65535 )
+        if( portNum>1024 && portNum<65536 )
         {
             var addOnoff = true;
             var portLen = $(".portNum").length;
@@ -62,7 +72,7 @@ $(function () {
             }
         }
         else{
-            swal("请输入正确的端口号～～");
+            $(this).parents('tr').find('p.checkTip').css({"display":"block"});
         }
         $(".add_port").val("");
     });
@@ -111,6 +121,16 @@ $(function () {
     //显示添加环境变量内容
     $(".openAddEnviroment").on("click",function(){
         $(".addContent").css({"display":"table-row"});
+    });
+    $(".enviroKey").onblur(function(){
+        var variableReg = /^[A-Z][A-Z0-9_]*$/;
+        if( variableReg.test($(".enviroKey").val()) )
+        {
+            $(this).parent().find("p.checkTip").css({"display":"none"});
+        }
+        else{
+            $(this).parent().find("p.checkTip").css({"display":"block"});
+        }
     });
     $(".addEnviroment").on("click",function(){
         if( $(".enviroKey").val() && $(".enviroValue").val() )
@@ -197,6 +217,15 @@ $(function () {
     //新设持久化目录
     $(".addCata").on("click",function(){
         $("p.catalogue").css({"display":"block"});
+    })
+    $(".catalogueContent").onblur(function(){
+        if( $(".catalogueContent").val() )
+        {
+            $(this).parent().find(".checkTip").css({"display":"none"});
+        }
+        else{
+            $(this).parent().find(".checkTip").css({"display":"block"});
+        }
     })
     $(".addCatalogue").on("click",function(){
         if( $(".catalogueContent").val() )

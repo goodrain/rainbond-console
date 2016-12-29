@@ -72,6 +72,12 @@ table.tab-box td.openAdd,table.tab-box td.openAddEnviroment{text-align: center;}
 .applicationMes p{ font-size: 12px;}
 
 
+.checkTip{
+ color: #ea1616;
+ display: none;
+}
+
+
 
 
 

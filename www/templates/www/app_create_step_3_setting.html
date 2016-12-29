@@ -72,6 +72,7 @@
                 <tr class="addPort">
                     <td>
                         <input type="number" class="add_port fn-tips" data-tips="为了保证安全，服务端口支持范围为 1025~65535，如您的编码中提供对外服务端口不在此范围内，请修改编码。">
+                        <p class="checkTip">请输入正确的端口号</p>
                     </td>
                     <td>
                         <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
@@ -130,6 +131,7 @@
                     </ul>
                     <p class="catalogue">
                         /app/<input type="text" class="catalogueContent">
+                        <span class="checkTip" style="margin-left: 20px">请输入目录</span>
                         <span class="addCatalogue lit-btn-green"><i class="fa fa-check"></i></span>
                         <span class="noAddCatalogue lit-btn-red"><i class="fa fa-times"></i></span>
                     </p>
@@ -159,6 +161,7 @@
                     </td>
                     <td>
                         <input type="text" class="enviroKey">
+                        <p class="checkTip">变量名由大写字母开头，可以加入数字</p>
                     </td>
                     <td>
                         <input type="text" class="enviroValue">
