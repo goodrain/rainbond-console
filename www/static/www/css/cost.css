@@ -40,9 +40,7 @@ table td{
     height: 60px;
 }
 .cost{
-    background-color: #f0f5f8;
     overflow: hidden;
-    padding: 20px;
 }
 /*计费方式表格*/
 .cost-fun{
