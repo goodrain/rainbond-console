@@ -847,9 +847,24 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
 
-        dependency_services = request.POST.get("dep_list","")
-        envs = request.POST.get("envs","")
+        dependency_services = json.loads(request.POST.get("dep_list","[]"))
+        envs = json.loads(request.POST.get("envs",""))
+        service_env = []
+        for env in envs:
+            s_env = AppServiceEnv()
+            s_env.attr_name = env["attr_name"]
+            s_env.attr_value = env["attr_value"]
+            service_env.append(s_env)
+        envs = service_env
+
         try:
+            result = {}
+
+            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id, self.user)
+            if not success:
+                result["status"] = "failure"
+                return JsonResponse(result, status=200)
+
             exist_t_services = []
             for str in dependency_services:
                 if str != "":
@@ -861,17 +876,17 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
                     exist_t_s = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=service_alias)
                     exist_t_services.append(exist_t_s)
 
+
             # 根据已有服务创建依赖关系
             if exist_t_services:
                 for t_service in exist_t_services:
                     try:
+                        pass
                         baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, t_service.service_id, self.response_region)
                     except Exception as e:
                         logger.exception(e)
 
             source_service = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
-
-            envs = json.loads(envs)
 
             self.copy_envs(source_service, envs)
             self.copy_ports(source_service)
@@ -886,9 +901,13 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
             baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name, dep_sids=json.dumps(dep_sids))
             monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
 
-
+            result["status"] = "success"
+            result["next_url"] = next_url = '/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias)
         except Exception as e:
             logger.exception(e)
+            result["status"] = "failure"
+        return JsonResponse(result,status=200)
+
 
 
 

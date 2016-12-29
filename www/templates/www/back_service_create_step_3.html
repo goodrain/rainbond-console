@@ -173,23 +173,12 @@
                      var dataObj = msg;
                      if (dataObj["status"] == "depend_service_notexsit") {
                          swal("依赖的服务不存在");
-                     } else if (dataObj["status"] == "owed"){
-                         swal("余额不足请及时充值")
-                     } else if (dataObj["status"] == "expired"){
-                         swal("试用已到期")
-                     } else if (dataObj["status"] == "over_memory") {
-                         swal("资源已达上限，不能创建");
-                     } else if (dataObj["status"] == "over_money") {
-                         swal("余额不足，不能创建");
-                     } else if (dataObj["status"] == "empty") {
+                     }else if (dataObj["status"] == "empty") {
                          swal("应用名称不能为空");
                      }else if (dataObj["status"] == "not_have_dep_service") {
                          swal("依赖的服务尚未创建,请先创建依赖的服务");
-                     }else if (dataObj["status"] == "code_repos") {
-                         swal("代码仓库异常");
                      }else if (dataObj["status"] == "success") {
-                         service_alias = dataObj["service_alias"]
-                         window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
+                         window.location.href = dataObj["next_url"];
                      } else {
                          swal("创建失败");
                      }
