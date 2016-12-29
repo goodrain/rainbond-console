@@ -6,7 +6,7 @@ $(function () {
     //确定添加端口号
     $(".add").on("click",function(){
         var portNum = parseInt($(".add_port").val());
-        if( portNum>0 && portNum<65535 )
+        if( portNum>1025 && portNum<65535 )
         {
             var addOnoff = true;
             var portLen = $(".portNum").length;
@@ -20,23 +20,23 @@ $(function () {
             }
             if( addOnoff )
             {
-                var arr = ['http','stream'];
-                var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port">'+$(".add_port").val()+'</a></td>';
+                var arr = ['HTTP','非HTTP'];
+                var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$(".add_port").val()+'</a></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
+                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
+                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
                 }
                 if( $("#addOuter").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
+                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
+                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
-                oTr += '<td><select data-port-http="'+$(".add_port").val()+'http">';
+                oTr += '<td><select class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$(".add_port").val()+'http">';
                 for( var i = 0; i < 2; i++ )
                 {
                     if( $('.add_http').val() == arr[i] )
@@ -53,6 +53,7 @@ $(function () {
                 $(".addPort").css({"display":"none"});
                 delPort();
                 editPort();
+                tip();
                 //detail();
                 //checkDetail();
             }
@@ -227,6 +228,13 @@ $(function () {
             var container_port = $("tbody.port tr").eq(i).find("td").eq(0).children("a").html();
             port_json["container_port"] = container_port
             port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(1).children("select").val();
+            if( port_json["protocol"] == 'HTTP' )
+            {
+                port_json["protocol"] = 'http';
+            }
+            else{
+                port_json["protocol"] = 'stream';
+            }
             port_json["is_inner_service"] = $("tbody.port tr").eq(i).find("td").eq(2).find("input").prop("checked")?1:0;
             port_json["is_outer_service"] = $("tbody.port tr").eq(i).find("td").eq(3).find("input").prop("checked")?1:0;
             port_json["port_alias"] = service_alias.toUpperCase()+container_port;
@@ -283,6 +291,7 @@ $(function () {
             "mnt_list" : JSON.stringify(otherAppNameArr),
             "depend_list" : JSON.stringify(appNameArr)
         }
+        console.log(service_config);
         var service_alias = $("#service_alias").val();
         var tenantName = $("#tenantName").val();
 
@@ -467,48 +476,63 @@ $(function () {
     });
 
        ////tips
-    $(".fn-tips").mouseover(function(){
-        var tips = $(this).attr("data-tips");
-        var pos = $(this).attr("data-position");
-        var x = $(this).offset().left;
-        var y = $(this).offset().top;
-        var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
-        $("body").append(oDiv);
-        var oDivheight = $(".tips-box").height();
-        var oDivwidth = $(".tips-box").width();
-        var othiswid = $(this).width();
-        var othisheight = $(this).height();
-        if(pos){
-            if(pos == "top"){
-                //
-                $(".tips-box").css({"top":y-oDivheight -25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+    tip();
+    function tip(){
+        $(".fn-tips").mouseover(function(){
+            var tips = $(this).attr("data-tips");
+            var pos = $(this).attr("data-position");
+            var x = $(this).offset().left;
+            var y = $(this).offset().top;
+            var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
+            $("body").append(oDiv);
+            var oDivheight = $(".tips-box").height();
+            var oDivwidth = $(".tips-box").width();
+            var othiswid = $(this).width();
+            var othisheight = $(this).height();
+            if(pos){
+                if(pos == "top"){
+                    //
+                    $(".tips-box").css({"top":y-oDivheight -25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("top");
+                    //
+                }else if(pos == "bottom"){
+                    //
+                    $(".tips-box").css({"top":y + othisheight + 25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("bottom");
+                    //
+                }else if(pos == "left"){
+                    $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+                    $(".tips-box").find("cite").addClass("left");
+                }else if(pos == "right"){
+                    $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+                    $(".tips-box").find("cite").addClass("right");
                 }else{
-                    $(".tips-box").css({"left":x});
+                    //
+                    $(".tips-box").css({"top":y-oDivheight -25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("top");
+                    //
                 }
-                 $(".tips-box").find("cite").addClass("top");
-                //
-            }else if(pos == "bottom"){
-                //
-                $(".tips-box").css({"top":y + othisheight + 25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                }else{
-                    $(".tips-box").css({"left":x});
-                }
-                $(".tips-box").find("cite").addClass("bottom");
-                //
-            }else if(pos == "left"){
-                $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
-                 $(".tips-box").find("cite").addClass("left");
-            }else if(pos == "right"){
-                $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
-                 $(".tips-box").find("cite").addClass("right");
             }else{
                 //
                 $(".tips-box").css({"top":y-oDivheight -25});
@@ -519,28 +543,17 @@ $(function () {
                 }else{
                     $(".tips-box").css({"left":x});
                 }
-                 $(".tips-box").find("cite").addClass("top");
+                $(".tips-box").find("cite").addClass("top");
                 //
-            }         
-        }else{
-            //
-            $(".tips-box").css({"top":y-oDivheight -25});
-            if(oDivwidth > othiswid){
-                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-            }else if(oDivwidth < othiswid){
-                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-            }else{
-                $(".tips-box").css({"left":x});
             }
-            $(".tips-box").find("cite").addClass("top");
-            //
-        }
-        
-    });
-    $(".fn-tips").mouseout(function(){
-        $(".tips-box").remove();
-    });
-    ////tips end
+
+        });
+        $(".fn-tips").mouseout(function(){
+            $(".tips-box").remove();
+        });
+        ////tips end
+    }
+
 
 
     //对内、对外服务详情
