@@ -24,17 +24,17 @@ $(function () {
                 var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port">'+$(".add_port").val()+'</a></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label><span class="portDetail innerDetail">详情</span></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label><span class="portDisable">详情</span></div></td>';
                 }
                 if( $("#addOuter").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label><span class="portDetail outerDetail">详情</span></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label><span class="portDisable">详情</span></div></td>';
                 }
                 oTr += '<td><select data-port-http="'+$(".add_port").val()+'http">';
                 for( var i = 0; i < 2; i++ )
@@ -53,6 +53,8 @@ $(function () {
                 $(".addPort").css({"display":"none"});
                 delPort();
                 editPort();
+                detail();
+                checkDetail();
             }
             else{
                 swal("端口号冲突～～");
@@ -70,6 +72,7 @@ $(function () {
     delPort();
     //删除端口号与环境变量
     function delPort(){
+        $("img.rubbish").off("click");
         $("img.rubbish").on("click",function(){
             $(this).parents("tr").remove();
         })
@@ -77,6 +80,7 @@ $(function () {
     delLi();
     //删除依赖与目录
     function delLi(){
+        $("img.delLi").off("click");
         $("img.delLi").on("click",function(){
             $(this).parents("li").remove();
         })
@@ -321,6 +325,7 @@ $(function () {
     //依赖应用相关信息
     appMes();
     function appMes(){
+        $(".appname").off('click');
         $(".appName").on("click",function(){
             var service_id = $(this).attr("data-serviceId");
             console.log(service_id);
@@ -529,4 +534,38 @@ $(function () {
         $(".tips-box").remove();
     });
     ////tips end
+
+    detail();
+    //对内、对外服务详情
+    function detail(){
+        $("span.portDetail").off("click");
+        $("span.portDetail").on("click",function(){
+            if( $(this).className.match("innerDetail") )
+            {
+                console.log("对内详情");
+            }
+            else if( $(this).className.match("outerDetail") )
+            {
+                console.log("对外详情");
+            }
+        })
+    }
+    checkDetail();
+    function checkDetail(){
+        $("input.checkDetail").change(function(){
+            console.log("input改变了");
+            if( $(this).parent().find("span").hasClass("portDetail") )
+            {
+                $(this).parent().find("span").addClass("portDisable");
+                $(this).parent().find("span").removeClass("portDetail");
+                console.log("不能点击详情了");
+            }
+            else if( $(this).parent().find("span").hasClass("portDisable") )
+            {
+                $(this).parent().find("span").addClass("portDetail");
+                $(this).parent().find("span").removeClass("portDisable");
+                console.log("能点击详情了");
+            }
+        })
+    }
 });
