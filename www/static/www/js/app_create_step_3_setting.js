@@ -540,11 +540,11 @@ $(function () {
     function detail(){
         $("span.portDetail").off("click");
         $("span.portDetail").on("click",function(){
-            if( $(this).className.match("innerDetail") )
+            if( $(this).hasClass("innerDetail") )
             {
                 console.log("对内详情");
             }
-            else if( $(this).className.match("outerDetail") )
+            else if( $(this).hasClass("outerDetail") )
             {
                 console.log("对外详情");
             }
