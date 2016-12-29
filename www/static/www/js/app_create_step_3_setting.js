@@ -51,13 +51,10 @@ $(function () {
                 oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
-                setTimeout(function(){
-                    delPort();
-                    editPort();
-                    detail();
-                    checkDetail();
-                },1000);
-
+                delPort();
+                editPort();
+                detail();
+                checkDetail();
             }
             else{
                 swal("端口号冲突～～");
@@ -570,8 +567,7 @@ $(function () {
                 $(this).parent().find("span").removeClass("portDisable");
                 console.log("能点击详情了");
             }
-            setTimeout(detail(),1000);
-
-        })
+        });
+        detail();
     }
 });
