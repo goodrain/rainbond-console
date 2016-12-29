@@ -55,7 +55,7 @@
                         <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
                             <input class="checkDetail" type="checkbox" name="" value="" id="5000outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
                             <label class="check-bg" for="5000outer"></label>
-                            <span {% if port.is_inner_service %}class="portDetail outerDetail" {% else %}class="portDisable" {% endif %}>详情</span>
+                            <span {% if port.is_outer_service %}class="portDetail outerDetail" {% else %}class="portDisable" {% endif %}>详情</span>
                         </div>
                     </td>
                     <td>

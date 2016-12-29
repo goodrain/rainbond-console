@@ -552,7 +552,8 @@ $(function () {
     }
     checkDetail();
     function checkDetail(){
-        $("input.checkDetail").change(function(){
+        $("input.checkDetail").off("click");
+        $("input.checkDetail").on("click",function(){
             console.log("input改变了");
             if( $(this).parent().find("span").hasClass("portDetail") )
             {
