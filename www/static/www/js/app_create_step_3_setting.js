@@ -24,17 +24,17 @@ $(function () {
                 var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port">'+$(".add_port").val()+'</a></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label><span class="portDetail innerDetail">详情</span></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label><span class="portDisable innerDetail">详情</span></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
                 }
                 if( $("#addOuter").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label><span class="portDetail outerDetail">详情</span></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label><span class="portDisable outerDetail">详情</span></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
                 oTr += '<td><select data-port-http="'+$(".add_port").val()+'http">';
                 for( var i = 0; i < 2; i++ )
@@ -53,8 +53,8 @@ $(function () {
                 $(".addPort").css({"display":"none"});
                 delPort();
                 editPort();
-                detail();
-                checkDetail();
+                //detail();
+                //checkDetail();
             }
             else{
                 swal("端口号冲突～～");
@@ -316,7 +316,6 @@ $(function () {
         }else{
             $(".layer-body-bg").css({"left":"-210px;"});
         }
-        
         $(".applicationMes").css({"display":"none"});
         $(".otherApp").css({"display":"none"});
         $(".depend").css({"display":"block"});
@@ -535,41 +534,56 @@ $(function () {
     });
     ////tips end
 
-    detail();
+
     //对内、对外服务详情
-    function detail(){
-        $("span.portDetail").off("click");
-        $("span.portDetail").on("click",function(){
-            console.log($(this));
-            if( $(this).hasClass("innerDetail") && $(this).hasClass("portDetail") )
-            {
-                console.log("对内详情");
-            }
-            else if( $(this).hasClass("outerDetail") && $(this).hasClass("portDetail") )
-            {
-                console.log("对外详情");
-            }
-        })
-    }
-    checkDetail();
-    function checkDetail(){
-        $("input.checkDetail").off("click");
-        $("input.checkDetail").on("click",function(){
-            console.log($(this));
-            if( $(this).parent().find("span").hasClass("portDetail") )
-            {
-                $(this).parent().find("span").addClass("portDisable");
-                $(this).parent().find("span").removeClass("portDetail");
-                console.log("不能点击详情了");
-            }
-            else if( $(this).parent().find("span").hasClass("portDisable") )
-            {
-                $(this).parent().find("span").addClass("portDetail");
-                $(this).parent().find("span").removeClass("portDisable");
-                console.log("能点击详情了");
-            }
-            detail();
-        });
-        detail();
-    }
+    //detail();
+    //function detail(){
+    //    $("span.portDetail").off("click");
+    //    $("span.portDetail").on("click",function(){
+    //        if( $(this).hasClass("innerDetail") && $(this).hasClass("portDetail") )
+    //        {
+    //            console.log("对内详情");
+    //
+    //            var title = '对内服务环境变量';
+    //
+    //
+    //
+    //            $(".visit").css({"display":"block"});
+    //            $(".applicationMes").css({"display":"none"});
+    //            $(".otherApp").css({"display":"none"});
+    //            $(".depend").css({"display":"none"});
+    //            $(".layer-body-bg").css({"display":"block"});
+    //        }
+    //        else if( $(this).hasClass("outerDetail") && $(this).hasClass("portDetail") )
+    //        {
+    //            console.log("对外详情");
+    //
+    //            var title = '外部访问';
+    //
+    //            $(".visit").css({"display":"block"});
+    //            $(".applicationMes").css({"display":"none"});
+    //            $(".otherApp").css({"display":"none"});
+    //            $(".depend").css({"display":"none"});
+    //            $(".layer-body-bg").css({"display":"block"});
+    //        }
+    //    })
+    //}
+    //checkDetail();
+    //function checkDetail(){
+    //    $("input.checkDetail").off("click");
+    //    $("input.checkDetail").on("click",function(){
+    //        if( $(this).parent().find("span").hasClass("portDetail") )
+    //        {
+    //            $(this).parent().find("span").addClass("portDisable");
+    //            $(this).parent().find("span").removeClass("portDetail");
+    //        }
+    //        else if( $(this).parent().find("span").hasClass("portDisable") )
+    //        {
+    //            $(this).parent().find("span").addClass("portDetail");
+    //            $(this).parent().find("span").removeClass("portDisable");
+    //        }
+    //        detail();
+    //    });
+    //    detail();
+    //}
 });
