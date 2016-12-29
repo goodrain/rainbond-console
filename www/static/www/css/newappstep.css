@@ -73,6 +73,17 @@ table.tab-box td.openAdd,table.tab-box td.openAddEnviroment{text-align: center;}
 
 
 
+tbody.port span.portDetail{
+ color: #28cb75;
+ cursor: pointer;
+}
+tbody.port span.portDisable{
+ color: #838383;
+ cursor: not-allowed;
+}
+
+
+
 
 
 

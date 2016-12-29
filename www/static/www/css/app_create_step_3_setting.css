@@ -1,14 +1,7 @@
 
 
 
-tbody.port span.portDetail{
-    color: #28cb75;
-    cursor: pointer;
-}
-tbody.port span.portDisable{
-    color: #838383;
-    cursor: not-allowed;
-}
+
 
 
 /*弹出层*/
