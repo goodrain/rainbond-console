@@ -744,6 +744,34 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
+    def copy_envs(self, source_service, envs):
+        s = self.service
+        baseService = BaseTenantService()
+        has_env = []
+        for env in envs:
+            source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version, attr_name=env.attr_name)
+            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
+                                          env.attr_name, env.attr_value, source_env.is_change, source_env.scope)
+            has_env.append(env.attr_name)
+
+        for sys_env in AppServiceEnv.objects.filter(service_key=s.service_key, app_version=s.version):
+            if sys_env.attr_name not in has_env:
+                baseService.saveServiceEnvVar(s.tenant_id, s.service_id, sys_env.container_port, sys_env.name,
+                                              sys_env.attr_name, sys_env.attr_value, sys_env.is_change, sys_env.scope)
+
+    def copy_ports(self, source_service):
+        AppPorts = AppServicePort.objects.filter(service_key=self.service.service_key, app_version=self.service.version)
+        baseService = BaseTenantService()
+        for port in AppPorts:
+            baseService.addServicePort(self.service, source_service.is_init_accout, container_port=port.container_port, protocol=port.protocol, port_alias=port.port_alias,
+                                       is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
+
+    def copy_volumes(self, tenant_service, source_service):
+        volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key, app_version=source_service.version)
+        for volume in volumes:
+            baseService.add_volume_list(tenant_service, volume.volume_path)
+
+
     def find_dependecy_services(self, serviceObj):
         asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key, app_version=serviceObj.version)
         dependecy_keys = []
@@ -818,7 +846,52 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
-        pass
+
+        dependency_services = request.POST.get("dep_list","")
+        envs = request.POST.get("envs","")
+        try:
+            exist_t_services = []
+            for str in dependency_services:
+                if str != "":
+                    service_alias,service_key,app_version = str.split(":", 2)
+                    if service_alias == "__no_dep_service__":
+                        return JsonResponse({"status":"not_have_dep_service"},status=200)
+                    if ServiceInfo.objects.filter(service_key=service_key, version=app_version).count() == 0:
+                        return JsonResponse({"status":"depend_service_notexsit"})
+                    exist_t_s = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_alias=service_alias)
+                    exist_t_services.append(exist_t_s)
+
+            # 根据已有服务创建依赖关系
+            if exist_t_services:
+                for t_service in exist_t_services:
+                    try:
+                        baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, t_service.service_id, self.response_region)
+                    except Exception as e:
+                        logger.exception(e)
+
+            source_service = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
+
+            envs = json.loads(envs)
+
+            self.copy_envs(source_service, envs)
+            self.copy_ports(source_service)
+            # add volume
+            self.copy_volumes(self.service, source_service)
+
+            dep_sids = []
+            tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
+            for tsr in tsrs:
+                dep_sids.append(tsr.dep_service_id)
+
+            baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name, dep_sids=json.dumps(dep_sids))
+            monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
+
+
+        except Exception as e:
+            logger.exception(e)
+
+
+
 
 
 

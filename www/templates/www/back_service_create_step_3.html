@@ -7,6 +7,9 @@
 <link rel="stylesheet" href='{% static "www/css/base.css" %}' />
 <link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
 {% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/back-service-create.js" %}'></script>
+{% endblock %}
 
 
 {% block main-content%}
@@ -15,6 +18,7 @@
     <section class="main-box">
         <h3 class="main-tit">{{service_key.upper}}完善配置</h3>
         <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+            {% csrf_token %}
             <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
             <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
             <input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
@@ -69,7 +73,7 @@
                     {% if dependecy_services %}
                         {% for key, deployed_services in dependecy_services.items %}
                         <label for="inputSuccess">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}服务</label>
-                            <select name="dependency_service" id="dependency_service">
+                            <select name="dependency_service" class="dependency_service">
                                 {% if deployed_services %}
                                 {% for d_service in deployed_services %}
                                 <option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}" {% if forloop.first %} selected="selected" {% endif %}>{{d_service.service_cname}}</option>
@@ -104,12 +108,13 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <div class="infor-fm-box">
-                <div class="fm-btn clearfix">
-                    <button class="greenbtn" id="back_service_step2" style="cursor: pointer;">下一步</button>
-                </div>
-            </div>
+
         </form>
+        <div class="infor-fm-box">
+            <div class="fm-btn clearfix">
+                <button class="greenbtn" id="back_service_step_two" style="cursor: pointer;">下一步</button>
+            </div>
+        </div>
     </section>
 </section>
 <script type="text/javascript">
