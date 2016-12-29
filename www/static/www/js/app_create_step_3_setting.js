@@ -541,11 +541,11 @@ $(function () {
         $("span.portDetail").off("click");
         $("span.portDetail").on("click",function(){
             console.log($(this));
-            if( $(this).hasClass("innerDetail") )
+            if( $(this).hasClass("innerDetail") && $(this).hasClass("portDetail") )
             {
                 console.log("对内详情");
             }
-            else if( $(this).hasClass("outerDetail") )
+            else if( $(this).hasClass("outerDetail") && $(this).hasClass("portDetail") )
             {
                 console.log("对外详情");
             }
