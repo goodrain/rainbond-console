@@ -1,0 +1,267 @@
+{% extends 'www/raster.html' %}{% load i18n %} {% load goodrain_extras %}
+{% load crispy_forms_tags %}
+{% load staticfiles %}
+
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+{% endblock %}
+
+{% block extrajs %}
+<script src='{% static "www/js/app_create_docker_3.js" %}'></script>
+<script src='{% static "www/js/bootstrap-editable.min.js" %}'></script>
+{% endblock %}
+
+{% block main-content%}
+<section class="wrapper site-min-height">
+    <!-- start -->
+    <section class="main-box">
+        <input type="hidden" id="tenantName" value="{{tenantName}}">
+        <input type="hidden" id="tenantService" value="{{tenantService}}">
+        <input type="hidden" id="service_name" value="{{tenantService.service_cname}}">
+        <input type="hidden" id="service_alias" value="{{tenantService.service_alias}}">
+        <h3 class="main-tit">新建自定义应用</h3>
+        <div class="app-step clearfix">
+            <p class="sed"><span>1</span><cite style="letter-spacing: ">创建应用</cite></p>
+            <p class="sed"><span>2</span><cite>同步代码</cite></p>
+            <p class="sed"><span>3</span><cite>应用设置</cite></p>
+            <p><span>4</span><cite>高级选项</cite></p>
+        </div>
+        <h4 class="column-tit">端口管理</h4>
+        <table class="tab-box">
+            <thead>
+                <tr>
+                    <th>端口</th>
+                    <th>对外服务</th>
+                    <th>外部访问</th>
+                    <th colspan="2">访问方式</th>
+                </tr>
+            </thead>
+            <tbody class="port">
+                {% for port in service_ports %}
+                <tr data-port="5000port">
+                    <td>
+                        <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{port.container_port}}</a>
+                    </td>
+                    <td>
+                        <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
+                            <input class="checkDetail" type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true" {% endif %}/>
+                            <label class="check-bg" for="5000inner"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+                            <input class="checkDetail" type="checkbox" name="" value="" id="5000outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
+                            <label class="check-bg" for="5000outer"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                            <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
+                            <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>
+                        </select>
+                    </td>
+                    <td>
+                        <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="addPort">
+                    <td>
+                        <input type="number" class="add_port fn-tips" data-tips="为了保证安全，服务端口支持范围为 1025~65535，如您的编码中提供对外服务端口不在此范围内，请修改编码。">
+                        <p class="checkTip">请输入正确的端口号</p>
+                    </td>
+                    <td>
+                        <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
+                            <input type="checkbox" name="" value="" id="addInner" checked="fasle" />
+                            <label class="check-bg" for="addInner"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+                            <input type="checkbox" name="" value="" id="addOuter" checked="false" />
+                            <label class="check-bg" for="addOuter"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <select class="add_http fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                            <option>HTTP</option>
+                            <option>非HTTP</option>
+                        </select>
+                    </td>
+                    <td class="operation">
+                        <span class="add lit-btn-green"><i class="fa fa-check"></i></span>
+                        <span class="noAdd lit-btn-red"><i class="fa fa-times"></i></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="openAdd">
+                        <span>新增容器端口</span>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+        <div class="clearfix">
+            <div class="serviceBlock">
+                <h4 class="column-tit">服务依赖</h4>
+                <div class="contentBlock">
+                    <b>依赖的服务：</b>
+                    <p class="tips">点击应用名称，可以查看访问该应用的相关信息</p>
+                    <ul class="clearfix applicationName">
+                        <!--<li>-->
+                            <!--<a href="javascript:void(0);" class="appName">当前应用名</a>-->
+                            <!--<img src="{% static "www/images/rubbish.png" %}" class="delLi"/>-->
+                        <!--</li>-->
+                    </ul>
+                    <p class="blockBottom">
+                        <button class="addDepend">新增依赖</button>
+                    </p>
+                </div>
+            </div>
+            <div class="fileBlock">
+                <h4 class="column-tit">文件存储</h4>
+                <div class="contentBlock">
+                    <b>应用持久化目录：</b>
+                    <p class="tips">当前应用所在目录为/app/，使用持久化目录，请注意路径关系</p>
+                    <ul class="clearfix">
+
+                    </ul>
+                    <p class="catalogue">
+                        /app/<input type="text" class="catalogueContent">
+                        <span class="addCatalogue lit-btn-green"><i class="fa fa-check"></i></span>
+                        <span class="noAddCatalogue lit-btn-red"><i class="fa fa-times"></i></span>
+                        <span class="checkTip" style="margin-left: 20px">请输入目录</span>
+                    </p>
+                    <p class="blockBottom">
+                        <button class="addCata">为当前应用新设持久化目录</button>
+                        <button class="addOtherApp">挂载其他应用的持久化目录</button>
+                    </p>
+                </div>
+            </div>
+            <h4 class="column-tit">环境变量</h4>
+            <table class="tab-box">
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>变量名</th>
+                        <th>值</th>
+                        <th>删除</th>
+                    </tr>
+                </thead>
+                <tbody class="enviroment">
+
+                </tbody>
+                <tfoot>
+                <tr class="addContent">
+                    <td>
+                        <input type="text" class="enviroName">
+                    </td>
+                    <td>
+                        <input type="text" class="enviroKey">
+                        <p class="checkTip">变量名由大写字母开头，可以加入数字</p>
+                    </td>
+                    <td>
+                        <input type="text" class="enviroValue">
+                    </td>
+                    <td class="operation">
+                        <span class="addEnviroment lit-btn-green"><i class="fa fa-check"></i></span>
+                        <span class="noAddEnviroment lit-btn-red"><i class="fa fa-times"></i></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="openAddEnviroment">
+                        <span>新增环境变量</span>
+                    </td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+        <p class="next"><button class="submit">下一步</button></p>
+    </section>
+    <!-- end -->
+</section>
+<!-- layer start -->
+<div class="layer-body-bg">
+    <div class="layer-body">
+        <!-- 01 start -->
+        <div class="depend">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <p class="layer-tit">新增依赖</p>
+            <div class="layer-height-overflow">
+                <ul class="clearfix">
+                    {% for deployTenantService in deployTenantServices %}
+                    <li class="clearfix">
+                         <input id="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" type="checkbox" class="cho-input" value="{{deployTenantService.service_id}}_{{deployTenantService.service_type}}_{{deployTenantService.version}}" data-action="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" data-serviceId="{{deployTenantService.service_id}}">
+                        <label class="cho-bg" for="{{deployTenantService.service_cname}}_{{deployTenantService.version}}"></label>
+                        <label for="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" class="cho-text">{{deployTenantService.service_cname}}_{{deployTenantService.version}}</label>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <p class="bottom">
+                <button class="sureAddDepend btn-success">确认</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+        <!-- 01 end -->
+        <!-- 02 start -->
+        <div class="applicationMes">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <div class="appendDiv layer-height-overflow">
+
+            </div>
+            <p class="bottom">
+                <button class="cancel">关闭</button>
+            </p>
+        </div>
+        <!-- 02 end -->
+        <!-- 03 start -->
+        <div class="otherApp">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <p class="layer-tit">挂载其他应用</p>
+            <div class="layer-height-overflow">
+                <table class="tab-box lit">
+                    <thead>
+                        <tr>
+                            <th>服务名称</th>
+                            <th>共享目录</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tenantSer in tenantServiceList %}
+                        {% if tenantSer.service_alias != tenantService.service_alias and tenantSer.host_path %}
+                        <tr>
+                            <td>{{tenantSer.service_cname}}</td>
+                            <td>/mnt/{{tenantSer.service_alias}}</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="addOther cho-input" data-name="{{tenantSer.service_cname}}" class="cho-input" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}" id="{{tenantSer.service_cname}}">
+                                <label class="cho-bg" for="{{tenantSer.service_cname}}"></label>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        <tr>
+                            <td>ssd</td>
+                            <td>/app/service</td>
+                            <td>
+                                <input type="checkbox" class="addOther cho-input" data-name="ssd" data-path="/app/service" data-otherName="SSD" id="addOther">
+                                <label class="cho-bg" for="addOther"></label>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="bottom">
+                <button class="sureAddOther btn-success">确认</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+        <!-- 03 end -->
+    </div>
+</div>
+<!-- layer end -->
+{% endblock %}
