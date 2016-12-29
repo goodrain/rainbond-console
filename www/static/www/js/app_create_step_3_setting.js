@@ -20,21 +20,8 @@ $(function () {
             }
             if( addOnoff )
             {
-                var newTr = document.createElement("tr");
                 var arr = ['http','stream'];
                 var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port">'+$(".add_port").val()+'</a></td>';
-                oTr += '<td><select data-port-http="'+$(".add_port").val()+'http">';
-                for( var i = 0; i < 2; i++ )
-                {
-                    if( $('.add_http').val() == arr[i] )
-                    {
-                        oTr += '<option selected="selected">'+arr[i]+'</option>';
-                    }
-                    else{
-                        oTr += '<option>'+arr[i]+'</option>';
-                    }
-                }
-                oTr += '</select></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
                     oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
@@ -49,8 +36,19 @@ $(function () {
                 else{
                     oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
-                oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
-                newTr.innerHTML = oTr;
+                oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td>';
+                oTr += '<td><select data-port-http="'+$(".add_port").val()+'http">';
+                for( var i = 0; i < 2; i++ )
+                {
+                    if( $('.add_http').val() == arr[i] )
+                    {
+                        oTr += '<option selected="selected">'+arr[i]+'</option>';
+                    }
+                    else{
+                        oTr += '<option>'+arr[i]+'</option>';
+                    }
+                }
+                oTr += '</select></td></tr>';
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
                 delPort();

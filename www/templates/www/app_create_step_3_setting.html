@@ -210,45 +210,7 @@
         <div class="applicationMes">
             <div class="del" title="关闭"><i class="fa fa-times"></i></div>
             <div class="appendDiv layer-height-overflow">
-                            <!--<ul class="clearfix">-->
-                                <!--<li>应用：abc</li>-->
-                                <!--<li>容器端口：5000</li>-->
-                                <!--<li>端口别名：ABC</li>-->
-                                <!--<p>修改端口别名，会引起对内服务变量名的改变，请记得修改代码中正在使用的变量名。</p>-->
-                            <!--</ul>-->
-                            <!--<h4>对内服务环境变量</h4>-->
-                            <!--<p>其他服务可以直接使用环境变量值访问当前服务。如果想使用环境变量访问，必须指明两个服务之间的依赖关系。</p>-->
-                            <!--<table>-->
-                                <!--<thead>-->
-                                <!--<tr>-->
-                                    <!--<th>环境变量</th>-->
-                                    <!--<th>值</th>-->
-                                    <!--<th>说明</th>-->
-                                <!--</tr>-->
-                                <!--</thead>-->
-                                <!--<tbody>-->
-                                <!--<tr>-->
-                                    <!--<td>xxx-HOST</td>-->
-                                    <!--<td>127.0.0.1</td>-->
-                                    <!--<td>服务地址</td>-->
-                                <!--</tr>-->
-                                <!--<tr>-->
-                                    <!--<td>xxx-POST</td>-->
-                                    <!--<td>1234</td>-->
-                                    <!--<td>服务端口</td>-->
-                                <!--</tr>-->
-                                <!--<tr>-->
-                                    <!--<td>xxx-username</td>-->
-                                    <!--<td>odmin</td>-->
-                                    <!--<td>用户名</td>-->
-                                <!--</tr>-->
-                                <!--<tr>-->
-                                    <!--<td>xxx-PASSWORD</td>-->
-                                    <!--<td>1234</td>-->
-                                    <!--<td>服务端口</td>-->
-                                <!--</tr>-->
-                                <!--</tbody>-->
-                            <!--</table>-->
+
             </div>
             <p class="bottom">
                 <button class="cancel">关闭</button>
@@ -277,13 +239,6 @@
                             <td class="text-center">
                                 <input type="checkbox" class="addOther cho-input" data-name="{{tenantSer.service_cname}}" class="cho-input" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}" id="{{tenantSer.service_cname}}">
                                 <label class="cho-bg" for="{{tenantSer.service_cname}}"></label>
-                                    <!--{% if 'manage_service' in user.actions or user.is_sys_admin %}-->
-                                    <!--{% if tenantSer.service_id not in mntsids %}-->
-                                    <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('add','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">挂载</button>-->
-                                    <!--{% else %}-->
-                                    <!--<button type="button" class="btn btn-danger"  onclick="buid_mnt('cancel','{{tenantServiceInfo.service_alias}}','{{tenantSer.service_alias}}','{{tenantName}}');">取消挂载</button>-->
-                                    <!--{% endif %}-->
-                                    <!--{% endif %}-->
                             </td>
                         </tr>
                         {% endif %}
