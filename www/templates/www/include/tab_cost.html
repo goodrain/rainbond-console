@@ -113,4 +113,108 @@
             </tfoot>
         </table>
     </div>
+    <div class="layer-body-bg">
+        <!--弹层1-->
+        <div class="endDate layer-body">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <div class="layer-height-overflow">
+                修改后付费成功，在当前使用期限(2016-12-12 12：12：12)到期以后生效
+            </div>
+            <p class="bottom">
+                <button class="cancel">关闭</button>
+            </p>
+        </div>
+        <!--弹层2-->
+        <div class="chooseFun layer-body">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
+            <div class="layer-height-overflow">
+
+            </div>
+            <p class="bottom">
+                <button class="sure">付款</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+        <!--弹层3-->
+        <div class="chooseData layer-body">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <h3 class="layer-tit">请选择延期时间</h3>
+            <div class="layer-height-overflow">
+
+            </div>
+            <p class="bottom">
+                <button class="sure">付款</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+        <!--弹层4-->
+        <div class="chooseLarge layer-body">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <h3 class="layer-tit">请选择要实用的内存与节点数</h3>
+            <div class="layer-height-overflow">
+
+            </div>
+            <p class="bottom">
+                <button class="sure">付款</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+    </div>
 </div>
+<script>
+    $(function(){
+        $('.change').on('click',function(){
+            if($(this).parent().find('span').html() == "预付费")
+            {
+                $(this).parent().find('span').html("后付费");
+//				弹出层，告知修改成功
+                $(".endDate").css({"display":"block"});
+                $(".chooseFun").css({"display":"none"});
+                $(".chooseData").css({"display":"none"});
+                $(".chooseLarge").css({"display":"none"});
+                $(".layer-body-bg").css({"display":"block"});
+            }
+            else{
+                $(this).parent().find('span').html("预付费");
+//				弹出层，选择购买配置，付费
+                $(".chooseFun").css({"display":"block"});
+                $(".chooseData").css({"display":"none"});
+                $(".chooseLarge").css({"display":"none"});
+                $(".layer-body-bg").css({"display":"block"});
+            }
+        });
+        //关闭弹出层
+        $(".del").on("click",function(){
+            $(".layer-body-bg").css({"display":"none"});
+        });
+        //扩容
+        $(".larger").on("click",function(){
+            $(".endDate").css({"display":"none"});
+            $(".chooseFun").css({"display":"none"});
+            $(".chooseData").css({"display":"none"});
+            $(".chooseLarge").css({"display":"block"});
+            $(".layer-body-bg").css({"display":"block"});
+        });
+        //延期
+        $(".expand").on("click",function(){
+            $(".endDate").css({"display":"none"});
+            $(".chooseFun").css({"display":"none"});
+            $(".chooseData").css({"display":"block"});
+            $(".chooseLarge").css({"display":"none"});
+            $(".layer-body-bg").css({"display":"block"});
+        });
+        //跳转支付
+        $("button.sure").on("click",function(){
+
+        });
+        //取消，关闭弹出层
+        $("button.cancel").on("click",function(){
+            $(".endDate").css({"display":"none"});
+            $(".layer-body-bg").css({"display":"none"});
+            $(".chooseFun").css({"display":"none"});
+            $(".chooseData").css({"display":"none"});
+            $(".chooseLarge").css({"display":"none"});
+        })
+    });
+</script>
