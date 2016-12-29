@@ -527,6 +527,13 @@ class ServiceDeployExtraView(LeftSideBarMixin, AuthedView):
 
 class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
+        return media
+
     def get_estimate_service_fee(self, service_attach_info):
         """根据附加信心获取服务的预估价格"""
         total_price = 0
@@ -613,10 +620,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
 
-            if tenantAccountService.isExpired(self.tenant, self.service):
-                result["status"] = "expired"
-                return JsonResponse(result, status=200)
-
             service_key = request.POST.get("service_key", None)
             if service_key is None:
                 result["status"] = "notexist"
@@ -626,7 +629,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "notexist"
                 return JsonResponse(result, status=200)
 
-            service_cname = request.POST.get("create_service_name", None)
+            service_cname = request.POST.get("create_app_name", None)
             if service_cname is None:
                 result["status"] = "empty"
                 return JsonResponse(result, status=200)
@@ -721,13 +724,13 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
         except Exception as e:
             logger.exception(e)
-            tempTenantService = TenantServiceInfo.objects.get(service_id=service_id)
+            # tempTenantService = TenantServiceInfo.objects.filter(service_id=service_id)[0]
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
             ServiceGroupRelation.objects.filter(service_id=service_id)
             ServiceAttachInfo.objects.filter(service_id=service_id)
-            monitorhook.serviceMonitor(self.user.nick_name, tempTenantService, 'create_service_error', False)
+            # monitorhook.serviceMonitor(self.user.nick_name, tempTenantService, 'create_service_error', False)
             result["status"] = "failure"
         return JsonResponse(result, status=200)
 
@@ -738,8 +741,48 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
             'www/css/goodrainstyle.css', 'www/js/gr/basic.js', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
-            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/back-service-create.js')
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
+
+    def find_dependecy_services(self, serviceObj):
+        asrlist = AppServiceRelation.objects.filter(service_key=serviceObj.service_key, app_version=serviceObj.version)
+        dependecy_keys = []
+        dependecy_info = {}
+        dependecy_version = {}
+        dependecy_services = {}
+        if len(asrlist) > 0:
+            for asr in asrlist:
+                dependecy_keys.append(asr.dep_service_key)
+                dependecy_info[asr.dep_service_key] = asr.dep_app_alias
+                dependecy_version[asr.dep_service_key] = asr.dep_app_version
+
+        if len(dependecy_keys) > 0:
+            dependecy_services = dict((el, []) for el in dependecy_keys)
+            tenant_id = self.tenant.tenant_id
+            deployTenantServices = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_key__in=dependecy_keys, service_region=self.response_region, service_origin='assistant')
+            if len(deployTenantServices) > 0:
+                for s in deployTenantServices:
+                    dependecy_services[s.service_key].append(s)
+        return dependecy_services, dependecy_info, dependecy_version
+
+    def set_tenant_default_env(self, envs, outer_ports):
+        for env in envs:
+            if env.attr_name == 'SITE_URL':
+                if self.cookie_region in RegionInfo.valid_regions():
+                    port = RegionInfo.region_port(self.cookie_region)
+                    domain = RegionInfo.region_domain(self.cookie_region)
+                    env.options = 'direct_copy'
+                    if len(outer_ports) > 0:
+                        env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, self.serviceAlias, self.tenantName, domain, port)
+                    logger.debug("SITE_URL = {} options = {}".format(env.attr_value, env.options))
+            elif env.attr_name == 'TRUSTED_DOMAIN':
+                if self.cookie_region in RegionInfo.valid_regions():
+                    port = RegionInfo.region_port(self.cookie_region)
+                    domain = RegionInfo.region_domain(self.cookie_region)
+                    env.options = 'direct_copy'
+                    if len(outer_ports) > 0:
+                        env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, self.serviceAlias, self.tenantName, domain, port)
+                    logger.debug("TRUSTED_DOMAIN = {} options = {}".format(env.attr_value, env.options))
 
     @never_cache
     @perm_required('code_deploy')
@@ -749,13 +792,24 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
             self.response_region = choose_region
         context = self.get_context()
         try:
-            envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version, container_port=0, is_change=True)
+            serviceObj = ServiceInfo.objects.get(service_key=self.service.service_key, version=self.service.version)
+            dependecy_services, dependecy_info, dependecy_version = self.find_dependecy_services(serviceObj)
+
+            context["dependecy_services"] = dependecy_services
+            context["dependecy_info"] = dependecy_info
+            context["dependecy_version"] = dependecy_version
+            context["tenantName"] = self.tenantName
+            envs = AppServiceEnv.objects.filter(service_key=self.service.service_key, app_version=self.service.version,
+                                                container_port=0, is_change=True)
             outer_ports = AppServicePort.objects.filter(service_key=self.service.service_key,
                                                         app_version=self.service.version,
                                                         is_outer_service=True,
                                                         protocol='http')
-            context["env"] = envs
+
+            self.set_tenant_default_env(envs, outer_ports)
+            context["envs"] = envs
             context["outer_port"] = outer_ports
+            context["service_alias"] = self.service.service_alias
 
         except Exception as e:
             logger.exception(e)
@@ -765,6 +819,7 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         pass
+
 
 
 

@@ -453,17 +453,17 @@ $(function(){
 
     /// 从应用提交
     //提交 
-    $("#back_service_step1").click(function(){
+    $("#back_service_step1").click(function(event){
         //
+        event.stopPropagation();
         var small_memory = $("#small-memory").attr("value");
         var is_tenant_free = $("#is_tenant_free").attr("value");
         if(is_tenant_free == "True"){
             if(small_memory > 1024){
                 swal("内存不够！");
+                return false;
             }
-            return false;
         }
-        //
         var appname = $("#create_name").val();
         var groupname = $("#group-name option:selected").html();
         var groupid = $("#group-name option:selected").attr("value");
@@ -493,7 +493,7 @@ $(function(){
         }
         if(appname == ""){
             $("#create_name_notice").show();
-            return;
+            return false;
         }else{
             $("#create_name_notice").hide();
         }
@@ -501,7 +501,7 @@ $(function(){
         console.log(appname + "--" + groupname + "--" + groupid  + "///" +  memory_onoff + "--" +  disk_onoff + "///" + memory_num + "--" + node_num + "--" + disk_num + "--" + time_num);
         ///
         $("#back_service_step1").attr('disabled', true);
-        var tenantName= $('#currentTeantName').val();
+        var tenantName= $('#tenantName').val();
         var service_key = $("#service_key").val();
         var app_version = $("#app_version").val();
         $.ajax({
@@ -522,6 +522,19 @@ $(function(){
             },
             cache : false,
             beforeSend : function(xhr, settings) {
+                alert(JSON.stringify({
+                    "create_app_name" : appname,
+                    "service_key" : service_key,
+                    "app_version" :app_version,
+                    "groupname" : groupname,
+                    "select_group_id" : groupid,
+                    "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
+                    "disk_pay_method" : disk_onoff ? "prepaid":"postpaid",
+                    "service_min_memory" : memory_num,
+                    "service_min_node" : node_num,
+                    "disk_num" : disk_num,
+                    "pre_paid_period" : time_num
+                }));
                 var csrftoken = $.cookie('csrftoken');
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
@@ -542,7 +555,9 @@ $(function(){
                 }else if (dataObj["status"] == "success") {
                     service_alias = dataObj["service_alias"]
                     window.location.href = "/apps/" + tenantName + "/" + service_alias + "/deploy/setting/";
-                } else {
+                } else if (dataObj["status"] == "failure"){
+                    swal("创建失败");
+                }else{
                     swal("创建失败");
                 }
                 $("#back_service_step1").attr('disabled', false);
@@ -579,9 +594,11 @@ $(function(){
         ///
          $("#back_service_step2").attr('disabled', true);
         var tenantName= $('#currentTeantName').val();
+        var service_alias = $("#service_alias").val();
+        
         $.ajax({
             type : "post",
-            url : "/apps/" + tenantName + "/app-create/",
+            url : "/apps/" + tenantName + "/" + service_alias + "/deploy/setting/",
             data : {
                 "sel_val" : sel_val,
                 "envs": envs

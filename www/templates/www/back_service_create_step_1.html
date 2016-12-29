@@ -114,6 +114,7 @@
     <section class="main-box">
     	<h3 class="main-tit">创建{{service.service_name}}</h3>
     	<form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+            {% csrf_token %}
     		<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
 			<input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
 			<input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
@@ -297,12 +298,16 @@
                     <label>按使用后付费</label>
                     <p><span id="aft-memory-box" style="display: none;">内存<cite id="aft-memory"></cite>元/GB/小时；</span><span id="aft-disk-box" style="display: none;">磁盘<cite id="aft-disk"></cite>元/GB/小时；</span><span id="aft-net-box">流量<cite id="aft-net"></cite>元/GB/小时</span></p>
                 </div>
-                <div class="fm-btn clearfix">
-                    <button class="greenbtn" id="back_service_step1" style="cursor: pointer;">下一步</button>
-                </div>
+
             </div>
+
+
             <!-- 费用估算 end -->          
     	</form>
+
+        <div class="fm-btn clearfix">
+            <button class="greenbtn" id="back_service_step1" style="cursor: pointer;">下一步</button>
+        </div>
     </section>
     <!-- new end -->
 </section>
