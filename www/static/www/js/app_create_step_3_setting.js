@@ -36,7 +36,6 @@ $(function () {
                 else{
                     oTr += '<td><div class="checkbox"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td>';
                 }
-                oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td>';
                 oTr += '<td><select data-port-http="'+$(".add_port").val()+'http">';
                 for( var i = 0; i < 2; i++ )
                 {
@@ -48,7 +47,8 @@ $(function () {
                         oTr += '<option>'+arr[i]+'</option>';
                     }
                 }
-                oTr += '</select></td></tr>';
+                oTr += '</select></td>';
+                oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
                 delPort();
