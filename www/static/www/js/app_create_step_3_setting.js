@@ -3,7 +3,7 @@ $(function () {
     $(".openAdd").on("click",function(){
         $(".addPort").css({"display":"table-row"});
     });
-    $(".add_port").onblur(function(){
+    $(".add_port").blur(function(){
         var portNum = parseInt($(".add_port").val());
         if( portNum>1024 && portNum<65536 )
         {
@@ -122,7 +122,7 @@ $(function () {
     $(".openAddEnviroment").on("click",function(){
         $(".addContent").css({"display":"table-row"});
     });
-    $(".enviroKey").onblur(function(){
+    $(".enviroKey").blur(function(){
         var variableReg = /^[A-Z][A-Z0-9_]*$/;
         if( variableReg.test($(".enviroKey").val()) )
         {
@@ -218,7 +218,7 @@ $(function () {
     $(".addCata").on("click",function(){
         $("p.catalogue").css({"display":"block"});
     })
-    $(".catalogueContent").onblur(function(){
+    $(".catalogueContent").blur(function(){
         if( $(".catalogueContent").val() )
         {
             $(this).parent().find(".checkTip").css({"display":"none"});
