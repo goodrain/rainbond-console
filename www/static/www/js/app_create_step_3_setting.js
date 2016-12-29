@@ -568,6 +568,7 @@ $(function () {
                 $(this).parent().find("span").removeClass("portDisable");
                 console.log("能点击详情了");
             }
+            detail();
         });
         detail();
     }
