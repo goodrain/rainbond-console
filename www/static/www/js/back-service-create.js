@@ -558,160 +558,160 @@ $(function(){
     }); 
     /// 从应用提交
     ///
-    $("#back_service_step_two").click(function(){
-        alert("Hello !!!!");
-        // var arr = $(".dependency_service");
-        // var len = arr.length;
-        // var deps = [];
-        //
-        // for (var i =0;i<len;i++){
-        //     deps.push($(".dependency_service").eq(i).find("option:selected").attr("value"));
-        // }
-        // var sel_val = deps;
-        // var envs = [];
-        // var flag = false
-        // $('.tb tr').each(function() {
-        //     var env = {};
-        //     $(this).find('[name^=attr]').each(function(event) {
-        //         i = $(this);
-        //         name = $(this).attr('name');
-        //         value = $(this).val() || i.html();
-        //         if (value) {
-        //             env[name] = value;
-        //         } else {
-        //             showMessage("有未填写的内容");
-        //             flag = true
-        //         }
-        //     });
-        //     envs.push(env);
-        // });
-        // ///
-        //  $("#back_service_step2").attr('disabled', true);
-        // var tenantName= $('#currentTeantName').val();
-        // var service_alias = $("#service_alias").val();
-        //
-        // alert("依赖服务:"+sel_val);
-        // alert("环境变量"+envs);
-        // $.ajax({
-        //     type : "post",
-        //     // url : "/apps/" + tenantName + "/" + service_alias + "/deploy/setting/",
-        //     url : "",
-        //     data : {
-        //         "dep_list" : sel_val,
-        //         "envs": envs
-        //     },
-        //     cache : false,
-        //     beforeSend : function(xhr, settings) {
-        //         var csrftoken = $.cookie('csrftoken');
-        //         xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        //     },
-        //     success : function(msg) {
-        //         var dataObj = msg;
-        //         if (dataObj["status"] == "exist") {
-        //             swal("服务名已存在");
-        //         } else if (dataObj["status"] == "owed"){
-        //             swal("余额不足请及时充值")
-        //         } else if (dataObj["status"] == "expired"){
-        //             swal("试用已到期")
-        //         } else if (dataObj["status"] == "over_memory") {
-        //             swal("资源已达上限，不能创建");
-        //         } else if (dataObj["status"] == "over_money") {
-        //             swal("余额不足，不能创建");
-        //         } else if (dataObj["status"] == "empty") {
-        //             swal("应用名称不能为空");
-        //         }else if (dataObj["status"] == "code_from") {
-        //             swal("应用资源库未选择");
-        //         }else if (dataObj["status"] == "code_repos") {
-        //             swal("代码仓库异常");
-        //         }else if (dataObj["status"] == "success") {
-        //             service_alias = dataObj["service_alias"]
-        //             window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
-        //         } else {
-        //             swal("创建失败");
-        //         }
-        //         $("#back_service_step2").attr('disabled', false);
-        //     },
-        //     error : function() {
-        //         swal("系统异常,请重试");
-        //         $("#BtnFirst").attr('disabled', false);
-        //     }
-        // });
-        ///
-    });
-    ///
-    ////tips
-    $(".fn-tips").mouseover(function(){
-        var tips = $(this).attr("data-tips");
-        var pos = $(this).attr("data-position");
-        var x = $(this).offset().left;
-        var y = $(this).offset().top;
-        var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
-        $("body").append(oDiv);
-        var oDivheight = $(".tips-box").height();
-        var oDivwidth = $(".tips-box").width();
-        var othiswid = $(this).width();
-        var othisheight = $(this).height();
-        if(pos){
-            if(pos == "top"){
-                //
-                $(".tips-box").css({"top":y-oDivheight -25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                }else{
-                    $(".tips-box").css({"left":x});
-                }
-                 $(".tips-box").find("cite").addClass("top");
-                //
-            }else if(pos == "bottom"){
-                //
-                $(".tips-box").css({"top":y + othisheight + 25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                }else{
-                    $(".tips-box").css({"left":x});
-                }
-                $(".tips-box").find("cite").addClass("bottom");
-                //
-            }else if(pos == "left"){
-                $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
-                 $(".tips-box").find("cite").addClass("left");
-            }else if(pos == "right"){
-                $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
-                 $(".tips-box").find("cite").addClass("right");
-            }else{
-                //
-                $(".tips-box").css({"top":y-oDivheight -25});
-                if(oDivwidth > othiswid){
-                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-                }else if(oDivwidth < othiswid){
-                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-                }else{
-                    $(".tips-box").css({"left":x});
-                }
-                 $(".tips-box").find("cite").addClass("top");
-                //
-            }         
-        }else{
-            //
-            $(".tips-box").css({"top":y-oDivheight -25});
-            if(oDivwidth > othiswid){
-                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
-            }else if(oDivwidth < othiswid){
-                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
-            }else{
-                $(".tips-box").css({"left":x});
-            }
-            $(".tips-box").find("cite").addClass("top");
-            //
-        }
-        
-    });
-    $(".fn-tips").mouseout(function(){
-        $(".tips-box").remove();
-    });
+    // $("#back_service_step_two").click(function(){
+    //     alert("Hello !!!!");
+    //     // var arr = $(".dependency_service");
+    //     // var len = arr.length;
+    //     // var deps = [];
+    //     //
+    //     // for (var i =0;i<len;i++){
+    //     //     deps.push($(".dependency_service").eq(i).find("option:selected").attr("value"));
+    //     // }
+    //     // var sel_val = deps;
+    //     // var envs = [];
+    //     // var flag = false
+    //     // $('.tb tr').each(function() {
+    //     //     var env = {};
+    //     //     $(this).find('[name^=attr]').each(function(event) {
+    //     //         i = $(this);
+    //     //         name = $(this).attr('name');
+    //     //         value = $(this).val() || i.html();
+    //     //         if (value) {
+    //     //             env[name] = value;
+    //     //         } else {
+    //     //             showMessage("有未填写的内容");
+    //     //             flag = true
+    //     //         }
+    //     //     });
+    //     //     envs.push(env);
+    //     // });
+    //     // ///
+    //     //  $("#back_service_step2").attr('disabled', true);
+    //     // var tenantName= $('#currentTeantName').val();
+    //     // var service_alias = $("#service_alias").val();
+    //     //
+    //     // alert("依赖服务:"+sel_val);
+    //     // alert("环境变量"+envs);
+    //     // $.ajax({
+    //     //     type : "post",
+    //     //     // url : "/apps/" + tenantName + "/" + service_alias + "/deploy/setting/",
+    //     //     url : "",
+    //     //     data : {
+    //     //         "dep_list" : sel_val,
+    //     //         "envs": envs
+    //     //     },
+    //     //     cache : false,
+    //     //     beforeSend : function(xhr, settings) {
+    //     //         var csrftoken = $.cookie('csrftoken');
+    //     //         xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    //     //     },
+    //     //     success : function(msg) {
+    //     //         var dataObj = msg;
+    //     //         if (dataObj["status"] == "exist") {
+    //     //             swal("服务名已存在");
+    //     //         } else if (dataObj["status"] == "owed"){
+    //     //             swal("余额不足请及时充值")
+    //     //         } else if (dataObj["status"] == "expired"){
+    //     //             swal("试用已到期")
+    //     //         } else if (dataObj["status"] == "over_memory") {
+    //     //             swal("资源已达上限，不能创建");
+    //     //         } else if (dataObj["status"] == "over_money") {
+    //     //             swal("余额不足，不能创建");
+    //     //         } else if (dataObj["status"] == "empty") {
+    //     //             swal("应用名称不能为空");
+    //     //         }else if (dataObj["status"] == "code_from") {
+    //     //             swal("应用资源库未选择");
+    //     //         }else if (dataObj["status"] == "code_repos") {
+    //     //             swal("代码仓库异常");
+    //     //         }else if (dataObj["status"] == "success") {
+    //     //             service_alias = dataObj["service_alias"]
+    //     //             window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
+    //     //         } else {
+    //     //             swal("创建失败");
+    //     //         }
+    //     //         $("#back_service_step2").attr('disabled', false);
+    //     //     },
+    //     //     error : function() {
+    //     //         swal("系统异常,请重试");
+    //     //         $("#BtnFirst").attr('disabled', false);
+    //     //     }
+    //     // });
+    //     ///
+    // });
+    // ///
+    // ////tips
+    // $(".fn-tips").mouseover(function(){
+    //     var tips = $(this).attr("data-tips");
+    //     var pos = $(this).attr("data-position");
+    //     var x = $(this).offset().left;
+    //     var y = $(this).offset().top;
+    //     var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
+    //     $("body").append(oDiv);
+    //     var oDivheight = $(".tips-box").height();
+    //     var oDivwidth = $(".tips-box").width();
+    //     var othiswid = $(this).width();
+    //     var othisheight = $(this).height();
+    //     if(pos){
+    //         if(pos == "top"){
+    //             //
+    //             $(".tips-box").css({"top":y-oDivheight -25});
+    //             if(oDivwidth > othiswid){
+    //                 $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+    //             }else if(oDivwidth < othiswid){
+    //                 $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+    //             }else{
+    //                 $(".tips-box").css({"left":x});
+    //             }
+    //              $(".tips-box").find("cite").addClass("top");
+    //             //
+    //         }else if(pos == "bottom"){
+    //             //
+    //             $(".tips-box").css({"top":y + othisheight + 25});
+    //             if(oDivwidth > othiswid){
+    //                 $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+    //             }else if(oDivwidth < othiswid){
+    //                 $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+    //             }else{
+    //                 $(".tips-box").css({"left":x});
+    //             }
+    //             $(".tips-box").find("cite").addClass("bottom");
+    //             //
+    //         }else if(pos == "left"){
+    //             $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+    //              $(".tips-box").find("cite").addClass("left");
+    //         }else if(pos == "right"){
+    //             $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+    //              $(".tips-box").find("cite").addClass("right");
+    //         }else{
+    //             //
+    //             $(".tips-box").css({"top":y-oDivheight -25});
+    //             if(oDivwidth > othiswid){
+    //                 $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+    //             }else if(oDivwidth < othiswid){
+    //                 $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+    //             }else{
+    //                 $(".tips-box").css({"left":x});
+    //             }
+    //              $(".tips-box").find("cite").addClass("top");
+    //             //
+    //         }         
+    //     }else{
+    //         //
+    //         $(".tips-box").css({"top":y-oDivheight -25});
+    //         if(oDivwidth > othiswid){
+    //             $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+    //         }else if(oDivwidth < othiswid){
+    //             $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+    //         }else{
+    //             $(".tips-box").css({"left":x});
+    //         }
+    //         $(".tips-box").find("cite").addClass("top");
+    //         //
+    //     }
+    //    
+    // });
+    // $(".fn-tips").mouseout(function(){
+    //     $(".tips-box").remove();
+    // });
     ////tips end
 });
