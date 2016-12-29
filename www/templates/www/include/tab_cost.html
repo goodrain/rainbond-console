@@ -9,7 +9,7 @@
             <tr>
                 <td></td>
                 <td>内存计费方式：<span>预付费</span><a href="javascript:void(0)" class="change">更改</a></td>
-                <td>当前使用：<span>128MB×2</span><a href="javascript:void(0)" class="large">扩容</a></td>
+                <td>当前使用：<span>128MB×2</span><a href="javascript:void(0)" class="larger">扩容</a></td>
                 <td>上1小时费用：<span>12元</span></td>
                 <td>累计费用：<span>1212元</span></td>
             </tr>
@@ -129,7 +129,15 @@
             <div class="del" title="关闭"><i class="fa fa-times"></i></div>
             <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
             <div class="layer-height-overflow">
-
+                <div class="fm-input-range clearfix">
+                    <label>互联网访问月流量预估</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="TimeLongWid"></cite></span>
+                        <input type="range" min="1" max="999"  step="1" id="TimeLong" value="1"／>
+                    </p>
+                    <span><cite id="TimeLongText">1</cite>G</span>
+                </div>
             </div>
             <p class="bottom">
                 <button class="sure">付款</button>
@@ -141,7 +149,15 @@
             <div class="del" title="关闭"><i class="fa fa-times"></i></div>
             <h3 class="layer-tit">请选择延期时间</h3>
             <div class="layer-height-overflow">
-
+                <div class="fm-input-range clearfix">
+                    <label>互联网访问月流量预估</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="TimeLongWid"></cite></span>
+                        <input type="range" min="1" max="999"  step="1" id="TimeLong" value="1"／>
+                    </p>
+                    <span><cite id="TimeLongText">1</cite>G</span>
+                </div>
             </div>
             <p class="bottom">
                 <button class="sure">付款</button>
@@ -153,7 +169,24 @@
             <div class="del" title="关闭"><i class="fa fa-times"></i></div>
             <h3 class="layer-tit">请选择要实用的内存与节点数</h3>
             <div class="layer-height-overflow">
-
+                <div class="fm-input-range clearfix fn-memory-node">
+                    <label>节点数</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="NodeWid"></cite></span>
+                        <input type="range" min="1" max="99"  step="1" id="NodeNum" value="1"／>
+                    </p>
+                    <span><cite id="NodeText">1</cite>个</span>
+                </div>
+                <div class="fm-input-range clearfix fn-memory-node">
+                    <label>单节点内存</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
+                        <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
+                    </p>
+                    <span><cite id="OneMemoryText">128</cite>M</span>
+                </div>
             </div>
             <p class="bottom">
                 <button class="sure">付款</button>
@@ -217,4 +250,89 @@
             $(".chooseLarge").css({"display":"none"});
         })
     });
+
+
+    function FnRange(inputid,textid,widid,num){
+        var range= document.getElementById(inputid);
+        var result = document.getElementById(textid);
+        var wid = document.getElementById(widid);
+        var maxnum = range.getAttribute("max");
+        cachedRangeValue = /*localStorage.rangeValue ? localStorage.rangeValue :*/ num;
+        // 检测浏览器
+        var o = document.createElement('input');
+        o.type = 'range';
+        if ( o.type === 'text' ) alert('不好意思，你的浏览器还不够酷，试试最新的浏览器吧。');
+        range.value = cachedRangeValue;
+        wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+        range.addEventListener("mouseup", function() {
+            if(inputid == "OneMemory"){
+                if(range.value >= 128 && range.value < 256){
+                    result.innerHTML = "128M";
+                }else if(range.value >= 256 && range.value < 512){
+                    result.innerHTML = "256M";
+                }else if(range.value >= 512 && range.value < 1024){
+                    result.innerHTML = "512M";
+                }else if(range.value >= 1024 && range.value < 2048){
+                    result.innerHTML = "1G";
+                }else if(range.value >= 2048 && range.value < 3072){
+                    result.innerHTML = "2G";
+                }else if(range.value >= 3072 && range.value < 4096){
+                    result.innerHTML = "3G";
+                }else if(range.value >= 4096 && range.value < 5120){
+                    result.innerHTML = "4G";
+                }else if(range.value >= 5120 && range.value < 6144){
+                    result.innerHTML = "5G";
+                }else if(range.value >= 6144 && range.value < 7168){
+                    result.innerHTML = "6G";
+                }else if(range.value >= 7168 && range.value < 8100){
+                    result.innerHTML = "7G";
+                }else{
+                    result.innerHTML = "8G";
+                }
+            }else{
+                result.innerHTML = range.value;
+            }
+            wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+            //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
+            //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
+            //result.innerHTML = range.value;
+            FnPrice();
+        }, false);
+        // 滑动时显示选择的值
+        range.addEventListener("input", function() {
+            if(inputid == "OneMemory"){
+                if(range.value >= 128 && range.value < 256){
+                    result.innerHTML = "128M";
+                }else if(range.value >= 256 && range.value < 512){
+                    result.innerHTML = "256M";
+                }else if(range.value >= 512 && range.value < 1024){
+                    result.innerHTML = "512M";
+                }else if(range.value >= 1024 && range.value < 2048){
+                    result.innerHTML = "1G";
+                }else if(range.value >= 2048 && range.value < 3072){
+                    result.innerHTML = "2G";
+                }else if(range.value >= 3072 && range.value < 4096){
+                    result.innerHTML = "3G";
+                }else if(range.value >= 4096 && range.value < 5120){
+                    result.innerHTML = "4G";
+                }else if(range.value >= 5120 && range.value < 6144){
+                    result.innerHTML = "5G";
+                }else if(range.value >= 6144 && range.value < 7168){
+                    result.innerHTML = "6G";
+                }else if(range.value >= 7168 && range.value < 8100){
+                    result.innerHTML = "7G";
+                }else{
+                    result.innerHTML = "8G";
+                }
+            }else{
+                result.innerHTML = range.value;
+            }
+            wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+
+        }, false);
+    }
+
+    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
+    FnRange("NodeNum","NodeText","NodeWid",1);
+    FnRange("TimeLong","TimeLongText","TimeLongWid",1);
 </script>
