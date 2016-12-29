@@ -382,7 +382,7 @@ $(function () {
                     }
                     var extra_info = env_map[-1];
                     if (typeof(extra_info)!='undefined' || extra_info !=null){
-                        info_div += '<table><tbody>';
+                        info_div += '<table class="tab-box lit"><tbody>';
                         for (var i = 0; i< extra_info.length;i++){
                             info_div += '<tr><td>'+extra_info[i].attr_name+'</td>';
                             info_div += '<td>'+extra_info[i].attr_value+'</td>';
