@@ -31,10 +31,10 @@ $(function () {
                 }
                 if( $("#addOuter").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label><span class="portDetail outerDetail">详情</span></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label><span class="portDetail outerDetail">详情</span></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label><span class="portDisable outerDetail">详情</span></div></td>';
+                    oTr += '<td><div class="checkbox"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label><span class="portDisable outerDetail">详情</span></div></td>';
                 }
                 oTr += '<td><select data-port-http="'+$(".add_port").val()+'http">';
                 for( var i = 0; i < 2; i++ )
