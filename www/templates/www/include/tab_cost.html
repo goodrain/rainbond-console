@@ -130,13 +130,13 @@
             <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
             <div class="layer-height-overflow">
                 <div class="fm-input-range clearfix">
-                    <label>互联网访问月流量预估</label>
+                    <label>应用购买时长</label>
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="TimeLongWid"></cite></span>
-                        <input type="range" min="1" max="999"  step="1" id="TimeLong" value="1"／>
+                        <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
                     </p>
-                    <span><cite id="TimeLongText">1</cite>G</span>
+                    <span><cite id="TimeLongText">1</cite>个月</span>
                 </div>
             </div>
             <p class="bottom">
@@ -150,13 +150,13 @@
             <h3 class="layer-tit">请选择延期时间</h3>
             <div class="layer-height-overflow">
                 <div class="fm-input-range clearfix">
-                    <label>互联网访问月流量预估</label>
+                    <label>应用延期时长</label>
                     <p class="range-box">
                         <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="TimeLongWid"></cite></span>
-                        <input type="range" min="1" max="999"  step="1" id="TimeLong" value="1"／>
+                        <span class="range-choose"><cite id="TimeLongW"></cite></span>
+                        <input type="range" min="1" max="24"  step="1" id="Time" value="1"／>
                     </p>
-                    <span><cite id="TimeLongText">1</cite>G</span>
+                    <span><cite id="TimeText">1</cite>个月</span>
                 </div>
             </div>
             <p class="bottom">
@@ -296,7 +296,6 @@
             //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
             //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
             //result.innerHTML = range.value;
-            FnPrice();
         }, false);
         // 滑动时显示选择的值
         range.addEventListener("input", function() {
@@ -335,4 +334,5 @@
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
     FnRange("NodeNum","NodeText","NodeWid",1);
     FnRange("TimeLong","TimeLongText","TimeLongWid",1);
+    FnRange("Time","TimeText","TimeLongW",1);
 </script>
