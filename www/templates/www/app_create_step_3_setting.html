@@ -48,14 +48,14 @@
                         <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
                             <input class="checkDetail" type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true" {% endif %}/>
                             <label class="check-bg" for="5000inner"></label>
-                            <span {% if port.is_inner_service %}class="portDetail innerDetail" {% else %}class="portDisable" {% endif %}>详情</span>
+                            <span {% if port.is_inner_service %}class="portDetail innerDetail" {% else %}class="portDisable innerDetail" {% endif %}>详情</span>
                         </div>
                     </td>
                     <td>
                         <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
                             <input class="checkDetail" type="checkbox" name="" value="" id="5000outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
                             <label class="check-bg" for="5000outer"></label>
-                            <span {% if port.is_outer_service %}class="portDetail outerDetail" {% else %}class="portDisable" {% endif %}>详情</span>
+                            <span {% if port.is_outer_service %}class="portDetail outerDetail" {% else %}class="portDisable outerDetail" {% endif %}>详情</span>
                         </div>
                     </td>
                     <td>
