@@ -540,6 +540,7 @@ $(function () {
     function detail(){
         $("span.portDetail").off("click");
         $("span.portDetail").on("click",function(){
+            console.log($(this));
             if( $(this).hasClass("innerDetail") )
             {
                 console.log("对内详情");
@@ -554,7 +555,7 @@ $(function () {
     function checkDetail(){
         $("input.checkDetail").off("click");
         $("input.checkDetail").on("click",function(){
-            console.log("input改变了");
+            console.log($(this));
             if( $(this).parent().find("span").hasClass("portDetail") )
             {
                 $(this).parent().find("span").addClass("portDisable");
