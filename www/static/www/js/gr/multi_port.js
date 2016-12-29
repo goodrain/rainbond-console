@@ -103,7 +103,9 @@
           source: [{value: "http", text: 'http'}, {value: "stream", text: 'stream'}],
           pk: 1,
           success: function(data){
-             window.location.reload();
+              var res = eval(data);
+              showMessage(res.info);
+              window.location.reload();
           },
           error: function (data) {
             msg = data.responseText;

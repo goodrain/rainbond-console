@@ -887,6 +887,11 @@ class ServicePort(AuthedView):
         if action == 'change_protocol':
             protocol = request.POST.get("value")
             deal_port.protocol = protocol
+            # 判断stream协议的对外数量
+            if protocol == "stream":
+                outer_num = TenantServicesPort.objects.filter(service_id=self.service.service_id, protocol="stream").count()
+                if outer_num == 1:
+                    return JsonResponse({"success": False, "code": 410, "info": u"对外stream端口只支持一个"})
             data.update({"modified_field": "protocol", "current_value": protocol})
         elif action == 'open_outer':
             deal_port.is_outer_service = True
@@ -1114,7 +1119,11 @@ class ServiceNewPort(AuthedView):
 
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port_port).exists():
                 return JsonResponse({"success": False, "code": 409, "info": u"容器端口冲突"})
-
+            # 对外stream只能开一个
+            if port_protocol == "stream":
+                outer_num = TenantServicesPort.objects.filter(service_id=self.service.service_id, protocol="stream").count()
+                if outer_num == 1:
+                    return JsonResponse({"success": False, "code": 410, "info": u"对外stream端口只支持一个"})
             mapping_port = 0
             if port_inner == 1 and port_protocol == "stream":
                 mapping_port = baseService.prepare_mapping_port(self.service, port_port)
