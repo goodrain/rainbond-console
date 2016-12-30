@@ -621,7 +621,7 @@ $(function(){
 	    		"compose_service_memory" : resources,
 	    		"start_cmd" : order
 	    	}
-	    	//console.log(this_json);
+	    	console.log(this_json);
 	    	secdate.push(this_json);
     	});
     	console.log(secdate);
@@ -630,42 +630,42 @@ $(function(){
 		var compose_group_name = $("#com-name").val();
 		
     	///
-    	$.ajax({
-            type: "post",
-            url: "/apps/"+tenantName+"/compose-params/",
-            dataType: "json",
-			data: {
-					"service_configs":JSON.stringify(secdate),
-					"compose_group_name":compose_group_name
-					},
-			beforeSend : function(xhr, settings) {
-				var csrftoken = $.cookie('csrftoken');
-				xhr.setRequestHeader("X-CSRFToken", csrftoken);
-			},
-			success:function(data){
-				status = data.status;
-				if (status == 'success'){
-					window.location.href="/apps/"+tenantName +"/"
-				}else if (status == "failure"){
-					swal("数据中心初始化失败");
-				}else if (status == "owed"){
-					swal("余额不足请及时充值");
-				}else if (status =="expired"){
-					swal("试用期已过");
-				}else if(status =="over_memory"){
-					swal("资源已达上限,无法创建");
-				}else if(status == "over_money"){
-					swal("余额不足无法创建");
-				}else{
-					swal("创建失败")
-				}
-			},
-			error: function() {
-				$(this).attr('disabled',false);
-            },
-            cache: false
-            // processData: false
-		});
+    	//$.ajax({
+         //   type: "post",
+         //   url: "/apps/"+tenantName+"/compose-params/",
+         //   dataType: "json",
+			//data: {
+			//		"service_configs":JSON.stringify(secdate),
+			//		"compose_group_name":compose_group_name
+			//		},
+			//beforeSend : function(xhr, settings) {
+			//	var csrftoken = $.cookie('csrftoken');
+			//	xhr.setRequestHeader("X-CSRFToken", csrftoken);
+			//},
+			//success:function(data){
+			//	status = data.status;
+			//	if (status == 'success'){
+			//		window.location.href="/apps/"+tenantName +"/"
+			//	}else if (status == "failure"){
+			//		swal("数据中心初始化失败");
+			//	}else if (status == "owed"){
+			//		swal("余额不足请及时充值");
+			//	}else if (status =="expired"){
+			//		swal("试用期已过");
+			//	}else if(status =="over_memory"){
+			//		swal("资源已达上限,无法创建");
+			//	}else if(status == "over_money"){
+			//		swal("余额不足无法创建");
+			//	}else{
+			//		swal("创建失败")
+			//	}
+			//},
+			//error: function() {
+			//	$(this).attr('disabled',false);
+         //   },
+         //   cache: false
+         //   // processData: false
+        //});
 		
     	///
     });
