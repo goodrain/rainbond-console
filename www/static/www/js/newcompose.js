@@ -523,7 +523,7 @@ $(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		if( $("#"+appid+" .catalogueContent").val() )
 		{
-			var service_name = $("#"+appid+" #service_name").val();
+			var service_name = $("#service_name").val();
 			var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
 			str += '<em>/app/'+$("#"+appid+" .catalogueContent").val()+'</em>';
 			str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
@@ -566,6 +566,7 @@ $(function(){
 		{
 			if( $("input.addOther").eq(i).is(":checked") )
 			{
+				console.log(1);
 				var length = $(".otherAppName").length;
 				var onOff = true;
 				for( var j = 0; j<length; j++ )
@@ -576,8 +577,10 @@ $(function(){
 						break;
 					}
 				}
+				console.log(onOff);
 				if( onOff )
 				{
+					console.log(2);
 					var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
 					str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
 					str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
@@ -589,6 +592,13 @@ $(function(){
 			}
 		}
 		$(".otherApp").css({"display":"none"});
+		$(".layer-body-bg").css({"display":"none"});
+	});
+	//关闭弹窗
+	$("button.cancel").on("click",function(){
+		$(".layer-body-bg").css({"display":"none"});
+	});
+	$(".del").on("click",function(){
 		$(".layer-body-bg").css({"display":"none"});
 	});
 	// 名称 compose 
