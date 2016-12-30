@@ -263,7 +263,7 @@ $(function () {
             var port_json = {};
             var container_port = $("tbody.port tr").eq(i).find("td").eq(0).children("a").html();
             port_json["container_port"] = container_port
-            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(3).children("select option:selected").html();
+            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(3).find("select option:selected").html();
             if( port_json["protocol"] == 'HTTP' )
             {
                 port_json["protocol"] = 'http';
@@ -342,7 +342,7 @@ $(function () {
             },
             success : function(msg) {
                 if (msg["status"] == "success") {
-                    window.location.href = "/apps/" + tenantName + "/"+ service_alias + "/app-language/"
+                    //window.location.href = "/apps/" + tenantName + "/"+ service_alias + "/app-language/"
                 }else{
                     swal("配置失败")
                 }
