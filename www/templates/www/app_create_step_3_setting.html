@@ -57,7 +57,7 @@
                         </div>
                     </td>
                     <td>
-                        <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                        <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" {% if port.is_outer_service %} {% else %} style="color: #838383;" {% endif %}>
                             <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
                             <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>
                         </select>
