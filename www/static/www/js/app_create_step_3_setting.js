@@ -623,6 +623,7 @@ $(function () {
     function checkDetail(){
         $("input.checkDetail").off("click");
         $("input.checkDetail").on("click",function(){
+            console.log($(this).prop("checked"));
             if( $(this).parent().find("span").hasClass("portDetail") )
             {
                 $(this).parent().find("span").addClass("portDisable");
