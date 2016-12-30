@@ -57,7 +57,7 @@ $(function () {
                         oTr += '<option>'+arr[i]+'</option>';
                     }
                 }
-                oTr += '</select></td>';
+                oTr += '</select><p class="outerTip">更改访问方式请先打开外部访问</p></td>';
                 oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
@@ -624,16 +624,14 @@ $(function () {
         $("input.checkDetail").off("click");
         $("input.checkDetail").on("click",function(){
             console.log($(this).prop("checked"));
-            if( $(this).parent().find("span").hasClass("portDetail") )
+            if( $(this).prop("checked") )
             {
-                $(this).parent().find("span").addClass("portDisable");
-                $(this).parent().find("span").removeClass("portDetail");
+                $(this).parents("tr").find("p.outerTip").css({"display":"none","disabled":false});
                 console.log(1);
             }
-            else if( $(this).parent().find("span").hasClass("portDisable") )
+            else
             {
-                $(this).parent().find("span").addClass("portDetail");
-                $(this).parent().find("span").removeClass("portDisable");
+                $(this).parents("tr").find("p.outerTip").css({"display":"block","disabled":true});
                 console.log(2);
             }
         });

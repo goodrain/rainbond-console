@@ -76,6 +76,10 @@ table.tab-box td.openAdd,table.tab-box td.openAddEnviroment{text-align: center;}
  color: #ea1616;
  display: none;
 }
+.outerTip{
+ color: #ea1616;
+ display: none;
+}
 
 
 

@@ -61,6 +61,7 @@
                             <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
                             <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>
                         </select>
+                        <p class="outerTip">更改访问方式请先打开外部访问</p>
                     </td>
                     <td>
                         <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>

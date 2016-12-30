@@ -511,7 +511,7 @@
 						if(log["status"] == "end"){
 							showlog = showlog+" 用时"+log["cost_time"]+"s";
 						}
-						showlog = "<label style='text-decoration: underline'>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;text-decoration: underline;line-height: 21px;'></p>"
+						showlog = "<label>"+showlog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;line-height: 21px;'></p>"
 						if($("#event_"+log["event_id"]).length>0){
 							$("#event_"+log["event_id"]).html(showlog)
 						}else{
