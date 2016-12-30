@@ -854,6 +854,7 @@ class ImageServiceRelation(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     image_url = models.CharField(max_length=100, help_text=u"镜像地址")
+    service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
 
 
 class ComposeServiceRelation(BaseModel):

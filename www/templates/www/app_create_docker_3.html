@@ -18,9 +18,10 @@
     <!-- start -->
     <section class="main-box">
         <input type="hidden" id="tenantName" value="{{tenantName}}">
-        <input type="hidden" id="tenantService" value="{{tenantService}}">
-        <input type="hidden" id="service_name" value="{{tenantService.service_cname}}">
-        <input type="hidden" id="service_alias" value="{{tenantService.service_alias}}">
+        <input type="hidden" id="service_id" value="{{service_id}}">
+        <input type="hidden" id="service_name" value="{{service_cname}}">
+
+
         <h3 class="main-tit">新建自定义应用</h3>
         <div class="app-step clearfix">
             <p class="sed"><span>1</span><cite style="letter-spacing: ">创建应用</cite></p>
@@ -39,34 +40,7 @@
                 </tr>
             </thead>
             <tbody class="port">
-                {% for port in service_ports %}
-                <tr data-port="5000port">
-                    <td>
-                        <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{port.container_port}}</a>
-                    </td>
-                    <td>
-                        <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                            <input class="checkDetail" type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true" {% endif %}/>
-                            <label class="check-bg" for="5000inner"></label>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
-                            <input class="checkDetail" type="checkbox" name="" value="" id="5000outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
-                            <label class="check-bg" for="5000outer"></label>
-                        </div>
-                    </td>
-                    <td>
-                        <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
-                            <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
-                            <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>
-                        </select>
-                    </td>
-                    <td>
-                        <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
-                    </td>
-                </tr>
-                {% endfor %}
+
             </tbody>
             <tfoot>
                 <tr class="addPort">
@@ -233,7 +207,6 @@
                     </thead>
                     <tbody>
                         {% for tenantSer in tenantServiceList %}
-                        {% if tenantSer.service_alias != tenantService.service_alias and tenantSer.host_path %}
                         <tr>
                             <td>{{tenantSer.service_cname}}</td>
                             <td>/mnt/{{tenantSer.service_alias}}</td>
@@ -242,7 +215,6 @@
                                 <label class="cho-bg" for="{{tenantSer.service_cname}}"></label>
                             </td>
                         </tr>
-                        {% endif %}
                         {% endfor %}
                         <tr>
                             <td>ssd</td>
