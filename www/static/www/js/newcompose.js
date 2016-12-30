@@ -96,14 +96,14 @@ $(function(){
 			{
 				var arr = ['HTTP','非HTTP'];
 				var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$("#"+appid+" .add_port").val()+'</a></td>';
-				if( $("#"+appid+" #addInner").prop("checked") == true )
+				if( $("#"+appid+" #addInner"+appid+"").prop("checked") == true )
 				{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
 				}
 				else{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
 				}
-				if( $("#"+appid+" #addOuter").prop("checked") == true )
+				if( $("#"+appid+" #addOuter"+appid+"").prop("checked") == true )
 				{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer"></label></div></td>';
 				}
