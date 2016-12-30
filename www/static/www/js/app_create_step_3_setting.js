@@ -633,13 +633,13 @@ $(function () {
             console.log($(this).prop("checked"));
             if( $(this).prop("checked") )
             {
-                $(this).parents("tr").find("p.outerTip").css({"display":"none"}).attr("disabled",false);
-                $(this).parents("tr").find("select").css({"color":"#28cb75"});
+                $(this).parents("tr").find("p.outerTip").css({"display":"none"});
+                $(this).parents("tr").find("select").css({"color":"#28cb75"}).removeAttr("disabled");
             }
             else
             {
-                $(this).parents("tr").find("p.outerTip").css({"display":"block"}).attr("disabled",true);
-                $(this).parents("tr").find("select").css({"color":"#838383"});
+                $(this).parents("tr").find("p.outerTip").css({"display":"block"});
+                $(this).parents("tr").find("select").css({"color":"#838383"}).attr("disabled",true);
             }
         });
     }
