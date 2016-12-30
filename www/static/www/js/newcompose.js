@@ -577,7 +577,6 @@ $(function(){
 						break;
 					}
 				}
-				console.log(onOff);
 				if( onOff )
 				{
 					console.log(2);
@@ -585,7 +584,9 @@ $(function(){
 					str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
 					str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
 					$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
-					$(".applicationMes").css({"display":"none"});
+					console.log($("#"+appid+" .contentBlock ul.clearfix"));
+					console.log(str);
+					$(".otherApp").css({"display":"none"});
 					$(".layer-body-bg").css({"display":"none"});
 					delLi();
 				}
