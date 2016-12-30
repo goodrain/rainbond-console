@@ -610,22 +610,18 @@ $(function () {
             if( $(this).parents("tr").find("select").val() == '非HTTP' )
             {
                 var len = $("table.tab-box tbody select").length;
+                var num = 0;
                 for( var i = 0; i<len; i++ )
                 {
                     if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' )
                     {
-                        console.log( $("table.tab-box tbody select").eq(i)+";"+$(this).parents("tr").find("select") );
-                        if( $("table.tab-box tbody select").eq(i) == $(this).parents("tr").find("select") )
-                        {
-                            console.log(123);
-                            continue;
-                        }
-                        else{
-                            swal("访问方式只能有一个非HTTP");
-                            $(this).parents("tr").find("select").val("请选择");
-                            break;
-                        }
+                        num++;
                     }
+                }
+                if( num >= 2 )
+                {
+                    swal("访问方式只能有一个非HTTP");
+                    $(this).parents("tr").find("select").val("请选择");
                 }
             }
         });
