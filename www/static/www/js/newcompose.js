@@ -1,65 +1,150 @@
 $(function(){
 	////// 端口
 	//正则表达式
-	var regNumber = /^[0-9]*$/; //验证数字
+	//var regNumber = /^[0-9]*$/; //验证数字
 	// 新增端口 start 
-	$(".fn-newapp").on("click",function(){
-		var this_btn = $(this);
-		this_btn.hide();
-		this_btn.next("a.fn-newapp-sure").show();
-		this_btn.next().next("a.fn-newapp-cancel").show();
-		this_btn.parent().prev("div.addport-box").show();
-	});
+	//$(".fn-newapp").on("click",function(){
+	//	var this_btn = $(this);
+	//	this_btn.hide();
+	//	this_btn.next("a.fn-newapp-sure").show();
+	//	this_btn.next().next("a.fn-newapp-cancel").show();
+	//	this_btn.parent().prev("div.addport-box").show();
+	//});
 	// 新增端口 end 
 	// 取消新增 start
-	$(".fn-newapp-cancel").on("click",function(){
-		$(".fn-newapp-sure").hide();
-		$(".fn-newapp-cancel").hide();
-		$(".fn-newapp").show();	
-		$(".addport-box").hide();
-		$(".add-port").children("input").prop("value","");
-	}); 
+	//$(".fn-newapp-cancel").on("click",function(){
+	//	$(".fn-newapp-sure").hide();
+	//	$(".fn-newapp-cancel").hide();
+	//	$(".fn-newapp").show();
+	//	$(".addport-box").hide();
+	//	$(".add-port").children("input").prop("value","");
+	//});
 	// 取消新增 end 
 	//确认新增端口
-	$(".fn-newapp-sure").on("click",function(){
-		var appid = $(this).parent().parent().parent().parent().attr("id");
-		//console.log(appid);
-		var val_port = $(this).parent().prev("div.addport-box").find(".add-port input").val();
-		//console.log($(this).parent().prev("div.addport-box").children(".add-port").children("input").val());
-		//console.log($(this).parent().prev("div.addport-box").find(".add-port input").val());
-		var val_agreement =$(this).parent().prev("div.addport-box").find(".add-agreement option:selected").val();
-		var val_inner = $(this).parent().prev("div.addport-box").find(".add-inner").children("input").prop("checked");
-		var val_outer = $(this).parent().prev("div.addport-box").find(".add-outer").children("input").prop("checked");
-		if(val_port == ""){
-			alert("端口号不能为空");
-		}else if(!regNumber.test(val_port)){
-			alert("端口号必须为数字");
-		}else{
-			var new_tab = "<tr>";
-			new_tab = new_tab + "<td><span>S"+ val_port +"</span></td>";
-			new_tab = new_tab + "<td><span>"+ val_port +"</span></td>";
-			new_tab = new_tab + "<td><span>"+ val_agreement +"</span></td>";
-			if(val_inner == true){
-				new_tab = new_tab + '<td><input class="fn-input-inner" name="inner" type="checkbox"  disabled="true" checked="checked"></td>';
-			}else{
-				new_tab = new_tab + '<td><input class="fn-input-inner" name="inner" type="checkbox"  disabled="true"></td>';
-			}
-			if(val_outer == true){
-				new_tab = new_tab + '<td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true" checked="checked"></td>';
-			}else{
-				new_tab = new_tab + '<td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>';
-			}
-			new_tab = new_tab + '<td><a href="javascript:;" class="fn-revise">修改</a><a href="javascript:;" class="fn-delete">删除</a></td>';
-			new_tab = new_tab + "</tr>";
-			$("#" + appid + " table.new-port tbody").append(new_tab);
-			$(".fn-newapp-sure").hide();
-			$(".fn-newapp-cancel").hide();
-			$(".fn-newapp").show();	
-			$(".addport-box").hide();
-			$(".add-port input").prop("value","");
-		}
-	});
+	//$(".fn-newapp-sure").on("click",function(){
+	//	var appid = $(this).parent().parent().parent().parent().attr("id");
+	//	//console.log(appid);
+	//	var val_port = $(this).parent().prev("div.addport-box").find(".add-port input").val();
+	//	//console.log($(this).parent().prev("div.addport-box").children(".add-port").children("input").val());
+	//	//console.log($(this).parent().prev("div.addport-box").find(".add-port input").val());
+	//	var val_agreement =$(this).parent().prev("div.addport-box").find(".add-agreement option:selected").val();
+	//	var val_inner = $(this).parent().prev("div.addport-box").find(".add-inner").children("input").prop("checked");
+	//	var val_outer = $(this).parent().prev("div.addport-box").find(".add-outer").children("input").prop("checked");
+	//	if(val_port == ""){
+	//		alert("端口号不能为空");
+	//	}else if(!regNumber.test(val_port)){
+	//		alert("端口号必须为数字");
+	//	}else{
+	//		var new_tab = "<tr>";
+	//		new_tab = new_tab + "<td><span>S"+ val_port +"</span></td>";
+	//		new_tab = new_tab + "<td><span>"+ val_port +"</span></td>";
+	//		new_tab = new_tab + "<td><span>"+ val_agreement +"</span></td>";
+	//		if(val_inner == true){
+	//			new_tab = new_tab + '<td><input class="fn-input-inner" name="inner" type="checkbox"  disabled="true" checked="checked"></td>';
+	//		}else{
+	//			new_tab = new_tab + '<td><input class="fn-input-inner" name="inner" type="checkbox"  disabled="true"></td>';
+	//		}
+	//		if(val_outer == true){
+	//			new_tab = new_tab + '<td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true" checked="checked"></td>';
+	//		}else{
+	//			new_tab = new_tab + '<td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>';
+	//		}
+	//		new_tab = new_tab + '<td><a href="javascript:;" class="fn-revise">修改</a><a href="javascript:;" class="fn-delete">删除</a></td>';
+	//		new_tab = new_tab + "</tr>";
+	//		$("#" + appid + " table.new-port tbody").append(new_tab);
+	//		$(".fn-newapp-sure").hide();
+	//		$(".fn-newapp-cancel").hide();
+	//		$(".fn-newapp").show();
+	//		$(".addport-box").hide();
+	//		$(".add-port input").prop("value","");
+	//	}
+	//});
 	//确认新增端口
+
+	//打开新增端口号窗口
+	$(".openAdd").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" .addPort").css({"display":"table-row"});
+	});
+	$(".add_port").blur(function(){
+		var portNum = parseInt($(".add_port").val());
+		if( portNum>1024 && portNum<65536 )
+		{
+			$(this).parents('tr').find('p.checkTip').css({"display":"none"});
+		}
+		else{
+			$(this).parents('tr').find('p.checkTip').css({"display":"block"});
+		}
+	})
+	//确定添加端口号
+	$(".add").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		var portNum = parseInt($(".add_port").val());
+		if( portNum>1024 && portNum<65536 )
+		{
+			var addOnoff = true;
+			var portLen = $(".portNum").length;
+			for( var i = 0; i<portLen; i++ )
+			{
+				if( portNum == $("#"+appid+" .portNum").eq(i).html() )
+				{
+					addOnoff = false;
+					break;
+				}
+			}
+			if( addOnoff )
+			{
+				var arr = ['HTTP','非HTTP'];
+				var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$("#"+appid+" .add_port").val()+'</a></td>';
+				if( $("#"+appid+" #addInner").prop("checked") == true )
+				{
+					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
+				}
+				else{
+					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
+				}
+				if( $("#"+appid+" #addOuter").prop("checked") == true )
+				{
+					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer"></label></div></td>';
+				}
+				else{
+					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer"></label></div></td>';
+				}
+				oTr += '<td><select class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$(".add_port").val()+'http">';
+				for( var i = 0; i < 2; i++ )
+				{
+					if( $('#'+appid+' .add_http').val() == arr[i] )
+					{
+						oTr += '<option selected="selected">'+arr[i]+'</option>';
+					}
+					else{
+						oTr += '<option>'+arr[i]+'</option>';
+					}
+				}
+				oTr += '</select></td>';
+				oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+				$(oTr).appendTo("#"+appid+" .port");
+				$("#"+appid+" .addPort").css({"display":"none"});
+				delPort();
+				editPort();
+				tip();
+				//detail();
+				//checkDetail();
+			}
+			else{
+				swal("端口号冲突～～");
+			}
+		}
+		else{
+			$(this).parents('tr').find('p.checkTip').css({"display":"block"});
+		}
+		$("#"+appid+" .add_port").val("");
+	});
+	//取消端口号的添加
+	$(".noAdd").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" .addPort").css({"display":"none"});
+	});
 
 	// 修改端口 start 
 	$("body").on("click",".fn-revise",function(){
