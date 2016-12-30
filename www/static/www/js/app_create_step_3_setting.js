@@ -612,7 +612,7 @@ $(function () {
     //访问方式切换
     selectChange();
     function selectChange(){
-        $("table.tab_box select").change(function(){
+        $("table.tab-box select").change(function(){
             console.log($(this).val());
             console.log($(this).find("option:selected").html());
         })
