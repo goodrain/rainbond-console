@@ -67,7 +67,8 @@ $(function(){
 		$("#"+appid+" .addPort").css({"display":"table-row"});
 	});
 	$(".add_port").blur(function(){
-		var portNum = parseInt($(".add_port").val());
+		var appid = $(this).parents("section.app-box").attr("id");
+		var portNum = parseInt($("#"+appid+" .add_port").val());
 		if( portNum>1024 && portNum<65536 )
 		{
 			$(this).parents('tr').find('p.checkTip').css({"display":"none"});
@@ -83,7 +84,7 @@ $(function(){
 		if( portNum>1024 && portNum<65536 )
 		{
 			var addOnoff = true;
-			var portLen = $(".portNum").length;
+			var portLen = $("#"+appid+" .portNum").length;
 			for( var i = 0; i<portLen; i++ )
 			{
 				if( portNum == $("#"+appid+" .portNum").eq(i).html() )
@@ -94,24 +95,25 @@ $(function(){
 			}
 			if( addOnoff )
 			{
-				var arr = ['HTTP','非HTTP'];
+				var arr = ['HTTP','非HTTP','请选择'];
 				var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$("#"+appid+" .add_port").val()+'</a></td>';
-				if( $("#"+appid+" #addInner"+appid+"").prop("checked") == true )
+				if( $("#addInner").prop("checked") == true )
 				{
-					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
+					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
 				}
 				else{
-					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
+					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
 				}
-				if( $("#"+appid+" #addOuter"+appid+"").prop("checked") == true )
+				if( $("#addOuter").prop("checked") == true )
 				{
-					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer"></label></div></td>';
+					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer"></label></div></td><td>';
+					oTr += '<select style="" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http">';
 				}
 				else{
-					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer"></label></div></td>';
+					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer"></label></div></td><td>';
+					oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http">';
 				}
-				oTr += '<td><select class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$(".add_port").val()+'http">';
-				for( var i = 0; i < 2; i++ )
+				for( var i = 0; i < 3; i++ )
 				{
 					if( $('#'+appid+' .add_http').val() == arr[i] )
 					{
@@ -121,16 +123,21 @@ $(function(){
 						oTr += '<option>'+arr[i]+'</option>';
 					}
 				}
-				oTr += '</select></td>';
+				if( $("#addOuter").prop("checked") == true )
+				{
+					oTr += '</select><p class="outerTip" style="display:none;">更改访问方式请先打开外部访问</p></td>';
+				}
+				else{
+					oTr += '</select><p class="outerTip" style="display: block;">更改访问方式请先打开外部访问</p></td>';
+				}
 				oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
 				$(oTr).appendTo("#"+appid+" .port");
 				$("#"+appid+" .addPort").css({"display":"none"});
-				$("#"+appid+" .add_port").val('');
 				delPort();
 				editPort();
-				tip();
-				//detail();
-				//checkDetail();
+				//tip();
+				checkDetail();
+				selectChange();
 			}
 			else{
 				swal("端口号冲突～～");
@@ -153,6 +160,66 @@ $(function(){
 		$("img.rubbish").on("click",function(){
 			$(this).parents("tr").remove();
 		})
+	}
+	//外部访问开关
+	checkDetail();
+	function checkDetail(){
+		$("input.checkDetail").off("click");
+		$("input.checkDetail").on("click",function(){
+			var appid = $(this).parents("section.app-box").attr("id");
+			if( $(this).prop("checked") )
+			{
+				$(this).parents("tr").find("p.outerTip").css({"display":"none"});
+				$(this).parents("tr").find("select").css({"color":"#28cb75"}).removeAttr("disabled");
+			}
+			else
+			{
+				$(this).parents("tr").find("p.outerTip").css({"display":"block"});
+				$(this).parents("tr").find("select").css({"color":"#838383"}).attr("disabled",true);
+			}
+			if( $(this).parents("tr").find("select").val() == '非HTTP' )
+			{
+				var len = $("#"+appid+" table.tab-box tbody select").length;
+				var num = 0;
+				for( var i = 0; i<len; i++ )
+				{
+					if( $("#"+appid+" table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("#"+appid+" table.tab-box tbody select").eq(i).val() == '非HTTP' )
+					{
+						num++;
+					}
+				}
+				if( num >= 2 )
+				{
+					swal("访问方式只能有一个非HTTP");
+					$(this).parents("tr").find("select").val("请选择");
+				}
+			}
+		});
+	}
+	//访问方式切换
+	selectChange();
+	function selectChange(){
+		var selectLen = $("table.tab-box select").length;
+		for( var j = 0; j<selectLen; j++ )
+		{
+			$("table.tab-box select").eq(j).attr("index",j);
+			$("table.tab-box select").eq(j).change(function(){
+				var appid = $(this).parents("section.app-box").attr("id");
+				if( $(this).val() == '非HTTP' )
+				{
+					var len = $("#"+appid+" table.tab-box tbody select").length;
+					for( var i = 0; i<len; i++ )
+					{
+						if( $("#"+appid+" table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("#"+appid+" table.tab-box tbody select").eq(i).val() == '非HTTP' && i != $(this).attr("index") )
+						{
+							swal("访问方式只能有一个非HTTP");
+							$(this).val("请选择");
+							break;
+						}
+					}
+				}
+			})
+		}
 	}
 	//修改端口号
 	editPort();
