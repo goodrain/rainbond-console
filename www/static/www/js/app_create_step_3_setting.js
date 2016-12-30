@@ -41,12 +41,13 @@ $(function () {
                 }
                 if( $("#addOuter").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td><td style="color: #838383;">';
+                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td><td>';
+                    oTr += '<select style="" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$(".add_port").val()+'http">';
                 }
                 else{
-                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td><td style="color: #838383;">';
+                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td><td>';
+                    oTr += '<select style="color: #838383;" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$(".add_port").val()+'http">';
                 }
-                oTr += '<select class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$(".add_port").val()+'http">';
                 for( var i = 0; i < 2; i++ )
                 {
                     if( $('.add_http').val() == arr[i] )
@@ -59,10 +60,10 @@ $(function () {
                 }
                 if( $("#addOuter").prop("checked") == true )
                 {
-                    oTr += '</select><p class="outerTip" style="display:none">更改访问方式请先打开外部访问</p></td>';
+                    oTr += '</select><p class="outerTip" style="display:none;">更改访问方式请先打开外部访问</p></td>';
                 }
                 else{
-                    oTr += '</select><p class="outerTip">更改访问方式请先打开外部访问</p></td>';
+                    oTr += '</select><p class="outerTip" style="display: block;">更改访问方式请先打开外部访问</p></td>';
                 }
                 oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 $(oTr).appendTo(".port");
@@ -632,12 +633,12 @@ $(function () {
             if( $(this).prop("checked") )
             {
                 $(this).parents("tr").find("p.outerTip").css({"display":"none","disabled":false});
-                console.log(1);
+                $(this).parents("tr").find("select").css({"color":"#28cb75"});
             }
             else
             {
                 $(this).parents("tr").find("p.outerTip").css({"display":"block","disabled":true});
-                console.log(2);
+                $(this).parents("tr").find("select").css({"color":"#838383"});
             }
         });
     }
