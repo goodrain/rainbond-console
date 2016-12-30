@@ -407,6 +407,7 @@ $(function () {
             },
             success : function(msg) {
                 if(msg.ok){
+                    $('.appendDiv').html('');
                     var env_map = msg.obj;
                     var info_div = '<div class="port_info"><p class="layer-tit-lit">应用相关信息</p>';
                     for (var port in env_map){
