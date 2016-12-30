@@ -623,6 +623,8 @@ $(function () {
                     if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' )
                     {
                         console.log(i);
+                        console.log($("table.tab-box tbody input.checkDetail").eq(i));
+                        console.log($("table.tab-box tbody input.checkDetail").eq(i).prop("checked"));
                         swal("访问方式只能有一个非HTTP");
                         $(this).val("请选择");
                         break;
