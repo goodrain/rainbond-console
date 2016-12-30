@@ -157,24 +157,24 @@ $(function(){
 	//修改端口号
 	editPort();
 	function editPort(){
-		$('.edit-port').editable({
-			type: 'text',
-			pk: 1,
-			success: function (data) {
-				//window.location.reload();
-			},
-			error: function (data) {
-				msg = data.responseText;
-				res = $.parseJSON(msg);
-				showMessage(res.info);
-			},
-			ajaxOptions: {
-				beforeSend: function(xhr, settings) {
-					xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
-					settings.data += '&action=change_port';
-				},
-			}
-		});
+		//$('.edit-port').editable({
+		//	type: 'text',
+		//	pk: 1,
+		//	success: function (data) {
+		//		//window.location.reload();
+		//	},
+		//	error: function (data) {
+		//		msg = data.responseText;
+		//		res = $.parseJSON(msg);
+		//		showMessage(res.info);
+		//	},
+		//	ajaxOptions: {
+		//		beforeSend: function(xhr, settings) {
+		//			xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
+		//			settings.data += '&action=change_port';
+		//		},
+		//	}
+		//});
 	}
 
 	//// 修改端口 start
