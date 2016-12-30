@@ -251,6 +251,69 @@ $(function(){
 	//});
 	//// 删除端口 end
 
+
+	//显示添加环境变量内容
+	$(".openAddEnviroment").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" .addContent").css({"display":"table-row"});
+	});
+	$(".enviroKey").blur(function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		var variableReg = /^[A-Z][A-Z0-9_]*$/;
+		if( variableReg.test($("#"+appid+" .enviroKey").val()) )
+		{
+			$(this).parent().find("p.checkTip").css({"display":"none"});
+		}
+		else{
+			$(this).parent().find("p.checkTip").css({"display":"block"});
+		}
+	});
+	$(".addEnviroment").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		if( $("#"+appid+" .enviroKey").val() && $("#"+appid+" .enviroValue").val() )
+		{
+			var len = $("#"+appid+" .enviromentKey").length;
+			var onOff = true;
+			for( var i = 0; i<len; i++ )
+			{
+				if( $("#"+appid+" .enviroKey").val() == $("#"+appid+" .enviromentKey")[i].innerHTML ){
+					swal("变量名冲突～～");
+					onOff = false;
+					break;
+				}
+			}
+			if( onOff )
+			{
+				var variableReg = /^[A-Z][A-Z0-9_]*$/;
+				if( variableReg.test($("#"+appid+" .enviroKey").val()) )
+				{
+					var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroName").val()+'</a></td>';
+					str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroKey").val()+'</a></td>';
+					str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue value'+(len+1)+'">'+$("#"+appid+" .enviroValue").val()+'</a></td>';
+					str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+					$(str).appendTo("#"+appid+" .enviroment");
+					$("#"+appid+" .enviroName").val('');
+					$("#"+appid+" .enviroKey").val('');
+					$("#"+appid+" .addContent").css({"display":"none"});
+					delPort();
+					editPort();
+				}
+				else{
+					swal("变量名由大写字母开头，可以加入数字～～");
+				}
+			}
+		}
+		else{
+			console.log(2);
+		}
+	});
+	$(".noAddEnviroment").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" .addContent").css({"display":"none"});
+		$("#"+appid+" .enviroKey").val('');
+		$("#"+appid+" .enviroValue").val('');
+	});
+
 	////// 环境变量
 	// 新增环境变量 start 
 	//$(".fn-environment").click(function(){
