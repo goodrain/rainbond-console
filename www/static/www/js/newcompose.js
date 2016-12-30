@@ -70,7 +70,6 @@ $(function(){
 	$(".add_port").blur(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		var portNum = parseInt($("#"+appid+" .add_port").val());
-		console.log(portNum);
 		if( portNum>1024 && portNum<65536 )
 		{
 			$(this).parents('tr').find('p.checkTip').css({"display":"none"});
@@ -82,7 +81,7 @@ $(function(){
 	//确定添加端口号
 	$(".add").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
-		var portNum = parseInt($(".add_port").val());
+		var portNum = parseInt($("#"+appid+" .add_port").val());
 		if( portNum>1024 && portNum<65536 )
 		{
 			var addOnoff = true;
