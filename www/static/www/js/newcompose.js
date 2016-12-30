@@ -496,7 +496,14 @@ $(function(){
 	//$("body").on("click",".fn-dir-delete",function(){
 	//	$(this).parent().parent().remove();
 	//});
-
+	delLi();
+	//删除依赖与目录
+	function delLi(){
+		$("img.delLi").off("click");
+		$("img.delLi").on("click",function(){
+			$(this).parents("li").remove();
+		})
+	}
 	//新设持久化目录
 	$(".addCata").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
