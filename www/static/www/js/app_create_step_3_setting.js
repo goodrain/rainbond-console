@@ -613,24 +613,28 @@ $(function () {
     //访问方式切换
     selectChange();
     function selectChange(){
-        $("table.tab-box select").change(function(){
-            if( $(this).val() == '非HTTP' )
-            {
-                var len = $("table.tab-box tbody select").length;
-                console.log($(this).index());
-                for( var i = 0; i<len; i++ )
+        for( var j = 0; j<selectLen; j++ )
+        {
+            $("table.tab-box select").eq(j).attr("index",j);
+            $("table.tab-box select").eq(j).change(function(){
+                if( $(this).val() == '非HTTP' )
                 {
-                    if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' && $(this) != $("table.tab-box tbody select").eq(i) )
+                    var len = $("table.tab-box tbody select").length;
+                    console.log($(this).attr("index"));
+                    for( var i = 0; i<len; i++ )
                     {
-                        console.log(i);
-                        console.log($("table.tab-box tbody input.checkDetail").eq(i));
-                        console.log($("table.tab-box tbody input.checkDetail").eq(i).prop("checked"));
-                        swal("访问方式只能有一个非HTTP");
-                        $(this).val("请选择");
-                        break;
+                        if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' && i != $(this).attr("index") )
+                        {
+                            console.log(i);
+                            console.log($("table.tab-box tbody input.checkDetail").eq(i));
+                            console.log($("table.tab-box tbody input.checkDetail").eq(i).prop("checked"));
+                            swal("访问方式只能有一个非HTTP");
+                            $(this).val("请选择");
+                            break;
+                        }
                     }
                 }
-            }
-        })
+            })
+        }
     }
 })
