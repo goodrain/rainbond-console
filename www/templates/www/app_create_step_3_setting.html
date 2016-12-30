@@ -56,7 +56,7 @@
                             <label class="check-bg" for="{{port.container_port}}outer"></label>
                         </div>
                     </td>
-                    <td>
+                    <td style="color: #838383">
                         <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
                             <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
                             <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>

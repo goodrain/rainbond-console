@@ -70,8 +70,7 @@ $(function () {
                 delPort();
                 editPort();
                 tip();
-                //detail();
-                //checkDetail();
+                checkDetail();
             }
             else{
                 swal("端口号冲突～～");
