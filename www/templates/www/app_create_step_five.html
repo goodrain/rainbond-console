@@ -342,6 +342,50 @@
             {% endif %}
             <!--依赖服务 end-->
 
+            <div class="layer-body-bg">
+                <div class="layer-body">
+                    <!-- 03 start -->
+                    <div class="otherApp">
+                        <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                        <p class="layer-tit">挂载其他应用</p>
+                        <div class="layer-height-overflow">
+                            <table class="tab-box lit">
+                                <thead>
+                                <tr>
+                                    <th>服务名称</th>
+                                    <th>共享目录</th>
+                                    <th>操作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>service_cname</td>
+                                    <td>tenantSer.service_alias</td>
+                                    <td class="text-center">
+                                        <input type="checkbox" class="addOther cho-input" data-name="{{tenantSer.service_cname}}" class="cho-input" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}" id="{{tenantSer.service_cname}}">
+                                        <label class="cho-bg" for="{{tenantSer.service_cname}}"></label>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>ssd</td>
+                                    <td>/app/service</td>
+                                    <td>
+                                        <input type="checkbox" class="addOther cho-input" data-name="ssd" data-path="/app/service" data-otherName="SSD" id="addOther">
+                                        <label class="cho-bg" for="addOther"></label>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="bottom">
+                            <button class="sureAddOther btn-success">确认</button>
+                            <button class="cancel">取消</button>
+                        </p>
+                    </div>
+                    <!-- 03 end -->
+                </div>
+            </div>
+
         </section>
         {% endfor %}
         <!-- 01-->
@@ -368,47 +412,4 @@
         <!-- end -->
     </section>
 </section>
-<div class="layer-body-bg">
-    <div class="layer-body">
-        <!-- 03 start -->
-        <div class="otherApp">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <p class="layer-tit">挂载其他应用</p>
-            <div class="layer-height-overflow">
-                <table class="tab-box lit">
-                    <thead>
-                    <tr>
-                        <th>服务名称</th>
-                        <th>共享目录</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>service_cname</td>
-                        <td>tenantSer.service_alias</td>
-                        <td class="text-center">
-                            <input type="checkbox" class="addOther cho-input" data-name="{{tenantSer.service_cname}}" class="cho-input" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}" id="{{tenantSer.service_cname}}">
-                            <label class="cho-bg" for="{{tenantSer.service_cname}}"></label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>ssd</td>
-                        <td>/app/service</td>
-                        <td>
-                            <input type="checkbox" class="addOther cho-input" data-name="ssd" data-path="/app/service" data-otherName="SSD" id="addOther">
-                            <label class="cho-bg" for="addOther"></label>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <p class="bottom">
-                <button class="sureAddOther btn-success">确认</button>
-                <button class="cancel">取消</button>
-            </p>
-        </div>
-        <!-- 03 end -->
-    </div>
-</div>
 {% endblock %}

@@ -543,35 +543,36 @@ $(function(){
 
 	//挂载其他应用持久化目录
 	$(".addOtherApp").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
 		var marleft = $("#main-content").attr("style");
 		if(marleft){
 			var arrleft = marleft.split(":");
 			if(arrleft[1] == " 210px;"){
-				$(".layer-body-bg").css({"left":"-210px;"});
+				$("#"+appid+" .layer-body-bg").css({"left":"-210px;"});
 			}else{
-				$(".layer-body-bg").css({"left":"0px;"});
+				$("#"+appid+" .layer-body-bg").css({"left":"0px;"});
 			}
 		}else{
-			$(".layer-body-bg").css({"left":"-210px;"});
+			$("#"+appid+" .layer-body-bg").css({"left":"-210px;"});
 		}
-		$(".otherApp").css({"display":"block"});
-		$(".layer-body-bg").css({"display":"block"});
+		$("#"+appid+" .otherApp").css({"display":"block"});
+		$("#"+appid+" .layer-body-bg").css({"display":"block"});
 	});
 
 	//挂载其他应用服务
 	$(".sureAddOther").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
-		var len = $("input.addOther").length;
+		var len = $("#"+appid+" input.addOther").length;
 		for( var i = 0; i<len; i++ )
 		{
-			if( $("input.addOther").eq(i).is(":checked") )
+			if( $("#"+appid+" input.addOther").eq(i).is(":checked") )
 			{
 				console.log(1);
-				var length = $(".otherAppName").length;
+				var length = $("#"+appid+" .otherAppName").length;
 				var onOff = true;
 				for( var j = 0; j<length; j++ )
 				{
-					if( $("input.addOther").eq(i).attr("data-otherName") == $(".otherAppName").eq(j).attr("data-otherName") )
+					if( $("#"+appid+" input.addOther").eq(i).attr("data-otherName") == $("#"+appid+" .otherAppName").eq(j).attr("data-otherName") )
 					{
 						onOff = false;
 						break;
@@ -580,27 +581,29 @@ $(function(){
 				if( onOff )
 				{
 					console.log(2);
-					var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
-					str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
+					var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("#"+appid+" input.addOther").eq(i).attr("data-otherName")+'">'+$("#"+appid+" input.addOther").eq(i).attr("data-name")+'</a>';
+					str += '<em>'+$("#"+appid+" input.addOther").eq(i).attr("data-path")+'</em>';
 					str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
 					$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
 					console.log($("#"+appid+" .contentBlock ul.clearfix"));
 					console.log(str);
-					$(".otherApp").css({"display":"none"});
-					$(".layer-body-bg").css({"display":"none"});
+					$("#"+appid+" .otherApp").css({"display":"none"});
+					$("#"+appid+" .layer-body-bg").css({"display":"none"});
 					delLi();
 				}
 			}
 		}
-		$(".otherApp").css({"display":"none"});
-		$(".layer-body-bg").css({"display":"none"});
+		$("#"+appid+" .otherApp").css({"display":"none"});
+		$("#"+appid+" .layer-body-bg").css({"display":"none"});
 	});
 	//关闭弹窗
 	$("button.cancel").on("click",function(){
-		$(".layer-body-bg").css({"display":"none"});
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" .layer-body-bg").css({"display":"none"});
 	});
 	$(".del").on("click",function(){
-		$(".layer-body-bg").css({"display":"none"});
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" .layer-body-bg").css({"display":"none"});
 	});
 	// 名称 compose 
 	//var oldname = $("#com-name").val();
