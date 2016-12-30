@@ -617,7 +617,7 @@ $(function () {
             if( $(this).val() == '非HTTP' )
             {
                 var len = $("table.tab-box tbody select").length;
-                console.log(len);
+                console.log($(this).index());
                 for( var i = 0; i<len; i++ )
                 {
                     if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' )
