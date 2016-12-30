@@ -40,20 +40,20 @@
             </thead>
             <tbody class="port">
                 {% for port in service_ports %}
-                <tr data-port="5000port">
+                <tr>
                     <td>
                         <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{port.container_port}}</a>
                     </td>
                     <td>
                         <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                            <input type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true" {% endif %}/>
-                            <label class="check-bg" for="5000inner"></label>
+                            <input type="checkbox" name="" value="" id="{{port.container_port}}inner" {% if port.is_inner_service %}checked="true" {% endif %}/>
+                            <label class="check-bg" for="{{port.container_port}}inner"></label>
                         </div>
                     </td>
                     <td>
                         <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
-                            <input class="checkDetail" type="checkbox" name="" value="" id="5000outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
-                            <label class="check-bg" for="5000outer"></label>
+                            <input class="checkDetail" type="checkbox" name="" value="" id="{{port.container_port}}outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
+                            <label class="check-bg" for="{{port.container_port}}outer"></label>
                         </div>
                     </td>
                     <td>
