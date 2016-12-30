@@ -73,6 +73,7 @@ $(function () {
                 editPort();
                 tip();
                 checkDetail();
+                selectChange();
             }
             else{
                 swal("端口号冲突～～");
@@ -614,7 +615,19 @@ $(function () {
     function selectChange(){
         $("table.tab-box select").change(function(){
             console.log($(this).val());
-            console.log($(this).find("option:selected").html());
+            if( $(this).val() == '非HTTP' )
+            {
+                var len = $("table.tab-box tbody select").length;
+                for( var i = 0; i<len; i++ )
+                {
+                    if( $("table.tab-box tbody input.checkDetail").prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' )
+                    {
+                        swal("访问方式只能有一个非HTTP");
+                        $(this).val("请选择");
+                        break;
+                    }
+                }
+            }
         })
     }
 })
