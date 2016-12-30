@@ -1,6 +1,7 @@
 $(function () {
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
+        $(".checkTip").css({"display":"none"});
         $(".addPort").css({"display":"table-row"});
     });
     $(".add_port").blur(function(){

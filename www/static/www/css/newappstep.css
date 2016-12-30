@@ -26,7 +26,7 @@
 .second-tips-loading span{color: #838383; font-size: 14px; line-height: 20px; text-align: center; width: 100%; display:block; }
 .second-tips-loading span cite{color: #303030;}
 
-input.add_port{width:100px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px;}
+input.add_port{width:75px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px;}
 select.add_http{width: 100px; height: 28px; border:1px #d5d5d5 solid;}
 .port td select{width: 100px; height: 28px; border:1px #d5d5d5 solid; color: #28cb75;}
 
