@@ -83,15 +83,17 @@
                     </td>
                     <td>
                         <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
-                            <input type="checkbox" name="" value="" id="addOuter" checked="false" />
+                            <input class="checkDetail" type="checkbox" name="" value="" id="addOuter" checked="false" />
                             <label class="check-bg" for="addOuter"></label>
                         </div>
                     </td>
                     <td>
                         <select class="add_http fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                            <option>请选择</option>
                             <option>HTTP</option>
                             <option>非HTTP</option>
                         </select>
+                        <p class="outerTip" style="display:none">更改访问方式请先打开外部访问</p>
                     </td>
                     <td class="operation">
                         <span class="add lit-btn-green"><i class="fa fa-check"></i></span>

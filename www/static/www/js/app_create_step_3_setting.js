@@ -31,7 +31,7 @@ $(function () {
             }
             if( addOnoff )
             {
-                var arr = ['HTTP','非HTTP'];
+                var arr = ['HTTP','非HTTP','请选择'];
                 var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$(".add_port").val()+'</a></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
@@ -49,7 +49,7 @@ $(function () {
                     oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td><td>';
                     oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$(".add_port").val()+'http">';
                 }
-                for( var i = 0; i < 2; i++ )
+                for( var i = 0; i < 3; i++ )
                 {
                     if( $('.add_http').val() == arr[i] )
                     {
@@ -263,7 +263,7 @@ $(function () {
             var port_json = {};
             var container_port = $("tbody.port tr").eq(i).find("td").eq(0).children("a").html();
             port_json["container_port"] = container_port
-            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(1).children("select").val();
+            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(3).children("select option:selected").html();
             if( port_json["protocol"] == 'HTTP' )
             {
                 port_json["protocol"] = 'http';
@@ -591,41 +591,7 @@ $(function () {
         ////tips end
     }
 
-
-
-    //对内、对外服务详情
-    //detail();
-    //function detail(){
-    //    $("span.portDetail").off("click");
-    //    $("span.portDetail").on("click",function(){
-    //        if( $(this).hasClass("innerDetail") && $(this).hasClass("portDetail") )
-    //        {
-    //            console.log("对内详情");
-    //
-    //            var title = '对内服务环境变量';
-    //
-    //
-    //
-    //            $(".visit").css({"display":"block"});
-    //            $(".applicationMes").css({"display":"none"});
-    //            $(".otherApp").css({"display":"none"});
-    //            $(".depend").css({"display":"none"});
-    //            $(".layer-body-bg").css({"display":"block"});
-    //        }
-    //        else if( $(this).hasClass("outerDetail") && $(this).hasClass("portDetail") )
-    //        {
-    //            console.log("对外详情");
-    //
-    //            var title = '外部访问';
-    //
-    //            $(".visit").css({"display":"block"});
-    //            $(".applicationMes").css({"display":"none"});
-    //            $(".otherApp").css({"display":"none"});
-    //            $(".depend").css({"display":"none"});
-    //            $(".layer-body-bg").css({"display":"block"});
-    //        }
-    //    })
-    //}
+    //外部访问开关
     checkDetail();
     function checkDetail(){
         $("input.checkDetail").off("click");
@@ -642,5 +608,12 @@ $(function () {
                 $(this).parents("tr").find("select").css({"color":"#838383"}).attr("disabled",true);
             }
         });
+    }
+    //访问方式切换
+    function selectChange(){
+        $("table.tab_box select").change(function(){
+            console.log($(this).val());
+            console.log($(this).find("option:selected").html());
+        })
     }
 })
