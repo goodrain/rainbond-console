@@ -256,7 +256,7 @@ $(function () {
             var port_json = {};
             var container_port = $("tbody.port tr").eq(i).find("td").eq(0).children("a").html();
             port_json["container_port"] = container_port
-            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(1).children("select").val();
+            port_json["protocol"] = $("tbody.port tr").eq(i).find("td").eq(3).find("select option:selected").html();
             if( port_json["protocol"] == 'HTTP' )
             {
                 port_json["protocol"] = 'http';
@@ -264,8 +264,8 @@ $(function () {
             else{
                 port_json["protocol"] = 'stream';
             }
-            port_json["is_inner_service"] = $("tbody.port tr").eq(i).find("td").eq(2).find("input").prop("checked")?1:0;
-            port_json["is_outer_service"] = $("tbody.port tr").eq(i).find("td").eq(3).find("input").prop("checked")?1:0;
+            port_json["is_inner_service"] = $("tbody.port tr").eq(i).find("td").eq(1).find("input").prop("checked")?1:0;
+            port_json["is_outer_service"] = $("tbody.port tr").eq(i).find("td").eq(2).find("input").prop("checked")?1:0;
             port_json["port_alias"] = ("gr"+service_id.substr(service_id.length-6)).toUpperCase()+container_port;
             portArr[i] = port_json;
         }
@@ -314,7 +314,6 @@ $(function () {
         }
 
         var service_id = $("#service_id").val();
-        alert(service_id)
         var service_config = {
             "service_id":service_id,
             "port_list" : JSON.stringify(portArr),
@@ -338,7 +337,7 @@ $(function () {
             success : function(msg) {
                 if (msg["status"] == "success") {
                     var service_alias = msg["service_alias"];
-                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
+                    // window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
                 }else if(msg["status"] == "notfound"){
                     swal("服务不存在");
                 }else{
