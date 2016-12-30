@@ -608,6 +608,27 @@ $(function () {
                 $(this).parents("tr").find("p.outerTip").css({"display":"block"});
                 $(this).parents("tr").find("select").css({"color":"#838383"}).attr("disabled",true);
             }
+            if( $(this).parents("tr").find("select").val() == '非HTTP' )
+            {
+                var len = $("table.tab-box tbody select").length;
+                for( var i = 0; i<len; i++ )
+                {
+                    if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' )
+                    {
+                        console.log( $("table.tab-box tbody select").eq(i)+";"+$(this).parents("tr").find("select") );
+                        if( $("table.tab-box tbody select").eq(i) == $(this).parents("tr").find("select") )
+                        {
+                            console.log(123);
+                            continue;
+                        }
+                        else{
+                            swal("访问方式只能有一个非HTTP");
+                            $(this).val("请选择");
+                            break;
+                        }
+                    }
+                }
+            }
         });
     }
     //访问方式切换
@@ -626,9 +647,6 @@ $(function () {
                     {
                         if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' && i != $(this).attr("index") )
                         {
-                            console.log(i);
-                            console.log($("table.tab-box tbody input.checkDetail").eq(i));
-                            console.log($("table.tab-box tbody input.checkDetail").eq(i).prop("checked"));
                             swal("访问方式只能有一个非HTTP");
                             $(this).val("请选择");
                             break;
