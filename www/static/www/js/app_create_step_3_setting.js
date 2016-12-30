@@ -284,7 +284,7 @@ $(function () {
         {
             appNameArr.push($(".appName").eq(n).attr("data-serviceid"))
         }
-        console.log(appNameArr);
+        //console.log(appNameArr);
 
         var appLen = $(".add_pathName").length;
         var appArr = [];
@@ -327,7 +327,7 @@ $(function () {
             "mnt_list" : JSON.stringify(otherAppNameArr),
             "depend_list" : JSON.stringify(appNameArr)
         }
-        console.log(service_config);
+        //console.log(service_config);
         var service_alias = $("#service_alias").val();
         var tenantName = $("#tenantName").val();
 
@@ -610,6 +610,7 @@ $(function () {
         });
     }
     //访问方式切换
+    selectChange();
     function selectChange(){
         $("table.tab_box select").change(function(){
             console.log($(this).val());
