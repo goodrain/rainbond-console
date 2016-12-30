@@ -633,12 +633,12 @@ $(function () {
             console.log($(this).prop("checked"));
             if( $(this).prop("checked") )
             {
-                $(this).parents("tr").find("p.outerTip").css({"display":"none"}).prop("disabled",true);
+                $(this).parents("tr").find("p.outerTip").css({"display":"none"}).attr("disabled",false);
                 $(this).parents("tr").find("select").css({"color":"#28cb75"});
             }
             else
             {
-                $(this).parents("tr").find("p.outerTip").css({"display":"block"}).prop("disabled",false);
+                $(this).parents("tr").find("p.outerTip").css({"display":"block"}).attr("disabled",true);
                 $(this).parents("tr").find("select").css({"color":"#838383"});
             }
         });
