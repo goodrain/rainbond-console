@@ -63,12 +63,14 @@ $(function(){
 
 	//打开新增端口号窗口
 	$(".openAdd").on("click",function(){
+		$("select.add_http").val("请选择");
 		var appid = $(this).parents("section.app-box").attr("id");
 		$("#"+appid+" .addPort").css({"display":"table-row"});
 	});
 	$(".add_port").blur(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		var portNum = parseInt($("#"+appid+" .add_port").val());
+		console.log(portNum);
 		if( portNum>1024 && portNum<65536 )
 		{
 			$(this).parents('tr').find('p.checkTip').css({"display":"none"});
@@ -97,14 +99,14 @@ $(function(){
 			{
 				var arr = ['HTTP','非HTTP','请选择'];
 				var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$("#"+appid+" .add_port").val()+'</a></td>';
-				if( $("#addInner").prop("checked") == true )
+				if( $("#addInner"+appid+"").prop("checked") == true )
 				{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
 				}
 				else{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner"></label></div></td>';
 				}
-				if( $("#addOuter").prop("checked") == true )
+				if( $("#addOuter"+appid+"").prop("checked") == true )
 				{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer"></label></div></td><td>';
 					oTr += '<select style="" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http">';
