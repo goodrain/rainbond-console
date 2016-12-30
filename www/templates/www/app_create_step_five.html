@@ -170,7 +170,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="5">
+                        <td colspan="5" style="text-align: center">
                             <span class="openAdd">新增容器端口</span>
                         </td>
                     </tr>
@@ -183,38 +183,76 @@
             <!-- 环境变量 start -->
             <section class="box-single">
                 <h3>环境变量</h3>
-                <table class="table table-striped table-advance table-hover new-environment">
+                <!--<table class="table table-striped table-advance table-hover new-environment">-->
+                    <!--<thead>-->
+                        <!--<tr>-->
+                            <!--<th>名称</th>-->
+                            <!--<th>变量名</th>-->
+                            <!--<th>值</th>-->
+                            <!--<th>操作</th>-->
+                        <!--</tr>-->
+                    <!--</thead>-->
+                    <!--<tbody>-->
+                    <!--{% for k,v in service.environment.items %}-->
+                    <!--<tr>-->
+                        <!--<td><span>{{k}}</span></td>-->
+                        <!--<td><span>{{k}}</span></td>-->
+                        <!--<td><span>{{v}}</span></td>-->
+                        <!--<td><a href="javascript:;" class="fn-env-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-env-delete">删除</a></td>-->
+                    <!--</tr>-->
+                    <!--{% endfor %}-->
+                    <!--</tbody>-->
+                <!--</table>-->
+                <!--<div class="new-box">-->
+                    <!--<div class="environment-box">-->
+                        <!--<p class="environment-name"><label>名称:</label><input type="text" placeholder="中文名称"/></p>-->
+                        <!--<p class="environment-english"><label>变量名:</label><input type="text" placeholder="英文名称"/></p>-->
+                        <!--<p class="environment-value"><label>值:</label><input type="text" placeholder="请输入值"/></p>-->
+                    <!--</div>-->
+                    <!--<p>-->
+                        <!--<a href="javascript:;" class="fn-environment btn btn-success">新增</a>-->
+                        <!--<a href="javascript:;" class="fn-environment-sure btn btn-success">确认新增</a>-->
+                        <!--<a href="javascript:;" class="fn-environment-cancel btn btn-danger">取消新增</a>-->
+                    <!--</p>-->
+                <!--</div>-->
+
+                <table class="tab-box">
                     <thead>
-                        <tr>
-                            <th>名称</th>
-                            <th>变量名</th>
-                            <th>值</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for k,v in service.environment.items %}
                     <tr>
-                        <td><span>{{k}}</span></td>
-                        <td><span>{{k}}</span></td>
-                        <td><span>{{v}}</span></td>
-                        <td><a href="javascript:;" class="fn-env-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-env-delete">删除</a></td>
+                        <th>名称</th>
+                        <th>变量名</th>
+                        <th>值</th>
+                        <th>删除</th>
                     </tr>
-                    {% endfor %}
+                    </thead>
+                    <tbody class="enviroment">
+
                     </tbody>
+                    <tfoot>
+                    <tr class="addContent">
+                        <td>
+                            <input type="text" class="enviroName">
+                        </td>
+                        <td>
+                            <input type="text" class="enviroKey">
+                            <p class="checkTip">变量名由大写字母开头，可以加入数字</p>
+                        </td>
+                        <td>
+                            <input type="text" class="enviroValue">
+                        </td>
+                        <td class="operation">
+                            <span class="addEnviroment lit-btn-green"><i class="fa fa-check"></i></span>
+                            <span class="noAddEnviroment lit-btn-red"><i class="fa fa-times"></i></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" style="text-align: center">
+                            <span class="openAddEnviroment">新增环境变量</span>
+                        </td>
+                    </tr>
+                    </tfoot>
                 </table>
-                <div class="new-box">
-                    <div class="environment-box">
-                        <p class="environment-name"><label>名称:</label><input type="text" placeholder="中文名称"/></p>
-                        <p class="environment-english"><label>变量名:</label><input type="text" placeholder="英文名称"/></p>
-                        <p class="environment-value"><label>值:</label><input type="text" placeholder="请输入值"/></p>
-                    </div>
-                    <p>
-                        <a href="javascript:;" class="fn-environment btn btn-success">新增</a>
-                        <a href="javascript:;" class="fn-environment-sure btn btn-success">确认新增</a>
-                        <a href="javascript:;" class="fn-environment-cancel btn btn-danger">取消新增</a>
-                    </p>
-                </div>
+
             </section>
             <!-- 环境变量 end -->
             <!-- 持久化目录 start-->

@@ -125,6 +125,7 @@ $(function(){
 				oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
 				$(oTr).appendTo("#"+appid+" .port");
 				$("#"+appid+" .addPort").css({"display":"none"});
+				$("#"+appid+" .add_port").val('');
 				delPort();
 				editPort();
 				tip();
@@ -145,190 +146,284 @@ $(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		$("#"+appid+" .addPort").css({"display":"none"});
 	});
-
-	// 修改端口 start 
-	$("body").on("click",".fn-revise",function(){
-		$(this).hide();
-		$(this).next("a").hide();
-		var this_box = $(this).parent().parent();
-		var previous_port_alias = this_box.find("span").eq(0).html();
-		var previous_port = this_box.find("span").eq(1).html(); 
-		//console.log(this_box);
-		var input_onoff_inner = this_box.find("input").eq(0).attr("checked");
-		var input_onoff_outer = this_box.find("input").eq(1).attr("checked");
-		console.log(input_onoff_inner,input_onoff_outer);
-		this_box.find("span").css({"display":"none"});
-		this_box.find("input").removeAttr("disabled");
-		var addto_name = '<input type="text" class="fn-addto-name" value='+previous_port_alias+' />';
-		var addto_input = '<input type="text" class="fn-addto-input" value='+previous_port+' />';
-		var addto_select = '<select class="fn-addto-select"><option value="http">http</option><option value="stream">stream</option></select>';
-		var a_sure = '<a class="fn-sure" href="javascript:;">确定</a>';
-		var a_cancel = '<a class="fn-cancel" href="javascript:;">取消</a>';
-		this_box.children("td").eq(0).append(addto_name);
-		this_box.children("td").eq(1).append(addto_input);
-		this_box.children("td").eq(2).append(addto_select);
-		this_box.children("td").eq(5).append(a_sure,a_cancel);
-		
-		////确定
-		$("body").on("click",".fn-sure",function(){
-			var val_name = this_box.find("input.fn-addto-name").val();
-			var val_input = this_box.find("input.fn-addto-input").val();
-			var val_select = this_box.find("select.fn-addto-select option:selected").val();
-			if(val_name !=""){
-				this_box.find("span").eq(0).html(val_name);
-			}
-			if(val_input != ""){
-				this_box.find("span").eq(1).html(val_input);
-			}
-			this_box.find("span").eq(2).html(val_select);
-			this_box.find("span").css({"display":"inline-block"});
-			this_box.find("a").css({"display":"inline-block"});
-			this_box.find("input").attr("disabled","true");
-			this_box.find("input.fn-addto-name").remove();
-			this_box.find("input.fn-addto-input").remove();
-			this_box.find("select.fn-addto-select").remove();
-			this_box.find("a.fn-sure").remove();
-			this_box.find("a.fn-cancel").remove();
-		});
-		////取消
-		$("body").on("click",".fn-cancel",function(){
-			this_box.find("span").css({"display":"inline-block"});
-			this_box.find("a").css({"display":"inline-block"});
-			this_box.find("input").attr("disabled","true");
-			this_box.find("input.fn-addto-name").remove();
-			this_box.find("input.fn-addto-input").remove();
-			this_box.find("select.fn-addto-select").remove();
-			this_box.find("a.fn-sure").remove();
-			this_box.find("a.fn-cancel").remove();
-			if(input_onoff_inner == "checked"){
-				this_box.find("input.fn-input-inner").attr("checked",true);
-			}else{
-				this_box.find("input.fn-input-inner").removeAttr("checked");
-			}
-			if(input_onoff_outer == "checked"){
-				this_box.find("input.fn-input-outer").attr("checked",true);
-			}else{
-				this_box.find("input.fn-input-outer").removeAttr("checked");
+	delPort();
+	//删除端口号与环境变量
+	function delPort(){
+		$("img.rubbish").off("click");
+		$("img.rubbish").on("click",function(){
+			$(this).parents("tr").remove();
+		})
+	}
+	//修改端口号
+	editPort();
+	function editPort(){
+		$('.edit-port').editable({
+			type: 'text',
+			pk: 1,
+			success: function (data) {
+				//window.location.reload();
+			},
+			error: function (data) {
+				msg = data.responseText;
+				res = $.parseJSON(msg);
+				showMessage(res.info);
+			},
+			ajaxOptions: {
+				beforeSend: function(xhr, settings) {
+					xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
+					settings.data += '&action=change_port';
+				},
 			}
 		});
-	});
-	// 修改端口 end 
+	}
 
-	// 删除端口 start
-	$("body").on("click",".fn-delete",function(){
-		$(this).parent().parent().remove();
-	});
-	// 删除端口 end 
+	//// 修改端口 start
+	//$("body").on("click",".fn-revise",function(){
+	//	$(this).hide();
+	//	$(this).next("a").hide();
+	//	var this_box = $(this).parent().parent();
+	//	var previous_port_alias = this_box.find("span").eq(0).html();
+	//	var previous_port = this_box.find("span").eq(1).html();
+	//	//console.log(this_box);
+	//	var input_onoff_inner = this_box.find("input").eq(0).attr("checked");
+	//	var input_onoff_outer = this_box.find("input").eq(1).attr("checked");
+	//	console.log(input_onoff_inner,input_onoff_outer);
+	//	this_box.find("span").css({"display":"none"});
+	//	this_box.find("input").removeAttr("disabled");
+	//	var addto_name = '<input type="text" class="fn-addto-name" value='+previous_port_alias+' />';
+	//	var addto_input = '<input type="text" class="fn-addto-input" value='+previous_port+' />';
+	//	var addto_select = '<select class="fn-addto-select"><option value="http">http</option><option value="stream">stream</option></select>';
+	//	var a_sure = '<a class="fn-sure" href="javascript:;">确定</a>';
+	//	var a_cancel = '<a class="fn-cancel" href="javascript:;">取消</a>';
+	//	this_box.children("td").eq(0).append(addto_name);
+	//	this_box.children("td").eq(1).append(addto_input);
+	//	this_box.children("td").eq(2).append(addto_select);
+	//	this_box.children("td").eq(5).append(a_sure,a_cancel);
+	//
+	//	////确定
+	//	$("body").on("click",".fn-sure",function(){
+	//		var val_name = this_box.find("input.fn-addto-name").val();
+	//		var val_input = this_box.find("input.fn-addto-input").val();
+	//		var val_select = this_box.find("select.fn-addto-select option:selected").val();
+	//		if(val_name !=""){
+	//			this_box.find("span").eq(0).html(val_name);
+	//		}
+	//		if(val_input != ""){
+	//			this_box.find("span").eq(1).html(val_input);
+	//		}
+	//		this_box.find("span").eq(2).html(val_select);
+	//		this_box.find("span").css({"display":"inline-block"});
+	//		this_box.find("a").css({"display":"inline-block"});
+	//		this_box.find("input").attr("disabled","true");
+	//		this_box.find("input.fn-addto-name").remove();
+	//		this_box.find("input.fn-addto-input").remove();
+	//		this_box.find("select.fn-addto-select").remove();
+	//		this_box.find("a.fn-sure").remove();
+	//		this_box.find("a.fn-cancel").remove();
+	//	});
+	//	////取消
+	//	$("body").on("click",".fn-cancel",function(){
+	//		this_box.find("span").css({"display":"inline-block"});
+	//		this_box.find("a").css({"display":"inline-block"});
+	//		this_box.find("input").attr("disabled","true");
+	//		this_box.find("input.fn-addto-name").remove();
+	//		this_box.find("input.fn-addto-input").remove();
+	//		this_box.find("select.fn-addto-select").remove();
+	//		this_box.find("a.fn-sure").remove();
+	//		this_box.find("a.fn-cancel").remove();
+	//		if(input_onoff_inner == "checked"){
+	//			this_box.find("input.fn-input-inner").attr("checked",true);
+	//		}else{
+	//			this_box.find("input.fn-input-inner").removeAttr("checked");
+	//		}
+	//		if(input_onoff_outer == "checked"){
+	//			this_box.find("input.fn-input-outer").attr("checked",true);
+	//		}else{
+	//			this_box.find("input.fn-input-outer").removeAttr("checked");
+	//		}
+	//	});
+	//});
+	//// 修改端口 end
+    //
+	//// 删除端口 start
+	//$("body").on("click",".fn-delete",function(){
+	//	$(this).parent().parent().remove();
+	//});
+	//// 删除端口 end
 
 	////// 环境变量
 	// 新增环境变量 start 
-	$(".fn-environment").click(function(){
-		$(this).hide();
-		$(this).parent().prev(".environment-box").show();
-		$(this).next(".fn-environment-sure").show();
-		$(this).next().next(".fn-environment-cancel").show();
-	});
-	// 新增环境变量 end 
-	// 取消新增环境变量 start 
-	$(".fn-environment-cancel").click(function(){
-		$(this).hide();
-		$(".environment-box").hide();
-		$(".fn-environment-sure").hide();
-		$(".fn-environment").show();
-		$(".environment-name input").prop("value","");
-		$(".environment-english input").prop("value","");
-		$(".environment-value input").prop("value","");
-	});
+	//$(".fn-environment").click(function(){
+	//	$(this).hide();
+	//	$(this).parent().prev(".environment-box").show();
+	//	$(this).next(".fn-environment-sure").show();
+	//	$(this).next().next(".fn-environment-cancel").show();
+	//});
+	//// 新增环境变量 end
+	//// 取消新增环境变量 start
+	//$(".fn-environment-cancel").click(function(){
+	//	$(this).hide();
+	//	$(".environment-box").hide();
+	//	$(".fn-environment-sure").hide();
+	//	$(".fn-environment").show();
+	//	$(".environment-name input").prop("value","");
+	//	$(".environment-english input").prop("value","");
+	//	$(".environment-value input").prop("value","");
+	//});
 	// 取消新增环境变量 end 
 	// 确认新增环境变量 start 
 	
-	$(".fn-environment-sure").click(function(){
-		var appid = $(this).parent().parent().parent().parent().attr("id");
-		console.log(appid);
-		var env_name = $(this).parent().prev("div.environment-box").find(".environment-name input").val();
-		var env_english = $(this).parent().prev("div.environment-box").find(".environment-english input").val();
-		var env_value = $(this).parent().prev("div.environment-box").find(".environment-value input").val();
-		console.log(env_name,env_english,env_value);
-		if(env_name == ""){
-			alert("请输入名称！")
-		}else if(env_english == ""){
-			alert("请输入变量名！")
-		}else if(env_value == ""){
-			alert("请输入值！")
-		}else{
-			var new_tab = "<tr>";
-			new_tab = new_tab + "<td><span>"+ env_name +"</span></td>";
-			new_tab = new_tab + "<td><span>"+ env_english +"</span></td>";
-			new_tab = new_tab + "<td><span>"+ env_value +"</span></td>";
-			new_tab = new_tab + '<td><a href="javascript:;" class="fn-env-revise">修改</a><a href="javascript:;" class="fn-env-delete">删除</a></td>';
-			new_tab = new_tab + "</tr>";
-			$("#" + appid + " table.new-environment tbody").append(new_tab);
-			$(".environment-box").hide();
-			$(".fn-environment-sure").hide();
-			$(".fn-environment-cancel").hide();
-			$(".fn-environment").show();
-			$(".environment-name input").prop("value","");
-			$(".environment-english input").prop("value","");
-			$(".environment-value input").prop("value","");
+	//$(".fn-environment-sure").click(function(){
+	//	var appid = $(this).parent().parent().parent().parent().attr("id");
+	//	console.log(appid);
+	//	var env_name = $(this).parent().prev("div.environment-box").find(".environment-name input").val();
+	//	var env_english = $(this).parent().prev("div.environment-box").find(".environment-english input").val();
+	//	var env_value = $(this).parent().prev("div.environment-box").find(".environment-value input").val();
+	//	console.log(env_name,env_english,env_value);
+	//	if(env_name == ""){
+	//		alert("请输入名称！")
+	//	}else if(env_english == ""){
+	//		alert("请输入变量名！")
+	//	}else if(env_value == ""){
+	//		alert("请输入值！")
+	//	}else{
+	//		var new_tab = "<tr>";
+	//		new_tab = new_tab + "<td><span>"+ env_name +"</span></td>";
+	//		new_tab = new_tab + "<td><span>"+ env_english +"</span></td>";
+	//		new_tab = new_tab + "<td><span>"+ env_value +"</span></td>";
+	//		new_tab = new_tab + '<td><a href="javascript:;" class="fn-env-revise">修改</a><a href="javascript:;" class="fn-env-delete">删除</a></td>';
+	//		new_tab = new_tab + "</tr>";
+	//		$("#" + appid + " table.new-environment tbody").append(new_tab);
+	//		$(".environment-box").hide();
+	//		$(".fn-environment-sure").hide();
+	//		$(".fn-environment-cancel").hide();
+	//		$(".fn-environment").show();
+	//		$(".environment-name input").prop("value","");
+	//		$(".environment-english input").prop("value","");
+	//		$(".environment-value input").prop("value","");
+	//	}
+	//});
+    //
+	//// 确认新增环境变量 end
+	////修改环境变量
+	//$("body").on("click",".fn-env-revise",function(){
+	//	$(this).hide();
+	//	$(this).next("a").hide();
+	//	var this_box = $(this).parent().parent();
+	//	var previous_env_name = this_box.find("span").eq(0).html();
+	//	var previous_attr_name = this_box.find("span").eq(1).html();
+	//	var privious_attr_value = this_box.find("span").eq(2).html();
+	//	this_box.find("span").css({"display":"none"});
+	//	var env_name = '<input type="text" class="fn-env-name" value='+previous_env_name+' /> ';
+	//	var env_engname = '<input type="text" class="fn-env-engname" value='+previous_attr_name+' /> ';
+	//	var env_val = '<input type="text" class="fn-env-val" value='+privious_attr_value+' /> ';
+	//	var a_env_sure = '<a class="fn-env-sure" href="javascript:;">确定</a>';
+	//	var a_env_cancel = '<a class="fn-env-cancel" href="javascript:;">取消</a>';
+	//	this_box.children("td").eq(0).append(env_name);
+	//	this_box.children("td").eq(1).append(env_engname);
+	//	this_box.children("td").eq(2).append(env_val);
+	//	this_box.children("td").eq(3).append(a_env_sure,a_env_cancel);
+	//	// 确定
+	//	$("body").on("click",".fn-env-sure",function(){
+	//		var val_env_name = this_box.find("input.fn-env-name").val();
+	//		var val_env_eng = this_box.find("input.fn-env-engname").val();
+	//		var val_env_val = this_box.find("input.fn-env-val").val();
+	//		if(val_env_name !=""){
+	//			this_box.find("span").eq(0).html(val_env_name);
+	//		}
+	//		if(val_env_eng != ""){
+	//			this_box.find("span").eq(1).html(val_env_eng);
+	//		}
+	//		if(val_env_val != ""){
+	//			this_box.find("span").eq(2).html(val_env_val);
+	//		}
+	//		this_box.find("span").css({"display":"inline-block"});
+	//		this_box.find("a").css({"display":"inline-block"});
+	//		this_box.find("input.fn-env-name").remove();
+	//		this_box.find("input.fn-env-engname").remove();
+	//		this_box.find("input.fn-env-val").remove();
+	//		this_box.find("a.fn-env-sure").remove();
+	//		this_box.find("a.fn-env-cancel").remove();
+	//	});
+	//	//取消
+	//	$("body").on("click",".fn-env-cancel",function(){
+	//		this_box.find("span").css({"display":"inline-block"});
+	//		this_box.find("a").css({"display":"inline-block"});
+	//		this_box.find("input.fn-env-name").remove();
+	//		this_box.find("input.fn-env-engname").remove();
+	//		this_box.find("input.fn-env-val").remove();
+	//		this_box.find("a.fn-env-sure").remove();
+	//		this_box.find("a.fn-env-cancel").remove();
+	//	});
+	//});
+	////删除环境变量
+	//$("body").on("click",".fn-env-delete",function(){
+	//	$(this).parent().parent().remove();
+	//});
+
+	//显示添加环境变量内容
+	$(".openAddEnviroment").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" .addContent").css({"display":"table-row"});
+	});
+	$(".enviroKey").blur(function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		var variableReg = /^[A-Z][A-Z0-9_]*$/;
+		if( variableReg.test($("#"+appid+" .enviroKey").val()) )
+		{
+			$(this).parent().find("p.checkTip").css({"display":"none"});
+		}
+		else{
+			$(this).parent().find("p.checkTip").css({"display":"block"});
 		}
 	});
-   
-	// 确认新增环境变量 end 
-	//修改环境变量
-	$("body").on("click",".fn-env-revise",function(){
-		$(this).hide();
-		$(this).next("a").hide();
-		var this_box = $(this).parent().parent();
-		var previous_env_name = this_box.find("span").eq(0).html();
-		var previous_attr_name = this_box.find("span").eq(1).html();
-		var privious_attr_value = this_box.find("span").eq(2).html();
-		this_box.find("span").css({"display":"none"});
-		var env_name = '<input type="text" class="fn-env-name" value='+previous_env_name+' /> ';
-		var env_engname = '<input type="text" class="fn-env-engname" value='+previous_attr_name+' /> ';
-		var env_val = '<input type="text" class="fn-env-val" value='+privious_attr_value+' /> ';
-		var a_env_sure = '<a class="fn-env-sure" href="javascript:;">确定</a>';
-		var a_env_cancel = '<a class="fn-env-cancel" href="javascript:;">取消</a>';
-		this_box.children("td").eq(0).append(env_name);
-		this_box.children("td").eq(1).append(env_engname);
-		this_box.children("td").eq(2).append(env_val);
-		this_box.children("td").eq(3).append(a_env_sure,a_env_cancel);
-		// 确定
-		$("body").on("click",".fn-env-sure",function(){
-			var val_env_name = this_box.find("input.fn-env-name").val();
-			var val_env_eng = this_box.find("input.fn-env-engname").val();
-			var val_env_val = this_box.find("input.fn-env-val").val();
-			if(val_env_name !=""){
-				this_box.find("span").eq(0).html(val_env_name);
+	$(".addEnviroment").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		if( $("#"+appid+" .enviroKey").val() && $("#"+appid+" .enviroValue").val() )
+		{
+			var len = $("#"+appid+" .enviromentKey").length;
+			var onOff = true;
+			for( var i = 0; i<len; i++ )
+			{
+				if( $("#"+appid+" .enviroKey").val() == $("#"+appid+" .enviromentKey")[i].innerHTML ){
+					swal("变量名冲突～～");
+					onOff = false;
+					break;
+				}
 			}
-			if(val_env_eng != ""){
-				this_box.find("span").eq(1).html(val_env_eng);
+			if( onOff )
+			{
+				var variableReg = /^[A-Z][A-Z0-9_]*$/;
+				if( variableReg.test($("#"+appid+" .enviroKey").val()) )
+				{
+					var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroName").val()+'</a></td>';
+					str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroKey").val()+'</a></td>';
+					str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue value'+(len+1)+'">'+$("#"+appid+" .enviroValue").val()+'</a></td>';
+					str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+					$(str).appendTo(".enviroment");
+					$("#"+appid+" .enviroName").val('');
+					$("#"+appid+" .enviroKey").val('');
+					$("#"+appid+" .enviroValue").val('');
+					$("#"+appid+" .addContent").css({"display":"none"});
+					delPort();
+					editPort();
+				}
+				else{
+					swal("变量名由大写字母开头，可以加入数字～～");
+				}
 			}
-			if(val_env_val != ""){
-				this_box.find("span").eq(2).html(val_env_val);
-			}
-			this_box.find("span").css({"display":"inline-block"});
-			this_box.find("a").css({"display":"inline-block"});
-			this_box.find("input.fn-env-name").remove();
-			this_box.find("input.fn-env-engname").remove();
-			this_box.find("input.fn-env-val").remove();
-			this_box.find("a.fn-env-sure").remove();
-			this_box.find("a.fn-env-cancel").remove();
-		});
-		//取消
-		$("body").on("click",".fn-env-cancel",function(){
-			this_box.find("span").css({"display":"inline-block"});
-			this_box.find("a").css({"display":"inline-block"});
-			this_box.find("input.fn-env-name").remove();
-			this_box.find("input.fn-env-engname").remove();
-			this_box.find("input.fn-env-val").remove();
-			this_box.find("a.fn-env-sure").remove();
-			this_box.find("a.fn-env-cancel").remove();
-		});
+		}
+		else{
+			console.log(2);
+		}
 	});
-	//删除环境变量
-	$("body").on("click",".fn-env-delete",function(){
-		$(this).parent().parent().remove();
+	$(".noAddEnviroment").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" .addContent").css({"display":"none"});
+		$("#"+appid+" .enviroKey").val('');
+		$("#"+appid+" .enviroValue").val('');
 	});
+
 
 	////// 持久化目录
 	$(".fn-directory").click(function(){
