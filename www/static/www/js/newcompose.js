@@ -362,141 +362,228 @@ $(function(){
 	//});
 
 	//显示添加环境变量内容
-	$(".openAddEnviroment").on("click",function(){
-		var appid = $(this).parents("section.app-box").attr("id");
-		$("#"+appid+" .addContent").css({"display":"table-row"});
-	});
-	$(".enviroKey").blur(function(){
-		var appid = $(this).parents("section.app-box").attr("id");
-		var variableReg = /^[A-Z][A-Z0-9_]*$/;
-		if( variableReg.test($("#"+appid+" .enviroKey").val()) )
-		{
-			$(this).parent().find("p.checkTip").css({"display":"none"});
-		}
-		else{
-			$(this).parent().find("p.checkTip").css({"display":"block"});
-		}
-	});
-	$(".addEnviroment").on("click",function(){
-		var appid = $(this).parents("section.app-box").attr("id");
-		if( $("#"+appid+" .enviroKey").val() && $("#"+appid+" .enviroValue").val() )
-		{
-			var len = $("#"+appid+" .enviromentKey").length;
-			var onOff = true;
-			for( var i = 0; i<len; i++ )
-			{
-				if( $("#"+appid+" .enviroKey").val() == $("#"+appid+" .enviromentKey")[i].innerHTML ){
-					swal("变量名冲突～～");
-					onOff = false;
-					break;
-				}
-			}
-			if( onOff )
-			{
-				var variableReg = /^[A-Z][A-Z0-9_]*$/;
-				if( variableReg.test($("#"+appid+" .enviroKey").val()) )
-				{
-					var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroName").val()+'</a></td>';
-					str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroKey").val()+'</a></td>';
-					str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue value'+(len+1)+'">'+$("#"+appid+" .enviroValue").val()+'</a></td>';
-					str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
-					$(str).appendTo(".enviroment");
-					$("#"+appid+" .enviroName").val('');
-					$("#"+appid+" .enviroKey").val('');
-					$("#"+appid+" .enviroValue").val('');
-					$("#"+appid+" .addContent").css({"display":"none"});
-					delPort();
-					editPort();
-				}
-				else{
-					swal("变量名由大写字母开头，可以加入数字～～");
-				}
-			}
-		}
-		else{
-			console.log(2);
-		}
-	});
-	$(".noAddEnviroment").on("click",function(){
-		var appid = $(this).parents("section.app-box").attr("id");
-		$("#"+appid+" .addContent").css({"display":"none"});
-		$("#"+appid+" .enviroKey").val('');
-		$("#"+appid+" .enviroValue").val('');
-	});
+	//$(".openAddEnviroment").on("click",function(){
+	//	var appid = $(this).parents("section.app-box").attr("id");
+	//	$("#"+appid+" .addContent").css({"display":"table-row"});
+	//});
+	//$(".enviroKey").blur(function(){
+	//	var appid = $(this).parents("section.app-box").attr("id");
+	//	var variableReg = /^[A-Z][A-Z0-9_]*$/;
+	//	if( variableReg.test($("#"+appid+" .enviroKey").val()) )
+	//	{
+	//		$(this).parent().find("p.checkTip").css({"display":"none"});
+	//	}
+	//	else{
+	//		$(this).parent().find("p.checkTip").css({"display":"block"});
+	//	}
+	//});
+	//$(".addEnviroment").on("click",function(){
+	//	var appid = $(this).parents("section.app-box").attr("id");
+	//	if( $("#"+appid+" .enviroKey").val() && $("#"+appid+" .enviroValue").val() )
+	//	{
+	//		var len = $("#"+appid+" .enviromentKey").length;
+	//		var onOff = true;
+	//		for( var i = 0; i<len; i++ )
+	//		{
+	//			if( $("#"+appid+" .enviroKey").val() == $("#"+appid+" .enviromentKey")[i].innerHTML ){
+	//				swal("变量名冲突～～");
+	//				onOff = false;
+	//				break;
+	//			}
+	//		}
+	//		if( onOff )
+	//		{
+	//			var variableReg = /^[A-Z][A-Z0-9_]*$/;
+	//			if( variableReg.test($("#"+appid+" .enviroKey").val()) )
+	//			{
+	//				var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroName").val()+'</a></td>';
+	//				str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroKey").val()+'</a></td>';
+	//				str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue value'+(len+1)+'">'+$("#"+appid+" .enviroValue").val()+'</a></td>';
+	//				str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+	//				$(str).appendTo(".enviroment");
+	//				$("#"+appid+" .enviroName").val('');
+	//				$("#"+appid+" .enviroKey").val('');
+	//				$("#"+appid+" .enviroValue").val('');
+	//				$("#"+appid+" .addContent").css({"display":"none"});
+	//				delPort();
+	//				editPort();
+	//			}
+	//			else{
+	//				swal("变量名由大写字母开头，可以加入数字～～");
+	//			}
+	//		}
+	//	}
+	//	else{
+	//		console.log(2);
+	//	}
+	//});
+	//$(".noAddEnviroment").on("click",function(){
+	//	var appid = $(this).parents("section.app-box").attr("id");
+	//	$("#"+appid+" .addContent").css({"display":"none"});
+	//	$("#"+appid+" .enviroKey").val('');
+	//	$("#"+appid+" .enviroValue").val('');
+	//});
 
 
 	////// 持久化目录
-	$(".fn-directory").click(function(){
-		$(this).hide();
-		$(this).parent().prev(".directory-box").show();
-		$(this).next(".fn-directory-sure").show();
-		$(this).next().next(".fn-directory-cancel").show();
-	});
+	//$(".fn-directory").click(function(){
+	//	$(this).hide();
+	//	$(this).parent().prev(".directory-box").show();
+	//	$(this).next(".fn-directory-sure").show();
+	//	$(this).next().next(".fn-directory-cancel").show();
+	//});
+	////
+	//$(".fn-directory-cancel").click(function(){
+	//	$(this).hide();
+	//	$(".directory-box").hide();
+	//	$(".fn-directory-sure").hide();
+	//	$(".fn-directory").show();
+	//	$(".directory-name input").prop("value","");
+	//});
+	////
+	//$(".fn-directory-sure").click(function(){
+	//	var appid = $(this).parent().parent().parent().parent().attr("id");
+	//	var dir_name = $(this).parent().prev("div.directory-box").find(".directory-name input").val();
+	//	if(dir_name == ""){
+	//		alert("请输入名称！")
+	//	}else{
+	//		var new_tab = "<tr>";
+	//		new_tab = new_tab + "<td><span>"+ dir_name +"</span></td>";
+	//		new_tab = new_tab + '<td><a href="javascript:;" class="fn-dir-revise">修改</a><a href="javascript:;" class="fn-dir-delete">删除</a></td>';
+	//		new_tab = new_tab + "</tr>";
+	//		$("#" + appid + " table.new-directory").append(new_tab);
+	//		$(".directory-box").hide();
+	//		$(".fn-directory-sure").hide();
+	//		$(".fn-directory-cancel").hide();
+	//		$(".fn-directory").show();
+	//		$(".directory-name input").prop("value","");
+	//	}
+	//});
 	//
-	$(".fn-directory-cancel").click(function(){
-		$(this).hide();
-		$(".directory-box").hide();
-		$(".fn-directory-sure").hide();
-		$(".fn-directory").show();
-		$(".directory-name input").prop("value","");
-	});
-	//
-	$(".fn-directory-sure").click(function(){
-		var appid = $(this).parent().parent().parent().parent().attr("id");
-		var dir_name = $(this).parent().prev("div.directory-box").find(".directory-name input").val();
-		if(dir_name == ""){
-			alert("请输入名称！")
-		}else{
-			var new_tab = "<tr>";
-			new_tab = new_tab + "<td><span>"+ dir_name +"</span></td>";
-			new_tab = new_tab + '<td><a href="javascript:;" class="fn-dir-revise">修改</a><a href="javascript:;" class="fn-dir-delete">删除</a></td>';
-			new_tab = new_tab + "</tr>";
-			$("#" + appid + " table.new-directory").append(new_tab);
-			$(".directory-box").hide();
-			$(".fn-directory-sure").hide();
-			$(".fn-directory-cancel").hide();
-			$(".fn-directory").show();
-			$(".directory-name input").prop("value","");
+	//$("body").on("click",".fn-dir-revise",function(){
+	//	$(this).hide();
+	//	$(this).next("a").hide();
+	//	var this_box = $(this).parent().parent();
+	//	var previous_dir = this_box.find("span").eq(0).html();
+	//	this_box.find("span").css({"display":"none"});
+	//	var dir_name = '<input type="text" class="fn-dir-name" value=' + previous_dir+'/>';
+	//	var a_dir_sure = '<a class="fn-dir-sure" href="javascript:;">确定</a>';
+	//	var a_dir_cancel = '<a class="fn-dir-cancel" href="javascript:;">取消</a>';
+	//	this_box.children("td").eq(0).append(dir_name);
+	//	this_box.children("td").eq(1).append(a_dir_sure,a_dir_cancel);
+	//	// 确定
+	//	$("body").on("click",".fn-dir-sure",function(){
+	//		var val_dir_name = this_box.find("input.fn-dir-name").val();
+	//		if(val_dir_name !=""){
+	//			this_box.find("span").eq(0).html(val_dir_name);
+	//		}
+	//		this_box.find("span").css({"display":"inline-block"});
+	//		this_box.find("a").css({"display":"inline-block"});
+	//		this_box.find("input.fn-dir-name").remove();
+	//		this_box.find("a.fn-dir-sure").remove();
+	//		this_box.find("a.fn-dir-cancel").remove();
+	//	});
+	//	//取消
+	//	$("body").on("click",".fn-dir-cancel",function(){
+	//		this_box.find("span").css({"display":"inline-block"});
+	//		this_box.find("a").css({"display":"inline-block"});
+	//		this_box.find("input.fn-dir-name").remove();
+	//		this_box.find("a.fn-dir-sure").remove();
+	//		this_box.find("a.fn-dir-cancel").remove();
+	//	});
+	//});
+	////
+	//$("body").on("click",".fn-dir-delete",function(){
+	//	$(this).parent().parent().remove();
+	//});
+
+	//新设持久化目录
+	$(".addCata").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" p.catalogue").css({"display":"block"});
+	})
+	$(".catalogueContent").blur(function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		if( $("#"+appid+" .catalogueContent").val() )
+		{
+			$(this).parent().find(".checkTip").css({"display":"none"});
+		}
+		else{
+			$(this).parent().find(".checkTip").css({"display":"block"});
+		}
+	})
+	$(".addCatalogue").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		if( $("#"+appid+" .catalogueContent").val() )
+		{
+			var service_name = $("#"+appid+" #service_name").val();
+			var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
+			str += '<em>/app/'+$("#"+appid+" .catalogueContent").val()+'</em>';
+			str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+			$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
+			$("#"+appid+" p.catalogue").css({"display":"none"});
+			$("#"+appid+" .catalogueContent").val("");
+			delLi();
+		}
+		else{
+			swal("请输入目录～～");
 		}
 	});
-	//
-	$("body").on("click",".fn-dir-revise",function(){
-		$(this).hide();
-		$(this).next("a").hide();
-		var this_box = $(this).parent().parent();
-		var previous_dir = this_box.find("span").eq(0).html();
-		this_box.find("span").css({"display":"none"});
-		var dir_name = '<input type="text" class="fn-dir-name" value=' + previous_dir+'/>';
-		var a_dir_sure = '<a class="fn-dir-sure" href="javascript:;">确定</a>';
-		var a_dir_cancel = '<a class="fn-dir-cancel" href="javascript:;">取消</a>';
-		this_box.children("td").eq(0).append(dir_name);
-		this_box.children("td").eq(1).append(a_dir_sure,a_dir_cancel);
-		// 确定
-		$("body").on("click",".fn-dir-sure",function(){
-			var val_dir_name = this_box.find("input.fn-dir-name").val();
-			if(val_dir_name !=""){
-				this_box.find("span").eq(0).html(val_dir_name);
-			}
-			this_box.find("span").css({"display":"inline-block"});
-			this_box.find("a").css({"display":"inline-block"});
-			this_box.find("input.fn-dir-name").remove();
-			this_box.find("a.fn-dir-sure").remove();
-			this_box.find("a.fn-dir-cancel").remove();
-		});
-		//取消
-		$("body").on("click",".fn-dir-cancel",function(){
-			this_box.find("span").css({"display":"inline-block"});
-			this_box.find("a").css({"display":"inline-block"});
-			this_box.find("input.fn-dir-name").remove();
-			this_box.find("a.fn-dir-sure").remove();
-			this_box.find("a.fn-dir-cancel").remove();
-		});
-	});
-	//
-	$("body").on("click",".fn-dir-delete",function(){
-		$(this).parent().parent().remove();
+	$(".noAddCatalogue").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		$("#"+appid+" p.catalogue").css({"display":"none"});
 	});
 
+	//挂载其他应用持久化目录
+	$(".addOtherApp").on("click",function(){
+		var marleft = $("#main-content").attr("style");
+		if(marleft){
+			var arrleft = marleft.split(":");
+			if(arrleft[1] == " 210px;"){
+				$(".layer-body-bg").css({"left":"-210px;"});
+			}else{
+				$(".layer-body-bg").css({"left":"0px;"});
+			}
+		}else{
+			$(".layer-body-bg").css({"left":"-210px;"});
+		}
+		$(".otherApp").css({"display":"block"});
+		$(".layer-body-bg").css({"display":"block"});
+	});
+
+	//挂载其他应用服务
+	$(".sureAddOther").on("click",function(){
+		var appid = $(this).parents("section.app-box").attr("id");
+		var len = $("input.addOther").length;
+		for( var i = 0; i<len; i++ )
+		{
+			if( $("input.addOther").eq(i).is(":checked") )
+			{
+				var length = $(".otherAppName").length;
+				var onOff = true;
+				for( var j = 0; j<length; j++ )
+				{
+					if( $("input.addOther").eq(i).attr("data-otherName") == $(".otherAppName").eq(j).attr("data-otherName") )
+					{
+						onOff = false;
+						break;
+					}
+				}
+				if( onOff )
+				{
+					var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
+					str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
+					str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+					$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
+					$(".applicationMes").css({"display":"none"});
+					$(".layer-body-bg").css({"display":"none"});
+					delLi();
+				}
+			}
+		}
+		$(".otherApp").css({"display":"none"});
+		$(".layer-body-bg").css({"display":"none"});
+	});
 	// 名称 compose 
 	//var oldname = $("#com-name").val();
 	/*$("#com-name").focus(function(){

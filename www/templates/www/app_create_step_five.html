@@ -256,35 +256,54 @@
             </section>
             <!-- 环境变量 end -->
             <!-- 持久化目录 start-->
-            <section class="box-single">
-                <h3>持久化目录</h3>
-                <table class="table table-striped table-advance table-hover new-directory">
-                    <thead>
-                    <tr>
-                        <th>目录</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for volume in service.volumes %}
-                    <tr>
-                        <td><span> {{volume}} </span> </td>
-                        <td><a href="javascript:;" class="fn-dir-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-dir-delete">删除</a></td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                <div class="new-box">
-                    <div class="directory-box">
-                        <p class="directory-name"><label>目录:</label><input type="text" placeholder="请输入目录"/></p>
-                    </div>
-                    <p>
-                        <a href="javascript:;" class="fn-directory btn btn-success">新增</a>
-                        <a href="javascript:;" class="fn-directory-sure btn btn-success">确认新增</a>
-                        <a href="javascript:;" class="fn-directory-cancel btn btn-danger">取消新增</a>
-                    </p>
-                </div>
-            </section>
+            <!--<section class="box-single">-->
+                <!--<h3>持久化目录</h3>-->
+                <!--<table class="table table-striped table-advance table-hover new-directory">-->
+                    <!--<thead>-->
+                    <!--<tr>-->
+                        <!--<th>目录</th>-->
+                        <!--<th>操作</th>-->
+                    <!--</tr>-->
+                    <!--</thead>-->
+                    <!--<tbody>-->
+                    <!--{% for volume in service.volumes %}-->
+                    <!--<tr>-->
+                        <!--<td><span> {{volume}} </span> </td>-->
+                        <!--<td><a href="javascript:;" class="fn-dir-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-dir-delete">删除</a></td>-->
+                    <!--</tr>-->
+                    <!--{% endfor %}-->
+                    <!--</tbody>-->
+                <!--</table>-->
+                <!--<div class="new-box">-->
+                    <!--<div class="directory-box">-->
+                        <!--<p class="directory-name"><label>目录:</label><input type="text" placeholder="请输入目录"/></p>-->
+                    <!--</div>-->
+                    <!--<p>-->
+                        <!--<a href="javascript:;" class="fn-directory btn btn-success">新增</a>-->
+                        <!--<a href="javascript:;" class="fn-directory-sure btn btn-success">确认新增</a>-->
+                        <!--<a href="javascript:;" class="fn-directory-cancel btn btn-danger">取消新增</a>-->
+                    <!--</p>-->
+                <!--</div>-->
+            <!--</section>-->
+
+            <div class="contentBlock">
+                <b>应用持久化目录：</b>
+                <p class="tips">当前应用所在目录为/app/，使用持久化目录，请注意路径关系</p>
+                <ul class="clearfix">
+
+                </ul>
+                <p class="catalogue">
+                    /app/<input type="text" class="catalogueContent">
+                    <span class="addCatalogue lit-btn-green"><i class="fa fa-check"></i></span>
+                    <span class="noAddCatalogue lit-btn-red"><i class="fa fa-times"></i></span>
+                    <span class="checkTip" style="margin-left: 20px">请输入目录</span>
+                </p>
+                <p class="blockBottom">
+                    <button class="addCata">为当前应用新设持久化目录</button>
+                    <button class="addOtherApp">挂载其他应用的持久化目录</button>
+                </p>
+            </div>
+
             <!-- 持久化目录 end-->
             <!-- 资源要求 start -->
             <section class="box-single">
@@ -349,4 +368,47 @@
         <!-- end -->
     </section>
 </section>
+<div class="layer-body-bg">
+    <div class="layer-body">
+        <!-- 03 start -->
+        <div class="otherApp">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <p class="layer-tit">挂载其他应用</p>
+            <div class="layer-height-overflow">
+                <table class="tab-box lit">
+                    <thead>
+                    <tr>
+                        <th>服务名称</th>
+                        <th>共享目录</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>service_cname</td>
+                        <td>tenantSer.service_alias</td>
+                        <td class="text-center">
+                            <input type="checkbox" class="addOther cho-input" data-name="{{tenantSer.service_cname}}" class="cho-input" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}" id="{{tenantSer.service_cname}}">
+                            <label class="cho-bg" for="{{tenantSer.service_cname}}"></label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ssd</td>
+                        <td>/app/service</td>
+                        <td>
+                            <input type="checkbox" class="addOther cho-input" data-name="ssd" data-path="/app/service" data-otherName="SSD" id="addOther">
+                            <label class="cho-bg" for="addOther"></label>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="bottom">
+                <button class="sureAddOther btn-success">确认</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+        <!-- 03 end -->
+    </div>
+</div>
 {% endblock %}
