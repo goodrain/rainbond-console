@@ -613,6 +613,7 @@ $(function () {
     //访问方式切换
     selectChange();
     function selectChange(){
+        var selectLen = $("table.tab-box select").length;
         for( var j = 0; j<selectLen; j++ )
         {
             $("table.tab-box select").eq(j).attr("index",j);
