@@ -124,7 +124,7 @@ $(function(){
 						oTr += '<option>'+arr[i]+'</option>';
 					}
 				}
-				if( $("#addOuter").prop("checked") == true )
+				if( $("#addOuter"+appid+"").prop("checked") == true )
 				{
 					oTr += '</select><p class="outerTip" style="display:none;">更改访问方式请先打开外部访问</p></td>';
 				}
