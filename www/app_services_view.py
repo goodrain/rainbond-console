@@ -511,7 +511,7 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
             # 创建挂载目录
             for dep_service_alias in service_alias_list:
-                baseService.create_service_mnt(self.tenant.tenant_id, self.service.service_id, dep_service_alias,
+                baseService.create_service_mnt(self.tenant.tenant_id, self.service.service_id, dep_service_alias["otherName"],
                                                self.service.service_region)
 
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,

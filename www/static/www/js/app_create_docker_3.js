@@ -5,7 +5,7 @@ $(function () {
     });
     $(".add_port").blur(function(){
         var portNum = parseInt($(".add_port").val());
-        if( portNum>1024 && portNum<65536 )
+        if( portNum>=80 && portNum<65536 )
         {
             $(this).parents('tr').find('p.checkTip').css({"display":"none"});
         }
@@ -16,7 +16,7 @@ $(function () {
     //确定添加端口号
     $(".add").on("click",function(){
         var portNum = parseInt($(".add_port").val());
-        if( portNum>1024 && portNum<65536 )
+        if( portNum>=80 && portNum<65536 )
         {
             var addOnoff = true;
             var portLen = $(".portNum").length;
@@ -250,7 +250,7 @@ $(function () {
     $(".submit").on("click",function(){
         var portLen = $("tbody.port tr").length;
         var portArr = [];
-        var service_alias = $("#service_alias").val();
+        var service_id = $("#service_id").val();
         for( var i = 0; i<portLen; i++ )
         {
             var port_json = {};
@@ -266,7 +266,7 @@ $(function () {
             }
             port_json["is_inner_service"] = $("tbody.port tr").eq(i).find("td").eq(2).find("input").prop("checked")?1:0;
             port_json["is_outer_service"] = $("tbody.port tr").eq(i).find("td").eq(3).find("input").prop("checked")?1:0;
-            port_json["port_alias"] = service_alias.toUpperCase()+container_port;
+            port_json["port_alias"] = ("gr"+service_id.substr(service_id.length-6)).toUpperCase()+container_port;
             portArr[i] = port_json;
         }
         //console.log(JSON.stringify(portArr));
@@ -313,7 +313,10 @@ $(function () {
             otherAppNameArr[m] = otherAppName_json;
         }
 
+        var service_id = $("#service_id").val();
+        alert(service_id)
         var service_config = {
+            "service_id":service_id,
             "port_list" : JSON.stringify(portArr),
             "env_list" : JSON.stringify(enviromentArr),
             "volume_list" : JSON.stringify(appArr),
@@ -321,12 +324,11 @@ $(function () {
             "depend_list" : JSON.stringify(appNameArr)
         }
         console.log(service_config);
-        var service_alias = $("#service_alias").val();
         var tenantName = $("#tenantName").val();
 
         $.ajax({
             type : "post",
-            url : "/apps/" + tenantName + "/"+ service_alias + "/app-setting/",
+            url : "/apps/"+tenantName+"/image-params/",
             data : service_config,
             cache : false,
             beforeSend : function(xhr, settings) {
@@ -335,14 +337,17 @@ $(function () {
             },
             success : function(msg) {
                 if (msg["status"] == "success") {
-                    window.location.href = "/apps/" + tenantName + "/"+ service_alias + "/app-language/"
+                    var service_alias = msg["service_alias"];
+                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
+                }else if(msg["status"] == "notfound"){
+                    swal("服务不存在");
                 }else{
-                    swal("配置失败")
+                    swal("配置失败");
                 }
             },
             error : function() {
                 swal("系统异常,请重试");
-                $("#BtnFirst").attr('disabled', false);
+                $(".submit").attr('disabled', false);
             }
         });
         

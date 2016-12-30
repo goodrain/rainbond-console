@@ -7,7 +7,9 @@ from django.template.response import TemplateResponse
 from django.shortcuts import redirect
 from django.http import Http404
 
-from www.models.main import TenantRegionPayModel, ServiceGroupRelation, ServiceCreateStep
+from share.manager.region_provier import RegionProviderManager
+from www.models.main import TenantRegionPayModel, ServiceGroupRelation, ServiceCreateStep, ServiceAttachInfo, \
+    TenantConsumeDetail
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
@@ -31,7 +33,7 @@ tenantAccountService = TenantAccountService()
 baseService = BaseTenantService()
 tenantUsedResource = TenantUsedResource()
 codeRepositoriesService = CodeRepositoriesService()
-
+rpmManager = RegionProviderManager()
 
 class TenantServiceAll(LeftSideBarMixin, AuthedView):
 
@@ -476,7 +478,69 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["show_git"] = True
 
             elif fr == "cost":
-                pass
+                service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                                    service_id=self.service.service_id)
+                context["service_attach_info"] = service_attach_info
+
+                service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                                                 service_id=self.service.service_id)
+
+                regionBo = rpmManager.get_work_region_by_name(self.tenant.tenant_name)
+                memory_pre_paid_price = regionBo.memory_package_price  # 内存预付费价格
+                memory_post_paid_price = regionBo.memory_trial_price  # 内存按需使用价格
+                disk_pre_paid_price = regionBo.disk_package_price  # 磁盘预付费价格
+                disk_post_paid_price = regionBo.disk_trial_price  # 磁盘按需使用价格
+                net_post_paid_price = regionBo.net_trial_price  # 网络按需使用价格
+
+                # 费用总计
+                total_memory_price = 0
+                total_disk_price = 0
+                total_net_price = 0
+                for service_consume in service_consume_detail_list:
+                    service_consume.original_memory_unit_price = memory_post_paid_price
+                    service_consume.original_disk_unit_price = disk_post_paid_price
+                    service_consume.is_memory_pre_paid = False
+                    service_consume.is_disk_pre_paid = False
+                    # 未超出预付费期限
+                    if service_attach_info.buy_start_time <= service_consume.time <= service_attach_info.buy_end_time:
+                        # 如果内存为预付费
+                        if service_attach_info.memory_pay_method == 'prepaid':
+                            service_consume.memory_unit_price = memory_pre_paid_price
+                            service_consume.is_memory_pre_paid = True
+                        # 如果内存为后付费
+                        else:
+                            service_consume.memory_unit_price = memory_post_paid_price
+                        # 如果磁盘为预付费
+                        if service_attach_info.disk_pay_method == 'prepaid':
+                            service_consume.disk_unit_price = disk_pre_paid_price
+                            service_consume.is_disk_pre_paid = True
+                        # 如果磁盘为后付费
+                        else:
+                            service_consume.disk_unit_price = disk_post_paid_price
+                    # 超出预付费期限
+                    else:
+                        service_consume.disk_unit_price = disk_post_paid_price
+                        service_consume.memory_unit_price = memory_post_paid_price
+
+                    service_consume.net_unit_price = net_post_paid_price
+
+                    total_memory_price += service_consume.memory / 1024 * service_consume.memory_unit_price
+                    total_disk_price += service_consume.disk / 1024 * service_consume.disk_unit_price
+                    total_net_price += service_consume.net / 1024 * service_consume.net_unit_price
+                    # 费用
+                    service_consume.memory_fee = round(service_consume.memory / 1024 * service_consume.memory_unit_price, 2)
+                    service_consume.disk_fee = round(service_consume.disk / 1024 * service_consume.disk_unit_price, 2)
+                    service_consume.net_fee = round(service_consume.net / 1024 * service_consume.net_unit_price, 2)
+
+                    # 为了按G显示用
+                    service_consume.memory /= 1024
+                    service_consume.disk /= 1024
+                    service_consume.net /= 1024
+                context['service_consume_detail_list'] = service_consume_detail_list
+                context['total_memory_price'] = round(total_memory_price, 2)
+                context['total_disk_price'] = round(total_disk_price, 2)
+                context['total_net_price'] = round(total_net_price, 2)
+                context['buy_end_time'] = service_attach_info.buy_end_time
 
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))

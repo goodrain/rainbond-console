@@ -258,7 +258,7 @@ $(function(){
                 return false;
             }else{
                 var inputText = $(".input-css input").val();
-                var tenant_name = $("#currentTeantName").val();
+                var tenant_name = $("#tenantName").val();
                 ///ajax start
 
                 $.ajax({
@@ -547,6 +547,7 @@ $(function(){
     
     /// 从镜像地址提交 
     $("#mirror_first").click(function(){
+        alert("Hello !!!")
         var appname = $("#create_name").val();
         var groupname = $("#group-name option:selected").html();
         var groupid = $("#group-name option:selected").attr("value");
@@ -585,26 +586,34 @@ $(function(){
         }else{
             $("#create_name_notice").hide();
         }
-        $('#mirror-address').blur(function(){
-            var mirrorName = $(this).val();
-            if(mirrorName == ""){
-                $('#mirror_address_notice').slideDown();
-                return;
-            }else{
-                $('#mirror_address_notice').slideUp();
-            }
-        });
+        var image_url = $('#mirror-address').val();
+        if(image_url == ""){
+            $('#mirror_address_notice').slideDown();
+            return;
+        }else{
+            $('#mirror_address_notice').slideUp();
+        }
+
+//        $('#mirror-address').blur(function(){
+//            var mirrorName = $(this).val();
+//            if(mirrorName == ""){
+//                $('#mirror_address_notice').slideDown();
+//                return;
+//            }else{
+//                $('#mirror_address_notice').slideUp();
+//            }
+//        });
         ///
         $("#mirror_first").attr('disabled', true);
-        var tenantName= $('#currentTeantName').val();
+        var tenantName= $('#tenantName').val();
         $.ajax({
             type : "post",
-            url : "/apps/" + tenantName + "/app-create/",
+            url : "/apps/" + tenantName + "/image-create/",
             data : {
                 "create_app_name" : appname,
                 "groupname" : groupname,
                 "select_group_id" : groupid,
-                "mirrorName" : mirrorName,
+                "image_url" : image_url,
                 "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
                 "disk_pay_method" : disk_onoff ? "prepaid":"postpaid",
                 "service_min_memory" : memory_num,
@@ -619,33 +628,30 @@ $(function(){
             },
             success : function(msg) {
                 var dataObj = msg;
-                if (dataObj["status"] == "exist") {
-                    swal("服务名已存在");
-                } else if (dataObj["status"] == "owed"){
-                    swal("余额不足请及时充值")
-                } else if (dataObj["status"] == "expired"){
-                    swal("试用已到期")
-                } else if (dataObj["status"] == "over_memory") {
+                if (dataObj["status"] == "over_memory") {
                     swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {
                     swal("余额不足，不能创建");
                 } else if (dataObj["status"] == "empty") {
                     swal("应用名称不能为空");
-                }else if (dataObj["status"] == "code_from") {
-                    swal("应用资源库未选择");
-                }else if (dataObj["status"] == "code_repos") {
-                    swal("代码仓库异常");
                 }else if (dataObj["status"] == "success") {
-                    service_alias = dataObj["service_alias"]
-                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
-                } else {
+                    var id = dataObj["id"];
+                    window.location.href = "/apps/"+tenantName+"/image-params?id="+id;
+                }else if (dataObj["status"] == "failure"){
+                    swal("创建失败");
+                }else if(dataObj["status"] == "owed"){
+                    swal("您已欠费,请及时充值");
+                }else if(dataObj["status"] == "no_image_url"){
+                    swal("请填写镜像路径")
+                }
+                else {
                     swal("创建失败");
                 }
                 $("#mirror_first").attr('disabled', false);
             },
             error : function() {
                 swal("系统异常,请重试");
-                $("#BtnFirst").attr('disabled', false);
+                $("#mirror_first").attr('disabled', false);
             }
         });
         ///

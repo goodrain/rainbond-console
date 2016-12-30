@@ -352,7 +352,7 @@ $(function () {
                 $("#BtnFirst").attr('disabled', false);
             }
         });
-        
+
         console.log(service_config);
     });
 
@@ -365,7 +365,7 @@ $(function () {
                 $(".layer-body-bg").css({"left":"-210px;"});
             }else{
                 $(".layer-body-bg").css({"left":"0px;"});
-            } 
+            }
         }else{
             $(".layer-body-bg").css({"left":"-210px;"});
         }
@@ -389,7 +389,7 @@ $(function () {
                     $(".layer-body-bg").css({"left":"-210px;"});
                 }else{
                     $(".layer-body-bg").css({"left":"0px;"});
-                } 
+                }
             }else{
                 $(".layer-body-bg").css({"left":"-210px;"});
             }
@@ -449,7 +449,7 @@ $(function () {
                     }
                     info_div += '</div>';
                     $(info_div).appendTo('.appendDiv');
-                    
+
                 }else{
                     swal(msg.info);
                 }
@@ -469,7 +469,7 @@ $(function () {
                 $(".layer-body-bg").css({"left":"-210px;"});
             }else{
                 $(".layer-body-bg").css({"left":"0px;"});
-            } 
+            }
         }else{
             $(".layer-body-bg").css({"left":"-210px;"});
         }
