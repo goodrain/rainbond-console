@@ -620,7 +620,7 @@ $(function () {
                 console.log($(this).index());
                 for( var i = 0; i<len; i++ )
                 {
-                    if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' )
+                    if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' && $(this) != $("table.tab-box tbody select").eq(i) )
                     {
                         console.log(i);
                         console.log($("table.tab-box tbody input.checkDetail").eq(i));
