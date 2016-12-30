@@ -148,14 +148,14 @@
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                                <input type="checkbox" name="" value="" id="addInner" />
-                                <label class="check-bg" for="addInner"></label>
+                                <input type="checkbox" name="" value="" id="addInner{{service.service_id}}" />
+                                <label class="check-bg" for="addInner{{service.service_id}}"></label>
                             </div>
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
-                                <input type="checkbox" name="" value="" id="addOuter" />
-                                <label class="check-bg" for="addOuter"></label>
+                                <input type="checkbox" name="" value="" id="addOuter{{service.service_id}}" />
+                                <label class="check-bg" for="addOuter{{service.service_id}}"></label>
                             </div>
                         </td>
                         <td>
@@ -170,8 +170,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="5" class="openAdd">
-                            <span>新增容器端口</span>
+                        <td colspan="5">
+                            <span class="openAdd">新增容器端口</span>
                         </td>
                     </tr>
                     </tfoot>
