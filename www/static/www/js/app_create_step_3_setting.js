@@ -597,7 +597,6 @@ $(function () {
     function checkDetail(){
         $("input.checkDetail").off("click");
         $("input.checkDetail").on("click",function(){
-            console.log($(this).prop("checked"));
             if( $(this).prop("checked") )
             {
                 $(this).parents("tr").find("p.outerTip").css({"display":"none"});
@@ -623,7 +622,7 @@ $(function () {
                         }
                         else{
                             swal("访问方式只能有一个非HTTP");
-                            $(this).val("请选择");
+                            $(this).parents("tr").find("select").val("请选择");
                             break;
                         }
                     }
@@ -642,7 +641,6 @@ $(function () {
                 if( $(this).val() == '非HTTP' )
                 {
                     var len = $("table.tab-box tbody select").length;
-                    console.log($(this).attr("index"));
                     for( var i = 0; i<len; i++ )
                     {
                         if( $("table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("table.tab-box tbody select").eq(i).val() == '非HTTP' && i != $(this).attr("index") )
