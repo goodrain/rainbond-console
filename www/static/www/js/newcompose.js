@@ -698,7 +698,6 @@ $(function(){
 		{
 			if( $("#"+appid+" input.addOther").eq(i).is(":checked") )
 			{
-				console.log(1);
 				var length = $("#"+appid+" .otherAppName").length;
 				var onOff = true;
 				for( var j = 0; j<length; j++ )
@@ -711,13 +710,10 @@ $(function(){
 				}
 				if( onOff )
 				{
-					console.log(2);
 					var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("#"+appid+" input.addOther").eq(i).attr("data-otherName")+'">'+$("#"+appid+" input.addOther").eq(i).attr("data-name")+'</a>';
 					str += '<em>'+$("#"+appid+" input.addOther").eq(i).attr("data-path")+'</em>';
 					str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
 					$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
-					console.log($("#"+appid+" .contentBlock ul.clearfix"));
-					console.log(str);
 					$("#"+appid+" .otherApp").css({"display":"none"});
 					$("#"+appid+" .layer-body-bg").css({"display":"none"});
 					delLi();
