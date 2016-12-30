@@ -34,10 +34,10 @@ $(function () {
                 var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$(".add_port").val()+'</a></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
-                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
+                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" checked="true" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
                 }
                 else{
-                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
+                    oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$(".add_port").val()+'inner" /><label class="check-bg" for="'+$(".add_port").val()+'inner"></label></div></td>';
                 }
                 if( $("#addOuter").prop("checked") == true )
                 {
@@ -619,22 +619,22 @@ $(function () {
     //        }
     //    })
     //}
-    //checkDetail();
-    //function checkDetail(){
-    //    $("input.checkDetail").off("click");
-    //    $("input.checkDetail").on("click",function(){
-    //        if( $(this).parent().find("span").hasClass("portDetail") )
-    //        {
-    //            $(this).parent().find("span").addClass("portDisable");
-    //            $(this).parent().find("span").removeClass("portDetail");
-    //        }
-    //        else if( $(this).parent().find("span").hasClass("portDisable") )
-    //        {
-    //            $(this).parent().find("span").addClass("portDetail");
-    //            $(this).parent().find("span").removeClass("portDisable");
-    //        }
-    //        detail();
-    //    });
-    //    detail();
-    //}
-});
+    checkDetail();
+    function checkDetail(){
+        $("input.checkDetail").off("click");
+        $("input.checkDetail").on("click",function(){
+            if( $(this).parent().find("span").hasClass("portDetail") )
+            {
+                $(this).parent().find("span").addClass("portDisable");
+                $(this).parent().find("span").removeClass("portDetail");
+                console.log(1);
+            }
+            else if( $(this).parent().find("span").hasClass("portDisable") )
+            {
+                $(this).parent().find("span").addClass("portDetail");
+                $(this).parent().find("span").removeClass("portDisable");
+                console.log(2);
+            }
+        });
+    }
+})
