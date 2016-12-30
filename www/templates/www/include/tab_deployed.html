@@ -483,7 +483,7 @@
 						if(log["status"] == "end"){
 							tmpLog = tmpLog+" 用时"+log["cost_time"]+"s";
 						}
-						tmpLog = "<label style='text-decoration: underline;line-height: 21px;'>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;text-decoration: underline;line-height: 21px;'></p>"
+						tmpLog = "<label style='line-height: 21px;'>"+tmpLog+"</label><p id='compile_"+log["event_id"]+"' style='display: none;line-height: 21px;'></p>"
 						tmpLog = "<div id='event_"+log["event_id"]+"'>"+tmpLog+"</div>"
 						showlog =showlog + tmpLog
 					}
