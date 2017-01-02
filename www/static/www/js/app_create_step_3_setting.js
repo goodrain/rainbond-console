@@ -591,17 +591,16 @@ $(function () {
     function checkDetail(){
         $("input.checkDetail").off("click");
         $("input.checkDetail").on("click",function(){
-            console.log($(this).prop("checked"));
             if( $(this).prop("checked") )
             {
-                console.log(1);
                 $(this).parents("tr").find("option.changeOption").html("请选择");
+                $(this).parents("tr").find("select").val("请选择");
                 $(this).parents("tr").find("select").css({"color":"#28cb75"}).removeAttr("disabled");
             }
             else
             {
-                console.log(2);
                 $(this).parents("tr").find("option.changeOption").html("请打开外部访问");
+                $(this).parents("tr").find("select").val("请打开外部访问");
                 $(this).parents("tr").find("select").css({"color":"#838383"}).attr("disabled",true);
             }
             if( $(this).parents("tr").find("select").val() == '非HTTP' )
