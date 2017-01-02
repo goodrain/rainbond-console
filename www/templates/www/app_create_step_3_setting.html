@@ -58,11 +58,10 @@
                     </td>
                     <td>
                         <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" {% if port.is_outer_service %} {% else %} style="color: #838383;" disabled=true {% endif %}>
-                            <option>请选择</option>
+                            <option class="changeOption">请选择</option>
                             <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
                             <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>
                         </select>
-                        <p class="outerTip" {% if port.is_outer_service %}style="display:none" {% else %}style="display:block"  {% endif %}>更改访问方式请先打开外部访问</p>
                     </td>
                     <td>
                         <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
@@ -90,11 +89,10 @@
                     </td>
                     <td>
                         <select class="add_http fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
-                            <option>请选择</option>
+                            <option class="changeOption">请选择</option>
                             <option>HTTP</option>
                             <option>非HTTP</option>
                         </select>
-                        <p class="outerTip" style="display:none">更改访问方式请先打开外部访问</p>
                     </td>
                     <td class="operation">
                         <span class="add lit-btn-green"><i class="fa fa-check"></i></span>

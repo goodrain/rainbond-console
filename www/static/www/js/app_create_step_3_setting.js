@@ -31,7 +31,7 @@ $(function () {
             }
             if( addOnoff )
             {
-                var arr = ['HTTP','非HTTP','请选择'];
+                var arr = ['HTTP','非HTTP'];
                 var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$(".add_port").val()+'</a></td>';
                 if( $("#addInner").prop("checked") == true )
                 {
@@ -49,7 +49,8 @@ $(function () {
                     oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$(".add_port").val()+'outer" /><label class="check-bg" for="'+$(".add_port").val()+'outer"></label></div></td><td>';
                     oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$(".add_port").val()+'http">';
                 }
-                for( var i = 0; i < 3; i++ )
+                oTr += '<option class="changeOption">请选择</option>';
+                for( var i = 0; i < 2; i++ )
                 {
                     if( $('.add_http').val() == arr[i] )
                     {
@@ -59,14 +60,7 @@ $(function () {
                         oTr += '<option>'+arr[i]+'</option>';
                     }
                 }
-                if( $("#addOuter").prop("checked") == true )
-                {
-                    oTr += '</select><p class="outerTip" style="display:none;">更改访问方式请先打开外部访问</p></td>';
-                }
-                else{
-                    oTr += '</select><p class="outerTip" style="display: block;">更改访问方式请先打开外部访问</p></td>';
-                }
-                oTr += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
+                oTr += '</select></td><td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
                 $(oTr).appendTo(".port");
                 $(".addPort").css({"display":"none"});
                 delPort();
