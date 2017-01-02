@@ -1261,7 +1261,7 @@ $(function(){
 				var my_name = $(this).html();
 				var my_path = $(this).parent().find('em').html();
 				json_directory["volume_pathName"] = my_name;
-				json_directory["volume_path"] = my_name;
+				json_directory["volume_path"] = my_path;
 				dir_nums[i] = json_directory;
 			});
 
@@ -1272,7 +1272,7 @@ $(function(){
 				var my_name = $(this).html();
 				var my_path = $(this).parent().find('em').html();
 				json_directory["volume_pathName"] = my_name;
-				json_directory["volume_path"] = my_name;
+				json_directory["volume_path"] = my_path;
 				dir_otherArr[i] = json_directory;
 			});
 
