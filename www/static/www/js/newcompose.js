@@ -109,13 +109,12 @@ $(function(){
 				if( $("#addOuter"+appid+"").prop("checked") == true )
 				{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer'+appid+'" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer'+appid+'"></label></div></td><td>';
-					oTr += '<select style="" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http">';
+					oTr += '<select style="" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http"><option class="changeOption">请选择</option>';
 				}
 				else{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer'+appid+'" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer'+appid+'"></label></div></td><td>';
-					oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http">';
+					oTr += '<select disabled="disabled" style="color: #838383;" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http"><option class="changeOption">请打开外部访问</option>';
 				}
-				oTr += '<option class="changeOption">请选择</option>';
 				for( var i = 0; i < 2; i++ )
 				{
 					if( $('#'+appid+' .add_http').val() == arr[i] )
@@ -131,7 +130,7 @@ $(function(){
 				$("#"+appid+" .addPort").css({"display":"none"});
 				delPort();
 				editPort();
-				//tip();
+				tip();
 				checkDetail();
 				selectChange();
 			}
@@ -203,6 +202,7 @@ $(function(){
 			$("table.tab-box select").eq(j).attr("index",j);
 			$("table.tab-box select").eq(j).change(function(){
 				var appid = $(this).parents("section.app-box").attr("id");
+				console.log(appid);
 				if( $(this).val() == '非HTTP' )
 				{
 					var len = $("#"+appid+" table.tab-box tbody select").length;
@@ -210,6 +210,7 @@ $(function(){
 					{
 						if( $("#"+appid+" table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("#"+appid+" table.tab-box tbody select").eq(i).val() == '非HTTP' && i != $(this).attr("index") )
 						{
+							console.log(i);
 							swal("访问方式只能有一个非HTTP");
 							$(this).val("请选择");
 							break;
@@ -222,24 +223,24 @@ $(function(){
 	//修改端口号
 	editPort();
 	function editPort(){
-		//$('.edit-port').editable({
-		//	type: 'text',
-		//	pk: 1,
-		//	success: function (data) {
-		//		//window.location.reload();
-		//	},
-		//	error: function (data) {
-		//		msg = data.responseText;
-		//		res = $.parseJSON(msg);
-		//		showMessage(res.info);
-		//	},
-		//	ajaxOptions: {
-		//		beforeSend: function(xhr, settings) {
-		//			xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
-		//			settings.data += '&action=change_port';
-		//		},
-		//	}
-		//});
+		$('.edit-port').editable({
+			type: 'text',
+			pk: 1,
+			success: function (data) {
+				//window.location.reload();
+			},
+			error: function (data) {
+				msg = data.responseText;
+				res = $.parseJSON(msg);
+				showMessage(res.info);
+			},
+			ajaxOptions: {
+				beforeSend: function(xhr, settings) {
+					xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
+					settings.data += '&action=change_port';
+				},
+			}
+		});
 	}
 
 	//// 修改端口 start
@@ -729,6 +730,87 @@ $(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		$("#"+appid+" .layer-body-bg").css({"display":"none"});
 	});
+
+
+	tip();
+	function tip(){
+		$(".fn-tips").mouseover(function(){
+			var tips = $(this).attr("data-tips");
+			var pos = $(this).attr("data-position");
+			var x = $(this).offset().left;
+			var y = $(this).offset().top;
+			var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
+			$("body").append(oDiv);
+			var oDivheight = $(".tips-box").height();
+			var oDivwidth = $(".tips-box").width();
+			var othiswid = $(this).width();
+			var othisheight = $(this).height();
+			if(pos){
+				if(pos == "top"){
+					//
+					$(".tips-box").css({"top":y-oDivheight -25});
+					if(oDivwidth > othiswid){
+						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+					}else if(oDivwidth < othiswid){
+						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+					}else{
+						$(".tips-box").css({"left":x});
+					}
+					$(".tips-box").find("cite").addClass("top");
+					//
+				}else if(pos == "bottom"){
+					//
+					$(".tips-box").css({"top":y + othisheight + 25});
+					if(oDivwidth > othiswid){
+						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+					}else if(oDivwidth < othiswid){
+						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+					}else{
+						$(".tips-box").css({"left":x});
+					}
+					$(".tips-box").find("cite").addClass("bottom");
+					//
+				}else if(pos == "left"){
+					$(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+					$(".tips-box").find("cite").addClass("left");
+				}else if(pos == "right"){
+					$(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+					$(".tips-box").find("cite").addClass("right");
+				}else{
+					//
+					$(".tips-box").css({"top":y-oDivheight -25});
+					if(oDivwidth > othiswid){
+						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+					}else if(oDivwidth < othiswid){
+						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+					}else{
+						$(".tips-box").css({"left":x});
+					}
+					$(".tips-box").find("cite").addClass("top");
+					//
+				}
+			}else{
+				//
+				$(".tips-box").css({"top":y-oDivheight -25});
+				if(oDivwidth > othiswid){
+					$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+				}else if(oDivwidth < othiswid){
+					$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+				}else{
+					$(".tips-box").css({"left":x});
+				}
+				$(".tips-box").find("cite").addClass("top");
+				//
+			}
+
+		});
+		$(".fn-tips").mouseout(function(){
+			$(".tips-box").remove();
+		});
+		////tips end
+	}
+
+
 	// 名称 compose 
 	//var oldname = $("#com-name").val();
 	/*$("#com-name").focus(function(){
