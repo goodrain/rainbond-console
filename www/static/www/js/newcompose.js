@@ -202,7 +202,6 @@ $(function(){
 			$("table.tab-box select").eq(j).attr("index",j);
 			$("table.tab-box select").eq(j).change(function(){
 				var appid = $(this).parents("section.app-box").attr("id");
-				console.log(appid);
 				if( $(this).val() == '非HTTP' )
 				{
 					var len = $("#"+appid+" table.tab-box tbody select").length;
@@ -210,7 +209,6 @@ $(function(){
 					{
 						if( $("#"+appid+" table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("#"+appid+" table.tab-box tbody select").eq(i).val() == '非HTTP' && i != $(this).attr("index") )
 						{
-							console.log(i);
 							swal("访问方式只能有一个非HTTP");
 							$(this).val("请选择");
 							break;
@@ -1038,131 +1036,131 @@ $(function(){
 	//图
 
 	///// 提交
-    $("#build-app").click(function(){
-		$(this).attr('disabled',true);
-    	var secbox= $(".app-box");
-    	var secdate = [];
-    	$(secbox).each(function(){
-    		var appid = $(this).attr("id");
-			var service_cname = $(this).attr("service_cname")
-			var service_image = $(this).attr("service_image")
-			
-    		//console.log(appid);
-    		//
-    		var port_tr = $(this).find(".new-port tbody").children("tr");
-    		var port_nums = [];
-	        $(port_tr).each(function(i){
-		    	var json_port = {};
-			    var my_name = $(this).children("td").eq(0).children("span").html();
-			    var my_port = $(this).children("td").eq(1).children("span").html();
-			    var my_agreement = $(this).children("td").eq(2).children("span").html();
-			    var my_inner = $(this).children("td").eq(3).children("input").prop("checked")? 1 : 0;
-			    var my_outer = $(this).children("td").eq(4).children("input").prop("checked")? 1 : 0;
-			    json_port["port_alias"] = my_name;
-			    json_port["container_port"] = my_port;
-			    json_port["protocol"] = my_agreement;
-			    json_port["is_inner_service"] = my_inner;
-			    json_port["is_outer_service"] = my_outer;
-			    port_nums[i] = json_port;
-			});
-	        //console.log(port_nums);  
-	        //
-	        var env_tr = $(this).find(".new-environment tbody").children("tr");
-    		var env_nums = [];
-	    	$(env_tr).each(function(i){
-	    		var json_environment = {};
-	    		var my_name = $(this).children("td").eq(0).children("span").html();
-	    		var my_engname = $(this).children("td").eq(1).children("span").html();
-	    		var my_value = $(this).children("td").eq(2).children("span").html();
-	    		json_environment["name"] = my_name;
-	    		json_environment["attr_name"] = my_engname;
-	    		json_environment["attr_value"] = my_value;
-	    		env_nums[i] = json_environment;
-	    	});
-	    	//console.log(env_nums);
-	    	//
-	    	var dir_tr = $(this).find(".new-directory tbody").children("tr");
-	    	var dir_nums = [];
-		    $(dir_tr).each(function(i){
-		    	var json_directory = {};
-		    	var my_name = $(this).children("td").eq(0).children("span").html();
-		    	json_directory["volume_path"] = my_name;
-		    	dir_nums[i] = json_directory;
-		    });
-
-			var deps = $(this).find("#depends_service ").children("span");
-			var depends_services = []
-			$(deps).each(function (i) {
-				var depends_service = {}
-				var dps_service_name = $(this).html()
-				depends_service["depends_service"] = dps_service_name
-				depends_services[i]=dps_service_name
-			});
-		    //console.log(dir_nums);
-	    	//
-	    	var resources = $(this).find(".resources option:selected").val();  
-	    	//console.log(resources);
-	    	//
-	    	var order = $(this).find(".order").val();
-	    	var this_json={
-				"service_image":service_image,
-				"service_cname":service_cname,
-	    		"service_id" : appid,
-	    		"port_list" : port_nums,
-	    		"env_list" : env_nums,
-	    		"volume_list" : dir_nums,
-				"depends_services":depends_services,
-	    		"compose_service_memory" : resources,
-	    		"start_cmd" : order
-	    	}
-	    	console.log(this_json);
-	    	secdate.push(this_json);
-    	});
-    	console.log(secdate);
-    	//
-		var tenantName = $("#tenantNameValue").val();
-		var compose_group_name = $("#com-name").val();
-		
-    	///
-    	//$.ajax({
-         //   type: "post",
-         //   url: "/apps/"+tenantName+"/compose-params/",
-         //   dataType: "json",
-			//data: {
-			//		"service_configs":JSON.stringify(secdate),
-			//		"compose_group_name":compose_group_name
-			//		},
-			//beforeSend : function(xhr, settings) {
-			//	var csrftoken = $.cookie('csrftoken');
-			//	xhr.setRequestHeader("X-CSRFToken", csrftoken);
-			//},
-			//success:function(data){
-			//	status = data.status;
-			//	if (status == 'success'){
-			//		window.location.href="/apps/"+tenantName +"/"
-			//	}else if (status == "failure"){
-			//		swal("数据中心初始化失败");
-			//	}else if (status == "owed"){
-			//		swal("余额不足请及时充值");
-			//	}else if (status =="expired"){
-			//		swal("试用期已过");
-			//	}else if(status =="over_memory"){
-			//		swal("资源已达上限,无法创建");
-			//	}else if(status == "over_money"){
-			//		swal("余额不足无法创建");
-			//	}else{
-			//		swal("创建失败")
-			//	}
-			//},
-			//error: function() {
-			//	$(this).attr('disabled',false);
-         //   },
-         //   cache: false
-         //   // processData: false
-        //});
-		
-    	///
-    });
+    //$("#build-app").click(function(){
+	//	$(this).attr('disabled',true);
+    	//var secbox= $(".app-box");
+    	//var secdate = [];
+    	//$(secbox).each(function(){
+    	//	var appid = $(this).attr("id");
+	//		var service_cname = $(this).attr("service_cname")
+	//		var service_image = $(this).attr("service_image")
+	//
+    	//	//console.log(appid);
+    	//	//
+    	//	var port_tr = $(this).find(".new-port tbody").children("tr");
+    	//	var port_nums = [];
+	//        $(port_tr).each(function(i){
+	//	    	var json_port = {};
+	//		    var my_name = $(this).children("td").eq(0).children("span").html();
+	//		    var my_port = $(this).children("td").eq(1).children("span").html();
+	//		    var my_agreement = $(this).children("td").eq(2).children("span").html();
+	//		    var my_inner = $(this).children("td").eq(3).children("input").prop("checked")? 1 : 0;
+	//		    var my_outer = $(this).children("td").eq(4).children("input").prop("checked")? 1 : 0;
+	//		    json_port["port_alias"] = my_name;
+	//		    json_port["container_port"] = my_port;
+	//		    json_port["protocol"] = my_agreement;
+	//		    json_port["is_inner_service"] = my_inner;
+	//		    json_port["is_outer_service"] = my_outer;
+	//		    port_nums[i] = json_port;
+	//		});
+	//        //console.log(port_nums);
+	//        //
+	//        var env_tr = $(this).find(".new-environment tbody").children("tr");
+    	//	var env_nums = [];
+	//    	$(env_tr).each(function(i){
+	//    		var json_environment = {};
+	//    		var my_name = $(this).children("td").eq(0).children("span").html();
+	//    		var my_engname = $(this).children("td").eq(1).children("span").html();
+	//    		var my_value = $(this).children("td").eq(2).children("span").html();
+	//    		json_environment["name"] = my_name;
+	//    		json_environment["attr_name"] = my_engname;
+	//    		json_environment["attr_value"] = my_value;
+	//    		env_nums[i] = json_environment;
+	//    	});
+	//    	//console.log(env_nums);
+	//    	//
+	//    	var dir_tr = $(this).find(".new-directory tbody").children("tr");
+	//    	var dir_nums = [];
+	//	    $(dir_tr).each(function(i){
+	//	    	var json_directory = {};
+	//	    	var my_name = $(this).children("td").eq(0).children("span").html();
+	//	    	json_directory["volume_path"] = my_name;
+	//	    	dir_nums[i] = json_directory;
+	//	    });
+    //
+	//		var deps = $(this).find("#depends_service ").children("span");
+	//		var depends_services = []
+	//		$(deps).each(function (i) {
+	//			var depends_service = {}
+	//			var dps_service_name = $(this).html()
+	//			depends_service["depends_service"] = dps_service_name
+	//			depends_services[i]=dps_service_name
+	//		});
+	//	    //console.log(dir_nums);
+	//    	//
+	//    	var resources = $(this).find(".resources option:selected").val();
+	//    	//console.log(resources);
+	//    	//
+	//    	var order = $(this).find(".order").val();
+	//    	var this_json={
+	//			"service_image":service_image,
+	//			"service_cname":service_cname,
+	//    		"service_id" : appid,
+	//    		"port_list" : port_nums,
+	//    		"env_list" : env_nums,
+	//    		"volume_list" : dir_nums,
+	//			"depends_services":depends_services,
+	//    		"compose_service_memory" : resources,
+	//    		"start_cmd" : order
+	//    	}
+	//    	console.log(this_json);
+	//    	secdate.push(this_json);
+    	//});
+    	//console.log(secdate);
+    	////
+	//	var tenantName = $("#tenantNameValue").val();
+	//	var compose_group_name = $("#com-name").val();
+	//
+    	/////
+    	////$.ajax({
+     //    //   type: "post",
+     //    //   url: "/apps/"+tenantName+"/compose-params/",
+     //    //   dataType: "json",
+	//		//data: {
+	//		//		"service_configs":JSON.stringify(secdate),
+	//		//		"compose_group_name":compose_group_name
+	//		//		},
+	//		//beforeSend : function(xhr, settings) {
+	//		//	var csrftoken = $.cookie('csrftoken');
+	//		//	xhr.setRequestHeader("X-CSRFToken", csrftoken);
+	//		//},
+	//		//success:function(data){
+	//		//	status = data.status;
+	//		//	if (status == 'success'){
+	//		//		window.location.href="/apps/"+tenantName +"/"
+	//		//	}else if (status == "failure"){
+	//		//		swal("数据中心初始化失败");
+	//		//	}else if (status == "owed"){
+	//		//		swal("余额不足请及时充值");
+	//		//	}else if (status =="expired"){
+	//		//		swal("试用期已过");
+	//		//	}else if(status =="over_memory"){
+	//		//		swal("资源已达上限,无法创建");
+	//		//	}else if(status == "over_money"){
+	//		//		swal("余额不足无法创建");
+	//		//	}else{
+	//		//		swal("创建失败")
+	//		//	}
+	//		//},
+	//		//error: function() {
+	//		//	$(this).attr('disabled',false);
+     //    //   },
+     //    //   cache: false
+     //    //   // processData: false
+     //   //});
+	//
+    	/////
+    //});
 	///////
 
 	/////切换
@@ -1195,7 +1193,149 @@ $(function(){
 		var tenantName = $("#tenantNameValue").val();
 		url = "/apps/"+tenantName+"/compose-create?id="+compose_file_id;
 		window.location.href = url
-	})
+	});
+
+
+
+
+	$("#build-app").click(function(){
+		$(this).attr('disabled',true);
+		var secbox= $(".app-box");
+		var secdate = [];
+		$(secbox).each(function(){
+			var appid = $(this).attr("id");
+			var service_cname = $(this).attr("service_cname")
+			var service_image = $(this).attr("service_image")
+
+			//console.log(appid);
+			//
+			var port_tr = $(this).find("tbody.port").children("tr");
+			var port_nums = [];
+			$(port_tr).each(function(i){
+				var json_port = {};
+				//var my_name = $(this).children("td").eq(0).children("span").html();
+				var my_port = $(this).children("td").eq(0).find("a.portNum").html();
+				var my_agreement = $(this).children("td").eq(3).find("select").val();
+				if( my_agreement == 'HTTP' )
+				{
+					my_agreement = 'http';
+				}
+				else if( my_agreement = '非HTTP' )
+				{
+					my_agreement = 'stream';
+				}
+				else{
+					my_agreement = 'hui';
+				}
+				var my_inner = $(this).children("td").eq(1).find("input").prop("checked")? 1 : 0;
+				var my_outer = $(this).children("td").eq(2).find("input").prop("checked")? 1 : 0;
+				//json_port["port_alias"] = my_name;
+				json_port["container_port"] = my_port;
+				json_port["protocol"] = my_agreement;
+				json_port["is_inner_service"] = my_inner;
+				json_port["is_outer_service"] = my_outer;
+				port_nums[i] = json_port;
+			});
+			//console.log(port_nums);
+			//
+			var env_tr = $(this).find("tbody.enviroment").children("tr");
+			var env_nums = [];
+			$(env_tr).each(function(i){
+				var json_environment = {};
+				var my_name = $(this).children("td").eq(0).find("a.enviromentName").html();
+				var my_engname = $(this).children("td").eq(1).find("a.enviromentKey").html();
+				var my_value = $(this).children("td").eq(2).children("a.enviromentValue").html();
+				json_environment["name"] = my_name;
+				json_environment["attr_name"] = my_engname;
+				json_environment["attr_value"] = my_value;
+				env_nums[i] = json_environment;
+			});
+			//console.log(env_nums);
+			//
+			var dir_tr = $(this).find("a.add_pathName");
+			var dir_nums = [];
+			$(dir_tr).each(function(i){
+				var json_directory = {};
+				var my_name = $(this).children("td").eq(0).children("span").html();
+				json_directory["volume_path"] = my_name;
+				dir_nums[i] = json_directory;
+			});
+
+			var deps = $(this).find("#depends_service ").children("span");
+			var depends_services = []
+			$(deps).each(function (i) {
+				var depends_service = {}
+				var dps_service_name = $(this).html();
+				var dps_service_path = $(this).parent().find('em').html();
+				depends_service["depends_service"] = dps_service_name;
+				depends_service["depends_path"] = dps_service_path;
+				depends_services[i]=dps_service_name
+			});
+			//console.log(dir_nums);
+			//
+			var resources = $(this).find(".resources option:selected").val();
+			//console.log(resources);
+			//
+			var order = $(this).find(".order").val();
+			var this_json={
+				"service_image":service_image,
+				"service_cname":service_cname,
+				"service_id" : appid,
+				"port_list" : port_nums,
+				"env_list" : env_nums,
+				"volume_list" : dir_nums,
+				"depends_services":depends_services,
+				"compose_service_memory" : resources,
+				"start_cmd" : order
+			}
+			console.log(this_json);
+			secdate.push(this_json);
+		});
+		console.log(secdate);
+		//
+		var tenantName = $("#tenantNameValue").val();
+		var compose_group_name = $("#com-name").val();
+
+		///
+		//$.ajax({
+		//   type: "post",
+		//   url: "/apps/"+tenantName+"/compose-params/",
+		//   dataType: "json",
+		//data: {
+		//		"service_configs":JSON.stringify(secdate),
+		//		"compose_group_name":compose_group_name
+		//		},
+		//beforeSend : function(xhr, settings) {
+		//	var csrftoken = $.cookie('csrftoken');
+		//	xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		//},
+		//success:function(data){
+		//	status = data.status;
+		//	if (status == 'success'){
+		//		window.location.href="/apps/"+tenantName +"/"
+		//	}else if (status == "failure"){
+		//		swal("数据中心初始化失败");
+		//	}else if (status == "owed"){
+		//		swal("余额不足请及时充值");
+		//	}else if (status =="expired"){
+		//		swal("试用期已过");
+		//	}else if(status =="over_memory"){
+		//		swal("资源已达上限,无法创建");
+		//	}else if(status == "over_money"){
+		//		swal("余额不足无法创建");
+		//	}else{
+		//		swal("创建失败")
+		//	}
+		//},
+		//error: function() {
+		//	$(this).attr('disabled',false);
+		//   },
+		//   cache: false
+		//   // processData: false
+		//});
+
+		///
+	});
 });
 
 
