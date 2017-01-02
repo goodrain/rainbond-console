@@ -358,6 +358,7 @@ $(function(){
 					$(str).appendTo("#"+appid+" .enviroment");
 					$("#"+appid+" .enviroName").val('');
 					$("#"+appid+" .enviroKey").val('');
+					$("#"+appid+" .enviroValue").val('');
 					$("#"+appid+" .addContent").css({"display":"none"});
 					delPort();
 					editPort();
@@ -374,6 +375,7 @@ $(function(){
 	$(".noAddEnviroment").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		$("#"+appid+" .addContent").css({"display":"none"});
+		$("#"+appid+" .enviroName").val('');
 		$("#"+appid+" .enviroKey").val('');
 		$("#"+appid+" .enviroValue").val('');
 	});
@@ -1256,9 +1258,22 @@ $(function(){
 			var dir_nums = [];
 			$(dir_tr).each(function(i){
 				var json_directory = {};
-				var my_name = $(this).children("td").eq(0).children("span").html();
+				var my_name = $(this).html();
+				var my_path = $(this).parent().find('em').html();
+				json_directory["volume_pathName"] = my_name;
 				json_directory["volume_path"] = my_name;
 				dir_nums[i] = json_directory;
+			});
+
+			var dir_other = $(this).find("a.otherAppName");
+			var dir_otherArr = [];
+			$(dir_other).each(function(i){
+				var json_directory = {};
+				var my_name = $(this).html();
+				var my_path = $(this).parent().find('em').html();
+				json_directory["volume_pathName"] = my_name;
+				json_directory["volume_path"] = my_name;
+				dir_otherArr[i] = json_directory;
 			});
 
 			var deps = $(this).find("#depends_service ").children("span");
@@ -1285,7 +1300,7 @@ $(function(){
 				"env_list" : env_nums,
 				"volume_list" : dir_nums,
 				"depends_services":depends_services,
-				"compose_service_memory" : resources,
+				"compose_service_memory" : dir_otherArr,
 				"start_cmd" : order
 			}
 			console.log(this_json);
