@@ -681,7 +681,7 @@ $(function () {
         var onOff = true;
         for( var i = 0; i<len; i++ )
         {
-            if( str == arr[i] )
+            if( str == arr.eq(i).html() )
             {
                 onOff = false;
                 break;

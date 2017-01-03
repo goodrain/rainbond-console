@@ -665,7 +665,7 @@ $(function(){
 					break;
 				}
 			}
-			if( resule )
+			if( result )
 			{
 				var service_name = $("#service_name").val();
 				var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
