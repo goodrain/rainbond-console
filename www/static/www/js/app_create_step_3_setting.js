@@ -20,16 +20,16 @@ $(function () {
         var portNum = parseInt($(".add_port").val());
         if( portNum>1024 && portNum<65536 )
         {
-            var addOnoff = true;
-            var portLen = $(".portNum").length;
-            for( var i = 0; i<portLen; i++ )
-            {
-                if( portNum == $(".portNum").eq(i).html() )
-                {
-                    addOnoff = false;
-                    break;
-                }
-            }
+            var addOnoff = matchArr(portNum,$(".portNum"));
+            //var portLen = $(".portNum").length;
+            //for( var i = 0; i<portLen; i++ )
+            //{
+            //    if( portNum == $(".portNum").eq(i).html() )
+            //    {
+            //        addOnoff = false;
+            //        break;
+            //    }
+            //}
             if( addOnoff )
             {
                 var arr = ['HTTP','非HTTP'];
@@ -259,6 +259,7 @@ $(function () {
             }
             else{
                 $(this).parent().find(".checkTip").html("目录冲突，请重新输入");
+                $(".catalogueContent").val('');
                 $(this).parent().find(".checkTip").css({"display":"inline-block"});
             }
         }

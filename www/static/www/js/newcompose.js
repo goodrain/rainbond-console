@@ -652,14 +652,35 @@ $(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		if( $("#"+appid+" .catalogueContent").val() )
 		{
-			var service_name = $("#service_name").val();
-			var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
-			str += '<em>/app/'+$("#"+appid+" .catalogueContent").val()+'</em>';
-			str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
-			$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
-			$("#"+appid+" p.catalogue").css({"display":"none"});
-			$("#"+appid+" .catalogueContent").val("");
-			delLi();
+			var result = true;
+			var len = $("#"+appid+" .add_pathName").length;
+			for( var i = 0; i<len; i++ )
+			{
+				var str = '/app/'+ $("#"+appid+" .catalogueContent").val();
+				console.log(str);
+				console.log($(".add_pathName").eq(i).parent().find("em").html());
+				if( str == $("#"+appid+" .add_pathName").eq(i).parent().find("em").html() )
+				{
+					result = false;
+					break;
+				}
+			}
+			if( resule )
+			{
+				var service_name = $("#service_name").val();
+				var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
+				str += '<em>/app/'+$("#"+appid+" .catalogueContent").val()+'</em>';
+				str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+				$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
+				$("#"+appid+" p.catalogue").css({"display":"none"});
+				$("#"+appid+" .catalogueContent").val("");
+				delLi();
+			}
+			else{
+				$(this).parent().find(".checkTip").html("目录冲突，请重新输入");
+				$("#"+appid+" .catalogueContent").val('');
+				$(this).parent().find(".checkTip").css({"display":"inline-block"});
+			}
 		}
 		else{
 			$(this).parent().find(".checkTip").css({"display":"inline-block"});
