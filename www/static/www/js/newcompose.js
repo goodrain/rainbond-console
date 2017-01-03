@@ -1215,7 +1215,6 @@ $(function(){
 			var port_nums = [];
 			$(port_tr).each(function(i){
 				var json_port = {};
-				//var my_name = $(this).children("td").eq(0).children("span").html();
 				var my_port = $(this).children("td").eq(0).find("a.portNum").html();
 				var my_agreement = $(this).children("td").eq(3).find("select").val();
 				if( my_agreement == 'HTTP' )
@@ -1231,7 +1230,6 @@ $(function(){
 				}
 				var my_inner = $(this).children("td").eq(1).find("input").prop("checked")? 1 : 0;
 				var my_outer = $(this).children("td").eq(2).find("input").prop("checked")? 1 : 0;
-				//json_port["port_alias"] = my_name;
 				json_port["container_port"] = my_port;
 				json_port["protocol"] = my_agreement;
 				json_port["is_inner_service"] = my_inner;
