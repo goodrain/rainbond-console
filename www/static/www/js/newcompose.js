@@ -2,8 +2,8 @@ $(function(){
 	//打开新增端口号窗口
 	$(".openAdd").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
+		$(this).parents('tfoot').find("option.changeOption").html("请选择");
 		$("#"+appid+" select.add_http").val("请选择");
-		var appid = $(this).parents("section.app-box").attr("id");
 		$("#"+appid+" .addPort").css({"display":"table-row"});
 	});
 	$(".add_port").blur(function(){
