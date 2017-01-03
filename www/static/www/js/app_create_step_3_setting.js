@@ -234,7 +234,7 @@ $(function () {
         if( $(".catalogueContent").val() )
         {
             var result = true;
-            var len = $(".add_pathName")
+            var len = $(".add_pathName").length;
             for( var i = 0; i<len; i++ )
             {
                 var str = '/app/'+ $(".catalogueContent").val();
