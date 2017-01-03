@@ -674,7 +674,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             memory_pay_method = request.POST.get("memory_pay_method", "prepaid")
             disk_pay_method = request.POST.get("disk_pay_method", "prepaid")
             pre_paid_period = int(request.POST.get("pre_paid_period", 1))
-            disk = int(request.POST.get("disk_num", 1))
+            disk = int(request.POST.get("disk_num", 0))
             # 将G转换为M
             if disk < 1024:
                 disk *= 1024

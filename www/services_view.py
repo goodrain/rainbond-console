@@ -25,6 +25,7 @@ from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource,
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.url import get_redirect_url
 from www.utils.md5Util import md5fun
+import datetime
 
 logger = logging.getLogger('default')
 regionClient = RegionServiceApi()
@@ -237,6 +238,23 @@ class TenantService(LeftSideBarMixin, AuthedView):
     def get_outer_service_port(self):
         out_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http')
         return out_service_port_list
+
+    def generate_service_attach_info(self):
+        """为先前的服务创建服务附加信息"""
+        service_attach_info = ServiceAttachInfo()
+        service_attach_info.tenant_id = self.tenant.tenant_id
+        service_attach_info.service_id = self.service.service_id
+        service_attach_info.memory_pay_method = "postpaid"
+        service_attach_info.disk_pay_method = "postpaid"
+        service_attach_info.min_memory = self.service.min_memory
+        service_attach_info.min_node = self.service.min_node
+        service_attach_info.disk = 0
+        service_attach_info.pre_paid_period = 0
+        service_attach_info.pre_paid_money = 0
+        service_attach_info.buy_start_time = datetime.datetime.now()
+        service_attach_info.buy_end_time = datetime.datetime.now()
+        service_attach_info.create_time = datetime.datetime.now()
+        return service_attach_info
 
     @never_cache
     @perm_required('view_service')
@@ -478,8 +496,15 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["show_git"] = True
 
             elif fr == "cost":
-                service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
-                                                                    service_id=self.service.service_id)
+                service_attach_info =None
+                try:
+                    service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                                        service_id=self.service.service_id)
+                except ServiceAttachInfo.DoesNotExist:
+                    pass
+                if service_attach_info is None:
+                    service_attach_info = self.generate_service_attach_info()
+
                 context["service_attach_info"] = service_attach_info
 
                 service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
@@ -491,6 +516,15 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 disk_pre_paid_price = regionBo.disk_package_price  # 磁盘预付费价格
                 disk_post_paid_price = regionBo.disk_trial_price  # 磁盘按需使用价格
                 net_post_paid_price = regionBo.net_trial_price  # 网络按需使用价格
+
+                last_hour_detail = None
+                if len(list(service_consume_detail_list)) > 0:
+                    last_hour_detail = service_consume_detail_list.order_by("-ID")[0]
+                last_hour_detail.memory_fee = round(
+                    last_hour_detail.memory / 1024 * memory_post_paid_price * last_hour_detail.node_num, 2)
+                last_hour_detail.disk_fee = round(last_hour_detail.disk / 1024 * disk_post_paid_price, 2)
+                last_hour_detail.net_fee = round(last_hour_detail.net / 1024 * net_post_paid_price, 2)
+                context["last_hour_detail"] = last_hour_detail
 
                 # 费用总计
                 total_memory_price = 0
@@ -522,15 +556,26 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         service_consume.disk_unit_price = disk_post_paid_price
                         service_consume.memory_unit_price = memory_post_paid_price
 
+
                     service_consume.net_unit_price = net_post_paid_price
 
-                    total_memory_price += service_consume.memory / 1024 * service_consume.memory_unit_price
-                    total_disk_price += service_consume.disk / 1024 * service_consume.disk_unit_price
-                    total_net_price += service_consume.net / 1024 * service_consume.net_unit_price
+                    # total_memory_price += service_consume.memory / 1024 * service_consume.memory_unit_price
+                    # total_disk_price += service_consume.disk / 1024 * service_consume.disk_unit_price
+                    # total_net_price += service_consume.net / 1024 * service_consume.net_unit_price
+                    total_memory_price += service_consume.memory / 1024 * memory_post_paid_price
+                    total_disk_price += service_consume.disk / 1024 * disk_post_paid_price
+                    total_net_price += service_consume.net / 1024 * net_post_paid_price
                     # 费用
-                    service_consume.memory_fee = round(service_consume.memory / 1024 * service_consume.memory_unit_price, 2)
-                    service_consume.disk_fee = round(service_consume.disk / 1024 * service_consume.disk_unit_price, 2)
-                    service_consume.net_fee = round(service_consume.net / 1024 * service_consume.net_unit_price, 2)
+                    service_consume.memory_fee = round(service_consume.memory / 1024 * memory_post_paid_price, 2)
+                    service_consume.disk_fee = round(service_consume.disk / 1024 * disk_post_paid_price, 2)
+                    service_consume.net_fee = round(service_consume.net / 1024 * net_post_paid_price, 2)
+                    if service_consume.is_memory_pre_paid:
+                        service_consume.infact_memory_fee = 0;
+                        service_consume.infact_disk_fee = 0;
+                    else:
+                        service_consume.infact_memory_fee = service_consume.memory_fee
+                        service_consume.infact_disk_fee = service_consume.disk_fee
+                    service_consume.one_hour_total = service_consume.infact_memory_fee+service_consume.infact_disk_fee+service_consume.net_fee
 
                     # 为了按G显示用
                     service_consume.memory /= 1024
@@ -541,6 +586,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context['total_disk_price'] = round(total_disk_price, 2)
                 context['total_net_price'] = round(total_net_price, 2)
                 context['buy_end_time'] = service_attach_info.buy_end_time
+                context['service'] = self.service
+
 
             else:
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
