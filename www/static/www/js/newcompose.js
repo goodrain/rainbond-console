@@ -334,7 +334,7 @@ $(function(){
 	});
 	$(".addEnviroment").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
-		if( $("#"+appid+" .enviroKey").val() && $("#"+appid+" .enviroValue").val() )
+		if( $("#"+appid+" .enviroKey").val() && $("#"+appid+" .enviroValue").val() && $("#"+appid+" .enviroName").val() )
 		{
 			var len = $("#"+appid+" .enviromentKey").length;
 			var onOff = true;
@@ -369,7 +369,7 @@ $(function(){
 			}
 		}
 		else{
-			console.log(2);
+			swal("请输入环境变量");
 		}
 	});
 	$(".noAddEnviroment").on("click",function(){

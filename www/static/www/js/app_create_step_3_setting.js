@@ -126,7 +126,7 @@ $(function () {
         }
     });
     $(".addEnviroment").on("click",function(){
-        if( $(".enviroKey").val() && $(".enviroValue").val() )
+        if( $(".enviroKey").val() && $(".enviroValue").val() && $(".enviroName").val() )
         {
             var onOff = matchArr($(".enviroKey").val(),$(".enviromentKey"));
             if( onOff )
@@ -155,7 +155,7 @@ $(function () {
             }
         }
         else{
-            console.log(2);
+            swal("请输入环境变量");
         }
     });
     $(".noAddEnviroment").on("click",function(){
