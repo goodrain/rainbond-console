@@ -76,7 +76,7 @@
                 {% endfor %}
             </tbody>
             <tfoot>
-                <tr class="addPort">
+                <tr class="addPort" style="display: none">
                     <td>
                         <input type="number" class="add_port fn-tips" data-tips="为了保证安全，服务端口支持范围为 1025~65535，如您的编码中提供对外服务端口不在此范围内，请修改编码。">
                         <p class="checkTip">请输入正确的端口号</p>
@@ -163,26 +163,26 @@
 
                 </tbody>
                 <tfoot>
-                <tr class="addContent">
-                    <td>
-                        <input type="text" class="enviroName">
-                    </td>
-                    <td>
-                        <input type="text" class="enviroKey">
-                        <p class="checkTip">变量名由大写字母开头，可以加入数字</p>
-                    </td>
-                    <td>
-                        <input type="text" class="enviroValue">
-                    </td>
-                    <td class="operation">
-                        <span class="addEnviroment lit-btn-green"><i class="fa fa-check"></i></span>
-                        <span class="noAddEnviroment lit-btn-red"><i class="fa fa-times"></i></span>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="4" style="text-align: center">
-                        <span class="openAddEnviroment">新增环境变量</span>
-                    </td>
+                    <tr class="addContent" style="display: none">
+                        <td>
+                            <input type="text" class="enviroName">
+                        </td>
+                        <td>
+                            <input type="text" class="enviroKey">
+                            <p class="checkTip">变量名由大写字母开头，可以加入数字</p>
+                        </td>
+                        <td>
+                            <input type="text" class="enviroValue">
+                        </td>
+                        <td class="operation">
+                            <span class="addEnviroment lit-btn-green"><i class="fa fa-check"></i></span>
+                            <span class="noAddEnviroment lit-btn-red"><i class="fa fa-times"></i></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" style="text-align: center">
+                            <span class="openAddEnviroment">新增环境变量</span>
+                        </td>
                 </tr>
                 </tfoot>
             </table>

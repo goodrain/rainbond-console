@@ -34,7 +34,6 @@
         </div>
         <!-- 总览 start -->
         <section id="overview" class="fn-app-box" style="display: block;">
-            <!--<p style=" text-align: center; padding: 10px 20px;"><label>应用组名:</label><input type="text" value="" id="com-name" placeholder="{{compose_group_name}}"/></p>-->
             <div class="view-svg" id="view-svg">
                 
             </div>
@@ -48,60 +47,6 @@
             <!-- 应用端口 start -->
             <section class="box-single">
                 <h3>应用端口</h3>
-                <!--<table class="table table-striped table-advance table-hover new-port">-->
-                    <!--<thead>-->
-                        <!--<tr>-->
-                            <!--<th>名称</th>-->
-                            <!--<th>容器端口</th>-->
-                            <!--<th>协议类型</th>-->
-                            <!--<th>默认开启对内服务</th>-->
-                            <!--<th>默认开启外部访问</th>-->
-                            <!--<th>操作</th>-->
-                        <!--</tr>-->
-                    <!--</thead>-->
-                    <!--<tbody>-->
-                    <!--{% for outer_port in service.ports %}-->
-                        <!--<tr>-->
-                            <!--<td><span>{{service.name|upper}}</span></td>-->
-                            <!--<td><span>{{outer_port}}</span></td>-->
-                            <!--<td><span>{% if service.name in linked_service %}stream{% else %}http{% endif %}</span></td>-->
-                            <!--<td><input class="fn-input-inner" name="inner" type="checkbox" {% if service.name in linked_service %} checked="checked" {% endif %} disabled="true"></td>-->
-                            <!--<td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>-->
-                            <!--<td><a href="javascript:;" class="fn-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-delete">删除</a></td>-->
-                        <!--</tr>-->
-                    <!--{% endfor %}-->
-                    <!--{% for inner_port in service.expose %}-->
-                        <!--<tr>-->
-                            <!--<td><span>S{{inner_port}}</span></td>-->
-                            <!--<td><span>{{inner_port}}</span></td>-->
-                            <!--<td><span>http</span></td>-->
-                            <!--<td><input class="fn-input-inner" name="inner" type="checkbox"  disabled="true"></td>-->
-                            <!--<td><input class="fn-input-outer" name="outer" type="checkbox"  disabled="true"></td>-->
-                            <!--<td><a href="javascript:;" class="fn-revise">修改</a><a href="javascript:;" class="fn-delete">删除</a></td>-->
-                        <!--</tr>-->
-                    <!--{% endfor %}-->
-                    <!--</tbody>-->
-                <!--</table>-->
-                <!--<div class="new-box" >-->
-                    <!--<div class="addport-box">-->
-                        <!--<p class="add-port"><label>容器端口:</label><input type="text" placeholder="端口只能是数字"/></p>-->
-                        <!--<p class="add-agreement">-->
-                            <!--<label>协议类型:</label>-->
-                            <!--<select>-->
-                                <!--<option value="http">http</option>-->
-                                <!--<option value="stream">stream</option>-->
-                            <!--</select>-->
-                        <!--</p>-->
-                        <!--<p class="add-inner"><label>对内服务:</label><input type="checkbox" /></p>-->
-                        <!--<p class="add-outer"><label>外部访问:</label><input type="checkbox" /></p>-->
-                    <!--</div>-->
-                    <!--<p>-->
-                        <!--<a href="javascript:;" class="fn-newapp btn btn-success">新增</a>-->
-                        <!--<a href="javascript:;" class="fn-newapp-sure btn btn-success">确认新增</a>-->
-                        <!--<a href="javascript:;" class="fn-newapp-cancel btn btn-danger">取消新增</a>-->
-                    <!--</p>-->
-                <!--</div>-->
-
                 <table class="tab-box">
                     <thead>
                     <tr>
@@ -143,40 +88,40 @@
                     <!--{% endfor %}-->
                     </tbody>
                     <tfoot>
-                    <tr class="addPort">
-                        <td>
-                            <input type="number" class="add_port fn-tips" data-tips="为了保证安全，服务端口支持范围为 1025~65535，如您的编码中提供对外服务端口不在此范围内，请修改编码。">
-                            <p class="checkTip">请输入正确的端口号</p>
-                        </td>
-                        <td>
-                            <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                                <input type="checkbox" name="" value="" id="addInner{{service.service_id}}" checked="checked" />
-                                <label class="check-bg" for="addInner{{service.service_id}}"></label>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
-                                <input class="checkDetail" type="checkbox" name="" value="" id="addOuter{{service.service_id}}" checked="checked" />
-                                <label class="check-bg" for="addOuter{{service.service_id}}"></label>
-                            </div>
-                        </td>
-                        <td>
-                            <select class="add_http fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
-                                <option class="changeOption">请选择</option>
-                                <option>HTTP</option>
-                                <option>非HTTP</option>
-                            </select>
-                        </td>
-                        <td class="operation">
-                            <span class="add lit-btn-green"><i class="fa fa-check"></i></span>
-                            <span class="noAdd lit-btn-red"><i class="fa fa-times"></i></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: center">
-                            <span class="openAdd">新增容器端口</span>
-                        </td>
-                    </tr>
+                        <tr class="addPort" style="display: none">
+                            <td>
+                                <input type="number" class="add_port fn-tips" data-tips="为了保证安全，服务端口支持范围为 1025~65535，如您的编码中提供对外服务端口不在此范围内，请修改编码。">
+                                <p class="checkTip">请输入正确的端口号</p>
+                            </td>
+                            <td>
+                                <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
+                                    <input type="checkbox" name="" value="" id="addInner{{service.service_id}}" checked="checked" />
+                                    <label class="check-bg" for="addInner{{service.service_id}}"></label>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+                                    <input class="checkDetail" type="checkbox" name="" value="" id="addOuter{{service.service_id}}" checked="checked" />
+                                    <label class="check-bg" for="addOuter{{service.service_id}}"></label>
+                                </div>
+                            </td>
+                            <td>
+                                <select class="add_http fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                                    <option class="changeOption">请选择</option>
+                                    <option>HTTP</option>
+                                    <option>非HTTP</option>
+                                </select>
+                            </td>
+                            <td class="operation">
+                                <span class="add lit-btn-green"><i class="fa fa-check"></i></span>
+                                <span class="noAdd lit-btn-red"><i class="fa fa-times"></i></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" style="text-align: center">
+                                <span class="openAdd">新增容器端口</span>
+                            </td>
+                        </tr>
                     </tfoot>
                 </table>
 
@@ -186,108 +131,44 @@
             <!-- 环境变量 start -->
             <section class="box-single">
                 <h3>环境变量</h3>
-                <!--<table class="table table-striped table-advance table-hover new-environment">-->
-                    <!--<thead>-->
-                        <!--<tr>-->
-                            <!--<th>名称</th>-->
-                            <!--<th>变量名</th>-->
-                            <!--<th>值</th>-->
-                            <!--<th>操作</th>-->
-                        <!--</tr>-->
-                    <!--</thead>-->
-                    <!--<tbody>-->
-                    <!--{% for k,v in service.environment.items %}-->
-                    <!--<tr>-->
-                        <!--<td><span>{{k}}</span></td>-->
-                        <!--<td><span>{{k}}</span></td>-->
-                        <!--<td><span>{{v}}</span></td>-->
-                        <!--<td><a href="javascript:;" class="fn-env-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-env-delete">删除</a></td>-->
-                    <!--</tr>-->
-                    <!--{% endfor %}-->
-                    <!--</tbody>-->
-                <!--</table>-->
-                <!--<div class="new-box">-->
-                    <!--<div class="environment-box">-->
-                        <!--<p class="environment-name"><label>名称:</label><input type="text" placeholder="中文名称"/></p>-->
-                        <!--<p class="environment-english"><label>变量名:</label><input type="text" placeholder="英文名称"/></p>-->
-                        <!--<p class="environment-value"><label>值:</label><input type="text" placeholder="请输入值"/></p>-->
-                    <!--</div>-->
-                    <!--<p>-->
-                        <!--<a href="javascript:;" class="fn-environment btn btn-success">新增</a>-->
-                        <!--<a href="javascript:;" class="fn-environment-sure btn btn-success">确认新增</a>-->
-                        <!--<a href="javascript:;" class="fn-environment-cancel btn btn-danger">取消新增</a>-->
-                    <!--</p>-->
-                <!--</div>-->
-
                 <table class="tab-box">
                     <thead>
-                    <tr>
-                        <th>名称</th>
-                        <th>变量名</th>
-                        <th>值</th>
-                        <th>删除</th>
-                    </tr>
+                        <tr>
+                            <th>名称</th>
+                            <th>变量名</th>
+                            <th>值</th>
+                            <th>删除</th>
+                        </tr>
                     </thead>
                     <tbody class="enviroment">
 
                     </tbody>
                     <tfoot>
-                    <tr class="addContent">
-                        <td>
-                            <input type="text" class="enviroName">
-                        </td>
-                        <td>
-                            <input type="text" class="enviroKey">
-                            <p class="checkTip">变量名由大写字母开头，可以加入数字</p>
-                        </td>
-                        <td>
-                            <input type="text" class="enviroValue">
-                        </td>
-                        <td class="operation">
-                            <span class="addEnviroment lit-btn-green"><i class="fa fa-check"></i></span>
-                            <span class="noAddEnviroment lit-btn-red"><i class="fa fa-times"></i></span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="4" style="text-align: center">
-                            <span class="openAddEnviroment">新增环境变量</span>
-                        </td>
-                    </tr>
+                        <tr class="addContent" style="display: none">
+                            <td>
+                                <input type="text" class="enviroName">
+                            </td>
+                            <td>
+                                <input type="text" class="enviroKey">
+                                <p class="checkTip">变量名由大写字母开头，可以加入数字</p>
+                            </td>
+                            <td>
+                                <input type="text" class="enviroValue">
+                            </td>
+                            <td class="operation">
+                                <span class="addEnviroment lit-btn-green"><i class="fa fa-check"></i></span>
+                                <span class="noAddEnviroment lit-btn-red"><i class="fa fa-times"></i></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center">
+                                <span class="openAddEnviroment">新增环境变量</span>
+                            </td>
+                        </tr>
                     </tfoot>
                 </table>
 
             </section>
-            <!-- 环境变量 end -->
-            <!-- 持久化目录 start-->
-            <!--<section class="box-single">-->
-                <!--<h3>持久化目录</h3>-->
-                <!--<table class="table table-striped table-advance table-hover new-directory">-->
-                    <!--<thead>-->
-                    <!--<tr>-->
-                        <!--<th>目录</th>-->
-                        <!--<th>操作</th>-->
-                    <!--</tr>-->
-                    <!--</thead>-->
-                    <!--<tbody>-->
-                    <!--{% for volume in service.volumes %}-->
-                    <!--<tr>-->
-                        <!--<td><span> {{volume}} </span> </td>-->
-                        <!--<td><a href="javascript:;" class="fn-dir-revise">修改</a> &nbsp;&nbsp;<a href="javascript:;" class="fn-dir-delete">删除</a></td>-->
-                    <!--</tr>-->
-                    <!--{% endfor %}-->
-                    <!--</tbody>-->
-                <!--</table>-->
-                <!--<div class="new-box">-->
-                    <!--<div class="directory-box">-->
-                        <!--<p class="directory-name"><label>目录:</label><input type="text" placeholder="请输入目录"/></p>-->
-                    <!--</div>-->
-                    <!--<p>-->
-                        <!--<a href="javascript:;" class="fn-directory btn btn-success">新增</a>-->
-                        <!--<a href="javascript:;" class="fn-directory-sure btn btn-success">确认新增</a>-->
-                        <!--<a href="javascript:;" class="fn-directory-cancel btn btn-danger">取消新增</a>-->
-                    <!--</p>-->
-                <!--</div>-->
-            <!--</section>-->
 
             <div class="contentBlock">
                 <b>应用持久化目录：</b>
