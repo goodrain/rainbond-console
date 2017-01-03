@@ -645,7 +645,7 @@ $(function(){
 			$(this).parent().find(".checkTip").css({"display":"none"});
 		}
 		else{
-			$(this).parent().find(".checkTip").css({"display":"block"});
+			$(this).parent().find(".checkTip").css({"display":"inline-block"});
 		}
 	})
 	$(".addCatalogue").on("click",function(){
@@ -662,7 +662,7 @@ $(function(){
 			delLi();
 		}
 		else{
-			swal("请输入目录～～");
+			$(this).parent().find(".checkTip").css({"display":"inline-block"});
 		}
 	});
 	$(".noAddCatalogue").on("click",function(){

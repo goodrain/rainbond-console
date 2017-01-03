@@ -226,23 +226,33 @@ $(function () {
             $(this).parent().find(".checkTip").css({"display":"none"});
         }
         else{
-            $(this).parent().find(".checkTip").css({"display":"block"});
+            $(this).parent().find(".checkTip").html("请输入目录");
+            $(this).parent().find(".checkTip").css({"display":"inline-block"});
         }
     })
     $(".addCatalogue").on("click",function(){
         if( $(".catalogueContent").val() )
         {
-            var service_name = $("#service_name").val();
-            var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
-            str += '<em>/app/'+$(".catalogueContent").val()+'</em>';
-            str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
-            $(str).appendTo(".fileBlock ul.clearfix");
-            $("p.catalogue").css({"display":"none"});
-            $(".catalogueContent").val("");
-            delLi();
+            var result = matchArr( $(".catalogueContent").val(),$(".add_pathName") )
+            if( result )
+            {
+                var service_name = $("#service_name").val();
+                var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
+                str += '<em>/app/'+$(".catalogueContent").val()+'</em>';
+                str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
+                $(str).appendTo(".fileBlock ul.clearfix");
+                $("p.catalogue").css({"display":"none"});
+                $(".catalogueContent").val("");
+                delLi();
+            }
+            else{
+                $(this).parent().find(".checkTip").html("目录冲突，请重新输入");
+                $(this).parent().find(".checkTip").css({"display":"inline-block"});
+            }
         }
         else{
-            swal("请输入目录～～");
+            $(this).parent().find(".checkTip").html("请输入目录");
+            $(this).parent().find(".checkTip").css({"display":"inline-block"});
         }
     });
     $(".noAddCatalogue").on("click",function(){
@@ -648,5 +658,20 @@ $(function () {
                 }
             })
         }
+    }
+
+    //检测是否存在
+    function matchArr( str,arr ){
+        var len = arr.length;
+        var onOff = true;
+        for( var i = 0; i<len; i++ )
+        {
+            if( str == arr[i] )
+            {
+                onOff = false;
+                break;
+            }
+        }
+        return onOff;
     }
 })
