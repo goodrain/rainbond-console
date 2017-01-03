@@ -21,15 +21,6 @@ $(function () {
         if( portNum>1024 && portNum<65536 )
         {
             var addOnoff = matchArr(portNum,$(".portNum"));
-            //var portLen = $(".portNum").length;
-            //for( var i = 0; i<portLen; i++ )
-            //{
-            //    if( portNum == $(".portNum").eq(i).html() )
-            //    {
-            //        addOnoff = false;
-            //        break;
-            //    }
-            //}
             if( addOnoff )
             {
                 var arr = ['HTTP','非HTTP'];
@@ -137,16 +128,7 @@ $(function () {
     $(".addEnviroment").on("click",function(){
         if( $(".enviroKey").val() && $(".enviroValue").val() )
         {
-            var len = $(".enviromentKey").length;
-            var onOff = true;
-            for( var i = 0; i<len; i++ )
-            {
-                if( $(".enviroKey").val() == $(".enviromentKey")[i].innerHTML ){
-                    swal("变量名冲突～～");
-                    onOff = false;
-                    break;
-                }
-            }
+            var onOff = matchArr($(".enviroKey").val(),$(".enviromentKey"));
             if( onOff )
             {
                 var variableReg = /^[A-Z][A-Z0-9_]*$/;
@@ -167,6 +149,9 @@ $(function () {
                 else{
                     swal("变量名由大写字母开头，可以加入数字～～");
                 }
+            }
+            else{
+                swal("变量名冲突～～");
             }
         }
         else{
@@ -238,8 +223,6 @@ $(function () {
             for( var i = 0; i<len; i++ )
             {
                 var str = '/app/'+ $(".catalogueContent").val();
-                console.log(str);
-                console.log($(".add_pathName").eq(i).parent().find("em").html());
                 if( str == $(".add_pathName").eq(i).parent().find("em").html() )
                 {
                     result = false;
@@ -675,8 +658,6 @@ $(function () {
 
     //检测是否存在
     function matchArr( str,arr ){
-        console.log(str);
-        console.log(arr);
         var len = arr.length;
         var onOff = true;
         for( var i = 0; i<len; i++ )

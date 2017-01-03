@@ -657,8 +657,6 @@ $(function(){
 			for( var i = 0; i<len; i++ )
 			{
 				var str = '/app/'+ $("#"+appid+" .catalogueContent").val();
-				console.log(str);
-				console.log($(".add_pathName").eq(i).parent().find("em").html());
 				if( str == $("#"+appid+" .add_pathName").eq(i).parent().find("em").html() )
 				{
 					result = false;
