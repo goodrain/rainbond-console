@@ -273,7 +273,7 @@ $(function () {
                 port_json["protocol"] = 'stream';
             }
             else{
-                port_json["protocol"] = 'hui';
+                port_json["protocol"] = 'http';
             }
             port_json["is_inner_service"] = $("tbody.port tr").eq(i).find("td").eq(1).find("input").prop("checked")?1:0;
             port_json["is_outer_service"] = $("tbody.port tr").eq(i).find("td").eq(2).find("input").prop("checked")?1:0;

@@ -1245,7 +1245,7 @@ $(function(){
 					my_agreement = 'stream';
 				}
 				else{
-					my_agreement = 'hui';
+					my_agreement = 'http';
 				}
 				var my_inner = $(this).children("td").eq(1).find("input").prop("checked")? 1 : 0;
 				var my_outer = $(this).children("td").eq(2).find("input").prop("checked")? 1 : 0;
