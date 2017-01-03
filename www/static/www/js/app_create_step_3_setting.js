@@ -233,7 +233,17 @@ $(function () {
     $(".addCatalogue").on("click",function(){
         if( $(".catalogueContent").val() )
         {
-            var result = matchArr( $(".catalogueContent").val(),$(".add_pathName") )
+            var result = true;
+            var len = $(".add_pathName")
+            for( var i = 0; i<len; i++ )
+            {
+                var str = '/app/'+ $(".catalogueContent").val();
+                if( str == $(".add_pathName").eq(i).parent().find("em").html() )
+                {
+                    result = false;
+                    break;
+                }
+            }
             if( result )
             {
                 var service_name = $("#service_name").val();
@@ -662,6 +672,8 @@ $(function () {
 
     //检测是否存在
     function matchArr( str,arr ){
+        console.log(str);
+        console.log(arr);
         var len = arr.length;
         var onOff = true;
         for( var i = 0; i<len; i++ )
