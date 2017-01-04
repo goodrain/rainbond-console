@@ -242,7 +242,7 @@ $(function(){
         var DiskText = this_id + "_DiskText";
         var DiskWid = this_id + "_DiskWid";
         var TimeLong = this_id + "_TimeLong";
-        var TimeLongText = this_id + "_TimeLongText;
+        var TimeLongText = this_id + "_TimeLongText";
         var TimeLongWid = this_id + "_TimeLongWid";
         FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
         FnRange("NodeNum","NodeText","NodeWid",1);

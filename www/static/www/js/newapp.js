@@ -469,8 +469,10 @@ $(function(){
     $("#nextcomposestep").click(function(){
         var formData = new FormData($("#myForm")[0]);
 		var tenantName = $("#tenantNameValue").val();
+		var group_name = $("#create_name").val();
+		formData.append("group_name",group_name);
 
-		upload_url = "/apps/"+tenantName+"/compose-create/"
+		upload_url = "/apps/"+tenantName+"/compose-create/";
         $.ajax({  
                 url : upload_url,  
                 type : 'POST',  
@@ -490,7 +492,7 @@ $(function(){
                 },
                 success : function(responseStr) { 
 					if(responseStr.success){
-						window.location.href = "/apps/"+tenantName+"/compose-params?id="+responseStr.compose_file_id
+						window.location.href = "/apps/"+tenantName+"/compose-step2?id="+responseStr.compose_file_id
 
 					}else{
 						swal("文件上传异常")

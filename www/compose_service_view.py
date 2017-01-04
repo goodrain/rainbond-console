@@ -40,7 +40,8 @@ class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
         if choose_region is not None:
             self.response_region = choose_region
         compose_file_id = request.GET.get("id")
-        ComposeServiceRelation.objects.filter(compose_file_id=compose_file_id).delete()
+        if compose_file_id is not None:
+            ComposeServiceRelation.objects.filter(compose_file_id=compose_file_id).delete()
         context = self.get_context()
         return TemplateResponse(self.request, "www/app_create_step_three.html", context)
 
@@ -50,6 +51,7 @@ class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
         tenant_id = self.tenant.tenant_id
         compose_file_id = make_uuid(tenant_id)
         compose_file = request.FILES['compose_file']
+        group_name = request.POST.get("group_name", "")
         try:
             count = ComposeServiceRelation.objects.filter(compose_file_id=compose_file_id).count()
             if count > 1:
@@ -64,14 +66,55 @@ class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
                 compose_info = ComposeServiceRelation.objects.filter(compose_file_id=compose_file_id)
                 compose_info.compose_file = compose_file
             compose_info.save()
+            if group_name != "":
+                ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, group_name=group_name,
+                                            region_name=self.response_region)
+
             compose_file_url = ComposeServiceRelation.objects.get(compose_file_id=compose_file_id).compose_file.path
+
+            group_id = ""
+            try:
+                group_id = ServiceGroup.objects.get(tenant_id=self.tenant.tenant_id, group_name=group_name,
+                                                    region_name=self.response_region)
+            except Exception as e:
+                logger.debug("Tenant {0} in Region {1} Group Name {2} is not found".format(self.tenant.tenant_id,
+                                                                                           self.response_region,
+                                                                                           group_name))
+                pass
+
             data = {"success": True, "code": 200, "compose_file_url": compose_file_url,
-                    "compose_file_id": compose_file_id}
+                    "compose_file_id": compose_file_id, "group_id": group_id}
         except Exception as e:
             data = {"sucess": False}
             ComposeServiceRelation.objects.filter(compose_file_id=compose_file_id).delete()
             logger.exception(e)
         return JsonResponse(data, status=200)
+
+
+class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
+            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
+            'www/js/respond.min.js')
+        return media
+
+    @never_cache
+    @perm_required('code_deploy')
+    def get(self, request, *args, **kwargs):
+        choose_region = request.GET.get("region", None)
+        if choose_region is not None:
+            self.response_region = choose_region
+        context = self.get_context()
+        try:
+            pass
+        except Exception as e:
+            context["parse_error"] = "parse_error"
+            logger.error(e)
+
+        return TemplateResponse(self.request, "www/app_create_step_compose_2.html", context)
+
 
 
 class ComposeServiceParams(LeftSideBarMixin, AuthedView):
