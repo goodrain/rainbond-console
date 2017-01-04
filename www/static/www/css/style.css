@@ -2989,21 +2989,13 @@ ul.amounts li {
 }
 
 .panel-heading .nav > li > a {
-    color: #666;
+    color: #838383;
 
 }
 
 .panel-heading .nav > li.active > a, .panel-heading .nav > li > a:hover {
-    color: #333;
-    background: #f9f9f9;
-    -webkit-box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset;
-    -moz-box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset ;
-    box-shadow: 1px 1px 0 #ddd inset,-1px 0 0 #ddd inset ;
-   
-}
-
-.panel-heading .nav > li:first-child.active > a, .panel-heading .nav > li:first-child > a:hover {
-   
+    color: #28cb75;
+    border-bottom: 2px #28cb75 solid;
 }
 
 

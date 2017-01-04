@@ -15,8 +15,8 @@
 {% if tenantServiceInfo %}
 <section class="wrapper">
     <section class="panel">
-        <p><span style="font-size: 18px; line-height: 30px; color: #666;" id="appname">{{tenantServiceInfo.service_cname}}</span><a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; font-size:14px; line-height: 30px; padding-left:10px;">更名</a></p>
-        <header class="panel-heading tab-bg-dark-navy-blue ">
+        <p><span style="font-size: 18px; line-height: 30px; color: #28cb75;" id="appname">{{tenantServiceInfo.service_cname}}</span><a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; font-size:14px; line-height: 30px; padding-left:10px;">更名</a></p>
+        <header class="panel-heading">
             <ul class="nav nav-tabs" id="nav-tabs">
                 <li {% if fr = "deployed" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=deployed">概览</a>
@@ -58,8 +58,7 @@
             </ul>
         </header>
 
-        <div class="panel-body">
-            <div class="tab-content">
+        <div class="tab-content">
                 {% if fr == "deployed" %}
                 {% include 'www/include/tab_deployed.html' %}
                 {% elif fr == "relations" %}
@@ -75,7 +74,6 @@
                 {% elif fr == "cost" %}
                 {% include 'www/include/tab_cost.html' %}
                 {% endif %}
-            </div>
         </div>
     </section>
 </section>

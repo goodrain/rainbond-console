@@ -15,9 +15,10 @@ a:hover {
 }
 
 .panel-heading {
-    font-size: 16px;
-    font-weight: 300;
-    color: #000;
+    font-size: 18px;
+    font-weight: 100;
+    color: #838383;
+    border-bottom: 1px #dcdcdc solid;
 }
 
 .panel-title {
@@ -29,10 +30,10 @@ a:hover {
     font-family: 'Open Sans', sans-serif;
 }
 .panel-body {
-    color: #666;
-    padding: 10px 15px;
+    color: #303030;
+    /*padding: 10px 15px;
     border: 1px #ddd solid;
-    background: #f9f9f9;
+    background: #f9f9f9;*/
 }
 .form-group { 
     padding-bottom: 10px;
