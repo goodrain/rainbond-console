@@ -492,10 +492,12 @@ $(function(){
                 },
                 success : function(responseStr) { 
 					if(responseStr.success){
-						window.location.href = "/apps/"+tenantName+"/compose-step2?id="+responseStr.compose_file_id
+						window.location.href = "/apps/" + tenantName + "/compose-step2?id=" + responseStr.compose_file_id + "&group_id=" + responseStr.group_id;
 
 					}else{
-						swal("文件上传异常")
+						if (responseStr == "group_exist"){
+							swal("组名已存在");
+						}
 					}
                 },  
                 error : function(responseStr) {  
