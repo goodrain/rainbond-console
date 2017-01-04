@@ -36,6 +36,7 @@ table td{
     color: #838383;
     font-size: 14px;
     height: 60px;
+
 }
 .cost{
     overflow: hidden;
@@ -52,6 +53,10 @@ table td{
 }
 table span{
     margin-right: 5px;
+}
+.cost-fun table td{
+    text-align: center;
+    border-top:0 none;
 }
 /*计费明细表格*/
 .cost-detail{
