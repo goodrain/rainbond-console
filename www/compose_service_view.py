@@ -67,15 +67,20 @@ class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
                 compose_info.compose_file = compose_file
             compose_info.save()
             if group_name != "":
-                ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, group_name=group_name,
-                                            region_name=self.response_region)
+                if ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, group_name=group_name,
+                                               region_name=self.response_region).count() > 0:
+                    return JsonResponse({"success": False, "info": "group_exist"}, status=200)
+                else:
+                    ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, group_name=group_name,
+                                                region_name=self.response_region)
 
             compose_file_url = ComposeServiceRelation.objects.get(compose_file_id=compose_file_id).compose_file.path
 
             group_id = ""
             try:
-                group_id = ServiceGroup.objects.get(tenant_id=self.tenant.tenant_id, group_name=group_name,
+                group = ServiceGroup.objects.get(tenant_id=self.tenant.tenant_id, group_name=group_name,
                                                     region_name=self.response_region)
+                group_id = group.ID
             except Exception as e:
                 logger.debug("Tenant {0} in Region {1} Group Name {2} is not found".format(self.tenant.tenant_id,
                                                                                            self.response_region,
@@ -100,6 +105,13 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             'www/js/respond.min.js')
         return media
 
+    def json_loads(self, json_string):
+        """将json字符串转为python对象"""
+        if json_string is not None and json_string.strip() != "":
+            return json.loads(json_string)
+        else:
+            return ""
+
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
@@ -108,13 +120,51 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             self.response_region = choose_region
         context = self.get_context()
         try:
-            pass
+            compose_file_id = request.GET.get("id", "")
+            yaml_file = ComposeServiceRelation.objects.get(compose_file_id=compose_file_id)
+            compose_file_path = yaml_file.compose_file.path
+            context["compose_file_name"] = yaml_file.compose_file.name
+            service_list, info = compose_list(compose_file_path)
+            tenant_id = self.tenant.tenant_id
+            linked = []
+            compose_relations = {}
+            if service_list is None:
+                context["parse_error"] = "parse_error"
+                context["parse_error_info"] = info
+            else:
+                for docker_service in service_list:
+                    temp = []
+                    service_id = make_uuid(tenant_id)
+                    docker_service.service_id = service_id
+                    env_var_json = docker_service.environment
+                    docker_service.environment = self.json_loads(env_var_json)
+                    outer_port_json = docker_service.ports
+                    docker_service.ports = self.json_loads(outer_port_json)
+                    inner_port_json = docker_service.expose
+                    docker_service.expose = self.json_loads(inner_port_json)
+                    links_json = docker_service.links
+                    docker_service.links = self.json_loads(links_json)
+                    volumes_json = docker_service.volumes
+                    docker_service.volumes = self.json_loads(volumes_json)
+                    depends_on_json = docker_service.depends_on
+                    docker_service.depends_on = self.json_loads(depends_on_json)
+                    linked.extend(docker_service.links)
+                    linked.extend(docker_service.depends_on)
+                    temp.extend(docker_service.links)
+                    temp.extend(docker_service.depends_on)
+                    compose_relations[docker_service.name] = temp
+
+            context["compose_relations"] = json.dumps(compose_relations)
+            context["linked_service"] = linked
+            context["service_list"] = service_list
+            context["compose_file_id"] = compose_file_id
+            context["tenantName"] = self.tenant.tenant_name
+            context["compose_group_name"] = "compose"+compose_file_id[-6:]
         except Exception as e:
             context["parse_error"] = "parse_error"
             logger.error(e)
 
         return TemplateResponse(self.request, "www/app_create_step_compose_2.html", context)
-
 
 
 class ComposeServiceParams(LeftSideBarMixin, AuthedView):
