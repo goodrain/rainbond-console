@@ -148,12 +148,13 @@ $(function(){
     //// 选择 groupname end 
    
 	// 滑块 开始 
+    /*
 	function FnRange(inputid,textid,widid,num){
 		var range= document.getElementById(inputid);
 		var result = document.getElementById(textid);
 		var wid = document.getElementById(widid);
-        var maxnum = range.attr("max");
-		cachedRangeValue = /*localStorage.rangeValue ? localStorage.rangeValue :*/ num; 
+        var maxnum = range.getAttribute("max");
+		cachedRangeValue = /*localStorage.rangeValue ? localStorage.rangeValue :*/ /* num; 
 		// 检测浏览器
 		var o = document.createElement('input');
 	    o.type = 'range';
@@ -249,7 +250,7 @@ $(function(){
         FnRange("Disk","DiskText","DiskWid",1);
         FnRange("TimeLong","TimeLongText","TimeLongWid",1);
     });
-   
+    */
     
     // 滑动框 结束
     
