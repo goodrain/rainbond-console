@@ -4,8 +4,6 @@ table{
     width: 100%;
     border-collapse: collapse;
     color: #838383;
-    border-top:1px solid #ececec;
-    border-bottom: 1px solid #ececec;
 }
 /*表格标题*/
 table caption{
@@ -23,12 +21,12 @@ table a:hover{
 }
 /*表格th的大小与背景色*/
 table th{
-    border-top:1px solid #ececec;
-    border-bottom: 1px solid #ececec;
     background-color: #f7f7f7;
     font-size: 16px;
     color: #303030;
     height: 40px;
+    text-align: center;
+    font-weight: 100;
 }
 /*表格td的大小60px与颜色*/
 table td{
@@ -46,7 +44,7 @@ table td{
 .cost table tr td:first-child{padding-left: 20px;}
 /*计费方式表格*/
 .cost-fun{
-    padding: 10px 25px;
+    padding: 20px 25px 30px;
     background-color: #ffffff;
     border-radius: 10px;
     -webkit-border-radius: 10px;
@@ -67,6 +65,7 @@ table span{
     min-width: 70px;
     padding-left: 0px;
     padding-right: 0px;
+
 }
 .cost-detail table td{
     min-width: 50px;
