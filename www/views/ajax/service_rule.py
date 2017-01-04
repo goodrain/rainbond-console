@@ -10,6 +10,7 @@ logger = logging.getLogger('default')
 
 
 class ServiceRuleManage(AuthedView):
+    
     def post(self, request, *args, **kwargs):
         """
         增加规则
@@ -34,9 +35,9 @@ class ServiceRuleManage(AuthedView):
         
         result = {}
         try:
-            rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id)
+            rules = ServiceRule.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id)
             result["status"] = "success"
-            result["rule"] = rule
+            result["rules"] = rules
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
