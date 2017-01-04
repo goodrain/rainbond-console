@@ -54,10 +54,7 @@ table td{
 table span{
     margin-right: 5px;
 }
-.cost-fun table td{
-    text-align: center;
-    border-top:0 none;
-}
+
 /*计费明细表格*/
 .cost-detail{
     padding: 30px;
@@ -76,6 +73,8 @@ table span{
     min-width: 50px;
     padding-left: 0px;
     padding-right: 0px;
+     text-align: center;
+    border-top:0 none;
 }
 .cost p.cost-title{
     font-size: 18px;
