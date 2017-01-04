@@ -2972,7 +2972,7 @@ ul.amounts li {
 .panel-heading .nav {
     border: medium none;
     font-size: 14px;
-    margin: -10px -15px -11px;
+    border-bottom: 1px #dcdcdc solid;
 }
 
 .tab-bg-dark-navy-blue {

@@ -17,9 +17,9 @@ a:hover {
 .panel-heading {
     font-size: 18px;
     font-weight: 100;
-    color: #838383;
+    color: #303030;
     border-bottom: 1px #dcdcdc solid;
-    margin: 10px 5px 20px;
+    margin: 10px 5px 0;
 }
 
 .panel-title {
