@@ -3,6 +3,7 @@ from django.http.response import JsonResponse
 from django.template.response import TemplateResponse
 from django.views.decorators.cache import never_cache
 
+from share.manager.region_provier import RegionProviderManager
 from www.decorator import perm_required
 from www.models import ComposeServiceRelation, TenantServiceInfo, ServiceInfo, TenantServiceEnvVar, TenantServicesPort, \
     TenantServiceVolume
@@ -23,7 +24,7 @@ tenantAccountService = TenantAccountService()
 tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 monitorhook = MonitorHook()
-
+rpmManager = RegionProviderManager()
 
 class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
     def get_media(self):
@@ -153,6 +154,16 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                     temp.extend(docker_service.links)
                     temp.extend(docker_service.depends_on)
                     compose_relations[docker_service.name] = temp
+
+
+            regionBo = rpmManager.get_work_region_by_name(self.response_region)
+            context['pre_paid_memory_price'] = regionBo.memory_package_price
+            context['post_paid_memory_price'] = regionBo.memory_trial_price
+            context['pre_paid_disk_price'] = regionBo.disk_package_price
+            context['post_paid_disk_price'] = regionBo.disk_trial_price
+            context['post_paid_net_price'] = regionBo.net_trial_price
+            # 是否为免费租户
+            context['is_tenant_free'] = (self.tenant.pay_type == "free")
 
             context["compose_relations"] = json.dumps(compose_relations)
             context["linked_service"] = linked
