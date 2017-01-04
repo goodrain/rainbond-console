@@ -2990,7 +2990,7 @@ ul.amounts li {
 
 .panel-heading .nav > li > a {
     color: #838383;
-
+    font-size: 18px;
 }
 
 .panel-heading .nav > li.active > a, .panel-heading .nav > li > a:hover {
