@@ -1,8 +1,8 @@
 $(function () {
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
-        $(this).parents('tfoot').find("option.changeOption").html("请选择");
-        $(this).parents('tfoot').find("select").val("请选择");
+        //$(this).parents('tfoot').find("option.changeOption").html("请选择");
+        //$(this).parents('tfoot').find("select").val("请选择");
         $(".checkTip").css({"display":"none"});
         $(".addPort").css({"display":"table-row"});
     });

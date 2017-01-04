@@ -2,16 +2,17 @@ $(function(){
 	//打开新增端口号窗口
 	$(".openAdd").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
-		console.log($(this).parents("tfoot").find("input.checkDetail").eq(1).prop("checked"));
-		if( $(this).parents("tfoot").find("input.checkDetail").eq(1).prop("checked") )
-		{
-			$(this).parents('tfoot').find("option.changeOption").html("请选择");
-			$("#"+appid+" select.add_http").val("请选择");
-		}
-		else{
-			$(this).parents('tfoot').find("option.changeOption").html("请打开外部访问");
-			$("#"+appid+" select.add_http").val("请打开外部访问");
-		}
+		//console.log($(this).parents("tfoot").find("input.checkDetail").eq(1).prop("checked"));
+		//if( $(this).parents("tfoot").find("input.checkDetail").eq(1).prop("checked") )
+		//{
+		//	$(this).parents('tfoot').find("option.changeOption").html("请选择");
+		//	$("#"+appid+" select.add_http").val("请选择");
+		//}
+		//else{
+		//	$(this).parents('tfoot').find("option.changeOption").html("请打开外部访问");
+		//	$("#"+appid+" select.add_http").val("请打开外部访问");
+		//}
+		$("#"+appid+" .checkTip").css({"display":"none"});
 		$("#"+appid+" .addPort").css({"display":"table-row"});
 	});
 	$(".add_port").blur(function(){
