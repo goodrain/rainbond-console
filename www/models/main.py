@@ -860,3 +860,16 @@ class ComposeServiceRelation(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     compose_file_id = models.CharField(max_length=32, help_text=u"compose文件id")
     compose_file = models.FileField(upload_to=compose_file_path, null=True, blank=True, help_text=u"compose file")
+
+class ServiceRule(BaseModel):
+    """用户服务自动伸缩规则 """
+    class Meta:
+        db_table = 'tenant_service_rule'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    item = models.CharField(max_length=50, help_text=u"规则项目")
+    operator = models.CharField(max_length=2, help_text=u"运算类型")
+    value = models.IntegerField(max_length=11)
+    fortime = models.IntegerField(max_length=11)
+    action = models.CharField(max_length=10, help_text=u"触发动作")
+    status = models.BooleanField(default=False, blank=True, help_text=u"是否生效；0:停止；1:生效")
