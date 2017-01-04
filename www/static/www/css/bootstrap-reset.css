@@ -345,7 +345,7 @@ ul {
 
 }
 .nav-tabs > li > a:hover{
-   border-top: 0 none;
+   border-top: 1px transition solid; 
    border-left: 0 none;
    border-right: 0 none;
     
