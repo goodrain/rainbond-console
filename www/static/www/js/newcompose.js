@@ -2,8 +2,6 @@ $(function(){
 	//打开新增端口号窗口
 	$(".openAdd").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
-		console.log($(this).parents("tfoot").find("input.checkDetail"));
-		console.log($(this).parents("tfoot").find("input.checkDetail").prop("checked"));
 		if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
 		{
 			$(this).parents('tfoot').find("option.changeOption").html("请选择");

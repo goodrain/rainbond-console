@@ -1,9 +1,6 @@
 $(function () {
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
-        //$(this).parents('tfoot').find("option.changeOption").html("请选择");
-        //$(this).parents('tfoot').find("select").val("请选择");
-        console.log($(this).parents("tfoot").find("input.checkDetail").prop("checked"));
         if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
         {
             $(this).parents('tfoot').find("option.changeOption").html("请选择");
