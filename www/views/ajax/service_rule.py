@@ -1,16 +1,11 @@
 # -*- coding: utf8 -*-
-import datetime
-import json
-import re
-
 from django.http import JsonResponse
 
-from www.models.main import ServiceGroupRelation
 from www.views import AuthedView
-from www.decorator import perm_required
-from www.models import (ServiceRule)
-from django.conf import settings
+from www.models import ServiceRule
+
 import logging
+
 logger = logging.getLogger('default')
 
 class ServiceRuleManage(AuthedView):
@@ -38,7 +33,12 @@ class ServiceRuleManage(AuthedView):
 	    """	
         result = {}
         try:
+            rule = ServiceRule(
+	        	tenant_id=self.service.tenant_id,
+	            service_id=self.service.service_id
+	        	)
             result["status"] = "success"
+            result["rule"] = rule
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
