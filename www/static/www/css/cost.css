@@ -9,7 +9,7 @@ table{
 }
 /*表格标题*/
 table caption{
-    padding: 10px 13px;
+    padding: 10px;
     font-size: 18px;
     color: #303030;
 }
@@ -42,6 +42,8 @@ table td{
 .cost{
     overflow: hidden;
 }
+.cost table tfoot tr{ border-left: 0 none;  border-right: 0 none; }
+.cost table tr td:first-child{padding-left: 20px;}
 /*计费方式表格*/
 .cost-fun{
     padding: 10px 25px;

@@ -7,21 +7,18 @@
             </thead>
             <tbody>
             <tr>
-                <td></td>
                 <td>内存计费方式：<span>{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %} 后付费 {% endif %}</span><a href="javascript:void(0)" class="change">更改</a></td>
                 <td>当前使用：<span>{{service.min_memory}}MB×{{service.min_node}}</span><a href="javascript:void(0)" class="larger">扩容</a></td>
                 <td>上1小时费用：<span>{{last_hour_detail.memory_fee}}元</span></td>
                 <td>累计费用：<span>{{total_memory_price}}元</span></td>
             </tr>
             <tr>
-                <td></td>
                 <td>磁盘计费方式：<span>{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费 {% else %} 后付费 {% endif %}</span><a href="javascript:void(0)" class="change">更改</a></td>
                 <td>当前使用：<span>{{last_hour_detail.disk}}MB</span></td>
                 <td>上1小时费用：<span>{{last_hour_detail.disk_fee}}元</span></td>
                 <td>累计费用：<span>{{total_disk_price}}元</span></td>
             </tr>
             <tr>
-                <td></td>
                 <td>流量计费方式：<span>后付费</span></td>
                 <td>当前使用：<span>{{last_hour_detail.net}}MB</span></td>
                 <td>上1小时费用：<span>{{last_hour_detail.net_fee}}元</span></td>
@@ -30,7 +27,6 @@
             </tbody>
             <tfoot>
             <tr>
-                <td></td>
                 <td colspan="4">预付费项目有效期：<span>{{service_attach_info.buy_end_time}}</span><a href="javascript:void(0)" class="expand">延期</a></td>
             </tr>
             </tfoot>
