@@ -9,16 +9,18 @@ button{
 }
 .appOutline ul.outlineTop li{
     width: 20%;
-    height: 220px;
+   
     float: left;
     border-radius: 10px;
     -webkit-border-radius: 10px;
     -moz-border-radius: 10px;
-    background-color: #ffffff;
+    
     
 }
 .appOutline ul.outlineTop li div{
     margin: 5px;
+    background-color: #ffffff;
+    height: 220px;
 }
 .appOutline ul li p{
     padding: 10px 30px;
