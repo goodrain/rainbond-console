@@ -3,6 +3,16 @@ $(function () {
     $(".openAdd").on("click",function(){
         //$(this).parents('tfoot').find("option.changeOption").html("请选择");
         //$(this).parents('tfoot').find("select").val("请选择");
+        console.log($(this).parents("tfoot").find("input.checkDetail").prop("checked"));
+        if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
+        {
+            $(this).parents('tfoot').find("option.changeOption").html("请选择");
+            $("select.add_http").val("请选择");
+        }
+        else{
+            $(this).parents('tfoot').find("option.changeOption").html("请打开外部访问");
+            $("select.add_http").val("请打开外部访问");
+        }
         $(".checkTip").css({"display":"none"});
         $(".addPort").css({"display":"table-row"});
     });

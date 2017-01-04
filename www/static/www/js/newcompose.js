@@ -3,9 +3,8 @@ $(function(){
 	$(".openAdd").on("click",function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		console.log($(this).parents("tfoot").find("input.checkDetail"));
-		console.log($(this).parents("tfoot").find("input.checkDetail").eq(1));
-		console.log($(this).parents("tfoot").find("input.checkDetail").eq(1).prop("checked"));
-		if( $(this).parents("tfoot").find("input.checkDetail").eq(1).prop("checked") )
+		console.log($(this).parents("tfoot").find("input.checkDetail").prop("checked"));
+		if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
 		{
 			$(this).parents('tfoot').find("option.changeOption").html("请选择");
 			$("#"+appid+" select.add_http").val("请选择");
