@@ -52,7 +52,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/batch-action$', BatchActionView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/change-service-name', ajax.ServiceNameChangeView.as_view()),
     # service rule
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule', ServiceRuleManage.as_view()),
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/update', ServiceRuleUpdate.as_view()),
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/delete', ServiceRuleDelete.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule$', ServiceRuleManage.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/update$', ServiceRuleUpdate.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/delete$', ServiceRuleDelete.as_view()),
 )
