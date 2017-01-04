@@ -341,13 +341,14 @@ ul {
 /*tab*/
 
 .nav-tabs > li > a {
-    margin-right: 1px;
+   
 
 }
 .nav-tabs > li > a:hover{
-   border-top: 1px transition solid; 
+   border-top: 0 none;
    border-left: 0 none;
    border-right: 0 none;
+
     
 }
 /*collapse*/
