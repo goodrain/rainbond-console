@@ -218,6 +218,7 @@
             <tr>
                 <th>编号</th>
                 <th>规则</th>
+                <th>操作</th>
             </tr>
             </thead>
             <tbody id="ruleBody">
@@ -237,7 +238,9 @@
                 <option value="=">等于</option>
             </select>
             <input name="value" value="1000"/>
+            持续
             <input name="fortime" value="20"/>
+            秒后进行
             <select name="action">
                 <option value="add">扩容</option>
                 <option value="del">压缩</option>
@@ -246,42 +249,12 @@
         </form>
     </div>
     <script>
-        $("#shuaxin").click(function () {
-            $.ajax({
-                type: "GET",
-                url: "/ajax/{{tenantName}}/{{serviceAlias}}/rule",
-                data: "",
-                cache: false,
-                beforeSend: function (xhr, settings) {
-                    var csrftoken = $.cookie('csrftoken');
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success: function (data) {
-                    if (data.status == "success") {
-                        $("#ruleBody").html("")
-                        tbody = ""
-                        $.each(data.data, function (id, rule) {
-                            trStr = ""
-                            if (rule.item == "tp") {
-                                trStr = "<tr><td>" + id + "</td><td>当吞吐率" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button></td></tr>";
-                            }
-                            if (rule.item == "rt") {
-                                trStr = "<tr><td>" + id + "</td><td>当响应时间" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button></td></tr>";
-                            }
-                            if (rule.item == "on") {
-                                trStr = "<tr><td>" + id + "</td><td>当在线人数" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button></td></tr>";
-                            }
-                            tbody = tbody + trStr
-                        })
-                        $("#ruleBody").html(tbody)
-                    }
-                },
-                error: function () {
-                    swal("系统异常");
-                }
-            })
+        $(function () {
+            flush()
         })
-
+        $("#shuaxin").click(function () {
+            flush()
+        })
         $("input[type='submit']").click(function () {
 
             item = $("select[name='item']").val()
@@ -308,6 +281,7 @@
                 },
                 success: function (data) {
                     swal("添加结果" + data.status);
+                    flush()
                 },
                 error: function () {
                     swal("系统异常");
@@ -316,6 +290,49 @@
 
             return false;
         })
+
+        function flush() {
+            $.ajax({
+                type: "GET",
+                url: "/ajax/{{tenantName}}/{{serviceAlias}}/rule",
+                data: "",
+                cache: false,
+                beforeSend: function (xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function (data) {
+                    if (data.status == "success") {
+                        $("#ruleBody").html("")
+                        tbody = ""
+                        $.each(data.data, function (id, rule) {
+                            trStr = ""
+                            if (rule.item == "tp") {
+                                trStr = "<tr><td>" + id + "</td><td>当吞吐率" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+
+                            }
+                            if (rule.item == "rt") {
+                                trStr = "<tr><td>" + id + "</td><td>当响应时间" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                            }
+                            if (rule.item == "on") {
+                                trStr = "<tr><td>" + id + "</td><td>当在线人数" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+
+                            }
+                            if (rule.status) {
+                                trStr = trStr + "<button class=\"btn btn-danger\" onclick=\"status('" + id + "',false)\">关闭</button>"
+                            } else {
+                                trStr = trStr + "<button class=\"btn btn-info\" onclick=\"status('" + id + "',true)\">开启</button>"
+                            }
+                            tbody = tbody + trStr
+                        })
+                        $("#ruleBody").html(tbody)
+                    }
+                },
+                error: function () {
+                    swal("系统异常");
+                }
+            })
+        }
 
         function del(id) {
             $.ajax({
@@ -330,8 +347,33 @@
                 success: function (data) {
                     if (data.status == "success") {
                         swal("删除成功");
+                        flush()
                     } else {
                         swal("删除失败" + data.message);
+                    }
+                },
+                error: function () {
+                    swal("系统异常");
+                }
+            })
+        }
+
+        function status(id, status) {
+            $.ajax({
+                type: "POST",
+                url: "/ajax/{{tenantName}}/{{serviceAlias}}/rule/status",
+                data: {id: id, status: status},
+                cache: false,
+                beforeSend: function (xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function (data) {
+                    if (data.status == "success") {
+                        swal(data.message);
+                        flush()
+                    } else {
+                        swal(data.message);
                     }
                 },
                 error: function () {

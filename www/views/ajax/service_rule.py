@@ -10,7 +10,6 @@ logger = logging.getLogger('default')
 
 
 class ServiceRuleManage(AuthedView):
-    
     def post(self, request, *args, **kwargs):
         """
         增加规则
@@ -38,7 +37,7 @@ class ServiceRuleManage(AuthedView):
                 result["message"] = "操作项不支持"
                 return JsonResponse(result)
             rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
-                               item=item, operator=operator, value=value, fortime=fortime, action=action)
+                               item=item, operator=operator, value=value, fortime=fortime, action=action, status=0)
             rule.save()
             result["status"] = "success"
             result["message"] = "添加成功"
@@ -76,7 +75,6 @@ class ServiceRuleManage(AuthedView):
 
 
 class ServiceRuleUpdate(AuthedView):
-    
     def post(self, request, *args, **kwargs):
         
         """
@@ -97,21 +95,51 @@ class ServiceRuleUpdate(AuthedView):
                 return JsonResponse(result)
             value = int(request.POST.get("value", ""))
             
-            fortime = int(request.POST.get("fortime", ""))
+            for_time = int(request.POST.get("fortime", ""))
             
             action = request.POST.get("action", "")
             if action != "add" and action != "del":
                 result["status"] = "failure"
                 result["message"] = "操作项不支持"
                 return JsonResponse(result)
+            
             rule_id = int(request.POST.get("id", 0))
             rules = ServiceRule.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
                                                ID=rule_id)
             if rules.count() != 1:
-                result["status"] = "参数错误"
+                result["status"] = "failure"
+                result["message"] = "参数错误"
                 return JsonResponse(result)
-            rules.update(item=item, operator=operator, value=value, fortime=fortime, action=action)
+            rules.update(item=item, operator=operator, value=value, fortime=for_time, action=action)
             result["status"] = "success"
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return JsonResponse(result)
+
+
+class ServiceRuleUpdateStatus(AuthedView):
+    def post(self, request, *args, **kwargs):
+        
+        """
+        启用规则
+        """
+        result = {}
+        try:
+            is_start = bool(request.POST.get("status", False))
+            rule_id = int(request.POST.get("id", 0))
+            rules = ServiceRule.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
+                                               ID=rule_id)
+            if rules.count() != 1:
+                result["status"] = "failure"
+                result["message"] = "参数错误"
+                return JsonResponse(result)
+            rules.update(status=is_start)
+            result["status"] = "success"
+            if is_start:
+                result["message"] = "启动成功"
+            else:
+                result["message"] = "关闭成功"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
