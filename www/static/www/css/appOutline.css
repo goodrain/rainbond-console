@@ -2,23 +2,23 @@ button{
     border:none;
 }
 .appOutline{
-    padding: 10px;
+   
 }
 .appOutline ul.outlineTop{
-    display: flex;
-    justify-content: center;
-    align-items: center;
+   width: 100%;
 }
 .appOutline ul.outlineTop li{
-    width: 220px;
-    height: 218px;
+    width: 20%;
+    height: 220px;
     float: left;
-    border-radius: 8px;
-    -webkit-border-radius: 8px;
-    -moz-border-radius: 8px;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
     background-color: #ffffff;
+    
+}
+.appOutline ul.outlineTop li div{
     margin: 5px;
-    padding-top: 10px;
 }
 .appOutline ul li p{
     padding: 10px 30px;
