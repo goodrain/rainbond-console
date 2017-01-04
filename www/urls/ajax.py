@@ -3,7 +3,7 @@ from www.tests import *
 from www.services_view import *
 from www.views import ajax
 from www.views.ajax import UpdateGroupView, BatchActionView
-from www.views.ajax.service_rule import ServiceRuleManage
+from www.views.ajax.service_rule import *
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
 
 urlpatterns = patterns(
@@ -53,4 +53,6 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/change-service-name', ajax.ServiceNameChangeView.as_view()),
     # service rule
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule', ServiceRuleManage.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/update', ServiceRuleUpdate.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/delete', ServiceRuleDelete.as_view()),
 )

@@ -17,13 +17,34 @@ class ServiceRuleManage(AuthedView):
         """
         result = {}
         try:
-            rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id)
+            item = request.POST.get("item", "")
+            if item != "tp" and item != "rt" and item != "on":
+                logger.debug("get a rule item " + item)
+                result["status"] = "failure"
+                result["message"] = "规则项不支持"
+                return JsonResponse(result)
+            operator = request.POST.get("operator", "")
+            if operator != "=" and operator != ">" and operator != "<":
+                result["status"] = "failure"
+                result["message"] = "运算项不支持"
+                return JsonResponse(result)
+            value = int(request.POST.get("value", 0))
+            
+            fortime = int(request.POST.get("fortime", 0))
+            
+            action = request.POST.get("action", "")
+            if action != "add" and action != "del":
+                result["status"] = "failure"
+                result["message"] = "操作项不支持"
+                return JsonResponse(result)
+            rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
+                               item=item, operator=operator, value=value, fortime=fortime, action=action)
+            rule.save()
             result["status"] = "success"
-            result["rule"] = rule
-        
+            result["message"] = "添加成功"
         except Exception, e:
             logger.exception(e)
-        result["status"] = "failure"
+            result["status"] = "failure"
         
         return JsonResponse(result)
     
@@ -36,27 +57,69 @@ class ServiceRuleManage(AuthedView):
         result = {}
         try:
             rules = ServiceRule.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id)
+            rejson = {}
+            for rule in rules:
+                tmp = {}
+                tmp["item"] = rule.item
+                tmp["operator"] = rule.operator
+                tmp["value"] = rule.value
+                tmp["fortime"] = rule.fortime
+                tmp["action"] = rule.action
+                tmp["status"] = rule.status
+                rejson[rule.ID] = tmp
             result["status"] = "success"
-            result["rules"] = rules
+            result["data"] = rejson
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
+
+
+class ServiceRuleUpdate(AuthedView):
     
-    def put(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         
         """
         修改规则
         """
         result = {}
         try:
+            item = request.POST.get("item", "")
+            if item != "tp" and item != "rt" and item != "on":
+                logger.debug("get a rule item " + item)
+                result["status"] = "failure"
+                result["message"] = "规则项不支持"
+                return JsonResponse(result)
+            operator = request.POST.get("operator", "")
+            if operator != "=" and operator != ">" and operator != "<":
+                result["status"] = "failure"
+                result["message"] = "运算项不支持"
+                return JsonResponse(result)
+            value = int(request.POST.get("value", ""))
+            
+            fortime = int(request.POST.get("fortime", ""))
+            
+            action = request.POST.get("action", "")
+            if action != "add" and action != "del":
+                result["status"] = "failure"
+                result["message"] = "操作项不支持"
+                return JsonResponse(result)
+            rule_id = int(request.POST.get("id", 0))
+            rules = ServiceRule.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
+                                               ID=rule_id)
+            if rules.count() != 1:
+                result["status"] = "参数错误"
+                return JsonResponse(result)
+            rules.update(item=item, operator=operator, value=value, fortime=fortime, action=action)
             result["status"] = "success"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
-    
-    def delete(self, request, *args, **kwargs):
+
+
+class ServiceRuleDelete(AuthedView):
+    def post(self, request, *args, **kwargs):
         
         """
         删除规则
@@ -64,6 +127,14 @@ class ServiceRuleManage(AuthedView):
         
         result = {}
         try:
+            rule_id = int(request.POST.get("id", 0))
+            rules = ServiceRule.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
+                                               ID=rule_id)
+            if rules.count() != 1:
+                result["status"] = "failure"
+                result["message"] = "参数错误"
+                return JsonResponse(result)
+            rules.delete()
             result["status"] = "success"
         except Exception, e:
             logger.exception(e)
