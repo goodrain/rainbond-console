@@ -508,9 +508,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["service_attach_info"] = service_attach_info
 
                 service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                                                 service_id=self.service.service_id)
+                                                                                 service_id=self.service.service_id).order_by("-ID")
 
-                regionBo = rpmManager.get_work_region_by_name(self.tenant.tenant_name)
+                regionBo = rpmManager.get_work_region_by_name(self.response_region)
                 memory_pre_paid_price = regionBo.memory_package_price  # 内存预付费价格
                 memory_post_paid_price = regionBo.memory_trial_price  # 内存按需使用价格
                 disk_pre_paid_price = regionBo.disk_package_price  # 磁盘预付费价格
@@ -519,7 +519,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
                 last_hour_detail = None
                 if len(list(service_consume_detail_list)) > 0:
-                    last_hour_detail = service_consume_detail_list.order_by("-ID")[0]
+                    last_hour_detail = list(service_consume_detail_list)[0]
                 last_hour_detail.memory_fee = round(
                     last_hour_detail.memory / 1024 * memory_post_paid_price * last_hour_detail.node_num, 2)
                 last_hour_detail.disk_fee = round(last_hour_detail.disk / 1024 * disk_post_paid_price, 2)
@@ -562,26 +562,26 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     # total_memory_price += service_consume.memory / 1024 * service_consume.memory_unit_price
                     # total_disk_price += service_consume.disk / 1024 * service_consume.disk_unit_price
                     # total_net_price += service_consume.net / 1024 * service_consume.net_unit_price
-                    total_memory_price += service_consume.memory / 1024 * memory_post_paid_price
-                    total_disk_price += service_consume.disk / 1024 * disk_post_paid_price
-                    total_net_price += service_consume.net / 1024 * net_post_paid_price
+                    total_memory_price += float(service_consume.memory * memory_post_paid_price) / 1024
+                    total_disk_price += float(service_consume.disk * disk_post_paid_price) / 1024
+                    total_net_price += float(service_consume.net * net_post_paid_price) / 1024
                     # 费用
-                    service_consume.memory_fee = round(service_consume.memory / 1024 * memory_post_paid_price, 2)
-                    service_consume.disk_fee = round(service_consume.disk / 1024 * disk_post_paid_price, 2)
-                    service_consume.net_fee = round(service_consume.net / 1024 * net_post_paid_price, 2)
+                    service_consume.memory_fee = round(float(service_consume.memory * memory_post_paid_price) / 1024, 2)
+                    service_consume.disk_fee = round(float(service_consume.disk * disk_post_paid_price) / 1024, 2)
+                    service_consume.net_fee = round(float(service_consume.net * net_post_paid_price) / 1024, 2)
                     if service_consume.is_memory_pre_paid:
-                        service_consume.infact_memory_fee = 0;
-                        service_consume.infact_disk_fee = 0;
+                        service_consume.infact_memory_fee = 0
+                        service_consume.infact_disk_fee = 0
                     else:
                         service_consume.infact_memory_fee = service_consume.memory_fee
                         service_consume.infact_disk_fee = service_consume.disk_fee
                     service_consume.one_hour_total = service_consume.infact_memory_fee+service_consume.infact_disk_fee+service_consume.net_fee
 
                     # 为了按G显示用
-                    service_consume.memory /= 1024
-                    service_consume.disk /= 1024
-                    service_consume.net /= 1024
-                context['service_consume_detail_list'] = service_consume_detail_list
+                    service_consume.memory = round(float(service_consume.memory) / 1024, 3)
+                    service_consume.disk = round(float(service_consume.disk) / 1024, 3)
+                    service_consume.net = round(float(service_consume.net) / 1024, 3)
+                context['service_consume_detail_list'] = list(service_consume_detail_list)[:24]
                 context['total_memory_price'] = round(total_memory_price, 2)
                 context['total_disk_price'] = round(total_disk_price, 2)
                 context['total_net_price'] = round(total_net_price, 2)

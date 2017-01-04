@@ -59,12 +59,13 @@
 
                 <tr>
                     <td>{{service_consume.time|difftime:-3600}}--{{service_consume.time}}</td>
+                    <!--<td>{{service_consume.memory}}GB</td>-->
                     <td>{%  widthratio service_consume.memory 1 service_consume.node_num %}MB</td>
-                    <td>{{service_consume.memory_fee}}元</td>
-                    <td>{% if service_consume.is_memory_pre_paid %}service_consume.infact_memory_fee元(预付费){% else %}service_consume.memory_fee 元(后付费){% endif %}</td>
+                    <td>{{ service_consume.memory_fee }}元</td>
+                    <td>{% if service_consume.is_memory_pre_paid %}service_consume.infact_memory_fee元(预付费){% else %}{{service_consume.memory_fee}} 元(后付费){% endif %}</td>
                     <td>{{service_consume.disk}}GB</td>
                     <td>{{service_consume.disk_fee}}元</td>
-                    <td>{% if service_consume.is_disk_pre_paid %}service_consume.infact_disk_fee元(预付费){% else %}service_consume.disk_fee 元(后付费){% endif %}</td>
+                    <td>{% if service_consume.is_disk_pre_paid %}service_consume.infact_disk_fee元(预付费){% else %}{{service_consume.disk_fee}} 元(后付费){% endif %}</td>
                     <td>{{service_consume.net}}GB</td>
                     <td>{{service_consume.net_fee}}元</td>
                     <td>{{service_consume.net_fee}}(后付费)</td>
