@@ -29,9 +29,8 @@ button{
 .outlineTop div p:nth-child(3){
     font-size: 24px;  text-align: center; line-height: 30px;
 }
-.outlineTop div p:nth-child(2){
-    width: 100%; text-align: center; height: 60px;
-    padding: 25px 0;
+.outlineTop div p.pImg{
+    width: 100%; text-align: center; height: 60px; margin: 25px 0;
 } 
 .outlineTop div p:nth-child(2) img{
     width: 60px; height: 60px; display: block; margin: 0 auto;
