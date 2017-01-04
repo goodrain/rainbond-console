@@ -2984,8 +2984,7 @@ ul.amounts li {
 
 .panel-heading .nav > li > a,
 .panel-heading .nav > li.active > a, .panel-heading .nav > li.active > a:hover, .panel-heading .nav > li.active > a:focus {
-    color: #28cb75;
-    border-bottom: 2px #28cb75 solid;
+    
 }
 
 .panel-heading .nav > li > a {
