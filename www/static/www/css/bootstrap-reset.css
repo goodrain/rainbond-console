@@ -20,6 +20,7 @@ a:hover {
     color: #838383;
     border-bottom: 1px #dcdcdc solid;
     margin-bottom: 20px;
+    margin-top: 20px;
 }
 
 .panel-title {
@@ -341,8 +342,14 @@ ul {
 
 .nav-tabs > li > a {
     margin-right: 1px;
-}
 
+}
+.nav-tabs > li > a:hover{
+   border-top: 0 none;
+   border-left: 0 none;
+   border-right: 0 none;
+    
+}
 /*collapse*/
 
 .panel-default > .panel-heading {
