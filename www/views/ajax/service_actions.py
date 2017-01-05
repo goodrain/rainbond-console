@@ -1245,7 +1245,11 @@ class ServiceVolumeView(AuthedView):
                             result["status"] = "failure"
                             result["code"] = "306"
                             return JsonResponse(result)
-
+                
+                if self.service.host_path is None or self.service.host_path == "":
+                    self.service.host_path = "/grdata/tenant/" + self.service.tenant_id + "/service/" + self.service.service_id
+                    self.service.save()
+                    
                 volume_id = baseService.create_service_volume(self.service, volume_path)
                 if volume_id:
                     result["volume"] = {
