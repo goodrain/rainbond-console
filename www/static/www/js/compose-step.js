@@ -696,12 +696,12 @@ $(function(){
             var this_json={
                 "service_id" : appid,
                 "app_name" : appname,
-                "memory_onoff":memory_onoff,
-                "disk_onoff" : disk_onoff,
-                "memory_num":memory_num,
-                "node_num" : node_num,
+                "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
+                "disk_pay_method" : disk_onoff ? "prepaid":"postpaid",
+                "service_min_memory" : memory_num,
+                "service_min_node" : node_num,
                 "disk_num" : disk_num,
-                "time_num" : time_num
+                "pre_paid_period" : time_num
             }
             //console.log(this_json);
             secdate.push(this_json);
@@ -715,10 +715,10 @@ $(function(){
         
         $.ajax({
             type: "post",
-            url: "/apps/"+tenantName+"/compose-params/",
+            url: "/apps/"+tenantName+"/compose-step2/",
             dataType: "json",
             data: {
-                    "service_configs":JSON.stringify(secdate),
+                    "services_attach_infos":JSON.stringify(secdate),
                     },
             beforeSend : function(xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
@@ -732,13 +732,18 @@ $(function(){
                     swal("数据中心初始化失败");
                 }else if (status == "owed"){
                     swal("余额不足请及时充值");
-                }else if (status =="expired"){
-                    swal("试用期已过");
+                }else if (status =="no_group"){
+                    swal("当前组不存在");
                 }else if(status =="over_memory"){
                     swal("资源已达上限,无法创建");
                 }else if(status == "over_money"){
                     swal("余额不足无法创建");
-                }else{
+                }else if(status == "empty"){
+                    swal("应用名为空");
+                }else if(status == "no_service"){
+                    swal("应用不存在");
+                }
+                else{
                     swal("创建失败");
                 }
             },
