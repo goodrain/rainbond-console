@@ -7,7 +7,7 @@ from share.manager.region_provier import RegionProviderManager
 from www.decorator import perm_required
 from www.models import ComposeServiceRelation, TenantServiceInfo, ServiceInfo, TenantServiceEnvVar, TenantServicesPort, \
     TenantServiceVolume
-from www.models.main import ServiceGroup, ServiceGroupRelation
+from www.models.main import ServiceGroup, ServiceGroupRelation, ServiceAttachInfo
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
     BaseTenantService
 from www.utils.docker.compose_parse import compose_list
@@ -17,6 +17,8 @@ from www.views.base import AuthedView
 from www.monitorservice.monitorhook import MonitorHook
 import logging
 import json
+import datetime
+from dateutil.relativedelta import relativedelta
 
 logger = logging.getLogger('default')
 tenantRegionService = TenantRegionService()
@@ -25,6 +27,7 @@ tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 monitorhook = MonitorHook()
 rpmManager = RegionProviderManager()
+
 
 class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
     def get_media(self):
@@ -80,7 +83,7 @@ class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
             group_id = ""
             try:
                 group = ServiceGroup.objects.get(tenant_id=self.tenant.tenant_id, group_name=group_name,
-                                                    region_name=self.response_region)
+                                                 region_name=self.response_region)
                 group_id = group.ID
             except Exception as e:
                 logger.debug("Tenant {0} in Region {1} Group Name {2} is not found".format(self.tenant.tenant_id,
@@ -98,7 +101,6 @@ class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
 
 
 class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
-
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
@@ -113,6 +115,19 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
         else:
             return ""
 
+    def get_estimate_service_fee(self, service_attach_info):
+        """根据附加信心获取服务的预估价格"""
+        total_price = 0
+        regionBo = rpmManager.get_work_region_by_name(self.response_region)
+        pre_paid_memory_price = regionBo.memory_package_price
+        pre_paid_disk_price = regionBo.disk_package_price
+        if service_attach_info.memory_pay_method == "prepaid":
+            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024 * pre_paid_memory_price
+        if service_attach_info.disk_pay_method == "prepaid":
+            total_price += service_attach_info.disk / 1024 * pre_paid_disk_price
+        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
+        return round(total_price, 2)
+
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
@@ -122,10 +137,21 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         try:
             compose_file_id = request.GET.get("id", "")
+            group_id = request.GET.get("id", "")
+            context["group_id"] = group_id
+            group_name = ""
+            try:
+                group_id = int(group_id)
+                group_name = ServiceGroup.objects.get(ID=group_id).group_name
+                # context["group_name"] = group_name
+            except ServiceGroup.DoesNotExist:
+                pass
+
             yaml_file = ComposeServiceRelation.objects.get(compose_file_id=compose_file_id)
             compose_file_path = yaml_file.compose_file.path
             context["compose_file_name"] = yaml_file.compose_file.name
             service_list, info = compose_list(compose_file_path)
+            context["compose_file_path"] = compose_file_path
             tenant_id = self.tenant.tenant_id
             linked = []
             compose_relations = {}
@@ -155,7 +181,6 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                     temp.extend(docker_service.depends_on)
                     compose_relations[docker_service.name] = temp
 
-
             regionBo = rpmManager.get_work_region_by_name(self.response_region)
             context['pre_paid_memory_price'] = regionBo.memory_package_price
             context['post_paid_memory_price'] = regionBo.memory_trial_price
@@ -170,12 +195,158 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             context["service_list"] = service_list
             context["compose_file_id"] = compose_file_id
             context["tenantName"] = self.tenant.tenant_name
-            context["compose_group_name"] = "compose"+compose_file_id[-6:]
+            context["compose_group_name"] = group_name
         except Exception as e:
             context["parse_error"] = "parse_error"
             logger.error(e)
 
         return TemplateResponse(self.request, "www/app_create_step_compose_2.html", context)
+
+    @never_cache
+    @perm_required('code_deploy')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        tenant_id = self.tenant.tenant_id
+        group_id = request.POST.get("group_id", "")
+        try:
+            # judge region tenant is init
+            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
+            if not success:
+                result["status"] = "failure"
+                return JsonResponse(result, status=200)
+
+            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+                result["status"] = "owed"
+                return JsonResponse(result, status=200)
+            if group_id == "":
+                result["status"] = "no_group"
+                return JsonResponse(result, status=200)
+
+            services_attach_infos = request.POST.get("services_attach_infos", "")
+            services_attach_infos = self.json_loads(services_attach_infos)
+
+            deps = {}
+            for service_attach_info in services_attach_infos:
+                service_cname = service_attach_info.get("service_cname")
+                service_id = service_attach_info.get("service_id")
+                deps[service_cname] = service_id
+
+            for service_attach_info in services_attach_infos:
+                service_cname = service_attach_info.get("create_app_name", "")
+                if service_cname is None:
+                    result["status"] = "empty"
+                    return JsonResponse(result, status=200)
+                min_memory = int(service_attach_info.get("service_min_memory", 128))
+                # 将G转换为M
+                if min_memory < 128:
+                    min_memory *= 1024
+                min_node = int(service_attach_info.get("service_min_node", 1))
+
+                # calculate resource
+                tempService = TenantServiceInfo()
+                tempService.min_memory = min_memory
+                tempService.service_region = self.response_region
+                tempService.min_node = int(min_node)
+
+                diffMemory = min_memory
+                # 判断是否超出资源
+                rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
+                if not flag:
+                    if rt_type == "memory":
+                        result["status"] = "over_memory"
+                    else:
+                        result["status"] = "over_money"
+                    return JsonResponse(result, status=200)
+
+                service_id = service_attach_info.get("service_id", None)
+                if service_id is None:
+                    result["status"] = "no_service"
+                    return JsonResponse(result, status=200)
+
+                memory_pay_method = service_attach_info.get("memory_pay_method", "prepaid")
+                disk_pay_method = service_attach_info.get("disk_pay_method", "prepaid")
+                pre_paid_period = int(service_attach_info.get("pre_paid_period", 1))
+                disk = int(service_attach_info.get("disk_num", 0))
+                # 将G转换为M
+                if disk < 1024:
+                    disk *= 1024
+
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                endTime = datetime.datetime.now() + relativedelta(months=int(pre_paid_period))
+                # 保存配套信息
+                sai = ServiceAttachInfo()
+                sai.tenant_id = tenant_id
+                sai.service_id = service_id
+                sai.memory_pay_method = memory_pay_method
+                sai.disk_pay_method = disk_pay_method
+                sai.min_memory = min_memory
+                sai.min_node = min_node
+                sai.disk = disk
+                sai.pre_paid_period = pre_paid_period
+                sai.buy_start_time = startTime
+                sai.buy_end_time = endTime
+                sai.create_time = create_time
+                sai.pre_paid_money = self.get_estimate_service_fee(sai)
+                sai.save()
+
+                service_alias = "gr" + service_id[-6:]
+                service_image = service_attach_info.get("service_image")
+
+                version = ""
+                if ":" in service_image:
+                    index = service_image.index(":")
+                    version = service_image[index + 1:]
+                else:
+                    version = "lastest"
+
+                service = ServiceInfo()
+                service.service_key = "0000"
+                service.desc = ""
+                service.category = "app_publish"
+                service.image = service_image
+                service.cmd = ""
+                service.setting = ""
+                service.extend_method = "stateless"
+                service.env = ","
+                service.min_node = min_node
+                cm = min_memory
+                ccpu = 20
+                if min_memory != "":
+                    cm = int(min_memory)
+                    ccpu = int(cm / 128) * 20
+                service.min_memory = cm
+                service.min_cpu = ccpu
+                service.inner_port = 0
+
+                service.version = version
+                service.namespace = "goodrain"
+                service.update_version = 1
+                service.volume_mount_path = ""
+                service.service_type = "application"
+
+
+                # 创建服务
+            #     newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname,
+            #                                                   service,
+            #                                                   self.user.pk,
+            #                                                   region=self.response_region)
+            #     newTenantService.code_from = "image_manual"
+            #     newTenantService.language = "docker-compose"
+            #     newTenantService.save()
+            #
+            #     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
+            #     ServiceGroupRelation.objects.create(service_id=service_id, group_id=int(group_id), tenant_id=tenant_id,
+            #                                         region_name=self.response_region)
+            #     result[service_id] = {"service_id": service_id, "service_cname": service_cname,
+            #                           "service_alias": service_alias}
+            # result["status"] = "success"
+            # result["group_id"] = group_id
+
+        except Exception as e:
+            ServiceGroupRelation.objects.filter(group_id=int(group_id)).delete()
+            logger.exception(e)
+        return JsonResponse(result, status=200)
 
 
 class ComposeServiceParams(LeftSideBarMixin, AuthedView):
@@ -233,7 +404,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
             context["service_list"] = service_list
             context["compose_file_id"] = compose_file_id
             context["tenantName"] = self.tenant.tenant_name
-            context["compose_group_name"] = "compose"+compose_file_id[-6:]
+            context["compose_group_name"] = "compose" + compose_file_id[-6:]
         except Exception as e:
             context["parse_error"] = "parse_error"
             logger.error(e)
@@ -262,9 +433,9 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
             #     return JsonResponse(result, status=200)
             service_configs = request.POST.get("service_configs", "")
             service_configs = self.json_loads(service_configs)
-            compose_group_name = request.POST.get("compose_group_name","")
+            compose_group_name = request.POST.get("compose_group_name", "")
             if compose_group_name is None or compose_group_name.strip() == "":
-                compose_group_name =  "compose"+make_uuid(self.tenant.tenant_id)[-6:]
+                compose_group_name = "compose" + make_uuid(self.tenant.tenant_id)[-6:]
 
             if service_configs != "":
                 deps = {}
@@ -274,7 +445,7 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     deps[service_cname] = service_id
                 group_name = compose_group_name
                 group = ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
-                                            group_name=group_name)
+                                                    group_name=group_name)
 
                 for service_config in service_configs:
                     service_id = service_config.get("service_id")
@@ -357,12 +528,15 @@ class ComposeServiceParams(LeftSideBarMixin, AuthedView):
                     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
                     for dep_service in depends_services_list:
                         dep_service_id = deps[dep_service]
-                        baseService.create_service_dependency(tenant_id,service_id,dep_service_id,self.response_region)
+                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id,
+                                                              self.response_region)
 
-                    ServiceGroupRelation.objects.create(service_id=service_id,group_id=group.ID,tenant_id=tenant_id,region_name=self.response_region)
+                    ServiceGroupRelation.objects.create(service_id=service_id, group_id=group.ID, tenant_id=tenant_id,
+                                                        region_name=self.response_region)
                     result["status"] = "success"
                     result["service_id"] = service_id
                     result["service_alias"] = service_alias
+
 
         except Exception as e:
             logger.exception(e)
