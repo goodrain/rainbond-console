@@ -547,13 +547,13 @@ $(function(){
         var onehour;
         console.log(memory_onoff + "///"+ disk_onoff);
         //计算
-        if(memory_onoff == true && disk_onoff == true){
+        if(memory_onoff == "true" && disk_onoff == "true"){
             onehour = before_memory * memory_num  +  before_disk * Disk_num;
             Fnmemory(myid);
-        }else if(memory_onoff == true && disk_onoff != true){
+        }else if(memory_onoff == "true" && disk_onoff != "true"){
             onehour = before_memory * memory_num;
             Fnmemory(myid);
-        }else if(memory_onoff != true && disk_onoff == true){
+        }else if(memory_onoff != "true" && disk_onoff == "true"){
             onehour = before_disk * Disk_num;
             Fnmemory(myid);
         }else{
