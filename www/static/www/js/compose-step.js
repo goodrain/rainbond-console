@@ -659,6 +659,12 @@ $(function(){
         $(secbox).each(function(){
             var appid = $(this).attr("id");
             var appname = $("#"+appid+"_create_app_name").val();
+            if(appname == ""){
+                $("#"+appid+"_create_app_name").parent().next("p.fm-tips").slideDown();
+                return;
+            }else{
+                $("#"+appid+"_create_app_name").parent().next("p.fm-tips").slideDown();
+            }
             console.log(appname);
             var memory_onoff = $("#"+appid+"_MoneyBefore").prop("checked");
             var disk_onoff = $("#"+appid+"_DiskBefore").prop("checked");
@@ -702,7 +708,7 @@ $(function(){
         var compose_group_name = $("#com-name").val();
         
         ///
-        /*
+        
         $.ajax({
             type: "post",
             url: "/apps/"+tenantName+"/compose-params/",
@@ -738,7 +744,7 @@ $(function(){
             cache: false
             // processData: false
         });
-        */
+        
         ///
     });
     //////
