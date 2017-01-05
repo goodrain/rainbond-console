@@ -171,7 +171,7 @@
 			    		  	  var obj=dataObj[o]
 			    		  	  if(obj["status"]=="running"){
 			    		  		 $("#service_status_"+o).html("运行中")
-			    		  		 $("#service_status_"+o).attr("class","label label-success label-mini")
+			    		  		 //$("#service_status_"+o).attr("class","label label-success label-mini")
 			    		  		 $("#button_"+o).attr("class","btn btn-shadow btn-info")
 			    		  		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
@@ -180,7 +180,7 @@
 								 $("#operate_"+o).attr("data"+o,"stop")	
 							  }else if(obj["status"]=="starting"){
                                  $("#service_status_"+o).html("启动中")
-                                 $("#service_status_"+o).attr("class","label label-success label-mini")
+                                 //$("#service_status_"+o).attr("class","label label-success label-mini")
                                  $("#button_"+o).attr("class","btn btn-shadow btn-info")
                                  $("#button_"+o).removeAttr("disabled")
                                  $("#operate_"+o).removeAttr("disabled")
@@ -189,7 +189,7 @@
                                  $("#operate_"+o).attr("data"+o,"stop") 
 					    	  }else if(obj["status"]=="unusual"){
 					    		 $("#service_status_"+o).html("运行异常")
-					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")
+					    		 //$("#service_status_"+o).attr("class","label label-danger label-mini")
 					    		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).attr("class","btn btn-danger")
@@ -201,7 +201,7 @@
 								 }else{
 				    		  		 $("#service_status_"+o).html("余额不足已关闭")
 				    		  	 }
-					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")			    		 
+					    		 //$("#service_status_"+o).attr("class","label label-danger label-mini")			    		 
 					    		 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).removeAttr("disabled")
 					    		 $("#operate_"+o).attr("class","btn btn-success")
@@ -211,14 +211,14 @@
 								 $("#operate_"+o).attr("data"+o,"restart")
 						      }else if(obj["status"]=="undeploy"){
 						    	 $("#service_status_"+o).html("未部署")	
-						    	 $("#service_status_"+o).attr("class","label label-info label-mini")				    		 
+						    	 //$("#service_status_"+o).attr("class","label label-info label-mini")				    		 
 						    	 $("#button_"+o).removeAttr("disabled")
 						    	 $("#operate_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).attr("class","btn btn-danger")
 								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
 						      }else{
 						    	 $("#service_status_"+o).html("未知")
-						    	 $("#service_status_"+o).attr("class","label label-warning label-mini")
+						    	 //$("#service_status_"+o).attr("class","label label-warning label-mini")
 						    	 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).attr('disabled',"true")
 							  }
