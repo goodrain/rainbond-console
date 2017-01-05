@@ -516,13 +516,12 @@ $(function(){
     var after_memory= $("#post_paid_memory_price").attr("value");
     var after_disk= $("#post_paid_disk_price").attr("value");
     var after_net= $("#post_paid_net_price").attr("value");
-    $("#aft-memory").html(after_memory);
-    $("#aft-disk").html(after_disk);
-    $("#aft-net").html(after_net);
+    $(".aft-memory").html(after_memory);
+    $(".aft-disk").html(after_disk);
+    $(".aft-net").html(after_net);
 
     $(".fn-circle").each(function(){
         var this_id= $(this).attr("id");
-        console.log(1);
         FnPrice(this_id);
     });
         
@@ -545,7 +544,6 @@ $(function(){
         var memory_onoff = $(omemory_onoff).prop("checked");
         var disk_onoff = $(odisk_onoff).prop("checked");
         var onehour;
-        console.log(memory_onoff + "///"+ disk_onoff);
         //计算
         if(memory_onoff == true && disk_onoff == true){
             onehour = before_memory * memory_num  +  before_disk * Disk_num;
