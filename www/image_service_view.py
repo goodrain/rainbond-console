@@ -246,7 +246,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
         if len(volumes) > 0:
             temp_service = TenantServiceInfo.objects.get(service_id=tenant_serivce.service_id)
             if temp_service.host_path is None or temp_service.host_path == "":
-                    temp_service.host_path = "/grdata/tenant/" + self.service.tenant_id + "/service/" + self.service.service_id
+                    temp_service.host_path = "/grdata/tenant/" + temp_service.tenant_id + "/service/" + temp_service.service_id
                     temp_service.save()
 
     def send_task(self, region, topic, tenant_service):
