@@ -37,6 +37,7 @@ class ServiceRuleManage(AuthedView):
                 result["message"] = "操作项不支持"
                 return JsonResponse(result)
             rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
+                               tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
                                item=item, operator=operator, value=value, fortime=fortime, action=action, status=0)
             rule.save()
             result["status"] = "success"
@@ -65,6 +66,8 @@ class ServiceRuleManage(AuthedView):
                 tmp["fortime"] = rule.fortime
                 tmp["action"] = rule.action
                 tmp["status"] = rule.status
+                tmp["region"] = rule.service_region
+                tmp["count"] = rule.count
                 rejson[rule.ID] = tmp
             result["status"] = "success"
             result["data"] = rejson
@@ -126,7 +129,7 @@ class ServiceRuleUpdateStatus(AuthedView):
         """
         result = {}
         try:
-            is_start = bool(request.POST.get("status", False))
+            is_start = (request.POST.get("status", "false") == "true")
             rule_id = int(request.POST.get("id", 0))
             rules = ServiceRule.objects.filter(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
                                                ID=rule_id)

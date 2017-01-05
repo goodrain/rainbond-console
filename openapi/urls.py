@@ -9,6 +9,7 @@ from openapi.views.tenants import *
 from openapi.views.token import *
 from openapi.views.users import *
 from openapi.views.wechat import *
+from openapi.views.rules import *
 
 
 urlpatterns = patterns(
@@ -43,4 +44,7 @@ urlpatterns = patterns(
     url(r'^v2/services/(?P<service_id>[\w\-]+)/detail$', QueryServiceView.as_view()),
     url(r'^v2/services/(?P<service_id>[\w\-]+)/stop$', StopCloudServiceView.as_view()),
     url(r'^v2/services/(?P<service_id>[\w\-]+)/domain$', CloudServiceDomainView.as_view()),
+    url(r'^v2/rules/(?P<service_region>[\w\-]+)$', RulesController.as_view()),
+    url(r'^v2/rules/history$', RuleHistory.as_view()),
+    url(r'^v2/rules/instance$', InstanceManager.as_view()),
 )
