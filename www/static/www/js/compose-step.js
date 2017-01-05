@@ -406,7 +406,7 @@ $(function(){
    
 
     // 滑块 开始 
-    function FnRange(inputid,textid,widid,num){
+    function FnRange(inputid,textid,widid,num,id){
         var range= document.getElementById(inputid);
         var result = document.getElementById(textid);
         var wid = document.getElementById(widid);
@@ -419,7 +419,7 @@ $(function(){
         range.value = cachedRangeValue;
         wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
         range.addEventListener("mouseup", function() {
-            if(inputid == "OneMemory"){
+            if(inputid == (id + "_OneMemory")){
                 if(range.value >= 128 && range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
@@ -450,11 +450,11 @@ $(function(){
             //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
             //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
             //result.innerHTML = range.value;
-            FnPrice();
+            FnPrice(id);
         }, false);
         // 滑动时显示选择的值
         range.addEventListener("input", function() {
-            if(inputid == OneMemory){
+            if(inputid == (id + "_OneMemory")){
                 if(range.value >= 128 && range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
@@ -502,10 +502,10 @@ $(function(){
         var TimeLong = this_id + "_TimeLong";
         var TimeLongText = this_id + "_TimeLongText";
         var TimeLongWid = this_id + "_TimeLongWid";
-        FnRange(OneMemory,OneMemoryText,OneMemoryWid,128);
-        FnRange(NodeNum,NodeText,NodeWid,1);
-        FnRange(Disk,DiskText,DiskWid,1);
-        FnRange(TimeLong,TimeLongText,TimeLongWid,1);
+        FnRange(OneMemory,OneMemoryText,OneMemoryWid,128,this_id);
+        FnRange(NodeNum,NodeText,NodeWid,1,this_id);
+        FnRange(Disk,DiskText,DiskWid,1,this_id);
+        FnRange(TimeLong,TimeLongText,TimeLongWid,1,this_id);
     });
     
     // 滑动框 结束
