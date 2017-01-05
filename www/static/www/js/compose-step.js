@@ -653,12 +653,13 @@ $(function(){
 
     //提交
     $("#compose2").click(function(){
-        $(this).attr('disabled',true);
+        //$(this).attr('disabled',true);
         var secbox= $(".fn-circle");
         var secdate = [];
         $(secbox).each(function(){
             var appid = $(this).attr("id");
-            var app_name = $("#"+appid+"_create_app_name").attr("value");
+            var appname = $("#"+appid+"_create_app_name").attr("value");
+            console.log(appname);
             var memory_onoff = $("#"+appid+"_MoneyBefore").prop("checked");
             var disk_onoff = $("#"+appid+"_DiskBefore").prop("checked");
             if(memory_onoff == true && disk_onoff == true){
@@ -684,7 +685,7 @@ $(function(){
             }
             var this_json={
                 "service_id" : appid,
-                "app_name" : app_name,
+                "app_name" : appname,
                 "memory_onoff":memory_onoff,
                 "disk_onoff" : disk_onoff,
                 "memory_num":memory_num,
