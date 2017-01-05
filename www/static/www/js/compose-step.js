@@ -653,12 +653,12 @@ $(function(){
 
     //提交
     $("#compose2").click(function(){
-        //$(this).attr('disabled',true);
+        $(this).attr('disabled',true);
         var secbox= $(".fn-circle");
         var secdate = [];
         $(secbox).each(function(){
             var appid = $(this).attr("id");
-            var appname = $("#"+appid+"_create_app_name").attr("value");
+            var appname = $("#"+appid+"_create_app_name").val();
             console.log(appname);
             var memory_onoff = $("#"+appid+"_MoneyBefore").prop("checked");
             var disk_onoff = $("#"+appid+"_DiskBefore").prop("checked");
