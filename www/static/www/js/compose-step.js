@@ -328,6 +328,7 @@ $(function(){
     // 01 end 
 
     //弹出层
+    /*
     function FnLayer(textTit,myid){
         var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
         var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
@@ -402,6 +403,7 @@ $(function(){
             }
         });
     });
+    */
     //// 选择 groupname end 
    
 
@@ -642,5 +644,109 @@ $(function(){
         });
      });
     
+    // 上一步
+    $("#pre_page").click(function () {
+        var compose_file_id = $("#compose_file_id").val();
+        var tenantName = $("#tenantNameValue").val();
+        url = "/apps/"+tenantName+"/compose-create?id="+compose_file_id;
+        window.location.href = url
+    });
+
+    //提交
+    $("#compose2").click(function(){
+        $(this).attr('disabled',true);
+        var secbox= $(".fn-circle");
+        var secdate = [];
+        $(secbox).each(function(){
+            var appid = $(this).attr("id");
+            var app_name = $("#"+appid+"_create_app_name").attr("value");
+            var app_group_id = $("#"+appid+"_group-name").attr("value");
+            var app_group_name = $("#"+appid+"_group-name").html();
+            var memory_onoff = $("#"+appid+"_MoneyBefore").prop("checked");
+            var disk_onoff = $("#"+appid+"_DiskBefore").prop("checked");
+            if(memory_onoff == true && disk_onoff == true){
+                var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
+                var node_num = parseInt($("#"+appid+"_NodeText").html());
+                var disk_num = parseInt($("#"+appid+"_NodeText").html());
+                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+            }else if(memory_onoff == true && disk_onoff == false ){
+                var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
+                var node_num = parseInt($("#"+appid+"_NodeText").html());
+                var disk_num = 0;
+                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+            }else if(memory_onoff == false && disk_onoff == true){
+                var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
+                var node_num = parseInt($("#"+appid+"_NodeText").html());
+                var disk_num = parseInt($("#"+appid+"_NodeText").html());
+                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+            }else{
+                var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
+                var node_num = parseInt($("#"+appid+"_NodeText").html());
+                var disk_num = 0;
+                var time_num = 0;
+            }
+            var this_json={
+                "service_id" : appid,
+                "app_name" : app_name,
+                "app_group_id" : app_group_id,
+                "app_group_name" : app_group_name,
+                "memory_onoff":memory_onoff,
+                "compose_service_memory" : resources,
+                "disk_onoff" : disk_onoff,
+                "memory_num":memory_num,
+                "node_num" : node_num,
+                "disk_num" : disk_num,
+                "time_num" : time_num
+            }
+            //console.log(this_json);
+            secdate.push(this_json);
+        });
+        console.log(secdate);
+        //
+        var tenantName = $("#tenantNameValue").val();
+        var compose_group_name = $("#com-name").val();
+        
+        ///
+        /*
+        $.ajax({
+            type: "post",
+            url: "/apps/"+tenantName+"/compose-params/",
+            dataType: "json",
+            data: {
+                    "service_configs":JSON.stringify(secdate),
+                    },
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success:function(data){
+                status = data.status;
+                if (status == 'success'){
+                    window.location.href="/apps/"+tenantName +"/"
+                }else if (status == "failure"){
+                    swal("数据中心初始化失败");
+                }else if (status == "owed"){
+                    swal("余额不足请及时充值");
+                }else if (status =="expired"){
+                    swal("试用期已过");
+                }else if(status =="over_memory"){
+                    swal("资源已达上限,无法创建");
+                }else if(status == "over_money"){
+                    swal("余额不足无法创建");
+                }else{
+                    swal("创建失败")
+                }
+            },
+            error: function() {
+                $(this).attr('disabled',false);
+            },
+            cache: false
+            // processData: false
+        });
+        */
+        ///
+    });
+    //////
+
     // // // 第二步 基本设置 end
 });
