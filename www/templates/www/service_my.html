@@ -126,7 +126,7 @@
 					</td>
 					<td>
 						{% if item.category == "application" %}
-						<button type="button" class="btn btn-shadow btn-info "
+						<button type="button" class="greenbtn"
 							id="button_{{item.service_id}}"
 							onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');">
 							 部署
@@ -138,7 +138,7 @@
 							<i class="fa fa-power-off "
 								id="operate_inner_{{item.service_id}}"></i>
 						</button>
-						<button class="btn btn-primary"
+						<button class="greenbtn"
 							onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">
 							设置
 						</button>
