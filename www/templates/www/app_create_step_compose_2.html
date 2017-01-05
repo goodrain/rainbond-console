@@ -63,7 +63,7 @@
                 <div class="infor-fm-box">
                     <h4 class="step-tit">基本信息</h4>
                     <div class="fm-input-text clearfix">
-                        <label for="{{service.service_id}}_create_app_name">应用名</label><input type="text" id="{{service.service_id}}_create_app_name" name="create_app_name" value="" placeholder="给应用取个名字，支持中英文。"  />
+                        <label for="{{service.service_id}}_create_app_name">应用名</label><input type="text" id="{{service.service_id}}_create_app_name" name="create_app_name" value="{{service.name}}" placeholder="给应用取个名字，支持中英文。" disabled="true"  />
                     </div>
                     <p class="fm-tips">请输入应用名！</p>
                     <!--
@@ -246,8 +246,7 @@
             <!-- 切换 end -->
             <!-- 提交 start -->
             <div class="build-app-btn">
-                <button class="btn btn-info" id="pre_page">上一页</button>
-                <button class="btn  btn-success" id="compose2">建立一组应用</button>
+                <button class="btn  btn-success" id="compose2">下一步</button>
             </div>
             <!-- 提交 end -->
         </form>

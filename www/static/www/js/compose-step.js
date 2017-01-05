@@ -309,6 +309,7 @@ $(function(){
     // 切换 end
 
    // 01 输入用户名
+   /*
      $(".fn-circle").each(function(){
         var this_id= $(this).attr("id");
         var nameid = "#" +  this_id + "_create_app_name" ;
@@ -324,6 +325,7 @@ $(function(){
             }
         });
     });
+    */
     // 01 end 
 
     //弹出层
@@ -644,12 +646,13 @@ $(function(){
      });
     
     // 上一步
+    /*
     $("#pre_page").click(function () {
         var compose_file_id = $("#compose_file_id").val();
         var tenantName = $("#tenantNameValue").val();
         url = "/apps/"+tenantName+"/compose-create?id="+compose_file_id;
         window.location.href = url
-    });
+    });*/
 
     //提交
     $("#compose2").click(function(){
@@ -659,13 +662,14 @@ $(function(){
         $(secbox).each(function(){
             var appid = $(this).attr("id");
             var appname = $("#"+appid+"_create_app_name").val();
+            /*
             if(appname == ""){
                 $("#"+appid+"_create_app_name").parent().next("p.fm-tips").slideDown();
                  $("#compose2").attr('disabled',false);
                 return;
             }else{
                 $("#"+appid+"_create_app_name").parent().next("p.fm-tips").slideUp();
-            }
+            }*/
             var memory_onoff = $("#"+appid+"_MoneyBefore").prop("checked");
             var disk_onoff = $("#"+appid+"_DiskBefore").prop("checked");
             if(memory_onoff == true && disk_onoff == true){
