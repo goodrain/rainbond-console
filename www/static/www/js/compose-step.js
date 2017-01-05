@@ -542,8 +542,8 @@ $(function(){
         var node_num = parseInt($(oNode).html());
         var Disk_num = parseInt($(oDisk).html());
         var time_num = parseInt($(oTime).html());
-        var memory_onoff = $(omemory_onoff).porp("checked");
-        var disk_onoff = $(odisk_onoff).porp("checked");
+        var memory_onoff = $(omemory_onoff).prop("checked");
+        var disk_onoff = $(odisk_onoff).prop("checked");
         var onehour;
         console.log(memory_onoff + "///"+ disk_onoff);
         //计算
