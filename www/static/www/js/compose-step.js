@@ -522,6 +522,7 @@ $(function(){
 
     $(".fn-circle").each(function(){
         var this_id= $(this).attr("id");
+        console.log(1);
         FnPrice(this_id);
     });
         
