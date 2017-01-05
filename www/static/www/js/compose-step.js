@@ -311,15 +311,17 @@ $(function(){
    // 01 输入用户名
      $(".fn-circle").each(function(){
         var this_id= $(this).attr("id");
-        $("#" + this_id + "_create_app_name").blur(function(){
+        var nameid = "#" +  this_id + "_create_app_name" ;
+        console.log(nameid);
+        $(nameid).blur(function(){
             var appName = $(this).val();
             //var checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/;
             //var result = true;
             if(appName == ""){
-                $("#" + this_id + "create_appname_notice").slideDown();
+                $(this).parent().next("p.fm-tips").slideDown();
                 return;
             }else{
-                $("#" + this_id + "create_appname_notice").slideUp();
+                $(this).parent().next("p.fm-tips").slideUp();
             }
         });
     });
@@ -402,7 +404,7 @@ $(function(){
     });
     //// 选择 groupname end 
    
-   
+
     // 滑块 开始 
     function FnRange(inputid,textid,widid,num){
         var range= document.getElementById(inputid);
