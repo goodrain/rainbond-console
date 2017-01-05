@@ -304,13 +304,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
             last_hour_cost = None
             if len(service_consume_detail_list) > 0:
                 last_hour_cost = service_consume_detail_list[0]
-
-            last_hour_cost.memory_fee = round(
-                last_hour_cost.memory / 1024 * memory_post_paid_price * last_hour_cost.node_num, 2)
-            last_hour_cost.disk_fee = round(last_hour_cost.disk / 1024 * disk_post_paid_price, 2)
-            last_hour_cost.net_fee = round(last_hour_cost.net / 1024 * net_post_paid_price, 2)
-            last_hour_cost.total_fee = last_hour_cost.disk_fee + last_hour_cost.memory_fee + last_hour_cost.net_fee
-            context["last_hour_cost"] = last_hour_cost
+            if last_hour_cost is not None:
+                last_hour_cost.memory_fee = round(
+                    last_hour_cost.memory / 1024 * memory_post_paid_price * last_hour_cost.node_num, 2)
+                last_hour_cost.disk_fee = round(last_hour_cost.disk / 1024 * disk_post_paid_price, 2)
+                last_hour_cost.net_fee = round(last_hour_cost.net / 1024 * net_post_paid_price, 2)
+                last_hour_cost.total_fee = last_hour_cost.disk_fee + last_hour_cost.memory_fee + last_hour_cost.net_fee
+                context["last_hour_cost"] = last_hour_cost
             context['is_tenant_free'] = (self.tenant.pay_type == "free")
 
             context["tenantServiceInfo"] = self.service
