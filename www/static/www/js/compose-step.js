@@ -547,19 +547,19 @@ $(function(){
         //计算
         if(memory_onoff == true && disk_onoff == true){
             onehour = before_memory * memory_num  +  before_disk * Disk_num;
-            Fnmemory();
+            Fnmemory(myid);
         }else if(memory_onoff == true && disk_onoff != true){
             onehour = before_memory * memory_num;
-            Fnmemory();
+            Fnmemory(myid);
         }else if(memory_onoff != true && disk_onoff == true){
             onehour = before_disk * Disk_num;
-            Fnmemory();
+            Fnmemory(myid);
         }else{
             onehour = 0;
-            Fnmemory();
+            Fnmemory(myid);
         }
         //计算 
-        function Fnmemory(){
+        function Fnmemory(my_id){
             var total_money= onehour * 24 * time_num  *30 * 4 * node_num;
             var buy_money;
             if(time_num>=12){
@@ -567,8 +567,9 @@ $(function(){
             }else{
                 buy_money = onehour * 24 * time_num *2*30;
             }
-            var htmlid = myid + "_need-money" ;
+            var htmlid = my_id + "_need-money" ;
             var money_num = total_money.toFixed(2);
+             console.log(money_num);
             document.getElementById(htmlid).innerHTML = money_num;
         }
     }
