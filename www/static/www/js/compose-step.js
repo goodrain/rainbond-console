@@ -568,7 +568,8 @@ $(function(){
                 buy_money = onehour * 24 * time_num *2*30;
             }
             var htmlid = myid + "_need-money" ;
-            document.getElementById(htmlid).innerHTML(total_money.toFixed(2));
+            var money_num = total_money.toFixed(2);
+            document.getElementById(htmlid).innerHTML = money_num;
         }
     }
     ///
