@@ -5,7 +5,7 @@
 .fontlink{color:#667fa0;}
 .font16{font-size:16px;}
 ul.sidebar-menu li a,ul.sidebar-menu li ul.sub li a{font-size:14px;}
-.site-min-height {min-height:700px; background: #eee;}
+.site-min-height {min-height:700px;}  /* 总揽 */
 /*reg*/
 .form-signin-reg .row{margin:0;}
     /*.login-wrap{padding:20px;}*/

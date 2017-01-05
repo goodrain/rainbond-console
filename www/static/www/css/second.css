@@ -1,0 +1,17 @@
+/* ww 2017-1-5 */
+
+/* 总揽 css */
+.overall {margin:30px 0;}
+.overall ul{width: 100%;}
+.overall ul li{width: 25%; float: left;}
+.overall ul li div{margin:0 5px; background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:20px;}
+.overall ul li div p:nth-child(1){color:#303030; font-size:18px; line-height: 20px; margin:0;}
+.overall ul li div p:nth-child(2){width: 60px; height: 60px; margin:10px auto;}
+.overall ul li div p:nth-child(3){color:#303030; font-size:16px; line-height: 20px; margin:0; text-align: center;}
+
+.main-tab-box{background: #fff; margin:0 5px 30px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
+.main-tab-box table{width: 100%;}
+.main-tab-box table thead th{background: #f7f7f7; height: 40px; color: #303030; }
+.main-tab-box table thead tr{border-left:1px #f7f7f7 solid; border-right: 1px #f7f7f7 solid;}
+.main-tab-box table thead td{height: 80px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; }
+
