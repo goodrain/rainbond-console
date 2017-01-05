@@ -394,7 +394,7 @@ $(function(){
     //  弹出层
     $(".fn-circle").each(function(){
         var this_id= $(this).attr("id");
-        var group_name = this_id + "_group-name";
+        var group_name = "#" + this_id + "_group-name";
         $(group_name).change(function(){
             var gName = $(group_name).find("option:selected").val();
             if (gName == -2) {
