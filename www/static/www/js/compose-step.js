@@ -454,7 +454,7 @@ $(function(){
         }, false);
         // 滑动时显示选择的值
         range.addEventListener("input", function() {
-            if(inputid == "OneMemory"){
+            if(inputid == OneMemory){
                 if(range.value >= 128 && range.value < 256){
                     result.innerHTML = "128M";
                 }else if(range.value >= 256 && range.value < 512){
@@ -527,15 +527,22 @@ $(function(){
         
 
     function FnPrice(myid){
-        var  memory_num = parseInt(document.getElementById(myid+"_OneMemoryText").innerHTML);
+        var oId = myid+"_OneMemoryText";
+        var oNode = myid+ "_NodeText" ;
+        var oDisk = myid+ "_DiskText";
+        var oTime = myid + "_TimeLongText";
+        var omemory_onoff = myid + "_MoneyBefore";
+        var odisk_onoff = myid + "_DiskBefore";
+        var  memory_num = parseInt(document.getElementById(oId).innerHTML);
         if(memory_num > 10){
             memory_num = memory_num / 1024;
         }
-        var node_num = parseInt(document.getElementById(myid+ "_NodeText").innerHTML);
-        var Disk_num = parseInt(document.getElementById(myid+ "_DiskText").innerHTML);
-        var time_num = parseInt(document.getElementById(myid + "_TimeLongText").innerHTML);
-        var memory_onoff = document.getElementById(myid + "_MoneyBefore").checked;
-        var disk_onoff = document.getElementById(myid + "_DiskBefore").checked;
+
+        var node_num = parseInt(document.getElementById(oNode).innerHTML);
+        var Disk_num = parseInt(document.getElementById(oDisk).innerHTML);
+        var time_num = parseInt(document.getElementById(oTime).innerHTML);
+        var memory_onoff = document.getElementById(omemory_onoff).checked;
+        var disk_onoff = document.getElementById(odisk_onoff).checked;
         var onehour;
         //计算
         if(memory_onoff == true && disk_onoff == true){
@@ -560,8 +567,8 @@ $(function(){
             }else{
                 buy_money = onehour * 24 * time_num *2*30;
             }
-
-            document.getElementById(myid + "_need-money").innerHTML(total_money.toFixed(2));
+            var htmlid = myid + "_need-money" ;
+            document.getElementById(htmlid).innerHTML(total_money.toFixed(2));
         }
     }
     ///
