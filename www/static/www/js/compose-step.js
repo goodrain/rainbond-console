@@ -620,7 +620,7 @@ $(function(){
             }
             FnPrice(this_id);
         });
-        $("#"+ this_id +"DiskBefore").change(function(){
+        $("#"+ this_id +"_DiskBefore").change(function(){
             var onoff = $("#"+ this_id +"_DiskBefore").prop("checked");
             if(onoff == true){
                 $("#"+ this_id + "_disk_box").show();
