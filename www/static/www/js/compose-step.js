@@ -660,8 +660,6 @@ $(function(){
         $(secbox).each(function(){
             var appid = $(this).attr("id");
             var app_name = $("#"+appid+"_create_app_name").attr("value");
-            var app_group_id = $("#"+appid+"_group-name").attr("value");
-            var app_group_name = $("#"+appid+"_group-name").html();
             var memory_onoff = $("#"+appid+"_MoneyBefore").prop("checked");
             var disk_onoff = $("#"+appid+"_DiskBefore").prop("checked");
             if(memory_onoff == true && disk_onoff == true){
@@ -688,8 +686,6 @@ $(function(){
             var this_json={
                 "service_id" : appid,
                 "app_name" : app_name,
-                "app_group_id" : app_group_id,
-                "app_group_name" : app_group_name,
                 "memory_onoff":memory_onoff,
                 "compose_service_memory" : resources,
                 "disk_onoff" : disk_onoff,
