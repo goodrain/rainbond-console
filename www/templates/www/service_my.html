@@ -172,7 +172,7 @@
 			    		  	  if(obj["status"]=="running"){
 			    		  		 $("#service_status_"+o).html("运行中")
 			    		  		 //$("#service_status_"+o).attr("class","label label-success label-mini")
-			    		  		 $("#button_"+o).attr("class","btn btn-shadow btn-info")
+			    		  		 $("#button_"+o).attr("class","greenbtn")
 			    		  		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).attr("class","btn btn-danger")
@@ -181,7 +181,7 @@
 							  }else if(obj["status"]=="starting"){
                                  $("#service_status_"+o).html("启动中")
                                  //$("#service_status_"+o).attr("class","label label-success label-mini")
-                                 $("#button_"+o).attr("class","btn btn-shadow btn-info")
+                                 $("#button_"+o).attr("class","greenbtn")
                                  $("#button_"+o).removeAttr("disabled")
                                  $("#operate_"+o).removeAttr("disabled")
                                  $("#operate_"+o).attr("class","btn btn-danger")
