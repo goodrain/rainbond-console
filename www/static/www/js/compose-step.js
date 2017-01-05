@@ -528,32 +528,32 @@ $(function(){
         
 
     function FnPrice(myid){
-        var oId = myid+"_OneMemoryText";
-        var oNode = myid+ "_NodeText" ;
-        var oDisk = myid+ "_DiskText";
-        var oTime = myid + "_TimeLongText";
-        var omemory_onoff = myid + "_MoneyBefore";
-        var odisk_onoff = myid + "_DiskBefore";
-        var  memory_num = parseInt(document.getElementById(oId).innerHTML);
+        var oId = "#" +  myid+"_OneMemoryText";
+        var oNode ="#" + myid+ "_NodeText" ;
+        var oDisk = "#" + myid+ "_DiskText";
+        var oTime ="#" + myid + "_TimeLongText";
+        var omemory_onoff = "#" + myid + "_MoneyBefore";
+        var odisk_onoff = "#" + myid + "_DiskBefore";
+        var  memory_num = parseInt($(oId).html());
         if(memory_num > 10){
             memory_num = memory_num / 1024;
         }
 
-        var node_num = parseInt(document.getElementById(oNode).innerHTML);
-        var Disk_num = parseInt(document.getElementById(oDisk).innerHTML);
-        var time_num = parseInt(document.getElementById(oTime).innerHTML);
-        var memory_onoff = document.getElementById(omemory_onoff).getAttribute("checked");
-        var disk_onoff = document.getElementById(odisk_onoff).getAttribute("checked");
+        var node_num = parseInt($(oNode).html());
+        var Disk_num = parseInt($(oDisk).html());
+        var time_num = parseInt($(oTime).html());
+        var memory_onoff = $(omemory_onoff).porp("checked");
+        var disk_onoff = $(odisk_onoff).porp("checked");
         var onehour;
         console.log(memory_onoff + "///"+ disk_onoff);
         //计算
-        if(memory_onoff == "true" && disk_onoff == "true"){
+        if(memory_onoff == true && disk_onoff == true){
             onehour = before_memory * memory_num  +  before_disk * Disk_num;
             Fnmemory(myid);
-        }else if(memory_onoff == "true" && disk_onoff != "true"){
+        }else if(memory_onoff == true && disk_onoff != true){
             onehour = before_memory * memory_num;
             Fnmemory(myid);
-        }else if(memory_onoff != "true" && disk_onoff == "true"){
+        }else if(memory_onoff != true && disk_onoff == true){
             onehour = before_disk * Disk_num;
             Fnmemory(myid);
         }else{
@@ -569,10 +569,8 @@ $(function(){
             }else{
                 buy_money = onehour * 24 * time_num *2*30;
             }
-            var htmlid = my_id + "_need-money" ;
-            var money_num = total_money.toFixed(2);
-             console.log(money_num);
-            document.getElementById(htmlid).innerHTML = money_num;
+            var htmlid = "#" + my_id + "_need-money" ;
+            $(htmlid).html(total_money.toFixed(2));
         }
     }
     ///
@@ -622,7 +620,7 @@ $(function(){
             }
             FnPrice(this_id);
         });
-        $("#"+ this_id +"_DiskBefore").change(function(){
+        $("#"+ this_id +"DiskBefore").change(function(){
             var onoff = $("#"+ this_id +"_DiskBefore").prop("checked");
             if(onoff == true){
                 $("#"+ this_id + "_disk_box").show();
