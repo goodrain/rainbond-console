@@ -28,7 +28,8 @@
 					<p class="pImg">
 						<img src="{% static "www/img/appOutline/appOutline3.png" %}"/>
 					</p>
-					<p>未知</p>
+					<p id="service_disk" name="service_disk">{{last_hour_cost.disk}}M</p>
+					<!--<p>未知</p>-->
 				</div>
 			</li>
 			<li>
@@ -37,7 +38,8 @@
 					<p class="pImg">
 						<img src="{% static "www/img/appOutline/appOutline4.png" %}"/>
 					</p>
-					<p>未知</p>
+					<p id="service_disk" name="service_disk">{{last_hour_cost.net}}M</p>
+					<!--<p>未知</p>-->
 				</div>
 			</li>
 			<li>
@@ -46,7 +48,8 @@
 					<p class="pImg">
 						<img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
 					</p>
-					<p>未知</p>
+					<p id="last_hour_fee" name="last_hour_fee">{{last_hour_cost.total_fee}}元</p>
+					<!--<p>未知</p>-->
 				</div>
 			</li>
 		</ul>

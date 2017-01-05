@@ -267,6 +267,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
         fr = request.GET.get("fr", "deployed")
         context["fr"] = fr
         try:
+            regionBo = rpmManager.get_work_region_by_name(self.response_region)
+            memory_post_paid_price = regionBo.memory_trial_price  # 内存按需使用价格
+            disk_post_paid_price = regionBo.disk_trial_price  # 磁盘按需使用价格
+            net_post_paid_price = regionBo.net_trial_price  # 网络按需使用价格
             if self.service.category == "application":
                 # forbidden blank page
                 if self.service.code_version is None or self.service.code_version == "" or (self.service.git_project_id == 0 and self.service.git_url is None):
@@ -294,6 +298,20 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 #     tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
                 #     if tse.user_dependency is None or tse.user_dependency == "":
                 #         return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+
+            service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                                             service_id=self.service.service_id).order_by("-ID")
+            last_hour_cost = None
+            if len(service_consume_detail_list) > 0:
+                last_hour_cost = service_consume_detail_list[0]
+
+            last_hour_cost.memory_fee = round(
+                last_hour_cost.memory / 1024 * memory_post_paid_price * last_hour_cost.node_num, 2)
+            last_hour_cost.disk_fee = round(last_hour_cost.disk / 1024 * disk_post_paid_price, 2)
+            last_hour_cost.net_fee = round(last_hour_cost.net / 1024 * net_post_paid_price, 2)
+            last_hour_cost.total_fee = last_hour_cost.disk_fee + last_hour_cost.memory_fee + last_hour_cost.net_fee
+            context["last_hour_cost"] = last_hour_cost
+            context['is_tenant_free'] = (self.tenant.pay_type == "free")
 
             context["tenantServiceInfo"] = self.service
             context["myAppStatus"] = "active"
