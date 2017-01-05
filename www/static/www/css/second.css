@@ -8,7 +8,7 @@
 .overall ul li div p:nth-child(1){color:#303030; font-size:18px; line-height: 20px; margin:0;}
 .overall ul li div p:nth-child(2){width: 60px; height: 60px; margin:10px auto;}
 .overall ul li div p:nth-child(3){color:#303030; font-size:16px; line-height: 20px; margin:0; text-align: center;}
-.mainbg01{background: url('../images/ma') no-repeat; background-size: 60px 60px;}
+.mainbg01{background: url('../images/main01.png') no-repeat; background-size: 60px 60px;}
 .mainbg02{background: url('../images/main02.png') no-repeat; background-size: 60px 60px;}
 .mainbg03{background: url('../images/main03.png') no-repeat; background-size: 60px 60px;}
 .mainbg04{background: url('../images/main04.png') no-repeat; background-size: 60px 60px;}
@@ -20,6 +20,6 @@
 .main-tab-box table tbody td{height: 80px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; font-weight: 0;}
 .main-tab-box table tbody td a{color: #303030; font-size: 14px;}
 
-.newapp-btn{margin: 0 0 0 5px;}
+.newapp-btn{margin: 0 30px 0 5px;}
 .greenbtn{height: 30px; line-height: 30px; color: #fff; padding:0 30px; margin:0 20px 0 0; display: inline-block; background: #28cb75;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px;}
 .greenbtn:link,.greenbtn:hover,.greenbtn:active,.greenbtn:visited{color: #fff;}
