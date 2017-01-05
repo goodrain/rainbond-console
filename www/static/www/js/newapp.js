@@ -495,7 +495,7 @@ $(function(){
 						window.location.href = "/apps/" + tenantName + "/compose-step2?id=" + responseStr.compose_file_id + "&group_id=" + responseStr.group_id;
 
 					}else{
-						if (responseStr == "group_exist"){
+						if (responseStr.info == "group_exist"){
 							swal("组名已存在");
 						}
 					}
