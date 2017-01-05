@@ -15,7 +15,7 @@
 
 .main-tab-box{background: #fff; margin:0 5px 30px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
 .main-tab-box table{width: 100%;}
-.main-tab-box table thead th{background: #f7f7f7; height: 40px; color: #303030; padding-left: 10px; font-weight: 100;}
+.main-tab-box table thead th{background: #f7f7f7; height: 40px; color: #303030; padding-left: 10px; font-weight: 100; font-size: 16px;}
 .main-tab-box table tbody tr{border-left:1px #f7f7f7 solid; border-right: 1px #f7f7f7 solid;}
 .main-tab-box table tbody td{height: 80px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; font-weight: 0;}
 .main-tab-box table tbody td a{color: #303030; font-size: 14px;}
