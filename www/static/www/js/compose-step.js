@@ -544,6 +544,7 @@ $(function(){
         var memory_onoff = document.getElementById(omemory_onoff).checked;
         var disk_onoff = document.getElementById(odisk_onoff).checked;
         var onehour;
+        console.log(memory_onoff + "///"+ disk_onoff);
         //计算
         if(memory_onoff == true && disk_onoff == true){
             onehour = before_memory * memory_num  +  before_disk * Disk_num;
