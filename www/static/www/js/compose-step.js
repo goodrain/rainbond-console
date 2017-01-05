@@ -661,11 +661,11 @@ $(function(){
             var appname = $("#"+appid+"_create_app_name").val();
             if(appname == ""){
                 $("#"+appid+"_create_app_name").parent().next("p.fm-tips").slideDown();
+                 $("#compose2").attr('disabled',false);
                 return;
             }else{
-                $("#"+appid+"_create_app_name").parent().next("p.fm-tips").slideDown();
+                $("#"+appid+"_create_app_name").parent().next("p.fm-tips").slideUp();
             }
-            console.log(appname);
             var memory_onoff = $("#"+appid+"_MoneyBefore").prop("checked");
             var disk_onoff = $("#"+appid+"_DiskBefore").prop("checked");
             if(memory_onoff == true && disk_onoff == true){
@@ -735,11 +735,11 @@ $(function(){
                 }else if(status == "over_money"){
                     swal("余额不足无法创建");
                 }else{
-                    swal("创建失败")
+                    swal("创建失败");
                 }
             },
             error: function() {
-                $(this).attr('disabled',false);
+                $("#compose2").attr('disabled',false);
             },
             cache: false
             // processData: false
