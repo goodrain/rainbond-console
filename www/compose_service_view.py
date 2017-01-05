@@ -137,7 +137,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         try:
             compose_file_id = request.GET.get("id", "")
-            group_id = request.GET.get("id", "")
+            group_id = request.GET.get("group_id", "")
             context["group_id"] = group_id
             group_name = ""
             try:
