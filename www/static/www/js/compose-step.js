@@ -312,7 +312,6 @@ $(function(){
      $(".fn-circle").each(function(){
         var this_id= $(this).attr("id");
         var nameid = "#" +  this_id + "_create_app_name" ;
-        console.log(nameid);
         $(nameid).blur(function(){
             var appName = $(this).val();
             //var checkReg = /^[a-z][a-z0-9-]*[a-z0-9]$/;
@@ -687,7 +686,6 @@ $(function(){
                 "service_id" : appid,
                 "app_name" : app_name,
                 "memory_onoff":memory_onoff,
-                "compose_service_memory" : resources,
                 "disk_onoff" : disk_onoff,
                 "memory_num":memory_num,
                 "node_num" : node_num,
