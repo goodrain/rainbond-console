@@ -710,7 +710,7 @@ $(function(){
         //
         var tenantName = $("#tenantNameValue").val();
         var compose_group_name = $("#com-name").val();
-        
+        var group_id = $("#group_id").val();
         ///
         
         $.ajax({
@@ -718,6 +718,7 @@ $(function(){
             url: "/apps/"+tenantName+"/compose-step2/",
             dataType: "json",
             data: {
+                    "group_id":group_id,
                     "services_attach_infos":JSON.stringify(secdate),
                     },
             beforeSend : function(xhr, settings) {
