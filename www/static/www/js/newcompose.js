@@ -1113,6 +1113,8 @@ $(function(){
 			var appid = $(this).attr("id");
 			var service_cname = $(this).attr("service_cname")
 			var service_image = $(this).attr("service_image")
+			var service_id = $(this).attr("id")
+			console.log(service_id)
 
 			//console.log(appid);
 			//
@@ -1139,6 +1141,7 @@ $(function(){
 				json_port["protocol"] = my_agreement;
 				json_port["is_inner_service"] = my_inner;
 				json_port["is_outer_service"] = my_outer;
+				json_port["port_alias"] = ("gr"+service_id.substr(service_id.length-6)).toUpperCase()+my_port;
 				port_nums[i] = json_port;
 			});
 			//console.log(port_nums);
