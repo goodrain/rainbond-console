@@ -227,7 +227,6 @@
                 </p>
                 <p class="blockBottom">
                     <button class="addCata">为当前应用新设持久化目录</button>
-                    <button class="addOtherApp" style="display: none">挂载其他应用的持久化目录</button>
                 </p>
             </div>
 
@@ -255,63 +254,29 @@
             <!-- 启动命令 end -->
             <!--依赖服务 start -->
             {% if service.depends_on|length > 0 or service.links|length > 0 %}
-            <section  class="box-single">
-                <h3>依赖服务</h3>
-                <div id="depends_service">
-                    {% for dep in service.depends_on %}
-                        <span>{{dep}}</span>
-                    {% endfor %}
-                    {% for link in service.links %}
-                    <span>{{link}}</span>
-                    {% endfor %}
+            <!--<section  class="box-single">-->
+                <!--<h3>依赖服务</h3>-->
+                <!--<div id="depends_service">-->
+                    <!--{% for dep in service.depends_on %}-->
+                        <!--<span>{{dep}}</span>-->
+                    <!--{% endfor %}-->
+                    <!--{% for link in service.links %}-->
+                    <!--<span>{{link}}</span>-->
+                    <!--{% endfor %}-->
+                <!--</div>-->
+            <!--</section>-->
+            <div class="serviceBlock">
+                <h4 class="column-tit">服务依赖</h4>
+                <div class="contentBlock">
+                    <b>依赖的服务：</b>
+                    <ul>
+                        <li>app</li>
+                    </ul>
                 </div>
-            </section>
+            </div>
             {% endif %}
             <!--依赖服务 end-->
 
-            <div class="layer-body-bg">
-                <div class="layer-body">
-                    <!-- 03 start -->
-                    <div class="otherApp">
-                        <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                        <p class="layer-tit">挂载其他应用</p>
-                        <div class="layer-height-overflow">
-                            <table class="tab-box lit">
-                                <thead>
-                                <tr>
-                                    <th>服务名称</th>
-                                    <th>共享目录</th>
-                                    <th>操作</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td>service_cname</td>
-                                    <td>tenantSer.service_alias</td>
-                                    <td class="text-center">
-                                        <input type="checkbox" class="addOther cho-input" data-name="{{tenantSer.service_cname}}" class="cho-input" data-path="/mnt/{{tenantSer.service_alias}}" data-otherName="{{tenantSer.service_alias}}" id="/mnt/{{tenantSer.service_alias}}">
-                                        <label class="cho-bg" for="/mnt/{{tenantSer.service_alias}}"></label>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>ssd</td>
-                                    <td>/app/service</td>
-                                    <td>
-                                        <input type="checkbox" class="addOther cho-input" data-name="ssd" data-path="/app/service" data-otherName="SSD" id="addOther">
-                                        <label class="cho-bg" for="addOther"></label>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <p class="bottom">
-                            <button class="sureAddOther btn-success">确认</button>
-                            <button class="cancel">取消</button>
-                        </p>
-                    </div>
-                    <!-- 03 end -->
-                </div>
-            </div>
 
         </section>
         {% endfor %}
