@@ -1114,7 +1114,7 @@ $(function(){
 			var service_cname = $(this).attr("service_cname")
 			var service_image = $(this).attr("service_image")
 			var service_id = $(this).attr("id")
-			console.log(service_id)
+			console.log(service_id+"\t"+service_cname+"\t"+service_image)
 
 			//console.log(appid);
 			//
@@ -1228,24 +1228,24 @@ $(function(){
 			var csrftoken = $.cookie('csrftoken');
 			xhr.setRequestHeader("X-CSRFToken", csrftoken);
 		},
-		success:function(data){
-			status = data.status;
-			if (status == 'success'){
-				window.location.href="/apps/"+tenantName +"/"
-			}else if (status == "failure"){
-				swal("数据中心初始化失败");
-			}else if (status == "owed"){
-				swal("余额不足请及时充值");
-			}else if(status == "no_service") {
-				swal("服务不存在");
-			}else if(status =="over_memory"){
-				swal("资源已达上限,无法创建");
-			}else if(status == "over_money"){
-				swal("余额不足无法创建");
-			}else{
-				swal("创建失败")
-			}
-		},
+			success: function (data) {
+				status = data.status;
+				if (status == 'success') {
+					window.location.href = "/apps/" + tenantName + "/"
+				} else if (status == "failure") {
+					swal("数据中心初始化失败");
+				} else if (status == "owed") {
+					swal("余额不足请及时充值");
+				} else if (status == "no_service") {
+					swal("服务不存在");
+				} else if (status == "over_memory") {
+					swal("资源已达上限,无法创建");
+				} else if (status == "over_money") {
+					swal("余额不足无法创建");
+				} else {
+					swal("创建失败")
+				}
+			},
 		error: function() {
 			$(this).attr('disabled',false);
 		  },
