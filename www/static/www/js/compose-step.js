@@ -662,6 +662,7 @@ $(function(){
         $(secbox).each(function(){
             var appid = $(this).attr("id");
             var appname = $("#"+appid+"_create_app_name").val();
+            var service_image = $(this).attr("service_image")
             /*
             if(appname == ""){
                 $("#"+appid+"_create_app_name").parent().next("p.fm-tips").slideDown();
@@ -694,6 +695,7 @@ $(function(){
                 var time_num = 0;
             }
             var this_json={
+                "service_image":service_image,
                 "service_id" : appid,
                 "app_name" : appname,
                 "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
@@ -730,7 +732,7 @@ $(function(){
             success:function(data){
                 status = data.status;
                 if (status == 'success'){
-                    var compse_file_id = data.compse_file_id;
+                    var compse_file_id = data.compose_file_id;
                     var group_id = data.group_id;
                     window.location.href="/apps/"+tenantName +"/compose-step3/?id="+compse_file_id+"&group_id="+group_id;
                 }else if (status == "failure"){

@@ -234,8 +234,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                 deps[service_cname] = service_id
 
             for service_attach_info in services_attach_infos:
-                service_cname = service_attach_info.get("create_app_name", "")
-                if service_cname is None:
+                service_cname = service_attach_info.get("app_name", "")
+                if service_cname == "":
                     result["status"] = "empty"
                     return JsonResponse(result, status=200)
                 min_memory = int(service_attach_info.get("service_min_memory", 128))
@@ -343,6 +343,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                                       "service_alias": service_alias}
             result["status"] = "success"
             result["group_id"] = group_id
+            result["compose_file_id"] = compose_file_id
 
         except Exception as e:
             ServiceGroupRelation.objects.filter(group_id=int(group_id)).delete()
