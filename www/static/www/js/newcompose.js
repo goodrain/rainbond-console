@@ -552,7 +552,7 @@ $(function(){
 			if( result )
 			{
 				var service_name = $("#service_name").val();
-				var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
+				var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+$(".tablink a.sed").html()+'</a>';
 				str += '<em>/app/'+$("#"+appid+" .catalogueContent").val()+'</em>';
 				str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
 				$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
