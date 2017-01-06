@@ -64,7 +64,7 @@
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                                <input class="checkDetail" type="checkbox" name="" value="" id="{{outer_port}}inner"/>
+                                <input class="checkDetail" type="checkbox" name="" value="" id="{{outer_port}}inner" />
                                 <label class="check-bg" for="{{outer_port}}inner"></label>
                             </div>
                         </td>
@@ -77,8 +77,8 @@
                         <td>
                             <select data-port-http="{{outer_port}}Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
                                 <option class="changeOption">请选择</option>
-                                <option {% if service.name not in linked_service %} selected="selected" {% endif %}>HTTP</option>
-                                <option {% if service.name in linked_service %} selected="selected" {% endif %}>非HTTP</option>
+                                <option>HTTP</option>
+                                <option>非HTTP</option>
                             </select>
                         </td>
                         <td>
@@ -107,8 +107,8 @@
                         <td>
                             <select data-port-http="{{inner_port}}Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
                                 <option class="changeOption">请选择</option>
-                                <option {% if service.name not in linked_service %} selected="selected" {% endif %}>HTTP</option>
-                                <option {% if service.name in linked_service %} selected="selected" {% endif %}>非HTTP</option>
+                                <option>HTTP</option>
+                                <option>非HTTP</option>
                             </select>
                         </td>
                         <td>
