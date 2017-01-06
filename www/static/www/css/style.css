@@ -5653,6 +5653,24 @@ a.guest-on i {
 .input-css{width: 100%; padding-top: 10px; text-align: center;}
 .input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px;}
 
+.tit-two{color: #303030;  font-size:18px; line-height: 1; margin:30px 0; font-weight: 100; text-indent:40px; text-align: left;}
+.content-box{background: #fff;  -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin:0;}
+.tit-two span{color: #838383; font-size: 14px; padding-left: 20px;}
+
+.content-tab{background: #fff; margin:0; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
+.content-tab table{width: 100%;}
+.content-tab table thead th{background: #f7f7f7; height: 40px; color: #303030; padding-left: 10px; font-weight: 100; font-size: 16px; text-align: left;}
+.content-tab table tbody tr{border-left:1px #f7f7f7 solid; border-right: 1px #f7f7f7 solid;}
+.content-tab table tbody td{height: 80px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; font-weight: 0;}
+.content-tab table tbody td a{color: #303030; font-size: 14px;}
+
+.greenbtn{height: 30px; line-height: 30px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #28cb75;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
+.greenbtn:link,.greenbtn:hover,.greenbtn:active,.greenbtn:visited{color: #fff;}
+.redbtn{height: 30px; line-height: 30px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #f63a47;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
+.redbtn:link,.redbtn:hover,.redbtn:active,.redbtn:visited{color: #fff;}
+
+.writebtn{height: 28px; line-height: 28px; color: #838383; padding:0 28px; margin:0 10px 0 0; display: inline-block; background: #fff;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:1px #ececec solid;}
+.writebtn:link,.writebtn:hover,.writebtn:active,.writebtn:visited{color: #838383;}
 
 
 
