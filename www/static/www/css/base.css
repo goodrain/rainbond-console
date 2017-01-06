@@ -163,7 +163,7 @@ table.tab-box.lit td{height: 30px;}
 .build-app-btn  button{border-radius: 6px; -moz-border-radius:6px; -webkit-border-radius:6px; margin:0;}
 .tit-two{color: #303030;  font-size:18px; line-height: 1; margin:30px 0; font-weight: 100; text-indent:40px; text-align: left;}
 .content-box{background: #fff;  -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin:0;}
-
+.tit-two span{color: #838383; font-size: 14px; padding-left: 20px;}
 
 .content-tab{background: #fff; margin:0; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
 .content-tab table{width: 100%;}
