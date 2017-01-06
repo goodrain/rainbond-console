@@ -5582,7 +5582,7 @@ a.guest-on i {
 .errortips{color: #b94a48; background-color: #f2dede; border:1px solid #eed3d7;}
 .infotips{color: #2898f2; background-color: #e1f4fe; border: 1px solid #c7ecff;}
 .warntips{color: #c09853; background-color: #fcf8e3; border: 1px solid #fbeed5;}
-.tipsbox{padding:10px 35px 10px 10px; margin:0 5px 10px; position: relative; font-size: 14px;}
+.tipsbox{padding:10px 35px 10px 10px; margin:0 0 10px; position: relative; font-size: 14px;}
 .tipsbox a.close{position: absolute; font-size: 20px; font-weight: bold; color: #000; text-shadow: 0 1px 0 #fff; opacity: .2; filter: alpha(opacity=20); top:10px; right: 10px;}
 .tipsbox a.greenlink{color: #28cb75; padding-left: 10px;}
 .blackbg{padding:10px; background: #1f262d; line-height: 30px; color: #999; margin-top: 10px;}
@@ -5660,7 +5660,7 @@ a.guest-on i {
 .content-tab{background: #fff; margin:0 0 30px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
 .content-tab table{width: 100%;}
 .content-tab table thead th{background: #f7f7f7; height: 40px; color: #303030; padding-left: 10px; font-weight: 100; font-size: 16px; text-align: left;}
-.content-tab table tbody td{height: 80px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; font-weight: 0;}
+.content-tab table tbody td{height: 60px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; font-weight: 0;}
 .content-tab table tbody td a{color: #303030; font-size: 14px;}
 
 .greenbtn{height: 30px; line-height: 30px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #28cb75;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
