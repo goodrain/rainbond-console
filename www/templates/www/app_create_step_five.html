@@ -64,7 +64,7 @@
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                                <input class="checkDetail" type="checkbox" name="" value="" id="{{outer_port}}inner" />
+                                <input  type="checkbox" name="" value="" id="{{outer_port}}inner" />
                                 <label class="check-bg" for="{{outer_port}}inner"></label>
                             </div>
                         </td>
@@ -94,7 +94,7 @@
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                                <input class="checkDetail" type="checkbox" name="" value="" id="{{inner_port}}inner"/>
+                                <input  type="checkbox" name="" value="" id="{{inner_port}}inner"/>
                                 <label class="check-bg" for="{{inner_port}}inner"></label>
                             </div>
                         </td>
@@ -242,10 +242,10 @@
                     <b>依赖的服务：</b>
                     <ul id="depends_service">
                         {% for dep in service.depends_on %}
-                        <li>{{dep}}</li>
+                        <span>{{dep}}</span>
                         {% endfor %}
                         {% for link in service.links %}
-                        <li>{{link}}</li>
+                        <span>{{link}}</span>
                         {% endfor %}
                     </ul>
                 </div>
