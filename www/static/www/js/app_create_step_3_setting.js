@@ -354,7 +354,7 @@ $(function () {
             },
             success : function(msg) {
                 if (msg["status"] == "success") {
-                    //window.location.href = "/apps/" + tenantName + "/"+ service_alias + "/app-language/"
+                    window.location.href = "/apps/" + tenantName + "/"+ service_alias + "/app-language/"
                 }else{
                     swal("配置失败")
                 }
