@@ -35,7 +35,7 @@ button{
     width: 60px; height: 60px; display: block; margin: 0 auto;
 }
 .alternative{
-    padding: 10px 5px;
+    padding: 10px 0;
 }
 .alternative .alterLeft{
     float: left;

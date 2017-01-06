@@ -14,7 +14,7 @@ table caption{
 /*表格中的a标签交互样式*/
 table a:link{
     color: #28cb75;
-    text-decoration: underline;
+   
 }
 table a:hover{
     cursor: pointer;
