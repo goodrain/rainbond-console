@@ -72,17 +72,17 @@
 								{% if visit_port_type == "multi_outer" %}
 									{% if http_outer_service_ports|length == 1 %}
 										{% for port in http_outer_service_ports %}
-										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick='visit("{{ port.container_port }}")'><i class="fa fa-eye"></i>访问</button>
+										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick='visit("{{ port.container_port }}")'>访问</button>
 										{% endfor %}
 									{% else %}
-										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown"><i class="fa fa-eye"></i>访问</button>
+										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown">访问</button>
 										<ul class="dropdown-menu" role="menu">
 										{% for port in http_outer_service_ports %}
 											<li><a href="javascript:void(0)" onclick='visit("{{ port.container_port }}")'>{{ port.container_port }}</a></li>
 										{% endfor %}
 									{% endif %}
 								{% else %}
-								<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>
+								<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick="visit()">访问</button>
 								{% endif %}
 							</div>
 						</li>
@@ -149,7 +149,7 @@
 					{% if 'manage_service' in user.actions %}
 					<li class="button">
 						<input type="hidden" id="service_status_value" name="service_status_value" value="" />
-						<button type="button" class="bgColor" style="background-color: #FF6C61" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
+						<button type="button" class="bgColor" style="background-color: #FF6C61" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
 					</li>
 					{% endif %}
 
@@ -166,7 +166,7 @@
 
 					{% if 'code_deploy' in user.actions %}
 					<li class="button">
-						<button type="button" class="bgColor" id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-refresh"></i> 重新部署</button>
+						<button type="button" class="bgColor" id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');">重新部署</button>
 					</li>
 					{% endif %}
 
@@ -324,20 +324,18 @@
 
 	{% if 'manage_service' in user.actions %}
 	{% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
-	<div class="row">
-		<div class="col-lg-12 text-left">
-			<section class="panel">
-				<header class="panel-heading">连接信息</header>
-				<div class="connectTable">
-					<table>
-						<thead>
+	<section class="panel">
+		<h2 class="tit-two">连接信息</h2>
+		<div class="connectTable">
+			<table>
+				<thead>
 						<tr>
 							<th>说明</th>
 							<th>变量名</th>
 							<th>变量值</th>
 						</tr>
-						</thead>
-						<tbody>
+				</thead>
+				<tbody>
 						{% for curServiceEnvVar in curServiceEnvVarList %}
 						{% if curServiceEnvVar.name != "" %}
 						{% if containerPortList|hasvalue:curServiceEnvVar.container_port or curServiceEnvVar.container_port < 1 %}
@@ -349,27 +347,22 @@
 						{% endif %}
 						{% endif %}
 						{% endfor %}
-						</tbody>
-					</table>
-				</div>
-			</section>
+				</tbody>
+			</table>
 		</div>
-	</div>
+	</section>
 	{% endwith %}
 	{% endif %}
-	<div class="row">
-		<div class="col-lg-12 text-left">
-			<section class="panel">
-				<header class="panel-heading">关键日志</header>
-				<div class="panel-body">
+	<section class="panel">
+		<h2 class="tit-two">关键日志</h2>
+			<div class="panel-body">
 					<div class="text-left  logtxtbox">
 						<input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
 						<p id="keylog"></p>
 					</div>
-				</div>
-			</section>
-		</div>
-	</div>
+			</div>
+	</section>
+		
 </div>
 <!-- deployed end-->
 <script>
