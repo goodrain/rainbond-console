@@ -711,6 +711,7 @@ $(function(){
         var tenantName = $("#tenantNameValue").val();
         var compose_group_name = $("#com-name").val();
         var group_id = $("#group_id").val();
+        var compose_file_id = $("#compose_file_id").val();
         ///
         
         $.ajax({
@@ -718,6 +719,7 @@ $(function(){
             url: "/apps/"+tenantName+"/compose-step2/",
             dataType: "json",
             data: {
+                    "compose_file_id":compose_file_id,
                     "group_id":group_id,
                     "services_attach_infos":JSON.stringify(secdate),
                     },
@@ -728,7 +730,9 @@ $(function(){
             success:function(data){
                 status = data.status;
                 if (status == 'success'){
-                    window.location.href="/apps/"+tenantName +"/"
+                    var compse_file_id = data.compse_file_id;
+                    var group_id = data.group_id;
+                    window.location.href="/apps/"+tenantName +"/compose-step3/?id="+compse_file_id+"&group_id="+group_id;
                 }else if (status == "failure"){
                     swal("数据中心初始化失败");
                 }else if (status == "owed"){

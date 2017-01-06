@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, url
 
 from www.services_group_view import *
-from www.compose_service_view import ComposeServiceDeploy, ComposeServiceParams, ComposeCreateStep2
+from www.compose_service_view import ComposeServiceDeploy, ComposeCreateStep2, ComposeCreateStep3
 from www.create_services_view import CreateServiceEntranceView
 from www.image_service_view import ImageServiceDeploy, ImageParamsViews
 from www.services_view import *
@@ -86,7 +86,7 @@ urlpatterns = patterns(
     # docker-compose
     url(r'^/compose-create/$', login_required(ComposeServiceDeploy.as_view())),
     url(r'^/compose-step2/$', login_required(ComposeCreateStep2.as_view())),
-    url(r'^/compose-params/$', login_required(ComposeServiceParams.as_view())),
+    url(r'^/compose-step3/$', login_required(ComposeCreateStep3.as_view())),
     # new monitor service source
     #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
     #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),
