@@ -5,7 +5,7 @@
 
 <section class="wrapper site-min-height">
     {% if 'perm_setting' in user.actions %}
-    <section class="panel">
+    <section class="content-tab">
         <h2 class="tit-two" style="margin:10px 0 30px;">团队成员</h2>
         {% if MODULES.Team_Invite %}
         <div class="panel" style="margin:0 0 30px 0;">
@@ -27,7 +27,7 @@
 		{% endif %}
            
                     <div role="tabpanel" id="permission">
-                        <div id="action_report" class="content-tab">
+                        <div id="action_report">
                         <table perm-type="tenant">
                             <thead>
                                 <tr>

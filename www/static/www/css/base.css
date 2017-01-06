@@ -156,14 +156,13 @@ table.tab-box.lit td{height: 30px;}
 
 
 .build-app-btn  button{border-radius: 6px; -moz-border-radius:6px; -webkit-border-radius:6px; margin:0;}
-.tit-two{color: #303030;  font-size:18px; line-height: 1; margin:30px 0; font-weight: 100; text-indent:40px; text-align: left;}
+.tit-two{color: #303030;  font-size:18px; line-height: 1; margin:0 0 30px; font-weight: 100;  text-align: left;}
 .content-box{background: #fff;  -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin:0;}
 .tit-two span{color: #838383; font-size: 14px; padding-left: 20px;}
 
 .content-tab{background: #fff; margin:0; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
 .content-tab table{width: 100%;}
 .content-tab table thead th{background: #f7f7f7; height: 40px; color: #303030; padding-left: 10px; font-weight: 100; font-size: 16px; text-align: left;}
-.content-tab table tbody tr{border-left:1px #f7f7f7 solid; border-right: 1px #f7f7f7 solid;}
 .content-tab table tbody td{height: 80px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; font-weight: 0;}
 .content-tab table tbody td a{color: #303030; font-size: 14px;}
 
