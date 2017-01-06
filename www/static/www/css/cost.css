@@ -5,12 +5,7 @@ table{
     border-collapse: collapse;
     color: #838383;
 }
-/*表格标题*/
-table caption{
-    padding: 10px;
-    font-size: 18px;
-    color: #303030;
-}
+
 /*表格中的a标签交互样式*/
 table a:link{
     color: #28cb75;
@@ -55,33 +50,7 @@ table span{
     margin-right: 5px;
 }
 
-/*计费明细表格*/
-.cost-detail{
-    padding: 30px;
-    background-color: #ffffff;
-    border-radius: 10px;
-    -webkit-border-radius: 10px;
-    overflow: hidden;
-}
-.cost-detail table th{
-    min-width: 70px;
-    padding-left: 0px;
-    padding-right: 0px;
 
-}
-.cost-detail table td{
-    min-width: 50px;
-    padding-left: 0px;
-    padding-right: 0px;
-     text-align: center;
-    border-top:0 none;
-}
-.cost p.cost-title{
-    font-size: 18px;
-    margin-top: 30px;
-    margin-bottom: 13px;
-    margin-left: 40px;
-}
 
 /*layer start */
 .layer-body-bg{ width: 100%; height: 100%; background: rgba(0, 0, 0,.6); position: fixed; top: 0; left: 0; bottom: 0; z-index: 1100;  display: none;}

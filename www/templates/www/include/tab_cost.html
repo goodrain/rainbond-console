@@ -1,10 +1,7 @@
 <div class="cost">
+    <h2 class="tit-two">计费方式:</h2>
     <div class="cost-fun">
         <table>
-            <caption>计费方式:</caption>
-            <thead>
-
-            </thead>
             <tbody>
             <tr>
                 <td>内存计费方式：<span>{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %} 后付费 {% endif %}</span><a href="javascript:void(0)" class="change">更改</a></td>
@@ -32,8 +29,8 @@
             </tfoot>
         </table>
     </div>
-    <p class="cost-title">计费明细：</p>
-    <div class="cost-detail">
+    <h2 class="tit-two">计费明细：</p>
+    <div class="content-tab">
         <table>
             <thead>
                 <tr>
