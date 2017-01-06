@@ -14,11 +14,12 @@ logger = logging.getLogger("default")
 tenantUsedResource = TenantUsedResource()
 regionClient = RegionServiceApi()
 
+
 class RulesController(APIView):
     """规则查询模块"""
     allowed_methods = ('GET',)
     
-    def get(self, request, *args, **kwargs):
+    def get(self, request, service_region, *args, **kwargs):
         """
         获取当前数据中心的自动伸缩规则
         ---
@@ -30,7 +31,6 @@ class RulesController(APIView):
               paramType: path
 
         """
-        service_region = request.data.get("service_region")
         if service_region is None:
             logger.error("openapi.rules", "规则所在数据中心不能为空!")
             return Response(status=405, data={"success": False, "msg": u"规则所在数据中心不能为空"})
@@ -50,6 +50,10 @@ class RulesController(APIView):
                 tmp["tenant_name"] = rule.tenant_name
                 tmp["service_alias"] = rule.service_alias
                 tmp["rule_id"] = rule.ID
+                tmp["tenant_id"] = rule.tenant_id
+                tmp["service_id"] = rule.service_id
+                tmp["node_number"] = rule.node_number
+                tmp["node_max"] = rule.node_max
                 rejson.append(tmp)
             return Response(status=200, data={"success": True, "data": rejson})
         except Exception, e:
@@ -61,7 +65,7 @@ class RuleHistory(APIView):
     """规则触发历史操作模块"""
     allowed_methods = ('PUT',)
     
-    def put(self, request, *args, **kwargs):
+    def put(self, request, rule_id, *args, **kwargs):
         """
         添加规则触发历史
         ---
@@ -70,7 +74,7 @@ class RuleHistory(APIView):
               description: 规则id
               required: true
               type: string
-              paramType: form
+              paramType: path
             - name: trigger_time
               description: 触发时间
               required: true
@@ -87,7 +91,6 @@ class RuleHistory(APIView):
               type: string
               paramType: form
         """
-        rule_id = request.data.get("rule_id", None)
         trigger_time = request.data.get("trigger_time", None)
         action = request.data.get("action", None)
         message = request.data.get("message", "")
@@ -120,7 +123,7 @@ class InstanceManager(APIView):
     """操作实例数"""
     allowed_methods = ('POST',)
     
-    def post(self, request, *args, **kwargs):
+    def post(self, request, rule_id, *args, **kwargs):
         """
         操作实例数，扩展或者缩减
         ---
@@ -141,6 +144,8 @@ class InstanceManager(APIView):
               type: int
               paramType: form
         """
+        if rule_id is None:
+            return Response(status=405, data={"success": False, "msg": u"规则id不能为空"})
         service_id = request.data.get("service_id", None)
         action = request.data.get("action", None)
         number = request.data.get("number", 1)
@@ -174,6 +179,8 @@ class InstanceManager(APIView):
             body["operator"] = "auto_action"
             regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
             service.min_node = new_node_num
+            service.save()
+            ServiceRule.objects.filter(ID=rule_id).update(node_number=new_node_num)
             return Response(status=200, data={"success": True, "msg": u"操作成功"})
         except TenantServiceInfo.DoesNotExist:
             logger.error("openapi.rules", "rule {0} is not exists".format(service_id))

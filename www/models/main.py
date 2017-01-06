@@ -891,6 +891,8 @@ class ServiceRule(BaseModel):
     action = models.CharField(max_length=10, help_text=u"触发动作")
     status = models.BooleanField(default=False, blank=True, help_text=u"是否生效；0:停止；1:生效")
     count = models.IntegerField(max_length=10)
+    node_number = models.IntegerField(help_text=u"实例启动个数", default=1)
+    node_max = models.IntegerField(help_text=u"实例最大启动个数", default=1)
 
 
 class ServiceRuleHistory(BaseModel):

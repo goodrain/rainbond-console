@@ -30,7 +30,7 @@ class ServiceRuleManage(AuthedView):
             value = int(request.POST.get("value", 0))
             
             fortime = int(request.POST.get("fortime", 0))
-            
+            node_max = request.POST.get("node_max", 1)
             action = request.POST.get("action", "")
             if action != "add" and action != "del":
                 result["status"] = "failure"
@@ -40,7 +40,7 @@ class ServiceRuleManage(AuthedView):
                                tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
                                service_region=self.service.service_region,
                                item=item, operator=operator, value=value, fortime=fortime, action=action,
-                               status=0, count=0)
+                               status=0, count=0, node_number=self.service.min_node, node_max=node_max)
             rule.save()
             result["status"] = "success"
             result["message"] = "添加成功"
@@ -70,6 +70,7 @@ class ServiceRuleManage(AuthedView):
                 tmp["status"] = rule.status
                 tmp["region"] = rule.service_region
                 tmp["count"] = rule.count
+                tmp["node_max"] = rule.node_max
                 rejson[rule.ID] = tmp
             result["status"] = "success"
             result["data"] = rejson

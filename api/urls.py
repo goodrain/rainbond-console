@@ -28,6 +28,6 @@ urlpatterns = patterns(
     url(r'^docs/', include('rest_framework_swagger.urls')),
     url(r'^tenants/services/update_resource', UpdateTenantResourceView.as_view()),
     url(r'^rules/(?P<service_region>[\w\-]+)$', RulesController.as_view()),
-    url(r'^rules/history$', RuleHistory.as_view()),
-    url(r'^rules/instance$', InstanceManager.as_view()),
+    url(r'^rules/(?P<rule_id>[\w\-]+)/history$', RuleHistory.as_view()),
+    url(r'^rules/(?P<rule_id>[\w\-]+)/instance$', InstanceManager.as_view()),
 )
