@@ -61,12 +61,13 @@ button{
     vertical-align: middle;
     background-color: #28cb75;
     color: #ffffff;
-    padding:6px 12px;
+    padding:0 30px;
     font-size: 14px;
-    font-weight: 400;
+    font-weight: 100;
     border-radius: 6px;
     -webkit-border-radius: 6px;
     -moz-border-radius: 6px;
+    line-height: 30px;
 }
 
 
