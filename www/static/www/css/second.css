@@ -13,7 +13,7 @@
 .mainbg03{background: url('../images/main03.png') no-repeat; background-size: 60px 60px;}
 .mainbg04{background: url('../images/main04.png') no-repeat; background-size: 60px 60px;}
 
-.main-tab-box{background: #fff; margin:0 0 15px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
+.main-tab-box{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin-bottom: 30px;}
 .main-tab-box table{width: 100%;}
 .main-tab-box table thead th{background: #f7f7f7; height: 40px; color: #303030; padding-left: 10px; font-weight: 100; font-size: 16px; text-align: left;}
 .main-tab-box table tbody td{height: 80px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; font-weight: 0;}

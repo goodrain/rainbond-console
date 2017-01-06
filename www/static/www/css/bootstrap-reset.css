@@ -12,6 +12,7 @@ a:hover {
     border: none;
     box-shadow: none;
     background: none;
+    margin-bottom: 30px;
 }
 
 .panel-heading {
