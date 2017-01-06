@@ -1,14 +1,15 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
-
+{% load staticfiles %}
+{% block extracss %}
+<link rel="stylesheet" href="{% static "www/css/base.css" %}">
+{% endblock %}
 {% block main-content %}
 
 <section class="wrapper site-min-height">
-    <div class="row">
-        <div class="col-lg-12 m-bot15">
-            {% if 'perm_setting' in user.actions %}
-            <section class="panel">
-                <header class="panel-heading">团队成员</header>
+    {% if 'perm_setting' in user.actions %}
+    <section class="panel">
+        <h2 class="tit-two">团队成员</header>
                 {% if MODULES.Team_Invite %}
                 <div class="panel-body">
                 	<div role="tabpanel" class="tab-pane">
@@ -24,16 +25,15 @@
 					        </select>
 					      </div>
 					      <div class="col-xs-2">
-					        <button type="button" class="btn btn-success invite-service" id="invite_user_btn">邀请</button>
+					        <button type="button" class="greenbtn" id="invite_user_btn">邀请</button>
 					      </div>
 				    </div>
 				</div>
-				<br/>
 				{% endif %}
-                <div class="panel-body">
-                    <div role="tabpanel" class="tab-pane" id="permission">
-                        <div id="action_report" class="width-3"></div>
-                        <table class="table table-hover" perm-type="tenant">
+           
+                    <div role="tabpanel" id="permission">
+                        <div id="action_report" class="content-tab"></div>
+                        <table perm-type="tenant">
                             <thead>
                                 <tr>
                                     <th>成员</th>
@@ -78,8 +78,7 @@
                 </div>
             </section>
             {% endif %}
-        </div>
-    </div>
+      
 </section>
 
 
