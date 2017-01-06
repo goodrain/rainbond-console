@@ -372,7 +372,8 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             # 根据group_id 查询group中的所有service,根据service查出service_name
             service_id_list = ServiceGroupRelation.objects.filter(group_id=group_id,
                                                                   region_name=self.response_region).values("service_id")
-            group_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list, tenant_id=self.tenant.tenant_id)
+            group_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list,
+                                                                  tenant_id=self.tenant.tenant_id)
             if len(group_service_list) == 0:
                 context["parse_error"] = "parse_error"
                 context["parse_error_info"] = "当前组无法找到对应的服务"
@@ -418,7 +419,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             context["service_list"] = service_list
             context["compose_file_id"] = compose_file_id
             context["tenantName"] = self.tenant.tenant_name
-            context["compose_group_name"] = "compose" + compose_file_id[-6:]
         except Exception as e:
             context["parse_error"] = "parse_error"
             logger.error(e)
@@ -447,9 +447,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             #     return JsonResponse(result, status=200)
             service_configs = request.POST.get("service_configs", "")
             service_configs = self.json_loads(service_configs)
-            compose_group_name = request.POST.get("compose_group_name", "")
-            if compose_group_name is None or compose_group_name.strip() == "":
-                compose_group_name = "compose" + make_uuid(self.tenant.tenant_id)[-6:]
 
             if service_configs != "":
                 deps = {}
@@ -457,84 +454,30 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     service_cname = config.get("service_cname")
                     service_id = config.get("service_id")
                     deps[service_cname] = service_id
-                group_name = compose_group_name
-                group = ServiceGroup.objects.create(tenant_id=self.tenant.tenant_id, region_name=self.response_region,
-                                                    group_name=group_name)
 
                 for service_config in service_configs:
                     service_id = service_config.get("service_id")
                     service_alias = "gr" + service_id[-6:]
                     service_cname = service_config.get("service_cname")
-                    # num = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_cname=service_cname).count()
-                    # if num > 0:
-                    #     result["status"] = "exist"
-                    #     ServiceGroup.objects.filter(ID=group.ID).delete()
-                    #     return JsonResponse(result, status=200)
                     port_list = service_config.get("port_list")
                     env_list = service_config.get("env_list")
                     volume_list = service_config.get("volume_list")
 
-                    service_memory = int(service_config.get("compose_service_memory"))
                     start_cmd = service_config.get("start_cmd")
-                    service_image = service_config.get("service_image")
 
                     depends_services_list = service_config.get("depends_services")
 
-                    version = ""
-                    if ":" in service_image:
-                        index = service_image.index(":")
-                        version = service_image[index + 1:]
-                    else:
-                        version = "lastest"
+                    newTenantService = None
+                    try:
+                        newTenantService = TenantServiceInfo.objects.get(service_id=service_id)
 
-                    service = ServiceInfo()
-                    service.service_key = "0000"
-                    service.desc = ""
-                    service.category = "app_publish"
-                    service.image = service_image
-                    service.cmd = start_cmd
-                    service.setting = ""
-                    service.extend_method = "stateless"
-                    service.env = ","
-                    service.min_node = 1
-                    cm = 128
-                    ccpu = 20
-                    if service_memory != "":
-                        cm = int(service_memory)
-                        ccpu = int(cm / 128) * 20
-                    service.min_memory = cm
-                    service.min_cpu = ccpu
-                    service.inner_port = 0
-
-                    service.version = version
-                    service.namespace = "goodrain"
-                    service.update_version = 1
-                    service.volume_mount_path = ""
-                    service.service_type = "application"
-
-                    # calculate resource
-                    tempService = TenantServiceInfo()
-                    tempService.min_memory = cm
-                    tempService.service_region = self.response_region
-                    tempService.min_node = int(service.min_node)
-
-                    diffMemory = cm
-                    # 判断是否超出资源
-                    rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
-                    if not flag:
-                        if rt_type == "memory":
-                            result["status"] = "over_memory"
-                        else:
-                            result["status"] = "over_money"
-                        return JsonResponse(result, status=200)
-                    newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname,
-                                                                  service,
-                                                                  self.user.pk,
-                                                                  region=self.response_region)
-                    newTenantService.code_from = "image_manual"
-                    newTenantService.language = "docker-compose"
+                    except TenantServiceInfo.DoesNotExist:
+                        pass
+                    if newTenantService is None:
+                        result["status"] = "no_service"
+                        return JsonResponse(result, status=500)
+                    newTenantService.start_cmd = start_cmd
                     newTenantService.save()
-                    monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
 
                     self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
                     baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
@@ -545,8 +488,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id,
                                                               self.response_region)
 
-                    ServiceGroupRelation.objects.create(service_id=service_id, group_id=group.ID, tenant_id=tenant_id,
-                                                        region_name=self.response_region)
                     result["status"] = "success"
                     result["service_id"] = service_id
                     result["service_alias"] = service_alias
@@ -558,7 +499,7 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
             TenantServicesPort.objects.filter(service_id=service_id).delete()
             TenantServiceVolume.objects.filter(service_id=service_id).delete()
-            ServiceGroup.objects.filter(ID=group.ID).delete()
+            # ServiceGroup.objects.filter(ID=group.ID).delete()
 
         return JsonResponse(result, status=200)
 

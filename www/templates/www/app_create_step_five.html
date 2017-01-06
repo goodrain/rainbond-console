@@ -253,13 +253,8 @@
             {% endif %}
             <!--依赖服务 end-->
 
-            <!-- 启动命令 start -->
-            <!--<div class="cmdBlock">-->
-                <!--<h3>启动命令</h3>-->
-                <!--<textarea rows="4" class="order" >{% if service.command %}{{service.command}}{% endif %}</textarea>-->
-            <!--</div>-->
             <div class="serviceBlock">
-                <h4 class="column-tit">服务依赖</h4>
+                <h4 class="column-tit">启动命令</h4>
                 <textarea rows="4" cols="60" class="order" >{% if service.command %}{{service.command}}{% endif %}</textarea>
             </div>
             <!-- 启动命令 end -->
