@@ -326,7 +326,7 @@
 	{% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
 	<section class="panel">
 		<h2 class="tit-two">连接信息</h2>
-		<div class="connectTable">
+		<div class="content-tab">
 			<table>
 				<thead>
 						<tr>
@@ -355,7 +355,7 @@
 	{% endif %}
 	<section class="panel">
 		<h2 class="tit-two">关键日志</h2>
-			<div class="main-box">
+			<div class="content-box">
 					<div class="text-left  logtxtbox">
 						<input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
 						<p id="keylog"></p>
