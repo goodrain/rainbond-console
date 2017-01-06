@@ -38,14 +38,16 @@ class ServiceRuleManage(AuthedView):
                 return JsonResponse(result)
             rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
                                tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
-                               item=item, operator=operator, value=value, fortime=fortime, action=action, status=0)
+                               service_region=self.service.service_region,
+                               item=item, operator=operator, value=value, fortime=fortime, action=action,
+                               status=0, count=0)
             rule.save()
             result["status"] = "success"
             result["message"] = "添加成功"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
-        
+            result["message"] = e.message
         return JsonResponse(result)
     
     def get(self, request, *args, **kwargs):

@@ -5,6 +5,7 @@ from api.views.services import SelectedServiceView, PublishServiceView, \
 from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantView, AllTenantView, GitCheckCodeView, \
     UpdateTenantResourceView
 from api.views.tenants import move
+from api.views.rules import *
 
 urlpatterns = patterns(
     '',
@@ -26,4 +27,7 @@ urlpatterns = patterns(
     url(r'^api-token-auth', views.obtain_auth_token),
     url(r'^docs/', include('rest_framework_swagger.urls')),
     url(r'^tenants/services/update_resource', UpdateTenantResourceView.as_view()),
+    url(r'^rules/(?P<service_region>[\w\-]+)$', RulesController.as_view()),
+    url(r'^rules/history$', RuleHistory.as_view()),
+    url(r'^rules/instance$', InstanceManager.as_view()),
 )

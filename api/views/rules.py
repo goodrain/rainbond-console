@@ -3,7 +3,7 @@
 from rest_framework.response import Response
 
 from www.models.main import ServiceRule, ServiceRuleHistory, TenantServiceInfo, Tenants
-from openapi.views.base import BaseAPIView
+from api.views.base import APIView
 from www.tenantservice.baseservice import TenantUsedResource
 import logging
 import time
@@ -14,7 +14,7 @@ logger = logging.getLogger("default")
 tenantUsedResource = TenantUsedResource()
 regionClient = RegionServiceApi()
 
-class RulesController(BaseAPIView):
+class RulesController(APIView):
     """规则查询模块"""
     allowed_methods = ('GET',)
     
@@ -36,7 +36,7 @@ class RulesController(BaseAPIView):
             return Response(status=405, data={"success": False, "msg": u"规则所在数据中心不能为空"})
         try:
             rules = ServiceRule.objects.filter(service_region=service_region).all()
-            rejson = {}
+            rejson = []
             for rule in rules:
                 tmp = {}
                 tmp["item"] = rule.item
@@ -49,14 +49,15 @@ class RulesController(BaseAPIView):
                 tmp["count"] = rule.count
                 tmp["tenant_name"] = rule.tenant_name
                 tmp["service_alias"] = rule.service_alias
-                rejson[rule.ID] = tmp
+                tmp["rule_id"] = rule.ID
+                rejson.append(tmp)
             return Response(status=200, data={"success": True, "data": rejson})
         except Exception, e:
             logger.error(e)
             return Response(status=406, data={"success": False, "msg": u"发生错误！"})
 
 
-class RuleHistory(BaseAPIView):
+class RuleHistory(APIView):
     """规则触发历史操作模块"""
     allowed_methods = ('PUT',)
     
@@ -115,7 +116,7 @@ class RuleHistory(BaseAPIView):
             return Response(status=500, data={"success": False, "msg": u"内部错误"})
 
 
-class InstanceManager(BaseAPIView):
+class InstanceManager(APIView):
     """操作实例数"""
     allowed_methods = ('POST',)
     
