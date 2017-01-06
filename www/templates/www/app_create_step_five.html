@@ -57,35 +57,66 @@
                     </tr>
                     </thead>
                     <tbody class="port">
-                    <!--{% for port in service_ports %}-->
-                    <tr data-port="5000port">
+                    {% for outer_port in service.ports %}
+                    <tr data-port="{{outer_port}}port">
                         <td>
-                            <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">5000</a>
+                            <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{outer_port}}</a>
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                                <input class="checkDetail" type="checkbox" name="" value="" id="5000inner"/>
-                                <label class="check-bg" for="5000inner"></label>
+                                <input class="checkDetail" type="checkbox" name="" value="" id="{{outer_port}}inner"/>
+                                <label class="check-bg" for="{{outer_port}}inner"></label>
                             </div>
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
-                                <input class="checkDetail" type="checkbox" name="" value="" id="5000outer"/>
-                                <label class="check-bg" for="5000outer"></label>
+                                <input class="checkDetail" type="checkbox" name="" value="" id="{{outer_port}}outer" />
+                                <label class="check-bg" for="{{outer_port}}outer"></label>
                             </div>
                         </td>
                         <td>
-                            <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                            <select data-port-http="{{outer_port}}Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
                                 <option class="changeOption">请选择</option>
-                                <option>HTTP</option>
-                                <option>非HTTP</option>
+                                <option {% if service.name not in linked_service %} selected="selected" {% endif %}>HTTP</option>
+                                <option {% if service.name in linked_service %} selected="selected" {% endif %}>非HTTP</option>
                             </select>
                         </td>
                         <td>
                             <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
                         </td>
                     </tr>
-                    <!--{% endfor %}-->
+                    {% endfor %}
+
+                    {% for inner_port in service.expose %}
+                    <tr data-port="{{inner_port}}port">
+                        <td>
+                            <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{inner_port}}</a>
+                        </td>
+                        <td>
+                            <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
+                                <input class="checkDetail" type="checkbox" name="" value="" id="{{inner_port}}inner"/>
+                                <label class="check-bg" for="{{inner_port}}inner"></label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+                                <input class="checkDetail" type="checkbox" name="" value="" id="{{inner_port}}outer"/>
+                                <label class="check-bg" for="{{inner_port}}outer"></label>
+                            </div>
+                        </td>
+                        <td>
+                            <select data-port-http="{{inner_port}}Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                                <option class="changeOption">请选择</option>
+                                <option {% if service.name not in linked_service %} selected="selected" {% endif %}>HTTP</option>
+                                <option {% if service.name in linked_service %} selected="selected" {% endif %}>非HTTP</option>
+                            </select>
+                        </td>
+                        <td>
+                            <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
+                        </td>
+                    </tr>
+                    {% endfor %}
+
                     </tbody>
                     <tfoot>
                         <tr class="addPort" style="display: none">
@@ -141,7 +172,17 @@
                         </tr>
                     </thead>
                     <tbody class="enviroment">
+                    {% for k,v in service.environment.items %}
+                    <tr>
+                        <td>{{k}}</td>
+                        <td>{{k}}</td>
+                        <td>{{v}}</td>
+                        <td class="operation">
+                            <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
+                        </td>
+                    </tr>
 
+                    {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr class="addContent" style="display: none">
@@ -174,7 +215,9 @@
                 <b>应用持久化目录：</b>
                 <p class="tips">当前应用所在目录为/app/，使用持久化目录，请注意路径关系</p>
                 <ul class="clearfix">
-
+                    {% for volume in service.volumes %}
+                    <li>/app/{{volume}}</li>
+                    {% endfor %}
                 </ul>
                 <p class="catalogue">
                     /app/<input type="text" class="catalogueContent">
@@ -184,31 +227,31 @@
                 </p>
                 <p class="blockBottom">
                     <button class="addCata">为当前应用新设持久化目录</button>
-                    <button class="addOtherApp">挂载其他应用的持久化目录</button>
+                    <button class="addOtherApp" style="display: none">挂载其他应用的持久化目录</button>
                 </p>
             </div>
 
             <!-- 持久化目录 end-->
             <!-- 资源要求 start -->
-            <section class="box-single">
-                <h3>资源要求</h3>
-                <select class="resources">
-                    <option value="128">128M</option>
-                    <option value="256">256M</option>
-                    <option value="512">512M</option>
-                    <option value="1024">1G</option>
-                    <option value="2048">2G</option>
-                    <option value="3072">3G</option>
-                    <option value="4096">4G</option>
-                    <option value="5120">5G</option>
-                </select>
-            </section>
+            <!--<section class="box-single">-->
+                <!--<h3>资源要求</h3>-->
+                <!--<select class="resources">-->
+                    <!--<option value="128">128M</option>-->
+                    <!--<option value="256">256M</option>-->
+                    <!--<option value="512">512M</option>-->
+                    <!--<option value="1024">1G</option>-->
+                    <!--<option value="2048">2G</option>-->
+                    <!--<option value="3072">3G</option>-->
+                    <!--<option value="4096">4G</option>-->
+                    <!--<option value="5120">5G</option>-->
+                <!--</select>-->
+            <!--</section>-->
             <!-- 资源要求 end -->
             <!-- 启动命令 start -->
-            <section class="box-single">
-                <h3>启动命令</h3>
-                <textarea rows="4" class="order" >{% if service.command %}{{service.command}}{% endif %}</textarea>
-            </section>
+            <!--<section class="box-single">-->
+                <!--<h3>启动命令</h3>-->
+                <!--<textarea rows="4" class="order" >{% if service.command %}{{service.command}}{% endif %}</textarea>-->
+            <!--</section>-->
             <!-- 启动命令 end -->
             <!--依赖服务 start -->
             {% if service.depends_on|length > 0 or service.links|length > 0 %}
