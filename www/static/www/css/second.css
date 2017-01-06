@@ -2,9 +2,9 @@
 
 /* 总揽 css */
 .overall {margin: 15px 0 30px;}
-.overall ul{margin: 0 -5px;}
+.overall ul{margin: 0 -10px;}
 .overall ul li{width: 25%; float: left;}
-.overall ul li div{margin:0 5px; background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:20px;}
+.overall ul li div{margin:0 10px; background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:20px;}
 .overall ul li div p:nth-child(1){color:#303030; font-size:18px; line-height: 20px; margin:0;}
 .overall ul li div p:nth-child(2){width: 60px; height: 60px; margin:10px auto;}
 .overall ul li div p:nth-child(3){color:#303030; font-size:16px; line-height: 20px; margin:0; text-align: center;}
