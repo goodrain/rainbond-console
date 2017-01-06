@@ -173,13 +173,16 @@
                     </thead>
                     <tbody class="enviroment">
                     {% for k,v in service.environment.items %}
+
+
                     <tr>
-                        <td>{{k}}</td>
-                        <td>{{k}}</td>
-                        <td>{{v}}</td>
-                        <td class="operation">
-                            <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
+                        <td><a href="javascript:void(0);"
+                               class="enviromentName edit-port editable editable-click">{{k}}</a></td>
+                        <td><a href="javascript:void(0);" class="edit-port enviromentKey key1 editable editable-click">{{k}}</a>
                         </td>
+                        <td><a href="javascript:void(0);"
+                               class="edit-port enviromentValue value1 editable editable-click">{{v}}</a></td>
+                        <td><img class="rubbish" src="/static/www/images/rubbish.png"></td>
                     </tr>
 
                     {% endfor %}
@@ -231,51 +234,31 @@
             </div>
 
             <!-- 持久化目录 end-->
-            <!-- 资源要求 start -->
-            <!--<section class="box-single">-->
-                <!--<h3>资源要求</h3>-->
-                <!--<select class="resources">-->
-                    <!--<option value="128">128M</option>-->
-                    <!--<option value="256">256M</option>-->
-                    <!--<option value="512">512M</option>-->
-                    <!--<option value="1024">1G</option>-->
-                    <!--<option value="2048">2G</option>-->
-                    <!--<option value="3072">3G</option>-->
-                    <!--<option value="4096">4G</option>-->
-                    <!--<option value="5120">5G</option>-->
-                <!--</select>-->
-            <!--</section>-->
-            <!-- 资源要求 end -->
-            <!-- 启动命令 start -->
-            <!--<section class="box-single">-->
-                <!--<h3>启动命令</h3>-->
-                <!--<textarea rows="4" class="order" >{% if service.command %}{{service.command}}{% endif %}</textarea>-->
-            <!--</section>-->
-            <!-- 启动命令 end -->
             <!--依赖服务 start -->
             {% if service.depends_on|length > 0 or service.links|length > 0 %}
-            <!--<section  class="box-single">-->
-                <!--<h3>依赖服务</h3>-->
-                <!--<div id="depends_service">-->
-                    <!--{% for dep in service.depends_on %}-->
-                        <!--<span>{{dep}}</span>-->
-                    <!--{% endfor %}-->
-                    <!--{% for link in service.links %}-->
-                    <!--<span>{{link}}</span>-->
-                    <!--{% endfor %}-->
-                <!--</div>-->
-            <!--</section>-->
             <div class="serviceBlock">
                 <h4 class="column-tit">服务依赖</h4>
                 <div class="contentBlock">
                     <b>依赖的服务：</b>
-                    <ul>
-                        <li>app</li>
+                    <ul id="depends_service">
+                        {% for dep in service.depends_on %}
+                        <li>{{dep}}</li>
+                        {% endfor %}
+                        {% for link in service.links %}
+                        <li>{{link}}</li>
+                        {% endfor %}
                     </ul>
                 </div>
             </div>
             {% endif %}
             <!--依赖服务 end-->
+
+            <!-- 启动命令 start -->
+            <div class="cmdBlock">
+                <h3>启动命令</h3>
+                <textarea rows="4" class="order" >{% if service.command %}{{service.command}}{% endif %}</textarea>
+            </div>
+            <!-- 启动命令 end -->
 
 
         </section>
