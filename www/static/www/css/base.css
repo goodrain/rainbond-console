@@ -161,8 +161,8 @@ table.tab-box.lit td{height: 30px;}
 
 
 .build-app-btn  button{border-radius: 6px; -moz-border-radius:6px; -webkit-border-radius:6px; margin:0 5px;}
-.tit-two{color: #303030;  font-size:18px; line-height: 1; margin:30px 0; font-weight: 100; text-indent:40px;}
-
+.tit-two{color: #303030;  font-size:18px; line-height: 1; margin:30px 0; font-weight: 100; text-indent:40px; text-align: left;}
+.main-box{background: #fff;  -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
 
 
 
