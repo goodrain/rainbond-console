@@ -9,88 +9,59 @@
 				</li>
 			</ul>
 		</header>
-		<div class="panel-body">
+		<div class="content-tab">
 			<div class="tab-content">
+				<!-- -->
 				<div id="recharge" class="tab-pane active">
-
-					<div id="balance" class="alert alert-success alert-block active">
-						<h4>账户余额：
-							{{tenant.balance}}元</h4>
+					<div id="balance" class="inner-box">
+						<p class=inner-tit>账户余额：</p>
+						<div style="color: #28cb75; font-size: 14px; line-height: 80px;"><span style="font-size: 24px;">{{tenant.balance}}</span>元</div>
 					</div>
-					<ul class="nav nav-tabs">
-						<li class="active"><a data-toggle="tab" href="#onlinerecharge">在线充值</a></li>
-						<!-- <li class=""><a data-toggle="tab" href="#banktransfer">银行转账</a> -->
-						</li>
-					</ul>
-					<div class="tab-content">
-						<div id="onlinerecharge" class="tab-pane active">
-							<section class="panel">
+					<div class="inner-box">
+						<ul class="nav nav-tabs">
+							<li class="active"><a data-toggle="tab" href="#onlinerecharge">在线充值</a></li>
+							<!-- <li class=""><a data-toggle="tab" href="#banktransfer">银行转账</a> -->
+							</li>
+						</ul>
+						<div class="tab-content">2
+							<div id="onlinerecharge" class="tab-pane active">1
 								<form id="rechargeForm" method="POST" action="/apps/{{tenantName}}/recharge/alipay">
-								  <div class="panel-body">
-									<div class="form-inline">
-										<div class="form-group">
-											<label class="col-xs-12 control-label">充值金额</label>
-										</div>
-										<div class="form-group">
-											<input type="text" class="form-control" id="recharge_money" name="recharge_money" value="">
-										</div>
+									<div class="">
+										<label class="col-xs-12 control-label">充值金额</label>
+										<input type="text" class="form-control" id="recharge_money" name="recharge_money" value="">
 									</div>
-								  </div>
-								  <div class="panel-body">
-									<div class="form-group">
-										<div class="col-lg-1">
-											<label class="control-label">支付方式</label>
-										</div>
-										<div class="col-lg-10">
-											<div class="row">
-												<div class="col-lg-2">
-													<label> 
-														<input type="radio" name="optionsRadios" id="optionsRadios2" value="zhifubao" checked="checked" >支付宝
-													</label>
-												</div>
-											</div>
-											<div class="row">
-												<div class="col-lg-2">
-													<label> <input type="radio" name="optionsRadios"
-														id="optionsRadios2" value="BOCB2C">中国银行
-													</label>
-												</div>
-												<div class="col-lg-2">
-													<label> <input type="radio" name="optionsRadios"
-														id="optionsRadios2"  value="ICBCB2C">中国工商银行
-													</label>
-												</div>
-												<div class="col-lg-2">
-													<label> <input type="radio" name="optionsRadios"
-														id="optionsRadios2"  value="CMB">招商银行
-													</label>
-												</div>
-											</div>
-											<div class="row">
-												<div class="col-lg-2">
-													<label> <input type="radio" name="optionsRadios"
-														id="optionsRadios2" value="CCB">中国建设银行
-													</label>
-												</div>
-												<div class="col-lg-2">
-													<label> <input type="radio" name="optionsRadios"
-														id="optionsRadios2" value="ABC">中国农业银行
-													</label>
-												</div>
-												<div class="col-lg-2">
-													<label> <input type="radio" name="optionsRadios"
-														id="optionsRadios2"  value="COMM">交通银行
-													</label>
-												</div>
-											</div>
-										</div>
+									<div>
+										<label class="control-label">支付方式</label>
+											
+														<label> 
+															<input type="radio" name="optionsRadios" id="optionsRadios2" value="zhifubao" checked="checked" >支付宝
+														</label>
+												
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" value="BOCB2C">中国银行
+														</label>
+													
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2"  value="ICBCB2C">中国工商银行
+														</label>
+													
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2"  value="CMB">招商银行
+														</label>
+												
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" value="CCB">中国建设银行
+														</label>
+												
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2" value="ABC">中国农业银行
+														</label>
+													
+														<label> <input type="radio" name="optionsRadios"
+															id="optionsRadios2"  value="COMM">交通银行
+														</label>
 									</div>
-								 </div>
-								 <div class="panel-body">
-									<div class="col-lg-1">
-										 <button type="button" onclick="verifyData();" class="btn btn-success">&nbsp;充值&nbsp;</button>
-									</div>
-								 </div>
+								 	<button type="button" onclick="verifyData();" class="greenbtn">&nbsp;充值&nbsp;</button>
 								</form>
 								<div class="alert alert-warning fade in">
 									<button data-dismiss="alert" class="close close-sm"
@@ -101,30 +72,26 @@
 										href="https://cshall.alipay.com/lab/help_detail.htm?help_id=247928">交易限额</a>问题，请前往相应的网上银行进行调整后再继续。<br>
 									2、如您有欠费账单，充值后会优先补扣欠费账单。 <br> 3、充值后请及时对支付订单进行结算，以免影响正常服务。
 								</div>
-							</section>
+							 </div>
 						</div>
 					</div>
 				</div>
+				<!-- -->
 				<div id="rechargelog" class="tab-pane">
-					<section class="panel">
-						<div class="panel-body">
-							<form class="form-inline" role="form">
-								<div class="form-group">
-									<label class="control-label">时间范围</label>
-								</div>
-								<div class="form-group">
-									<select class="form-control" id="datescope">
-										<option selected="selected" value="7">最近7天</option>
-										<option value="30">最近1个月</option>
-										<option value="180">最近6个月</option>
-										<option value="0">所有记录</option>
-									</select>
-								</div>
-							</form>
-							<div class="adv-table" id="rechargeList"></div>
-						</div>
-					</section>
+					<form role="form">
+						<div>
+							<label>时间范围</label>
+							<select id="datescope">
+								<option selected="selected" value="7">最近7天</option>
+								<option value="30">最近1个月</option>
+								<option value="180">最近6个月</option>
+								<option value="0">所有记录</option>
+							</select>
+						</form>
+					</form>
+					<div class="adv-table" id="rechargeList"></div>
 				</div>
+				<!-- -->
 			</div>
 		</div>
 </section>
