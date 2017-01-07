@@ -30,7 +30,7 @@
 			     <tbody>
 			     	<tr>
 			     	    <td>
-				             <select class="form-control" id="buy_region">
+				            <select class="form-control" id="buy_region">
 					         	 {% for key,value in RegionMap.items %}
 						          <option value="{{key}}" {% if key == region_name %} selected="selected" {% endif %}>{{value}}</option>
 						         {% endfor %}
