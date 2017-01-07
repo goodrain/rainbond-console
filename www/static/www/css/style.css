@@ -5675,8 +5675,8 @@ a.guest-on i {
 .team-fm select{color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px;  width: 10%; margin-right:  10px;}
 .team-fm button{float: left;}
 
-.inner-box{border: 1px #f7f7f7 solid; border-bottom:0 none;}
-.inner-tit{background: #f7f7f7; height: 40px; color: #303030; padding-left:40px; font-weight: 100; font-size: 16px; text-align: left;}
+.inner-box{border: 1px #f7f7f7 solid; border-top:0 none; margin-bottom: 20px;} 
+.inner-tit{background: #f7f7f7; height: 40px; color: #303030; padding-left:40px; font-weight: 100; font-size: 16px; text-align: left; line-height: 40px;}
 
 .zhifubao{ width: 234px; height: 50px; background: url('../images/zhifubao.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
 .zgyh{ width: 234px; height: 50px; background: url('../images/zhongguoyinhang.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
@@ -5685,10 +5685,10 @@ a.guest-on i {
 .jsyh{ width: 234px; height: 50px; background: url('../images/jianhang.jpg') no-repeat; display: inline-block; text-indent: -9999px;text-indent: -9999px;}
 .nyyh{ width: 234px; height: 50px; background: url('../images/nonghang.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
 .jtyh{ width: 234px; height: 50px; background: url('../images/jiaotong.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
-.money-box,.bank-box{width: 100%; padding-bottom: 10px;}
+.money-box,.bank-box{ padding: 10px;}
 .money-box span,.bank-box span{float: left; color: #838383; font-size: 14px; line-height: 30px; display: block; width: 80px;}
 .money-box input{-moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; background:#fff; float: left; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 30px; width: 150px;}
 
 .bank-box ul{float: left; width: 80%; }
-.bank-box ul li{width: 33%; float: left; height: 50px; padding-bottom: 10px;}
+.bank-box ul li{width: 33%; float: left; height: 50px; padding: 10px;}
 .bank-box ul li input{width: 10px; height: 10px; float: left; margin:20px 5px 0 5px;}
