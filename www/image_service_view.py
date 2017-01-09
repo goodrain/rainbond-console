@@ -204,6 +204,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             context["service_id"] = service_id
             context["myAppStatus"] = "active"
             context["tenantName"] = self.tenantName
+            context["service_alias"]="gr" + service_id[-6:]
 
             deployTenantServices = TenantServiceInfo.objects.filter(
                 tenant_id=self.tenant.tenant_id,
