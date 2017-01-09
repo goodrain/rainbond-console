@@ -271,8 +271,8 @@
     <div class="">
         <div class="row">
             {% ifequal tenantServiceInfo.category "application" %}
-            <div class="col-xs-1">扩容方式</div>
-            <div class="col-xs-2">
+            <div class="col-xs-1 control-label">扩容方式</div>
+            <div class="col-xs-1">
                 <select name="extend_method" id="extend_method" class="form-control m-bot15">
                     {% for key,extend in extends_choices.iteritems %}
                         {% if key == tenantServiceInfo.extend_method %}
@@ -288,6 +288,7 @@
               <button type="button" onclick="extends_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn greenbtn">设置</button>
             </div>
             {% endif %}
+            <div class="col-xs-1"></div>
             {% endifequal %}
             <div class="col-xs-1 control-label">实例数</div>
             <div class="col-xs-1 control-label">
@@ -306,9 +307,9 @@
               <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn greenbtn">设置</button>
             </div>
             {% endif %}
-                
-            <div class="col-xs-1 control-label">内存调整</div>
-            <div class="col-xs-2 control-label">
+            <div class="col-xs-1"></div>
+            <div class="col-xs-1" control-label">内存调整</div>
+            <div class="col-xs-1 control-label">
               <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
                 {% for cuMemory in memoryList %} 
                   {% with curMemory=cuMemory|strToInt %}
