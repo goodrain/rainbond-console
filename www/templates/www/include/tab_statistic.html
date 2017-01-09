@@ -4,25 +4,6 @@
         <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history" class="writebtn {% if statistic_type == 'history' %} gre {% endif %} " data-id="history">历史走势</a>      
         <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime" class="writebtn  {% if statistic_type == 'realtime' %} gre {% endif %}" data-id="realtime">实时分析</a>
     </div>
-
-    <script>
-    /*
-    $(function(){
-        var myurl = window.location.href;
-        var myarrurl =  myurl.split("=");
-        var mydata = myarrurl[myarrurl.length - 1];
-        $("#TabShow a").each(function(){
-           if($(this).attr("data-id") == mydata){
-             $(this).addClass("gre");
-           }
-        });
-        $("#TabShow a").click(function(){
-            $("#TabShow a").removeClass("gre");
-            $(this).addClass("gre");
-        });
-    });
-    */
-    </script>
   <input type="hidden" id="websocketUrl" name="websocketUrl" value="{{websocket_uri}}">
   {% if statistic_type == 'history' %}
    <div>
