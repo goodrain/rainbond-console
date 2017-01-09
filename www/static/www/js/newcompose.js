@@ -4,11 +4,12 @@ $(function(){
 		var appid = $(this).parents("section.app-box").attr("id");
 		if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
 		{
-			$(this).parents('tfoot').find("option.changeOption").html("请选择");
-			$("#"+appid+" select.add_http").val("请选择");
+			$(this).parents('tfoot').find("option.changeOption").remove();
+			$("#"+appid+" select.add_http").val("HTTP");
 		}
 		else{
-			$(this).parents('tfoot').find("option.changeOption").html("请打开外部访问");
+			var $option = $("<option class='changeOption'>请打开外部访问</option>")
+			$(this).parents('tfoot').find("select.add_http").prepend($option);
 			$("#"+appid+" select.add_http").val("请打开外部访问");
 		}
 		$("#"+appid+" .checkTip").css({"display":"none"});
@@ -55,7 +56,7 @@ $(function(){
 				if( $("#addOuter"+appid+"").prop("checked") == true )
 				{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer'+appid+'" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer'+appid+'"></label></div></td><td>';
-					oTr += '<select style="" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http"><option class="changeOption">请选择</option>';
+					oTr += '<select style="" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" data-port-http="'+$("#"+appid+" .add_port").val()+'http">';
 				}
 				else{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。"><input class="checkDetail" type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'outer'+appid+'" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'outer'+appid+'"></label></div></td><td>';
@@ -110,13 +111,14 @@ $(function(){
 			var appid = $(this).parents("section.app-box").attr("id");
 			if( $(this).prop("checked") )
 			{
-				$(this).parents("tr").find("option.changeOption").html("请选择");
-				$(this).parents("tr").find("select").val("请选择");
+				$(this).parents("tr").find("option.changeOption").remove();
+				$(this).parents("tr").find("select").val("HTTP");
 				$(this).parents("tr").find("select").css({"color":"#28cb75"}).removeAttr("disabled");
 			}
 			else
 			{
-				$(this).parents("tr").find("option.changeOption").html("请打开外部访问");
+				$option = $("<option class='changeOption'>请打开外部访问</option>")
+				$(this).parents("tr").find("select").prepend($option);
 				$(this).parents("tr").find("select").val("请打开外部访问");
 				$(this).parents("tr").find("select").css({"color":"#838383"}).attr("disabled",true);
 			}
@@ -134,7 +136,7 @@ $(function(){
 				if( num >= 2 )
 				{
 					swal("访问方式只能有一个非HTTP");
-					$(this).parents("tr").find("select").val("请选择");
+					$(this).parents("tr").find("select").val("HTTP");
 				}
 			}
 		});
@@ -156,7 +158,7 @@ $(function(){
 						if( $("#"+appid+" table.tab-box tbody input.checkDetail").eq(i).prop("checked") && $("#"+appid+" table.tab-box tbody select").eq(i).val() == '非HTTP' && i != $(this).attr("index") )
 						{
 							swal("访问方式只能有一个非HTTP");
-							$(this).val("请选择");
+							$(this).val("HTTP");
 							break;
 						}
 					}

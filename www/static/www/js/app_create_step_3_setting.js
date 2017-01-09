@@ -7,7 +7,7 @@ $(function () {
             $("select.add_http").val("HTTP");
         }
         else{
-            var $option = $("<option class='changeOption'>请打开外部访问</option>")
+            var $option = $("<option class='changeOption'>请打开外部访问</option>");
             $("select.add_http").prepend($option);
             $("select.add_http").val("请打开外部访问");
         }
