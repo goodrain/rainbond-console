@@ -5662,12 +5662,12 @@ a.guest-on i {
 .content-tab table tbody td a{color: #303030; font-size: 14px;}
 .content-tab table tbody tr{ border-bottom: 1px #f7f7f7 solid;}
 
-.greenbtn{height: 36px; line-height: 36px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #28cb75;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
+.greenbtn{height: 30px; line-height: 30px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #28cb75;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
 .greenbtn:link,.greenbtn:hover,.greenbtn:active,.greenbtn:visited{color: #fff;}
-.redbtn{height: 36px; line-height: 36px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #f63a47;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
+.redbtn{height: 30px; line-height: 30px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #f63a47;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
 .redbtn:link,.redbtn:hover,.redbtn:active,.redbtn:visited{color: #fff;}
 
-.writebtn{height: 34px; line-height: 34px; color: #838383; padding:0 28px; margin:0 10px 0 0; display: inline-block; background: #fff;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:1px #ececec solid;}
+.writebtn{height: 28px; line-height: 28px; color: #838383; padding:0 28px; margin:0 10px 0 0; display: inline-block; background: #fff;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:1px #ececec solid;}
 .writebtn:link,.writebtn:hover,.writebtn:active,.writebtn:visited{color: #838383;}
 .team-fm{width: 100%; margin-bottom: 30px;}
 .team-fm input{color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px; margin-right:  10px; width: 30%; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px;}
