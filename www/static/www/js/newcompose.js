@@ -1229,7 +1229,6 @@ $(function(){
 					status = data.status;
 					if (status == 'success') {
 						//window.location.href = "/apps/" + tenantName + "/"
-						submitMsg();
 					} else if (status == "failure") {
 						swal("数据中心初始化失败");
 						submitMsg();
