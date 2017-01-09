@@ -351,6 +351,24 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias
+            # 设置服务购买的起始时间
+            attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id)
+            pre_paid_period = attach_info.pre_paid_period
+            if self.tenant.pay_type == "free":
+                # 免费租户的应用过期时间为7天
+                service = self.service
+                service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
+                service.save()
+                startTime = datetime.datetime.now() + datetime.timedelta(days=7)
+                endTime = startTime + relativedelta(months=int(pre_paid_period))
+                ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
+                                                                                            buy_end_time=endTime)
+            else:
+                startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                endTime = startTime + relativedelta(months=int(pre_paid_period))
+                ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
+                                                                                            buy_end_time=endTime)
+
         except Exception as e:
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()

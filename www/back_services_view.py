@@ -857,9 +857,8 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
             service_env.append(s_env)
         envs = service_env
 
+        result = {}
         try:
-            result = {}
-
             success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id, self.user)
             if not success:
                 result["status"] = "failure"
@@ -903,6 +902,23 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
 
             result["status"] = "success"
             result["next_url"] = next_url = '/apps/{}/{}/detail/'.format(self.tenantName, self.serviceAlias)
+            # 设置服务购买的起始时间
+            attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id)
+            pre_paid_period = attach_info.pre_paid_period
+            if self.tenant.pay_type == "free":
+                # 免费租户的应用过期时间为7天
+                service = self.service
+                service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
+                service.save()
+                startTime = datetime.datetime.now() + datetime.timedelta(days=7)
+                endTime = startTime + relativedelta(months=int(pre_paid_period))
+                ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
+                                                                                            buy_end_time=endTime)
+            else:
+                startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                endTime = startTime + relativedelta(months=int(pre_paid_period))
+                ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
+                                                                                            buy_end_time=endTime)
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"

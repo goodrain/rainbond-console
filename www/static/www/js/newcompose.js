@@ -1228,7 +1228,7 @@ $(function(){
 				success: function (data) {
 					status = data.status;
 					if (status == 'success') {
-						//window.location.href = "/apps/" + tenantName + "/"
+						window.location.href = "/apps/" + tenantName + "/"
 					} else if (status == "failure") {
 						swal("数据中心初始化失败");
 						submitMsg();
