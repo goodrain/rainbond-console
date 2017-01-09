@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 from www.service_http import RegionServiceApi
+from www.models import TenantServicesPort
 
 import logging
 logger = logging.getLogger('default')
@@ -67,7 +68,16 @@ class ServiceGraph(AuthedView):
             if graph_key in ('memory', 'sqltime', 'sql-throughput'):
                 queries += '{' + 'tenant_id={0},service_id={1}'.format(self.tenant.tenant_id, self.service.service_id) + '}'
             else:
-                queries += '{' + 'tenant={0},service={1}'.format(self.tenant.tenant_name, self.service.service_alias) + '}'
+                # temp deal
+                if self.service.port_type == "multi_outer" and graph_key not in ("disk","bandwidth"):
+                    port = ""
+                    tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
+                    for tsp in tsps:
+                        port = str(tsp.container_port)
+                        break
+                    queries += '{' + 'tenant={0},service={1}_{2}'.format(self.tenant.tenant_name, self.service.service_alias, port) + '}'
+                else:
+                    queries += '{' + 'tenant={0},service={1}'.format(self.tenant.tenant_name, self.service.service_alias) + '}'
 
             query_data = self.region_client.opentsdbQuery(self.service.service_region, start, queries)
             if query_data is None:
