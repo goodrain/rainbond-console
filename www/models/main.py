@@ -879,7 +879,7 @@ class ServiceAttachInfo(BaseModel):
     min_node = models.IntegerField(help_text=u"节点个数", default=1)
     disk = models.IntegerField(help_text=u'磁盘大小')
     pre_paid_period = models.IntegerField(help_text=u"预付费项目购买时长(单位:月)", default=0)
-    pre_paid_money = models.IntegerField(help_text=u"预付费金额", default=0)
+    pre_paid_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"预付费金额")
     buy_start_time = models.DateTimeField(help_text=u"购买开始时间")
     buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
