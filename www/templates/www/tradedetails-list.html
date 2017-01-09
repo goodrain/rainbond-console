@@ -62,7 +62,7 @@
      <div id="example_wrapper" role="grid">
          <div class="pages">
                  	{% if tenantConsumes.has_previous %}
-                 	<a  class="prev disabled" href="javascript:;" onclick="_page({{tenantConsumes.previous_page_number}})">&gt;</a>
+                 	<a  class="prev disabled" href="javascript:;" onclick="_page({{tenantConsumes.previous_page_number}})">&lt;</a>
 					{% endif %} 
 					
 					{% for page in tenantConsumes.paginator.page_range %} 
@@ -73,7 +73,7 @@
 						{% endif %} 
 					{% endfor %}
 					{% if tenantConsumes.has_next %}
-					<a href="javascript:;"  class="next" onclick="_page({{ tenantConsumes.next_page_number }})">&lt;</a>
+					<a href="javascript:;"  class="next" onclick="_page({{ tenantConsumes.next_page_number }})">&gt;</a>
 					{% endif %}
           </div>
          
