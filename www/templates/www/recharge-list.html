@@ -1,7 +1,6 @@
 <div id="example_wrapper" role="grid">
-	<div class="row-fluid">
-		<div class="span6 text-right">
-			<div id="example_length" class="dataTables_length">
+	
+			<div id="example_length" class="lit-select text-right">
 				<label>每页显示</label>
 				<select class="form-control" size="1" name="example_length" aria-controls="example" id="pageSizeScope">
 						<option {% if per_page == "10" %} selected="selected" {% endif %} value="10">10</option>
@@ -11,8 +10,7 @@
 				</select>
 				<label>行</label>
 			</div>
-		</div>
-	</div>
+	
 	<table id="example" aria-describedby="example_info">
 		<thead>
 			<tr role="row">
