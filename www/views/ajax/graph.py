@@ -69,7 +69,7 @@ class ServiceGraph(AuthedView):
                 queries += '{' + 'tenant_id={0},service_id={1}'.format(self.tenant.tenant_id, self.service.service_id) + '}'
             else:
                 # temp deal
-                if self.service.port_type == "multi_outer":
+                if self.service.port_type == "multi_outer" and graph_key not in ("disk","bandwidth"):
                     port = ""
                     tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
                     for tsp in tsps:
