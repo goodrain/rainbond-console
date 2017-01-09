@@ -5706,8 +5706,18 @@ a.guest-on i {
 
 
 i{font-style: normal; }
-
-
+.monitor-ul{margin:0 0 30px;}
+.monitor-ul ul{margin:0 -10px;}
+.monitor-ul ul li{float: left; width: 33%;}
+.monitor-ul ul li.two{float: left; width: 50%;}
+.monitor-ul ul li div{background: #fff; padding:20px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px;}
+.monitor-ul ul li div p{margin: 0;}
+.monitor-ul ul li div p:nth-child(1){font-size: 14px; line-height: 20px; text-align: left;}
+.monitor-ul ul li div p:nth-child(2){width: 110px; height: 110px; margin:20px auto;}
+.monitor-ul ul li div p:nth-child(3){font-size: 24px; text-align: center; line-height: 30px;}
+.monitor01{background: url('../images/monitor01.png') no-repeat; background-size:110px 110px;}
+.monitor02{background: url('../images/monitor02.png') no-repeat; background-size:110px 110px;}
+.monitor03{background: url('../images/monitor03.png') no-repeat; background-size:110px 110px;}
 
 
 
