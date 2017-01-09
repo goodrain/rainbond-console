@@ -1,4 +1,4 @@
-<div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
+<div id="example_wrapper" class="con" role="grid">
 	<div class="row-fluid">
 		<div class="span6 text-right">
 			<div id="example_length" class="dataTables_length">
@@ -48,7 +48,7 @@
 	<div class="row-fluid">
 		<div class="span6">
 			<div class="dataTables_paginate paging_bootstrap pagination">
-				<ul>
+				<ul class="clearfix">
 					{% if tenantRecharges.has_previous %}
 					<li class="prev disabled"><a href="javascript:;" onclick="_page({{tenantRecharges.previous_page_number}})">←Previous</a></li> 
 					{% endif %} 
