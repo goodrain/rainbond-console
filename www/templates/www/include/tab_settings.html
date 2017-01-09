@@ -111,7 +111,7 @@
                     <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
                 </th>
                 <th>
-                    <button type="button" class="port-delete btn redbtn btn-xs" ><i class="fa fa-times"></i></button>
+                    <button type="button" class="port-delete btn redbtn btn-xs" >删除</button>
                 </th>
               </tr>
           </thead>
@@ -217,7 +217,7 @@
                             <td>{{env.name}}</td>
                             <td>
                                {% if env.is_change %}
-                                <button type="button" class="attr-delete btn redbtn btn-xs"><i class="fa fa-trash-o"></i></button>
+                                <button type="button" class="attr-delete btn redbtn btn-xs">删除</button>
                                {% endif %}
                             </td>
                         </tr>
