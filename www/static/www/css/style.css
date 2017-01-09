@@ -5693,10 +5693,10 @@ a.guest-on i {
 
 
 .pages{width: 100%; height: 36px; text-align: center; margin:10px 0;}
-.pages a{width: 34px; height: 34px; line-height: 34px; text-align: center; font-size: 16px; margin:0 2px; display: inline-block; border:1px #fff solid; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px;}
+.pages a{width: 34px; height: 34px; line-height: 34px; text-align: center; font-size: 16px; margin:0 2px; display: inline-block; border:1px #fff solid; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; color: #303030;}
 .pages a:hover,.pages a.active{background: #28cb75; color: #fff; border:1px #28cb75 solid;}
 
-.pages a.prev,.pages a.next{border:1px #838383 solid; color: #a6a6a6;}
+.pages a.prev,.pages a.next{border:1px #838383 solid; color: #838383;}
 .pages a.prev.disabled,.pages a.next.disabled{ color: #f0f0f0; border: 1px #ececec solid; }
 
 

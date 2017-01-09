@@ -48,22 +48,22 @@
 	<div class="row-fluid">
 		<div class="span6">
 			<div class="dataTables_paginate paging_bootstrap pagination">
-				<ul class="clearfix">
+				
 					{% if tenantRecharges.has_previous %}
-					<li class="prev disabled"><a href="javascript:;" onclick="_page({{tenantRecharges.previous_page_number}})">←Previous</a></li> 
+					<a href="javascript:;"   class="prev disabled" onclick="_page({{tenantRecharges.previous_page_number}})">&lt;</a></li> 
 					{% endif %} 
 					
 					{% for page in tenantRecharges.paginator.page_range %} 
 						{% if page = tenantRecharges.number %}
-						<li class="active"><a href="javascript:;">{{ page }}</a></li> 
+						<a href="javascript:;" class="active">{{ page }}</a>
 						{% else %}
-						<li><a href="javascript:;" onclick="_page({{page}})">{{page}}</a></li>
+						<a href="javascript:;" onclick="_page({{page}})">{{page}}</a>
 						{% endif %} 
 					{% endfor %} 
 					{% if tenantRecharges.has_next %}
-					<li class="next"><a href="javascript:;" onclick="_page({{ tenantRecharges.next_page_number }})">Next →</a></li> 
+					<a href="javascript:;" class="next" onclick="_page({{ tenantRecharges.next_page_number }})">&gt;</a>
 					{% endif %}
-				</ul>
+				
 			</div>
 		</div>
 	</div>
