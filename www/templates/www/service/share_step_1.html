@@ -64,11 +64,11 @@
         <table>
             <thead>
             <tr>
-                <td>名称</td>
-                <td>容器端口</td>
-                <td>协议类型</td>
-                <td>默认开启对内服务</td>
-                <td>默认开启外部访问</td>
+                <th>名称</th>
+                <th>容器端口</th>
+                <th>协议类型</th>
+                <th>默认开启对内服务</th>
+                <th>默认开启外部访问</th>
             </tr>
             </thead>
             <tbody>
@@ -90,11 +90,11 @@
         <table>
             <thead>
             <tr>
-                <td>名称</td>
-                <td>变量名</td>
-                <td>值</td>
-                <td>对内变量</td>
-                <td>对外变量</td>
+                <th>名称</th>
+                <th>变量名</th>
+                <th>值</th>
+                <th>对内变量</th>
+                <th>对外变量</th>
             </tr>
             </thead>
             <tbody>
@@ -113,7 +113,12 @@
     <!-- 03-->
     <div class="content-tab">
         <h3 class="tit-two">持久化目录</h3>
-        <table class="table table-striped table-bordered">
+        <table>
+            <thead>
+            <tr>
+                <th>持久化目录</th>
+            </tr>
+            </thead>
             <tbody>
             {% for volume in volume_list %}
                 <tr>
@@ -129,8 +134,8 @@
         <table>
             <thead>
             <tr>
-                <td>应用名称</td>
-                <td>应用类型</td>
+                <th>应用名称</th>
+                <th>应用类型</th>
             </tr>
             </thead>
             <tbody>
