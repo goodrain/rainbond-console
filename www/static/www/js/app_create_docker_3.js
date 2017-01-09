@@ -190,7 +190,7 @@ $(function () {
                 var onOff = true;
                 for( var j = 0; j<appNameLen; j++ )
                 {
-                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-action") )
+                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-id") )
                     {
                         onOff = false;
                         break;
@@ -332,8 +332,9 @@ $(function () {
             otherAppName_json["otherName"] = $(".otherAppName").eq(m).attr("data-otherName");
             otherAppNameArr[m] = otherAppName_json;
         }
-
+        var service_id = $("#service_id").val();
         var service_config = {
+            "service_id" : service_id,
             "port_list" : JSON.stringify(portArr),
             "env_list" : JSON.stringify(enviromentArr),
             "volume_list" : JSON.stringify(appArr),
