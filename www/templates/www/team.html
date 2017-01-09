@@ -6,7 +6,7 @@
 <section class="wrapper site-min-height">
     <div class="row">
         <div class="col-lg-12 m-bot15">
-            {% if 'perm_setting' in user.actions %}
+            {% if 'perm_setting' in user.actions or user.is_sys_admin %}
             <section class="panel">
                 <header class="panel-heading">团队成员</header>
                 {% if MODULES.Team_Invite %}
