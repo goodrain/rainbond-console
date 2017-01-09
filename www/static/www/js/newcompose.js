@@ -1182,15 +1182,13 @@ $(function(){
 				dir_otherArr[i] = json_directory;
 			});
 
-			var deps = $(this).find("#depends_service ").children("span");
+			var deps = $(this).find(".depends_service ").children("li");
 			var depends_services = []
 			$(deps).each(function (i) {
 				var depends_service = {}
 				var dps_service_name = $(this).html();
-				var dps_service_path = $(this).parent().find('em').html();
 				depends_service["depends_service"] = dps_service_name;
-				depends_service["depends_path"] = dps_service_path;
-				depends_services[i]=dps_service_name
+				depends_services[i] = depends_service;
 			});
 			//console.log(dir_nums);
 			//
@@ -1231,7 +1229,7 @@ $(function(){
 			success: function (data) {
 				status = data.status;
 				if (status == 'success') {
-					window.location.href = "/apps/" + tenantName + "/"
+					//window.location.href = "/apps/" + tenantName + "/"
 				} else if (status == "failure") {
 					swal("数据中心初始化失败");
 				} else if (status == "owed") {

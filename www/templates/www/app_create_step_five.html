@@ -240,12 +240,12 @@
                 <h4 class="column-tit">服务依赖</h4>
                 <div class="contentBlock">
                     <b>依赖的服务：</b>
-                    <ul id="depends_service">
+                    <ul class="depends_service">
                         {% for dep in service.depends_on %}
-                        <span>{{dep}}</span>
+                        <li>{{dep}}</li>
                         {% endfor %}
                         {% for link in service.links %}
-                        <span>{{link}}</span>
+                        <li>{{link}}</li>
                         {% endfor %}
                     </ul>
                 </div>
