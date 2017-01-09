@@ -5720,7 +5720,7 @@ i{font-style: normal; }
 .monitor02{background: url('../images/monitor02.png') no-repeat; background-size:110px 110px;}
 .monitor03{background: url('../images/monitor03.png') no-repeat; background-size:110px 110px;}
 
-
+.content-tab .control-label{line-height: 30px;}
 
 
 
