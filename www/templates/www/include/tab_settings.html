@@ -3,7 +3,7 @@
  <!-- 01 -->
   <section class="content-tab">
       <p class="tit-two">基础信息</p>
-      <div class="panel-body">
+      <div class="">
         <div class="row">
             <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-8 control-label" id="lit-appname">{{tenantServiceInfo.service_cname}}<a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; padding-left: 10px;">更名</a></label>
         </div>
@@ -268,7 +268,7 @@
 <!-- 05-->
   <section class="content-tab">
     <p class="tit-two">扩容方式</p>
-    <div class="panel-body">
+    <div class="">
         <div class="row">
             {% ifequal tenantServiceInfo.category "application" %}
             <div class="col-xs-1">扩容方式</div>
@@ -336,7 +336,7 @@
   {% if 'perm_setting' in user.actions %}
   <section class="content-tab" id="permission">
     <p class="tit-two">权限管理 </p>
-    <div class="panel-body">
+    <div class="">
         <div class="row">
             <div class="col-xs-4">
               <input type="text" class="email-invite form-control" id="invite_email" name="invite_email" placeholder="邮件地址">
@@ -386,7 +386,7 @@
   {% if 'delete_service' in user.actions %}
   <section class="content-tab" id="delete">
     <p class="tit-two">删除 </p>
-    <div class="panel-body">
+    <div class="">
       <form class="form-horizontal" role="form">
          
         <div class="form-group">

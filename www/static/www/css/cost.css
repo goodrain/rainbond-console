@@ -25,8 +25,7 @@ table th{
 }
 /*表格td的大小60px与颜色*/
 table td{
-    border-top:1px solid #ececec;
-    border-bottom: 1px solid #ececec;
+   
     background-color: #ffffff;
     color: #838383;
     font-size: 14px;
