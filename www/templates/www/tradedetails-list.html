@@ -59,27 +59,24 @@
      </tbody>
  </table>
  <div class="adv-table">
-     <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
-         <div class="span6">
-             <div class="dataTables_paginate paging_bootstrap pagination">
-                 <ul>
+     <div id="example_wrapper" role="grid">
+         <div class="pages">
                  	{% if tenantConsumes.has_previous %}
-                 	<li class="prev disabled"><a href="javascript:;" onclick="_page({{tenantConsumes.previous_page_number}})">← Previous</a></li>
+                 	<a  class="prev disabled" href="javascript:;" onclick="_page({{tenantConsumes.previous_page_number}})">&gt;</a>
 					{% endif %} 
 					
 					{% for page in tenantConsumes.paginator.page_range %} 
 						{% if page = tenantConsumes.number %}
-						<li class="active"><a href="javascript:;">{{ page }}</a></li> 
+						<a href="javascript:;" class="active">{{ page }}</a>
 						{% else %}
-						<li><a href="javascript:;" onclick="_page({{page}})">{{page}}</a></li>
+						<a href="javascript:;" onclick="_page({{page}})">{{page}}</a>
 						{% endif %} 
 					{% endfor %}
 					{% if tenantConsumes.has_next %}
-					<li class="next"><a href="javascript:;" onclick="_page({{ tenantConsumes.next_page_number }})">Next →</a></li> 
+					<a href="javascript:;"  class="next" onclick="_page({{ tenantConsumes.next_page_number }})">&lt;</a>
 					{% endif %}
-                 </ul>
-             </div>
-         </div>
+          </div>
+         
      </div>
 </div>
 </div>
