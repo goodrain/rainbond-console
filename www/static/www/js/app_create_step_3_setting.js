@@ -8,7 +8,7 @@ $(function () {
         }
         else{
             var $option = $("<option class='changeOption'>请打开外部访问</option>")
-            $(this).parents('tfoot').find("select").prepend($option);
+            $("select.add_http").prepend($option);
             $("select.add_http").val("请打开外部访问");
         }
         $(".checkTip").css({"display":"none"});
@@ -612,11 +612,12 @@ $(function () {
             if( $(this).prop("checked") )
             {
                 $(this).parents("tr").find("option.changeOption").remove();
-                //$(this).parents("tr").find("select").val("请选择");
                 $(this).parents("tr").find("select").css({"color":"#28cb75"}).removeAttr("disabled");
             }
             else
             {
+                var $option = $("<option class='changeOption'></option>")
+                $(this).parents("tr").find("select").prepend($option);
                 $(this).parents("tr").find("option.changeOption").html("请打开外部访问");
                 $(this).parents("tr").find("select").val("请打开外部访问");
                 $(this).parents("tr").find("select").css({"color":"#838383"}).attr("disabled",true);
