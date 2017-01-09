@@ -23,6 +23,8 @@
                 {% endif %}
                 {% if MODULES.Monitor_Control %}
                 <li class="dropdown {% if fr == 'statistic' %} active {% endif %}">
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">监控</a>
+                    <!--
                     {% if hasHttpServices or tenantServiceInfo.service_type == 'mysql' %}
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic"
                        class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b>
@@ -34,6 +36,7 @@
                     {% else %}
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic">监控</a>
                     {% endif %}
+                    -->
                 </li>
                 {% endif %}
                 <li {% if fr = "log" %} class="active" {% endif %}>
