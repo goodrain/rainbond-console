@@ -2802,11 +2802,11 @@ ul.amounts li {
 }
 
 .dataTables_paginate.paging_bootstrap.pagination li {
-    float: left;
+    display: inline-block;
     margin: 0 1px;
     border: 1px solid #ddd;
-    border-radius: 3px;
-    -webkit-border-radius: 3px;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
 }
 
 .dataTables_paginate.paging_bootstrap.pagination li.disabled a{
@@ -2826,9 +2826,7 @@ ul.amounts li {
 }
 
 .dataTables_paginate.paging_bootstrap.pagination {
-    float: right;
-    margin-top: -5px;
-    margin-bottom: 15px;
+    text-align: center;
 
 }
 
