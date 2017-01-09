@@ -172,7 +172,7 @@ table.tab-box.lit td{height: 30px;}
 .redbtn{height: 30px; line-height: 36px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #f63a47;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
 .redbtn:link,.redbtn:hover,.redbtn:active,.redbtn:visited{color: #fff;}
 
-.writebtn{height: 28px; line-height: 34px; color: #838383; padding:0 28px; margin:0 10px 0 0; display: inline-block; background: #fff;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:1px #ececec solid;}
+.writebtn{height: 34px; line-height: 34px; color: #838383; padding:0 28px; margin:0 10px 0 0; display: inline-block; background: #fff;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:1px #ececec solid;}
 .writebtn:link,.writebtn:hover,.writebtn:active,.writebtn:visited{color: #838383;}
 
 .inner-box{border: 1px #f7f7f7 solid; border:0 none;}
