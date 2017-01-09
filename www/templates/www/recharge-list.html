@@ -45,9 +45,8 @@
 			{% endfor %}
 		</tbody>
 	</table>
-	<div class="row-fluid">
-		<div class="span6">
-			<div class="dataTables_paginate paging_bootstrap pagination">
+	
+			<div class="pages">
 				
 					{% if tenantRecharges.has_previous %}
 					<a href="javascript:;"   class="prev disabled" onclick="_page({{tenantRecharges.previous_page_number}})">&lt;</a></li> 
@@ -65,6 +64,5 @@
 					{% endif %}
 				
 			</div>
-		</div>
-	</div>
+	
 </div>
