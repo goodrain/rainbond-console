@@ -5698,6 +5698,6 @@ a.guest-on i {
 
 .pages a.prev,.pages a.next{border:1px #838383 solid; color: #838383;}
 .pages a.prev.disabled,.pages a.next.disabled{ color: #f0f0f0; border: 1px #ececec solid; }
-
+.pages a.prev:hover,.pages a.next:hover{background: #28cb75; color: #fff; border:1px #28cb75 solid;}
 
 
