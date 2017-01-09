@@ -84,7 +84,7 @@ ul.sidebar-menu li a,ul.sidebar-menu li ul.sub li a{font-size:14px;}
 .yinyongbtn{margin-top:20px;width:150px;}
 .bushubtnbox{padding:40px 20px 20px;}
     .bushubtnbox .btn{width:90px;margin-right:20px;}
-.logtxtbox{padding: 20px;margin-bottom: 14px;background-color: #1f262d;border: 1px solid #e1e1e8; min-height:150px; color: #838383;}
+.logtxtbox{padding: 20px;margin-bottom: 14px;background-color: #1f262d;border: 1px solid #e1e1e8; min-height:150px; color: #838383; border-radius:10px;-webkit-border-radius:10px;-moz-border-radius:10px;}
 .settingsbox .col-sm-2,.settingsbox .col-sm-8,.settingsbox .col-sm-10,.settingsbox .col-xs-2,.settingsbox .col-xs-6{padding-left:0;padding-right:0;}
 .settingsbox .col-xs-4{padding-left:10px;padding-right:10px;}
 .form-horizontal .control-label{text-align: right;}

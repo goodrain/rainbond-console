@@ -25,7 +25,7 @@
                     </select>
                   </div>
                   <div class="col-xs-4 control-label">
-                    <button type="button"  onclick="service_branch_change('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success btn-xs">切换分支</button>
+                    <button type="button"  onclick="service_branch_change('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn greenbtn btn-xs">切换分支</button>
                   </div>
                 </div>
                 {% else %}
@@ -73,7 +73,7 @@
               
               <div class="col-xs-2">
                   <button type="button"
-                          class="btn btn-success port-type-service"
+                          class="btn greenbtn port-type-service"
                           id="port_type_btn"
                           onclick="muti_outer_port('{{ tenantName }}','{{ serviceAlias }}')">设置
                   </button>
@@ -111,7 +111,7 @@
                     <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
                 </th>
                 <th>
-                    <button type="button" class="port-delete btn btn-danger btn-xs" ><i class="fa fa-times"></i></button>
+                    <button type="button" class="port-delete btn redbtn btn-xs" >删除</button>
                 </th>
               </tr>
           </thead>
@@ -171,17 +171,17 @@
                             {% for domain_name in serviceDomainDict|mkey:port.container_port %}
                                 <p>
                                 <span>{{domain_name}}</span>
-                                <button type="button" class="port-cancel btn btn-danger btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','{{domain_name}}')">解绑</button>
+                                <button type="button" class="port-cancel btn redbtn btn-xs" onclick="domainSubmit('close','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','{{domain_name}}')">解绑</button>
                                 </p>
                             {% endfor %}
 
                           <!-- 多个域名 展示--> 
                         </div>
-                        <button type="button" class="btn btn-success btn-xs fn-bind-domain">绑定</button>
+                        <button type="button" class="btn greenbtn btn-xs fn-bind-domain">绑定</button>
                         <div class="fn-domain-layer  domain-layer">
                             <input type="text" placeholder="请输入绑定域名" id="service_app_name_{{port.container_port}}"  />
-                            <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','')"><i class="fa fa-check"></i></button>
-                            <button type="button" class="btn btn-danger btn-xs fn-delete-domain"><i class="fa fa-times"></i></button>
+                            <button type="button" class="btn greenbtn btn-xs" onclick="domainSubmit('start','{{tenantServiceInfo.service_id}}','{{tenantName}}','{{tenantServiceInfo.service_alias}}','{{port.container_port}}','')"><i class="fa fa-check"></i></button>
+                            <button type="button" class="btn redbtn btn-xs fn-delete-domain"><i class="fa fa-times"></i></button>
                         </div>
                      {% endif %}
                     </div>
@@ -205,7 +205,7 @@
                             <th>变量名(^[A-Z][A-Z0-9_])</th>
                             <th>变量值</th>
                             <th>说明</th>
-                            <th></th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -217,14 +217,14 @@
                             <td>{{env.name}}</td>
                             <td>
                                {% if env.is_change %}
-                                <button type="button" class="attr-delete btn btn-danger btn-xs"><i class="fa fa-trash-o"></i></button>
+                                <button type="button" class="attr-delete btn redbtn btn-xs">删除</button>
                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-                <button type="button" class="btn greenbtn" id="add_service_attr">新增环境变量</button>
+                <button type="button" class="btn greenbtn" id="add_service_attr" style="margin-top: 10px;">新增环境变量</button>
    
 </section>
 <!-- 03-->
@@ -257,9 +257,9 @@
                         </tbody>
                     </table>
 
-                    <div id="edit_volume_div"></div>
+                    <div id="edit_volume_div"  style="margin-top: 10px;"></div>
                     <div class="clearfix" style="padding: 8px;"></div>
-                    <button type="button" class="btn btn-success" id="add_volume_attr" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
+                    <button type="button" class="btn greenbtn" id="add_volume_attr" style="margin-top: 10px;" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
 
     </section>
     {% endif %}
@@ -271,8 +271,8 @@
     <div class="">
         <div class="row">
             {% ifequal tenantServiceInfo.category "application" %}
-            <div class="col-xs-1">扩容方式</div>
-            <div class="col-xs-2">
+            <div class="col-xs-1 control-label">扩容方式</div>
+            <div class="col-xs-1">
                 <select name="extend_method" id="extend_method" class="form-control m-bot15">
                     {% for key,extend in extends_choices.iteritems %}
                         {% if key == tenantServiceInfo.extend_method %}
@@ -285,9 +285,10 @@
             </div>
             {% if 'manage_service' in user.actions %}
             <div class="col-xs-1 control-label">
-              <button type="button" onclick="extends_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+              <button type="button" onclick="extends_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn greenbtn">设置</button>
             </div>
             {% endif %}
+            <div class="col-xs-1"></div>
             {% endifequal %}
             <div class="col-xs-1 control-label">实例数</div>
             <div class="col-xs-1 control-label">
@@ -303,12 +304,12 @@
             </div>
             {% if 'manage_service' in user.actions %}
             <div class="col-xs-1 control-label">
-              <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+              <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn greenbtn">设置</button>
             </div>
             {% endif %}
-                
+            <div class="col-xs-1"></div>
             <div class="col-xs-1 control-label">内存调整</div>
-            <div class="col-xs-2 control-label">
+            <div class="col-xs-1 control-label">
               <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
                 {% for cuMemory in memoryList %} 
                   {% with curMemory=cuMemory|strToInt %}
@@ -323,7 +324,7 @@
             </div>
             {% if 'manage_service' in user.actions %}
             <div class="col-xs-1 control-label">
-              <button type="button"  onclick="service_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn btn-success">设置</button>
+              <button type="button"  onclick="service_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn greenbtn">设置</button>
             </div>
             {% endif %}
        </div>
@@ -349,7 +350,7 @@
               </select>
             </div>
             <div class="col-xs-2">
-              <button type="button" class="btn btn-success invite-service" id="invite_user_btn">邀请</button>
+              <button type="button" class="btn greenbtn invite-service" id="invite_user_btn">邀请</button>
             </div>
         </div>
         <br>
@@ -392,7 +393,7 @@
         <div class="form-group">
           <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_cname}}</label>
           <div class="col-sm-2 col-lg-2 text-center">
-            <button type="button" class="btn btn-danger"  data-code="{{tenantServiceInfo.code_from}}" id="cur_delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除</button>
+            <button type="button" class="btn redbtn"  data-code="{{tenantServiceInfo.code_from}}" id="cur_delete_service" onclick="delete_service('{{tenantName}}','{{tenantServiceInfo.service_alias}}');">删除</button>
           </div>
           <div class="col-sm-8 col-lg-8 control-label text-left text-danger">注意：该操作会将所有相关数据永久删除，请慎重操作！</div>
         </div>

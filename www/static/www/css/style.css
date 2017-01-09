@@ -5583,7 +5583,7 @@ a.guest-on i {
 .tipsbox{padding:10px 35px 10px 10px; margin:0 0 10px; position: relative; font-size: 14px;}
 .tipsbox a.close{position: absolute; font-size: 20px; font-weight: bold; color: #000; text-shadow: 0 1px 0 #fff; opacity: .2; filter: alpha(opacity=20); top:10px; right: 10px;}
 .tipsbox a.greenlink{color: #28cb75; padding-left: 10px;}
-.blackbg{padding:10px; background: #1f262d; line-height: 30px; color: #999; margin-top: 10px;}
+.blackbg{padding:20px; background: #1f262d; line-height: 30px; color: #999; margin-top: 10px; border-radius:10px;-webkit-border-radius:10px;-moz-border-radius:10px;}
 
 .borbompad{padding-bottom: 20px; border-bottom: 1px #ddd dashed;}
 .modal-dialog{background: #fff;}
@@ -5720,10 +5720,17 @@ i{font-style: normal; }
 .monitor02{background: url('../images/monitor02.png') no-repeat; background-size:110px 110px;}
 .monitor03{background: url('../images/monitor03.png') no-repeat; background-size:110px 110px;}
 
+.content-tab .control-label{line-height: 30px;}
 
 
-
-
+.main-tit {
+    color: #28cb75;
+    font-size: 24px;
+    margin: 0;
+    text-align: center;
+    font-weight: 100;
+    line-height: 1;
+    margin: 20px 0;}
 
 
 
