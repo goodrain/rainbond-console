@@ -40,23 +40,56 @@
                 </tr>
             </thead>
             <tbody class="port">
-
+                {% for port in service_ports %}
+                <tr>
+                    <td>
+                        <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{port.container_port}}</a>
+                    </td>
+                    <td>
+                        <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
+                            <input type="checkbox" name="" value="" id="{{port.container_port}}inner" {% if port.is_inner_service %}checked="true" {% endif %}/>
+                            <label class="check-bg" for="{{port.container_port}}inner"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+                            <input class="checkDetail" type="checkbox" name="" value="" id="{{port.container_port}}outer"  {% if port.is_outer_service %}checked="true" {% endif %}/>
+                            <label class="check-bg" for="{{port.container_port}}outer"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <select data-port-http="5000Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。" {% if port.is_outer_service %} {% else %} style="color: #838383;" disabled=true {% endif %}>
+                            {% if port.is_outer_service %}
+                            <option {% if port.protocol == 'http' %} selected = "selected" {% endif %}>HTTP</option>
+                            <option {% if port.protocol == 'stream' %} selected = "selected" {% endif %}>非HTTP</option>
+                            {% else %}
+                            <option class="changeOption">请打开外部访问</option>
+                            <option>HTTP</option>
+                            <option>非HTTP</option>
+                            {% endif %}
+                        </select>
+                    </td>
+                    <td>
+                        <img class="rubbish" src="{% static "www/images/rubbish.png" %}"/>
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
             <tfoot>
-                <tr class="addPort">
+                <tr class="addPort" style="display: none">
                     <td>
                         <input type="number" class="add_port fn-tips" data-tips="为了保证安全，服务端口支持范围为 1025~65535，如您的编码中提供对外服务端口不在此范围内，请修改编码。">
                         <p class="checkTip">请输入正确的端口号</p>
                     </td>
                     <td>
                         <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                            <input type="checkbox" name="" value="" id="addInner" checked="fasle" />
+                            <input type="checkbox" name="" value="" id="addInner" checked="checked" />
                             <label class="check-bg" for="addInner"></label>
                         </div>
                     </td>
                     <td>
                         <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
-                            <input type="checkbox" name="" value="" id="addOuter" checked="false" />
+                            <input class="checkDetail" type="checkbox" name="" value="" id="addOuter" checked="checked" />
                             <label class="check-bg" for="addOuter"></label>
                         </div>
                     </td>
@@ -72,8 +105,8 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="5" class="openAdd">
-                        <span>新增容器端口</span>
+                    <td colspan="5" style="text-align: center">
+                        <span class="openAdd">新增容器端口</span>
                     </td>
                 </tr>
             </tfoot>
@@ -85,10 +118,7 @@
                     <b>依赖的服务：</b>
                     <p class="tips">点击应用名称，可以查看访问该应用的相关信息</p>
                     <ul class="clearfix applicationName">
-                        <!--<li>-->
-                            <!--<a href="javascript:void(0);" class="appName">当前应用名</a>-->
-                            <!--<img src="{% static "www/images/rubbish.png" %}" class="delLi"/>-->
-                        <!--</li>-->
+
                     </ul>
                     <p class="blockBottom">
                         <button class="addDepend">新增依赖</button>
@@ -118,18 +148,18 @@
             <h4 class="column-tit">环境变量</h4>
             <table class="tab-box">
                 <thead>
-                    <tr>
-                        <th>名称</th>
-                        <th>变量名</th>
-                        <th>值</th>
-                        <th>删除</th>
-                    </tr>
+                <tr>
+                    <th>名称</th>
+                    <th>变量名</th>
+                    <th>值</th>
+                    <th>删除</th>
+                </tr>
                 </thead>
                 <tbody class="enviroment">
 
                 </tbody>
                 <tfoot>
-                <tr class="addContent">
+                <tr class="addContent" style="display: none">
                     <td>
                         <input type="text" class="enviroName">
                     </td>
@@ -146,8 +176,8 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="4" class="openAddEnviroment">
-                        <span>新增环境变量</span>
+                    <td colspan="4" style="text-align: center">
+                        <span class="openAddEnviroment">新增环境变量</span>
                     </td>
                 </tr>
                 </tfoot>
