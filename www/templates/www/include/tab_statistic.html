@@ -1,5 +1,9 @@
  <!-- statistic start -->
  <div role="tabpanel" class="tab-pane active" id="statistic">
+    <div style="padding-bottom: 30px;">
+        <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history" class="greenbtn">历史走势</a>      
+        <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime" class="writebtn">实时分析</a>
+    </div>
   <input type="hidden" id="websocketUrl" name="websocketUrl" value="{{websocket_uri}}">
   {% if statistic_type == 'history' %}
    <div>
