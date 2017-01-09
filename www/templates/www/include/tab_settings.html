@@ -1,7 +1,8 @@
 <!-- settings start -->
-<div role="tabpanel" class="tab-pane active" id="settings">
-  <section class="tabbox">
-      <p class="tittext">基础信息</p>
+<div role="tabpanel" id="settings">
+ <!-- 01 -->
+  <section class="content-box">
+      <p class="tit-two">基础信息</p>
       <div class="panel-body">
         <div class="row">
             <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-8 control-label" id="lit-appname">{{tenantServiceInfo.service_cname}}<a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; padding-left: 10px;">更名</a></label>
@@ -89,9 +90,9 @@
       </div>
   </section>
     <input type="hidden" id="service_port_type" value="{{tenantServiceInfo.port_type}}">
-
-  <!-- 多端口修改开始 -->
-  <section class="tabbox">
+<!-- 01 -->
+  <!-- 多端口修改开始 02 -->
+  <section class="content-box">
       <!-- title line start -->
       <div class="tittext clearfix">
           <p style="float: left;">端口开放<span>(配置变化后需重启)</span></p>
@@ -195,9 +196,9 @@
       {% endfor %}
       <!-- table end -->
   </section>
-  <!-- 多端口修改结束 -->
+  <!-- 多端口修改结束  02 -->
 
-
+<!-- 03 -->
 <section class="tabbox">
     <p class="tittext">自定义环境变量</p>
     <div class="panel-body">
@@ -233,6 +234,8 @@
         </div>
     </div>
 </section>
+<!-- 03-->
+<!-- 04-->
     {% if tenantServiceInfo.category == "application" %}
     <section class="tabbox">
         <p class="tittext">持久化数据设置<span>(设置后需要重启服务)</span></p>
@@ -273,7 +276,8 @@
     </section>
     {% endif %}
 
-   
+<!-- 04-->   
+<!-- 05-->
   <section class="tabbox">
     <p class="tittext">扩容方式</p>
     <div class="panel-body">
@@ -337,7 +341,8 @@
        </div>
    </div>
   </section>
-  
+  <!-- 05-->
+  <!-- 06-->
   <!--start permission-->
   {% if MODULES.Team_Invite %}
   {% if 'perm_setting' in user.actions %}
@@ -388,7 +393,8 @@
   {% endif %}
   {% endif %}
   <!--end permission-->
-  
+  <!-- 06-->
+  <!-- 07-->
   {% if 'delete_service' in user.actions %}
   <section class="tabbox" id="delete">
     <p class="tittext">删除 </p>
@@ -406,6 +412,7 @@
     </div>
   </section>
   {% endif %}
+<!-- 07-->
 </div>
 <!-- settings end-->
 <script>
