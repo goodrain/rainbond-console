@@ -405,7 +405,7 @@ $(function(){
     if(groupID == -1){
         $("#imgbtn").hide().removeClass("sed");
         $("#imgBox").hide();
-        $("#tabBox").show();
+        $("#tabBox").hide();
         $("#tabbtn").addClass("sed");
     }else{
         ///
