@@ -405,8 +405,9 @@ $(function(){
     if(groupID == -1){
         $("#imgbtn").hide().removeClass("sed");
         $("#imgBox").hide();
-        $("#tabBox").hide();
-        $("#tabbtn").addClass("sed");
+        $("#tabBox").show();
+        $("#tabbtn").hide().addClass("sed");
+        $("#setbtn").hide();
     }else{
         ///
         $.ajax({
@@ -654,6 +655,18 @@ function FnSvg(json_svg,json_data){
     oSvgDiv.appendChild(oSvg);
 }
     //////图
+
+    //ww - 2017- 1-10  -- 修改
+    $("#setbtn").toggle(
+        function(){
+            $(".group-set-box").slideDown();
+            $("#setbtn").addClass("sed");
+        },
+        function(){
+            $(".group-set-box").slideUp();
+            $("#setbtn").removeClass("sed");
+        }
+    );
 });
 
 
