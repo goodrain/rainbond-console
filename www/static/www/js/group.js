@@ -660,11 +660,9 @@ function FnSvg(json_svg,json_data){
     $("#setbtn").toggle(
         function(){
             $(".group-set-box").slideDown();
-            $("#setbtn").addClass("sed");
         },
         function(){
             $(".group-set-box").slideUp();
-            $("#setbtn").removeClass("sed");
         }
     );
 });
