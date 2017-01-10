@@ -180,6 +180,11 @@ table.tab-box.lit td{height: 30px;}
 
 .content-tab-lit{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin-bottom: 30px; }
 
+.choose-group-box{position: relative;}
+.choose-layer{width: 200px; min-height: 50px; position: absolute; top: 50%; left: 50%; z-index: 99; background: #fff; display: none; margin:5px 0 0 -110px; border:1px #ececec solid; padding:10px;}
+.choose-layer select{width:100px; height: 30px; line-height: 30px;}
+.choose-group-box span{cursor: pointer; color: #28cb75; border-bottom: 1px #28cb75 dashed;}
+
 
 
 
