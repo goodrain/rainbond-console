@@ -195,16 +195,24 @@ $(function(){
 
     //修改组名
     $("#revise-groupname").click(function(){
-        
+        $(".group-set-box").slideUp();
+        $("#setbtn").removeClass("sed");
+        onoff = true;
         FnLayer("请输入新组名：",true,"",false,"全部应用不能改名！");
     });
     // 删除当前组
     // 删除当前组
     $("#reomve-groupname").click(function(){
+        $(".group-set-box").slideUp();
+        $("#setbtn").removeClass("sed");
+        onoff = true;
         FnLayer("",false,"您确定要删除当前组么？",false,"全部应用不能删除！");
     });
     // 新增组
     $("#add-groupname").click(function(){
+        $(".group-set-box").slideUp();
+        $("#setbtn").removeClass("sed");
+        onoff = true;
         FnLayer("请输入新增组名",true,"",true,"");
     });
     // 新增组
