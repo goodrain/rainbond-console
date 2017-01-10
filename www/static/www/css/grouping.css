@@ -49,5 +49,5 @@ a.setbtn.sed{background: url('../images/greenset.png'); background-size: 24px 24
 .group-set-box a:nth-child(2n){background: #fff;}
 .group-set-box a:hover{color: #28cb75;}
 
-
+.uparrow{width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:10px solid #f9f9f9; margin-left: 90px; display: block;}
 
