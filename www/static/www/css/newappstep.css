@@ -1,7 +1,7 @@
 /* ww - 2016-12-26 */
 
 /* 新建应用 */
-.app-step{margin:50px auto 20px;}
+.app-step{margin:50px auto 20px; width: 60%;}
 .app-step p{width: 25%; float: left; height: 80px; text-align: center;}
 .app-step p span,.app-step p cite{display: inline-block;}
 .app-step p span{background: #c7c7c7; width: 36px; height: 36px;  font-size: 24px; line-height: 36px; text-align: center; -moz-border-radius:36px; -webkit-border-radius:36px; border-radius:36px; color: #fff;}
