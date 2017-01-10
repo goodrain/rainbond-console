@@ -657,9 +657,19 @@ function FnSvg(json_svg,json_data){
     //////图
 
     //ww - 2017- 1-10  -- 修改
-    $("#setbtn").click(
-        
-    );
+    $("#setbtn").click(function(){
+        $(".group-set-box").toggle(
+            function(){
+                $(this).slideDown();
+                $("#setbtn").addClass("sed");
+            },
+            function(){
+                $(this).slideUp();
+                $("#setbtn").removeClass("sed");
+            }
+        );
+    });
+    //ww - 2017- 1-10  -- 修改
 });
 
 
