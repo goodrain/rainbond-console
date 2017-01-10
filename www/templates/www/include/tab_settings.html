@@ -45,11 +45,11 @@
                   var oThis = $(this);
                   var new_group_id = $(this).prev().find("option:selected").val();
                   var new_group_name = $(this).prev().find("option:selected").html();
-                  var ser_id = $(this).attr("data-id");
+                  var ser_id = "{{tenantServiceInfo.service_id}}";
                   /////
                   $.ajax({
                       type : "post",
-                      url : "/ajax/" + tenant_Name + "/group/change-group",
+                      url : "/ajax/{{tenantName}}/group/change-group",
                       data : {
                           "group_id" : new_group_id,
                           "service_id" : ser_id
@@ -59,11 +59,14 @@
                           var csrftoken = $.cookie('csrftoken');
                           xhr.setRequestHeader("X-CSRFToken", csrftoken);
                       },
-                      success : function(msg) {
-                          var dataObj = msg;
-                          oThis.parent().prev().html(new_group_name);
-                          oThis.parent("div.fn-show-select ").hide();
-                          window.location.reload();
+                      success: function (msg) {
+                          if (msg.ok) {
+                              oThis.parent().prev().html(new_group_name);
+                              oThis.parent("div.fn-show-select ").hide();
+                          } else {
+                              swal("修改组错误");
+                          }
+
                       },
                       error : function() {
                           swal("系统异常,请重试");
