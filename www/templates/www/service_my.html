@@ -116,7 +116,7 @@
 						<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>	
 					</td>
 					<td id="service_memory_{{item.service_id}}">0M</td>
-					<td id="service_status_{{item.service_id}}">未知</td>
+					<td id="service_status_{{item.service_id}}"><span>未知</span></td>
 					<td>{{item.service_type}}</td> 
 					<td>
 						{% if item.category == "application" %}
@@ -167,8 +167,8 @@
 		    		  	  for(var o in dataObj){
 			    		  	  var obj=dataObj[o]
 			    		  	  if(obj["status"]=="running"){
-			    		  		 $("#service_status_"+o).html("运行中")
-			    		  		 $("#service_status_"+o).attr("class","label label-success label-mini")
+			    		  		 $("#service_status_"+o).find("span").html("运行中")
+			    		  		 $("#service_status_"+o).find("span").attr("class","bggray")
 			    		  		 $("#button_"+o).attr("class","greenbtn")
 			    		  		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
@@ -177,8 +177,8 @@
 								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
 								 $("#operate_"+o).attr("data"+o,"stop")	
 							  }else if(obj["status"]=="starting"){
-                                 $("#service_status_"+o).html("启动中")
-                                 $("#service_status_"+o).attr("class","label label-success label-mini")
+                                 $("#service_status_"+o).find("span").html("启动中")
+                                 $("#service_status_"+o).find("span").attr("class","bggray")
                                  $("#button_"+o).attr("class","greenbtn")
                                  $("#button_"+o).removeAttr("disabled")
                                  $("#operate_"+o).removeAttr("disabled")
@@ -187,21 +187,21 @@
                                  //$("#operate_inner_"+o).attr("class","fa fa-power-off")
                                  $("#operate_"+o).attr("data"+o,"stop") 
 					    	  }else if(obj["status"]=="unusual"){
-					    		 $("#service_status_"+o).html("运行异常")
-					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")
+					    		 $("#service_status_"+o).find("span").html("运行异常")
+					    		 $("#service_status_"+o).find("span").attr("class","bggray")
 					    		 $("#button_"+o).removeAttr("disabled");
 			    		  		 $("#operate_"+o).removeAttr("disabled");
 			    		  		 $("#operate_"+o).attr("class","redbtn");
 			    		  		 $("#operate_"+o).html("关闭");
 								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
 						      }else if(obj["status"]=="closed" || obj["status"]=="owed" || obj["status"]=="expired"){
-					    		 $("#service_status_"+o).html("已关闭")
+					    		 $("#service_status_"+o).find("span").html("已关闭")
 					    		 if(obj["status"]=="closed"){
-					    			 $("#service_status_"+o).html("已关闭")
+					    			 $("#service_status_"+o).find("span").html("已关闭")
 								 }else{
-				    		  		 $("#service_status_"+o).html("余额不足已关闭")
+				    		  		 $("#service_status_"+o).find("span").html("余额不足已关闭")
 				    		  	 }
-					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")			    		 
+					    		 $("#service_status_"+o).find("span").attr("class","bggray")		    		 
 					    		 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).removeAttr("disabled")
 					    		 $("#operate_"+o).attr("class","greenbtn");
@@ -209,8 +209,8 @@
 								 //$("#operate_inner_"+o).attr("class","fa fa-play")
 								 $("#operate_"+o).attr("data"+o,"restart")
 						      }else if(obj["status"]=="undeploy"){
-						    	 $("#service_status_"+o).html("未部署")	
-						    	 $("#service_status_"+o).attr("class","label label-info label-mini")				    		 
+						    	 $("#service_status_"+o).find("span").html("未部署")	
+						    	 $("#service_status_"+o).find("span").attr("class","bggray")				    		 
 						    	 $("#button_"+o).removeAttr("disabled")
 						    	 $("#operate_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).attr("class","redbtn");
@@ -218,8 +218,8 @@
 						    	 //$("#operate_"+o).attr("class","btn btn-danger")
 								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
 						      }else{
-						    	 $("#service_status_"+o).html("未知")
-						    	 $("#service_status_"+o).attr("class","label label-warning label-mini")
+						    	 $("#service_status_"+o).find("span").html("未知")
+						    	 $("#service_status_"+o).find("span").attr("class","bggray")
 						    	 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).attr('disabled',"true")
 							  }
