@@ -356,8 +356,7 @@ $(function () {
             success : function(msg) {
                 if (msg["status"] == "success") {
                     var service_alias = msg["service_alias"];
-                    //window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
-                    console.log("/apps/" + tenantName + "/" + service_alias + "/detail/");
+                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
                 }else if(msg["status"] == "notfound"){
                     swal("服务不存在");
                 }else{
