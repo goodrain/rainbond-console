@@ -190,7 +190,7 @@ $(function () {
                 var onOff = true;
                 for( var j = 0; j<appNameLen; j++ )
                 {
-                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-id") )
+                    if( $("a.appName")[j].getAttribute("data-serviceId") == $(".depend input")[i].getAttribute("data-id") )
                     {
                         onOff = false;
                         break;
@@ -199,7 +199,7 @@ $(function () {
                 if( onOff )
                 {
                     var str = '';
-                    str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-serviceId")+'" class="appName">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
+                    str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-id")+'" class="appName">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
