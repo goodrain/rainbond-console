@@ -44,6 +44,24 @@
 					<a href="javascript:;" id="add-groupname">新增组</a>
 				</p>
 			</div>
+			<!-- -->
+			{% if group_id != -1  %}
+			<div class="group-btn-box">
+				<p class="group-btn">
+					<a href="javascript:;" id="imgbtn" class="imgbtn sed"></a>
+					<a href="javascript:;" id="tabbtn" class="tabbtn"></a>
+					<a href="javascript:;" id="setbtn" class="setbtn"></a>
+				</p>
+				<p class="group-set-box">
+					<a href="javascript:;" id="revise-groupname">修改组名</a>
+					<a href="javascript:;" id="reomve-groupname">删除当前组</a>
+					<a href="javascript:;" id="add-groupname">新增组</a>
+				</p>
+			</div>
+			{% else %}
+			<a href="javascript:;" id="add-groupname" class="pull-right greenbtn">新增组</a>
+			{% endif %}
+			<!-- -->
 		</div>
 		<!-- top 结束 -->
 		<!-- biaoge start -->

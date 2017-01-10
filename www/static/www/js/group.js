@@ -403,11 +403,7 @@ $(function(){
     
     //////图
     if(groupID == -1){
-        $("#imgbtn").hide().removeClass("sed");
-        $("#imgBox").hide();
-        $("#tabBox").show();
-        $("#tabbtn").hide().addClass("sed");
-        $("#setbtn").hide();
+        console.log(-1);
     }else{
         ///
         $.ajax({
