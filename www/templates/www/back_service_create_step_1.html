@@ -113,6 +113,10 @@
     <!-- new start -->
     <section class="main-box">
     	<h3 class="main-tit">创建{{service.service_name}}</h3>
+        <div class="app-step two clearfix">
+            <p class="sed"><span>1</span><cite>创建应用</cite></p>
+            <p><span>2</span><cite>应用设置</cite></p>
+        </div>
     	<form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
             {% csrf_token %}
     		<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
