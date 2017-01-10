@@ -311,6 +311,8 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             service.update_version = 1
             service.volume_mount_path = ""
             service.service_type = "application"
+            # service host_path
+            service.host_path = "/grdata/tenant/" + self.tenant.tenant_id + "/service/" + service_id
             # calculate resource
             tempService = TenantServiceInfo()
             tempService.min_memory = cm
@@ -335,6 +337,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             newTenantService.save()
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
+
             # 创建挂载目录
             for dep_service_alias in service_alias_list:
                 baseService.create_service_mnt(self.tenant.tenant_id, newTenantService.service_id,

@@ -320,12 +320,16 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                 service.min_memory = cm
                 service.min_cpu = ccpu
                 service.inner_port = 0
+                service.volume_mount_path = ""
 
                 service.version = version
                 service.namespace = "goodrain"
                 service.update_version = 1
                 service.volume_mount_path = ""
                 service.service_type = "application"
+
+                # service host_path
+                service.host_path = "/grdata/tenant/" + self.tenant.tenant_id + "/service/" + service_id
 
                 # 创建服务
                 newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname,
