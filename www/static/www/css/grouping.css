@@ -41,9 +41,9 @@ a.setbtn.sed{background: url('../images/greenset.png'); background-size: 24px 24
 .img-box{border:1px #ddd solid; width: 100%; background: #f9f9f9;}
 #svg-box{width:80%;  min-height: 600px;  margin:0 auto;}
 
-.group-btn-box{float: right;  width:110px; height: 24px; position: relative;}
-.group-btn{width: 110px; height: 24px;}
-.group-set-box{width:110px; height: 90px; position: absolute;  display: none;}
+.group-btn-box{float: right;  width:120px; height: 24px; position: relative;}
+.group-btn{width: 120px; height: 24px;}
+.group-set-box{width:120px; height: 100px; position: absolute;  display: none;}
 
 .group-set-box a{width: 100%; height: 30px; display: block; line-height: 30px; color: #838383; text-align: center;}
 .group-set-box a:nth-child(2n){background: #f9f9f9;}
