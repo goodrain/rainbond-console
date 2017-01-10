@@ -657,13 +657,8 @@ function FnSvg(json_svg,json_data){
     //////图
 
     //ww - 2017- 1-10  -- 修改
-    $("#setbtn").toggle(
-        function(){
-            $(".group-set-box").slideDown();
-        },
-        function(){
-            $(".group-set-box").slideUp();
-        }
+    $("#setbtn").click(
+        
     );
 });
 
