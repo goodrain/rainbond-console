@@ -21,6 +21,50 @@
                   </div>
               </div>
          </div>
+         <script>
+           $(function(){
+              //  选择分组
+              $(".fn-name").click(function(){
+                  $(this).next("div.fn-show-select").show();
+              });
+              $(".fn-groupname-sure").click(function(){
+                  var oThis = $(this);
+                  var new_group_id = $(this).prev().find("option:selected").val();
+                  var new_group_name = $(this).prev().find("option:selected").html();
+                  var ser_id = $(this).attr("data-id");
+                  /////
+                  $.ajax({
+                      type : "post",
+                      url : "/ajax/" + tenant_Name + "/group/change-group",
+                      data : {
+                          "group_id" : new_group_id,
+                          "service_id" : ser_id
+                      },
+                      cache : false,
+                      beforeSend : function(xhr, settings) {
+                          var csrftoken = $.cookie('csrftoken');
+                          xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                      },
+                      success : function(msg) {
+                          var dataObj = msg;
+                          oThis.parent().prev().html(new_group_name);
+                          oThis.parent("div.fn-show-select ").hide();
+                          window.location.reload();
+                      },
+                      error : function() {
+                          swal("系统异常,请重试");
+                      }
+                  });
+                  /////
+
+                });
+                $(".fn-groupname-close").click(function(){
+                    $(this).parent("div.fn-show-select ").hide();
+                });
+                //  选择分组
+
+           });
+         </script>
         {% if tenantServiceInfo.category == "application" and show_git %}
             <div class="row">
                 <label class="col-xs-2 control-label text-right">Git仓库</label>
