@@ -495,16 +495,11 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             service_alias_list = json.loads(request.POST.get("mnt_list","[]"))
 
             # 将刚开始创建的5000端口删除
-            for port in port_list:
-                service_port = TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                                 service_id=self.service.service_id,
-                                                                 container_port=int(port["container_port"]))
-                if service_port.exists():
-                    # 将原有的删除
-                    TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                      container_port=int(port["container_port"])).delete()
-                    TenantServiceEnvVar.objects.filter(service_id=self.service.service_id,
-                                                       container_port=int(port["container_port"])).delete()
+            previous_list = map(lambda containerPort: containerPort["container_port"], port_list)
+            TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                              container_port__in=previous_list).delete()
+            TenantServiceEnvVar.objects.filter(service_id=self.service.service_id,
+                                               container_port__in=previous_list).delete()
 
             newTenantService = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                              service_id=self.service.service_id)
