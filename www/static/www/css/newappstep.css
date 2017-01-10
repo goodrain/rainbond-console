@@ -10,6 +10,7 @@
 .app-step p.sed cite{color: #00d777;}
 .step-tit{color: #838383; font-size:18px; text-align: center;}
 .app-step.two p{width: 50%;} 
+.app-step.three p{width: 33%;} 
 
 #waiting{max-width:80%; margin: 0 auto; text-indent: 160px;}
 #Githubbox{display: none;}
