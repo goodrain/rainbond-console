@@ -190,7 +190,7 @@ $(function () {
                 var onOff = true;
                 for( var j = 0; j<appNameLen; j++ )
                 {
-                    if( $("a.appName")[j].innerHTML == $(".depend input")[i].getAttribute("data-id") )
+                    if( $("a.appName")[j].getAttribute("data-serviceid") == $(".depend input")[i].getAttribute("data-id") )
                     {
                         onOff = false;
                         break;
