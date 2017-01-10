@@ -411,7 +411,7 @@ $(function(){
     
     //////图
     if(groupID == -1){
-        console.log(-1);
+        $("#tabBox").show();
     }else{
         ///
         $.ajax({
