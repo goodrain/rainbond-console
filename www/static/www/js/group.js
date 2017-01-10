@@ -657,17 +657,17 @@ function FnSvg(json_svg,json_data){
     //////图
 
     //ww - 2017- 1-10  -- 修改
+    var onoff = true;
     $("#setbtn").click(function(){
-        $(".group-set-box").toggle(
-            function(){
-                $(this).slideDown();
-                $("#setbtn").addClass("sed");
-            },
-            function(){
-                $(this).slideUp();
-                $("#setbtn").removeClass("sed");
-            }
-        );
+        if(onoff){
+            $(".group-set-box").slideDown();
+            $("#setbtn").addClass("sed");
+            onoff = false;
+        }else{
+            $(".group-set-box").slideUp();
+            $("#setbtn").removeClass("sed");
+            onoff = true;
+        }
     });
     //ww - 2017- 1-10  -- 修改
 });
