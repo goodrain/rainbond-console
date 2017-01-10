@@ -2,7 +2,7 @@
 from django.http.response import JsonResponse
 from django.template.response import TemplateResponse
 
-from www.models.main import TenantServiceEnvVar, TenantServicesPort
+from www.models.main import TenantServiceEnvVar, TenantServicesPort, TenantServiceInfo
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import Users, PermRelTenant
@@ -100,6 +100,7 @@ class CreateServiceDepInfo(LeftSideBarMixin, AuthedView):
                 envVarlist = TenantServiceEnvVar.objects.filter(service_id=service_id, scope__in=("outer", "both"),
                                                                 is_change=False)
 
+                service_name = TenantServiceInfo.objects.get(service_id=service_id).service_cname
                 containerPortMap = {}
                 opened_service_port_list = TenantServicesPort.objects.filter(service_id=service_id,
                                                                              is_inner_service=True)
@@ -122,8 +123,7 @@ class CreateServiceDepInfo(LeftSideBarMixin, AuthedView):
                              "attr_value": env_var.attr_value})
                         env_map[env_var.container_port] = arr
 
-
-                result = {"ok": True, "obj": env_map}
+                result = {"ok": True, "obj": env_map,"service_name":service_name}
         except Exception as e:
             result = {"ok": False, "info": '获取服务信息异常'}
             logger.exception(e)
