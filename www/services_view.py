@@ -526,6 +526,21 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 else:
                     context["show_git"] = True
 
+                # 获取组和服务的关系
+                sgrs = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+                serviceGroupIdMap = {}
+                for sgr in sgrs:
+                    serviceGroupIdMap[sgr.service_id] = sgr.group_id
+                context["serviceGroupIdMap"] = serviceGroupIdMap
+
+                serviceGroupNameMap = {}
+                group_list = context["groupList"]
+                for group in group_list:
+                    serviceGroupNameMap[group.ID] = group.group_name
+                context["serviceGroupNameMap"] = serviceGroupNameMap
+
+
+
             elif fr == "cost":
                 service_attach_info =None
                 try:

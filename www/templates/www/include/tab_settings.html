@@ -10,10 +10,24 @@
          <div class="row">
               <label class="col-xs-2 control-label text-right">所属组</label>
               <div class="fn-choose-group col-xs-8  choose-group-box ">
-                  <a href="javascript:;" class="fn-name">测试</a>
+                  <a href="javascript:;" class="fn-name">
+                      {% with cur_group=serviceGroupIdMap|mkey:tenantServiceInfo.service_id %}
+                        {% with groupName=serviceGroupNameMap|mkey:cur_group %}
+                            {% if groupName %}
+                                {{groupName}}
+                            {% else %}
+                                未分组
+                            {% endif %}
+                        {% endwith %}
+                      {% endwith %}
+                  </a>
                   <div class="fn-show-select  choose-layer">
                     <select>
-                        <option value="2">测试</option>
+                        {% for group in groupList %}
+
+                        <option value="{{group.ID}}" >{{group.group_name}}</option>
+
+                        {% endfor %}
                         <option value="-1">未分组</option>
                     </select>
                     <button class="fn-groupname-sure btn btn-success" data-id="" style="padding: 0 2px;"><i class="fa fa-check"></i></button>
