@@ -226,7 +226,7 @@ $(function(){
         }else{
             ///
             var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
-            var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
+            var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a>';
             var oTit = '<p class="layer-tit">'+ textTit +'</p>';
             var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
             var oText ='<p class="tipstext">'+ text +'</p>';
