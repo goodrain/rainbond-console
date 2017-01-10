@@ -1,6 +1,7 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
 {% load staticfiles %}
+{% load goodrain_extras %}
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/second.css" %}' />
@@ -118,7 +119,17 @@
 					</td>
 					<td id="service_memory_{{item.service_id}}">0M</td>
 					<td id="service_status_{{item.service_id}}"><span>未知</span></td>
-					<td>组名</td>
+					<td>
+						{% with cur_group=serviceGroupIdMap|mkey:item.service_id %}
+							{% with groupName=serviceGroupNameMap|mkey:cur_group %}
+								{% if groupName %}
+									{{groupName}}
+								{% else %}
+									未分组
+								{% endif %}
+							{% endwith %}
+						{% endwith %}
+					</td>
 					<td>{{item.service_type}}</td> 
 					<td>
 						{% if item.category == "application" %}

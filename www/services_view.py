@@ -102,6 +102,19 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                 regionClient.systemUnpause(self.response_region, self.tenant_region.tenant_id)
                 self.tenant_region.service_status = 1
                 self.tenant_region.save()
+            # 获取组和服务的关系
+            sgrs = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+            serviceGroupIdMap = {}
+            for sgr in sgrs:
+                serviceGroupIdMap[sgr.service_id] = sgr.group_id
+            context["serviceGroupIdMap"] = serviceGroupIdMap
+
+            serviceGroupNameMap = {}
+            group_list = context["groupList"]
+            for group in group_list:
+                serviceGroupNameMap[group.ID] = group.group_name
+            context["serviceGroupNameMap"] = serviceGroupNameMap
+
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_my.html", context)
