@@ -84,7 +84,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             context["tenant_balance"] = self.tenant.balance
             # params for prompt
             context["pay_type"] = self.tenant.pay_type
-            context["expired"] = tenantAccountService.isExpired(self.tenant,self.service)
+            # context["expired"] = tenantAccountService.isExpired(self.tenant,self.service)
             context["expired_time"] = self.tenant.expired_time
             status = tenantAccountService.get_monthly_payment(self.tenant, self.tenant.region)
             context["monthly_payment_status"] = status
