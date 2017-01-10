@@ -7,7 +7,19 @@
         <div class="row">
             <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-8 control-label" id="lit-appname">{{tenantServiceInfo.service_cname}}<a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; padding-left: 10px;">更名</a></label>
         </div>
-
+         <div class="row">
+              <label class="col-xs-2 control-label text-right">所属组</label>
+              <div class="fn-choose-group col-xs-8 control-label">
+                  <div class="fn-show-select  choose-layer">
+                    <select>
+                        <option value="2">测试</option>
+                        <option value="-1">未分组</option>
+                    </select>
+                    <button class="fn-groupname-sure btn btn-success" data-id="" style="padding: 0 2px;"><i class="fa fa-check"></i></button>
+                    <button class="fn-groupname-close btn btn-danger" style="padding: 0 4px;"><i class="fa fa-times"></i></button>
+                  </div>
+              </div>
+         </div>
         {% if tenantServiceInfo.category == "application" and show_git %}
             <div class="row">
                 <label class="col-xs-2 control-label text-right">Git仓库</label>
