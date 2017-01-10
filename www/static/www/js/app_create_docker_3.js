@@ -433,12 +433,13 @@ $(function () {
                 if(msg.ok){
                     $('.appendDiv').html('');
                     var env_map = msg.obj;
+                    var service_name = msg.service_name;
                     var info_div = '<div class="port_info"><p class="layer-tit-lit">应用相关信息</p>';
                     for (var port in env_map){
                         var envs = env_map[port];
                         if( port != -1 )
                         {
-                            info_div += '<ul class="clearfix"><li>应用:'+tenant_name+'</li>';
+                            info_div += '<ul class="clearfix"><li>应用:'+service_name+'</li>';
                             info_div += '<li>容器端口:'+port+'</li><li>端口别名:'+envs[0].port_alias+'</li>'
                             info_div += '</ul><p>修改端口别名，会引起对内服务变量名的改变，请记得修改代码中正在使用的变量名。</p>'
                             info_div += '<p class="layer-tit-lit">对内服务环境变量</p><p>其他服务可以直接使用环境变量值访问当前服务。如果想使用环境变量访问，必须指明两个服务之间的依赖关系。</p>';
