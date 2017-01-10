@@ -548,6 +548,7 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
         language = "none"
+        context = self.get_context()
         try:
             if self.service.language == "" or self.service.language is None:
                 return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
@@ -556,7 +557,6 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             if tenantServiceEnv.user_dependency is not None and tenantServiceEnv.user_dependency != "":
                 return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenant.tenant_name, self.service.service_alias))
 
-            context = self.get_context()
             context["myAppStatus"] = "active"
             context["tenantName"] = self.tenantName
             context["tenantService"] = self.service
