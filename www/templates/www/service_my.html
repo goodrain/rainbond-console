@@ -123,9 +123,9 @@
 						{% with cur_group=serviceGroupIdMap|mkey:item.service_id %}
 							{% with groupName=serviceGroupNameMap|mkey:cur_group %}
 								{% if groupName %}
-									{{groupName}}
+									<span data-group="{{cur_group}}">{{groupName}}</span>
 								{% else %}
-									未分组
+									<span data-group="-1">未分组</span>
 								{% endif %}
 							{% endwith %}
 						{% endwith %}
