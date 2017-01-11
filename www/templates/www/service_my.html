@@ -181,7 +181,7 @@
 			    		  	  var obj=dataObj[o]
 			    		  	  if(obj["status"]=="running"){
 			    		  		 $("#service_status_"+o).find("span").html("运行中")
-			    		  		 $("#service_status_"+o).find("span").attr("class","bggray")
+			    		  		 $("#service_status_"+o).find("span").attr("class","bggreen")
 			    		  		 $("#button_"+o).attr("class","greenbtn")
 			    		  		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
@@ -214,7 +214,7 @@
 								 }else{
 				    		  		 $("#service_status_"+o).find("span").html("余额不足已关闭")
 				    		  	 }
-					    		 $("#service_status_"+o).find("span").attr("class","bggray")		    		 
+					    		 $("#service_status_"+o).find("span").attr("class","bgred")		    		 
 					    		 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).removeAttr("disabled")
 					    		 $("#operate_"+o).attr("class","greenbtn");
