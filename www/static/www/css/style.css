@@ -5716,7 +5716,7 @@ i{font-style: normal; }
 .monitor-ul ul li.two{float: left; width: 50%;}
 .monitor-ul ul li div{background: #fff; padding:20px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; margin:10px;}
 .monitor-ul ul li div p{margin: 0;}
-.monitor-ul ul li div p:nth-child(1){font-size: 14px; line-height: 20px; text-align: left;}
+.monitor-ul ul li div p:nth-child(1){font-size: 16px; line-height: 20px; text-align: left; color: #838383;}
 .monitor-ul ul li div p:nth-child(2){width: 60px; height: 60px; margin:20px auto;}
 .monitor-ul ul li div h1{font-size: 24px; text-align: center; line-height: 30px; color: #303030; font-weight: 100;}
 .monitor01{background: url('../images/monitor01.png') no-repeat; background-size:60px 60px;}
