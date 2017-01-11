@@ -21,6 +21,7 @@ from django.conf import settings
 import httplib2
 import datetime
 from dateutil.relativedelta import relativedelta
+from www.utils import sn
 
 logger = logging.getLogger('default')
 tenantRegionService = TenantRegionService()
@@ -76,6 +77,12 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
             context['post_paid_net_price'] = regionBo.net_trial_price
             # 是否为免费租户
             context['is_tenant_free'] = (self.tenant.pay_type == "free")
+
+            context['cloud_assistant'] = sn.instance.cloud_assistant
+            context["is_private"] = sn.instance.is_private()
+            # 判断云帮是否为公有云
+            context["is_public_clound"] = sn.instance.cloud_assistant == "goodrain" and (not sn.instance.is_private())
+
         except Exception as e:
             logger.error(e)
         return TemplateResponse(self.request, "www/app_create_step_two.html", context)

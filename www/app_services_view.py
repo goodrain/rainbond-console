@@ -86,7 +86,6 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             context["app_status"] = app_status
             context["app_an"] = app_an
             context["cur_type"] = type
-            context["is_private"] = sn.instance.is_private()
             response.delete_cookie('app_status')
             response.delete_cookie('app_an')
 
@@ -98,6 +97,11 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             context['post_paid_net_price'] = regionBo.net_trial_price
             # 是否为免费租户
             context['is_tenant_free'] = (self.tenant.pay_type == "free")
+
+            context['cloud_assistant'] = sn.instance.cloud_assistant
+            context["is_private"] = sn.instance.is_private()
+            # 判断云帮是否为公有云
+            context["is_public_clound"] = sn.instance.cloud_assistant == "goodrain" and (not sn.instance.is_private())
 
 
         except Exception as e:

@@ -19,6 +19,7 @@ import logging
 import json
 import datetime
 from dateutil.relativedelta import relativedelta
+from www.utils import sn
 
 logger = logging.getLogger('default')
 tenantRegionService = TenantRegionService()
@@ -197,6 +198,11 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             context["compose_file_id"] = compose_file_id
             context["tenantName"] = self.tenant.tenant_name
             context["compose_group_name"] = group_name
+
+            context['cloud_assistant'] = sn.instance.cloud_assistant
+            context["is_private"] = sn.instance.is_private()
+            # 判断云帮是否为公有云
+            context["is_public_clound"] = sn.instance.cloud_assistant == "goodrain" and (not sn.instance.is_private())
         except Exception as e:
             context["parse_error"] = "parse_error"
             logger.error(e)
