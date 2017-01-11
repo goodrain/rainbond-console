@@ -105,11 +105,7 @@ $(function () {
             type: 'text',
             pk: 1,
             success: function (data) {
-                if( $(this).hasClass("enviromentKey") )
-                {
-                    console.log($(this));
-                    console.log(data);
-                }
+
             },
             error: function (data) {
                 msg = data.responseText;
@@ -130,6 +126,8 @@ $(function () {
                 }
                 else if($(this).hasClass("enviromentKey"))
                 {
+                    console.log($(this));
+                    console.log($(".editable-input").find("input"));
                     return '123';
                 }
             }
