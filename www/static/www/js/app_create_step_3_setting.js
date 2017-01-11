@@ -199,7 +199,7 @@ $(function () {
                 if( onOff )
                 {
                     var str = '';
-                    str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-id")+'" class="appName">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
+                    str += '<li><a href="javascript:void(0);" data-serviceId="'+$(".depend input")[i].getAttribute("data-id")+'" class="appName fn-tips" data-tips="点击应用名，可以查看依赖该应用的连接方法。">'+$(".depend input")[i].getAttribute("data-action")+'</a>';
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".applicationName");
                     delLi();
@@ -430,15 +430,12 @@ $(function () {
                     $('.appendDiv').html('');
                     var env_map = msg.obj;
                     var service_name = msg.service_name;
-                    var info_div = '<div class="port_info"><p class="layer-tit-lit">应用相关信息</p>';
+                    var info_div = '<div class="port_info"><p class="layer-tit-lit">对外服务信息</p>';
                     for (var port in env_map){
                         var envs = env_map[port];
                         if( port != -1 )
                         {
-                            info_div += '<ul class="clearfix"><li>应用:'+service_name+'</li>';
-                            info_div += '<li>容器端口:'+port+'</li><li>端口别名:'+envs[0].port_alias+'</li>'
-                            info_div += '</ul><p>修改端口别名，会引起对内服务变量名的改变，请记得修改代码中正在使用的变量名。</p>'
-                            info_div += '<p class="layer-tit-lit">对内服务环境变量</p><p>其他服务可以直接使用环境变量值访问当前服务。如果想使用环境变量访问，必须指明两个服务之间的依赖关系。</p>';
+                            info_div += '<p class="layer-tit-lit">'+service_name+'&nbsp;'+port+'端口对外服务环境变量</p><p>其他服务可以直接使用环境变量值访问当前服务。如果想使用环境变量访问，必须指明两个服务之间的依赖关系。</p>';
                             info_div += '<table class="tab-box lit"><thead><tr><th>环境变量</th><th>值</th><th>说明</th></tr></thead><tbody>';
                             var len = envs.length;
                             for( var i = 0; i<len; i++ ){
@@ -447,20 +444,20 @@ $(function () {
                                 info_div += '<td>'+envs[i].name+'</td>'
                                 info_div += '</tr>'
                             }
-                            info_div += '</tbody></table>'
+                            //info_div += '</tbody></table>'
                         }
                     }
                     var extra_info = env_map[-1];
                     if (typeof(extra_info)!='undefined' || extra_info !=null){
-                        info_div += '<table class="tab-box lit"><tbody>';
+                        //info_div += '<table class="tab-box lit"><tbody>';
                         for (var i = 0; i< extra_info.length;i++){
                             info_div += '<tr><td>'+extra_info[i].attr_name+'</td>';
                             info_div += '<td>'+extra_info[i].attr_value+'</td>';
                             info_div += '<td>'+extra_info[i].name+'</td>'
                             info_div += '</tr>'
                         }
-                        info_div += '</tbody></table>'
                     }
+                    info_div += '</tbody></table>'
                     info_div += '</div>';
                     $(info_div).appendTo('.appendDiv');
 
