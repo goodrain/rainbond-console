@@ -116,8 +116,6 @@ $(function () {
                 beforeSend: function(xhr, settings) {
                     xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
                     settings.data += '&action=change_port';
-                    console.log(xhr);
-                    console.log(settings);
                 },
             },
             validate: function (value) {
@@ -127,8 +125,6 @@ $(function () {
                 else if($(this).hasClass("enviromentKey"))
                 {
                     var variableReg = /^[A-Z][A-Z0-9_]*$/;
-                    console.log($(this));
-                    console.log($(".editable-input").find("input").val());
                     if( !variableReg.test($(".editable-input").find("input").val()) )
                     {
                         return '变量名由大写字母与数字组成且大写字母开头';

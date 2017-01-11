@@ -173,7 +173,7 @@ $(function(){
 			type: 'text',
 			pk: 1,
 			success: function (data) {
-				//window.location.reload();
+
 			},
 			error: function (data) {
 				msg = data.responseText;
@@ -185,6 +185,19 @@ $(function(){
 					xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
 					settings.data += '&action=change_port';
 				},
+			},
+			validate: function (value) {
+				if (!$.trim(value)) {
+					return '不能为空';
+				}
+				else if($(this).hasClass("enviromentKey"))
+				{
+					var variableReg = /^[A-Z][A-Z0-9_]*$/;
+					if( !variableReg.test($(".editable-input").find("input").val()) )
+					{
+						return '变量名由大写字母与数字组成且大写字母开头';
+					}
+				}
 			}
 		});
 	}
