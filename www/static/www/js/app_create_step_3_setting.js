@@ -117,6 +117,8 @@ $(function () {
                 beforeSend: function(xhr, settings) {
                     xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
                     settings.data += '&action=change_port';
+                    console.log(xhr);
+                    console.log(settings);
                 },
             }
         });
