@@ -175,7 +175,7 @@ table.tab-box.lit td{height: 30px;}
 .writebtn{height: 28px; line-height: 28px; color: #838383; padding:0 28px; margin:0 10px 0 0; display: inline-block; background: #fff;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:1px #ececec solid;}
 .writebtn:link,.writebtn:hover,.writebtn:active,.writebtn:visited{color: #838383;}
 
-.inner-box{border: 1px #f7f7f7 solid; border:0 none;}
+.inner-box{}
 .inner-tit{background: #f7f7f7; height: 40px; color: #303030; padding-left:40px; font-weight: 100; font-size: 16px; text-align: left;}
 
 .content-tab-lit{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin-bottom: 30px; }

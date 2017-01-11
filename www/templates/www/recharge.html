@@ -13,19 +13,13 @@
 			<div class="tab-content">
 				<!-- -->
 				<div id="recharge" class="tab-pane active">
-					<div id="balance" class="inner-box">
-						<p class=inner-tit>账户余额</p>
-						<div style="color: #28cb75; font-size: 14px; line-height: 80px; padding:0 10px 10px;"><span style="font-size: 24px;">{{tenant.balance}}</span>元</div>
-					</div>
-					<div class="inner-box">
-						<ul class="inner-tit">
-							<li class="active"><a data-toggle="tab" href="#onlinerecharge" style="color:#303030;">在线充值</a></li>
-							<!-- <li class=""><a data-toggle="tab" href="#banktransfer">银行转账</a> -->
-							</li>
-						</ul>
 						<div class="tab-content">
 							<div id="onlinerecharge" class="tab-pane active">
 								<form id="rechargeForm" method="POST" action="/apps/{{tenantName}}/recharge/alipay">
+									<div class="money-box clearfix" id="balance">
+										<span>账户余额</span>
+										<span>{{tenant.balance}}元</span>
+									</div>
 									<div class="money-box clearfix">
 										<span>充值金额</span>
 										<input type="text" class="form-control" id="recharge_money" name="recharge_money" value="">
@@ -34,49 +28,49 @@
 										<span>支付方式</span>
 										<ul class="clearfix">
 											<li class="clearfix">
-												<input type="radio" name="optionsRadios" id="optionsRadios2" value="zhifubao" checked="checked" >
-												<label class="zhifubao">支付宝</label>
+												<input type="radio" name="optionsRadios" id="optionsRadios01" value="zhifubao" checked="checked" >
+												<label class="zhifubao" for="optionsRadios01">支付宝</label>
 											</li>
 											<li class="clearfix">
 												<input type="radio" name="optionsRadios"
-															id="optionsRadios2" value="BOCB2C">
+															id="optionsRadios02" value="BOCB2C" for="optionsRadios02">
 												<label class="zgyh">中国银行</label>
 												
 												
 											</li>
 											<li class="clearfix">		
 												<input type="radio" name="optionsRadios"
-															id="optionsRadios2"  value="ICBCB2C">
-												<label class="gsyh">中国工商银行</label>
+															id="optionsRadios03"  value="ICBCB2C">
+												<label class="gsyh" for="optionsRadios03">中国工商银行</label>
 												
 											</li>
 											<li class="clearfix">
 												<input type="radio" name="optionsRadios"
-															id="optionsRadios2"  value="CMB">
-												<label class="zsyh">招商银行</label>
+															id="optionsRadios04"  value="CMB">
+												<label class="zsyh" for="optionsRadios04">招商银行</label>
 												
 											</li>
 											<li class="clearfix">
 												<input type="radio" name="optionsRadios"
-															id="optionsRadios2" value="CCB">
-												<label class="jsyh">中国建设银行</label>
+															id="optionsRadios05" value="CCB">
+												<label class="jsyh" for="optionsRadios05">中国建设银行</label>
 												
 											</li>
 											<li class="clearfix">
 												<input type="radio" name="optionsRadios"
-															id="optionsRadios2" value="ABC">
-												<label class="nyyh">中国农业银行</label>
+															id="optionsRadios06" value="ABC">
+												<label class="nyyh" for="optionsRadios06">中国农业银行</label>
 												
 											</li>
 											<li class="clearfix">
 												<input type="radio" name="optionsRadios"
-															id="optionsRadios2"  value="COMM">
-												<label class="jtyh">交通银行</label>
+															id="optionsRadios07"  value="COMM">
+												<label class="jtyh" for="optionsRadios07">交通银行</label>
 											</li>
 										</ul>
 									</div>
 									<div class="text-center">
-								 		<button type="button" onclick="verifyData();" class="greenbtn">充值</button>
+								 		<button type="button" onclick="verifyData();" class="greenbtn" >充值</button>
 								 	</div>
 								</form>
 								<div class="alert alert-warning fade in" style="margin:10px;">
@@ -91,7 +85,7 @@
 							 </div>
 						</div>
 					</div>
-				</div>
+
 				<!-- -->
 				<div id="rechargelog" class="tab-pane">
 					<form role="form">
