@@ -242,13 +242,14 @@ $(function () {
             if( result )
             {
                 var service_name = $("#service_name").val();
-                var str = '<li><a href="javascript:void(0);"  class="path_name add_pathName">'+service_name+'</a>';
-                str += '<em>/app/'+$(".catalogueContent").val()+'</em>';
+                var str = '<li><em class="fn-tips" data-tips="当前应用所在目录为/app/，使用持久化目录请注意路径关系。">/app/'+$(".catalogueContent").val()+'</em>';
+                str += '<span class="path_name add_pathName">当前应用'+service_name+'自有</span>';
                 str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                 $(str).appendTo(".fileBlock ul.clearfix");
                 $("p.catalogue").css({"display":"none"});
                 $(".catalogueContent").val("");
                 delLi();
+                tip();
             }
             else{
                 $(this).parent().find(".checkTip").html("目录冲突，请重新输入");
@@ -511,13 +512,14 @@ $(function () {
                 }
                 if( onOff )
                 {
-                    var str = '<li><a href="javascript:void(0);"  class="path_name otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">'+$("input.addOther").eq(i).attr("data-name")+'</a>';
-                    str += '<em>'+$("input.addOther").eq(i).attr("data-path")+'</em>';
+                    var str = '<li><em class="fn-tips" data-tips="当前应用所在目录为/app/，使用持久化目录请注意路径关系。">'+$("input.addOther").eq(i).attr("data-path")+'</em>';
+                    str += '<span class="path_name otherAppName" data-otherName="'+$("input.addOther").eq(i).attr("data-otherName")+'">挂载自'+$("input.addOther").eq(i).attr("data-name")+'</span>';
                     str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
                     $(str).appendTo(".fileBlock ul.clearfix");
                     $(".applicationMes").css({"display":"none"});
                     $(".layer-body-bg").css({"display":"none"});
                     delLi();
+                    tip();
                 }
             }
         }

@@ -249,6 +249,7 @@ $(function () {
                 $("p.catalogue").css({"display":"none"});
                 $(".catalogueContent").val("");
                 delLi();
+                tip();
             }
             else{
                 $(this).parent().find(".checkTip").html("目录冲突，请重新输入");
@@ -516,6 +517,7 @@ $(function () {
                     $(".applicationMes").css({"display":"none"});
                     $(".layer-body-bg").css({"display":"none"});
                     delLi();
+                    tip();
                 }
             }
         }
