@@ -7,7 +7,7 @@
 .overall ul li div{margin:0 10px; background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:20px;}
 .overall ul li div p:nth-child(1){color:#303030; font-size:18px; line-height: 20px; margin:0;}
 .overall ul li div p:nth-child(2){width: 60px; height: 60px; margin:10px auto;}
-.overall ul li div p:nth-child(3){color:#303030; font-size:16px; line-height: 20px; margin:0; text-align: center;}
+.overall ul li div h1{color:#303030; font-size:16px; line-height: 20px; margin:0; text-align: center; font-weight: 100;}
 .mainbg01{background: url('../images/main01.png') no-repeat; background-size: 60px 60px;}
 .mainbg02{background: url('../images/main02.png') no-repeat; background-size: 60px 60px;}
 .mainbg03{background: url('../images/main03.png') no-repeat; background-size: 60px 60px;}
