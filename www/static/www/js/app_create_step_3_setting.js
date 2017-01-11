@@ -204,6 +204,7 @@ $(function () {
                     $(str).appendTo(".applicationName");
                     delLi();
                     appMes();
+                    tip();
                 }
             }
         }
