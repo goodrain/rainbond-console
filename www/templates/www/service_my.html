@@ -259,7 +259,8 @@
    		    		  },  
    		    	  	  success: function(msg) {
    		    	  		  var dataObj=msg;
-   		    	  		  totalM =0; 
+   		    	  		  totalM =0;
+					  console.log(dataObj);
    		    	  		  var service_ids = dataObj["service_ids"]
 		    		  	  for(var i=0;i< service_ids.length;i++){
 		    		  		  var o = service_ids[i]
