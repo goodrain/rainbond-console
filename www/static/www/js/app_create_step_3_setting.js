@@ -458,8 +458,7 @@ $(function () {
                             info_div += '</tr>'
                         }
                     }
-                    info_div += '</tbody></table>'
-                    info_div += '</div>';
+                    info_div += '</tbody></table></div>';
                     $(info_div).appendTo('.appendDiv');
 
                 }else{
