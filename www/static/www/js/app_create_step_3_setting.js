@@ -126,9 +126,13 @@ $(function () {
                 }
                 else if($(this).hasClass("enviromentKey"))
                 {
+                    var variableReg = /^[A-Z][A-Z0-9_]*$/;
                     console.log($(this));
-                    console.log($(".editable-input").find("input"));
-                    return '123';
+                    console.log($(".editable-input").find("input").val());
+                    if( !variableReg.test($(".editable-input").find("input").val()) )
+                    {
+                        return '变量名由大写字母与数字组成且大写字母开头';
+                    }
                 }
             }
         });
