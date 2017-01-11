@@ -264,23 +264,30 @@
    		    	  		  var service_ids = dataObj["service_ids"]
 		    		  	  for(var i=0;i< service_ids.length;i++){
 		    		  		  var o = service_ids[i]
-			    		  	  running_memory = 0
 			    			  if(dataObj[o+"_running_memory"] != undefined){
 			    				  running_memory = dataObj[o+"_running_memory"]
 			    			  }
-			    			  storage_memory = 0
+						  else{
+							  running_memory = 0;
+						  }
 			    			  if(dataObj[o+"_storage_memory"] != undefined){
 			    			      storage_memory = dataObj[o+"_storage_memory"]
 			    			  }
-			    			  if($("#service_status_"+o).html() == "运行中"){
+						  else{
+							  storage_memory = 0;
+						  }
+			    			  if($("#service_status_"+o).find("span").html() == "运行中"){
 			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
-			    				 totalM = totalM + running_memory + storage_memory
-			    			  }else if($("#service_status_"+o).html() == "部署中"){
+			    				 totalM = totalM + running_memory + storage_memory;
+							  console.log(running_memory + storage_memory+"1");
+			    			  }else if($("#service_status_"+o).find("span").html() == "部署中"){
 			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
-			    				 totalM = totalM + running_memory + storage_memory
+			    				 totalM = totalM + running_memory + storage_memory;
+							  console.log(running_memory + storage_memory+"2");
 			    			  }else{
-			    				 $("#service_memory_"+o).html(storage_memory+"M")
-			    				 totalM = totalM + storage_memory
+			    				 $("#service_memory_"+o).html(storage_memory+"M");
+			    				 totalM = totalM + storage_memory;
+							  console.log(storage_memory+"3");
 			    			  }
 			    		   }
 		    		  	   $("#service_total_memory").html(totalM+"M")
