@@ -105,8 +105,7 @@ $(function () {
             type: 'text',
             pk: 1,
             success: function (data) {
-                console.log($(this));
-                console.log(data);
+
             },
             error: function (data) {
                 msg = data.responseText;
@@ -120,6 +119,17 @@ $(function () {
                     console.log(xhr);
                     console.log(settings);
                 },
+            },
+            validate: function (value) {
+                if (!$.trim(value)) {
+                    return '不能为空';
+                }
+                else if($(this).hasClass("enviromentKey"))
+                {
+                    console.log($(this));
+                    console.log($(".editable-input").find("input"));
+                    return '123';
+                }
             }
         });
     }
