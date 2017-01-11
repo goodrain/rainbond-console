@@ -105,7 +105,8 @@ $(function () {
             type: 'text',
             pk: 1,
             success: function (data) {
-                //window.location.reload();
+                console.log($(this));
+                console.log(data);
             },
             error: function (data) {
                 msg = data.responseText;
