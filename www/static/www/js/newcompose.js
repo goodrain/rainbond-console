@@ -553,9 +553,8 @@ $(function(){
 			}
 			if( result )
 			{
-				var service_name = $("#service_name").val();
 				var str = '<li><em class="fn-tips" data-tips="当前应用所在目录为/app/，使用持久化目录请注意路径关系。">/app/'+$("#"+appid+" .catalogueContent").val()+'</em>';
-				str = '<span href="javascript:void(0);"  class="path_name add_pathName">当前应用'+$(".tablink a.sed").html()+'自有</span>';
+				str += '<span href="javascript:void(0);"  class="path_name add_pathName">当前应用'+$(".tablink a.sed").html()+'自有</span>';
 				str += '<img src="/static/www/images/rubbish.png" class="delLi"/></li>';
 				$(str).appendTo("#"+appid+" .contentBlock ul.clearfix");
 				$("#"+appid+" p.catalogue").css({"display":"none"});
