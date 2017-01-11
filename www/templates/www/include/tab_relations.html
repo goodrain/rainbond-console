@@ -2,7 +2,7 @@
 <div role="tabpanel"  id="relations">
     <!-- -->
   {% if 'manage_service' in user.actions %}
-  {% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
+  {% with curServiceEnvVarList=currentEnvMap|mkey:tenantServiceInfo.service_id %}
   <section class="panel">
     <div class="content-tab">
       <h2 class="tit-two">连接信息</h2>
@@ -15,17 +15,18 @@
             </tr>
         </thead>
         <tbody>
-            {% for curServiceEnvVar in curServiceEnvVarList %}
+        {% for curServiceEnvVar in curServiceEnvVarList %}
             {% if curServiceEnvVar.name != "" %}
-            {% if containerPortList|hasvalue:curServiceEnvVar.container_port or curServiceEnvVar.container_port < 1 %}
-            <tr>
-              <td>{{curServiceEnvVar.name}}</td>
-              <td>{{curServiceEnvVar.attr_name}}</td>
-              <td>{{curServiceEnvVar.attr_value}}</td>
-            </tr>
+                {% if containerPortList|hasvalue:curServiceEnvVar.container_port or curServiceEnvVar.container_port < 1 %}
+                    <tr>
+                        <td>{{curServiceEnvVar.name}}</td>
+                        <td>{{curServiceEnvVar.attr_name}}</td>
+                        <td>{{curServiceEnvVar.attr_value}}</td>
+                    </tr>
+                {% endif %}
             {% endif %}
-            {% endif %}
-            {% endfor %}
+        {% endfor %}
+
         </tbody>
       </table>
     </div>
