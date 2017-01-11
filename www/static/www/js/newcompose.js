@@ -252,9 +252,9 @@ $(function(){
 				var variableReg = /^[A-Z][A-Z0-9_]*$/;
 				if( variableReg.test($("#"+appid+" .enviroKey").val()) )
 				{
-					var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroName").val()+'</a></td>';
-					str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey key'+(len+1)+'">'+$("#"+appid+" .enviroKey").val()+'</a></td>';
-					str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue value'+(len+1)+'">'+$("#"+appid+" .enviroValue").val()+'</a></td>';
+					var str = '<tr><td><a href="javascript:void(0);" class="enviromentName edit-port">'+$("#"+appid+" .enviroName").val()+'</a></td>';
+					str += '<td><a href="javascript:void(0);" class="edit-port enviromentKey">'+$("#"+appid+" .enviroKey").val()+'</a></td>';
+					str += '<td><a href="javascript:void(0);" class="edit-port enviromentValue">'+$("#"+appid+" .enviroValue").val()+'</a></td>';
 					str += '<td><img class="rubbish" src="/static/www/images/rubbish.png"/></td></tr>';
 					$(str).appendTo("#"+appid+" .enviroment");
 					$("#"+appid+" .enviroName").val('');
