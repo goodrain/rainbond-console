@@ -422,6 +422,25 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     envMap[evnVarObj.service_id] = arr
                 context["envMap"] = envMap
 
+                # 当前服务的连接信息
+                currentEnvMap = {}
+                currentEnvVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"),is_change=False)
+                if len(currentEnvVarlist) > 0:
+                    for evnVarObj in currentEnvVarlist:
+                        arr = currentEnvMap.get(evnVarObj.service_id)
+                        if arr is None:
+                            arr = []
+                        arr.append(evnVarObj)
+                        currentEnvMap[evnVarObj.service_id] = arr
+                context["currentEnvMap"] = currentEnvMap
+
+                containerPortList = []
+                opend_service_port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_inner_service=True)
+                if len(opend_service_port_list) > 0:
+                    for opend_service_port in opend_service_port_list:
+                        containerPortList.append(opend_service_port.container_port)
+                context["containerPortList"] = containerPortList
+
                 # add dir mnt
                 mtsrs = TenantServiceMountRelation.objects.filter(service_id=self.service.service_id)
                 mntsids = []
