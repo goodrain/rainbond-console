@@ -1,7 +1,7 @@
 <div id="example_wrapper" class="content-tab" role="grid">
 <form role="form">
     <div class="clearfix">
-     <div class="lit-select text-left" style="width: 40%;">
+     <div class="lit-select text-left" style="width: 40%; float: left;">
          <label>时间范围</label>
          <select id="datescope">
          	 <option {% if datescope == "1" %} selected="selected" {% endif %} value="1">最近1天</option>
@@ -13,7 +13,7 @@
      </div>
 
 	
-	<div id="example_length" class="lit-select text-right"  style="width: 40%;">
+	<div id="example_length" class="lit-select text-right"  style="width: 40%; float: right;">
 			<label>每页显示</label>
 			<select name="example_length" aria-controls="example" id="pageSizeScope">
 					<option {% if per_page == "10" %} selected="selected" {% endif %} value="10">10</option>
@@ -23,7 +23,7 @@
 			</select>
             <label>行</label>
 	</div>
-    </div>
+</div>
  <table >
      <thead>
          <tr>
