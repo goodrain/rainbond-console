@@ -5607,8 +5607,8 @@ a.guest-on i {
 .addtab tr td:last-child{width: auto; }
 
 .addtab tr td span{padding-right: 5px;}
-.addtab tr td input{max-width:120px; height: 30px; border:1px #ddd solid;}
-.addtab tr td select{ max-width:120px; height: 30px; }
+.addtab tr td input{max-width:100px; height: 20px; border:1px #ddd solid;}
+.addtab tr td select{ max-width:100px; height: 20px; }
 
 
 
