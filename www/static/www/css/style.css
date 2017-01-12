@@ -5738,7 +5738,7 @@ i{font-style: normal; }
 
 
 .krfs{}
-.krfs div{float: left; width: 10%;}
+.krfs div{float: left; width: 10%; line-height: 30px;}
 .krfs div:nth-child(3n){}
 .krfs div:nth-child(3n+1){}
 .krfs div:nth-child(3n+2){}
