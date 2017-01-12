@@ -253,9 +253,18 @@
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
-          dict[name] = value;
-           showMessage(value + "09");
-           return flase;
+          if(!isNaN(value)){
+              if(value>=1025 && value<=65535){
+                 dict[name] = value; 
+              }else{
+                showMessage("端口号必须在1025~65535之间！ 01");
+                return flase;
+              }
+          }else{
+            showMessage("端口号必须是数字！02");
+            return flase;
+          }
+          //dict[name] = value;
         });
 
         add_tr.find('select').each(function() {
