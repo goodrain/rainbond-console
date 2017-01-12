@@ -112,7 +112,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{% for item in tenantServiceList %}
+				{% for item in sorted_service_list %}
 				<tr id="panel">
 					<td>
 						<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>	
@@ -120,15 +120,7 @@
 					<td id="service_memory_{{item.service_id}}">-</td>
 					<td id="service_status_{{item.service_id}}"><span>未知</span></td>
 					<td>
-						{% with cur_group=serviceGroupIdMap|mkey:item.service_id %}
-							{% with groupName=serviceGroupNameMap|mkey:cur_group %}
-								{% if groupName %}
-									<span data-group="{{cur_group}}">{{groupName}}</span>
-								{% else %}
-									<span data-group="-1">未分组</span>
-								{% endif %}
-							{% endwith %}
-						{% endwith %}
+						{{item.group_name}}
 					</td>
 					<td>{{item.service_type}}</td> 
 					<td>
@@ -153,6 +145,27 @@
 						</button><button class="greenbtn" onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">设置</button>
 					</td>
 					-->
+				</tr>
+				{% endfor %}
+
+				{% for item in unsorted_service_list %}
+				<tr id="panel">
+					<td>
+						<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>
+					</td>
+					<td id="service_memory_{{item.service_id}}">-</td>
+					<td id="service_status_{{item.service_id}}"><span>未知</span></td>
+					<td>
+						{{item.group_name}}
+					</td>
+					<td>{{item.service_type}}</td>
+					<td>
+						{% if item.category == "application" %}
+						{{item.deploy_version}}
+						{% else %}
+						{{item.version}}
+						{% endif %}
+					</td>
 				</tr>
 				{% endfor %}
 			</tbody>
