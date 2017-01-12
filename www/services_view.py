@@ -73,7 +73,38 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
             self.response_tenant_name = self.tenant
             logger.debug('monitor.user', str(self.user.pk))
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
-            context["tenantServiceList"] = tenantServiceList
+
+            # 获取组和服务的关系
+            sgrs = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                       region_name=self.response_region)
+            serviceGroupIdMap = {}
+            for sgr in sgrs:
+                serviceGroupIdMap[sgr.service_id] = sgr.group_id
+            context["serviceGroupIdMap"] = serviceGroupIdMap
+
+            serviceGroupNameMap = {}
+            group_list = context["groupList"]
+            for group in group_list:
+                serviceGroupNameMap[group.ID] = group.group_name
+            context["serviceGroupNameMap"] = serviceGroupNameMap
+
+            sorted_service_list = []
+            unsorted_service_list = []
+            for tenant_service in tenantServiceList:
+                group_id = serviceGroupIdMap.get(tenant_service.service_id, None)
+                if group_id is None:
+                    group_id = -1
+                group_name = serviceGroupNameMap.get(group_id, None)
+                if group_name is None:
+                    group_name = "未分组"
+                tenant_service.group_name = group_name
+                if tenant_service.group_name == "未分组":
+                    unsorted_service_list.append(tenant_service)
+                else:
+                    sorted_service_list.append(tenant_service)
+
+            context["sorted_service_list"] = sorted(sorted_service_list, key=lambda service: service.group_name)
+            context["unsorted_service_list"] = unsorted_service_list
             context["totalAppStatus"] = "active"
             context["totalFlow"] = 0
             context["totalAppNumber"] = len(tenantServiceList)
@@ -102,18 +133,7 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                 regionClient.systemUnpause(self.response_region, self.tenant_region.tenant_id)
                 self.tenant_region.service_status = 1
                 self.tenant_region.save()
-            # 获取组和服务的关系
-            sgrs = ServiceGroupRelation.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region)
-            serviceGroupIdMap = {}
-            for sgr in sgrs:
-                serviceGroupIdMap[sgr.service_id] = sgr.group_id
-            context["serviceGroupIdMap"] = serviceGroupIdMap
 
-            serviceGroupNameMap = {}
-            group_list = context["groupList"]
-            for group in group_list:
-                serviceGroupNameMap[group.ID] = group.group_name
-            context["serviceGroupNameMap"] = serviceGroupNameMap
 
         except Exception as e:
             logger.exception(e)
