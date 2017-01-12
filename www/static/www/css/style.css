@@ -5739,7 +5739,7 @@ i{font-style: normal; }
 
 .krfs{}
 .krfs div{float: left; line-height: 30px;}
-.krfs div:nth-child(3n){ width: 12%; }
+.krfs div:nth-child(3n){ width: 15%;  padding-left: 10px;}
 .krfs div:nth-child(3n+1){width: 70px;}
 .krfs div:nth-child(3n+2){width: 10%;}
 
