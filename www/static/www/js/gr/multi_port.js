@@ -261,7 +261,7 @@
           name = $(this).attr("name");
           value = $(this).val();
           dict[name] = value;
-           showMessage(dict[name]);
+           showMessage(value + "09");
            return flase;
         });
         
