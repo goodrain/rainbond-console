@@ -893,6 +893,7 @@ class ServiceRule(BaseModel):
     count = models.IntegerField(max_length=10)
     node_number = models.IntegerField(help_text=u"实例启动个数", default=1)
     node_max = models.IntegerField(help_text=u"实例最大启动个数", default=1)
+    port = models.CharField(max_length=10)
 
 
 class ServiceRuleHistory(BaseModel):

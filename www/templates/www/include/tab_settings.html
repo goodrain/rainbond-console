@@ -342,6 +342,7 @@
           <tr>
             <th>编号</th>
             <th>状态</th>
+            <th>触发次数</th>
             <th>规则</th>
             <th>操作</th>
           </tr>
@@ -621,6 +622,8 @@
 
 </script>
 <script>
+        var port = '{{ports[0].container_port}}';
+
         $(function () {
             flush()
         })
@@ -648,15 +651,16 @@
                             if (rule.status){
                                 m="生效中"
                             }
+
                             if (rule.item == "tp") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>当吞吐率" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"吞吐率" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
 
                             }
                             if (rule.item == "rt") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>当响应时间" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"响应时间" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
                             }
                             if (rule.item == "on") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>当在线人数" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"在线人数" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
 
                             }
                             if (rule.status) {
@@ -729,7 +733,7 @@
             var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
             var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
             var oTit = '<p class="layer-tit">'+ textTit +'</p>';
-            var oItem ='当<select name="item" type="text" value="" > ' +
+            var oItem ='当端口<input name="port" value="'+port+'" />的<select name="item" type="text" value="" > ' +
                 '   <option value="tp">吞吐率</option>'+
                    ' <option value="rt">响应时间</option>'+
                    ' <option value="on">在线人数</option></select>';
