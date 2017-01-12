@@ -93,7 +93,7 @@
 						<!-- 应用名  -->
 						<td>
 							<h4>
-								<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>
+								<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/" style="color:#28cb75; font-size: 16px;">{{item.service_cname}}</a>
 							</h4>
 						</td>
 						<!-- 版本 -->
@@ -154,7 +154,9 @@
 								id="operate_{{item.service_id}}">
 								<i id="operate_inner_{{item.service_id}}">关闭</i>
 							</button>
+							<!--
 							<button class="btn  greenbtn" onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">设置</button>
+							-->
 						</td>
 					 </tr>
 					{% endfor %}
