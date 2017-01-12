@@ -19,7 +19,7 @@ a:active{text-decoration: none;}
 
 /* base start  */
 body{background: #f0f5f8;}
-.main-box{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px;  margin:5px; padding:30px 20px;}
+.main-box{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px;  margin:5px; padding:30px;}
 .main-tit{color: #28cb75; font-size: 24px; margin:0; text-align: center;font-weight: 100; line-height: 1; margin-top: 20px;}
 .column-tit{ color: #303030; font-size: 18px;  line-height: 40px; font-weight: 100;     margin-top: 20px;}
 /* base start  */
@@ -135,6 +135,7 @@ button.greenbtn,button.redbtn,button.lit-btn-green{ border: 0 none;}
 /*  table start */
 .tab-box{width: 100%;}
 table.tab-box tbody tr,table tfoot tr{border-left: 1px #ececec solid; border-right: 1px #ececec solid; border-bottom: 1px #f7f7f7 solid;}
+table.tab-box thead th{color: #838383; font-size: 16px; font-weight: 100;}
 table.tab-box thead tr{background: #f7f7f7; height: 40px;  text-align: left; font-size: 16px; color: #303030; font-weight: 100;}
 table.tab-box td{font-size: 14px; height: 80px;}
 table.tab-box td,table.tab-box th{border-collapse:collapse; padding:0 20px; }
