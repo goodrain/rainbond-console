@@ -253,16 +253,15 @@
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
-
           dict[name] = value;
+           showMessage(value + "09");
+           return flase;
         });
 
         add_tr.find('select').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
           dict[name] = value;
-           showMessage(value + "09");
-           return flase;
         });
         
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-port';
