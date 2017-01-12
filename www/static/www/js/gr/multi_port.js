@@ -260,9 +260,6 @@
                 showMessage("端口号必须在1025~65535之间！");
                 return flase;
               }
-          }else{
-            showMessage("端口号必须是数字！");
-            return flase;
           }
           //dict[name] = value;
         });
