@@ -5650,7 +5650,7 @@ a.guest-on i {
 .layerlink a{width: 80px; height: 30px; color: #fff; background: #28cb75; display: inline-block;  line-height: 30px; text-align: center; margin:0 10px;}
 .tipstext{line-height: 30px; color: #666; font-size: 18px; text-align: center; padding:30px 0 10px;}
 .input-css{width: 100%; padding-top: 10px; text-align: center;}
-.input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px;}
+.input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px; border: 1px #ddd solid;}
 
 .tit-two{color: #303030;  font-size:18px; line-height: 1; margin:0 0 30px 0; font-weight: 100;  text-align: left;}
 .content-box{background: #fff;  -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin:0;}
