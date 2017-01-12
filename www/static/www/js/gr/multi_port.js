@@ -253,13 +253,24 @@
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
+
           dict[name] = value;
         });
 
         add_tr.find('select').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
-          dict[name] = value;
+          if(!isNaN(value)){
+              if(value>=1025 && value<=65535){
+                  dict[name] = value;
+              }else{
+                showMessage("端口号必须在1025~65535之间！");
+                return;
+              }
+          }else{
+            showMessage("端口号必须是数字！");
+            return;
+          }
         });
         
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-port';
