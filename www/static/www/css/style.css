@@ -5737,7 +5737,10 @@ i{font-style: normal; }
     margin: 20px 0;}
 
 
-
-
+.krfs{}
+.krfs div{float: left; width: 10%;}
+.krfs div:nth-child(3n){}
+.krfs div:nth-child(3n+1){}
+.krfs div:nth-child(3n+2){}
 
 
