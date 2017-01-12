@@ -260,17 +260,9 @@
         add_tr.find('select').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
-          if(!isNaN(value)){
-              if(value>=1025 && value<=65535){
-                  dict[name] = value;
-              }else{
-                showMessage("端口号必须在1025~65535之间！ 01");
-                return flase;
-              }
-          }else{
-            showMessage("端口号必须是数字！02");
-            return flase;
-          }
+          dict[name] = value;
+           showMessage(dict[name]);
+           return flase;
         });
         
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-port';
