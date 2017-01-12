@@ -336,20 +336,22 @@
 
   <section class="tabbox">
       <p class="tittext">自动伸缩 </p>
+     <div class="panel-body">
+          <table class="table" perm-type="service">
+          <thead>
+          <tr>
+            <th>编号</th>
+            <th>状态</th>
+            <th>规则</th>
+            <th>操作</th>
+          </tr>
+          </thead>
+          <tbody id="ruleBody">
 
-      <table class="table" perm-type="service">
-      <thead>
-      <tr>
-        <th>编号</th>
-        <th>规则</th>
-        <th>操作</th>
-      </tr>
-      </thead>
-      <tbody id="ruleBody">
-
-      </tbody>
-    </table>
-    <button type="button" class="btn btn-success" id="add_service_attr">新增规则</button>
+          </tbody>
+        </table>
+        <button type="button" class="btn btn-success" id="add_rule" onclick="addLayerForRule('添加规则')">新增规则</button>
+     </div>
   </section>
   <!--start permission-->
   {% if MODULES.Team_Invite %}
@@ -625,42 +627,6 @@
         $("#shuaxin").click(function () {
             flush()
         })
-        $("input[type='submit']").click(function () {
-
-            item = $("select[name='item']").val()
-            operator = $("select[name='operator']").val()
-            value = $("input[name='value']").val()
-            fortime = $("input[name='fortime']").val()
-            action = $("select[name='action']").val()
-
-            data = {
-                item: item,
-                operator: operator,
-                value: value,
-                fortime: fortime,
-                action: action,
-            }
-            $.ajax({
-                type: "POST",
-                url: "/ajax/{{tenantName}}/{{serviceAlias}}/rule",
-                data: data,
-                cache: false,
-                beforeSend: function (xhr, settings) {
-                    var csrftoken = $.cookie('csrftoken');
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success: function (data) {
-                    swal("添加结果" + data.status);
-                    flush()
-                },
-                error: function () {
-                    swal("系统异常");
-                }
-            })
-
-            return false;
-        })
-
         function flush() {
             $.ajax({
                 type: "GET",
@@ -675,17 +641,22 @@
                     if (data.status == "success") {
                         $("#ruleBody").html("")
                         tbody = ""
+                        n=1
                         $.each(data.data, function (id, rule) {
                             trStr = ""
+                            m="未生效"
+                            if (rule.status){
+                                m="生效中"
+                            }
                             if (rule.item == "tp") {
-                                trStr = "<tr><td>" + id + "</td><td>当吞吐率" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>当吞吐率" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
 
                             }
                             if (rule.item == "rt") {
-                                trStr = "<tr><td>" + id + "</td><td>当响应时间" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>当响应时间" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
                             }
                             if (rule.item == "on") {
-                                trStr = "<tr><td>" + id + "</td><td>当在线人数" + rule.operator + " " + rule.value + " 并持续" + rule.fortime + "秒的时候," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>当在线人数" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
 
                             }
                             if (rule.status) {
@@ -694,6 +665,7 @@
                                 trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn btn-info\" onclick=\"status('" + id + "',true)\">开启</button>"
                             }
                             tbody = tbody + trStr
+                            n++
                         })
                         $("#ruleBody").html(tbody)
                     }
@@ -750,5 +722,79 @@
                     swal("系统异常");
                 }
             })
+        }
+
+        function addLayerForRule(textTit){
+
+            var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
+            var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
+            var oTit = '<p class="layer-tit">'+ textTit +'</p>';
+            var oItem ='当<select name="item" type="text" value="" > ' +
+                '   <option value="tp">吞吐率</option>'+
+                   ' <option value="rt">响应时间</option>'+
+                   ' <option value="on">在线人数</option></select>';
+
+            var oOperator = ''+
+                    '<select name="operator">'+
+                       ' <option value=">" >大于</option>'+
+                       ' <option value="<" >小于</option>'+
+                       ' <option value="=" >等于</option>'+
+                    '</select>';
+
+            var oValue = '<input type="number"  name="value" value=""/>时</br>';
+
+            var oAction = '<select name="action">'+
+                 '   <option value="add">扩容</option>'+
+                  '  <option value="del">压缩</option>'+
+                '</select>'
+            var oNode =  '1个节点。</br>';
+
+            var oMax =  '最大扩容节点：'+
+                '<input type="number" name="node_max" value=""/>';
+
+            var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
+            $("body").append(oDiv);
+            $("div.layermain").append(oCloseBtn,oTit);
+            $("div.layermain").append(oItem,oOperator,oValue,oAction,oNode,oMax);
+            $("div.layermain").append(oLink);
+            $(".fn-close").click(function(){
+                 $("div.layerbg").remove();
+                 $(".input-css input").prop("value","");
+                 $("#group-name").find("option[value='-1']").prop("selected",true);
+            });
+            $(".fn-sure").click(function(){
+
+                item = $("select[name='item']").val()
+                operator = $("select[name='operator']").val()
+                value = $("input[name='value']").val()
+                action = $("select[name='action']").val()
+                node_max = $("input[name='node_max']").val()
+
+                data = {
+                    item: item,
+                    operator: operator,
+                    value: value,
+                    action: action,
+                    node_max:node_max,
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "/ajax/{{tenantName}}/{{serviceAlias}}/rule",
+                    data: data,
+                    cache: false,
+                    beforeSend: function (xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success: function (data) {
+                        swal("添加结果" + data.status);
+                        flush()
+                    },
+                    error: function () {
+                        swal("系统异常");
+                    }
+                })
+
+            });
         }
 </script>

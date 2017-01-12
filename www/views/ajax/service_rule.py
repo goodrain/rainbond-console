@@ -28,8 +28,6 @@ class ServiceRuleManage(AuthedView):
                 result["message"] = "运算项不支持"
                 return JsonResponse(result)
             value = int(request.POST.get("value", 0))
-            
-            fortime = int(request.POST.get("fortime", 0))
             node_max = request.POST.get("node_max", 1)
             action = request.POST.get("action", "")
             if action != "add" and action != "del":
@@ -39,7 +37,7 @@ class ServiceRuleManage(AuthedView):
             rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
                                tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
                                service_region=self.service.service_region,
-                               item=item, operator=operator, value=value, fortime=fortime, action=action,
+                               item=item, operator=operator, value=value, action=action,
                                status=0, count=0, node_number=self.service.min_node, node_max=node_max)
             rule.save()
             result["status"] = "success"
