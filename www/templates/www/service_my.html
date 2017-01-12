@@ -67,28 +67,28 @@
 		<ul class="clearfix">
 			<li>
 				<div>
-					<p>总内存</p>
+					<p>内存</p>
 					<p class="mainbg01"></p>
 					<p class="count" id="service_total_memory">-</p>
 				</div>
 			</li>
 			<li>
 				<div>
-					<p>{% if tenant_balance > -1 %} 账户余额 {% else %} 已欠费 {% endif %}</p>
+					<p>{% if tenant_balance > -1 %} 余额 {% else %} 已欠费 {% endif %}</p>
 					<p class="mainbg02"></p>
 					<p class="count">{{tenant_balance}}元</p>
 				</div>
 			</li>
 			<li>
 				<div>
-					<p>服务</p>
+					<p>应用</p>
 					<p class="mainbg03"></p>
 					<p class=" count3">{{totalAppNumber}}个</p>
 				</div>
 			</li>
 			<li>
 				<div>
-					<p>开发者</p>
+					<p>成员</p>
 					<p class="mainbg04"></p>
 					<p class=" count3">{{totalNum}}人</p>
 				</div>
