@@ -54,6 +54,7 @@ class RulesController(APIView):
                 tmp["service_id"] = rule.service_id
                 tmp["node_number"] = rule.node_number
                 tmp["node_max"] = rule.node_max
+                tmp["port"] = rule.port
                 rejson.append(tmp)
             return Response(status=200, data={"success": True, "data": rejson})
         except Exception, e:

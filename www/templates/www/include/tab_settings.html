@@ -622,7 +622,7 @@
 
 </script>
 <script>
-        var port = '{{ports[0].container_port}}';
+        var port = "{% for port in ports %}{% if not forloop.first %}{% else %}{{ port.container_port }}{% endif %}{% endfor %}";
 
         $(function () {
             flush()
@@ -773,13 +773,14 @@
                 value = $("input[name='value']").val()
                 action = $("select[name='action']").val()
                 node_max = $("input[name='node_max']").val()
-
+                port = $("input[name='port']").val()
                 data = {
                     item: item,
                     operator: operator,
                     value: value,
                     action: action,
                     node_max:node_max,
+                    port:port,
                 }
                 $.ajax({
                     type: "POST",

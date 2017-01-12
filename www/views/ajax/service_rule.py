@@ -2,7 +2,7 @@
 from django.http import JsonResponse
 
 from www.views import AuthedView
-from www.models import ServiceRule,TenantServicesPort
+from www.models import ServiceRule, TenantServicesPort
 
 import logging
 
@@ -34,18 +34,19 @@ class ServiceRuleManage(AuthedView):
                 result["status"] = "failure"
                 result["message"] = "操作项不支持"
                 return JsonResponse(result)
+            
             port = request.POST.get("port", "")
             if port == "":
                 tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
                 for tsp in tsps:
-                  port = str(tsp.container_port)
-                  break
-                    
+                    port = str(tsp.container_port)
+                    break
+            
             rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
                                tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
                                service_region=self.service.service_region,
-                               item=item, operator=operator, value=value, action=action,
-                               status=0, count=0, node_number=self.service.min_node, node_max=node_max,port=port)
+                               item=item, operator=operator, value=value, action=action, fortime=0,
+                               status=0, count=0, node_number=self.service.min_node, node_max=node_max, port=port)
             rule.save()
             result["status"] = "success"
             result["message"] = "添加成功"
