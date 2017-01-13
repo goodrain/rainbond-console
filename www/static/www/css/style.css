@@ -5580,8 +5580,8 @@ a.guest-on i {
 .errortips{color: #b94a48; background-color: #f2dede; border:1px solid #eed3d7;}
 .infotips{color: #2898f2; background-color: #e1f4fe; border: 1px solid #c7ecff;}
 .warntips{color: #c09853; background-color: #fcf8e3; border: 1px solid #fbeed5;}
-.tipsbox{padding:10px 35px 10px 10px; margin:0 0 10px; position: relative; font-size: 14px;}
-.tipsbox a.close{position: absolute; font-size: 20px; font-weight: bold; color: #000; text-shadow: 0 1px 0 #fff; opacity: .2; filter: alpha(opacity=20); top:10px; right: 10px;}
+.tipsbox{padding:10px 35px 10px 10px; margin:0 0 10px; position: relative; font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius:6px;}
+.tipsbox a.close{position: absolute; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 0 1px 0 #fff; text-align: center; top:10px; right: 10px;}
 .tipsbox a.greenlink{color: #28cb75; padding-left: 10px;}
 .blackbg{padding:20px; background: #1f262d; line-height: 30px; color: #999; margin-top: 10px; border-radius:10px;-webkit-border-radius:10px;-moz-border-radius:10px;}
 
