@@ -2,8 +2,9 @@
 <div role="tabpanel" class="tab-pane active">
   <div>
   	<button type="button" class="btn btn-success" onclick="_pause()" id="logbtn">暂停</button>
-  	&nbsp;&nbsp;&nbsp;&nbsp;
-  	<a href="/apps/{{tenantName}}/{{serviceAlias}}/history-log/" target="_blank">历史日志下载</a>
+  	<button style="margin-left: 15px;" type="button" class="btn btn-success" onclick="logout()" id="logbtn_out">日志输出</button>&nbsp;&nbsp;&nbsp;&nbsp;
+
+    <a href="/apps/{{tenantName}}/{{serviceAlias}}/history-log/" target="_blank">历史日志下载</a>
   	&nbsp;&nbsp;&nbsp;&nbsp;
   	<a href="/apps/{{tenantName}}/{{serviceAlias}}/latest-log/" target="_blank">最新1000条日志</a>
   </div>
@@ -74,4 +75,8 @@
 			$('#logbtn').html("开始");
 		}
 	}
+
+	function logout(){
+       
+    }
 </script>

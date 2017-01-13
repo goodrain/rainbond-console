@@ -199,6 +199,7 @@ class InstanceManager(APIView):
             
             rule = ServiceRule.objects.filter(ID=rule_id).get()
             rule.count = int(rule.count) + 1
+            rule.node_number = new_node_num
             rule.save()
             return Response(status=200, data={"success": True, "msg": u"操作成功"})
         except TenantServiceInfo.DoesNotExist:
