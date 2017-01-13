@@ -190,5 +190,8 @@ table.tab-box.lit td{height: 30px;}
 .choose-group-box span{cursor: pointer; color: #28cb75; border-bottom: 1px #28cb75 dashed;}
 
 
-
+@media (max-width: 960px) {
+	.infor-fm-box label{text-align: left;}
+	.fm-input-text input,.fm-select select,.fm-input-range .range-box{width: 80%;}
+}
 
