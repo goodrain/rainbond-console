@@ -441,6 +441,6 @@ ul {
 .table-hover tbody > tr > td,.table thead > tr > th, .table tbody > tr > th, .table tfoot > tr > th, .table thead > tr > td, .table tbody > tr > td, .table tfoot > tr > td {
     padding:5px 10px;
 }
-.editable-buttons {margin-top: 20px; text-align: center; }
-.editable-buttons button{padding:2px 5px;}
+.editable-buttons {margin-top: 20px; text-align: right }
+.editable-buttons button{padding:2px 5px; }
 
