@@ -5681,20 +5681,20 @@ a.guest-on i {
 .inner-box{border: 1px #f7f7f7 solid; border-top:0 none; margin-bottom: 20px;} 
 .inner-tit{background: #f7f7f7; height: 40px; color: #303030; padding-left:40px; font-weight: 100; font-size: 16px; text-align: left; line-height: 40px;}
 
-.zhifubao{ width: 234px; height: 50px; background: url('../images/zhifubao.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
-.zgyh{ width: 234px; height: 50px; background: url('../images/zhongguoyinhang.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
-.gsyh{ width: 234px; height: 50px; background: url('../images/gonghang.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
-.zsyh{ width: 234px; height: 50px; background: url('../images/zhaohang.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
-.jsyh{ width: 234px; height: 50px; background: url('../images/jianhang.jpg') no-repeat; display: inline-block; text-indent: -9999px;text-indent: -9999px;}
-.nyyh{ width: 234px; height: 50px; background: url('../images/nonghang.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
-.jtyh{ width: 234px; height: 50px; background: url('../images/jiaotong.jpg') no-repeat; display: inline-block; text-indent: -9999px;}
+.zhifubao{ width: 140px; height: 30px; background: url('../images/zhifubao.jpg') no-repeat; display: inline-block; text-indent: -9999px; background-size: 140px 30px;}
+.zgyh{ width: 140px; height: 30px; background: url('../images/zhongguoyinhang.jpg') no-repeat; display: inline-block; text-indent: -9999px; background-size: 140px 30px;}
+.gsyh{ width: 140px; height: 30px; background: url('../images/gonghang.jpg') no-repeat; display: inline-block; text-indent: -9999px; background-size: 140px 30px;}
+.zsyh{ width: 140px; height: 30px; background: url('../images/zhaohang.jpg') no-repeat; display: inline-block; text-indent: -9999px; background-size: 140px 30px;}
+.jsyh{ width: 140px; height: 30px; background: url('../images/jianhang.jpg') no-repeat; display: inline-block; text-indent: -9999px;text-indent: -9999px; background-size: 140px 30px;}
+.nyyh{ width: 140px; height: 30px; background: url('../images/nonghang.jpg') no-repeat; display: inline-block; text-indent: -9999px; background-size: 140px 30px;}
+.jtyh{ width: 140px; height: 30px; background: url('../images/jiaotong.jpg') no-repeat; display: inline-block; text-indent: -9999px; background-size: 140px 30px;}
 .money-box,.bank-box{ padding: 10px;}
 .money-box span,.bank-box span{float: left; color: #838383; font-size: 14px; line-height: 30px; display: block; width: 80px;}
 .money-box input{-moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; background:#fff; float: left; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 30px; width: 150px;}
 
 .bank-box ul{float: left; width: 80%; }
 .bank-box ul li{width: 33%; float: left; height: 50px; padding: 10px;}
-.bank-box ul li input{width: 10px; height: 10px; float: left; margin:20px 5px 0 5px;}
+.bank-box ul li input{width: 10px; height: 10px; float: left; margin:10px 5px 0 5px;}
 
 
 .pages{width: 100%; height: 36px; text-align: center; margin:10px 0;}
