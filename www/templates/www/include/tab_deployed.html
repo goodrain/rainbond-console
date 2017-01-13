@@ -129,9 +129,11 @@
 				<ul class="clearfix">
 					{% ifequal tenantServiceInfo.category "application" %}
 					{% if user.is_sys_admin %}
-					<li class="button" 　style="display: none;">
+					<!--
+					<li class="button" style="display:none;">
 						<button type="button" class="bgColor" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');">发布</button>
 					</li>
+					-->
 					{% endif %}
 					{% endifequal %}
 					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
