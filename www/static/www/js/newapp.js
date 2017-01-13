@@ -467,7 +467,7 @@ $(function(){
 	
 	$("#create_name").blur(function(){
 		var g_name = $("#create_name").val();
-		if(group_name == ""){
+		if(g_name == ""){
 			$("#create_name_notice").slideDown();
 		}else{
 			$("#create_name_notice").slideUp();
