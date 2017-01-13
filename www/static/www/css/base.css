@@ -192,8 +192,8 @@ table.tab-box.lit td{height: 30px;}
 
 @media (max-width: 960px) {
 	.infor-fm-box label{text-align: left;}
-	.fm-input-text input,.fm-select select,.fm-input-range{width: 100%;}
-	 .range-box{width: 80%;}
+	.fm-input-text input,.fm-select select,{width: 100%;}
+	 .fm-input-range .range-box{width: 80%;}
 	}
 	.app-step{width: 100%;}
 }
