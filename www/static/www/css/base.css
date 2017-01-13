@@ -111,7 +111,7 @@ input.cho-input:checked + label.cho-bg{ width: 16px; height: 16px; background: u
 /* form  end */
 
 /*  btn start */
-.waitbtn{background: #78798c; color: #fff;  font-size: 14px; height: 36px; padding: 0 30px; line-height: 36px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 auto; display: block; width: 100px;}
+.waitbtn{background: #78798c; color: #fff;  font-size: 14px; height: 36px; padding: 0 30px; line-height: 36px; text-align: center; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; margin: 0 auto; display: block; width: 110px;}
 
 
 .lit-btn-green{ width: 22px;  height: 22px; background: #28cb75; display: inline-block; color: #fff; font-size: 12px; line-height: 22px; text-align: center;}
@@ -151,7 +151,7 @@ table.tab-box.lit td{height: 30px;}
 .layer-body{width:80%;  background: #fff;   max-width: 600px; position: absolute; z-index: 1101; top: 50%; left: 50%; height: 400px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; margin:-200px 0 0 -300px; padding:20px;}
 .layer-body .layer-tit{ color: #303030; line-height: 40px; background: #f7f7f7;  font-size: 16px; margin:0 0 10px 0; height: 40px; padding-left: 20px;}
 .layer-body .layer-tit-lit{ color: #303030; line-height: 30px;  font-size: 16px;}
-.del{width: 24px; height: 24px; background: #fff; position: absolute; border-radius:50%; -webkit-border-radius:50%; -moz-border-radius:50%; top: -50px; right: -50px; font-size: 18px; line-height: 24px; text-align: center; color: #474747;}
+.del{width: 22px; height: 22px; background: #f63a47; position: absolute; border-radius:50%; -webkit-border-radius:50%; -moz-border-radius:50%; top: 7px; right: 10px; font-size: 18px; line-height: 22px; text-align: center; color: #fff;}
 .layer-height-overflow{height:250px; overflow-y:auto;}
 /*layer end */
 
