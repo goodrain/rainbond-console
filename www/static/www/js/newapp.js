@@ -470,6 +470,12 @@ $(function(){
         var formData = new FormData($("#myForm")[0]);
 		var tenantName = $("#tenantNameValue").val();
 		var group_name = $("#create_name").val();
+		if(group_name == ""){
+			$("#create_name_notice").slideDown();
+			return;
+		}else{
+			$("#create_name_notice").slideUp();
+		}
 		formData.append("group_name",group_name);
 
 		upload_url = "/apps/"+tenantName+"/compose-create/";
