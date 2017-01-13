@@ -46,7 +46,7 @@ input[type="range"]::-ms-fill-upper {/*进度条未填充的部分*/ height: 10p
 input[type="range"]:focus::-ms-fill-lower {background:#28cb75;}
 input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 
-.fm-input-text,.fm-select,.fm-input-radio,.fm-input-range,.fm-text,.fm-choose-box,.fm-money,.fm-btn,.code-box,.fm-aft-money,.fm-input-textarea{padding:10px 0 0; max-width:80%; margin: 0 auto;}
+.fm-input-text,.fm-select,.fm-input-radio,.fm-input-range,.fm-text,.fm-choose-box,.fm-money,.fm-btn,.code-box,.fm-aft-money,.fm-input-textarea{padding:10px 0 0;  margin: 0 auto;}
 .infor-fm-box label{width: 140px; color: #838383; font-size: 14px; float: left; display: inline-block; text-align: right; margin-right:10px; line-height: 30px; font-weight: 100;}
 .fm-input-text input{width:70%; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px;}
 .fm-select select{width:70%; color: #303030; height: 30px; border:1px #d5d5d5 solid; line-height: 30px; float: left; padding-left: 10px; background: #fff; -moz-border-radius:0; -webkit-border-radius:0; border-radius: 0;}
