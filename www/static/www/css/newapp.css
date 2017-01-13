@@ -3,9 +3,9 @@ a:hover{text-decoration: none;}
 div.applisttit{ margin:20px 20px 0; background: url('../images/titicon.png') no-repeat; height: 48px; line-height: 48px; color: #666;  clear:both; color: #666666; font-size: 30px; line-height: 48px; text-indent: 60px;}
 em,cite,span{font-style: normal;}
 
-.box-single{margin:20px;}
+.box-single{margin:20px 0;}
 .box-single table{border: 1px #ddd solid; margin-bottom: 0;}
-
+.box-single h3{color: #303030; font-size: 18px; line-height: 40px;}
 
 .new-box{ border: 1px #ddd solid;  padding:10px; }
 .new-box label{width: 80px; text-align: right; padding-right: 5px;}
