@@ -1199,10 +1199,10 @@ $(function(){
 				var deps = $(this).find(".depends_service ").children("li");
 				var depends_services = []
 				$(deps).each(function (i) {
-					var depends_service = {}
+					// var depends_service = {}
 					var dps_service_name = $(this).html();
-					depends_service["depends_service"] = dps_service_name;
-					depends_services[i] = depends_service;
+					// depends_service["depends_service"] = dps_service_name;
+					depends_services[i] = dps_service_name;
 				});
 				//console.log(dir_nums);
 				//

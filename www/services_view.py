@@ -479,7 +479,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                                                                       service_id=self.service.service_id)
                 has_outer_port = False
                 for p in service_port_list:
-                    if p.is_outer_service:
+                    if p.is_outer_service or self.service.service_type == 'mysql':
                         has_outer_port = True
                         break
                 context["has_outer_port"] = has_outer_port
