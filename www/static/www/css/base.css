@@ -195,6 +195,8 @@ table.tab-box.lit td{height: 30px;}
 	.fm-input-text input,.fm-select select{width: 100%;}
 	 .fm-input-range .range-box{width: 80%;}
 	}
+	.file-box{float: none;}
+	.file{width: 100%;}
 	.app-step{width: 100%;}
 }
 
