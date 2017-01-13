@@ -764,6 +764,79 @@ $(function(){
         ///
     });
     //////
+    ////tips
+        $(".fn-tips").mouseover(function(){
+            var tips = $(this).attr("data-tips");
+            var pos = $(this).attr("data-position");
+            var x = $(this).offset().left;
+            var y = $(this).offset().top;
+            var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
+            $("body").append(oDiv);
+            var oDivheight = $(".tips-box").height();
+            var oDivwidth = $(".tips-box").width();
+            var othiswid = $(this).width();
+            var othisheight = $(this).height();
+            if(pos){
+                if(pos == "top"){
+                    //
+                    $(".tips-box").css({"top":y-oDivheight -25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("top");
+                    //
+                }else if(pos == "bottom"){
+                    //
+                    $(".tips-box").css({"top":y + othisheight + 25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("bottom");
+                    //
+                }else if(pos == "left"){
+                    $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+                    $(".tips-box").find("cite").addClass("left");
+                }else if(pos == "right"){
+                    $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+                    $(".tips-box").find("cite").addClass("right");
+                }else{
+                    //
+                    $(".tips-box").css({"top":y-oDivheight -25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("top");
+                    //
+                }
+            }else{
+                //
+                $(".tips-box").css({"top":y-oDivheight -25});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                $(".tips-box").find("cite").addClass("top");
+                //
+            }
 
+        });
+        $(".fn-tips").mouseout(function(){
+            $(".tips-box").remove();
+        });
     // // // 第二步 基本设置 end
 });
