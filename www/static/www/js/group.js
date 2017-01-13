@@ -412,6 +412,7 @@ $(function(){
     //////图
     if(groupID == -1){
         $("#tabBox").show();
+        $("#imgBox").hide();
     }else{
         ///
         $.ajax({
