@@ -511,13 +511,13 @@
                     .attr("onclick", "post_volume();")
                     .addClass("btn btn-success btn-xs")
                     .append($("<i/>").addClass("fa fa-check"));
-            $("<div/>").addClass("btn-group").attr("role", "group").append(add_button).appendTo($("#edit_volume_div"));
+            $("<div/>").addClass("btn-group").attr("role", "group").css({"marginTop":"5px","marginRight":"5px"}).append(add_button).appendTo($("#edit_volume_div"));
 
             var cancel_button = $("<button/>").attr("type", "button")
                     .attr("onclick", "clear_volume();")
                     .addClass("btn btn-danger btn-xs")
                     .append($("<i/>").addClass("fa fa-times"));
-            $("<div/>").addClass("btn-group").attr("role", "group").append(cancel_button).appendTo($("#edit_volume_div"));
+            $("<div/>").addClass("btn-group").attr("role", "group").css({"marginTop":"5px","marginRight":"5px"}).append(cancel_button).appendTo($("#edit_volume_div"));
         });
         // 多端口select响应
         $("#multi_port_bind").bind("change", function () {
