@@ -527,7 +527,6 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
         except Exception as e:
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
             TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
-            TenantServiceEnv.objects.filter(service_id=self.service.service_id).delete()
             TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
             for dep_service_alias in service_alias_list:
                 baseService.cancel_service_mnt(self.tenant.tenant_id, self.service.service_id, dep_service_alias,

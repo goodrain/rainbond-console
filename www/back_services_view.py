@@ -845,6 +845,7 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
             context["envs"] = envs
             context["outer_port"] = outer_ports
             context["service_alias"] = self.service.service_alias
+            context["service"] = serviceObj
 
         except Exception as e:
             logger.exception(e)
@@ -930,12 +931,3 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result,status=200)
-
-
-
-
-
-
-
-
-

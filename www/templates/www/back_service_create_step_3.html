@@ -13,7 +13,7 @@
 
 <section class="wrapper site-min-height">
     <section class="main-box">
-        <h3 class="main-tit">{{service_key.upper}}完善配置</h3>
+        <h3 class="main-tit">创建{{service.service_name}}</h3>
         <div class="app-step two clearfix">
             <p class="sed"><span>1</span><cite>创建应用</cite></p>
             <p class="sed"><span>2</span><cite>应用设置</cite></p>
@@ -33,6 +33,7 @@
             <!-- -->
             <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
             <!-- -->
+            {% if outer_port|length > 0 %}
             <h4 class="column-tit">端口管理</h4>
             <table class="tab-box">
                 <thead>
@@ -64,14 +65,15 @@
                     </tr>
                 {% endfor %}
 
-
                 </tbody>
             </table>
+            {% endif %}
             <!-- -->
+
+            {% if dependecy_services %}
             <h4 class="column-tit">服务依赖</h4>
             <div class="infor-fm-box">
-                 <div class="fm-select clearfix">
-                    {% if dependecy_services %}
+                <div class="fm-select clearfix">
                         {% for key, deployed_services in dependecy_services.items %}
                         <label for="inputSuccess">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}服务</label>
                             <select name="dependency_service" class="dependency_service">
@@ -83,11 +85,12 @@
                                 <option value="__no_dep_service__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">暂无{{dependecy_info|mkey:key}}服务</option>
                                 {% endif %}
                             </select>
-                        {% endfor %}   
-                    {% endif %}
+                        {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
+            {% if envs|length > 0 %}
             <h4 class="column-tit">环境变量</h4>
             <table class="tab-box ">
                 <thead>
@@ -109,6 +112,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% endif %}
 
         </form>
         <div class="infor-fm-box">
