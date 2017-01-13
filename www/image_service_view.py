@@ -62,6 +62,7 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
             self.response_region = choose_region
 
         context = self.get_context()
+        context["createApp"] = "active"
         service_id = request.GET.get("id", "")
 
         try:
@@ -209,7 +210,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
         try:
             service_id = request.GET.get("id", "")
             context["service_id"] = service_id
-            context["myAppStatus"] = "active"
+            context["createApp"] = "active"
             context["tenantName"] = self.tenantName
             context["service_alias"]="gr" + service_id[-6:]
 

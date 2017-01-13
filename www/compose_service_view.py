@@ -48,6 +48,7 @@ class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
         if compose_file_id is not None:
             ComposeServiceRelation.objects.filter(compose_file_id=compose_file_id).delete()
         context = self.get_context()
+        context["createApp"] = "active"
         return TemplateResponse(self.request, "www/app_create_step_three.html", context)
 
     @never_cache
@@ -137,6 +138,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             self.response_region = choose_region
         context = self.get_context()
         try:
+            context["createApp"] = "active"
             compose_file_id = request.GET.get("id", "")
             group_id = request.GET.get("group_id", "")
             context["group_id"] = group_id
@@ -376,6 +378,7 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
         if choose_region is not None:
             self.response_region = choose_region
         context = self.get_context()
+        context["createApp"] = "active"
         try:
             compose_file_id = request.GET.get("id", "")
             group_id = request.GET.get("group_id", "")
