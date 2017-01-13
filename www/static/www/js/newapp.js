@@ -465,6 +465,14 @@ $(function(){
 		console.log(percentComplete)
 	}
 	
+	$("#create_name").blur(function(){
+		var g_name = $("#create_name").val();
+		if(group_name == ""){
+			$("#create_name_notice").slideDown();
+		}else{
+			$("#create_name_notice").slideUp();
+		}
+	});
     //上传compose文件
     $("#nextcomposestep").click(function(){
         var formData = new FormData($("#myForm")[0]);
