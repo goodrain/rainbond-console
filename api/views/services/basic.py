@@ -294,7 +294,7 @@ class PublishServiceView(APIView):
                 try:
                     serviceInfo = ServiceInfo.objects.get(service_key=service_key, version=app_version)
                     update_version = serviceInfo.update_version + 1
-                except Exception:   
+                except Exception:
                     pass
                 if serviceInfo is None:
                     serviceInfo = ServiceInfo()

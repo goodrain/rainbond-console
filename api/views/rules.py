@@ -7,6 +7,7 @@ from api.views.base import APIView
 from www.tenantservice.baseservice import TenantUsedResource
 import logging
 import time
+import json
 from www.service_http import RegionServiceApi
 
 logger = logging.getLogger("default")
@@ -170,18 +171,35 @@ class InstanceManager(APIView):
                     else:
                         result["status"] = "over_money"
                     return Response(status=405, data={"success": False, "msg": result["status"]})
+                else:
                     new_node_num = service.min_node + number
             else:
                 new_node_num = service.min_node - number
                 if new_node_num < 0:
                     new_node_num = 1
+            
             body["node_num"] = new_node_num
             body["deploy_version"] = service.deploy_version
             body["operator"] = "auto_action"
-            regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+            regionClient.horizontalUpgrade(service.service_region, service.service_id, json.dumps(body))
             service.min_node = new_node_num
             service.save()
             ServiceRule.objects.filter(ID=rule_id).update(node_number=new_node_num)
+            
+            if action == "add":
+                message = "自动扩展了实例数到" + str(new_node_num) + "个。"
+            else:
+                message = "自动缩减了实例数到" + str(new_node_num) + "个。"
+            trigger_time = time.strftime('%Y-%m-%d %H:%M:%S',
+                                         time.localtime(time.time()))
+            
+            history = ServiceRuleHistory(rule_id=rule_id, trigger_time=trigger_time,
+                                         action=action, message=message)
+            history.save()
+            
+            rule = ServiceRule.objects.filter(ID=rule_id).get()
+            rule.count = int(rule.count) + 1
+            rule.save()
             return Response(status=200, data={"success": True, "msg": u"操作成功"})
         except TenantServiceInfo.DoesNotExist:
             logger.error("openapi.rules", "rule {0} is not exists".format(service_id))
@@ -192,3 +210,31 @@ class InstanceManager(APIView):
         except Exception, e:
             logger.exception(e)
             return Response(status=500, data={"success": False, "msg": u"内部错误"})
+
+
+class ServiceInfo(APIView):
+    """规则查询模块"""
+    allowed_methods = ('GET',)
+    
+    def get(self, request, service_id, *args, **kwargs):
+        """
+        获取当前数据中心的自动伸缩规则
+        ---
+        parameters:
+            - name: service_id
+              description: 服务id
+              required: true
+              type: string
+              paramType: path
+
+        """
+        try:
+            rejson = {}
+            service = TenantServiceInfo.objects.get(service_id=service_id)
+            
+            rejson["min_node"] = service.min_node
+            
+            return Response(status=200, data={"success": True, "data": rejson})
+        except Exception, e:
+            logger.error(e)
+            return Response(status=406, data={"success": False, "msg": u"发生错误！"})
