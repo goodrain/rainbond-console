@@ -475,6 +475,15 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context['ws_topic'] = '{0}.{1}.statistic'.format(''.join(list(self.tenant.tenant_id)[1::2]), ''.join(list(self.service.service_id)[::2]))
                 else:
                     context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
+                service_port_list = TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                                      service_id=self.service.service_id)
+                has_outer_port = False
+                for p in service_port_list:
+                    if p.is_outer_service:
+                        has_outer_port = True
+                        break
+                context["has_outer_port"] = has_outer_port
+
             elif fr == "log":
                 pass
             elif fr == "settings":
