@@ -5713,9 +5713,9 @@ a.guest-on i {
 i{font-style: normal; }
 .monitor-ul{margin:0 0 30px;}
 .monitor-ul ul{margin:0 -10px;}
-.monitor-ul ul li{float: left; width: 33%;}
+.monitor-ul ul li{float: left; width: 33.33%;}
 .monitor-ul ul li.two{float: left; width: 50%;}
-.monitor-ul ul li div{background: #fff; padding:20px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; margin:10px;}
+.monitor-ul ul li div{background: #fff; padding:20px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; margin:0 10px;}
 .monitor-ul ul li div p{margin: 0;}
 .monitor-ul ul li div p:nth-child(1){font-size: 16px; line-height: 20px; text-align: left; color: #838383;}
 .monitor-ul ul li div p:nth-child(2){width: 60px; height: 60px; margin:20px auto;}
