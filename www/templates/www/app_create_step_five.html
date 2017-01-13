@@ -48,7 +48,7 @@
         <section id="{{service.service_id}}" service_cname="{{service.name}}" service_image="{{service.image}}" class="app-box fn-app-box"  style="none: block;" >
             <!-- 应用端口 start -->
             <section class="box-single">
-                <h3>应用端口</h3>
+                <h4 class="column-tit">应用端口</h4>
                 <table class="tab-box">
                     <thead>
                     <tr>
@@ -162,7 +162,7 @@
             <!-- 应用端口 end -->
             <!-- 环境变量 start -->
             <section class="box-single">
-                <h3>环境变量</h3>
+                <h4 class="column-tit">环境变量</h4>
                 <table class="tab-box">
                     <thead>
                         <tr>
@@ -214,9 +214,8 @@
                 </table>
 
             </section>
-            <h4 class="column-tit">应用持久化目录</h4>
+            <h4 class="column-tit">文件存储</h4>
             <div class="contentBlock">
-                <p class="tips">当前应用所在目录为/app/，使用持久化目录，请注意路径关系</p>
                 <ul class="clearfix">
                     {% for volume in service.volumes %}
                     <li>/app/{{volume}}</li>
@@ -239,7 +238,6 @@
             <h4 class="column-tit">服务依赖</h4>
             <div class="serviceBlock">
                 <div class="contentBlock">
-                    <b>依赖的服务：</b>
                     <ul class="depends_service">
                         {% for dep in service.depends_on %}
                         <li>{{dep}}</li>
