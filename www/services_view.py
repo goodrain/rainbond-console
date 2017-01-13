@@ -103,8 +103,8 @@ class TenantServiceAll(LeftSideBarMixin, AuthedView):
                 else:
                     sorted_service_list.append(tenant_service)
 
-            context["sorted_service_list"] = sorted(sorted_service_list, key=lambda service: service.group_name)
-            context["unsorted_service_list"] = unsorted_service_list
+            context["sorted_service_list"] = sorted(sorted_service_list, key=lambda service: (service.group_name,service.service_cname))
+            context["unsorted_service_list"] =sorted( unsorted_service_list ,key=lambda service:service.service_cname)
             context["totalAppStatus"] = "active"
             context["totalFlow"] = 0
             context["totalAppNumber"] = len(tenantServiceList)
