@@ -22,12 +22,11 @@
         <input type="hidden" id="service_name" value="{{service_cname}}">
         <input type="hidden" id="service_alias" value="{{service_alias}}">
 
-        <h3 class="main-tit">新建自定义应用</h3>
-        <div class="app-step clearfix">
+        <h3 class="main-tit">创建镜像应用</h3>
+        <div class="app-step clearfix three">
             <p class="sed"><span>1</span><cite style="letter-spacing: ">创建应用</cite></p>
-            <p class="sed"><span>2</span><cite>同步代码</cite></p>
-            <p class="sed"><span>3</span><cite>应用设置</cite></p>
-            <p><span>4</span><cite>高级选项</cite></p>
+            <p class="sed"><span>2</span><cite>应用设置</cite></p>
+            <p><span>3</span><cite>高级选项</cite></p>
         </div>
         <h4 class="column-tit">端口管理</h4>
         <table class="tab-box">
@@ -106,7 +105,7 @@
                 </tr>
                 <tr>
                     <td colspan="5" style="text-align: center">
-                        <span class="openAdd">新增容器端口</span>
+                        <span class="openAdd">新增端口</span>
                     </td>
                 </tr>
             </tfoot>
@@ -115,8 +114,10 @@
             <div class="serviceBlock">
                 <h4 class="column-tit">服务依赖</h4>
                 <div class="contentBlock">
+                    <!--
                     <b>依赖的服务：</b>
                     <p class="tips">点击应用名称，可以查看访问该应用的相关信息</p>
+                    -->
                     <ul class="clearfix applicationName">
 
                     </ul>
@@ -128,8 +129,10 @@
             <div class="fileBlock">
                 <h4 class="column-tit">文件存储</h4>
                 <div class="contentBlock">
+                    <!--
                     <b>应用持久化目录：</b>
                     <p class="tips">当前应用所在目录为/app/，使用持久化目录，请注意路径关系</p>
+                    -->
                     <ul class="clearfix">
 
                     </ul>

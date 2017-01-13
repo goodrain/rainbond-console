@@ -152,7 +152,7 @@ table.tab-box.lit td{height: 30px;}
 .layer-body .layer-tit{ color: #303030; line-height: 40px; background: #f7f7f7;  font-size: 16px; margin:0 0 10px 0; height: 40px; padding-left: 20px;}
 .layer-body .layer-tit-lit{ color: #303030; line-height: 30px;  font-size: 16px;}
 .del{width: 22px; height: 22px; background: #f63a47; position: absolute; border-radius:50%; -webkit-border-radius:50%; -moz-border-radius:50%; top: 7px; right: 10px; font-size: 18px; line-height: 22px; text-align: center; color: #fff;}
-.layer-height-overflow{height:250px; overflow-y:auto;}
+.layer-height-overflow{height:250px; overflow-y:auto; width: 100%; overflow-x: hidden; }
 /*layer end */
 
 
