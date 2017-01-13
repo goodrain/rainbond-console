@@ -64,7 +64,7 @@
             <section id="{{service.service_id}}" service_cname="{{service.name}}" service_image="{{service.image}}" class="fn-app-box fn-circle"  style="none: block;" >
                 <!-- 基本信息  start-->
                 <div class="infor-fm-box">
-                    <h4 class="step-tit">基本信息</h4>
+                    <h4 class="step-tit" style="display:none;">基本信息</h4>
                     <div class="fm-input-text clearfix">
                         <label for="{{service.service_id}}_create_app_name">应用名</label><input type="text" id="{{service.service_id}}_create_app_name" name="create_app_name" value="{{service.name}}" placeholder="给应用取个名字，支持中英文。" disabled="true"  />
                     </div>
@@ -85,7 +85,7 @@
                 <!-- 基本信息  end-->
                 <!-- 配套信息 start -->
                 <div class="infor-fm-box">
-                    <h4 class="step-tit">配套信息</h4>
+                    <h4 class="step-tit" style="display:none;">配套信息</h4>
                     <!-- 01 -->
                     <div class="fm-input-range clearfix fn-memory-node">
                         <label>应用单节点内存</label>
@@ -127,6 +127,7 @@
                         {% endif %}
                         <span><cite id="{{service.service_id}}_NodeText">1</cite>个</span>
                     </div>
+					<div style="display:none;">
                     <div class="fm-input-radio clearfix" style="padding-bottom:30px;">
                         <label>内存使用方式</label>
                         <input type="radio" name="{{service.service_id}}Memory" value="{{service.service_id}}After" id="{{service.service_id}}_MoneyAfter"  checked="true"/>
@@ -213,10 +214,11 @@
                             <p class="clearfix"><input type="checkbox" id="fbsrz" checked="true" disabled="true" /><label class="cho-bg" for="fbsrz"></label><label for="fbsrz" class="cho-text">分布式日志</label></p>
                         </div>
                     </div>
+					</div>
                 </div>
                 <!-- 配套信息 end -->
                 <!-- 费用估算 start -->
-                <div class="infor-fm-box" style="border-bottom: 0 none;">
+                <div class="infor-fm-box" style="border-bottom: 0 none;display:none;">
                     <h4 class="step-tit">费用估算</h4>
                     <div class="fm-input-range clearfix">
                         <label>应用购买时长</label>
@@ -249,7 +251,7 @@
             <!-- 切换 end -->
             <!-- 提交 start -->
             <div class="build-app-btn">
-                <button class="btn  btn-success" id="compose2">免费创建应用</button>
+                <button class="btn  btn-success" id="compose2">下一步</button>
             </div>
             <!-- 提交 end -->
         </form>
