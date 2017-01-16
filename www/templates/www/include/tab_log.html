@@ -77,10 +77,10 @@
 		}
 	}
 	 function layerlog(tit,ptit,ptext,onoff){
-       var odiv='<div class="layerbg"><div class="layermainlog"><p class="titlog">'+ tit +'</p><a href="javascript:;" class="closebtn"><i class="fa fa-times"></i></a></div></div>'
+       var odiv='<div class="layerbg"><div class="layermainlog"><p class="titlog">'+ tit +'</p><a href="javascript:;" class="closebtn fn-quxiao"><i class="fa fa-times"></i></a></div></div>'
        var optit = '<p class="layertitlog">' + ptit +'</p>'; 
        var optext = '<p class="tipstextlog">' + ptext + '</p>';
-       var obtntwo = '<p><button type="button" class="btn btn-success">确定</button><button type="button" class="btn btn-danger">取消</a></p>';
+       var obtntwo = '<p class="text-center"><button type="button" class="btn btn-success">确定</button><button type="button" class="btn btn-danger fn-quxiao">取消</button></p>';
        var obtn = '<p><button type="button" class="btn btn-success">好的</button>';
        $(odiv).appendTo("body");
        $(optit).appendTo($(".layermainlog"));
@@ -90,6 +90,9 @@
        }else{
           $(obtn).appendTo($(".layermainlog"));
        }
+       $(".fn-quxiao").click(function(){
+          $(".layerbg").remove();
+       });
    }
 
    $(function(){
