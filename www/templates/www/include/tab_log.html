@@ -82,14 +82,13 @@
        var optext = '<p class="tipstextlog">' + ptext + '</p>';
        var obtntwo = '<p class="text-center"><button type="button" class="btn btn-success">确定</button><button type="button" class="btn btn-danger fn-quxiao">取消</button></p>';
        var obtn = '<p><button type="button" class="btn btn-success">好的</button>';
-       var fdiv = '<div class="fm-div"><form class="fn-fm-div"><p><input type="checkbox" /><label>日志应用一</label></p>p><input type="checkbox" /><label>日志应用二</label></p></form></div>';
+       var fdiv = '<div class="fm-div"><form class="fn-fm-div"><p><input type="checkbox" /><label>日志应用一</label></p><p><input type="checkbox" /><label>日志应用二</label></p></form></div>';
        $(odiv).appendTo("body");
        $(optit).appendTo($(".layermainlog"));
        $(optext).appendTo($(".layermainlog"));
        if(onoff){
-          $(obtntwo).appendTo($(".layermainlog"));
           $(fdiv).appendTo($(".layermainlog"));
-
+          $(obtntwo).appendTo($(".layermainlog"));
        }else{
           $(obtn).appendTo($(".layermainlog"));
        }
