@@ -122,8 +122,7 @@
             */
            ///
           
-          var dataObj = {
-                            0:{service_id:"id001",service_cname:"name001"},
+          var dataObj = {0:{service_id:"id001",service_cname:"name001"},
                             1:{service_id:"id001",service_cname:"name002"},
                             2:{service_id:"id001",service_cname:"name003"},
                             3:{service_id:"id001",service_cname:"name004"},
@@ -143,7 +142,7 @@
           }
           var longstr;
           for(var i=0; i<dataArr.length; i++){
-            longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '/><label>'+  dataArr[i].service_cname +'</label></p>';
+            longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '/><label for='+ dataArr[i].service_id +'>'+  dataArr[i].service_cname +'</label></p>';
           }
           $("#fm-divbox").append(longstr);
       });
