@@ -5672,10 +5672,9 @@ a.guest-on i {
 .layertitlog{color: #303030; font-size: 20px; line-height: 30px; text-align: center;}
 .tipstextlog{color: #838383; font-size:14px; line-height: 24px;}
 .text-center button{margin:5px;}
-.fm-div{width: 100%; height: 100px; overflow-y: auto; }
-.fm-div p{width: 33.33%; float: left; height: 20px; margin-bottom:5px;}
-.fm-div p input{float: left;}
-.fm-div p label{color: #303030; font-size: 14px; float: left;}
+.fm-div{width: 100%; height: 100px; overflow-y: auto;}
+.fm-div  input{float: left;}
+.fm-div  label{color: #303030; font-size: 14px; float: left; width: 33.33%; float: left; height: 20px; margin-bottom:5px;}
 
 
 
