@@ -140,11 +140,12 @@
             //console.log(dataObj[key]);
             dataArr.push(dataObj[key]);
           }
-          
+
+          var longstr = "";
           for(var i=0; i<dataArr.length; i++){
-            var longstr;
-            longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '/><label for='+ dataArr[i].service_id +'>'+  dataArr[i].service_cname +'</label></p>';
             console.log(longstr + "///" + i);
+            longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '/><label for='+ dataArr[i].service_id +'>'+  dataArr[i].service_cname +'</label></p>';
+            
           }
 
           $("#fm-divbox").append(longstr);
