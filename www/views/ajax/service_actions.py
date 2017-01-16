@@ -1357,7 +1357,7 @@ class ServiceLogTypeView(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
-            services = TenantServiceInfo.objects.filter(service_type__in=["elasticsearch,mongodb,influxdb"]).all()
+            services = TenantServiceInfo.objects.filter(service_type__in=["elasticsearch,mongodb,influxdb"])
             i = 0
             for service in services:
                 tmp = {}
