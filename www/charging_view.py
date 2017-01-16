@@ -15,11 +15,10 @@ from www.region import RegionInfo
 from django.conf import settings
 from www.utils import sn
 
-from goodrain_web.tools import JuncheePaginator
+from www.models.activity import TenantActivity
 
 import logging
 logger = logging.getLogger('default')
-
 
 
 class Recharging(LeftSideBarMixin, AuthedView):
@@ -58,7 +57,7 @@ class AccountBill(LeftSideBarMixin, AuthedView):
         context['serviceAlias'] = self.serviceAlias
         try:
             user_id = self.user.pk
-            context["tenantFeeBill"] = tenantFeeBill
+            # context["tenantFeeBill"] = tenantFeeBill
             context["myFinanceBill"] = "active"
             context["myFinanceStatus"] = "active"
         except Exception as e:
@@ -109,6 +108,10 @@ class PayModelView(LeftSideBarMixin, AuthedView):
         for item in RegionInfo.region_list:
             if item["enable"]:
                 RegionMap[item["name"]] = item["label"]
+        ta_num = TenantActivity.objects.filter(tenant_id=self.tenant.tenant_id).count()
+        if ta_num > 0:
+            RegionMap.clear()
+            RegionMap["xunda-bj"] = u'\u8fc5\u8fbe\u4e91[\u5317\u4eac]'
         PeriodMap = {"hour":u"小时", "month":u"月", "year":u"年"}
         context["RegionMap"] = RegionMap
         context["PeriodMap"] = PeriodMap        

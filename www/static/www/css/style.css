@@ -212,7 +212,7 @@ ul.sidebar-menu , ul.sidebar-menu li ul.sub{
 }
 
 ul.sidebar-menu {
-    padding-top: 55px;
+    padding-top: 52px;
     background: #1f262d;
 }
 
@@ -246,7 +246,7 @@ ul.sidebar-menu li ul.sub li a {
     -o-transition: all 0.3s ease;
     -ms-transition: all 0.3s ease;
     transition: all 0.3s ease;
-    color: #939da8;
+    color: #838383;
     background: #1f262d;
     overflow: hidden;
 }
@@ -276,7 +276,7 @@ ul.sidebar-menu li a span{
 }
 
 ul.sidebar-menu li a{
-    color: #aeb2b7;
+    color: #fff;
     text-decoration: none;
     display: block;
     padding: 15px 0 15px 10px;
@@ -290,14 +290,14 @@ ul.sidebar-menu li a{
 }
 
 ul.sidebar-menu li a:hover{
-    background-color: #27a9e3;
+    background-color: #28cb75;
     background-image: none;
     color: #fff;
     display: block;
 }
 
 ul.sidebar-menu li a.active, ul.sidebar-menu li a:focus {
-    background:#27a9e3 url('../images/menu-active.png') no-repeat right center;
+    background:#28cb75 url('../images/menu-active.png') no-repeat right center;
     color: #fff;
     display: block;
     -webkit-transition: all 0.3s ease;
@@ -313,11 +313,11 @@ ul.sidebar-menu li a i {
 }
 
 ul.sidebar-menu li a:hover i, ul.sidebar-menu li a:focus i {
-    color: #93d4f1;
+    color: #fff;
 }
 
 ul.sidebar-menu li a.active i {
-    color: #93d4f1;
+    color: #fff;
 }
 
 

@@ -54,17 +54,22 @@
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/ports/' + port_show;
         $.get(url, function (event) {
            var port_type = $("#service_port_type").val()
+           var Protocol_type = $("#edit_protocol_" + port_show).attr("data-value");
 
           // if($(".fn-out-servce input:checked").length > 1){
             if(port_type == "multi_outer"){
-               var next_tr = port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
+              if(Protocol_type == "http"){
+                 var next_tr = port_show + "." + event.outer_service.domain + ':' + event.outer_service.port;
+              }else{
+                 var next_tr = event.outer_service.domain + ':' + event.outer_service.port;
+              }
                var next_tr_href = "http://" + next_tr;
             }else{
                var next_tr = event.outer_service.domain + ':' + event.outer_service.port;
                var next_tr_href = "http://" + next_tr;
             }
 
-          $("#port_show_" + port_show).find("a").html(next_tr).attr("href",next_tr_href);
+            $("#port_show_" + port_show).find("a").html(next_tr).attr("href",next_tr_href);
         });
       }
 
@@ -98,7 +103,9 @@
           source: [{value: "http", text: 'http'}, {value: "stream", text: 'stream'}],
           pk: 1,
           success: function(data){
-             window.location.reload();
+              var res = eval(data);
+              showMessage(res.info);
+              window.location.reload();
           },
           error: function (data) {
             msg = data.responseText;

@@ -828,7 +828,10 @@ class CodeRepositoriesService(object):
             gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
         elif parsed_git_url.host == 'github.com':
             createUser = Users.objects.get(user_id=service.creater)
-            gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.github_token)
+            if settings.MODULES.get('Privite_Github', True):
+                gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
+            else:
+                gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.github_token)
         else:
             gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
         data["git_url"] = gitUrl

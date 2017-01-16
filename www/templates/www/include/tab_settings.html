@@ -182,7 +182,7 @@
                     <a href="#" class="edit-port" data-title="更改监听端口" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.container_port}}"></a>
                 </th>
                 <th>协议类型:
-                    <a href="#" class="edit-protocol" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
+                    <a href="#" class="edit-protocol" id="edit_protocol_{{port.container_port}}" data-title="更改协议类型" data-url="/ajax/{{tenantName}}/{{serviceAlias}}/ports/{{port.container_port}}" data-value="{{port.protocol}}"></a>
                 </th>
                 <th>
                     <button type="button" class="port-delete btn redbtn btn-xs" >删除</button>
@@ -319,12 +319,10 @@
                             <tr>
                                 <td>{{volume.volume_path}}</td>
                                 <td>
-                                    {% if tenantServiceInfo.category == "application" %}
                                     <button type="button" class="btn btn-danger btn-xs"
                                             data-id="{{volume.ID}}" onclick="cancel_volume(this);">
                                         <i class="fa fa-trash-o"></i>
                                     </button>
-                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -336,7 +334,6 @@
                     <button type="button" class="btn greenbtn" id="add_volume_attr" style="margin-top: 10px;" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
 
     </section>
-    {% endif %}
 
 <!-- 04-->   
 <!-- 05-->
@@ -498,7 +495,7 @@
                     .attr("id", "edit_volume_div_input").attr("type", "text")
                     .attr("placeholder", "请输入持久化目录");
             var input_span = $("<span />").addClass("col-xs-2").html("/app");
-            if (tmp_language == "docker") {
+            if (tmp_language != "goodrain.me/runner") {
                 $("<div />").addClass("col-xs-6")
                         .append(input).appendTo($("#edit_volume_div"));
             } else {

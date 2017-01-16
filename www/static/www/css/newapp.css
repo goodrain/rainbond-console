@@ -79,6 +79,13 @@ em,cite,span{font-style: normal;}
 .newapp-link-box li p a cite.littext{font-size: 12px; color: #838383;}
 
 
+
+/**/
+.newapp-link-box.showlink li:nth-child(1){width:48%;}
+.newapp-link-box.showlink li:nth-child(2){width:48%;}
+.newapp-link-box.showlink li:nth-child(1) .newapp-link a{width: 50%;}
+
+
 .app-market{background: #fff;  -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; padding:10px;}
 .tab-tit{font-size: 14px; padding:5px 10px 10px 15px; margin-bottom: 0;}
 .tab-tit a{text-decoration:none;color: #838383; line-height: 30px; padding: 0 10px;}

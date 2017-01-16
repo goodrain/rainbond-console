@@ -409,6 +409,12 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
 
         for volume in volumes:
             baseService.add_volume_list(tenant_serivce, volume["volume_path"])
+        
+        if len(volumes) > 0:
+            temp_service = TenantServiceInfo.objects.get(service_id=tenant_serivce.service_id)
+            if temp_service.host_path is None or temp_service.host_path == "":
+                    temp_service.host_path = "/grdata/tenant/" + temp_service.tenant_id + "/service/" + temp_service.service_id
+                    temp_service.save()
 
     def send_task(self, region, topic, tenant_service):
         body = {"image": tenant_service.image_name,

@@ -160,6 +160,7 @@ MODULES = {
     "Docker_Console": False,
     "Publish_YunShi": True,
     "Publish_Service": False,
+    "Privite_Github": False,
 }
 
 REGIONS = (
