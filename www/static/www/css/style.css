@@ -5667,7 +5667,7 @@ a.guest-on i {
 .litset{width: 50px; height: 20px; line-height: 20px;}
 
 
-
+.layermain{width: 500px; height: 360px; background: #fff; position: absolute; top: 50%; left: 50%; margin:-180px 0 0 -250px; padding:10px;}
 
 
 
