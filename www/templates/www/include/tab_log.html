@@ -82,7 +82,7 @@
        var optext = '<p class="tipstextlog">' + ptext + '</p>';
        var obtntwo = '<p class="text-center"><button type="button" class="btn btn-success">确定</button><button type="button" class="btn btn-danger fn-quxiao">取消</button></p>';
        var obtn = '<p><button type="button" class="btn btn-success">好的</button>';
-       var fdiv = '<div class="fm-div"><form id="fm-divbox"><p><input type="checkbox" /><label>日志应用一</label></p><p><input type="checkbox" /><label>日志应用二</label></p><p><input type="checkbox" /><label>日志应用一</label></p><p><input type="checkbox" /><label>日志应用二</label></p><p><input type="checkbox" /><label>日志应用一</label></p><p><input type="checkbox" /><label>日志应用二</label></p><p><input type="checkbox" /><label>日志应用一</label></p><p><input type="checkbox" /><label>日志应用二</label></p><p><input type="checkbox" /><label>日志应用一</label></p><p><input type="checkbox" /><label>日志应用二</label></p></form></div>';
+       var fdiv = '<div class="fm-div"><form id="fm-divbox"></form></div>';
        $(odiv).appendTo("body");
        $(optit).appendTo($(".layermainlog"));
        $(optext).appendTo($(".layermainlog"));
@@ -123,26 +123,28 @@
            ///
           
           var dataObj = {
-                            0:{service_id:"id001",servce_cname:"name001"},
-                            1:{service_id:"id001",servce_cname:"name002"},
-                            2:{service_id:"id001",servce_cname:"name003"},
-                            3:{service_id:"id001",servce_cname:"name004"},
-                            4:{service_id:"id001",servce_cname:"name005"},
-                            5:{service_id:"id001",servce_cname:"name006"},
-                            6:{service_id:"id001",servce_cname:"name007"},
-                            7:{service_id:"id001",servce_cname:"name008"},
-                            8:{service_id:"id001",servce_cname:"name009"},
-                            9:{service_id:"id001",servce_cname:"name0010"},
+                            0:{service_id:"id001",service_cname:"name001"},
+                            1:{service_id:"id001",service_cname:"name002"},
+                            2:{service_id:"id001",service_cname:"name003"},
+                            3:{service_id:"id001",service_cname:"name004"},
+                            4:{service_id:"id001",service_cname:"name005"},
+                            5:{service_id:"id001",service_cname:"name006"},
+                            6:{service_id:"id001",service_cname:"name007"},
+                            7:{service_id:"id001",service_cname:"name008"},
+                            8:{service_id:"id001",service_cname:"name009"},
+                            9:{service_id:"id001",service_cname:"name0010"},
                         }
-            var dataArr =[];
-          //layerlog("日志输出设置","指定日志应用","下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个或多个日志应用来接受日子数据的数日。目前支持日志的应用有：elasticsearch、mongodb、influxdb等，如需安装可直接点击文字去部署。",true);
+          var dataArr =[];
+          layerlog("日志输出设置","指定日志应用","下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个或多个日志应用来接受日子数据的数日。目前支持日志的应用有：elasticsearch、mongodb、influxdb等，如需安装可直接点击文字去部署。",true);
           for(var key in dataObj){
             console.log(key);
             console.log(dataObj[key]);
             dataArr.push(dataObj[key]);
           }
-          console.log(dataArr);
-
+          for(var i=0; i<dataArr.length; i++){
+            var longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '/><label>'+  dataArr[i].service_cname +'</label></p>';
+          }
+          $("#fm-divbox").append(longstr);
       });
    });
 </script>
