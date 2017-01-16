@@ -77,24 +77,77 @@
 		}
 	}
 	 function layerlog(tit,ptit,ptext,onoff){
-       var odiv='<div class="layerbg"><div class="layermainlog"><p class="titlog">'+ tit +'</p><a href="javascript:;" class="closebtn"><i class="fa fa-times"></i></a></div></div>'
-       var optit = '<p class="layer-tit">' + ptit +'</p>'; 
-       var optext = '<p class="tipstext">' + ptext + '</p>';
-       var obtntwo = '<p><a href ="javascript:;">确定</a><a href ="javascript:;">取消</a></p>';
-       var obtn = '<p><a href ="javascript:;">好的</a></p>';
+       var odiv='<div class="layerbg"><div class="layermainlog"><p class="titlog">'+ tit +'</p><a href="javascript:;" class="closebtn fn-quxiao"><i class="fa fa-times"></i></a></div></div>'
+       var optit = '<p class="layertitlog">' + ptit +'</p>'; 
+       var optext = '<p class="tipstextlog">' + ptext + '</p>';
+       var obtntwo = '<p class="text-center"><button type="button" class="btn btn-success">确定</button><button type="button" class="btn btn-danger fn-quxiao">取消</button></p>';
+       var obtn = '<p><button type="button" class="btn btn-success">好的</button>';
+       var fdiv = '<div class="fm-div"><form id="fm-divbox"></form></div>';
        $(odiv).appendTo("body");
        $(optit).appendTo($(".layermainlog"));
        $(optext).appendTo($(".layermainlog"));
        if(onoff){
+          $(fdiv).appendTo($(".layermainlog"));
           $(obtntwo).appendTo($(".layermainlog"));
        }else{
           $(obtn).appendTo($(".layermainlog"));
        }
+       $(".fn-quxiao").click(function(){
+          $(".layerbg").remove();
+       });
    }
 
    $(function(){
       $("#logbtn_out").click(function(){
-          layerlog("日志输出设置","指定日志应用","下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个或多个日志应用来接受日子数据的数日。目前支持日志的应用有：XXXX、XXXX、XXXX和xXXXX，如需安装可直接点击文字去部署。",true);
+           ///
+           /*
+           $.ajax({
+              type: "GET",
+              url: "",
+              data: "",
+              cache: false,
+              beforeSend: function(xhr, settings){
+                  var csrftoken = $.cookie('csrftoken');
+                  xhr.setRequestHeader("X-CSRFToken", csrftoken);
+              },
+              success: function(msg) {
+                var dataObj = eval(msg);
+                
+                
+              },
+              error: function(){
+              //swal("系统异常");
+              }
+            });
+            */
+           ///
+          
+          var dataObj = {0:{service_id:"id001",service_cname:"name001",service_type:"type01"},
+                          1:{service_id:"id001",service_cname:"name002",service_type:"type02"},
+                            2:{service_id:"id001",service_cname:"name003",service_type:"type03"},
+                            3:{service_id:"id001",service_cname:"name004",service_type:"type04"},
+                            4:{service_id:"id001",service_cname:"name005",service_type:"type05"},
+                            5:{service_id:"id001",service_cname:"name006",service_type:"type06"},
+                            6:{service_id:"id001",service_cname:"name007",service_type:"type07"},
+                            7:{service_id:"id001",service_cname:"name008",service_type:"type08"},
+                            8:{service_id:"id001",service_cname:"name009",service_type:"type09"},
+                            9:{service_id:"id001",service_cname:"name0010",service_type:"type10"}
+                        }
+          var dataArr =[];
+          layerlog("日志输出设置","指定日志应用","下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个或多个日志应用来接受日子数据的数日。目前支持日志的应用有：elasticsearch、mongodb、influxdb等，如需安装可直接点击文字去部署。",true);
+          for(var key in dataObj){
+            //console.log(key);
+            //console.log(dataObj[key]);
+            dataArr.push(dataObj[key]);
+          }
+
+          var longstr = "";
+          for(var i=0; i<dataArr.length; i++){
+            console.log(longstr + "///" + i);
+            longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '" />' + dataArr[i].service_cname + '</label>';
+          }
+          $("#fm-divbox").append(longstr);
+
       });
    });
 </script>
