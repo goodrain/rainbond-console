@@ -733,28 +733,28 @@
             var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
             var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
             var oTit = '<p class="layer-tit">'+ textTit +'</p>';
-            var oItem ='当端口<input name="port" value="'+port+'" />的<select name="item" type="text" value="" > ' +
+            var oItem ='当端口<input name="port" value="'+port+'" class="litput" />的<select name="item" type="text" value="" class="litset"> ' +
                 '   <option value="tp">吞吐率</option>'+
                    ' <option value="rt">响应时间</option>'+
                    ' <option value="on">在线人数</option></select>';
 
             var oOperator = ''+
-                    '<select name="operator">'+
+                    '<select name="operator" class="litset" >'+
                        ' <option value=">" >大于</option>'+
                        ' <option value="<" >小于</option>'+
                        ' <option value="=" >等于</option>'+
                     '</select>';
 
-            var oValue = '<input type="number"  name="value" value=""/>时</br>';
+            var oValue = '<input type="number"  name="value" value="" class="litput"/>时';
 
-            var oAction = '<select name="action">'+
+            var oAction = '<select name="action" class="">'+
                  '   <option value="add">扩容</option>'+
                   '  <option value="del">压缩</option>'+
                 '</select>'
-            var oNode =  '1个节点。</br>';
+            var oNode =  '1个节点。</br></br>';
 
             var oMax =  '最大扩容节点：'+
-                '<input type="number" name="node_max" value=""/>';
+                '<input type="number" name="node_max" value=""  />';
 
             var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
             $("body").append(oDiv);
