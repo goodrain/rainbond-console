@@ -722,7 +722,7 @@ class ServiceGitHub(BaseView):
             user.save()
         tenantName = request.session.get("app_tenant")
         logger.debug(tenantName)
-        return self.redirect_to("/apps/" + tenantName + "/app-create/?from=git")
+        return self.redirect_to("/apps/" + tenantName + "/app-create/?type=github")
 
 
 class ServiceLatestLog(AuthedView):
