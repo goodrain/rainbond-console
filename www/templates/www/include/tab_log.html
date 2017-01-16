@@ -141,8 +141,9 @@
             console.log(dataObj[key]);
             dataArr.push(dataObj[key]);
           }
+          var longstr;
           for(var i=0; i<dataArr.length; i++){
-            var longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '/><label>'+  dataArr[i].service_cname +'</label></p>';
+            longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '/><label>'+  dataArr[i].service_cname +'</label></p>';
           }
           $("#fm-divbox").append(longstr);
       });
