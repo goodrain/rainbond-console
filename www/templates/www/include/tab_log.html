@@ -122,16 +122,16 @@
             */
            ///
           
-          var dataObj = {0:{service_id:"id001",service_cname:"name001"},
-                            1:{service_id:"id001",service_cname:"name002"},
-                            2:{service_id:"id001",service_cname:"name003"},
-                            3:{service_id:"id001",service_cname:"name004"},
-                            4:{service_id:"id001",service_cname:"name005"},
-                            5:{service_id:"id001",service_cname:"name006"},
-                            6:{service_id:"id001",service_cname:"name007"},
-                            7:{service_id:"id001",service_cname:"name008"},
-                            8:{service_id:"id001",service_cname:"name009"},
-                            9:{service_id:"id001",service_cname:"name0010"},
+          var dataObj = {0:{service_id:"id001",service_cname:"name001",service_type:"type01"},
+                          1:{service_id:"id001",service_cname:"name002",service_type:"type02"},
+                            2:{service_id:"id001",service_cname:"name003",service_type:"type03"},
+                            3:{service_id:"id001",service_cname:"name004",service_type:"type04"},
+                            4:{service_id:"id001",service_cname:"name005",service_type:"type05"},
+                            5:{service_id:"id001",service_cname:"name006",service_type:"type06"},
+                            6:{service_id:"id001",service_cname:"name007",service_type:"type07"},
+                            7:{service_id:"id001",service_cname:"name008",service_type:"type08"},
+                            8:{service_id:"id001",service_cname:"name009",service_type:"type09"},
+                            9:{service_id:"id001",service_cname:"name0010",service_type:"type10"}
                         }
           var dataArr =[];
           layerlog("日志输出设置","指定日志应用","下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个或多个日志应用来接受日子数据的数日。目前支持日志的应用有：elasticsearch、mongodb、influxdb等，如需安装可直接点击文字去部署。",true);
@@ -144,11 +144,10 @@
           var longstr = "";
           for(var i=0; i<dataArr.length; i++){
             console.log(longstr + "///" + i);
-            longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '/><label for='+ dataArr[i].service_id +'>'+  dataArr[i].service_cname +'</label></p>';
-            
+            longstr += '<p><input type="checkbox" id=' + dataArr[i].service_id + '><label for='+ dataArr[i].service_id +'>'+  dataArr[i].service_cname +'</label></p>';
           }
-
           $("#fm-divbox").append(longstr);
+
       });
    });
 </script>
