@@ -649,26 +649,26 @@ class TenantUsedResource(object):
                 if tm <= tenant.limit_memory:
                     result = True
             elif tenant.pay_type == "payed":
-                result = True
-                # 租户欠费时无法创建
-                if tenant.balance < 0:
-                    rt_type = 'money'
-                # tm = self.calculate_real_used_resource(tenant) + newAddMemory
-                # guarantee_memory = self.calculate_guarantee_resource(tenant)
-                # logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
-                # if tm - guarantee_memory <= 102400:
-                #     ruleJson = self.feerule[cur_service.service_region]
-                #     unit_money = 0
-                #     if tenant.pay_level == "personal":
-                #         unit_money = float(ruleJson['personal_money'])
-                #     elif tenant.pay_level == "company":
-                #         unit_money = float(ruleJson['company_money'])
-                #     total_money = unit_money * (tm * 1.0 / 1024)
-                #     logger.debug(tenant.tenant_id + " use memory " + str(tm) + " used money " + str(total_money))
-                #     if tenant.balance >= total_money:
-                #         result = True
-                #     else:
-                #         rt_type = "money"
+                # result = True
+                # # 租户欠费时无法创建
+                # if tenant.balance < 0:
+                #     rt_type = 'money'
+                tm = self.calculate_real_used_resource(tenant) + newAddMemory
+                guarantee_memory = self.calculate_guarantee_resource(tenant)
+                logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
+                if tm - guarantee_memory <= 102400:
+                    ruleJson = self.feerule[cur_service.service_region]
+                    unit_money = 0
+                    if tenant.pay_level == "personal":
+                        unit_money = float(ruleJson['personal_money'])
+                    elif tenant.pay_level == "company":
+                        unit_money = float(ruleJson['company_money'])
+                    total_money = unit_money * (tm * 1.0 / 1024)
+                    logger.debug(tenant.tenant_id + " use memory " + str(tm) + " used money " + str(total_money))
+                    if tenant.balance >= total_money:
+                        result = True
+                    else:
+                        rt_type = "money"
             elif tenant.pay_type == "unpay":
                 result = True
         return rt_type, result
