@@ -1362,8 +1362,9 @@ class ServiceLogTypeView(AuthedView):
             for service in services:
                 tmp = {}
                 tmp["service_id"] = service.service_id
-                tmp["service_name"] = service.service_alias
+                tmp["service_cname"] = service.service_cname
                 tmp["service_type"] = service.service_type
+                tmp["service_alias"] = service.service_alias
                 result[i] = tmp
                 i += 1
         except Exception as e:
