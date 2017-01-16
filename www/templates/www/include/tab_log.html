@@ -79,9 +79,9 @@
 
 	 function layerlog(tit,ptit,ptext,onoff){
        var odiv='<div class="layerbg"><div class="layermainlog"><p class="titlog">'+ tit +'</p><a href="javascript:;" class="closebtn"><i class="fa fa-times"></i></a></div></div>'
-       var optit = '<p class="layer-tit">' + ptit +'</p>'; 
-       var optext = '<p class="tipstext">' + ptext + '</p>';
-       var obtntwo = '<p><a href ="javascript:;">确定</a><a href ="javascript:;">取消</a></p>';
+       var optit = '<p class="layertitlog">' + ptit +'</p>'; 
+       var optext = '<p class="tipstextlog">' + ptext + '</p>';
+       var obtntwo = '<p><a href ="javascript:;" class="greenbtn">确定</a><a href ="javascript:;" class="redbtn">取消</a></p>';
        var obtn = '<p><a href ="javascript:;">好的</a></p>';
        $(odiv).appendTo("body");
        $(optit).appendTo($(".layermainlog"));
@@ -95,7 +95,7 @@
 
    $(function(){
       $("#logbtn_out").click(function(){
-          layerlog("日志输出设置","指定日志应用","下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个或多个日志应用来接受日子数据的数日。目前支持日志的应用有：XXXX、XXXX、XXXX和xXXXX，如需安装可直接点击文字去部署。",true);
+          layerlog("日志输出设置","指定日志应用","下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个或多个日志应用来接受日子数据的数日。目前支持日志的应用有：elasticsearch、mongodb、influxdb等，如需安装可直接点击文字去部署。",true);
       });
    });
 </script>

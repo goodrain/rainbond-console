@@ -5668,7 +5668,9 @@ a.guest-on i {
 
 
 .layermainlog{width: 500px; height: 360px; background: #fff; position: absolute; top: 50%; left: 50%; margin:-180px 0 0 -250px; padding:10px;}
-
+.titlog{color: #303030; font-size: 16px; line-height: 30px;}
+.layertitlog{color: #303030; font-size: 20px; line-height: 30px; text-align: center;}
+.tipstextlog{color: #838383; font-size:14px; line-height: 24px;}
 
 
 
