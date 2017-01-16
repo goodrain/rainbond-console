@@ -308,6 +308,18 @@ $(function(){
         }
     });
     // 镜像地址  end
+    // 代码版本
+    $('.fn-code-branch').blur(function(){
+        var codebranch = $(this).val();
+        if(codebranch == ""){
+            $('.fn-code-tips').slideDown();
+            return;
+        }else{
+            $('.fn-code-tips').slideUp();
+        }
+    });
+    
+    //
     //03 公开项目
     $('#service_code_url').blur(function(){
         var appurl= $(this).val();
@@ -529,22 +541,36 @@ $(function(){
             service_code_from = "gitlab_manual";
             //01
             code_url =$("#service_code_url").val(); 
+            code_branch = $(".fn-code-branch").val();
             if(code_url == ""){
                 $("#service_code_url_tips").show();
                 return;
             }else{
                 $("#service_code_url_tips").hide();
             }
+            if(code_branch == ""){
+                $(".fn-code-tips").show();
+                return;
+            }else{
+                $(".fn-code-tips").hide();
+            }
             //01
         }else if(myWay == "gitlab_new"){
             service_code_from = "gitlab_new";
             //02
-            code_url =$("#my_git_url").val(); 
+            code_url =$("#my_git_url").val();
+            code_branch = $(".fn-code-branch").val(); 
             if(code_url == ""){
                 $("#my_git_url_tips").show();
                 return;
             }else{
                 $("#my_git_url_tips").hide();
+            }
+            if(code_branch == ""){
+                $(".fn-code-tips").show();
+                return;
+            }else{
+                $(".fn-code-tips").hide();
             }
             //02
         }else if(myWay == "github"){
