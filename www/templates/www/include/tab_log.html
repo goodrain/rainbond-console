@@ -132,15 +132,25 @@
                   }
                   $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked","true");
                   ////确定
-                  $("#sure-btn").click(function(){
+
+                  ////确定
+                //ajax
+                
+              },
+              error: function(){
+              //swal("系统异常");
+              }
+            });
+      });
+      $("#sure-btn").click(function(){
                     var appname = $("#fm-divbox").find("input[type='radio']:checked").val();
                     var appid = $("#fm-divbox").find("input[type='radio']:checked").attr("id");
                     var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
                     var appalias = $("#fm-divbox").find("input[type='radio']:checked").attr("data-alias");
                     var ontext = '以设置"' + appname + '"接收当前应用的数据。请访问日志应用参看当前应用的日志数据。';
-            
+
                       $.ajax({
-                          type : "get",
+                          type : "POST",
                           url : "/ajax/" + tenantName + "/" + serviceAlias + "/log-match",
                           data : {
                                   "dep_service_id":appid,
@@ -170,14 +180,5 @@
                           }
                       });
                   });
-                  ////确定
-                //ajax
-                
-              },
-              error: function(){
-              //swal("系统异常");
-              }
-            });
-      });
    });
 </script>

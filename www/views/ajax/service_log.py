@@ -6,19 +6,24 @@ from www.models import TenantServiceRelation, TenantServiceEnvVar
 from www.tenantservice.baseservice import BaseTenantService
 import logging
 from www.service_http import RegionServiceApi
+from www.decorator import perm_required
 
 logger = logging.getLogger('default')
 baseService = BaseTenantService()
+
 regionClient = RegionServiceApi()
 
 
-class ServiceLogManage(AuthedView):
+class ServiceLogMatch(AuthedView):
     
+    @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
+        
         """
         增加日志对接应用设置
         """
         result = {}
+        print "in service log match"
         try:
             # 处理依赖应用
             tenant_id = self.tenant.tenant_id
