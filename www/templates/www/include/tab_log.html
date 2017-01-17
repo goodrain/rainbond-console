@@ -131,56 +131,45 @@
                     longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="'+ dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + dataArr[i].service_cname + '</label>';
                   }
                   $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked","true");
-                  ////
+                  ////确定
                   $("#sure-btn").click(function(){
                     var urlone =  "/ajax/" + tenantName + "/" + serviceAlias + "/relation";  // 关联
-                    var urltwo =  "/ajax/" + tenantName + "/" + serviceAlias + "/custom-env"; //  环境变量
+                    
                     var appname = $("#fm-divbox").find("input[type='radio']:checked").val();
                     var appid = $("#fm-divbox").find("input[type='radio']:checked").attr("id");
                     var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
                     var appalias = $("#fm-divbox").find("input[type='radio']:checked").attr("data-alias");
-                    var ontext = '以设置"' + appname + '"接收当前应用的日子数据。请访问日志应用参看当前应用的日志数据。';
-                    //console.log(appname + "//" +  appid + "//" + apptype + "//" + appalias);
-                    var ajax1 = $.ajax({
-                      type : "POST",
-                      url : urlone,
-                      data : "dep_service_alias=" + appalias + "&action=add",
-                      cache : false,
-                      beforeSend : function(xhr, settings) {
-                          var csrftoken = $.cookie('csrftoken');
-                          xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                      }
-                    });
-                    var data={attr_name:"LOG_MATCH",attr_value:apptype}
-                    var ajax2 = $.ajax({
-                      type : "POST",
-                      url : urltwo,
-                      data :{
-                              "action":"add_attr",
-                              "attr_id":"0",
-                              "attr_name":"LOG_MATCH",
-                              "attr_value":apptype,
-                              "name":"",
-                             },
-                      cache : false,
-                      beforeSend : function(xhr, settings) {
-                          var csrftoken = $.cookie('csrftoken');
-                          xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                      }
-                    });
-                    $.when(ajax1, ajax2).done(function(data1, data2) {
-                          $(".layerbg").remove();
-                          if(data1["status"] == "success" || data2.success){
-                            layerlog("日志输出设置","设置成功！",ontext,false);
-                          }else{
-                             layerlog("日志输出设置","设置失败！","设置失败！",false);
+                    var ontext = '以设置"' + appname + '"接收当前应用的数据。请访问日志应用参看当前应用的日志数据。';
+            
+                      $.ajax({
+                          type : "POST",
+                          url : "/ajax/" + tenantName + "/" + serviceAlias + "/log/match",
+                          data : {
+                                  "dep_service_id":appid,
+                                  "dep_service_type":apptype
+                                  },
+                          cache : false,
+                          beforeSend : function(xhr, settings) {
+                              var csrftoken = $.cookie('csrftoken');
+                              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                          },
+                          success: function(data) {
+                               var data = eval(data);
+                               if(data.success){
+                                  $(".layerbg").remove();
+                                  layerlog("日志输出设置","设置成功！",ontext,false);
+                               }else{
+                                  $(".layerbg").remove();
+                                  layerlog("日志输出设置","设置失败！","错误提示",false);
+                               }
+                          },
+                          error: function(){
+                            $(".layerbg").remove();
+                            layerlog("日志输出设置","设置失败！","错误提示",false);
                           }
-                        }).fail(function(){
-                           $(".layerbg").remove();
-                          layerlog("日志输出设置","设置失败！","设置不成功！",false);
-        　　　　      });
+                      });
                   });
-                  ////
+                  ////确定
                 //ajax
                 
               },
