@@ -23,7 +23,7 @@ class ServiceLogMatch(AuthedView):
         增加日志对接应用设置
         """
         result = {}
-        print "in service log match"
+        
         try:
             # 处理依赖应用
             tenant_id = self.tenant.tenant_id
@@ -64,3 +64,4 @@ class ServiceLogMatch(AuthedView):
             result["status"] = "failure"
             result["message"] = e.message
         return JsonResponse(result)
+    

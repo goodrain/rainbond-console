@@ -142,7 +142,7 @@
               }
             });
       });
-      $("#sure-btn").click(function(){
+      $(document).on("click","#sure-btn",function(){
                     var appname = $("#fm-divbox").find("input[type='radio']:checked").val();
                     var appid = $("#fm-divbox").find("input[type='radio']:checked").attr("id");
                     var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
@@ -151,7 +151,7 @@
 
                       $.ajax({
                           type : "POST",
-                          url : "/ajax/" + tenantName + "/" + serviceAlias + "/log-match",
+                          url : "/ajax/" + tenantName + "/" + serviceAlias + "/match-log",
                           data : {
                                   "dep_service_id":appid,
                                   "dep_service_type":apptype
