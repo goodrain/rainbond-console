@@ -5,7 +5,7 @@ from www.views import ajax
 from www.views.ajax import UpdateGroupView, BatchActionView
 from www.views.ajax.service_rule import *
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
-
+from www.views.ajax.service_log import *
 urlpatterns = patterns(
     '',
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/app-deploy/$', ajax.service_actions.AppDeploy.as_view()),
@@ -57,5 +57,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/update$', ServiceRuleUpdate.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/delete$', ServiceRuleDelete.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/status$', ServiceRuleUpdateStatus.as_view()),
+    # service log
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/log/match$', ServiceLogManage.as_view()),
     
 )
