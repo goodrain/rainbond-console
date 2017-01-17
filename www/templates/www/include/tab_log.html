@@ -10,6 +10,7 @@
   </div>
   <div id="docker_log" role="tabpanel" class="tab-pane active  blackbg">
   </div>
+  <p style="display: none;" data-tenantName = "{{tenantName}}"  data-serviceAlias = "{{serviceAlias}}"  id="parameter"></p>
 </div>
 
 <!-- log end-->
@@ -98,12 +99,14 @@
    }
 
    $(function(){
+      var tenantName = $("#parameter").attr("data-tenantName");
+      var serviceAlias = $("#parameter").attr("data-serviceAlias");
       $("#logbtn_out").click(function(){
            ///
            /*
            $.ajax({
               type: "GET",
-              url: "/ajax/",
+              url: "/ajax/"+ tenantName  + "/logtype/services",
               data: "",
               cache: false,
               beforeSend: function(xhr, settings){
@@ -146,10 +149,17 @@
             console.log(longstr + "///" + i);
             longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="'+ dataArr[i].service_alias + '" />' + dataArr[i].service_cname + '</label>';
           }
-          $("#fm-divbox").append(longstr);
-          $("#fm-divbox").find("input").eq(0).attr("checked","true");
-         
-              var  urlone =  "/ajax/" + tenantName + "/" + curServiceName + "/relation";  // 关联
+          $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked","true");
+          $("#sure-btn").click(function(){
+            var urlone =  "/ajax/" + tenantName + "/" + serviceAlias + "/relation";  // 关联
+            var urltwo =  "/ajax/" + tenantName + "/" + serviceAlias + "/custom-env"; //  环境变量
+            var appname = $("#fm-divbox").find("input[type='radio']:checked").val();
+            var appid = $("#fm-divbox").find("input[type='radio']:checked").attr("id");
+            var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
+            var appalias = $("#fm-divbox").find("input[type='radio']:checked").attr("data-alias");
+            console.log(appname + "//" +  appid + "//" + apptype + "//" + appalias);
+          });
+          
                         
           
 
