@@ -163,7 +163,11 @@
                     });
                     $.when(ajax1, ajax2).done(function(data1, data2) {
                           $(".layerbg").remove();
-                          layerlog("日志输出设置","设置成功！",ontext,false);
+                          if(data1["status"] == "success" || data2.success){
+                            layerlog("日志输出设置","设置成功！",ontext,false);
+                          }else{
+                             layerlog("日志输出设置","设置失败！","设置失败！",false);
+                          }
                         }).fail(function(){
                            $(".layerbg").remove();
                           layerlog("日志输出设置","设置失败！","设置不成功！",false);
