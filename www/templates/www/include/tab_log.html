@@ -82,7 +82,7 @@
        var optit = '<p class="layertitlog">' + ptit +'</p>'; 
        var optext = '<p class="tipstextlog">' + ptext + '</p>';
        var obtntwo = '<p class="text-center"><button type="button" class="btn btn-success" id="sure-btn">确定</button><button type="button" class="btn btn-danger fn-quxiao">取消</button></p>';
-       var obtn = '<p><button type="button" class="btn btn-success">好的</button>';
+       var obtn = '<p><button type="button" class="btn btn-success" class="fn-quxiao">好的</button>';
        var fdiv = '<div class="fm-div"><form id="fm-divbox"></form></div>';
        $(odiv).appendTo("body");
        $(optit).appendTo($(".layermainlog"));
@@ -158,6 +158,17 @@
             var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
             var appalias = $("#fm-divbox").find("input[type='radio']:checked").attr("data-alias");
             console.log(appname + "//" +  appid + "//" + apptype + "//" + appalias);
+            var on = true;
+            var ontext = '以设置"' + appname + '"接收当前应用的日子数据。请访问日志应用参看当前应用的日志数据。';
+            //var notext = data.msg;
+            if(on){
+               $(".layerbg").remove();
+               layerlog("日志输出设置","设置成功！",textstr,false);
+            }else{
+               $(".layerbg").remove();
+               layerlog("日志输出设置","设置失败！","错误提示",false);
+
+            }
           });
           
                         
