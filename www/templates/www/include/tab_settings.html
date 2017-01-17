@@ -10,7 +10,7 @@
          <div class="row">
               <label class="col-xs-2 control-label text-right" >所属组</label>
               <div class="fn-choose-group col-xs-8  choose-group-box ">
-                  <a href="javascript:;" class="fn-name" style="font-weight: 700;">
+                  <a href="javascript:;" class="fn-name">
                       {% with cur_group=serviceGroupIdMap|mkey:tenantServiceInfo.service_id %}
                         {% with groupName=serviceGroupNameMap|mkey:cur_group %}
                             {% if groupName %}
@@ -110,7 +110,7 @@
           
           <div class="row">
               <label class="col-xs-2 control-label text-right">持久化配置</label>
-              <div class="col-xs-2" style="line-height: 30px; font-weight: 700;"> 共享
+              <div class="col-xs-2" style="line-height: 30px;"> 共享
                   <!--<select class="form-control" id="mnt_share_type" name="mnt_share_type">
                       {% for key,extend in mnt_share_choices.iteritems %}
                       {% if key == tenantServiceInfo.volume_type %}
