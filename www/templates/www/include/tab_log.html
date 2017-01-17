@@ -101,9 +101,10 @@
    $(function(){
       var tenantName = $("#parameter").attr("data-tenantName");
       var serviceAlias = $("#parameter").attr("data-serviceAlias");
+      ////////
       $("#logbtn_out").click(function(){
            ///
-           /*
+           
            $.ajax({
               type: "GET",
               url: "/ajax/"+ tenantName  + "/logtype/services",
@@ -115,16 +116,71 @@
               },
               success: function(msg) {
                 var dataObj = eval(msg);
-                
+                //ajax
+                var dataArr =[];
+                  layerlog("日志输出设置","指定日志应用","下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个或多个日志应用来接受日子数据的数日。目前支持日志的应用有：elasticsearch、mongodb、influxdb等，如需安装可直接点击文字去部署。",true);
+                  for(var key in dataObj){
+                    //console.log(key);
+                    //console.log(dataObj[key]);
+                    dataArr.push(dataObj[key]);
+                  }
+
+                  var longstr = "";
+                  for(var i=0; i<dataArr.length; i++){
+                    //console.log(longstr + "///" + i);
+                    longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="'+ dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + dataArr[i].service_cname + '</label>';
+                  }
+                  $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked","true");
+                  ////
+                  $("#sure-btn").click(function(){
+                    var urlone =  "/ajax/" + tenantName + "/" + serviceAlias + "/relation";  // 关联
+                    var urltwo =  "/ajax/" + tenantName + "/" + serviceAlias + "/custom-env"; //  环境变量
+                    var appname = $("#fm-divbox").find("input[type='radio']:checked").val();
+                    var appid = $("#fm-divbox").find("input[type='radio']:checked").attr("id");
+                    var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
+                    var appalias = $("#fm-divbox").find("input[type='radio']:checked").attr("data-alias");
+                    var ontext = '以设置"' + appname + '"接收当前应用的日子数据。请访问日志应用参看当前应用的日志数据。';
+                    //console.log(appname + "//" +  appid + "//" + apptype + "//" + appalias);
+                    var ajax1 = $.ajax({
+                      type : "POST",
+                      url : urlone,
+                      data : "dep_service_alias=" + appalias + "&action=add",
+                      cache : false,
+                      beforeSend : function(xhr, settings) {
+                          var csrftoken = $.cookie('csrftoken');
+                          xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                      }
+                    });
+                    var ajax2 = $.ajax({
+                      type : "POST",
+                      url : urltwo,
+                      data : "LOG_MATCH=" + apptype,
+                      cache : false,
+                      beforeSend : function(xhr, settings) {
+                          var csrftoken = $.cookie('csrftoken');
+                          xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                      }
+                    });
+                    $.when(ajax1, ajax2).done(function(data1, data2) {
+                          $(".layerbg").remove();
+                          layerlog("日志输出设置","设置成功！",ontext,false);
+                        }).fail(function(){
+                           $(".layerbg").remove();
+                          layerlog("日志输出设置","设置失败！","错误提示",false);
+        　　　　      });
+                  });
+                  ////
+                //ajax
                 
               },
               error: function(){
               //swal("系统异常");
               }
             });
-            */
+            
            ///
           
+          /*
           var dataObj = {0:{service_id:"id001",service_cname:"name001",service_type:"type01",service_alias:"jdkhsdkl001"},
                           1:{service_id:"id001",service_cname:"name002",service_type:"type02",service_alias:"jdkhsdkl002"},
                             2:{service_id:"id001",service_cname:"name003",service_type:"type03",service_alias:"jdkhsdkl003"},
@@ -150,6 +206,7 @@
             longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="'+ dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + dataArr[i].service_cname + '</label>';
           }
           $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked","true");
+          ////
           $("#sure-btn").click(function(){
             var urlone =  "/ajax/" + tenantName + "/" + serviceAlias + "/relation";  // 关联
             var urltwo =  "/ajax/" + tenantName + "/" + serviceAlias + "/custom-env"; //  环境变量
@@ -157,23 +214,40 @@
             var appid = $("#fm-divbox").find("input[type='radio']:checked").attr("id");
             var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
             var appalias = $("#fm-divbox").find("input[type='radio']:checked").attr("data-alias");
-            console.log(appname + "//" +  appid + "//" + apptype + "//" + appalias);
-            var on = false;
             var ontext = '以设置"' + appname + '"接收当前应用的日子数据。请访问日志应用参看当前应用的日志数据。';
-            //var notext = data.msg;
-            if(on){
-               $(".layerbg").remove();
-               layerlog("日志输出设置","设置成功！",ontext,false);
-            }else{
-               $(".layerbg").remove();
-               layerlog("日志输出设置","设置失败！","错误提示",false);
-            }
+            //console.log(appname + "//" +  appid + "//" + apptype + "//" + appalias);
+            var ajax1 = $.ajax({
+              type : "POST",
+              url : urlone,
+              data : "dep_service_alias=" + appname + "&action=add",
+              cache : false,
+              beforeSend : function(xhr, settings) {
+                  var csrftoken = $.cookie('csrftoken');
+                  xhr.setRequestHeader("X-CSRFToken", csrftoken);
+              }
+            });
+            var ajax2 = $.ajax({
+              type : "POST",
+              url : urltwo,
+              data : "LOG_MATCH=" + apptype,
+              cache : false,
+              beforeSend : function(xhr, settings) {
+                  var csrftoken = $.cookie('csrftoken');
+                  xhr.setRequestHeader("X-CSRFToken", csrftoken);
+              }
+            });
+            $.when(ajax1, ajax2).done(function(data1, data2) {
+                  $(".layerbg").remove();
+                  layerlog("日志输出设置","设置成功！",ontext,false);
+                }).fail(function(){
+                   $(".layerbg").remove();
+                  layerlog("日志输出设置","设置失败！","错误提示",false);
+　　　　      });
           });
-          
-                        
-          
-
+          ////
+          */
       });
+      ////////
    });
 </script>
 
