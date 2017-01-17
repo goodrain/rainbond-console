@@ -59,5 +59,6 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/status$', ServiceRuleUpdateStatus.as_view()),
     # service log
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log$', ServiceLogMatch.as_view()),
-    
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log/check$', ServiceLogMatchCheck.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log/delete$', ServiceLogMatchDelete.as_view()),
 )
