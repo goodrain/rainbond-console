@@ -9,9 +9,9 @@
       <table>
         <thead>
             <tr>
-              <th>说明</th>
-              <th>变量名</th>
-              <th>变量值</th>
+              <th class="fn-tips" data-tips="其他应用依赖当前应用时，所需要的连接信息。">说明</th>
+              <th class="fn-tips" data-tips="指明依赖当前应用的其他应用，在编码中可以使用变量名来连接当前应用。">变量名</th>
+              <th class="fn-tips" data-tips="指明依赖当前应用的其他应用，在编码中可以使用变量值来连接当前应用。某些变量值也用于用户通过外部网络访问当前应用。">变量值</th>
             </tr>
         </thead>
         <tbody>
@@ -39,12 +39,12 @@
    <section class="panel">
         
         <div class="content-tab">
-        <h2 class="tit-two">环境依赖<span>(关联后需重启)</span></h2>
+        <h2 class="tit-two">服务依赖<span>(指定依赖其他应用后需重启)</span></h2>
             <table>
                 <thead>
                 <tr>
-                    <th width="33%">服务类型</th>
-                    <th width="33%">服务名称</th>
+                    <th width="33%">应用类型</th>
+                    <th width="33%">应用名称</th>
                     <th width="33%">操作</th>
                 </tr>
                 </thead>
@@ -118,6 +118,7 @@
                     {% endfor %}
                 {% endif %}
                     {% endif %}
+                <!--
                 {% if 'create_service' in user.actions %}
                   <tr>
                     <td></td>
@@ -127,6 +128,7 @@
                     <td></td>
                   </tr>
                 {% endif %}
+                -->
                </tbody>
             </table>
         </div>
@@ -136,11 +138,11 @@
    <section class="panel">
        
         <div class="content-tab">
-         <h2 class="tit-two">挂载目录<span>(挂载后需重启)</span></h2>
+         <h2 class="tit-two">文件存储<span>(挂载了其他应用共享的持久化目录后需重启)</span></h2>
             <table>
                 <thead>
                 <tr>
-                    <th width="33%">服务名称</th>
+                    <th width="33%">应用名称</th>
                     <th width="33%">共享目录</th>
                     <th width="33%" class="text-center">操作</th>
                 </tr>
