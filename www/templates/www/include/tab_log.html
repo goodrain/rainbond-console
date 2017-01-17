@@ -164,6 +164,7 @@
                     if (data.status == "success") {
                         $(".layerbg").remove();
                         layerlog("日志输出设置", "设置成功！", ontext, false);
+                        $("#logbtn_out").html("取消日志对接").attr("id","logbtn_delete")
                     } else {
                         $(".layerbg").remove();
                         layerlog("日志输出设置", "设置失败！", data.message, false);
