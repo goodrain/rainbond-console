@@ -147,13 +147,13 @@
           var longstr = "";
           for(var i=0; i<dataArr.length; i++){
             //console.log(longstr + "///" + i);
-            longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="'+ dataArr[i].service_alias + '" />' + dataArr[i].service_cname + '</label>';
+            longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="'+ dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + dataArr[i].service_cname + '</label>';
           }
           $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked","true");
           $("#sure-btn").click(function(){
             var urlone =  "/ajax/" + tenantName + "/" + serviceAlias + "/relation";  // 关联
             var urltwo =  "/ajax/" + tenantName + "/" + serviceAlias + "/custom-env"; //  环境变量
-            var appname = $("#fm-divbox").find("input[type='radio']:checked").html();
+            var appname = $("#fm-divbox").find("input[type='radio']:checked").val();
             var appid = $("#fm-divbox").find("input[type='radio']:checked").attr("id");
             var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
             var appalias = $("#fm-divbox").find("input[type='radio']:checked").attr("data-alias");
