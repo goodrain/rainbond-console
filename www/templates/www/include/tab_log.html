@@ -140,8 +140,8 @@
                     var ontext = '以设置"' + appname + '"接收当前应用的数据。请访问日志应用参看当前应用的日志数据。';
             
                       $.ajax({
-                          type : "POST",
-                          url : "/ajax/" + tenantName + "/" + serviceAlias + "/log/match",
+                          type : "get",
+                          url : "/ajax/" + tenantName + "/" + serviceAlias + "/log-match",
                           data : {
                                   "dep_service_id":appid,
                                   "dep_service_type":apptype
