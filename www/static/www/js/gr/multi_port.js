@@ -179,6 +179,7 @@
 
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
         $.post(url, dict, function(res) {
+          console.log(dict);
           if (res.success) {
             del_tr.remove();
           }

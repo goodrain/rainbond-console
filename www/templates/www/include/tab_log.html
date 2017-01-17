@@ -155,7 +155,13 @@
                     var ajax2 = $.ajax({
                       type : "POST",
                       url : urltwo,
-                      data : data,
+                      data :{
+                              "action":"add_attr",
+                              "attr_id":"0",
+                              "attr_name":"LOG_MATCH",
+                              "attr_value":apptype,
+                              "name":"",
+                             },
                       cache : false,
                       beforeSend : function(xhr, settings) {
                           var csrftoken = $.cookie('csrftoken');
