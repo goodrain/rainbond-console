@@ -13,6 +13,7 @@ regionClient = RegionServiceApi()
 
 
 class ServiceLogManage(AuthedView):
+    
     def post(self, request, *args, **kwargs):
         """
         增加日志对接应用设置
@@ -32,7 +33,7 @@ class ServiceLogManage(AuthedView):
                 baseService.create_service_dependency(tenant_id, service_id, dep_service_id,
                                                       self.service.service_region)
             # 设置环境变量
-            dep_service_type = request.Post.get("dep_service_id", "")
+            dep_service_type = request.Post.get("dep_service_type", "")
             if dep_service_type == "":
                 result["status"] = "failure"
                 result["message"] = "依赖应用类型不能为空"
@@ -57,19 +58,4 @@ class ServiceLogManage(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
             result["message"] = e.message
-        return JsonResponse(result)
-    
-    def get(self, request, *args, **kwargs):
-        
-        """
-        获取规则
-        """
-        result = {}
-        try:
-            rejson = {}
-            result["status"] = "success"
-            result["data"] = rejson
-        except Exception, e:
-            logger.exception(e)
-            result["status"] = "failure"
         return JsonResponse(result)
