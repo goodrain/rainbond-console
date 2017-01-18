@@ -104,6 +104,11 @@
     }
 
     $(function () {
+        if($("#top_menu").children("div").children("button").html() == "亚马逊[日本]"){
+            $("#logbtn_out").show();
+        }else{
+            $("#logbtn_out").hide();
+        }
         var tenantName = $("#parameter").attr("data-tenantName");
         var serviceAlias = $("#parameter").attr("data-serviceAlias");
         $(document).on("click","#logbtn_out",function () {
