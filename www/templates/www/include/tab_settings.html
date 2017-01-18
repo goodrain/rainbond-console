@@ -402,7 +402,7 @@
    </div>
   </section>
 
- <!--
+
   <section class="content-tab" id="autoScaling">
       <p class="tit-two">自动伸缩 </p>
           <table perm-type="service" style="margin-bottom: 10px;">
@@ -419,9 +419,39 @@
 
           </tbody>
         </table>
+        <div id="">
+            <span>当端口的</span>
+            <select>
+              {% for port in ports %}
+                {% if is_outer_service == 1 %}
+                <option value="{{ port.container_port }}">{{ port.container_port }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+            <span>的</span>
+            <select>
+                 <option value="tp">吞吐率</option>
+                 <option value="rt">响应时间</option>
+                 <option value="on">在线人数</option></select>
+            </select>
+            <span>大于</span>
+            <input type="text" />
+            <span>小于</span>
+            <input type="text" />
+            <span>的时候，设置是实例数为</span>
+            <select name="" id="" class="">
+                {% for curNum in nodeList %}
+                  {% if curNum == tenantServiceInfo.min_node %}
+                  <option value="{{curNum}}"  selected="selected">{{curNum}}</option>
+                  {% else %}
+                  <option value="{{curNum}}">{{curNum}}</option>
+                  {% endif %}
+                {% endfor %}
+            </select>
+        </div>
         <button type="button" class="btn greenbtn" id="add_rule" onclick="addLayerForRule('添加规则')">新增规则</button>
   </section>
-   -->
+
   <!-- 05-->
   <!-- 06-->
 
