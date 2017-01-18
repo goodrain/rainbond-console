@@ -130,7 +130,7 @@
                     var longstr = "";
                     for (var i = 0; i < dataArr.length; i++) {
                         //console.log(longstr + "///" + i);
-                        longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="' + dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + dataArr[i].service_cname + '</label>';
+                        longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="' + dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + '<span class="radiobg"></span>' + dataArr[i].service_cname + '</label>';
                     }
                     $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked", "true");
 
