@@ -895,6 +895,9 @@ class ServiceRule(BaseModel):
     count = models.IntegerField(max_length=10)
     node_number = models.IntegerField(help_text=u"实例启动个数", default=1)
     port = models.CharField(max_length=10)
+    port_type = models.CharField(max_length=15, default='multi_outer',
+                                 help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
+    
 
 
 class ServiceRuleHistory(BaseModel):

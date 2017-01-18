@@ -40,7 +40,7 @@ class ServiceRuleManage(AuthedView):
             
             rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
                                tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
-                               service_region=self.service.service_region,
+                               service_region=self.service.service_region, port_type=self.service.service_type,
                                item=item, minvalue=minvalue, maxvalue=maxvalue,
                                status=0, count=0, node_number=node_number, port=port)
             rule.save()

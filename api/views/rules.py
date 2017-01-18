@@ -41,10 +41,8 @@ class RulesController(APIView):
             for rule in rules:
                 tmp = {}
                 tmp["item"] = rule.item
-                tmp["operator"] = rule.operator
-                tmp["value"] = rule.value
-                tmp["fortime"] = rule.fortime
-                tmp["action"] = rule.action
+                tmp["minvalue"] = rule.minvalue
+                tmp["maxvalue"] = rule.maxvalue
                 tmp["status"] = rule.status
                 tmp["region"] = rule.service_region
                 tmp["count"] = rule.count
@@ -54,71 +52,13 @@ class RulesController(APIView):
                 tmp["tenant_id"] = rule.tenant_id
                 tmp["service_id"] = rule.service_id
                 tmp["node_number"] = rule.node_number
-                tmp["node_max"] = rule.node_max
                 tmp["port"] = rule.port
+                tmp["port_type"] = rule.port_type
                 rejson.append(tmp)
             return Response(status=200, data={"success": True, "data": rejson})
         except Exception, e:
             logger.error(e)
             return Response(status=406, data={"success": False, "msg": u"发生错误！"})
-
-
-class RuleHistory(APIView):
-    """规则触发历史操作模块"""
-    allowed_methods = ('PUT',)
-    
-    def put(self, request, rule_id, *args, **kwargs):
-        """
-        添加规则触发历史
-        ---
-        parameters:
-            - name: rule_id
-              description: 规则id
-              required: true
-              type: string
-              paramType: path
-            - name: trigger_time
-              description: 触发时间
-              required: true
-              type: string
-              paramType: form
-            - name: action
-              description: 触发操作类别
-              required: true
-              type: string
-              paramType: form
-            - name: message
-              description: 描述
-              required: false
-              type: string
-              paramType: form
-        """
-        trigger_time = request.data.get("trigger_time", None)
-        action = request.data.get("action", None)
-        message = request.data.get("message", "")
-        if rule_id is None:
-            return Response(status=405, data={"success": False, "msg": u"规则id不能为空"})
-        try:
-            rule = ServiceRule.objects.filter(ID=rule_id).get()
-            if trigger_time is None:
-                trigger_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-            if action is None:
-                action = rule.action
-            if message == "":
-                if action == "add":
-                    message = "扩展了一个实例"
-                else:
-                    message = "减少了一个实例"
-            history = ServiceRuleHistory(rule_id=rule_id, trigger_time=trigger_time, action=action, message=message)
-            history.save()
-            ServiceRule.objects.filter(ID=rule_id).update(count=rule.count + 1)
-            return Response(status=200, data={"success": True, "msg": u"添加成功"})
-        except ServiceRule.DoesNotExist:
-            logger.error("openapi.rules", "rule {0} is not exists".format(rule_id))
-            return Response(status=406, data={"success": False, "msg": u"规则不存在。"})
-        except Exception, e:
-            logger.exception(e)
-            return Response(status=500, data={"success": False, "msg": u"内部错误"})
 
 
 class InstanceManager(APIView):
@@ -149,20 +89,18 @@ class InstanceManager(APIView):
         if rule_id is None:
             return Response(status=405, data={"success": False, "msg": u"规则id不能为空"})
         service_id = request.data.get("service_id", None)
-        action = request.data.get("action", None)
-        number = request.data.get("number", 1)
+        node_number = int(request.data.get("node_number", 1))
         if service_id is None:
             return Response(status=405, data={"success": False, "msg": u"服务id不能为空"})
-        if action is None:
-            return Response(status=405, data={"success": False, "msg": u"操作类型不能为空"})
         try:
             service = TenantServiceInfo.objects.filter(service_id=service_id).get()
             tenant = Tenants.objects.filter(tenant_id=service.tenant_id).get()
             body = {}
             new_node_num = 1
-            if action == "add":
+            action = "减少实例"
+            if service.min_node < node_number:
                 # calculate resource
-                diff_memory = number * service.min_memory
+                diff_memory = (node_number - int(service.min_node)) * service.min_memory
                 rt_type, flag = tenantUsedResource.predict_next_memory(tenant, service, diff_memory, True)
                 result = {}
                 if not flag:
@@ -172,34 +110,29 @@ class InstanceManager(APIView):
                         result["status"] = "over_money"
                     return Response(status=405, data={"success": False, "msg": result["status"]})
                 else:
-                    new_node_num = service.min_node + number
-            else:
-                new_node_num = service.min_node - number
-                if new_node_num < 0:
-                    new_node_num = 1
+                    action = "增加实例"
             
-            body["node_num"] = new_node_num
+            if node_number < 1:
+                node_number = 1
+            
+            body["node_num"] = node_number
             body["deploy_version"] = service.deploy_version
             body["operator"] = "auto_action"
             regionClient.horizontalUpgrade(service.service_region, service.service_id, json.dumps(body))
-            service.min_node = new_node_num
+            service.min_node = node_number
             service.save()
             ServiceRule.objects.filter(ID=rule_id).update(node_number=new_node_num)
             
-            if action == "add":
-                message = "自动扩展了实例数到" + str(new_node_num) + "个。"
-            else:
-                message = "自动缩减了实例数到" + str(new_node_num) + "个。"
             trigger_time = time.strftime('%Y-%m-%d %H:%M:%S',
                                          time.localtime(time.time()))
-            
+            message = "服务实例数量改为{0}".format(node_number)
             history = ServiceRuleHistory(rule_id=rule_id, trigger_time=trigger_time,
                                          action=action, message=message)
             history.save()
             
             rule = ServiceRule.objects.filter(ID=rule_id).get()
             rule.count = int(rule.count) + 1
-            rule.node_number = new_node_num
+            rule.node_number = node_number
             rule.save()
             return Response(status=200, data={"success": True, "msg": u"操作成功"})
         except TenantServiceInfo.DoesNotExist:
@@ -219,7 +152,7 @@ class ServiceInfo(APIView):
     
     def get(self, request, service_id, *args, **kwargs):
         """
-        获取当前数据中心的自动伸缩规则
+        获取service节点信息
         ---
         parameters:
             - name: service_id
