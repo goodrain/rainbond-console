@@ -403,7 +403,7 @@
   </section>
 
 
-  <section class="content-tab">
+  <section class="content-tab" id="autoScaling">
       <p class="tit-two">自动伸缩 </p>
     
           <table perm-type="service" style="margin-bottom: 10px;">
@@ -700,7 +700,14 @@
         var port = "{% for port in ports %}{% if not forloop.first %}{% else %}{{ port.container_port }}{% endif %}{% endfor %}";
 
         $(function () {
-            flush()
+            flush();
+            var arron =[];
+            $('input[name= "outer"]').each(function{
+              if($(this).prop("checked") == "true"){
+                arron.push($(this).prop("checked"));
+              }
+            });
+            console.log(arron);
         })
         $("#shuaxin").click(function () {
             flush()
