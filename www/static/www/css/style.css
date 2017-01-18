@@ -5761,6 +5761,6 @@ i{font-style: normal; }
 .krfs div:nth-child(3n+1){width: 70px;}
 .krfs div:nth-child(3n+2){width: 10%;}
 
-.rolebox{margin:10px 0 20px;}
+.rolebox{margin:20px 0; display: none;}
 .rolebox select.form-control,.rolebox input{width: 10%; float: left; height: 30px; line-height: 30px;}
 .rolebox span{line-height: 30px; padding-right: 5px; float: left;}

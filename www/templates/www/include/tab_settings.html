@@ -419,25 +419,25 @@
 
           </tbody>
         </table>
-        <div id="" class="rolebox clearfix">
+        <div id="autorole" class="rolebox clearfix">
             <span>当端口的</span>
-            <select class="form-control">
+            <select class="form-control" name="port">
               {% for port in ports %}
                 <option value="{{ port.container_port }}">{{ port.container_port }}</option>
               {% endfor %}
             </select>
             <span>的</span>
-            <select  class="form-control">
+            <select  class="form-control" name="item">
                  <option value="tp">吞吐率</option>
                  <option value="rt">响应时间</option>
                  <option value="on">在线人数</option></select>
             </select>
             <span>大于</span>
-            <input type="text" />
+            <input type="text" name="maxvalue" />
             <span>小于</span>
-            <input type="text" />
+            <input type="text"  name="minvalue"/>
             <span>的时候，设置是实例数为</span>
-            <select name="" id=""  class="form-control">
+            <select name="nodenum"  class="form-control">
                 {% for curNum in nodeList %}
                   {% if curNum == tenantServiceInfo.min_node %}
                   <option value="{{curNum}}"  selected="selected">{{curNum}}</option>
@@ -446,8 +446,8 @@
                   {% endif %}
                 {% endfor %}
             </select>
-            <div class="btn-group" role="group" style="margin-top: 5px; margin-right: 5px;"><button type="button" onclick="post_volume();" class="btn btn-success btn-xs"><i class="fa fa-check"></i></button></div>
-            <div class="btn-group" role="group" style="margin-top: 5px; margin-right: 5px;"><button type="button" onclick="clear_volume();" class="btn btn-danger btn-xs"><i class="fa fa-times"></i></button></div>
+            <div class="btn-group" role="group" style="margin-top: 5px; margin-right: 5px;"><button type="button" onclick="sureRole()" class="btn btn-success btn-xs"><i class="fa fa-check"></i></button></div>
+            <div class="btn-group" role="group" style="margin-top: 5px; margin-right: 5px;"><button type="button" onclick="removeRole()" class="btn btn-danger btn-xs"><i class="fa fa-times"></i></button></div>
         </div>
         <button type="button" class="btn greenbtn" id="add_rule" onclick="addLayerForRule('添加规则')">新增规则</button>
   </section>
@@ -740,6 +740,9 @@
             }else{
                $("#autoScaling").hide();
             }
+            $("#autorole").click(function(){
+               $("#autorole").show();
+            });
         })
         $("#shuaxin").click(function () {
             flush()
@@ -842,7 +845,8 @@
                 }
             })
         }
-
+        
+        /*
         function addLayerForRule(textTit){
 
             var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
@@ -916,5 +920,42 @@
                 })
 
             });
+        }*/
+        function sureRole(){
+                port = $("select[name='port']").val();
+                item = $("select[name='item']").val();
+                //operator = $("select[name='operator']").val()
+                maxvalue = $("input[name='maxvalue']").val();
+                minvalue = $("input[name='minvalue']").val();
+                //action = $("select[name='action']").val()
+                nodenum = $("select[name='nodenum']").val()
+                
+                data = {
+                    port:port,
+                    item: item,
+                    maxvalue: maxvalue,
+                    minvalue: minvalue,
+                    nodenum:nodenum
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "/ajax/{{tenantName}}/{{serviceAlias}}/rule",
+                    data: data,
+                    cache: false,
+                    beforeSend: function (xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success: function (data) {
+                        swal("添加结果" + data.status);
+                        flush()
+                    },
+                    error: function () {
+                        swal("系统异常");
+                    }
+                })
+        }
+        function removeRole(){
+           $("#autorole").hide();
         }
 </script>
