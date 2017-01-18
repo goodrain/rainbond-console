@@ -419,13 +419,11 @@
 
           </tbody>
         </table>
-        <div id="">
+        <div id="" class="rolebox clearfix">
             <span>当端口的</span>
             <select class="form-control">
               {% for port in ports %}
-                {% if is_outer_service == 1 %}
                 <option value="{{ port.container_port }}">{{ port.container_port }}</option>
-                {% endif %}
               {% endfor %}
             </select>
             <span>的</span>
