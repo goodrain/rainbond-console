@@ -1,3 +1,4 @@
+/*
 var BranchLocalData = {};
 //创建应用
 $(function(){
@@ -5,7 +6,7 @@ $(function(){
     //弹出层
     function FnLayer(textTit){
         var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
-        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
+        var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a>';
         var oTit = '<p class="layer-tit">'+ textTit +'</p>';
         var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
         var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
@@ -391,4 +392,4 @@ function projectVersion(code_from,code_id,clone_url){
 function scrollOffset(scroll_offset) { 
 	$("body,html").animate({scrollTop: scroll_offset.top - 70}, 0); 
 } 
-
+*/

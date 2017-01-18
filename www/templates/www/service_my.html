@@ -1,6 +1,11 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
-
+{% load staticfiles %}
+{% load goodrain_extras %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/second.css" %}' />
+{% endblock %}
 {% block main-content %}
 
 <section class="wrapper site-min-height">
@@ -58,131 +63,65 @@
 	    </div>
 	</div>
 	<!-- -->
-	<div class="row state-overview state-overview-okooo">
-		<div class="col-lg-3 col-sm-6">
-			<section class="panel">
-				<div class="symbol terques">
-					<i class="fa fa-dashboard"></i>
+	<div class="overall">
+		<ul class="clearfix">
+			<li>
+				<div>
+					<p>内存</p>
+					<p class="mainbg01"></p>
+					<p class="count" id="service_total_memory">-</p>
 				</div>
-				<div class="value">
-					<h1 class="count" id="service_total_memory">0M</h1>
-					<p>总内存</p>
+			</li>
+			<li>
+				<div>
+					<p>{% if tenant_balance > -1 %} 余额 {% else %} 已欠费 {% endif %}</p>
+					<p class="mainbg02"></p>
+					<p class="count">{{tenant_balance}}元</p>
 				</div>
-			</section>
-		</div>
-		<div class="col-lg-3 col-sm-6 ">
-			<section class="panel">
-				<div class="symbol red">
-					<i class=" fa fa-cny"></i>
+			</li>
+			<li>
+				<div>
+					<p>应用</p>
+					<p class="mainbg03"></p>
+					<p class=" count3">{{totalAppNumber}}个</p>
 				</div>
-				<div class="value">
-					<h1 class="count">{{tenant_balance}}元</h1>
-					<p>{% if tenant_balance > -1 %} 账户余额 {% else %} 已欠费 {% endif %}
-					</p>
+			</li>
+			<li>
+				<div>
+					<p>成员</p>
+					<p class="mainbg04"></p>
+					<p class=" count3">{{totalNum}}人</p>
 				</div>
-			</section>
-		</div>
-		<div class="col-lg-3 col-sm-6">
-			<section class="panel">
-				<div class="symbol yellow">
-					<i class="fa fa-cloud"></i>
-				</div>
-				<div class="value">
-					<h1 class=" count3">{{totalAppNumber}}个</h1>
-					<p>服务</p>
-				</div>
-			</section>
-		</div>
-		<div class="col-lg-3 col-sm-6">
-			<section class="panel">
-				<div class="symbol blue">
-					<i class="fa fa-group"></i>
-				</div>
-				<div class="value">
-					<h1 class=" count3">{{totalNum}}人</h1>
-					<p>开发者</p>
-				</div>
-			</section>
-		</div>
+			</li>
+		</ul>
 	</div>
-
-
-	<section class="panel">
-		<input type="hidden" value="{{activity_id}}"  id="activity_id" />
-		<script>
-			$(function(){
-				//var activity_id = $("#activity_id").attr("value");
-				//if(activity_id == "998"){
-					//swal("恭喜您！获得「无礼物 不圣诞」活动鼓励金：998元！已经充值进迅达云余额，请尽情享用吧！");
-				//}else{
-					//console.log(activity_id);
-				//}
-				//cookie start 
-				//取cookie
-				function getCookie(c_name){
-					if (document.cookie.length>0){
- 						c_start=document.cookie.indexOf(c_name + "=")
-  						if (c_start!=-1){ 
-    						c_start=c_start + c_name.length+1 ;
-    						c_end=document.cookie.indexOf(";",c_start);
-    						if (c_end==-1) c_end=document.cookie.length;
-    						return unescape(document.cookie.substring(c_start,c_end));
-    					} 
-  					}
-					return ""
-				}
-				// 设置 cookie
-				function setCookie(c_name,value,expiredays){
-					var exdate=new Date();
-					exdate.setDate(exdate.getDate()+expiredays);
-					document.cookie=c_name+ "=" +escape(value)+((expiredays==null) ? "" : ";expires="+exdate.toGMTString());
-				}
-				//检查cookie
-				function checkCookie(){
-					activity_id=getCookie('activity_id');
-					console.log(activity_id);
-					if (activity_id!=null && activity_id!=""){
-						console.log(activity_id);
-					}else{
-  						var activity_value = $("#activity_id").attr("value");
-						if(activity_value == "998"){
-							swal("恭喜您！获得「无礼物 不圣诞」活动鼓励金：998元！已经充值进迅达云余额，请尽情享用吧！");
-						}else{
-							console.log(activity_value);
-						}
-						if(activity_value == ""){
-							activity_value = 0;
-						}
-						console.log(activity_value);
-  						setCookie('activity_id',activity_value,365);	
-  					}
-				}
-				//cookie end 
-				checkCookie();
-			});
-		</script>
-		<table class="table table-striped table-advance table-hover">
+			
+	<section class="main-tab-box">
+		<table id="table">
 			<thead>
 				<tr>
-					<th><i class="fa "></i> 名称</th>
-					<th><i class="fa "></i> 内存</th>
-					<th><i class="fa "></i> 状态</th>
-					<th><i class=" fa "></i> 类型</th>
-					<th><i class=" fa "></i> 版本</th>
-					<th><i class=" fa fa-edit"></i> 操作</th>
-					<!--<th></th> -->
+					<th>名称</th>
+					<th>内存</th>
+					<th>状态</th>
+					<th>组</th>
+					<th>类型</th>
+					<th>版本</th>
+					<!--
+					<th>操作</th>
+					-->
 				</tr>
 			</thead>
 			<tbody>
-				{% for item in tenantServiceList %}
+				{% for item in sorted_service_list %}
 				<tr id="panel">
-					<td><h4>
-							<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>
-						</h4>
+					<td>
+						<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>	
 					</td>
-					<td id="service_memory_{{item.service_id}}">0M</td>
-					<td><span class="label label-success label-mini"
-						id="service_status_{{item.service_id}}">未知</span></td>
+					<td id="service_memory_{{item.service_id}}">-</td>
+					<td id="service_status_{{item.service_id}}"><span>未知</span></td>
+					<td>
+						{{item.group_name}}
+					</td>
 					<td>{{item.service_type}}</td> 
 					<td>
 						{% if item.category == "application" %}
@@ -191,35 +130,49 @@
 							{{item.version}}					
 						{% endif %}
 					</td>
+					<!--
 					<td>
 						{% if item.category == "application" %}
-						<button type="button" class="btn btn-shadow btn-info "
-							id="button_{{item.service_id}}"
-							onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');">
-							<i class="fa fa-refresh"></i> 部署
-						</button>
+						<button type="button" class="greenbtn" id="button_{{item.service_id}}"
+							onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');">部署</button>
 						{% endif %}
-						<button class="btn btn-danger" data{{item.service_id}}="0"
+					
+						<button class="redbtn" data{{item.service_id}}="0"
 							onclick="service_my_onOperation('{{item.service_id}}','{{item.service_alias}}','{{tenantName}}');"
-							id="operate_{{item.service_id}}">
-							<i class="fa fa-power-off "
-								id="operate_inner_{{item.service_id}}"></i>
-						</button>
-						<button class="btn btn-primary"
-							onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">
-							<i class="fa fa-gear"></i>
-						</button>
+							id="operate_{{item.service_id}}">关闭
+							<!-- <i class="fa fa-power-off " id="operate_inner_{{item.service_id}}"></i> -->
+						<!--
+						</button><button class="greenbtn" onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">设置</button>
+					</td>
+					-->
+				</tr>
+				{% endfor %}
+
+				{% for item in unsorted_service_list %}
+				<tr id="panel">
+					<td>
+						<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>
+					</td>
+					<td id="service_memory_{{item.service_id}}">-</td>
+					<td id="service_status_{{item.service_id}}"><span>未知</span></td>
+					<td>
+						{{item.group_name}}
+					</td>
+					<td>{{item.service_type}}</td>
+					<td>
+						{% if item.category == "application" %}
+						{{item.deploy_version}}
+						{% else %}
+						{{item.version}}
+						{% endif %}
 					</td>
 				</tr>
 				{% endfor %}
 			</tbody>
 		</table>
-		<div class="gearboxtop" style="margin-top: 10px;">
-		<a href="/apps/{{tenantName}}/service-entrance/" class="btn btn-shadow btn-success">
-			<i class="dcjq-icon"></i>
-			新建应用</a>
-
-	</div>
+		<div class="newapp-btn">
+			<a href="/apps/{{tenantName}}/service-entrance/" class="greenbtn">新建应用</a>
+		</div>
 	</section>
 	<script>
 	    function checkStatus(){
@@ -240,55 +193,59 @@
 		    		  	  for(var o in dataObj){
 			    		  	  var obj=dataObj[o]
 			    		  	  if(obj["status"]=="running"){
-			    		  		 $("#service_status_"+o).html("运行中")
-			    		  		 $("#service_status_"+o).attr("class","label label-success label-mini")
-			    		  		 $("#button_"+o).attr("class","btn btn-shadow btn-info")
+			    		  		 $("#service_status_"+o).find("span").html("运行中")
+			    		  		 $("#service_status_"+o).find("span").attr("class","bggreen")
+			    		  		 $("#button_"+o).attr("class","greenbtn")
 			    		  		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
-			    		  		 $("#operate_"+o).attr("class","btn btn-danger")
-								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+			    		  		 $("#operate_"+o).attr("class","redbtn")
+			    		  		 $("#operate_"+o).html("关闭");
+								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
 								 $("#operate_"+o).attr("data"+o,"stop")	
 							  }else if(obj["status"]=="starting"){
-                                 $("#service_status_"+o).html("启动中")
-                                 $("#service_status_"+o).attr("class","label label-success label-mini")
-                                 $("#button_"+o).attr("class","btn btn-shadow btn-info")
+                                 $("#service_status_"+o).find("span").html("启动中")
+                                 $("#service_status_"+o).find("span").attr("class","bggray")
+                                 $("#button_"+o).attr("class","greenbtn")
                                  $("#button_"+o).removeAttr("disabled")
                                  $("#operate_"+o).removeAttr("disabled")
-                                 $("#operate_"+o).attr("class","btn btn-danger")
-                                 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+                                 $("#operate_"+o).attr("class","redbtn")
+			    		  		 $("#operate_"+o).html("关闭");
+                                 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
                                  $("#operate_"+o).attr("data"+o,"stop") 
 					    	  }else if(obj["status"]=="unusual"){
-					    		 $("#service_status_"+o).html("运行异常")
-					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")
-					    		 $("#button_"+o).removeAttr("disabled")
-			    		  		 $("#operate_"+o).removeAttr("disabled")
-			    		  		 $("#operate_"+o).attr("class","btn btn-danger")
-								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+					    		 $("#service_status_"+o).find("span").html("运行异常")
+					    		 $("#service_status_"+o).find("span").attr("class","bggray")
+					    		 $("#button_"+o).removeAttr("disabled");
+			    		  		 $("#operate_"+o).removeAttr("disabled");
+			    		  		 $("#operate_"+o).attr("class","redbtn");
+			    		  		 $("#operate_"+o).html("关闭");
+								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
 						      }else if(obj["status"]=="closed" || obj["status"]=="owed" || obj["status"]=="expired"){
-					    		 $("#service_status_"+o).html("已关闭")
+					    		 $("#service_status_"+o).find("span").html("已关闭")
 					    		 if(obj["status"]=="closed"){
-					    			 $("#service_status_"+o).html("已关闭")
+					    			 $("#service_status_"+o).find("span").html("已关闭")
 								 }else{
-				    		  		 $("#service_status_"+o).html("余额不足已关闭")
+				    		  		 $("#service_status_"+o).find("span").html("余额不足已关闭")
 				    		  	 }
-					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")			    		 
+					    		 $("#service_status_"+o).find("span").attr("class","bgred")		    		 
 					    		 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).removeAttr("disabled")
-					    		 $("#operate_"+o).attr("class","btn btn-success")
-								 $("#operate_inner_"+o).attr("class","fa fa-play")
-								 $("#operate_"+o).attr("class","btn btn-success")
-								 $("#operate_inner_"+o).attr("class","fa fa-play")
+					    		 $("#operate_"+o).attr("class","greenbtn");
+					    		 $("#operate_"+o).html("启动");
+								 //$("#operate_inner_"+o).attr("class","fa fa-play")
 								 $("#operate_"+o).attr("data"+o,"restart")
 						      }else if(obj["status"]=="undeploy"){
-						    	 $("#service_status_"+o).html("未部署")	
-						    	 $("#service_status_"+o).attr("class","label label-info label-mini")				    		 
+						    	 $("#service_status_"+o).find("span").html("未部署")	
+						    	 $("#service_status_"+o).find("span").attr("class","bggray")				    		 
 						    	 $("#button_"+o).removeAttr("disabled")
 						    	 $("#operate_"+o).attr('disabled',"true")
-						    	 $("#operate_"+o).attr("class","btn btn-danger")
-								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+						    	 $("#operate_"+o).attr("class","redbtn");
+			    		  		 $("#operate_"+o).html("关闭");
+						    	 //$("#operate_"+o).attr("class","btn btn-danger")
+								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
 						      }else{
-						    	 $("#service_status_"+o).html("未知")
-						    	 $("#service_status_"+o).attr("class","label label-warning label-mini")
+						    	 $("#service_status_"+o).find("span").html("未知")
+						    	 $("#service_status_"+o).find("span").attr("class","bggray")
 						    	 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).attr('disabled',"true")
 							  }
@@ -315,27 +272,31 @@
    		    		  },  
    		    	  	  success: function(msg) {
    		    	  		  var dataObj=msg;
-   		    	  		  totalM =0; 
+   		    	  		  totalM =0;
    		    	  		  var service_ids = dataObj["service_ids"]
 		    		  	  for(var i=0;i< service_ids.length;i++){
 		    		  		  var o = service_ids[i]
-			    		  	  running_memory = 0
 			    			  if(dataObj[o+"_running_memory"] != undefined){
 			    				  running_memory = dataObj[o+"_running_memory"]
 			    			  }
-			    			  storage_memory = 0
+						  else{
+							  running_memory = 0;
+						  }
 			    			  if(dataObj[o+"_storage_memory"] != undefined){
 			    			      storage_memory = dataObj[o+"_storage_memory"]
 			    			  }
-			    			  if($("#service_status_"+o).html() == "运行中"){
+						  else{
+							  storage_memory = 0;
+						  }
+			    			  if($("#service_status_"+o).find("span").html() == "运行中"){
 			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
-			    				 totalM = totalM + running_memory + storage_memory
-			    			  }else if($("#service_status_"+o).html() == "部署中"){
+			    				 totalM = totalM + running_memory + storage_memory;
+			    			  }else if($("#service_status_"+o).find("span").html() == "部署中"){
 			    				 $("#service_memory_"+o).html((running_memory + storage_memory)+"M")
-			    				 totalM = totalM + running_memory + storage_memory
+			    				 totalM = totalM + running_memory + storage_memory;
 			    			  }else{
-			    				 $("#service_memory_"+o).html(storage_memory+"M")
-			    				 totalM = totalM + storage_memory
+			    				 $("#service_memory_"+o).html(storage_memory+"M");
+			    				 totalM = totalM + storage_memory;
 			    			  }
 			    		   }
 		    		  	   $("#service_total_memory").html(totalM+"M")

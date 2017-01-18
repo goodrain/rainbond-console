@@ -26,21 +26,51 @@
 				<option value="-1">未分组</option>
 			</select>
 			-->
-			{% if group_id != -1  %}
-			<a href="javascript:;" id="revise-groupname" class="btn btn-success">修改组名</a>
-			<a href="javascript:;" id="reomve-groupname" class="btn btn-danger">删除当前组</a>
-			{% endif %}
-			<a href="javascript:;" id="add-groupname" class="btn btn-success">新增组</a>
+			
 			<!--
 			<p class="pull-right search-icon"><input type="text" name="" value="" id="search"></p>
 			-->
-			<p class="pull-right"><a href="javascript:;" id="imgbtn" class="imgbtn sed"></a><a href="javascript:;" id="tabbtn" class="tabbtn"></a></p>
+			<!--
+			<div class="group-btn-box">
+				<p class="group-btn">
+					<a href="javascript:;" id="imgbtn" class="imgbtn sed"></a>
+					<a href="javascript:;" id="tabbtn" class="tabbtn"></a>
+					<a href="javascript:;" id="setbtn" class="setbtn"></a>
+				</p>
+				<p class="group-set-box">
+					{% if group_id != -1  %}
+					<a href="javascript:;" id="revise-groupname">修改组名</a>
+					<a href="javascript:;" id="reomve-groupname">删除当前组</a>
+					{% endif %}
+					<a href="javascript:;" id="add-groupname">新增组</a>
+				</p>
+			</div>
+			-->
+			{% if group_id != -1  %}
+			<div class="group-btn-box">
+				<p class="group-btn">
+					<a href="javascript:;" id="imgbtn" class="imgbtn sed"></a>
+					<a href="javascript:;" id="tabbtn" class="tabbtn"></a>
+					<a href="javascript:;" id="setbtn" class="setbtn"></a>
+				</p>
+				<p class="group-set-box">
+					<span class="uparrow"></span>
+					<span class="uparrowinner"></span>
+					<a href="javascript:;" id="revise-groupname">修改组名</a>
+					<a href="javascript:;" id="reomve-groupname">删除当前组</a>
+					<a href="javascript:;" id="add-groupname">新增组</a>
+				</p>
+			</div>
+			{% else %}
+			<a href="javascript:;" id="add-groupname" class="pull-right greenbtn">新增组</a>
+			{% endif %}
+			<!-- -->
 		</div>
 		<!-- top 结束 -->
 		<!-- biaoge start -->
-		<section id="tabBox" class="tab-box" style="display: none;">
+		<section id="tabBox" class="content-tab" style="display: none;">
 			<!-- tab start -->
-			<table class="table table-striped table-hover">
+			<table>
 				<thead>
 					<tr>
 						<th class="bs-checkbox fn-SelectAll"><input type="checkbox" name="SelectAll" value=""></th>
@@ -50,7 +80,7 @@
 						<th>分组</th>
 						<th>内存</th>
 						<th>状态</th>
-						<th><i class="fa fa-edit"></i> 操作</th>
+						<th>操作</th>
 					</tr>
 				</thead>
 				<tbody id="tab-box">
@@ -63,7 +93,7 @@
 						<!-- 应用名  -->
 						<td>
 							<h4>
-								<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/">{{item.service_cname}}</a>
+								<a href="/apps/{{tenantName}}/{{item.service_alias}}/detail/" style="color:#28cb75; font-size: 16px;">{{item.service_cname}}</a>
 							</h4>
 						</td>
 						<!-- 版本 -->
@@ -108,28 +138,25 @@
 						<td id="service_memory_{{item.service_id}}">0M</td>
 						<!-- 状态 -->
 						<td>
-							<span class="label label-success label-mini"
-							id="service_status_{{item.service_id}}">未知</span>
+							<span id="service_status_{{item.service_id}}">未知</span>
 						</td>
 						<!-- 操作 -->
 						<td>
 							{% if item.category == "application" %}
-							<button type="button" class="btn btn-shadow btn-info "
+							<button type="button" class="btn greenbtn"
 								id="button_{{item.service_id}}"
 								onclick="service_oneKeyDeploy('application','{{item.service_alias}}','{{tenantName}}','no');">
-								<i class="fa fa-refresh"></i>部署
+								部署
 							</button>
 							{% endif %}
-							<button class="btn btn-danger" data{{item.service_id}}="0"
+							<button class="btn redbtn" data{{item.service_id}}="0"
 								onclick="service_my_onOperation('{{item.service_id}}','{{item.service_alias}}','{{tenantName}}');"
 								id="operate_{{item.service_id}}">
-								<i class="fa fa-power-off "
-									id="operate_inner_{{item.service_id}}"></i>
+								<i id="operate_inner_{{item.service_id}}">关闭</i>
 							</button>
-							<button class="btn btn-primary"
-								onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">
-								<i class="fa fa-gear"></i>
-							</button>
+							<!--
+							<button class="btn  greenbtn" onclick="window.location.href=href='/apps/{{tenantName}}/{{item.service_alias}}/detail/' ">设置</button>
+							-->
 						</td>
 					 </tr>
 					{% endfor %}
@@ -139,15 +166,15 @@
 			<!-- Mass deployment Start -->
 			<div class="clearfix numbers-box" id="nums-app">
 				<p id="app-numbers">已选择<span>0</span>个应用</p>
-				<button id="batchStart" class="btn btn-success">批量启动</button>
-				<button id="batchEnd" class="btn btn-danger">批量停止</button>
-				<button id="newStart" class="btn btn-info">批量重新部署</button>
+				<button id="batchStart" class="btn greenbtn">批量启动</button>
+				<button id="batchEnd" class="btn redbtn">批量关闭</button>
+				<button id="newStart" class="btn greenbtn">批量重新部署</button>
 			</div>
 			<!-- Mass deployment End-->
 		</section>
 		<!-- biaoge end-->
 		<!-- tu start -->
-		<section id="imgBox" class="img-box">
+		<section id="imgBox" class="content-tab">
 			<div id="svg-box"></div>
 		</section>
 		<!-- tu end -->
@@ -173,29 +200,35 @@
 			    		  	  var obj=dataObj[o]
 			    		  	  if(obj["status"]=="running"){
 			    		  		 $("#service_status_"+o).html("运行中")
-			    		  		 $("#service_status_"+o).attr("class","label label-success label-mini")
-			    		  		 $("#button_"+o).attr("class","btn btn-shadow btn-info")
+			    		  		 //$("#service_status_"+o).attr("class","label label-success label-mini")
+			    		  		 //$("#button_"+o).attr("class","btn btn-shadow btn-info")
 			    		  		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
-			    		  		 $("#operate_"+o).attr("class","btn btn-danger")
-								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+			    		  		 //$("#operate_"+o).attr("class","btn btn-danger")
+								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
+								 $("#operate_"+o).attr("class","btn redbtn")
+								 $("#operate_inner_"+o).html("关闭");
 								 $("#operate_"+o).attr("data"+o,"stop")	
 							  }else if(obj["status"]=="starting"){
                                  $("#service_status_"+o).html("启动中")
-                                 $("#service_status_"+o).attr("class","label label-success label-mini")
-                                 $("#button_"+o).attr("class","btn btn-shadow btn-info")
+                                 //$("#service_status_"+o).attr("class","label label-success label-mini")
+                                 //$("#button_"+o).attr("class","btn btn-shadow btn-info")
                                  $("#button_"+o).removeAttr("disabled")
                                  $("#operate_"+o).removeAttr("disabled")
-                                 $("#operate_"+o).attr("class","btn btn-danger")
-                                 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+                                 //$("#operate_"+o).attr("class","btn btn-danger")
+                                 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
+                                 $("#operate_"+o).attr("class","btn redbtn")
+								 $("#operate_inner_"+o).html("关闭");
                                  $("#operate_"+o).attr("data"+o,"stop") 
 					    	  }else if(obj["status"]=="unusual"){
 					    		 $("#service_status_"+o).html("运行异常")
-					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")
+					    		 //$("#service_status_"+o).attr("class","label label-danger label-mini")
 					    		 $("#button_"+o).removeAttr("disabled")
 			    		  		 $("#operate_"+o).removeAttr("disabled")
-			    		  		 $("#operate_"+o).attr("class","btn btn-danger")
-								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+			    		  		 //$("#operate_"+o).attr("class","btn btn-danger")
+								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
+								 $("#operate_"+o).attr("class","btn redbtn")
+								 $("#operate_inner_"+o).html("关闭");
 						      }else if(obj["status"]=="closed" || obj["status"]=="owed" || obj["status"]=="expired"){
 					    		 $("#service_status_"+o).html("已关闭")
 					    		 if(obj["status"]=="closed"){
@@ -203,24 +236,28 @@
 								 }else{
 				    		  		 $("#service_status_"+o).html("余额不足已关闭")
 				    		  	 }
-					    		 $("#service_status_"+o).attr("class","label label-danger label-mini")			    		 
+					    		 //$("#service_status_"+o).attr("class","label label-danger label-mini")			    		 
 					    		 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).removeAttr("disabled")
-					    		 $("#operate_"+o).attr("class","btn btn-success")
-								 $("#operate_inner_"+o).attr("class","fa fa-play")
-								 $("#operate_"+o).attr("class","btn btn-success")
-								 $("#operate_inner_"+o).attr("class","fa fa-play")
+					    		 //$("#operate_"+o).attr("class","btn btn-success")
+								 //$("#operate_inner_"+o).attr("class","fa fa-play")
+								 //$("#operate_"+o).attr("class","btn btn-success")
+								 //$("#operate_inner_"+o).attr("class","fa fa-play")
+								 $("#operate_"+o).attr("class","btn greenbtn")
+								 $("#operate_inner_"+o).html("启动");
 								 $("#operate_"+o).attr("data"+o,"restart")
 						      }else if(obj["status"]=="undeploy"){
 						    	 $("#service_status_"+o).html("未部署")	
-						    	 $("#service_status_"+o).attr("class","label label-info label-mini")				    		 
+						    	 //$("#service_status_"+o).attr("class","label label-info label-mini")				    		 
 						    	 $("#button_"+o).removeAttr("disabled")
 						    	 $("#operate_"+o).attr('disabled',"true")
-						    	 $("#operate_"+o).attr("class","btn btn-danger")
-								 $("#operate_inner_"+o).attr("class","fa fa-power-off")
+						    	 //$("#operate_"+o).attr("class","btn btn-danger")
+								 //$("#operate_inner_"+o).attr("class","fa fa-power-off")
+								 $("#operate_"+o).attr("class","btn redbtn")
+								 $("#operate_inner_"+o).html("关闭");
 						      }else{
 						    	 $("#service_status_"+o).html("未知")
-						    	 $("#service_status_"+o).attr("class","label label-warning label-mini")
+						    	 //$("#service_status_"+o).attr("class","label label-warning label-mini")
 						    	 $("#button_"+o).attr('disabled',"true")
 						    	 $("#operate_"+o).attr('disabled',"true")
 							  }

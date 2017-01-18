@@ -1,6 +1,6 @@
 <!-- start -->
-        <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
-            <h3>消费详情</h3>
+        <div id="example_wrapper" class="content-tab" role="grid">
+            <h2 class="tit-two">消费详情</h2>
             {% for region, consume_details in details.iteritems %}
             <p>数据中心:
                 {% if region == "xunda-bj" %}
@@ -15,7 +15,7 @@
             </p>
 
             <!--<table class="table table-striped table-advance table-hover">-->
-            <table  class="consume_detail" style="width: 100%;">
+            <table  style="width: 100%;">
                 
                 <thead>
                 <tr>

@@ -1,0 +1,72 @@
+{% extends 'share/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% block main-content %}
+<div role="tabpanel" class="tab-pane active">
+    <section class="wrapper site-min-height">
+
+        <h3>配置说明</h3>
+
+
+        <h4>目前支持的配置 示例如下:</h4>
+
+        <p><strong>GITLAB_SERVICE_API：</strong></p>
+
+<pre><code>
+GITLAB_SERVICE_API = {
+    'url': 'http://example.example.com/',
+    'admin_user': 'user',
+    'admin_email': 'app@example.com',
+    'admin_password': 'example_password',
+    'apitype': 'gitlab service',
+    'hook_url': 'https://user.goodrain.com/service/gitlabhook/',
+}
+</code></pre>
+
+        <p><strong>GITHUB_SERVICE_API：</strong></p>
+
+<pre><code>
+GITHUB_SERVICE_API = {
+    'client_id': 'abcefghiaosdiejaksd2332',
+    'redirect_uri': 'https://example.example.com/oauth/githup',
+    'client_secret': '25b99d1d03323dd540eb25b99d1d03323dd540eb',
+}
+</code></pre>
+
+        <p><strong>TITLE：</strong></p>
+
+<pre><code>TITLE='GOODRAIN'
+</code></pre>
+
+        <p><strong>LOGO：</strong></p>
+
+
+        <br>
+        <br>
+        <hr style="height:1px;border:none;border-top:1px solid #555555;" />
+        <h3>Tips</h3>
+        <p>
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            GITHUB_SERVICE_API、GITLAB_SERVICE_API 配置类型为 json <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            TITLE为 string
+        </p>
+        <br>
+        <h3>示例图</h3>
+        <div>
+            <img src="/static/admin/img/config-manage.png" width="90%" />
+        </div>
+    </section>
+</div>
+
+
+<script>
+    $(document).ready(function () {
+
+    });
+
+</script>
+
+{% endblock %}
+
+

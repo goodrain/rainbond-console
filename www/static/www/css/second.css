@@ -1,0 +1,30 @@
+/* ww 2017-1-5 */
+
+/* 总揽 css */
+.overall {margin: 15px 0 30px;}
+.overall ul{margin: 0 -10px;}
+.overall ul li{width: 25%; float: left;}
+.overall ul li div{margin:0 10px; background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:20px;}
+.overall ul li div p:nth-child(1){color:#303030; font-size:16px; line-height: 20px; margin:0; color: #838383;}
+.overall ul li div p:nth-child(2){width: 60px; height: 60px; margin:20px auto;}
+.overall ul li div p:nth-child(3){color:#303030; font-size:24px; line-height: 30px; margin:0; text-align: center;}
+.mainbg01{background: url('../images/main01.png') no-repeat; background-size: 60px 60px;}
+.mainbg02{background: url('../images/main02.png') no-repeat; background-size: 60px 60px;}
+.mainbg03{background: url('../images/main03.png') no-repeat; background-size: 60px 60px;}
+.mainbg04{background: url('../images/main04.png') no-repeat; background-size: 60px 60px;}
+
+.main-tab-box{background: #fff; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin-bottom: 30px;}
+.main-tab-box table{width: 100%;}
+.main-tab-box table thead th{background: #f7f7f7; height: 40px; color: #303030; padding-left: 10px; font-weight: 100; font-size: 16px; text-align: left;}
+.main-tab-box table tbody td{height: 60px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; border-bottom: 1px #f7f7f7 solid; font-weight: 0;}
+.main-tab-box table tbody td a{color: #28cb75; font-size: 16px; font-weight: 200;}
+
+.newapp-btn{margin:30px 0 0 0;}
+.greenbtn{height: 30px; line-height: 30px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #28cb75;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
+.greenbtn:link,.greenbtn:hover,.greenbtn:active,.greenbtn:visited{color: #fff;}
+.redbtn{height: 30px; line-height: 30px; color: #fff; padding:0 30px; margin:0 10px 0 0; display: inline-block; background: #f63a47;  font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px;  border-radius:6px; border:0;}
+.redbtn:link,.redbtn:hover,.redbtn:active,.redbtn:visited{color: #fff;}
+
+.bggray{padding:5px 5px; background: #838383; color: #fff;}
+.bggreen{padding:5px 5px; background: #28cb75; color: #fff;}
+.bgred{padding:5px 5px; background: #f63a47; color: #fff;}

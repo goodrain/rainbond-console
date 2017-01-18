@@ -30,6 +30,7 @@ app_pay_choices = (
     (u'免费', "free"), (u'付费', "pay")
 )
 
+pay_method = ((u'预付费提前采购',"prepaid"),(u'按使用后付费',"postpaid"))
 
 def compose_file_path(instance, filename):
     suffix = filename.split('.')[-1]
@@ -437,7 +438,8 @@ class TenantServiceInfo(BaseModel):
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
-    
+    expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
+
     def __unicode__(self):
         return self.service_alias
     
@@ -529,6 +531,7 @@ class TenantServiceInfoDelete(BaseModel):
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
+    expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
 
 
 class TenantServiceLog(BaseModel):
@@ -859,6 +862,7 @@ class ImageServiceRelation(BaseModel):
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     image_url = models.CharField(max_length=100, help_text=u"镜像地址")
+    service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
 
 
 class ComposeServiceRelation(BaseModel):
@@ -906,3 +910,28 @@ class ServiceRuleHistory(BaseModel):
     trigger_time = models.CharField(help_text=u"触发时间")
     action = models.CharField(max_length=10, help_text=u"触发动作")
     message = models.CharField(help_text=u"描述")
+
+class ServiceAttachInfo(BaseModel):
+    """应用配套信息"""
+    class Meta:
+        db_table = 'service_attach_info'
+
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    memory_pay_method = models.CharField(max_length=32, choices=pay_method)
+    disk_pay_method = models.CharField(max_length=32, choices=pay_method)
+    min_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=128)
+    min_node = models.IntegerField(help_text=u"节点个数", default=1)
+    disk = models.IntegerField(help_text=u'磁盘大小')
+    pre_paid_period = models.IntegerField(help_text=u"预付费项目购买时长(单位:月)", default=0)
+    pre_paid_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"预付费金额")
+    buy_start_time = models.DateTimeField(help_text=u"购买开始时间")
+    buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+
+class ServiceCreateStep(BaseModel):
+    class Meta:
+        db_table = 'service_create_step'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    app_step = models.IntegerField(default=1, help_text=u"创建应用的步数")

@@ -38,7 +38,7 @@ body.stop-scrolling {
       left: 15px;
       right: 15px; } }
   .sweet-alert h2 {
-    color: #575757;
+    color: #303030;
     font-size: 30px;
     text-align: center;
     /*font-weight: 600;*/
@@ -162,11 +162,11 @@ body.stop-scrolling {
     color: white;
     border: none;
     box-shadow: none;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 500;
-    padding: 10px 32px;
+    padding: 0 30px;
     margin: 26px 5px 0 5px;
-    cursor: pointer; }
+    cursor: pointer;  line-height: 36px;}
     .sweet-alert button:focus {
       outline: none;
       box-shadow: 0 0 2px rgba(128, 179, 235, 0.5), inset 0 0 0 1px rgba(0, 0, 0, 0.05); }

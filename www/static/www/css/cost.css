@@ -1,0 +1,84 @@
+/*ljh 2016-12-09*/
+/*两个表格部分*/
+table{
+    width: 100%;
+    border-collapse: collapse;
+    color: #838383;
+}
+
+/*表格中的a标签交互样式*/
+table a:link{
+    color: #28cb75;
+   
+}
+table a:hover{
+    cursor: pointer;
+}
+/*表格th的大小与背景色*/
+table th{
+    background-color: #f7f7f7;
+    font-size: 16px;
+    color: #303030;
+    height: 40px;
+    text-align: center;
+    font-weight: 100;
+}
+/*表格td的大小60px与颜色*/
+table td{
+   
+    background-color: #ffffff;
+    color: #838383;
+    font-size: 14px;
+    height: 60px;
+
+}
+.cost{
+    overflow: hidden;
+}
+.cost table tfoot tr{ border-left: 0 none;  border-right: 0 none; }
+.cost table tr td:first-child{padding-left: 20px;}
+/*计费方式表格*/
+.cost-fun{
+    padding:30px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+
+
+/*layer start */
+.layer-body-bg{ width: 100%; height: 100%; background: rgba(0, 0, 0,.6); position: fixed; top: 0; left: 0; bottom: 0; z-index: 1100;  display: none;}
+.layer-body{width:80%;  background: #fff;   max-width: 600px; position: absolute; z-index: 1101; top: 50%; left: 50%; height: 400px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; margin:-200px 0 0 -300px; padding:20px;}
+.layer-body .layer-tit{ color: #303030; line-height: 40px; background: #f7f7f7;  font-size: 16px; margin:0 0 10px 0; height: 40px; padding-left: 20px;}
+.layer-body .layer-tit-lit{ color: #303030; line-height: 30px;  font-size: 16px;}
+.del{width: 24px; height: 24px; background: #fff; position: absolute; border-radius:50%; -webkit-border-radius:50%; -moz-border-radius:50%; top: -50px; right: -50px; font-size: 18px; line-height: 24px; text-align: center; color: #474747;}
+.layer-height-overflow{height:150px; overflow-y:auto;}
+/*layer end */
+
+.chooseFun,.chooseLarge,.chooseData,.endDate{ width: 100%;  position: relative; display: none; }
+.chooseFun{height:300px}
+.chooseLarge{height:300px}
+.chooseData{height:300px}
+.endDate{height:200px}
+
+p.bottom {text-align: right; padding: 20px 0;}
+p.bottom button{outline: none; border:none; text-align: center; border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; height: 30px; padding:0px 20px; line-height: 30px; display: inline-block; margin:0 10px;}
+p.bottom button.sure{ background-color: #28cb75; color: #ffffff;}
+p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; color: #303030; }
+
+.infor-fm-box{ padding: 10px 0; }
+.infor-fm-box label{margin:0;width: 20%; color: #838383; font-size: 14px; float: left; display: inline-block; text-align: right; line-height: 30px; font-weight: 100;}
+.fm-input-range input{width: 100%; height: 26px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range span{width: 20%; float: left; display: inline-block; font-size: 14px; line-height: 30px; padding-left: 5px; color: #303030;}
+.fm-input-range .range-box{width: 60%; height: 20px;  float: left; display: block; margin-top: 2px; margin-bottom: 0; position: relative;}
+.fm-input-range .range-box .renge-bg{width:100%; height: 10px; background: #f9f9f9; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; position: absolute;z-index: 1; left: 0; top: 8px; display: block;}
+.fm-input-range .range-box .range-choose{width:100%; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
+.fm-input-range .range-box .range-choose cite{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; display: block;}
+
+.fm-input-range  .range-box.nouser input{width:20%; height: 20px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range  .range-box.nouser .range-choose{width:20%; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}
+.fm-input-range  .range-box.nouser02 input{width:20px; height: 20px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
+.fm-input-range  .range-box.nouser02 .range-choose{width:20px; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 8px; display: block;}

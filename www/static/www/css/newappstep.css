@@ -1,0 +1,92 @@
+/* ww - 2016-12-26 */
+
+/* 新建应用 */
+.app-step{margin:50px auto 20px; width: 60%;}
+.app-step p{width: 25%; float: left; height: 80px; text-align: center;}
+.app-step p span,.app-step p cite{display: inline-block;}
+.app-step p span{background: #c7c7c7; width: 36px; height: 36px;  font-size: 24px; line-height: 36px; text-align: center; -moz-border-radius:36px; -webkit-border-radius:36px; border-radius:36px; color: #fff;}
+.app-step p cite{width: 100%; text-align: center; color: #838383; font-size: 16px; line-height: 1; padding-top: 10px;}
+.app-step p.sed span{background: #00d777;}
+.app-step p.sed cite{color: #00d777;}
+.step-tit{color: #838383; font-size:18px; text-align: center;}
+.app-step.two p{width: 50%;} 
+.app-step.three p{width: 33%;} 
+
+#waiting{max-width:80%; margin: 0 auto; text-indent: 160px;}
+#Githubbox{display: none;}
+#gitlabbox{display: none;}
+
+.price-box{display: none;}
+
+.mainbox{width: 100%; min-height: 400px; }
+.second-tips{font-size: 18px; line-height: 100px; text-align: center;}
+.seconbtn{margin:30px 20px 0; border: 0 none;}
+
+.second-tit{text-align: center; font-size: 28px; line-height: 50px; color: #28cb75; margin-top:30px;}
+.second-tips-loading{width: 90%; max-width: 600px; margin:30px auto 30px; text-align: center;}
+.second-tips-loading span{color: #838383; font-size: 14px; line-height: 20px; text-align: center; width: 100%; display:block; }
+.second-tips-loading span cite{color: #303030;}
+
+input.add_port{width:75px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px;}
+select.add_http{width: 125px; height: 28px; border:1px #d5d5d5 solid;}
+.port td select{width: 125px; height: 28px; border:1px #d5d5d5 solid; color: #28cb75;}
+
+.openAdd{color: #fff; background: #28cb75; font-size: 14px; line-height: 30px; display: inline-block; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; height: 30px;  padding:0 30px; margin: 0 auto; cursor: pointer;}
+button.addDepend{color: #fff; background: #28cb75; font-size: 14px; line-height: 30px; display: inline-block; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; height: 30px;  padding:0 30px; border: 0 none;}
+p.blockBottom{width: 100%; text-align: center;}
+.blockBottom button{display: inline-block; color: #fff; background: #28cb75; font-size: 14px; line-height: 30px; display: inline-block; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; height: 30px;  padding:0 30px; border: 0 none; margin:0 10px;}
+
+.contentBlock{border:1px solid #f7f7f7; padding: 20px;}
+.contentBlock b{font-weight: 100; color: #303030;}
+.contentBlock .tips{text-indent: 30px; color: #838383; line-height: 20px; margin:10px 0;}
+
+.openAddEnviroment{color: #fff; background: #28cb75; font-size: 14px; line-height: 30px; display: inline-block; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius: 6px; height: 30px;  padding:0 30px;cursor: pointer}
+
+p.next{text-align: center; margin-top: 20px;}
+p.next button.submit{background:#28cb75; color: #fff;  border:none;  border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; font-size: 14px; height: 40px; width: 100px; line-height: 40px; text-align: center; display: inline-block;}
+
+p.catalogue{ display: none; margin-bottom: 10px;  margin-left: 30px;}
+input.catalogueContent{width:200px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px; margin: 0 10px;}
+.addContent td input{width:100px; color: #303030; height: 28px; border:1px #d5d5d5 solid; line-height: 28px;}
+.contentBlock ul{padding:10px 30px;}
+
+.contentBlock ul li{width: 100%; min-width: 150px; margin-bottom: 10px;}
+.contentBlock li a{color: #303030; padding-right: 5px;}
+.contentBlock em{ color: #303030; padding-right: 10px;}
+
+.depend,.applicationMes,.otherApp{ width: 100%; height: 100%;  position: relative; display: none; }
+
+
+ p.bottom {text-align: right; padding: 20px 0;}
+ p.bottom button{outline: none; border:none; text-align: center; border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; height: 30px; padding:0px 20px; line-height: 30px; display: inline-block; margin:0 10px;}
+ p.bottom button.sure{ background-color: #28cb75; color: #ffffff;}
+ p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; color: #303030; }
+
+
+table.tab-box td.openAdd,table.tab-box td.openAddEnviroment{text-align: center;}
+
+ .depend ul.clearfix li{float: left;  width: 50%;}
+ .depend ul.clearfix li input{}
+ .depend ul.clearfix li .cho-text{line-height: 30px; margin-bottom: 0;}
+
+.applicationMes ul li{width: 33%; float: left; }
+.applicationMes p{ font-size: 12px;}
+
+
+.checkTip{
+ color: #ea1616;
+ display: none;
+}
+.outerTip{
+ display: none;
+}
+
+
+
+
+
+
+
+
+
+

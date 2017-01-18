@@ -1,12 +1,12 @@
 import os
 
-DEBUG = False
+DEBUG = os.environ.get('DEBUG') or False
 
-TEMPLATE_DEBUG = False
+TEMPLATE_DEBUG = os.environ.get('TEMPLATE_DEBUG') or False
 
 ZMQ_LOG_ADDRESS = 'tcp://10.0.1.11:9341'
 
-DEFAULT_HANDLERS = ['zmq_handler']
+DEFAULT_HANDLERS = [os.environ.get('DEFAULT_HANDLERS') or 'zmq_handler']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
@@ -160,6 +160,7 @@ MODULES = {
     "Docker_Console": False,
     "Publish_YunShi": True,
     "Publish_Service": False,
+    "Privite_Github": False,
 }
 
 REGIONS = (

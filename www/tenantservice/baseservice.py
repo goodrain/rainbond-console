@@ -649,6 +649,10 @@ class TenantUsedResource(object):
                 if tm <= tenant.limit_memory:
                     result = True
             elif tenant.pay_type == "payed":
+                # result = True
+                # # 租户欠费时无法创建
+                # if tenant.balance < 0:
+                #     rt_type = 'money'
                 tm = self.calculate_real_used_resource(tenant) + newAddMemory
                 guarantee_memory = self.calculate_guarantee_resource(tenant)
                 logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
@@ -692,9 +696,18 @@ class TenantAccountService(object):
                 return True
         return False
 
-    def isExpired(self, tenant):
-        if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
-            return True
+    # def isExpired(self, tenant):
+    #     if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
+    #         return True
+    #     return False
+
+    def isExpired(self, tenant, service):
+        if service.expired_time is not None:
+            if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
+                return True
+        else:
+            # 将原有免费用户的服务设置为7天后
+            service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
         return False
 
     def get_monthly_payment(self, tenant, region_name):
@@ -716,17 +729,17 @@ class TenantAccountService(object):
 
         return flag
 
-    def isCloseToMonthlyExpired(self, tenant, region_name):
-        tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
-        if len(tenant_region_pay_list) == 0:
-            return False
-        tag = 1
-        for pay_model in tenant_region_pay_list:
-            if pay_model.buy_end_time > datetime.datetime.now():
-                timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
-                if timedelta > 0 and timedelta < 3:
-                    return True
-        return False
+    # def isCloseToMonthlyExpired(self, tenant, region_name):
+    #     tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
+    #     if len(tenant_region_pay_list) == 0:
+    #         return False
+    #     tag = 1
+    #     for pay_model in tenant_region_pay_list:
+    #         if pay_model.buy_end_time > datetime.datetime.now():
+    #             timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
+    #             if timedelta > 0 and timedelta < 3:
+    #                 return True
+    #     return False
 
 
 class TenantRegionService(object):
@@ -815,7 +828,10 @@ class CodeRepositoriesService(object):
             gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
         elif parsed_git_url.host == 'github.com':
             createUser = Users.objects.get(user_id=service.creater)
-            gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.github_token)
+            if settings.MODULES.get('Privite_Github', True):
+                gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
+            else:
+                gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.github_token)
         else:
             gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
         data["git_url"] = gitUrl

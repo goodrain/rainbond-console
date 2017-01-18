@@ -12,19 +12,25 @@
 {% block main-content %}
 <section class="wrapper site-min-height">
      <!-- -->
-      
-     <header class="panel-heading tab-bg-dark-navy-blue ">
+      <p><span style="font-size: 22px; font-weight: 200; line-height: 30px; color: #28cb75; padding-top: 15px;" id="appname">{{tenantServiceInfo.service_cname}}</span></p>
+     <header class="panel-heading">
             <ul class="nav nav-tabs" id="nav-tabs">
                 <li {% if fr = "deployed" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=deployed">概览</a>
                 </li>
+                 <!--
                 {% if tenantServiceInfo.category == "application" or tenantServiceInfo.category == "manager" or tenantServiceInfo.category == "app_publish" or tenantServiceInfo.category == "app_sys_publish" %}
+                -->
                 <li {% if fr = "relations" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=relations">依赖</a>
                 </li>
+                 <!--
                 {% endif %}
+                -->
                 {% if MODULES.Monitor_Control %}
                 <li class="dropdown {% if fr == 'statistic' %} active {% endif %}">
+                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history">监控</a>
+                    <!--
                     {% if hasHttpServices or tenantServiceInfo.service_type == 'mysql' %}
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic"
                        class="dropdown-toggle" data-toggle="dropdown">监控<b class="caret"></b>
@@ -36,6 +42,7 @@
                     {% else %}
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic">监控</a>
                     {% endif %}
+                    -->
                 </li>
                 {% endif %}
                 <li {% if fr = "log" %} class="active" {% endif %}>
@@ -54,8 +61,9 @@
 
     <!-- -->
        
-    <div style="background: #fff;padding: 10px;border: 1px #d9dadb solid;">
-    <h2 class="tit">设置应用分享信息</h2>
+    
+    <h2 class="main-tit">设置应用分享信息</h2>
+    <div class="content-tab">
     <form class="form-horizontal" method="post" id="share_form"
           enctype="multipart/form-data" action="">
         {% csrf_token %}

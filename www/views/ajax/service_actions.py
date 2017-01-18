@@ -5,7 +5,7 @@ import re
 
 from django.http import JsonResponse
 
-from www.models.main import ServiceGroupRelation
+from www.models.main import ServiceGroupRelation, ServiceAttachInfo, ServiceCreateStep
 from www.views import AuthedView
 from www.decorator import perm_required
 
@@ -55,7 +55,7 @@ class AppDeploy(AuthedView):
             data["status"] = "owed"
             return JsonResponse(data, status=200)
         
-        if tenantAccountService.isExpired(self.tenant):
+        if tenantAccountService.isExpired(self.tenant, self.service):
             data["status"] = "expired"
             return JsonResponse(data, status=200)
         
@@ -135,7 +135,7 @@ class ServiceManage(AuthedView):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
         
-        if tenantAccountService.isExpired(self.tenant):
+        if tenantAccountService.isExpired(self.tenant, self.service):
             result["status"] = "expired"
             return JsonResponse(result, status=200)
         
@@ -272,6 +272,8 @@ class ServiceManage(AuthedView):
                 TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
                 ServiceGroupRelation.objects.filter(service_id=self.service.service_id,
                                                     tenant_id=self.tenant.tenant_id).delete()
+                ServiceAttachInfo.objects.filter(service_id=self.service.service_id).delete()
+                ServiceCreateStep.objects.filter(service_id=self.service.service_id).delete()
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
@@ -314,7 +316,7 @@ class ServiceUpgrade(AuthedView):
             result["status"] = "owed"
             return JsonResponse(result, status=200)
         
-        if tenantAccountService.isExpired(self.tenant):
+        if tenantAccountService.isExpired(self.tenant, self.service):
             result["status"] = "expired"
             return JsonResponse(result, status=200)
         
@@ -1274,6 +1276,10 @@ class ServiceVolumeView(AuthedView):
                             result["status"] = "failure"
                             result["code"] = "306"
                             return JsonResponse(result)
+                
+                if self.service.host_path is None or self.service.host_path == "":
+                    self.service.host_path = "/grdata/tenant/" + self.service.tenant_id + "/service/" + self.service.service_id
+                    self.service.save()
                 
                 volume_id = baseService.create_service_volume(self.service, volume_path)
                 if volume_id:

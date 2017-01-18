@@ -6,9 +6,10 @@ from django.http.response import JsonResponse
 from django.template.response import TemplateResponse
 from django.views.decorators.cache import never_cache
 
+from share.manager.region_provier import RegionProviderManager
 from www.decorator import perm_required
 from www.models.main import TenantServiceInfo, ServiceInfo, ImageServiceRelation, TenantServiceEnvVar, \
-    TenantServicesPort, TenantServiceVolume
+    TenantServicesPort, TenantServiceVolume, ServiceAttachInfo
 from www.monitorservice.monitorhook import MonitorHook
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
@@ -18,6 +19,9 @@ from www.views.base import AuthedView
 from www.views.mixin import LeftSideBarMixin
 from django.conf import settings
 import httplib2
+import datetime
+from dateutil.relativedelta import relativedelta
+from www.utils import sn
 
 logger = logging.getLogger('default')
 tenantRegionService = TenantRegionService()
@@ -26,6 +30,7 @@ tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 monitorhook = MonitorHook()
 regionClient = RegionServiceApi()
+rpmManager = RegionProviderManager()
 
 
 class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
@@ -36,6 +41,19 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
             'www/js/respond.min.js', 'www/js/app-create.js')
         return media
 
+    def get_estimate_service_fee(self, service_attach_info):
+        """根据附加信心获取服务的预估价格"""
+        total_price = 0
+        regionBo = rpmManager.get_work_region_by_name(self.response_region)
+        pre_paid_memory_price = regionBo.memory_package_price
+        pre_paid_disk_price = regionBo.disk_package_price
+        if service_attach_info.memory_pay_method == "prepaid":
+            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024 * pre_paid_memory_price
+        if service_attach_info.disk_pay_method == "prepaid":
+            total_price += service_attach_info.disk / 1024 * pre_paid_disk_price
+        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
+        return round(total_price, 2)
+
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
@@ -44,6 +62,7 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
             self.response_region = choose_region
 
         context = self.get_context()
+        context["createApp"] = "active"
         service_id = request.GET.get("id", "")
 
         try:
@@ -51,6 +70,20 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                 imags = ImageServiceRelation.objects.get(service_id=service_id)
                 context["image_url"] = imags.image_url
                 context["service_id"] = service_id
+            regionBo = rpmManager.get_work_region_by_name(self.response_region)
+            context['pre_paid_memory_price'] = regionBo.memory_package_price
+            context['post_paid_memory_price'] = regionBo.memory_trial_price
+            context['pre_paid_disk_price'] = regionBo.disk_package_price
+            context['post_paid_disk_price'] = regionBo.disk_trial_price
+            context['post_paid_net_price'] = regionBo.net_trial_price
+            # 是否为免费租户
+            context['is_tenant_free'] = (self.tenant.pay_type == "free")
+
+            context['cloud_assistant'] = sn.instance.cloud_assistant
+            context["is_private"] = sn.instance.is_private()
+            # 判断云帮是否为公有云
+            context["is_public_clound"] = sn.instance.cloud_assistant == "goodrain" and (not sn.instance.is_private())
+
         except Exception as e:
             logger.error(e)
         return TemplateResponse(self.request, "www/app_create_step_two.html", context)
@@ -59,9 +92,12 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         result = {}
+        service_id = ""
         try:
+            tenant_id = self.tenant.tenant_id
             service_id = request.POST.get("service_id", "")
             image_url = request.POST.get("image_url", "")
+            service_cname = request.POST.get("create_app_name", "")
             result["image_url"] = image_url
             if image_url != "":
                 imagesr = None
@@ -78,15 +114,80 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                 imagesr.tenant_id = self.tenant.tenant_id
                 imagesr.service_id = service_id
                 imagesr.image_url = image_url
+                imagesr.service_cname = service_cname
                 imagesr.save()
 
-                result["ok"] = True
+                # save service attach info
+                min_memory = int(request.POST.get("service_min_memory", 128))
+                # 将G转换为M
+                if min_memory < 128:
+                    min_memory *= 1024
+                min_node = int(request.POST.get("service_min_node", 1))
+
+                # judge region tenant is init
+                success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id,
+                                                              self.user)
+                if not success:
+                    result["status"] = "failure"
+                    return JsonResponse(result, status=200)
+
+                if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+                    result["status"] = "owed"
+                    return JsonResponse(result, status=200)
+
+                # calculate resource
+                tempService = TenantServiceInfo()
+                tempService.min_memory = min_memory
+                tempService.service_region = self.response_region
+                tempService.min_node = min_node
+                diffMemory = min_node * min_memory
+                rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
+                if not flag:
+                    if rt_type == "memory":
+                        result["status"] = "over_memory"
+                    else:
+                        result["status"] = "over_money"
+                    return JsonResponse(result, status=200)
+
+                memory_pay_method = request.POST.get("memory_pay_method", "prepaid")
+                disk_pay_method = request.POST.get("disk_pay_method", "prepaid")
+                pre_paid_period = int(request.POST.get("pre_paid_period", 1))
+                disk = int(request.POST.get("disk_num", 0))
+                # 将G转换为M
+                if disk < 1024:
+                    disk *= 1024
+
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                endTime = datetime.datetime.now() + relativedelta(months=int(pre_paid_period))
+                # 保存配套信息
+                sai = ServiceAttachInfo()
+                sai.tenant_id = tenant_id
+                sai.service_id = service_id
+                sai.memory_pay_method = memory_pay_method
+                sai.disk_pay_method = disk_pay_method
+                sai.min_memory = min_memory
+                sai.min_node = min_node
+                sai.disk = disk
+                sai.pre_paid_period = pre_paid_period
+                sai.buy_start_time = startTime
+                sai.buy_end_time = endTime
+                sai.create_time = create_time
+                sai.pre_paid_money = self.get_estimate_service_fee(sai)
+                sai.save()
+
+                result["status"] = "success"
                 result["id"] = service_id
             else:
-                result["ok"] = False
+                result["status"] = "no_image_url"
                 return JsonResponse(result, status=500)
         except Exception as e:
             logger.exception(e)
+            if service_id != "" and service_id is not None:
+                ImageServiceRelation.objects.filter(service_id=service_id).delete()
+                ServiceAttachInfo.objects.filter(service_id=service_id).delete()
+            result["status"] = "failure"
+            return JsonResponse(result, status=500)
         return JsonResponse(result, status=200)
 
 
@@ -109,7 +210,26 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
         try:
             service_id = request.GET.get("id", "")
             context["service_id"] = service_id
-            return TemplateResponse(self.request, "www/app_create_step_four.html", context)
+            context["createApp"] = "active"
+            context["tenantName"] = self.tenantName
+            context["service_alias"]="gr" + service_id[-6:]
+
+            deployTenantServices = TenantServiceInfo.objects.filter(
+                tenant_id=self.tenant.tenant_id,
+                service_region=self.response_region,
+                service_origin='assistant').exclude(category='application')
+            context["deployTenantServices"] = deployTenantServices
+
+            tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id,
+                                                             region=self.response_region)
+            context["tenantServiceList"] = tenantServiceList
+            try:
+                imsr = ImageServiceRelation.objects.get(service_id=service_id)
+                context["service_cname"] = imsr.service_cname
+            except ImageServiceRelation.DoesNotExist:
+                pass
+
+            return TemplateResponse(self.request, "www/app_create_docker_3.html", context)
         except Exception as e:
             logger.exception(e)
 
@@ -122,6 +242,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             imsr = ImageServiceRelation.objects.get(service_id=service_id)
             tenant_id = imsr.tenant_id
             image_url = imsr.image_url
+            service_cname = imsr.service_cname
         except Exception as e:
             logger.exception(e)
             result["status"] = "notfound"
@@ -132,13 +253,16 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             success = tenantRegionService.init_for_region(self.response_region, self.tenantName, tenant_id, self.user)
 
             # 从url中分析出来service_cname 和 version
+
             version = ""
             if ":" in image_url:
                 index = image_url.index(":")
-                service_cname = image_url[:index]
+                if service_cname is None or service_cname == "":
+                    service_cname = image_url[:index]
                 version = image_url[index + 1:]
             else:
-                service_cname = image_url
+                if service_cname is None or service_cname == "":
+                    service_cname = image_url
                 version = "lastest"
 
             # 端口信息
@@ -147,8 +271,17 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             env_list = json.loads(request.POST.get("env_list", "[]"))
             # 持久化目录信息
             volume_list = json.loads(request.POST.get("volume_list", "[]"))
-            # 资源内存
-            image_service_memory = request.POST.get("image_service_memory", 128)
+            # 依赖服务id
+            depIds = json.loads(request.POST.get("depend_list", "[]"))
+            # 挂载其他服务目录
+            service_alias_list = json.loads(request.POST.get("mnt_list", "[]"))
+            # 资源内存(从上一步获取)
+            image_service_memory = 128
+            try:
+                sai = ServiceAttachInfo.objects.get(service_id=service_id)
+                image_service_memory = sai.min_memory
+            except ServiceAttachInfo.DoesNotExist:
+                pass
             # 启动命令
             start_cmd = request.POST.get("start_cmd", "")
 
@@ -158,9 +291,9 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
-            if tenantAccountService.isExpired(self.tenant):
-                result["status"] = "expired"
-                return JsonResponse(result, status=200)
+            # if tenantAccountService.isExpired(self.tenant,self.service):
+            #     result["status"] = "expired"
+            #     return JsonResponse(result, status=200)
 
             service = ServiceInfo()
             service.service_key = "0000"
@@ -186,6 +319,8 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             service.update_version = 1
             service.volume_mount_path = ""
             service.service_type = "application"
+            # service host_path
+            service.host_path = "/grdata/tenant/" + self.tenant.tenant_id + "/service/" + service_id
             # calculate resource
             tempService = TenantServiceInfo()
             tempService.min_memory = cm
@@ -210,13 +345,47 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             newTenantService.save()
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
             self.save_ports_envs_and_volumes(port_list, env_list, volume_list, newTenantService)
+
+            # 创建挂载目录
+            for dep_service_alias in service_alias_list:
+                baseService.create_service_mnt(self.tenant.tenant_id, newTenantService.service_id,
+                                               dep_service_alias["otherName"],
+                                               newTenantService.service_region)
+
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
                                               self.user.nick_name, dep_sids=json.dumps([]))
             # self.send_task("aws-jp-1", "image_manual", newTenantService)
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
+
+            logger.debug(depIds)
+            for sid in depIds:
+                try:
+                    baseService.create_service_dependency(self.tenant.tenant_id, newTenantService.service_id, sid,
+                                                          self.response_region)
+                except Exception as e:
+                    logger.exception(e)
+
             result["status"] = "success"
             result["service_id"] = service_id
             result["service_alias"] = service_alias
+            # 设置服务购买的起始时间
+            attach_info = ServiceAttachInfo.objects.get(service_id=service_id)
+            pre_paid_period = attach_info.pre_paid_period
+            if self.tenant.pay_type == "free":
+                # 免费租户的应用过期时间为7天
+                service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_id=service_id)
+                service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
+                service.save()
+                startTime = datetime.datetime.now() + datetime.timedelta(days=7)
+                endTime = startTime + relativedelta(months=int(pre_paid_period))
+                ServiceAttachInfo.objects.filter(service_id=service_id).update(buy_start_time=startTime,
+                                                                               buy_end_time=endTime)
+            else:
+                startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                endTime = startTime + relativedelta(months=int(pre_paid_period))
+                ServiceAttachInfo.objects.filter(service_id=service_id).update(buy_start_time=startTime,
+                                                                               buy_end_time=endTime)
+
         except Exception as e:
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()
@@ -233,8 +402,6 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                                        protocol=port["protocol"], port_alias=port["port_alias"],
                                        is_inner_service=port["is_inner_service"],
                                        is_outer_service=port["is_outer_service"])
-            logger.info(port["container_port"], "*", port["protocol"], "*", port["port_alias"], "*",
-                        port["is_inner_service"], "*", port["is_outer_service"])
 
         for env in envs:
             baseService.saveServiceEnvVar(tenant_serivce.tenant_id, tenant_serivce.service_id, 0,
@@ -242,6 +409,12 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
 
         for volume in volumes:
             baseService.add_volume_list(tenant_serivce, volume["volume_path"])
+        
+        if len(volumes) > 0:
+            temp_service = TenantServiceInfo.objects.get(service_id=tenant_serivce.service_id)
+            if temp_service.host_path is None or temp_service.host_path == "":
+                    temp_service.host_path = "/grdata/tenant/" + temp_service.tenant_id + "/service/" + temp_service.service_id
+                    temp_service.save()
 
     def send_task(self, region, topic, tenant_service):
         body = {"image": tenant_service.image_name,

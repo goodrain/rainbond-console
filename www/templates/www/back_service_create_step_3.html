@@ -1,0 +1,280 @@
+{% extends 'www/raster.html' %} 
+{% load i18n %} 
+{% load goodrain_extras %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+{% endblock %}
+
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <section class="main-box">
+        <h3 class="main-tit">创建{{service.service_name}}</h3>
+        <div class="app-step two clearfix">
+            <p class="sed"><span>1</span><cite>创建应用</cite></p>
+            <p class="sed"><span>2</span><cite>应用设置</cite></p>
+        </div>
+        <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+            {% csrf_token %}
+            <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+            <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
+            <input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
+            <input type="hidden" id="service_alias" name="service_alias" value="{{service_alias}}" />
+            <!-- -->
+            <input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price" value="{{pre_paid_memory_price}}">
+            <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price" value="{{post_paid_memory_price}}">
+            <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price" value="{{pre_paid_disk_price}}">
+            <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price" value="{{post_paid_disk_price}}">
+            <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
+            <!-- -->
+            <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
+            <!-- -->
+            {% if outer_port|length > 0 %}
+            <h4 class="column-tit">端口管理</h4>
+            <table class="tab-box">
+                <thead>
+                    <tr>
+                        <th>容器端口</th>
+                        <th>协议</th>
+                        <th>对内服务</th>
+                        <th>外部服务</th>
+                    </tr>
+                </thead>
+                <tbody class="port">
+
+                {% for port in outer_port %}
+                    <tr>
+                        <td>{{port.container_port}}</td>
+                        <td>{{port.protocol}}</td>
+                        <td>
+                            <div class="checkbox">
+                                <input type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true"{% endif %} disabled="true" />
+                                <label class="check-bg" for="5000inner"></label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="checkbox">
+                                <input type="checkbox" name="" value="" id="5000outer" {% if port.is_outer_service %}checked="true"{% endif %} disabled="true"  />
+                                <label class="check-bg" for="5000outer"></label>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+            {% endif %}
+            <!-- -->
+
+            {% if dependecy_services %}
+            <h4 class="column-tit">服务依赖</h4>
+            <div class="infor-fm-box">
+                <div class="fm-select clearfix">
+                        {% for key, deployed_services in dependecy_services.items %}
+                        <label for="inputSuccess">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}服务</label>
+                            <select name="dependency_service" class="dependency_service">
+                                {% if deployed_services %}
+                                {% for d_service in deployed_services %}
+                                <option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}" {% if forloop.first %} selected="selected" {% endif %}>{{d_service.service_cname}}</option>
+                                {% endfor %}
+                                {% else %}
+                                <option value="__no_dep_service__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">暂无{{dependecy_info|mkey:key}}服务</option>
+                                {% endif %}
+                            </select>
+                        {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if envs|length > 0 %}
+            <h4 class="column-tit">环境变量</h4>
+            <table class="tab-box ">
+                <thead>
+                    <tr>
+                        <th>变量名称</th>
+                        <th>变量值</th>
+                    </tr>
+                </thead>
+                <tbody class="tb">
+                   {% for env in envs %}
+                    <tr>
+                        <td name="attr_name">{{env.attr_name}}</td>
+                        {% if 'direct_copy' in env.options %}
+                            <td name="attr_value">{{env.attr_value}}</td>
+                        {% else %}
+                            <td><input name="attr_value" placeholder="举例: {{env.attr_value}}"></td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+        </form>
+        <div class="infor-fm-box">
+            <div class="fm-btn clearfix">
+                <button class="greenbtn" id="back_service_step_two" style="cursor: pointer;">下一步</button>
+            </div>
+        </div>
+    </section>
+</section>
+<script type="text/javascript">
+	$(document).ready(function () {
+		//取消回车事件
+		$("#create_service_name").keydown(function(e){
+			var curKey = e.which;
+			if(curKey == 13){
+				return false;
+			}
+		});
+
+
+
+        $("#back_service_step_two").click(function(){
+             var arr = $(".dependency_service");
+             var len = arr.length;
+             var deps = [];
+
+             for (var i =0;i<len;i++){
+                 deps.push($(".dependency_service").eq(i).find("option:selected").attr("value"));
+             }
+             var sel_val = deps;
+             var envs = [];
+             var flag = false
+             $('.tb tr').each(function() {
+                 var env = {};
+                 $(this).find('[name^=attr]').each(function(event) {
+                     i = $(this);
+                     name = $(this).attr('name');
+                     value = $(this).val() || i.html();
+                     if (value) {
+                         env[name] = value;
+                     } else {
+                         showMessage("有未填写的内容");
+                         flag = true
+                     }
+                 });
+                 envs.push(env);
+             });
+             ///
+              $("#back_service_step2").attr('disabled', true);
+             var tenantName= $('#tenantName').val();
+             var service_alias = $("#service_alias").val();
+
+             $.ajax({
+                 type : "post",
+                  url : "/apps/" + tenantName + "/" + service_alias + "/deploy/setting/",
+                 data : {
+                     "dep_list" : JSON.stringify(sel_val),
+                     "envs": JSON.stringify(envs)
+                 },
+                 cache : false,
+                 beforeSend : function(xhr, settings) {
+                     var csrftoken = $.cookie('csrftoken');
+                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                 },
+                 success : function(msg) {
+                     var dataObj = msg;
+                     if (dataObj["status"] == "depend_service_notexsit") {
+                         swal("依赖的服务不存在");
+                     }else if (dataObj["status"] == "empty") {
+                         swal("应用名称不能为空");
+                     }else if (dataObj["status"] == "not_have_dep_service") {
+                         swal("依赖的服务尚未创建,请先创建依赖的服务");
+                     }else if (dataObj["status"] == "success") {
+                         window.location.href = dataObj["next_url"];
+                     } else {
+                         swal("创建失败");
+                     }
+                     $("#back_service_step2").attr('disabled', false);
+                 },
+                 error : function() {
+                     swal("系统异常,请重试");
+                     $("#BtnFirst").attr('disabled', false);
+                 }
+             });
+            ///
+        });
+        ///
+        ////tips
+        $(".fn-tips").mouseover(function(){
+            var tips = $(this).attr("data-tips");
+            var pos = $(this).attr("data-position");
+            var x = $(this).offset().left;
+            var y = $(this).offset().top;
+            var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
+            $("body").append(oDiv);
+            var oDivheight = $(".tips-box").height();
+            var oDivwidth = $(".tips-box").width();
+            var othiswid = $(this).width();
+            var othisheight = $(this).height();
+            if(pos){
+                if(pos == "top"){
+                    //
+                    $(".tips-box").css({"top":y-oDivheight -25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("top");
+                    //
+                }else if(pos == "bottom"){
+                    //
+                    $(".tips-box").css({"top":y + othisheight + 25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("bottom");
+                    //
+                }else if(pos == "left"){
+                    $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+                    $(".tips-box").find("cite").addClass("left");
+                }else if(pos == "right"){
+                    $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+                    $(".tips-box").find("cite").addClass("right");
+                }else{
+                    //
+                    $(".tips-box").css({"top":y-oDivheight -25});
+                    if(oDivwidth > othiswid){
+                        $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                    }else if(oDivwidth < othiswid){
+                        $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                    }else{
+                        $(".tips-box").css({"left":x});
+                    }
+                    $(".tips-box").find("cite").addClass("top");
+                    //
+                }
+            }else{
+                //
+                $(".tips-box").css({"top":y-oDivheight -25});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                $(".tips-box").find("cite").addClass("top");
+                //
+            }
+
+        });
+        $(".fn-tips").mouseout(function(){
+            $(".tips-box").remove();
+        });
+
+	});
+</script>
+{% endblock %}

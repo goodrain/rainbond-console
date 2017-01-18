@@ -195,16 +195,24 @@ $(function(){
 
     //修改组名
     $("#revise-groupname").click(function(){
-        
+        $(".group-set-box").slideUp();
+        $("#setbtn").removeClass("sed");
+        onoff = true;
         FnLayer("请输入新组名：",true,"",false,"全部应用不能改名！");
     });
     // 删除当前组
     // 删除当前组
     $("#reomve-groupname").click(function(){
+        $(".group-set-box").slideUp();
+        $("#setbtn").removeClass("sed");
+        onoff = true;
         FnLayer("",false,"您确定要删除当前组么？",false,"全部应用不能删除！");
     });
     // 新增组
     $("#add-groupname").click(function(){
+        $(".group-set-box").slideUp();
+        $("#setbtn").removeClass("sed");
+        onoff = true;
         FnLayer("请输入新增组名",true,"",true,"");
     });
     // 新增组
@@ -218,7 +226,7 @@ $(function(){
         }else{
             ///
             var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
-            var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
+            var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a>';
             var oTit = '<p class="layer-tit">'+ textTit +'</p>';
             var oInput ='<p class="input-css"><input name="" type="text" value="" /></p>';
             var oText ='<p class="tipstext">'+ text +'</p>';
@@ -403,10 +411,8 @@ $(function(){
     
     //////图
     if(groupID == -1){
-        $("#imgbtn").hide().removeClass("sed");
-        $("#imgBox").hide();
         $("#tabBox").show();
-        $("#tabbtn").addClass("sed");
+        $("#imgBox").hide();
     }else{
         ///
         $.ajax({
@@ -654,6 +660,21 @@ function FnSvg(json_svg,json_data){
     oSvgDiv.appendChild(oSvg);
 }
     //////图
+
+    //ww - 2017- 1-10  -- 修改
+    var onoff = true;
+    $("#setbtn").click(function(){
+        if(onoff){
+            $(".group-set-box").slideDown();
+            $("#setbtn").addClass("sed");
+            onoff = false;
+        }else{
+            $(".group-set-box").slideUp();
+            $("#setbtn").removeClass("sed");
+            onoff = true;
+        }
+    });
+    //ww - 2017- 1-10  -- 修改
 });
 
 
