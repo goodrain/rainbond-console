@@ -51,12 +51,12 @@ class ServiceLogMatch(AuthedView):
                     e.save()
                     attr = {
                         "tenant_id": e.tenant_id, "service_id": e.service_id, "name": "LOG_MATCH",
-                        "attr_name": "LOG_MATCH", "attr_value": dep_service_type, "is_change": True, "scope": "inner"
+                        "attr_name": "LOG_MATCH", "attr_value": dep_service_type, "is_change": False, "scope": "inner"
                     }
             else:
                 attr = {
                     "tenant_id": self.service.tenant_id, "service_id": self.service.service_id, "name": "LOG_MATCH",
-                    "attr_name": "LOG_MATCH", "attr_value": dep_service_type, "is_change": True, "scope": "inner"
+                    "attr_name": "LOG_MATCH", "attr_value": dep_service_type, "is_change": False, "scope": "inner"
                 }
                 TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
