@@ -334,22 +334,13 @@
                     <button type="button" class="btn greenbtn" id="add_volume_attr" style="margin-top: 10px;" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
 
     </section>
-<<<<<<< HEAD
-
-   
-  <section class="tabbox">
-    <p class="tittext">手动伸缩</p>
-    <div class="panel-body">
-        <div class="row">
-=======
     {% endif %}
 <!-- 04-->   
 <!-- 05-->
   <section class="content-tab">
-    <p class="tit-two">扩容方式</p>
+    <p class="tit-two">手动伸缩</p>
     <div class="">
         <div class="krfs clearfix">
->>>>>>> 6794888d4e71beec83c887fd2da331c3b258caf5
             {% ifequal tenantServiceInfo.category "application" %}
             <div class="tit">扩容方式</div>
             <div class="">
@@ -410,7 +401,7 @@
        </div>
    </div>
   </section>
-<<<<<<< HEAD
+
 
   <section class="tabbox">
       <p class="tittext">自动伸缩 </p>
@@ -432,10 +423,10 @@
         <button type="button" class="btn btn-success" id="add_rule" onclick="addLayerForRule('添加规则')">新增规则</button>
      </div>
   </section>
-=======
+
   <!-- 05-->
   <!-- 06-->
->>>>>>> 6794888d4e71beec83c887fd2da331c3b258caf5
+
   <!--start permission-->
   {% if MODULES.Team_Invite %}
   {% if 'perm_setting' in user.actions %}
