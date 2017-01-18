@@ -5653,9 +5653,9 @@ a.guest-on i {
 .input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px;}
 
 
-.litput{width: 50px; height: 20px; line-height: 20px;}
-.litset{width: 50px; height: 20px; line-height: 20px;}
-
+.litput{width: 50px; height: 20px; line-height: 20px; border: 1px #ddd solid;}
+.litset{width: 50px; height: 20px; line-height: 20px; border: 1px #ddd solid; background: #fff;}
+.borderone{border: 1px #ddd solid;}
 
 .layermainlog{width: 500px; height: 360px; background: #fff; position: absolute; top: 50%; left: 50%; margin:-180px 0 0 -250px; padding:10px;}
 .titlog{color: #303030; font-size: 16px; line-height: 30px;}
