@@ -702,11 +702,11 @@
         $(function () {
             flush();
             var arron =[];
-            $('input[name= "outer"]').each(function{
-              if($(this).prop("checked") == "true"){
-                arron.push($(this).prop("checked"));
-              }
-            });
+            $('input[name="outer"]').each(function{
+                if($(this).prop("checked") == "true"){
+                  arron.push($(this).prop("checked"));
+                }
+            })
             console.log(arron);
         })
         $("#shuaxin").click(function () {
