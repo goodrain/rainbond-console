@@ -90,7 +90,7 @@
                     <a href="{{href_url|default:httpGitUrl}}">{{httpGitUrl}}</a>
                     {% else %}
                     <a href="{{httpGitUrl}}">{{httpGitUrl}}</a>
-                    {% endif %} 
+                    {% endif %}
                 </label>
                 {% if 'manage_service' in user.actions  and git_tag and tenantServiceInfo.code_from != "gitlab_manual" %}
                 <div class="col-xs-4">
@@ -107,7 +107,7 @@
                 {% endif %}
             </div>
         {% endif %}
-          
+
           <div class="row">
               <label class="col-xs-2 control-label text-right">持久化配置</label>
               <div class="col-xs-2" style="line-height: 30px;"> 共享
@@ -129,7 +129,7 @@
               </div>
               -->
           </div>
-          
+
           <div class="row" style="display: none;">
               <label class="col-xs-2 control-label text-right">对外端口配置</label>
               <div class="col-xs-2">
@@ -144,7 +144,7 @@
                       {% endfor %}
                   </select>
               </div>
-              
+
               <div class="col-xs-2">
                   <button type="button"
                           class="btn greenbtn port-type-service"
@@ -157,10 +157,10 @@
                 <p id="service-alias">{{ serviceAlias }}</p>
               </div>
           </div>
-         
+
           <!-- 单端口 多端口-->
-          
-          
+
+
       </div>
   </section>
     <input type="hidden" id="service_port_type" value="{{tenantServiceInfo.port_type}}">
@@ -169,7 +169,7 @@
   <section class="content-tab">
       <!-- title line start -->
       <p class="tit-two">端口开放<span>(配置变化后需重启)</span> <button type="button" class="greenbtn" id="add_service_port">新增服务端口</button></p>
-    
+
       <!-- title line end -->
       <div id="port_open"></div>
       <!-- table start -->
@@ -249,7 +249,7 @@
                                 </p>
                             {% endfor %}
 
-                          <!-- 多个域名 展示--> 
+                          <!-- 多个域名 展示-->
                         </div>
                         <button type="button" class="btn greenbtn btn-xs fn-bind-domain">绑定</button>
                         <div class="fn-domain-layer  domain-layer">
@@ -272,7 +272,7 @@
 <!-- 03 -->
 <section class="content-tab">
     <p class="tit-two">自定义环境变量</p>
-    
+
                 <table id="envVartable">
                     <thead>
                         <tr>
@@ -299,14 +299,14 @@
                     </tbody>
                 </table>
                 <button type="button" class="btn greenbtn" id="add_service_attr" style="margin-top: 10px;">新增环境变量</button>
-   
+
 </section>
 <!-- 03-->
 <!-- 04-->
     {% if tenantServiceInfo.category == "application" %}
     <section class="content-tab">
         <p class="tit-two">持久化数据设置<span>(设置后需要重启服务)</span></p>
-        
+
                     <table  id="volume_table">
                         <thead>
                             <tr>
@@ -334,22 +334,13 @@
                     <button type="button" class="btn greenbtn" id="add_volume_attr" style="margin-top: 10px;" data-language="{{tenantServiceInfo.language}}">新增持久化设置</button>
 
     </section>
-<<<<<<< HEAD
-
-   
-  <section class="tabbox">
-    <p class="tittext">手动伸缩</p>
-    <div class="panel-body">
-        <div class="row">
-=======
     {% endif %}
-<!-- 04-->   
+<!-- 04-->
 <!-- 05-->
   <section class="content-tab">
-    <p class="tit-two">扩容方式</p>
+    <p class="tit-two">手动伸缩</p>
     <div class="">
         <div class="krfs clearfix">
->>>>>>> 6794888d4e71beec83c887fd2da331c3b258caf5
             {% ifequal tenantServiceInfo.category "application" %}
             <div class="tit">扩容方式</div>
             <div class="">
@@ -368,7 +359,7 @@
               <button type="button" onclick="extends_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn greenbtn">设置</button>
             </div>
             {% endif %}
-            
+
             {% endifequal %}
             <div class="tit">实例数</div>
             <div class="">
@@ -387,11 +378,11 @@
               <button type="button" onclick="app_upgrade('{{tenantName}}','{{tenantServiceInfo.service_alias}}');" class="btn greenbtn">设置</button>
             </div>
             {% endif %}
-            
+
             <div class="tit">内存调整</div>
             <div class="">
               <select name="serviceMemorys" id="serviceMemorys" class="form-control m-bot15">
-                {% for cuMemory in memoryList %} 
+                {% for cuMemory in memoryList %}
                   {% with curMemory=cuMemory|strToInt %}
                   {% if curMemory == tenantServiceInfo.min_memory %}
                   <option value="{{cuMemory}}"  selected="selected">{{memorydict|mkey:cuMemory}}</option>
@@ -410,12 +401,12 @@
        </div>
    </div>
   </section>
-<<<<<<< HEAD
 
-  <section class="tabbox">
-      <p class="tittext">自动伸缩 </p>
-     <div class="panel-body">
-          <table class="table" perm-type="service">
+
+  <section class="content-tab" id="autoScaling">
+      <p class="tit-two">自动伸缩 </p>
+
+          <table perm-type="service" style="margin-bottom: 10px;">
           <thead>
           <tr>
             <th>编号</th>
@@ -429,13 +420,13 @@
 
           </tbody>
         </table>
-        <button type="button" class="btn btn-success" id="add_rule" onclick="addLayerForRule('添加规则')">新增规则</button>
-     </div>
+        <button type="button" class="btn greenbtn" id="add_rule" onclick="addLayerForRule('添加规则')">新增规则</button>
+
   </section>
-=======
+
   <!-- 05-->
   <!-- 06-->
->>>>>>> 6794888d4e71beec83c887fd2da331c3b258caf5
+
   <!--start permission-->
   {% if MODULES.Team_Invite %}
   {% if 'perm_setting' in user.actions %}
@@ -493,7 +484,7 @@
     <p class="tit-two">删除 </p>
     <div class="">
       <form class="form-horizontal" role="form">
-         
+
         <div class="form-group">
           <label class="col-sm-2 col-lg-2  control-label">{{tenantServiceInfo.service_cname}}</label>
           <div class="col-sm-2 col-lg-2 text-center">
@@ -513,8 +504,8 @@
         return this.replace(/(^\s*)|(\s*$)/g, "");
     }
     var setIntertimmerc
-    
-    $(document).ready(function () {     
+
+    $(document).ready(function () {
         var mapping = $("#create_port_mapping").val()
         if(mapping != undefined){
             getMappingPort()
@@ -677,7 +668,7 @@
             }
        })
     }
-    
+
     //服务挂载卷类型 设置
     function mnt_share_set(tenantName, service_alias) {
         var volume_type = $("#mnt_share_type").val();
@@ -709,7 +700,19 @@
         var port = "{% for port in ports %}{% if not forloop.first %}{% else %}{{ port.container_port }}{% endif %}{% endfor %}";
 
         $(function () {
-            flush()
+            flush();
+            var arron =[];
+            $('input[name="outer"]').each(function(){
+                if($(this).prop("checked") == true){
+                  arron.push($(this).prop("checked"));
+                }
+            });
+            if(arron.length>0){
+                $("#autoScaling").show();
+            }else{
+               $("#autoScaling").hide();
+            }
+
         })
         $("#shuaxin").click(function () {
             flush()
@@ -737,25 +740,26 @@
                             }
 
                             if (rule.item == "tp") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"吞吐率" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"吞吐率" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn redbtn\" onclick=\"del('" + id + "')\">删除</button>";
 
                             }
                             if (rule.item == "rt") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"响应时间" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"响应时间" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn redbtn\" onclick=\"del('" + id + "')\">删除</button>";
                             }
                             if (rule.item == "on") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"在线人数" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"在线人数" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn redbtn\" onclick=\"del('" + id + "')\">删除</button>";
 
                             }
                             if (rule.status) {
-                                trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn btn-danger\" onclick=\"status('" + id + "',false)\">关闭</button>"
+                                trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn redbtn\" onclick=\"status('" + id + "',false)\">关闭</button>"
                             } else {
-                                trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn btn-info\" onclick=\"status('" + id + "',true)\">开启</button>"
+                                trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn greenbtn\" onclick=\"status('" + id + "',true)\">开启</button>"
                             }
                             tbody = tbody + trStr
                             n++
                         })
-                        $("#ruleBody").html(tbody)
+                        $("#ruleBody").html(tbody);
+                        $("div.layerbg").remove();
                     }
                 },
                 error: function () {
@@ -831,14 +835,14 @@
 
             var oValue = '<input type="number"  name="value" value="" class="litput"/>时';
 
-            var oAction = '<select name="action" class="">'+
+            var oAction = '<select name="action" class="litset">'+
                  '   <option value="add">扩容</option>'+
                   '  <option value="del">压缩</option>'+
                 '</select>'
             var oNode =  '1个节点。</br></br>';
 
             var oMax =  '最大扩容节点：'+
-                '<input type="number" name="node_max" value=""  />';
+                '<input type="number" name="node_max" value=""  class="borderone" />';
 
             var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
             $("body").append(oDiv);

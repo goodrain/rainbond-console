@@ -2,7 +2,7 @@
 <div role="tabpanel">
   <div style="padding-bottom: 20px;" class="clearfix">
      <button type="button" class="greenbtn" onclick="_pause()" id="logbtn">暂停</button>
-      <button style="margin-left: 15px;" type="button" class="btn btn-success" id="logbtn_out">日志输出</button>
+      <button style="margin-left: 15px;" type="button" class="greenbtn" id="logbtn_out">日志输出</button>
      <p style="float: right; text-align: right; width: 220px;">
   	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/history-log/" target="_blank" style="color: #28cb75; margin-right: 10px;  line-height: 30px; text-decoration:underline">历史日志下载</a>
   	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/latest-log/" target="_blank" style="color: #28cb75;  line-height: 30px; text-decoration:underline">最新1000条日志</a>
@@ -13,11 +13,11 @@
        </div>
   </div>
   <div  style="padding-top: 30px; padding-left: 40px;">
-   
+
   </div>
 
 </div>
-
+<p id="parameter" style="display: none;" data-tenantName="{{tenantName}}"  data-serviceAlias="{{serviceAlias}}"></p>
 <!-- log end-->
 <script>
     var service_id = '{{tenantServiceInfo.service_id}}'
@@ -120,7 +120,7 @@
                     var dataObj = eval(msg);
                     //ajax
                     var dataArr = [];
-                    layerlog("日志输出设置", "指定日志应用", "下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个应用来接受日子数据的数据。目前支持日志的应用类型有：<a href=\"http://app.goodrain.com/detail/31/\">elasticsearch</a>、mongodb、influxdb等，如需安装可直接点击文字去部署。", true);
+                    layerlog("日志输出设置", "指定日志应用", "下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个应用来接受日志数据的输入。目前支持日志的应用类型有：<a href=\"http://app.goodrain.com/detail/31/\">elasticsearch</a>、<a href=\"http://app.goodrain.com/detail/3/\">mongodb</a>、influxdb等，如需安装可直接点击文字去部署。", true);
                     for (var key in dataObj) {
                         //console.log(key);
                         //console.log(dataObj[key]);
@@ -130,7 +130,7 @@
                     var longstr = "";
                     for (var i = 0; i < dataArr.length; i++) {
                         //console.log(longstr + "///" + i);
-                        longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="' + dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + dataArr[i].service_cname + '</label>';
+                        longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="' + dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + '<span class="radiobg"></span>' + dataArr[i].service_cname + '</label>';
                     }
                     $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked", "true");
 
