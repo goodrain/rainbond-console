@@ -421,7 +421,7 @@
         </table>
         <div id="">
             <span>当端口的</span>
-            <select>
+            <select class="form-control">
               {% for port in ports %}
                 {% if is_outer_service == 1 %}
                 <option value="{{ port.container_port }}">{{ port.container_port }}</option>
@@ -429,7 +429,7 @@
               {% endfor %}
             </select>
             <span>的</span>
-            <select>
+            <select  class="form-control">
                  <option value="tp">吞吐率</option>
                  <option value="rt">响应时间</option>
                  <option value="on">在线人数</option></select>
@@ -439,7 +439,7 @@
             <span>小于</span>
             <input type="text" />
             <span>的时候，设置是实例数为</span>
-            <select name="" id="" class="">
+            <select name="" id=""  class="form-control">
                 {% for curNum in nodeList %}
                   {% if curNum == tenantServiceInfo.min_node %}
                   <option value="{{curNum}}"  selected="selected">{{curNum}}</option>
@@ -448,6 +448,8 @@
                   {% endif %}
                 {% endfor %}
             </select>
+            <div class="btn-group" role="group" style="margin-top: 5px; margin-right: 5px;"><button type="button" onclick="post_volume();" class="btn btn-success btn-xs"><i class="fa fa-check"></i></button></div>
+            <div class="btn-group" role="group" style="margin-top: 5px; margin-right: 5px;"><button type="button" onclick="clear_volume();" class="btn btn-danger btn-xs"><i class="fa fa-times"></i></button></div>
         </div>
         <button type="button" class="btn greenbtn" id="add_rule" onclick="addLayerForRule('添加规则')">新增规则</button>
   </section>
