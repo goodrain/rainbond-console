@@ -449,7 +449,7 @@
             <div class="btn-group" role="group" style="margin-top: 5px; margin-right: 5px;"><button type="button" onclick="sureRole()" class="btn btn-success btn-xs"><i class="fa fa-check"></i></button></div>
             <div class="btn-group" role="group" style="margin-top: 5px; margin-right: 5px;"><button type="button" onclick="removeRole()" class="btn btn-danger btn-xs"><i class="fa fa-times"></i></button></div>
         </div>
-        <button type="button" class="btn greenbtn" id="add_rule" onclick="addLayerForRule('添加规则')">新增规则</button>
+        <button type="button" class="btn greenbtn" id="add_rule">新增规则</button>
   </section>
 
   <!-- 05-->
@@ -740,7 +740,7 @@
             }else{
                $("#autoScaling").hide();
             }
-            $("#autorole").click(function(){
+            $("#add_rule").click(function(){
                $("#autorole").show();
             });
         })
