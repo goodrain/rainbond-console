@@ -406,7 +406,7 @@
   <section class="content-tab">
       <p class="tit-two">自动伸缩 </p>
     
-          <table class="table" perm-type="service">
+          <table perm-type="service" style="margin-bottom: 10px;">
           <thead>
           <tr>
             <th>编号</th>
@@ -728,25 +728,26 @@
                             }
 
                             if (rule.item == "tp") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"吞吐率" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"吞吐率" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn redbtn\" onclick=\"del('" + id + "')\">删除</button>";
 
                             }
                             if (rule.item == "rt") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"响应时间" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"响应时间" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn redbtn\" onclick=\"del('" + id + "')\">删除</button>";
                             }
                             if (rule.item == "on") {
-                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"在线人数" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn btn-danger\" onclick=\"del('" + id + "')\">删除</button>";
+                                trStr = "<tr><td>" + n + "</td><td>"+m+"</td><td>"+rule.count+"</td><td>当端口"+rule.port+"在线人数" + rule.operator + " " + rule.value + "时," + rule.action + "一个实例</td><td><button class=\"btn redbtn\" onclick=\"del('" + id + "')\">删除</button>";
 
                             }
                             if (rule.status) {
-                                trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn btn-danger\" onclick=\"status('" + id + "',false)\">关闭</button>"
+                                trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn redbtn\" onclick=\"status('" + id + "',false)\">关闭</button>"
                             } else {
-                                trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn btn-info\" onclick=\"status('" + id + "',true)\">开启</button>"
+                                trStr = trStr + "<button style=\" margin-left:15px;\" class=\"btn greenbtn\" onclick=\"status('" + id + "',true)\">开启</button>"
                             }
                             tbody = tbody + trStr
                             n++
                         })
-                        $("#ruleBody").html(tbody)
+                        $("#ruleBody").html(tbody);
+                        $("div.layerbg").remove();
                     }
                 },
                 error: function () {
