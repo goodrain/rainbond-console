@@ -18,42 +18,38 @@ class ServiceRuleManage(AuthedView):
         try:
             item = request.POST.get("item", "")
             if item != "tp" and item != "rt" and item != "on":
-                logger.debug("get a rule item " + item)
                 result["status"] = "failure"
                 result["message"] = "规则项不支持"
                 return JsonResponse(result)
-            operator = request.POST.get("operator", "")
-            if operator != "=" and operator != ">" and operator != "<":
-                result["status"] = "failure"
-                result["message"] = "运算项不支持"
-                return JsonResponse(result)
-            value = int(request.POST.get("value", 0))
-            node_max = request.POST.get("node_max", 1)
-            action = request.POST.get("action", "")
-            if action != "add" and action != "del":
-                result["status"] = "failure"
-                result["message"] = "操作项不支持"
-                return JsonResponse(result)
             
-            port = request.POST.get("port", "")
-            if port == "":
-                tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
-                for tsp in tsps:
-                    port = str(tsp.container_port)
-                    break
+            minvalue = int(request.POST.get("minvalue", 0))
+            maxvalue = int(request.POST.get("maxvalue", 0))
+            if minvalue >= maxvalue:
+                result["status"] = "failure"
+                result["message"] = "大值不能小于小值"
+                return JsonResponse(result)
+            node_number = request.POST.get("nodenum", 1)
+            
+            port = request.POST.get("port", "5000")
+            count = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                      container_port=port, is_outer_service=True).count()
+            if count != 1:
+                result["status"] = "failure"
+                result["message"] = "端口不能用于自动伸缩"
+                return JsonResponse(result)
             
             rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
                                tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
                                service_region=self.service.service_region,
-                               item=item, operator=operator, value=value, action=action, fortime=0,
-                               status=0, count=0, node_number=self.service.min_node, node_max=node_max, port=port)
+                               item=item, minvalue=minvalue, maxvalue=maxvalue,
+                               status=0, count=0, node_number=node_number, port=port)
             rule.save()
             result["status"] = "success"
             result["message"] = "添加成功"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
-            result["message"] = e.message
+            result["message"] = "添加失败"
         return JsonResponse(result)
     
     def get(self, request, *args, **kwargs):
@@ -69,15 +65,13 @@ class ServiceRuleManage(AuthedView):
             for rule in rules:
                 tmp = {}
                 tmp["item"] = rule.item
-                tmp["operator"] = rule.operator
-                tmp["value"] = rule.value
-                tmp["fortime"] = rule.fortime
-                tmp["action"] = rule.action
+                tmp["minvalue"] = rule.minvalue
+                tmp["maxvalue"] = rule.maxvalue
                 tmp["status"] = rule.status
                 tmp["region"] = rule.service_region
                 tmp["count"] = rule.count
                 tmp["port"] = rule.port
-                tmp["node_max"] = rule.node_max
+                tmp["node_number"] = rule.node_number
                 rejson[rule.ID] = tmp
             result["status"] = "success"
             result["data"] = rejson
@@ -97,23 +91,24 @@ class ServiceRuleUpdate(AuthedView):
         try:
             item = request.POST.get("item", "")
             if item != "tp" and item != "rt" and item != "on":
-                logger.debug("get a rule item " + item)
                 result["status"] = "failure"
                 result["message"] = "规则项不支持"
                 return JsonResponse(result)
-            operator = request.POST.get("operator", "")
-            if operator != "=" and operator != ">" and operator != "<":
+            
+            minvalue = int(request.POST.get("minvalue", 0))
+            maxvalue = int(request.POST.get("maxvalue", 0))
+            if minvalue >= maxvalue:
                 result["status"] = "failure"
-                result["message"] = "运算项不支持"
+                result["message"] = "大值不能小于小值"
                 return JsonResponse(result)
-            value = int(request.POST.get("value", ""))
+            node_number = request.POST.get("nodenum", 1)
             
-            for_time = int(request.POST.get("fortime", ""))
-            
-            action = request.POST.get("action", "")
-            if action != "add" and action != "del":
+            port = request.POST.get("port", "5000")
+            count = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                      container_port=port, is_outer_service=True).count()
+            if count != 1:
                 result["status"] = "failure"
-                result["message"] = "操作项不支持"
+                result["message"] = "端口不能用于自动伸缩"
                 return JsonResponse(result)
             
             rule_id = int(request.POST.get("id", 0))
@@ -123,11 +118,13 @@ class ServiceRuleUpdate(AuthedView):
                 result["status"] = "failure"
                 result["message"] = "参数错误"
                 return JsonResponse(result)
-            rules.update(item=item, operator=operator, value=value, fortime=for_time, action=action)
+            rules.update(item=item, minvalue=minvalue, maxvalue=maxvalue, node_number=node_number, port=port)
             result["status"] = "success"
+            result["message"] = "更新成功"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
+            result["message"] = "更新失败"
         return JsonResponse(result)
 
 

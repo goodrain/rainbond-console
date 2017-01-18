@@ -889,14 +889,11 @@ class ServiceRule(BaseModel):
     service_alias = models.CharField(max_length=100, help_text=u"服务别名")
     service_region = models.CharField(max_length=32, help_text=u"数据中心")
     item = models.CharField(max_length=50, help_text=u"规则项目")
-    operator = models.CharField(max_length=2, help_text=u"运算类型")
-    value = models.IntegerField(max_length=11)
-    fortime = models.IntegerField(max_length=11)
-    action = models.CharField(max_length=10, help_text=u"触发动作")
+    maxvalue = models.IntegerField(max_length=11)
+    minvalue = models.IntegerField(max_length=11)
     status = models.BooleanField(default=False, blank=True, help_text=u"是否生效；0:停止；1:生效")
     count = models.IntegerField(max_length=10)
     node_number = models.IntegerField(help_text=u"实例启动个数", default=1)
-    node_max = models.IntegerField(help_text=u"实例最大启动个数", default=1)
     port = models.CharField(max_length=10)
 
 
