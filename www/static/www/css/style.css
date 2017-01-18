@@ -5653,9 +5653,9 @@ a.guest-on i {
 .input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px;}
 
 
-.litput{width: 50px; height: 20px; line-height: 20px;}
-.litset{width: 50px; height: 20px; line-height: 20px;}
-
+.litput{width: 50px; height: 20px; line-height: 20px; border: 1px #ddd solid;}
+.litset{width: 50px; height: 20px; line-height: 20px; border: 1px #ddd solid; background: #fff;}
+.borderone{border: 1px #ddd solid;}
 
 .layermainlog{width: 500px; height: 360px; background: #fff; position: absolute; top: 50%; left: 50%; margin:-180px 0 0 -250px; padding:10px;}
 .titlog{color: #303030; font-size: 16px; line-height: 30px;}
@@ -5665,6 +5665,8 @@ a.guest-on i {
 .fm-div{width: 100%; height: 100px; overflow-y: auto; padding:0 5px;}
 .fm-div  input{float: left;}
 .fm-div  label{color: #303030; font-size: 14px; float: left; width: 50%; float: left; height: 20px; margin-bottom:5px; overflow: hidden;}
+.fm-div  label span.radiobg{width:16px; height: 16px; background: url('../images/radio.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:2px 5px 0 0;}
+.fm-div  label input:checked+span.radiobg{width:16px; height: 16px; background: url('../images/radiochecked.png') no-repeat; background-size: 16px 16px;  display: block; float: left; margin:2px 5px 0 0;}
 
 .input-css input{width: 80%; height:30px; line-height: 30px; font-size: 16px; border: 1px #ddd solid;}
 
