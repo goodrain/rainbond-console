@@ -31,21 +31,22 @@ class ServiceRuleManage(AuthedView):
             node_number = request.POST.get("nodenum", 1)
             
             port = request.POST.get("port", "5000")
-            count = TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                                      container_port=port, is_outer_service=True).count()
-            if count != 1:
+            ports = TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                      container_port=port, is_outer_service=True)
+            if ports.count() != 1:
                 result["status"] = "failure"
                 result["message"] = "端口不能用于自动伸缩"
                 return JsonResponse(result)
-            
-            rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
-                               tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
-                               service_region=self.service.service_region, port_type=self.service.service_type,
-                               item=item, minvalue=minvalue, maxvalue=maxvalue,
-                               status=0, count=0, node_number=node_number, port=port)
-            rule.save()
-            result["status"] = "success"
-            result["message"] = "添加成功"
+            else:
+                
+                rule = ServiceRule(tenant_id=self.service.tenant_id, service_id=self.service.service_id,
+                                   tenant_name=self.tenant.tenant_name, service_alias=self.service.service_alias,
+                                   service_region=self.service.service_region, port_type=self.service.port_type,
+                                   item=item, minvalue=minvalue, maxvalue=maxvalue,
+                                   status=0, count=0, node_number=node_number, port=port)
+                rule.save()
+                result["status"] = "success"
+                result["message"] = "添加成功"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"

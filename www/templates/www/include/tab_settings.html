@@ -471,7 +471,9 @@
             <span>当端口的</span>
             <select class="form-control" name="port">
                 {% for port in ports %}
-                    <option value="{{ port.container_port }}">{{ port.container_port }}</option>
+                    {% if port.is_outer_service and port.protocol == 'http' %}
+                      <option value="{{ port.container_port }}">{{ port.container_port }}</option>
+                    {% endif %}
                 {% endfor %}
             </select>
             <span>的</span>
@@ -922,81 +924,6 @@
         })
     }
 
-    /*
-     function addLayerForRule(textTit){
-
-     var oDiv = '<div class="layerbg"><div class="layermain"></div></div>';
-     var oCloseBtn = '<a href="javascript:;" class="closebtn fn-close">X</a>';
-     var oTit = '<p class="layer-tit">'+ textTit +'</p>';
-     var oItem ='当端口<input name="port" value="'+port+'" class="litput" />的<select name="item" type="text" value="" class="litset"> ' +
-     '   <option value="tp">吞吐率</option>'+
-     ' <option value="rt">响应时间</option>'+
-     ' <option value="on">在线人数</option></select>';
-
-     var oOperator = ''+
-     '<select name="operator" class="litset" >'+
-     ' <option value=">" >大于</option>'+
-     ' <option value="<" >小于</option>'+
-     ' <option value="=" >等于</option>'+
-     '</select>';
-
-     var oValue = '<input type="number"  name="value" value="" class="litput"/>时';
-
-     var oAction = '<select name="action" class="litset">'+
-     '   <option value="add">扩容</option>'+
-     '  <option value="del">压缩</option>'+
-     '</select>'
-     var oNode =  '1个节点。</br></br>';
-
-     var oMax =  '最大扩容节点：'+
-     '<input type="number" name="node_max" value=""  class="borderone" />';
-
-     var oLink = '<p class="layerlink"><a href="javascript:;" class="fn-sure">确定</a><a href="javascript:;" class="fn-close">取消</a></p>';
-     $("body").append(oDiv);
-     $("div.layermain").append(oCloseBtn,oTit);
-     $("div.layermain").append(oItem,oOperator,oValue,oAction,oNode,oMax);
-     $("div.layermain").append(oLink);
-     $(".fn-close").click(function(){
-     $("div.layerbg").remove();
-     $(".input-css input").prop("value","");
-     $("#group-name").find("option[value='-1']").prop("selected",true);
-     });
-     $(".fn-sure").click(function(){
-
-     item = $("select[name='item']").val()
-     operator = $("select[name='operator']").val()
-     value = $("input[name='value']").val()
-     action = $("select[name='action']").val()
-     node_max = $("input[name='node_max']").val()
-     port = $("input[name='port']").val()
-     data = {
-     item: item,
-     operator: operator,
-     value: value,
-     action: action,
-     node_max:node_max,
-     port:port,
-     }
-     $.ajax({
-     type: "POST",
-     url: "/ajax/{{tenantName}}/{{serviceAlias}}/rule",
-     data: data,
-     cache: false,
-     beforeSend: function (xhr, settings) {
-     var csrftoken = $.cookie('csrftoken');
-     xhr.setRequestHeader("X-CSRFToken", csrftoken);
-     },
-     success: function (data) {
-     swal("添加结果" + data.status);
-     flush()
-     },
-     error: function () {
-     swal("系统异常");
-     }
-     })
-
-     });
-     }*/
     function sureRole() {
         port = $("select[name='port']").val();
         item = $("select[name='item']").val();
