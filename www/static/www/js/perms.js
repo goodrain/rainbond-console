@@ -103,7 +103,7 @@
         }
       );
 
-        $('button.invite-service').click(function() {
+        $('#invite_user_btn').click(function() {
             identity = $("#ivite_perm").val();
             var email = $("#invite_email").val();
             if (email == "") {
