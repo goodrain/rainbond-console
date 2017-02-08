@@ -256,9 +256,10 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
 
             version = ""
             if ":" in image_url:
-                index = image_url.index(":")
+                index = image_url.rindex(":")
                 if service_cname is None or service_cname == "":
-                    service_cname = image_url[:index]
+                    str_tmp = image_url.split(":")
+                    service_cname = str_tmp[len(str_tmp)-2]
                 version = image_url[index + 1:]
             else:
                 if service_cname is None or service_cname == "":
