@@ -9,7 +9,7 @@ from django.views.decorators.cache import never_cache
 from share.manager.region_provier import RegionProviderManager
 from www.decorator import perm_required
 from www.models.main import TenantServiceInfo, ServiceInfo, ImageServiceRelation, TenantServiceEnvVar, \
-    TenantServicesPort, TenantServiceVolume, ServiceAttachInfo
+    TenantServicesPort, TenantServiceVolume, ServiceAttachInfo, ServiceGroupRelation
 from www.monitorservice.monitorhook import MonitorHook
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
@@ -178,6 +178,13 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
 
                 result["status"] = "success"
                 result["id"] = service_id
+                group_id = request.POST.get("select_group_id", "")
+                # 创建关系
+                if group_id != "":
+                    group_id = int(group_id)
+                    if group_id > 0:
+                        ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
+                                                            tenant_id=self.tenant.tenant_id, region_name=self.response_region)
             else:
                 result["status"] = "no_image_url"
                 return JsonResponse(result, status=500)
