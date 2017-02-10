@@ -975,6 +975,21 @@ class ServicePort(AuthedView):
                 port_envs = TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id,
                                                                container_port=deal_port.container_port).values(
                     'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
+                # 处理mysql别名
+                if self.service.service_type == 'mysql':
+                    try:
+                        mysql_envs = TenantServiceEnvVar.objects.only('attr_name') \
+                            .filter(service_id=deal_port.service_id,
+                                    attr_name__in=['MYSQL_USER', 'MYSQL_PASS', '{0}_USER'.format(old_port_alias), '{0}_PASS'.format(old_port_alias)])
+                        for env in mysql_envs:
+                            old_attr_name = env.attr_name.replace(old_port_alias, '')
+                            if old_attr_name == env.attr_name:
+                                old_attr_name = env.attr_name.replace('MYSQL', '')
+                            env.attr_name = new_port_alias + old_attr_name
+                            env.save()
+                    except Exception as e:
+                        logger.error(e)
+                    data.update({'old_port_alias': old_port_alias})
                 data.update(
                     {"modified_field": "port_alias", "current_value": new_port_alias, "port_envs": list(port_envs)})
         elif action == 'change_port':
