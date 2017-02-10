@@ -578,9 +578,9 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             self.service.save()
             regionClient.update_service(self.response_region, self.service.service_id, {"cmd": ""})
             # 设置docker构建显示的内存
-            memdict, keylist = self.memory_choices(self.tenant.pay_type == "free")
-            context["keylist"] = keylist
-            context["memorydict"] = memdict
+            # memdict, keylist = self.memory_choices(self.tenant.pay_type == "free")
+            # context["keylist"] = keylist
+            # context["memorydict"] = memdict
             return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
         ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).update(app_step=4)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)

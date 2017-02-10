@@ -60,18 +60,18 @@
 			<input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
 			<input type="hidden" id="service_name" name="service_name" value="{{tenantService.service_alias}}" />
 			<input type="hidden" id="language" name="language" value="{{tenantService.language}}" />
-			{% if tenantService.language == 'docker' %}
-			<div class="infor-fm-box">
-				<div class="fm-select clearfix">
-                    <label>内存</label>
-                    <select class="form-control"  id="service_memory" name="service_memory">
-                        {% for key in keylist %}
-                        <option value="{{key}}">{{memorydict|mkey:key}}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-			</div>
-			{% endif %}
+			<!--{% if tenantService.language == 'docker' %}-->
+			<!--<div class="infor-fm-box">-->
+				<!--<div class="fm-select clearfix">-->
+                    <!--<label>内存</label>-->
+                    <!--<select class="form-control"  id="service_memory" name="service_memory">-->
+                        <!--{% for key in keylist %}-->
+                        <!--<option value="{{key}}">{{memorydict|mkey:key}}</option>-->
+                        <!--{% endfor %}-->
+                    <!--</select>-->
+                <!--</div>-->
+			<!--</div>-->
+			<!--{% endif %}-->
 			<div class="infor-fm-box">
 				<div class="fm-btn clearfix">
                     <a class="greenbtn"  style="cursor: pointer;" id="language_btn">下一步</a>
