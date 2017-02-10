@@ -555,6 +555,11 @@ $(function(){
                 $(".fn-code-tips").hide();
             }
             //01
+            //检测code_url是否git
+            if (!/^.*.git$/.test(code_url)){
+                swal("git路径不合法!");
+                return;
+            }
         }else if(myWay == "gitlab_new"){
             service_code_from = "gitlab_new";
             //02
