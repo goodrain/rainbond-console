@@ -159,7 +159,7 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
 
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
-                endTime = datetime.datetime.now() + relativedelta(months=int(pre_paid_period))
+                endTime = startTime + relativedelta(months=int(pre_paid_period))
                 # 保存配套信息
                 sai = ServiceAttachInfo()
                 sai.tenant_id = tenant_id
