@@ -130,14 +130,16 @@ class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        
-        if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
-            result["status"] = "owed"
-            return JsonResponse(result, status=200)
-        
-        if tenantAccountService.isExpired(self.tenant, self.service):
-            result["status"] = "expired"
-            return JsonResponse(result, status=200)
+        action = request.POST["action"]
+        user_actions = ("rollback", "restart", "reboot")
+        if action in user_actions:
+            if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
+                result["status"] = "owed"
+                return JsonResponse(result, status=200)
+
+            if tenantAccountService.isExpired(self.tenant, self.service):
+                result["status"] = "expired"
+                return JsonResponse(result, status=200)
         
         oldVerion = self.service.deploy_version
         if oldVerion is not None and oldVerion != "":
@@ -145,7 +147,7 @@ class ServiceManage(AuthedView):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
         
-        action = request.POST["action"]
+
         if action == "stop":
             try:
                 body = {}
