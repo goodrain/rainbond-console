@@ -555,9 +555,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         context["serviceDomainDict"] = data
 
                 port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
-                context["ports"] = list(port_list)
-                context["outer_port_exist"] = outer_port_exist
+                # outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+                # context["ports"] = list(port_list)
+                # context["outer_port_exist"] = outer_port_exist
                 # 付费用户或者免费用户的mysql,免费用户的docker
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
