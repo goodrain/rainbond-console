@@ -366,6 +366,9 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
 
             logger.debug(depIds)
+            # 添加GD_ADAPTER环境变量
+            if len(depIds) > 0:
+                self.saveAdapterEnv(newTenantService)
             for sid in depIds:
                 try:
                     baseService.create_service_dependency(self.tenant.tenant_id, newTenantService.service_id, sid,
@@ -435,3 +438,12 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                 "action": "download_and_deploy",
                 "dep_sids": json.dumps([])}
         regionClient.send_task(region, topic, body)
+
+    def saveAdapterEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+            TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))

@@ -8,6 +8,7 @@ from www.decorator import perm_required
 from www.models import ComposeServiceRelation, TenantServiceInfo, ServiceInfo, TenantServiceEnvVar, TenantServicesPort, \
     TenantServiceVolume
 from www.models.main import ServiceGroup, ServiceGroupRelation, ServiceAttachInfo
+from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
     BaseTenantService
 from www.utils.docker.compose_parse import compose_list
@@ -28,7 +29,7 @@ tenantUsedResource = TenantUsedResource()
 baseService = BaseTenantService()
 monitorhook = MonitorHook()
 rpmManager = RegionProviderManager()
-
+regionClient = RegionServiceApi()
 
 class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
     def get_media(self):
@@ -563,5 +564,7 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
                     "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
             TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
 
 
