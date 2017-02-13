@@ -480,12 +480,12 @@ $(function(){
             var disk_num = 0;
             var time_num = parseInt($("#TimeLongText").html());
         }else if(memory_onoff == false && disk_onoff == true){
-            var memory_num = parseInt($("#NodeText").html());
+            var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
             var disk_num = parseInt($("#NodeText").html());
             var time_num = parseInt($("#TimeLongText").html());
         }else{
-            var memory_num = parseInt($("#NodeText").html());
+            var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
             var disk_num = 0;
             var time_num = 0;
