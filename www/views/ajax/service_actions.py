@@ -437,6 +437,7 @@ class ServiceRelation(AuthedView):
             if action == "add":
                 baseService.create_service_dependency(tenant_id, service_id, tenantS.service_id,
                                                       self.service.service_region)
+                self.saveAdapterEnv(self.service)
             elif action == "cancel":
                 baseService.cancel_service_dependency(tenant_id, service_id, tenantS.service_id,
                                                       self.service.service_region)
@@ -445,6 +446,15 @@ class ServiceRelation(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
+
+    def saveAdapterEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+            TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
 
 
 class AllServiceInfo(AuthedView):
