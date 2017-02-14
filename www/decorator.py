@@ -49,6 +49,8 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
                 else:
                     return JsonResponse({"reason": e.error}, status=403)
             except UrlParseError, e:
+                if e.code == 403:
+                    return redirect("/login")
                 return JsonResponse({"reason": e.error}, status=e.code)
         return _wrapped_view
     return decorator
