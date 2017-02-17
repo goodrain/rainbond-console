@@ -44,6 +44,7 @@
                     <a href="/apps/{{tenantName}}/service-entrance/?fr=deploy"{% if fr = "deploy" %} class="sed" {% endif %}>最近部署的应用</a>
                     <a href="/apps/{{tenantName}}/service-entrance/?fr=new"{% if fr = "new" %} class="sed" {% endif %}>最新应用</a>
                     <a href="/apps/{{tenantName}}/service-entrance/?fr=private" {% if fr = "private" %}class="sed"{% endif %}>分享的应用</a>
+                    <a href="/apps/{{tenantName}}/service-entrance/?fr=oos"{% if fr = "thirdApp" %}class="sed"{% endif %}>第三方应用</a>
                 </p>
                 <ul>
                     <li style="display: block;" class="clearfix">
@@ -66,6 +67,9 @@
                             {% endif %}
                             {% if fr = "new" %}
                             <p><a href="http://app.goodrain.com/category/0/?order_by=newest" target="_blank">更多应用</a></p>
+                            {% endif %}
+                            {% if fr = "thirdApp" %}
+                            <p><a href="" target="_blank">更多应用</a></p>
                             {% endif %}
                             {% if fr = "private" %}
                             <p id="no-show-list" style="display: none;">还没分享过应用，<a href="http://www.kancloud.cn/good-rain/share2market/198574" target="_blank">点击这里查看如何分享。</a></p>
