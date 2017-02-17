@@ -24,6 +24,7 @@
                  		<li {% if group.ID =  group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid={{group.ID}}">{{group.group_name}}</a></li>
                  	{% endfor %}
                 {% endif %}
+                <li><a href="">第三方应用</a></li>
                 <li {% if -1 ==  group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid=-1">未分组</a></li>
             </ul>
             <!--<a class="{{myAppStatus}}" href="/apps/{{tenantName}}/myservice">-->
