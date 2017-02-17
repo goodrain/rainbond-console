@@ -1,0 +1,47 @@
+/*ljh 2016-12-09*/
+/*表格合并相邻边框,字体颜色838383*/
+table{
+    width: 100%;
+    border-collapse: collapse;
+    color: #838383;
+    border-top:1px solid #ececec;
+    border-bottom: 1px solid #ececec;
+}
+/*表格标题*/
+table caption{
+    padding: 10px 13px;
+    font-size: 18px;
+    color: #303030;
+}
+/*表格中的a标签交互样式*/
+table a:link{
+    color: #28cb75;
+    text-decoration: underline;
+}
+table a:hover{
+    cursor: pointer;
+}
+/*表格th的大小与背景色*/
+table th{
+    border-top:1px solid #ececec;
+    border-bottom: 1px solid #ececec;
+    background-color: #f7f7f7;
+    font-size: 16px;
+    color: #303030;
+    height: 40px;
+}
+/*表格td的大小60px与颜色*/
+table td{
+    border-top:1px solid #ececec;
+    border-bottom: 1px solid #ececec;
+    background-color: #ffffff;
+    color: #838383;
+    font-size: 14px;
+    height: 60px;
+}
+section.table{background: #fff;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+    padding: 10px;
+}

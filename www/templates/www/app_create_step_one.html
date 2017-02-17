@@ -50,7 +50,8 @@
                     {% if fr = "thirdApp" %}
                     <li style="display: block;" class="clearfix">
                         <p><a href="/apps/{{tenantName}}/upai_cdn/create">又拍云CDN</a></p>
-                        <p><a href="/apps/{{tenantName}}/upai_oos/create" style="color: #303030;">又拍云对象存储</a></p>
+                        <p><a href="/apps/{{tenantName}}/upai_oos/create">又拍云对象存储</a></p>
+                        <p style="display: none"></p>
                     </li>
                     {% else %}
                     <li style="display: block;" class="clearfix">
@@ -73,9 +74,6 @@
                         {% endif %}
                         {% if fr = "new" %}
                         <p><a href="http://app.goodrain.com/category/0/?order_by=newest" target="_blank">更多应用</a></p>
-                        {% endif %}
-                        {% if fr = "thirdApp" %}
-                        <p><a href="" target="_blank">更多应用</a></p>
                         {% endif %}
                         {% if fr = "private" %}
                         <p id="no-show-list" style="display: none;">还没分享过应用，<a href="http://www.kancloud.cn/good-rain/share2market/198574" target="_blank">点击这里查看如何分享。</a></p>
