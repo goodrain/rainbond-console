@@ -10,17 +10,19 @@ from django.http import JsonResponse
 from www.app_http import AppServiceApi
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
-from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
+from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, \
+    TenantServiceAuth
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService, TenantRegionService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
+    CodeRepositoriesService, TenantRegionService
 from www.utils.language import is_redirect
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 from django.conf import settings
 from www.servicetype import ServiceType
 from www.utils import sn
-from www.models import  AppService
-from django.db.models import Q,Count
+from www.models import AppService
+from django.db.models import Q, Count
 
 logger = logging.getLogger('default')
 
@@ -33,15 +35,15 @@ codeRepositoriesService = CodeRepositoriesService()
 tenantRegionService = TenantRegionService()
 appClient = AppServiceApi()
 
-class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
 
+class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js')
         return media
-
+    
     @never_cache
     @perm_required('create_service')
     def get(self, request, *args, **kwargs):
@@ -53,7 +55,7 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
         context["is_private"] = sn.instance.is_private()
         context["cloud_assistant"] = sn.instance.cloud_assistant
         fr = request.GET.get("fr", None)
-        if fr is None or fr not in ("private","deploy","hot","new"):
+        if fr is None or fr not in ("private", "deploy", "hot", "new", "thirdApp"):
             fr = "hot"
         context["fr"] = fr
         try:
@@ -62,13 +64,13 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
             # if res.status == 200:
             #     service_list = json.loads(resp.data)
             #     context["service_list"] = service_list
-
+            
             if fr == "private":
                 # 私有市场
                 service_list = AppService.objects.filter(tenant_id=self.tenant.tenant_id) \
-                    .exclude(service_key='application') \
-                    .exclude(service_key='redis', app_version='2.8.20_51501') \
-                    .exclude(service_key='wordpress', app_version='4.2.4')[:11]
+                                   .exclude(service_key='application') \
+                                   .exclude(service_key='redis', app_version='2.8.20_51501') \
+                                   .exclude(service_key='wordpress', app_version='4.2.4')[:11]
                 # # 团队共享
                 # tenant_service_list = [x for x in service_list if x.status == "private"]
                 # # 云帮共享
@@ -82,7 +84,8 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
             elif fr == "deploy":
                 # 当前租户最新部署的应用
                 tenant_id = self.tenant.tenant_id
-                tenant_service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).exclude(service_key='application').order_by("-ID")
+                tenant_service_list = TenantServiceInfo.objects.filter(tenant_id=tenant_id).exclude(
+                    service_key='application').order_by("-ID")
                 service_key_query = []
                 tenant_service_query = None
                 for tenant_service in tenant_service_list:
@@ -97,9 +100,11 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
                     if len(service_key_query) > 18:
                         break
                     if tenant_service_query is None:
-                        tenant_service_query = (Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
+                        tenant_service_query = (
+                        Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
                     else:
-                        tenant_service_query = tenant_service_query | (Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
+                        tenant_service_query = tenant_service_query | (
+                        Q(service_key=tenant_service.service_key) & Q(version=tenant_service.version))
                 if len(service_key_query) > 0:
                     service_list = ServiceInfo.objects.filter(tenant_service_query)
                     context["service_list"] = service_list
@@ -122,9 +127,11 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
                     if len(service_key_query) > 18:
                         break
                     if tenant_service_query is None:
-                        tenant_service_query = (Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
+                        tenant_service_query = (
+                        Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
                     else:
-                        tenant_service_query = tenant_service_query | (Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
+                        tenant_service_query = tenant_service_query | (
+                        Q(service_key=tenant_service.get("service_key")) & Q(version=tenant_service.get("version")))
                 if len(service_key_query) > 0:
                     service_list = ServiceInfo.objects.filter(tenant_service_query)
                     context["service_list"] = service_list
@@ -137,7 +144,11 @@ class CreateServiceEntranceView(LeftSideBarMixin, AuthedView):
                 else:
                     logger.error("service market query newest failed!")
                     logger.error(res, resp)
-
+            
+            elif fr == "thirdApp":
+                service_list = []
+                context["service_list"] = service_list
+        
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_one.html", context)
