@@ -322,15 +322,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         return self.redirect_to('/apps/{0}/{1}/app-setting/'.format(self.tenant.tenant_name, self.service.service_alias))
                     if app_step == 4:
                         return self.redirect_to('/apps/{0}/{1}/app-language/'.format(self.tenant.tenant_name, self.service.service_alias))
-
-                # # no upload code
-                # if self.service.language == "" or self.service.language is None:
-                #     codeRepositoriesService.codeCheck(self.service)
-                #     return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
-                # if self.service.code_from not in ("image_manual"):
-                #     tse = TenantServiceEnv.objects.get(service_id=self.service.service_id)
-                #     if tse.user_dependency is None or tse.user_dependency == "":
-                #         return self.redirect_to('/apps/{0}/{1}/app-waiting/'.format(self.tenant.tenant_name, self.service.service_alias))
+            elif self.service.category == 'app_publish':
+                # 市场安装
+                if ServiceCreateStep.objects.filter(service_id=self.service.service_id,
+                                                    tenant_id=self.tenant.tenant_id).count() > 0:
+                    return self.redirect_to('/apps/{0}/{1}/deploy/setting/'.format(self.tenantName, self.serviceAlias))
 
             service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
                                                                              service_id=self.service.service_id).order_by("-ID")
@@ -555,7 +551,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         context["serviceDomainDict"] = data
 
                 port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
-                outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+                outer_port_exist = False
+                if len(port_list) > 0:
+                    outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
                 context["ports"] = list(port_list)
                 context["outer_port_exist"] = outer_port_exist
                 # 付费用户或者免费用户的mysql,免费用户的docker
