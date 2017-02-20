@@ -11,6 +11,7 @@ from www.decorator import perm_required
 import logging
 
 logger = logging.getLogger('default')
+upai_client = YouPaiApi()
 
 
 class CreateThirdAppView(LeftSideBarMixin, AuthedView):
@@ -52,7 +53,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     create_body["type"] = "file"
                     create_body["business_type"] = "file"
                 
-                res, body = YouPaiApi.createService(body=create_body)
+                res, body = upai_client.createService(body=create_body)
                 if res.status == 201:
                     ThirdAppInfo.service_id = service_id
                     ThirdAppInfo.bucket_name = create_body.bucket_name
@@ -98,13 +99,13 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
             context = self.get_context()
             context["app_info"] = app_info
             if app_info.app_type == "upai_cdn":
-                res, body = YouPaiApi.getDomainList(app_info.bucket_name)
+                res, body = upai_client.getDomainList(app_info.bucket_name)
                 if res.status == 200:
                     context["domains"] = body
-                res, body = YouPaiApi.getOperatorsList(app_info.bucket_name)
+                res, body = upai_client.getOperatorsList(app_info.bucket_name)
                 if res.status == 200:
                     context["operators"] = body
-                return TemplateResponse(self.request, "third_app/CDNshow.html", context)
+                return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         except Exception as e:
             logger.exception(e)
             return HttpResponse(u"创建异常", status=500)
@@ -131,4 +132,4 @@ class ThirdAppListView(LeftSideBarMixin, AuthedView):
         apps = ThirdAppInfo.objects.filter(tenant_id=tenant_name).all()
         context = self.get_context()
         context["apps"] = apps
-        return TemplateResponse(self.request, "/thirdApp.html", context)
+        return TemplateResponse(self.request, "www/third_app/thirdApp.html", context)

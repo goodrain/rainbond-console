@@ -16,7 +16,6 @@ EMAIL_HOST_USER = 'no-reply@goodrain.com'
 EMAIL_HOST_PASSWORD = 'Thaechee3moo'
 EMAIL_USE_SSL = True
 
-
 DISCOURSE_SECRET_KEY = 'c2GZHIg8pcF2Pg5M'
 
 ALLOWED_HOSTS = ['.goodrain.com', '.goodrain.io', '.goodrain.me']
@@ -104,10 +103,13 @@ WEBSOCKET_URL = {
 }
 
 REGION_RULE = {
-    'ucloud-bj-1': {'personal_money': 0.083, 'company_money': 0.332, 'personal_month_money': 60, 'company_month_money': 120},
-    'aws-jp-1': {'personal_money': 0.173, 'company_money': 0.692, 'personal_month_money': 125, 'company_month_money': 250},
+    'ucloud-bj-1': {'personal_money': 0.083, 'company_money': 0.332, 'personal_month_money': 60,
+                    'company_month_money': 120},
+    'aws-jp-1': {'personal_money': 0.173, 'company_money': 0.692, 'personal_month_money': 125,
+                 'company_month_money': 250},
     'ali-sh': {'personal_money': 0.069, 'company_money': 0.276, 'personal_month_money': 50, 'company_month_money': 100},
-    'xunda-bj': {'personal_money': 0.069, 'company_money': 0.276, 'personal_month_money': 50, 'company_month_money': 100},
+    'xunda-bj': {'personal_money': 0.069, 'company_money': 0.276, 'personal_month_money': 50,
+                 'company_month_money': 100},
 }
 
 REGION_FEE_RULE = {
@@ -136,7 +138,6 @@ CACHES = {
         'LOCATION': '{}:{}'.format(os.environ.get('MEMCACHED_HOST'), os.environ.get('MEMCACHED_PORT')),
     }
 }
-
 
 SESSION_ENGINE = "www.contrib.sessions.backends.cache"
 # SESSION_CACHE_ALIAS = 'session'
@@ -168,7 +169,6 @@ REGIONS = (
     {"name": "ali-sh", "label": u'\u963f\u91cc\u4e91[\u4e0a\u6d77]', "enable": True},
     {"name": "aws-jp-1", "label": u'\u4e9a\u9a6c\u900a[\u65e5\u672c]', "enable": True},
 )
-
 
 # logo path
 MEDIA_ROOT = '/data/media'
@@ -207,3 +207,8 @@ OAUTH2_APP = {
 SN = '30b2owNzc8rJE-Ncmti1aHddSDjZQ3soGyeQ3grb43pCK8Q8_3FdV80fxpFmWeZeKziCl_a3zZiAdO6pmy9xtzCHTPX73yAEa4KuY6Yvu97mS88ID4R0ZAsksxoBvtfIKc7lxMX4ILh7xQoDn9r8QOsb6PQZFwa08373_nKoiIu6JPAZ8srwnpySkzUQilQ4gQGSuwG-NDGV8zJAHwfLc2zCIWtLvOLMEL-5jkq23rrEgfGmyUKln9yFMvRqyaL8ZO025oi901'
 
 TENANT_VALID_TIME = 7
+
+YOUPAI = {
+    'ACCESS_TOKEN': 'f67c2c20-e1f6-420a-b7d2-c0bbdef81a5f',
+    'URL': 'https://api.upyun.com/'
+}
