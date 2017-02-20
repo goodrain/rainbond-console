@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 from django.conf.urls import patterns, url
 from www.tests import *
 from www.services_view import *
@@ -73,6 +74,6 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/create/dep-info', CreateServiceDepInfo.as_view()),
     url(r'^region/price-info', PriceDetailView.as_view()),
     
-    # 第三方应用管理
+    # third apps manager
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/updateName$', UpdateAppView.as_view()),
 )
