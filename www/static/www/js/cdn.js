@@ -8,7 +8,7 @@ $(function(){
         str += "<td>"+456+"</td>";
         str += "<td>"+789+"</td>";
         str += "<td><a class='del_domain'>删除</a></td></tr>";
-        str.appendTo("tbody.domain-box");
+        $(str).appendTo("tbody.domain-box");
         $("p.input_domain").hide();
         $("input.domain_name").val("");
         del_domain();
