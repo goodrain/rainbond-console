@@ -18,6 +18,10 @@ span.title{
     float: right;
     margin-left: 20px;
 }
+.table table a.del_domain{
+    color: red;
+    cursor: pointer;
+}
 p.input_domain{
     padding: 10px;
 }
