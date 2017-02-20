@@ -18,3 +18,10 @@ span.title{
     float: right;
     margin-left: 20px;
 }
+table tfoot.input_domain input.domain_name{
+    height: 36px;
+    width: 100%;
+}
+table tfoot.input_domain button{
+    margin-right: 20px;
+}
