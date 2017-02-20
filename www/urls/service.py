@@ -18,6 +18,7 @@ from www.views.servicepublish import PublishServiceView, PublishServiceRelationV
 from www.views.serviceshare import *
 from www.views.consume import *
 from  www.views.servicemonitor import *
+from www.views.third_app import *
 
 urlpatterns = patterns(
     '',
@@ -90,5 +91,8 @@ urlpatterns = patterns(
     # new monitor service source
     #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
     #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),
-
+    
+    url(r'/third_app/(?P<app_type>[\w\-]+)/create/',login_required(CreateThirdAppView.as_view())),
+    
+    url(r'/(?P<app_bucket>[\w\-]+)/third_show$',login_required(ThirdAppView.as_view()))
 )

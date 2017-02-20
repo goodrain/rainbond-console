@@ -30,7 +30,8 @@ app_pay_choices = (
     (u'免费', "free"), (u'付费', "pay")
 )
 
-pay_method = ((u'预付费提前采购',"prepaid"),(u'按使用后付费',"postpaid"))
+pay_method = ((u'预付费提前采购', "prepaid"), (u'按使用后付费', "postpaid"))
+
 
 def compose_file_path(instance, filename):
     suffix = filename.split('.')[-1]
@@ -439,7 +440,7 @@ class TenantServiceInfo(BaseModel):
     # 服务创建类型,cloud、assistant
     service_origin = models.CharField(max_length=15, default='assistant', help_text=u"服务创建类型cloud云市服务,assistant云帮服务")
     expired_time = models.DateTimeField(null=True, help_text=u"过期时间")
-
+    
     def __unicode__(self):
         return self.service_alias
     
@@ -897,7 +898,6 @@ class ServiceRule(BaseModel):
     port = models.CharField(max_length=10)
     port_type = models.CharField(max_length=15, default='multi_outer',
                                  help_text=u"端口类型，one_outer;dif_protocol;multi_outer")
-    
 
 
 class ServiceRuleHistory(BaseModel):
@@ -911,11 +911,13 @@ class ServiceRuleHistory(BaseModel):
     action = models.CharField(max_length=10, help_text=u"触发动作")
     message = models.CharField(help_text=u"描述")
 
+
 class ServiceAttachInfo(BaseModel):
     """应用配套信息"""
+    
     class Meta:
         db_table = 'service_attach_info'
-
+    
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     memory_pay_method = models.CharField(max_length=32, choices=pay_method)
@@ -929,9 +931,22 @@ class ServiceAttachInfo(BaseModel):
     buy_end_time = models.DateTimeField(help_text=u"购买结束时间")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
+
 class ServiceCreateStep(BaseModel):
     class Meta:
         db_table = 'service_create_step'
+    
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     app_step = models.IntegerField(default=1, help_text=u"创建应用的步数")
+
+
+class ThirdAppInfo(BaseModel):
+    class Meta:
+        db_table = 'third_app_info'
+    
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
+    app_type = models.CharField(max_length=32, help_text=u"第三方应用类型")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
