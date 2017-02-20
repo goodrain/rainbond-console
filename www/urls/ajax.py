@@ -11,7 +11,7 @@ from www.views.ajax.service_log import *
 from www.views.ajax.price_detail import PriceDetailView
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
 from www.views.service import CreateServiceDepInfo
-
+from www.views.ajax.third_app import *
 
 urlpatterns = patterns(
     '',
@@ -56,10 +56,10 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/group/update$', UpdateGroupView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/group/delete$', DeleteGroupView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/group/change-group$', UpdateServiceGroupView.as_view()),
-
+    
     url(r'^(?P<tenantName>[\w\-]+)/batch-action$', BatchActionView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/change-service-name', ajax.ServiceNameChangeView.as_view()),
-
+    
     # service rule
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule$', ServiceRuleManage.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/update$', ServiceRuleUpdate.as_view()),
@@ -69,7 +69,10 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log$', ServiceLogMatch.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log/check$', ServiceLogMatchCheck.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log/delete$', ServiceLogMatchDelete.as_view()),
-
+    
     url(r'^(?P<tenantName>[\w\-]+)/create/dep-info', CreateServiceDepInfo.as_view()),
     url(r'^region/price-info', PriceDetailView.as_view()),
+    
+    # 第三方应用管理
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/updateName$', UpdateAppView.as_view()),
 )
