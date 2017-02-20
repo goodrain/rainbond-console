@@ -1,3 +1,5 @@
-/**
- * Created by lsy on 2017/2/20.
- */
+$(function(){
+    $("button.add_domain").click(function(){
+        $("tfoot.input_domain").show();
+    })
+})

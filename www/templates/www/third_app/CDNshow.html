@@ -138,8 +138,7 @@
 {% load static %}
 {% block extracss %}
 {{ block.super }}
-<link rel="stylesheet" href='{% static "www/css/bootstrap.min.css" %}' />
-<link rel="stylesheet" href='{% static "www/css/tablePublic.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/style.css" %}' />
 <link rel="stylesheet" href='{% static "www/css/cdn.css" %}' />
 {% endblock %}
 {% block extrajs %}
@@ -161,7 +160,7 @@
                 <h4>域名管理</h4>
                 <ul class="clearfix">
                     <li>
-                        <button class="btn btn-primary">域名绑定</button>
+                        <button class="btn btn-primary add_domain">域名绑定</button>
                     </li>
                 </ul>
             </div>
@@ -179,23 +178,38 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr>
-                    <td>2017-02-17</td>
-                    <td>0元</td>
-                    <td>0元</td>
-                    <td>
-                        <a href="">查看</a>
-                    </td>
-                </tr>
-                <tr>
-                    <td>2017-02-17</td>
-                    <td>0元</td>
-                    <td>0元</td>
-                    <td>
-                        <a href="">查看</a>
-                    </td>
-                </tr>
+                {% for app in domins %}
+                    <tr>
+                        <td>{{app.domain}}</td>
+                        {% if app.status = "NORMAl" %}
+                        <td style="color:#28cb75;">正常</td>
+                        {% else if app.status = "PENDING" %}
+                        <td>未审核</td>
+                        {% else %}
+                        <td style="color: red">未通过</td>
+                        {% end if %}
+                        <td>{{app.create_time}}</td>
+                        <td>
+                            <a>删除</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                    <tr>
+                        <td>2017-02-17</td>
+                        <td>0元</td>
+                        <td>0元</td>
+                        <td>
+                            <a href="">查看</a>
+                        </td>
+                    </tr>
                 </tbody>
+                <tfoot class="input_domain" style="display: none">
+                    <tr>
+                        <td colspan="4">
+                            <input type="text" placeholder="请输入域名" class="domain_name">
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
         </section>
         <section class="table">
