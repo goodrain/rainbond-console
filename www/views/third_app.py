@@ -53,14 +53,15 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     create_body["type"] = "file"
                     create_body["business_type"] = "file"
                 
-                res, body = upai_client.createService(body=create_body)
+                res, body = upai_client.createService(json.dumps(create_body))
                 if res.status == 201:
-                    ThirdAppInfo.service_id = service_id
-                    ThirdAppInfo.bucket_name = create_body.bucket_name
-                    ThirdAppInfo.app_type = "upai_cdn"
-                    ThirdAppInfo.tenant_id = tenant_name
-                    ThirdAppInfo.save()
-                    HttpResponseRedirect("/apps/" + tenant_name + "/" + create_body["bucket_name"] + "/third_show")
+                    info = ThirdAppInfo()
+                    info.service_id = service_id
+                    info.bucket_name = create_body["bucket_name"]
+                    info.app_type = "upai_cdn"
+                    info.tenant_id = tenant_name
+                    info.save()
+                    return HttpResponseRedirect("/apps/" + tenant_name + "/" + create_body["bucket_name"] + "/third_show")
                 else:
                     logger.error("create upai cdn bucket error,:" + body.message)
                     return HttpResponse(u"创建错误", status=res.status)
@@ -73,11 +74,11 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
 
 class ThirdAppView(LeftSideBarMixin, AuthedView):
     def get_context(self):
-        context = super(CreateThirdAppView, self).get_context()
+        context = super(ThirdAppView, self).get_context()
         return context
     
     def get_media(self):
-        media = super(CreateThirdAppView, self).get_media() + self.vendor(
+        media = super(ThirdAppView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
             'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/style.css',
             'www/css/bootstrap-switch.min.css', 'www/css/bootstrap-editable.css',
@@ -93,7 +94,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
             tenant_name = self.tenantName
             if app_bucket is None:
                 return HttpResponse(u"参数错误", status=415)
-            app_info = ThirdAppInfo.objects.filter(app_bucket=app_bucket, tenant_id=tenant_name).first()
+            app_info = ThirdAppInfo.objects.filter(bucket_name=app_bucket, tenant_id=tenant_name).first()
             if app_info is None:
                 return HttpResponse(u"参数错误", status=415)
             context = self.get_context()
@@ -113,11 +114,11 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
 
 class ThirdAppListView(LeftSideBarMixin, AuthedView):
     def get_context(self):
-        context = super(CreateThirdAppView, self).get_context()
+        context = super(ThirdAppListView, self).get_context()
         return context
     
     def get_media(self):
-        media = super(CreateThirdAppView, self).get_media() + self.vendor(
+        media = super(ThirdAppListView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
             'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/style.css',
             'www/css/bootstrap-switch.min.css', 'www/css/bootstrap-editable.css',

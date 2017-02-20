@@ -29,7 +29,7 @@ class YouPaiApi(BaseHttpClient):
         return res, body
     
     def getDomainList(self, bucket):
-        url = self.BaseAPIURL + "buckets/domains?bucket_name={0}".format(bucket)
+        url = self.BaseAPIURL + "buckets/domains?bucket_name={0}&limit=50&page=1".format(bucket)
         res, body = self._get(url, self.default_headers)
         return res, body
     
