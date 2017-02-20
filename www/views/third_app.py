@@ -46,7 +46,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     create_body["bucket_name"] = "gr" + service_id[-6:]
                     create_body["type"] = "ucdn"
                     create_body["business_type"] = "file"
-                
+                    
                 elif app_type == "upai_oos":
                     service_id = make_uuid()
                     create_body["bucket_name"] = "gr" + service_id[-6:]
@@ -60,6 +60,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     info.bucket_name = create_body["bucket_name"]
                     info.app_type = "upai_cdn"
                     info.tenant_id = tenant_name
+                    info.name = "又拍云应用"
                     info.save()
                     return HttpResponseRedirect("/apps/" + tenant_name + "/" + create_body["bucket_name"] + "/third_show")
                 else:

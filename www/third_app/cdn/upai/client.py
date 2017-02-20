@@ -43,8 +43,8 @@ class YouPaiApi(BaseHttpClient):
         res, body = self._delete(url, self.default_headers)
         return res, body
     
-    def getOperatorsList(self):
-        url = self.BaseAPIURL + "/operators"
+    def getOperatorsList(self, bucket):
+        url = self.BaseAPIURL + "buckets/operators?bucket_name={0}".format(bucket)
         res, body = self._get(url, self.default_headers)
         return res, body
     

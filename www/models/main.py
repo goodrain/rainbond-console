@@ -950,3 +950,4 @@ class ThirdAppInfo(BaseModel):
     bucket_name = models.CharField(max_length=32, help_text=u"空间名")
     app_type = models.CharField(max_length=32, help_text=u"第三方应用类型")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    name = models.CharField(max_length=32, help_text=u"应用名称")
