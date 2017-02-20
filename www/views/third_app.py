@@ -33,7 +33,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
     
     # form提交.
     @perm_required('app_create')
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         try:
             app_type = kwargs.get('app_type', None)
             tenant_name = self.tenantName
