@@ -18,6 +18,9 @@ span.title{
     float: right;
     margin-left: 20px;
 }
+p.input_domain{
+    padding: 10px;
+}
 p.input_domain input.domain_name{
     height: 36px;
     width: 40%;
