@@ -1,0 +1,20 @@
+ul,ol li{list-style: none;}
+span.title{
+    font-size: 24px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-weight: 500;
+    line-height: 1.1;
+    margin-right: 20px;
+}
+.table div.clearfix h4{
+    float: left;
+    width: 30%;
+}
+.table div.clearfix ul{
+     float: right;
+ }
+.table div.clearfix ul li{
+    float: right;
+    margin-left: 20px;
+}

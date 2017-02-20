@@ -1,10 +1,259 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN" xmlns="http://www.w3.org/1999/html">-->
+<!--<head>-->
+    <!--<meta charset="utf-8">-->
+    <!--<meta http-equiv="X-UA-Compatible" content="IE=edge">-->
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
+    <!--<title>又拍云CDN费用明细</title>-->
+    <!--<link href="css/bootstrap.min.css" rel="stylesheet">-->
+    <!--<link href="css/tablePublic.css" rel="stylesheet">-->
+    <!--<link href="css/cdn.css" rel="stylesheet">-->
+    <!--<style>-->
+        <!--.main-box{background: #f0f5f8;padding:30px 20px;position: relative;}-->
+        <!--section.table{background: #fff;-->
+            <!-- -moz-border-radius: 10px;-->
+            <!-- -webkit-border-radius: 10px;-->
+            <!--border-radius: 10px;-->
+            <!--padding: 10px;-->
+        <!--}-->
+    <!--</style>-->
+<!--</head>-->
+<!--<body>-->
+<!--<section class="main-box">-->
+    <!--<span class="title">又拍云</span>-->
+    <!--<a>更名</a>-->
+    <!--<div>-->
+        <!--<ul class="clearfix">-->
+            <!--<li></li>-->
+        <!--</ul>-->
+    <!--</div>-->
+    <!--<section class="table">-->
+        <!--<div class="clearfix">-->
+            <!--<h4>域名管理</h4>-->
+            <!--<ul class="clearfix">-->
+                <!--<li>-->
+                    <!--<button class="btn btn-primary">域名绑定</button>-->
+                <!--</li>-->
+            <!--</ul>-->
+        <!--</div>-->
+        <!--<p>-->
+            <!--<span>绑定域名后，请在域名服务商处将其CNAME配置为：</span>-->
+            <!--<a>cdn212313.b0.eicon.com</a>-->
+        <!--</p>-->
+        <!--<table>-->
+            <!--<thead>-->
+            <!--<tr>-->
+                <!--<th>域名</th>-->
+                <!--<th>状态</th>-->
+                <!--<th>类型</th>-->
+                <!--<th>操作</th>-->
+            <!--</tr>-->
+            <!--</thead>-->
+            <!--<tbody>-->
+            <!--<tr>-->
+                <!--<td>2017-02-17</td>-->
+                <!--<td>0元</td>-->
+                <!--<td>0元</td>-->
+                <!--<td>-->
+                    <!--<a href="">查看</a>-->
+                <!--</td>-->
+            <!--</tr>-->
+            <!--<tr>-->
+                <!--<td>2017-02-17</td>-->
+                <!--<td>0元</td>-->
+                <!--<td>0元</td>-->
+                <!--<td>-->
+                    <!--<a href="">查看</a>-->
+                <!--</td>-->
+            <!--</tr>-->
+            <!--</tbody>-->
+        <!--</table>-->
+    <!--</section>-->
+    <!--<section class="table">-->
+        <!--<div class="clearfix">-->
+            <!--<h4>已授权操作员</h4>-->
+            <!--<ul class="clearfix">-->
+                <!--<li>-->
+                    <!--<button class="btn btn-primary">创建操作员并授权</button>-->
+                <!--</li>-->
+                <!--<li>-->
+                    <!--<button class="btn btn-primary">授权操作员</button>-->
+                <!--</li>-->
+            <!--</ul>-->
+        <!--</div>-->
+        <!--<table>-->
+            <!--<thead>-->
+            <!--<tr>-->
+                <!--<th>操作员</th>-->
+                <!--<th>姓名</th>-->
+                <!--<th>权限</th>-->
+                <!--<th>状态</th>-->
+                <!--<th>授权时间</th>-->
+                <!--<th>操作</th>-->
+            <!--</tr>-->
+            <!--</thead>-->
+            <!--<tbody>-->
+            <!--<tr>-->
+                <!--<td>less</td>-->
+                <!--<td>test</td>-->
+                <!--<td>读取</td>-->
+                <!--<td>正常</td>-->
+                <!--<td>2017-02-17 12:00</td>-->
+                <!--<td>取消授权</td>-->
+            <!--</tr>-->
+            <!--<tr>-->
+                <!--<td>less</td>-->
+                <!--<td>test</td>-->
+                <!--<td>读取</td>-->
+                <!--<td>正常</td>-->
+                <!--<td>2017-02-17 12:00</td>-->
+                <!--<td>取消授权</td>-->
+            <!--</tr>-->
+            <!--</tbody>-->
+        <!--</table>-->
+    <!--</section>-->
+    <!--<section class="table">-->
+        <!--<div class="clearfix">-->
+            <!--<h4>删除服务</h4>-->
+            <!--<ul class="clearfix">-->
+                <!--<li>-->
+                    <!--<button class="btn btn-danger">删除</button>-->
+                <!--</li>-->
+            <!--</ul>-->
+        <!--</div>-->
+        <!--<p>-->
+            <!--<span>删除不可逆，一旦操作，该服务原有配置均失效，请谨慎操作</span>-->
+        <!--</p>-->
+    <!--</section>-->
+<!--</section>-->
+<!--</body>-->
+<!--</html>-->
 
-</body>
-</html>
+
+
+
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/bootstrap.min.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/tablePublic.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/css/cdn.css" %}' />
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/cdn.js" %}'></script>
+{% endblock %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <section class="main-box">
+        <span class="title">又拍云</span>
+        <a>更名</a>
+        <div>
+            <ul class="clearfix">
+                <li></li>
+            </ul>
+        </div>
+        <section class="table">
+            <div class="clearfix">
+                <h4>域名管理</h4>
+                <ul class="clearfix">
+                    <li>
+                        <button class="btn btn-primary">域名绑定</button>
+                    </li>
+                </ul>
+            </div>
+            <p>
+                <span>绑定域名后，请在域名服务商处将其CNAME配置为：</span>
+                <a>cdn212313.b0.eicon.com</a>
+            </p>
+            <table>
+                <thead>
+                <tr>
+                    <th>域名</th>
+                    <th>状态</th>
+                    <th>类型</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>2017-02-17</td>
+                    <td>0元</td>
+                    <td>0元</td>
+                    <td>
+                        <a href="">查看</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>2017-02-17</td>
+                    <td>0元</td>
+                    <td>0元</td>
+                    <td>
+                        <a href="">查看</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+        <section class="table">
+            <div class="clearfix">
+                <h4>已授权操作员</h4>
+                <ul class="clearfix">
+                    <li>
+                        <button class="btn btn-primary">创建操作员并授权</button>
+                    </li>
+                    <li>
+                        <button class="btn btn-primary">授权操作员</button>
+                    </li>
+                </ul>
+            </div>
+            <table>
+                <thead>
+                <tr>
+                    <th>操作员</th>
+                    <th>姓名</th>
+                    <th>权限</th>
+                    <th>状态</th>
+                    <th>授权时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>less</td>
+                    <td>test</td>
+                    <td>读取</td>
+                    <td>正常</td>
+                    <td>2017-02-17 12:00</td>
+                    <td>取消授权</td>
+                </tr>
+                <tr>
+                    <td>less</td>
+                    <td>test</td>
+                    <td>读取</td>
+                    <td>正常</td>
+                    <td>2017-02-17 12:00</td>
+                    <td>取消授权</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+        <section class="table">
+            <div class="clearfix">
+                <h4>删除服务</h4>
+                <ul class="clearfix">
+                    <li>
+                        <button class="btn btn-danger">删除</button>
+                    </li>
+                </ul>
+            </div>
+            <p>
+                <span>删除不可逆，一旦操作，该服务原有配置均失效，请谨慎操作</span>
+            </p>
+        </section>
+    </section>
+</section>
+{% endblock %}
