@@ -30,7 +30,7 @@ $(function(){
             type: 'text',
             pk: 1,
             success: function (data) {
-
+                console.log(data);
             },
             error: function (data) {
                 msg = data.responseText;
