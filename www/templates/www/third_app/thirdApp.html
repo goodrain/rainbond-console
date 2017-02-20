@@ -53,7 +53,8 @@
 <script>
     $(document).ready(function(){
         console.log($("ul.sub").eq(0));
-        $("ul.sub").eq(0).css({"display":"block"});
+        $("li.sub-menu ul.sub").eq(0).css({"display":"block"});
+        $("li.sub-menu ul.sub").eq(0).show();
     })
 </script>
 {% endblock %}
