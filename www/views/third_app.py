@@ -89,9 +89,10 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             app_bucket = kwargs.get('app_bucket', None)
+            tenant_name = self.tenantName
             if app_bucket is None:
                 return HttpResponse(u"参数错误", status=415)
-            app_info = ThirdAppInfo.objects.filter(app_bucket=app_bucket).first()
+            app_info = ThirdAppInfo.objects.filter(app_bucket=app_bucket, tenant_id=tenant_name).first()
             if app_info is None:
                 return HttpResponse(u"参数错误", status=415)
             context = self.get_context()
@@ -107,3 +108,27 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
         except Exception as e:
             logger.exception(e)
             return HttpResponse(u"创建异常", status=500)
+
+
+class ThirdAppListView(LeftSideBarMixin, AuthedView):
+    def get_context(self):
+        context = super(CreateThirdAppView, self).get_context()
+        return context
+    
+    def get_media(self):
+        media = super(CreateThirdAppView, self).get_media() + self.vendor(
+            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
+            'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/style.css',
+            'www/css/bootstrap-switch.min.css', 'www/css/bootstrap-editable.css',
+            'www/css/style-responsive.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+            'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js', 'www/js/gr/app_publish.js',
+            'www/js/validator.min.js'
+        )
+        return media
+    
+    def get(self, request, *args, **kwargs):
+        tenant_name = self.tenantName
+        apps = ThirdAppInfo.objects.filter(tenant_id=tenant_name).all()
+        context = self.get_context()
+        context["apps"] = apps
+        return TemplateResponse(self.request, "/thirdApp.html", context)

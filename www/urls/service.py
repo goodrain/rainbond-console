@@ -23,50 +23,50 @@ from www.views.third_app import *
 urlpatterns = patterns(
     '',
     url(r'^/?$', login_required(TenantServiceAll.as_view())),
-
+    
     url(r'^/service-entrance/$', login_required(CreateServiceEntranceView.as_view())),
-
+    
     url(r'^/app-create/$', login_required(AppCreateView.as_view())),
-
+    
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-waiting/$', login_required(AppWaitingCodeView.as_view())),
-
+    
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-setting/$', login_required(AppSettingsView.as_view())),
-
+    
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-language/$', login_required(AppLanguageCodeView.as_view())),
-
+    
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),
-
+    
     url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra/?$', ServiceDeployExtraView.as_view()),
-
+    
     url(r'^/(?P<serviceAlias>[\w\-]+)/deploy/setting/?$', ServiceDeploySettingView.as_view()),
-
+    
     url(r'^/service/$', login_required(ServiceMarket.as_view())),
-
+    
     url(r'^/service-deploy/$', login_required(ServiceMarketDeploy.as_view())),
-
+    
     url(r'^/team/$', TeamInfo.as_view()),
-
+    
     url(r'^/(?P<serviceAlias>[\w\-]+)/detail/?$', login_required(TenantService.as_view())),
-
+    
     url(r'^/(?P<serviceAlias>[\w\-]+)/latest-log/$', login_required(ServiceLatestLog.as_view())),
     url(r'^/(?P<serviceAlias>[\w\-]+)/history-log/$', login_required(ServiceHistoryLog.as_view())),
     url(r'^/(?P<serviceAlias>[\w\-]+)/docker/$', login_required(ServiceDockerContainer.as_view())),
-
+    
     url(r'^/recharge/$', login_required(Recharging.as_view())),
     url(r'^/consume/$', login_required(Account.as_view())),
     url(r'^/bill/$', login_required(AccountBill.as_view())),
     url(r'^/paymodel/$', login_required(PayModelView.as_view())),
     url(r'^/license/$', login_required(AssistantView.as_view())),
-
+    
     url(r'^/recharge/alipay$', csrf_exempt(login_required(alipay_view.submit))),
     url(r'^/recharge/alipay-return$', alipay_view.return_url),
     url(r'^/recharge/alipay-notify$', csrf_exempt(alipay_view.notify_url)),
-
+    
     # new publish service
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/$', PublishServiceDetailView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/relation/?$', PublishServiceRelationView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/publish/extra/?$', PublishServiceView.as_view()),
-
+    
     # new share service
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step1$', ShareServiceStep1View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step2$', ShareServiceStep2View.as_view()),
@@ -76,11 +76,9 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
-
-
+    
     url(r'^/myservice/$', login_required(MyTenantService.as_view())),
     
-
     # image_service
     url(r'^/image-create/$', login_required(ImageServiceDeploy.as_view())),
     url(r'^/image-params/$', login_required(ImageParamsViews.as_view())),
@@ -89,10 +87,11 @@ urlpatterns = patterns(
     url(r'^/compose-step2/$', login_required(ComposeCreateStep2.as_view())),
     url(r'^/compose-step3/$', login_required(ComposeCreateStep3.as_view())),
     # new monitor service source
-    #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
-    #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),
+    # url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
+    # url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),
     
-    url(r'/third_app/(?P<app_type>[\w\-]+)/create/',login_required(CreateThirdAppView.as_view())),
-    
-    url(r'/(?P<app_bucket>[\w\-]+)/third_show$',login_required(ThirdAppView.as_view()))
+    url(r'/third_app/(?P<app_type>[\w\-]+)/create/', login_required(CreateThirdAppView.as_view())),
+    url(r'/(?P<app_bucket>[\w\-]+)/third_show$', login_required(ThirdAppView.as_view())),
+    url(r'/third_app/list', login_required(ThirdAppListView.as_view()))
 )
+
