@@ -1,6 +1,6 @@
 $(function(){
     $("button.add_domain").click(function(){
-        $("tfoot.input_domain").show();
+        $("p.input_domain").show();
     });
     $("button.add_sure").click(function(){
         swal("系统异常");
@@ -9,10 +9,12 @@ $(function(){
         str += "<td>"+789+"</td>";
         str += "<td><a class='del_domain'>删除</a></td></tr>";
         str.appendTo("tbody.domain-box");
+        $("p.input_domain").hide();
+        $("input.domain_name").val("");
         del_domain();
     });
     $("button.add_cancel").click(function(){
-        $("tfoot.input_domain").hide();
+        $("p.input_domain").hide();
         $("input.domain_name").val("");
     });
     del_domain();
