@@ -76,4 +76,6 @@ urlpatterns = patterns(
     
     # third apps manager
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/updateName$', UpdateAppView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/domain/add$', AppDomainView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/domain/delete$', AppDomainDeleteView.as_view()),
 )
