@@ -181,13 +181,13 @@
                 {% for app in domins %}
                     <tr>
                         <td>{{app.domain}}</td>
-                        {% if app.status = "NORMAl" %}
+                        {% if app.status == "NORMAl" %}
                         <td style="color:#28cb75;">正常</td>
-                        {% else if app.status = "PENDING" %}
+                        {% elif app.status == "PENDING" %}
                         <td>未审核</td>
                         {% else %}
                         <td style="color: red">未通过</td>
-                        {% end if %}
+                        {% endif %}
                         <td>{{app.create_time}}</td>
                         <td>
                             <a>删除</a>
