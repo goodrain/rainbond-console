@@ -28,7 +28,7 @@
                 <tbody>
                     {% for app in apps %}
                         <tr>
-                            <td>{{app.service_id}}</td>
+                            <td>{{app.name}}</td>
                             <td>{{app.app_type}}</td>
                             <td>{{app.create_time}}</td>
                             <td>
@@ -41,4 +41,9 @@
         </section>
     </section>
 </section>
+<script>
+    $(document).ready(function(){
+        $("ul.sub").show();
+    })
+</script>
 {% endblock %}
