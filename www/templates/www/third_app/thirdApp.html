@@ -5,8 +5,7 @@
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/bootstrap.min.css" %}' />
-<link rel="stylesheet" href='{% static "www/css/tablePublic.css" %}' />
-<link rel="stylesheet" href='{% static "www/css/thirdApp.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/style.css" %}' />
 {% endblock %}
 {% block extrajs %}
 <!--<script src='{% static "www/js/group.js" %}'></script>-->
@@ -21,19 +20,11 @@
         font-size: 22px;
         font-weight: 200;
     }
-    section.table{
-        background: #fff;
-        margin: 0 0 30px;
-        -moz-border-radius: 10px!important;
-        -webkit-border-radius: 10px !important;
-        border-radius: 10px!important;
-        padding: 30px;
-    }
 </style>
 <section class="wrapper site-min-height">
     <h3>第三方应用</h3>
     <section class="panel">
-        <section class="table">
+        <section class="content-tab">
             <table>
                 <thead>
                     <tr>
