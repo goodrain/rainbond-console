@@ -18,30 +18,24 @@
         <section class="table">
             <table>
                 <thead>
-                <tr>
-                    <th>应用名</th>
-                    <th>类型</th>
-                    <th>状态</th>
-                    <th>操作</th>
-                </tr>
+                    <tr>
+                        <th>应用名</th>
+                        <th>类型</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
                 </thead>
                 <tbody>
-                <tr>
-                    <td>app1</td>
-                    <td>CDN</td>
-                    <td>运行中</td>
-                    <td>
-                        <a href="">管理</a>
-                    </td>
-                </tr>
-                <tr>
-                    <td>app1</td>
-                    <td>CDN</td>
-                    <td>运行中</td>
-                    <td>
-                        <a href="">管理</a>
-                    </td>
-                </tr>
+                    {% for app in apps %}
+                        <tr>
+                            <td>{{app.service_id}}</td>
+                            <td>{{app.app_type}}</td>
+                            <td>{{app.create_time}}</td>
+                            <td>
+                                <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show">管理</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </section>
