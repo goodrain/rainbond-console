@@ -52,8 +52,8 @@
 </section>
 <script>
     $(document).ready(function(){
-        console.log($("ul.sub"));
-        $("ul.sub").css({"display":"block"});
+        console.log($("ul.sub").eq(0));
+        $("ul.sub").eq(0).css({"display":"block"});
     })
 </script>
 {% endblock %}
