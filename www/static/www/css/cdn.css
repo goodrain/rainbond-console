@@ -37,6 +37,7 @@ p.input_domain button{
     width: 15px;
     height: 15px;
     margin-left: 3px;
+    float: left;
 }
 .table td.operator_auth span.text_auth{
     width: 30px;
