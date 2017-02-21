@@ -62,7 +62,8 @@ $(function(){
                     swal(data["message"]);
                     if( data["status"] == "success" )
                     {
-                        that.parents("tr").remove();
+                        //that.parents("tr").remove();
+                        history.go(0);
                     }
                 },
                 error : function(){
@@ -139,7 +140,8 @@ $(function(){
                     swal(data["message"]);
                     if( data["status"] == "success" )
                     {
-                        that.parents("tr").remove();
+                        //that.parents("tr").remove();
+                        history.go(0);
                     }
                 },
                 error : function(){

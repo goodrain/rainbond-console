@@ -21,6 +21,8 @@ p.cdn_name button{margin-left: 20px;}
 p.input_domain{padding: 10px;}
 p.input_domain input.domain_name{height: 36px;width: 30%;}
 p.input_domain button{margin-left: 20px;}
+tbody.domain_box td{width: 25%;}
+tbody.operator_box{width: 20%;}
 .table td.operator_auth span{display: block;width: 15px;height: 15px;margin-left: 3px;float: left;}
 .table td.operator_auth span.text_auth{width: 30px;}
 .table td.operator_auth span.check{background: url('../images/checkmany.png') no-repeat;background-size: 100% 100%;}
