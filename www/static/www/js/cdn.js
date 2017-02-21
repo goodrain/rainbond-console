@@ -160,9 +160,30 @@ $(function(){
         {
             var tenantName = $("#tenantName").val();
             var app_id = $("#app_id").val();
-            $("#cdn_name").html($("p.cdn_name input").val());
-            $("p.cdn_name").hide();
-            $("p.cdn_name input").val("");
+            $.ajax({
+                type : "POST",
+                url : "/ajax/"+tenantName+"/"+app_id+"/updateName",
+                data : {
+                    name : $("p.cdn_name input").val()
+                },
+                cache: false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(data){
+                    swal(data["message"]);
+                    if( data["status"] == "success" )
+                    {
+                        $("#cdn_name").html($("p.cdn_name input").val());
+                        $("p.cdn_name").hide();
+                        $("p.cdn_name input").val("");
+                    }
+                },
+                error : function(){
+                    swal("系统异常");
+                }
+            });
         }
         else{
             swal("请输入名称");
