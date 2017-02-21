@@ -237,7 +237,7 @@ class CDNTrafficRecordView(AuthedView):
         }
         AuthedView.__init__(self, request, *args, **kwargs)
 
-    @transaction.commit_manually
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         result = {}
         try:
@@ -286,7 +286,6 @@ class CDNTrafficRecordView(AuthedView):
             result["status"] = "success"
             result["message"] = "购买成功"
             result["balance"] = hour.balance
-            transaction.commit()
         except Exception, e:
             transaction.rollback()
             logger.exception(e)
