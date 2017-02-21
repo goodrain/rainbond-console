@@ -80,32 +80,39 @@ $(function(){
     $("button.operator_sure").click(function(){
         if( $("input.operator_name").val() && $("input.operator_realName").val() && $("input.operator_password").val() )
         {
-            var tenantName = $("#tenantName").val();
-            var app_id = $("#app_id").val();
-            $.ajax({
-                type : "POST",
-                url : "/ajax/"+tenantName+"/"+app_id+"/operator/add",
-                data : {
-                    operator_name : $("input.operator_name").val(),
-                    realname : $("input.operator_realName").val(),
-                    password : $("input.operator_password").val()
-                },
-                cache: false,
-                beforeSend : function(xhr, settings) {
-                    var csrftoken = $.cookie('csrftoken');
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success : function(data){
-                    swal(data["message"]);
-                    if( data["status"] == "success" )
-                    {
-                        history.go(0);
+            var reg = /^[\w]{3,60}$/;
+            if( $("input.operator_name").val().match(reg) )
+            {
+                var tenantName = $("#tenantName").val();
+                var app_id = $("#app_id").val();
+                $.ajax({
+                    type : "POST",
+                    url : "/ajax/"+tenantName+"/"+app_id+"/operator/add",
+                    data : {
+                        operator_name : $("input.operator_name").val(),
+                        realname : $("input.operator_realName").val(),
+                        password : $("input.operator_password").val()
+                    },
+                    cache: false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(data){
+                        swal(data["message"]);
+                        if( data["status"] == "success" )
+                        {
+                            history.go(0);
+                        }
+                    },
+                    error : function(){
+                        swal("系统异常");
                     }
-                },
-                error : function(){
-                    swal("系统异常");
-                }
-            });
+                });
+            }
+            else{
+                swal("操作员名称由3~60个字符，英文数字和_组成");
+            }
         }
         else{
             swal("请输入信息");
