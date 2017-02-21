@@ -242,7 +242,7 @@ class CDNTrafficRecordView(AuthedView):
         try:
             traffic_size = request.POST.get("traffic_size", "500G")
             new_tenant = Tenants.objects.get(tenant_id=self.tenant.tenant_id)
-            if new_tenant.balance < self.price_map[traffic_size]:
+            if new_tenant.balance < self.price_map[traffic_size] and new_tenant.pay_type != "unpay":
                 result["status"] = "failure"
                 result["message"] = "余额不足，请先充值！"
                 return JsonResponse(result)
@@ -257,9 +257,9 @@ class CDNTrafficRecordView(AuthedView):
             record.tenant_id = self.tenantName
             record.save()
             # 支付
-            
-            new_tenant.balance = float(new_tenant.balance) - float(self.price_map[traffic_size])
-            new_tenant.save()
+            if new_tenant.pay_type != "unpay":
+                new_tenant.balance = float(new_tenant.balance) - float(self.price_map[traffic_size])
+                new_tenant.save()
             record.payment_status = 1
             record.save()
             
