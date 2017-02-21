@@ -21,17 +21,17 @@ $(function(){
                 },
                 success : function(data){
                     swal(data["message"]);
-                    console.log(data);
                     if(data["status"] == "success")
                     {
-                        var str = "<tr><td>"+$("input.domain_name").val()+"</td>";
-                        str += "<td>未审核</td>";
-                        str += "<td>2017-02-19</td>";
-                        str += "<td><a class='del_domain'>删除</a></td></tr>";
-                        $(str).appendTo("tbody.domain_box");
-                        $("p.input_domain").hide();
-                        $("input.domain_name").val("");
-                        del_domain();
+                        //var str = "<tr><td>"+$("input.domain_name").val()+"</td>";
+                        //str += "<td>未审核</td>";
+                        //str += "<td>2017-02-19</td>";
+                        //str += "<td><a class='del_domain'>删除</a></td></tr>";
+                        //$(str).appendTo("tbody.domain_box");
+                        //$("p.input_domain").hide();
+                        //$("input.domain_name").val("");
+                        //del_domain();
+                        history.go(0);
                     }
                 },
                 error : function(){
@@ -68,7 +68,6 @@ $(function(){
                 },
                 success : function(data){
                     swal(data["message"]);
-                    console.log(data);
                     if( data["status"] == "success" )
                     {
                         that.parents("tr").remove();
@@ -93,13 +92,21 @@ $(function(){
             $.ajax({
                 type : "POST",
                 url : "/ajax/"+tenantName+"/"+app_id+"/operator/add",
-                data : 123,
+                data : {
+                    operator_name : $("input.operator_name").val(),
+                    realname : $("input.operator_realName").val(),
+                    password : $("input.operator_password").val()
+                },
                 cache: false,
                 beforeSend : function(xhr, settings) {
                     var csrftoken = $.cookie('csrftoken');
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(data){
+                    if( data["status"] == "success" )
+                    {
+
+                    }
                     var str = "<tr><td>"+$("input.operator_name").val()+"</td>";
                     str += "<td>"+$("input.operator_realName").val()+"</td>";
                     str += "<td class='operator_auth clearfix'>"+'<span class="check"></span><span class="text_auth">读取</span><span class="check"></span><span class="text_auth">写入</span><span class="check"></span><span class="text_auth">删除</span>'+"</td>";
