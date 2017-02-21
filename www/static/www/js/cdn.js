@@ -23,14 +23,6 @@ $(function(){
                     swal(data["message"]);
                     if(data["status"] == "success")
                     {
-                        //var str = "<tr><td>"+$("input.domain_name").val()+"</td>";
-                        //str += "<td>未审核</td>";
-                        //str += "<td>2017-02-19</td>";
-                        //str += "<td><a class='del_domain'>删除</a></td></tr>";
-                        //$(str).appendTo("tbody.domain_box");
-                        //$("p.input_domain").hide();
-                        //$("input.domain_name").val("");
-                        //del_domain();
                         history.go(0);
                     }
                 },
@@ -103,22 +95,11 @@ $(function(){
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(data){
+                    swal(data["message"]);
                     if( data["status"] == "success" )
                     {
-
+                        history.go(0);
                     }
-                    var str = "<tr><td>"+$("input.operator_name").val()+"</td>";
-                    str += "<td>"+$("input.operator_realName").val()+"</td>";
-                    str += "<td class='operator_auth clearfix'>"+'<span class="check"></span><span class="text_auth">读取</span><span class="check"></span><span class="text_auth">写入</span><span class="check"></span><span class="text_auth">删除</span>'+"</td>";
-                    str += '<td style="color:#28cb75;">正常</td>';
-                    str += '<td>2017-02-17 12:00</td>';
-                    str += "<td><a class='authorize_cancel'>取消权限</a></td></tr>";
-                    $(str).appendTo("tbody.operator_box");
-                    $("p.input_operator").hide();
-                    $("input.operator_name").val("");
-                    $("input.operator_realName").val("");
-                    $("input.operator_password").val("");
-                    del_operator();
                 },
                 error : function(){
                     swal("系统异常");
@@ -139,19 +120,27 @@ $(function(){
     function del_operator(){
         $("a.del_operator").off('click');
         $("a.del_operator").on('click',function(){
+            var that = $(this);
             var tenantName = $("#tenantName").val();
             var app_id = $("#app_id").val();
+            var operator_name = $(this).parents("tr").find("td").eq(0).html();
             $.ajax({
                 type : "POST",
                 url : "/ajax/"+tenantName+"/"+app_id+"/operator/delete",
-                data : 123,
+                data : {
+                    operator_name : operator_name
+                },
                 cache: false,
                 beforeSend : function(xhr, settings) {
                     var csrftoken = $.cookie('csrftoken');
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(data){
-                    $(this).parents("tr").remove();
+                    swal(data["message"]);
+                    if( data["status"] == "success" )
+                    {
+                        that.parents("tr").remove();
+                    }
                 },
                 error : function(){
                     swal("系统异常");
