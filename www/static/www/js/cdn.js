@@ -1,6 +1,7 @@
 $(function(){
     $("button.add_domain").click(function(){
         $("p.input_domain").show();
+        $("input.domain_name").focus();
     });
     $("button.add_sure").click(function(){
         if( $("input.domain_name").val() )
@@ -142,10 +143,6 @@ $(function(){
     }
     $("a.changeName").click(function(){
        $("p.cdn_name").show();
-    });
-    $("p.cdn_name input").blur(function(){
-        $("p.cdn_name").hide();
-        $(this).val("");
     });
     $("button.name_cancel").click(function(){
         $("p.cdn_name").hide();
