@@ -9,6 +9,7 @@ from www.models.main import *
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 import logging
+import time
 
 logger = logging.getLogger('default')
 upai_client = YouPaiApi()
@@ -106,10 +107,19 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
             if app_info.app_type == "upai_cdn":
                 res, body = upai_client.getDomainList(app_info.bucket_name)
                 if res.status == 200:
-                    context["domains"] = body.domains
+                    dos = []
+                    for domain in body.domains:
+                        domain.updated_at = time.localtime(domain.updated_at)
+                        dos.append(domain)
+                    context["domains"] = dos
                 res, body = upai_client.getOperatorsList(app_info.bucket_name)
+                
                 if res.status == 200:
-                    context["operators"] = body.operators
+                    ops = []
+                    for op in body.operators:
+                        op.bind_at = time.localtime(op.bind_at)
+                        ops.append(op)
+                    context["operators"] = ops
                 return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         except Exception as e:
             logger.exception(e)

@@ -40,7 +40,6 @@ class UpdateAppView(AuthedView):
 
 
 class AppDomainView(AuthedView):
-    
     def __init__(self, request, *args, **kwargs):
         
         self.app_id = kwargs.get('app_id', None)
@@ -110,7 +109,7 @@ class AppOperatorView(AuthedView):
         self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
         AuthedView.__init__(self, request, *args, **kwargs)
     
-    def is_number(s):
+    def is_number(self, s):
         try:
             float(s)
             return True
