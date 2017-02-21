@@ -52,7 +52,6 @@ $(function(){
         $("a.del_domain").off('click');
         $("a.del_domain").on('click',function(){
             var that = $(this);
-            console.log($(this));
             var tenantName = $("#tenantName").val();
             var app_id = $("#app_id").val();
             var domain_name = $(this).parents("tr").find("td").eq(0).html();
@@ -72,7 +71,6 @@ $(function(){
                     console.log(data);
                     if( data["status"] == "success" )
                     {
-                        console.log(that);
                         that.parents("tr").remove();
                     }
                 },
