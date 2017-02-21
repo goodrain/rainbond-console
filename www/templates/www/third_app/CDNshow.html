@@ -116,30 +116,6 @@
                         </td>
                     </tr>
                 {% endfor %}
-                    <tr>
-                        <td>xxx.com</td>
-                        <td style="color:#28cb75;">正常</td>
-                        <td>2017-02-20</td>
-                        <td>
-                            <a class="del_domain">删除</a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>xxx.com</td>
-                        <td>未审核</td>
-                        <td>2017-02-20</td>
-                        <td>
-                            <a class="del_domain">删除</a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>xxx.com</td>
-                        <td style="color:red;">未通过</td>
-                        <td>2017-02-20</td>
-                        <td>
-                            <a class="del_domain">删除</a>
-                        </td>
-                    </tr>
                 </tbody>
             </table>
             <p class="input_domain" style="display: none">
@@ -147,6 +123,29 @@
                 <button class="btn btn-primary add_sure">确认</button>
                 <button class="btn btn-danger add_cancel">取消</button>
             </p>
+        </section>
+        <section class="table content-tab">
+            <h4>购买流量包</h4>
+            <div class="flow clearfix">
+                <p>当前可用流量0GB</p>
+                <p>
+                    <span>新购流量包</span>
+                    <select>
+                        <option>500GB</option>
+                        <option>1T</option>
+                        <option>2T</option>
+                        <option>4T</option>
+                        <option>5T</option>
+                    </select>
+                </p>
+                <p>
+                    <span>金额：</span>
+                    <span class="flow_money">123元</span>
+                </p>
+                <p>
+                    <button class="btn btn-primary flow_buy">购买</button>
+                </p>
+            </div>
         </section>
         <section class="table content-tab">
             <div class="clearfix">
@@ -192,40 +191,6 @@
                         </td>
                     </tr>
                     {% endfor %}
-                    <tr>
-                        <td>less</td>
-                        <td>test</td>
-                        <td class="operator_auth clearfix">
-                            <span class="check"></span>
-                            <span class="text_auth">读取</span>
-                            <span class="check"></span>
-                            <span class="text_auth">写入</span>
-                            <span class="noCheck"></span>
-                            <span class="text_auth">删除</span>
-                        </td>
-                        <td style="color:#28cb75;">正常</td>
-                        <td>2017-02-17 12:00</td>
-                        <td>
-                            <a class="del_operator">取消授权</a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>less</td>
-                        <td>test</td>
-                        <td class="operator_auth clearfix">
-                            <span class="check"></span>
-                            <span class="text_auth">读取</span>
-                            <span class="check"></span>
-                            <span class="text_auth">写入</span>
-                            <span class="noCheck"></span>
-                            <span class="text_auth">删除</span>
-                        </td>
-                        <td style="color:#28cb75;">正常</td>
-                        <td>2017-02-17 12:00</td>
-                        <td>
-                            <a class="del_operator">取消授权</a>
-                        </td>
-                    </tr>
                 </tbody>
             </table>
             <p class="input_operator" style="display: none">
