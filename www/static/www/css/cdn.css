@@ -37,8 +37,15 @@ p.input_domain button{
     width: 15px;
     height: 15px;
 }
+.table td.operator_auth span.text_auth{
+    width: 30px;
+}
 .table td.operator_auth span.check{
     background: url('../images/checkmany.png') no-repeat;
+    background-size: 100% 100%;
+}
+.table td.operator_auth span.noCheck{
+    background: url('../images/noCheck.png') no-repeat;
     background-size: 100% 100%;
 }
 p.input_operator{

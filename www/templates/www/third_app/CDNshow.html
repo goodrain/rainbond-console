@@ -44,7 +44,7 @@
                     <th>操作</th>
                 </tr>
                 </thead>
-                <tbody class="domain-box">
+                <tbody class="domain_box">
                 {% for app in domins %}
                     <tr>
                         <td>{{app.domain}}</td>
@@ -113,18 +113,18 @@
                         <th>操作</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="operator_box">
                     {% for work in operators %}
                     <tr>
                         <td>{{work.operator_name}}</td>
                         <td>{{work.realname}}</td>
                         <td class="operator_auth">
-                            <span {% if work.operator_auth.read %} class="check" {% endif %}></span>
-                            <span>读取</span>
-                            <span {% if work.operator_auth.write %} class="check" {% endif %}></span>
-                            <span>写入</span>
-                            <span {% if work.operator_auth.delete %} class="check" {% endif %}></span>
-                            <span>删除</span>
+                            <span {% if work.operator_auth.read %} class="check" {% else %} class="noCheck" {% endif %}></span>
+                            <span class="text_auth">读取</span>
+                            <span {% if work.operator_auth.write %} class="check" {% else %} class="noCheck" {% endif %}></span>
+                            <span class="text_auth">写入</span>
+                            <span {% if work.operator_auth.delete %} class="check" {% else %} class="noCheck" {% endif %}></span>
+                            <span class="text_auth">删除</span>
                         </td>
                         {% if app.status == "enabled" %}
                         <td style="color:#28cb75;">正常</td>
@@ -133,7 +133,7 @@
                         {% endif %}
                         <td>{{work.bind_at}}</td>
                         <td>
-                            <a class="authorize_cancel">取消授权</a>
+                            <a class="del_operator">取消授权</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -142,23 +142,30 @@
                         <td>test</td>
                         <td class="operator_auth">
                             <span class="check"></span>
-                            <span>读取</span>
+                            <span class="text_auth">读取</span>
                             <span class="check"></span>
-                            <span>写入</span>
+                            <span class="text_auth">写入</span>
                             <span></span>
-                            <span>删除</span>
+                            <span class="text_auth">删除</span>
                         </td>
                         <td>正常</td>
                         <td>2017-02-17 12:00</td>
-                        <td>取消授权</td>
+                        <td class="del_operator">取消授权</td>
                     </tr>
                     <tr>
                         <td>less</td>
                         <td>test</td>
-                        <td>读取</td>
+                        <td class="operator_auth">
+                            <span class="check"></span>
+                            <span class="text_auth">读取</span>
+                            <span class="check"></span>
+                            <span class="text_auth">写入</span>
+                            <span></span>
+                            <span class="text_auth">删除</span>
+                        </td>
                         <td>正常</td>
                         <td>2017-02-17 12:00</td>
-                        <td>取消授权</td>
+                        <td class="del_operator">取消授权</td>
                     </tr>
                 </tbody>
             </table>
