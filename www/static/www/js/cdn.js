@@ -201,7 +201,6 @@ $(function(){
     });
     $("select.flow_size").change(function(){
         var data = {
-            "请选择" : "0元",
             "500GB" : "130元",
             "1T" : "260元",
             "5T" : "1250元",
@@ -211,5 +210,33 @@ $(function(){
             "1PB" : "204800元"
         };
         $("span.flow_money").html(data[$(this).val()]);
-    })
+    });
+    $("button.flow_buy").click(function(){
+        var size = $("select.flow_size").val();
+        var tenantName = $("#tenantName").val();
+        var app_id = $("#app_id").val();
+        $.ajax({
+            type : "POST",
+            url : "/ajax/"+tenantName+"/"+app_id+"/traffic/add",
+            data : {
+                traffic_size : size
+            },
+            cache: false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(data){
+                swal(data["message"]);
+                console.log(data);
+                if( data["status"] == "success" )
+                {
+                    history.go(0);
+                }
+            },
+            error : function(){
+                swal("系统异常");
+            }
+        });
+    });
 })
