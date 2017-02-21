@@ -199,4 +199,16 @@ $(function(){
             swal("请输入名称");
         }
     });
+    $("select.flow_size").change(function(){
+        var data = {
+            "500GB" : "100元",
+            "1T" : "200元",
+            "2T" : "350元",
+            "3T" : "500元",
+            "4T" : "650元",
+            "5T" : "800元"
+        };
+        console.log($(this).val());
+        $("span.flow_money").html(data[$(this).val()]);
+    })
 })
