@@ -143,7 +143,7 @@ $(function(){
     $("a.changeName").click(function(){
        $("p.cdn_name").show();
     });
-    $("p.cdn_name input").onblur(function(){
+    $("p.cdn_name input").blur(function(){
         $("p.cdn_name").hide();
         $(this).val("");
     });
