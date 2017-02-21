@@ -106,10 +106,10 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
             if app_info.app_type == "upai_cdn":
                 res, body = upai_client.getDomainList(app_info.bucket_name)
                 if res.status == 200:
-                    context["domains"] = body
+                    context["domains"] = body.domains
                 res, body = upai_client.getOperatorsList(app_info.bucket_name)
                 if res.status == 200:
-                    context["operators"] = body
+                    context["operators"] = body.operators
                 return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         except Exception as e:
             logger.exception(e)
