@@ -34,11 +34,11 @@ $(function(){
         $("p.input_operator").show();
     });
     $("button.operator_sure").click(function(){
-        if( $(".input_operator.operator_name").val() && $(".input_operator.operator_realName").val() && $(".input_operator.operator_password").val() )
+        if( $("input.operator_name").val() && $("input.operator_realName").val() && $("input.operator_password").val() )
         {
-            var str = "<tr><td>"+$(".input_operator.operator_name").val()+"</td>";
-            str += "<td>"+$(".input_operator.operator_realName").val()+"</td>";
-            str += "<td>"+$(".input_operator.operator_password").val()+"</td>";
+            var str = "<tr><td>"+$("input.operator_name").val()+"</td>";
+            str += "<td>"+$("input.operator_realName").val()+"</td>";
+            str += "<td>"+$("input.operator_password").val()+"</td>";
             str += "<td><a class='authorize_cancel'>取消权限</a></td></tr>";
             $(str).appendTo("tbody.operator_box");
             $("p.input_operator").hide();
