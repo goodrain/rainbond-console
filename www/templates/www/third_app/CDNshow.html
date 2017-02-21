@@ -8,7 +8,6 @@
 <link rel="stylesheet" href='{% static "www/css/cdn.css" %}' />
 {% endblock %}
 {% block extrajs %}
-<script src='{% static "www/js/bootstrap-editable.min.js" %}'></script>
 <script src='{% static "www/js/cdn.js" %}'></script>
 {% endblock %}
 
@@ -17,7 +16,15 @@
     <section class="main-box">
         <input type="hidden" id="tenantName" value="{{tenantName}}">
         <input type="hidden" id="app_id" value="{{app_id}}">
-        <span class="title edit-port">又拍云</span>
+        <p>
+            <span id="cdn_name">又拍云</span>
+            <a class="changeName">更名</a>
+        </p>
+        <p class="cdn_name">
+            <input type="text" placeholder="请输入名称">
+            <button class="btn btn-primary name_sure">确认</button>
+            <button class="btn btn-danger name_cancel">取消</button>
+        </p>
         <div class="appOutline">
             <ul class="outlineTop clearfix">
                 <li>
@@ -93,7 +100,7 @@
                 </tr>
                 </thead>
                 <tbody class="domain_box">
-                {% for app in domins %}
+                {% for app in domains %}
                     <tr>
                         <td>{{app.domain}}</td>
                         {% if app.status == "NORMAl" %}
