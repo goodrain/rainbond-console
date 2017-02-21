@@ -20,7 +20,6 @@ $(function(){
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(data){
-                    console.log(data);
                     if(data["status"] == "success")
                     {
                         var str = "<tr><td>"+$("input.domain_name").val()+"</td>";
@@ -52,17 +51,24 @@ $(function(){
         $("a.del_domain").on('click',function(){
             var tenantName = $("#tenantName").val();
             var app_id = $("#app_id").val();
+            var domain_name = $(this).parents("tr").find("td").eq(0).html();
             $.ajax({
                 type : "POST",
                 url : "/ajax/"+tenantName+"/"+app_id+"/domain/delete",
-                data : 123,
+                data : {
+                    domain : domain_name
+                },
                 cache: false,
                 beforeSend : function(xhr, settings) {
                     var csrftoken = $.cookie('csrftoken');
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(data){
-                    $(this).parents("tr").remove();
+                    console.log(data);
+                    if( data["status"] == "success" )
+                    {
+                        $(this).parents("tr").remove();
+                    }
                 },
                 error : function(){
                     swal("系统异常");
