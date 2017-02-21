@@ -33,9 +33,10 @@ p.input_domain button{
     margin-left: 20px;
 }
 .table td.operator_auth span{
-    display: inline-block;
+    display: block;
     width: 15px;
     height: 15px;
+    margin-left: 3px;
 }
 .table td.operator_auth span.text_auth{
     width: 30px;
