@@ -40,7 +40,7 @@
                 <tr>
                     <th>域名</th>
                     <th>状态</th>
-                    <th>类型</th>
+                    <th>更新时间</th>
                     <th>操作</th>
                 </tr>
                 </thead>
@@ -98,43 +98,77 @@
                 <h4>已授权操作员</h4>
                 <ul class="clearfix">
                     <li>
-                        <button class="btn btn-primary">创建操作员并授权</button>
-                    </li>
-                    <li>
-                        <button class="btn btn-primary">授权操作员</button>
+                        <button class="btn btn-primary add_operator">创建操作员</button>
                     </li>
                 </ul>
             </div>
             <table>
                 <thead>
-                <tr>
-                    <th>操作员</th>
-                    <th>姓名</th>
-                    <th>权限</th>
-                    <th>状态</th>
-                    <th>授权时间</th>
-                    <th>操作</th>
-                </tr>
+                    <tr>
+                        <th>操作员</th>
+                        <th>姓名</th>
+                        <th>权限</th>
+                        <th>状态</th>
+                        <th>授权时间</th>
+                        <th>操作</th>
+                    </tr>
                 </thead>
                 <tbody>
-                <tr>
-                    <td>less</td>
-                    <td>test</td>
-                    <td>读取</td>
-                    <td>正常</td>
-                    <td>2017-02-17 12:00</td>
-                    <td>取消授权</td>
-                </tr>
-                <tr>
-                    <td>less</td>
-                    <td>test</td>
-                    <td>读取</td>
-                    <td>正常</td>
-                    <td>2017-02-17 12:00</td>
-                    <td>取消授权</td>
-                </tr>
+                    {% for work in operators %}
+                    <tr>
+                        <td>{{work.operator_name}}</td>
+                        <td>{{work.realname}}</td>
+                        <td class="operator_auth">
+                            <span {% if work.operator_auth.read %} class="check" {% endif %}></span>
+                            <span>读取</span>
+                            <span {% if work.operator_auth.write %} class="check" {% endif %}></span>
+                            <span>写入</span>
+                            <span {% if work.operator_auth.delete %} class="check" {% endif %}></span>
+                            <span>删除</span>
+                        </td>
+                        {% if app.status == "enabled" %}
+                        <td style="color:#28cb75;">正常</td>
+                        {% else %}
+                        <td style="color: red">未通过</td>
+                        {% endif %}
+                        <td>{{work.bind_at}}</td>
+                        <td>
+                            <a class="authorize_cancel">取消授权</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <td>less</td>
+                        <td>test</td>
+                        <td class="operator_auth">
+                            <span class="check"></span>
+                            <span>读取</span>
+                            <span class="check"></span>
+                            <span>写入</span>
+                            <span></span>
+                            <span>删除</span>
+                        </td>
+                        <td>正常</td>
+                        <td>2017-02-17 12:00</td>
+                        <td>取消授权</td>
+                    </tr>
+                    <tr>
+                        <td>less</td>
+                        <td>test</td>
+                        <td>读取</td>
+                        <td>正常</td>
+                        <td>2017-02-17 12:00</td>
+                        <td>取消授权</td>
+                    </tr>
                 </tbody>
             </table>
+            <p class="input_operator" style="display: none">
+                <input type="text" placeholder="请输入操作员" class="operator_name">
+                <input type="text" placeholder="请输入真实姓名" class="operator_realName">
+                <input type="text" placeholder="请输入密码" class="operator_password">
+                <button class="btn btn-primary operator_sure">确认</button>
+                <button class="btn btn-danger operator_cancel">取消</button>
+            </p>
         </section>
         <section class="table content-tab">
             <div class="clearfix">

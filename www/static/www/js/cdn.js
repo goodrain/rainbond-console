@@ -24,6 +24,12 @@ $(function(){
             $(this).parents("tr").remove();
         });
     }
+
+    $("button.add_operator").click(function(){
+        $("p.input_operator").show();
+    });
+
+
     editPort();
     function editPort(){
         $('.edit-port').editable({
