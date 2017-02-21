@@ -1,11 +1,21 @@
 .edit-port{cursor: pointer;}
-span.title{
+span#cdn_name{
     height: 34px;
     line-height: 34px;
     color: #28cb75;
     font-size: 22px;
     font-weight: 200;
     margin-right: 20px;
+}
+p.cdn_name{
+    display: none;
+    margin: 10px 0px;
+}
+p.cdn_name input{
+    width: 20%;
+}
+p.cdn_name button{
+    margin-left: 20px;
 }
 .appOutline{
     margin-bottom: 20px;

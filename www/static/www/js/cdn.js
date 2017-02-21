@@ -49,11 +49,17 @@ $(function(){
     function del_domain(){
         $("a.del_domain").off('click');
         $("a.del_domain").on('click',function(){
+            var tenantName = $("#tenantName").val();
+            var app_id = $("#app_id").val();
             $.ajax({
                 type : "POST",
-                url : "",
+                url : "/ajax/"+tenantName+"/"+app_id+"/domain/delete",
                 data : 123,
                 cache: false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
                 success : function(data){
                     $(this).parents("tr").remove();
                 },
@@ -70,11 +76,17 @@ $(function(){
     $("button.operator_sure").click(function(){
         if( $("input.operator_name").val() && $("input.operator_realName").val() && $("input.operator_password").val() )
         {
+            var tenantName = $("#tenantName").val();
+            var app_id = $("#app_id").val();
             $.ajax({
                 type : "POST",
-                url : "",
+                url : "/ajax/"+tenantName+"/"+app_id+"/operator/add",
                 data : 123,
                 cache: false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
                 success : function(data){
                     var str = "<tr><td>"+$("input.operator_name").val()+"</td>";
                     str += "<td>"+$("input.operator_realName").val()+"</td>";
@@ -108,11 +120,17 @@ $(function(){
     function del_operator(){
         $("a.del_operator").off('click');
         $("a.del_operator").on('click',function(){
+            var tenantName = $("#tenantName").val();
+            var app_id = $("#app_id").val();
             $.ajax({
                 type : "POST",
-                url : "",
+                url : "/ajax/"+tenantName+"/"+app_id+"/operator/delete",
                 data : 123,
                 cache: false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
                 success : function(data){
                     $(this).parents("tr").remove();
                 },
@@ -122,40 +140,26 @@ $(function(){
             });
         });
     }
-
-
-    editPort();
-    function editPort(){
-        $('.edit-port').editable({
-            type: 'text',
-            pk: 1,
-            success: function (data) {
-                
-            },
-            error: function (data) {
-                msg = data.responseText;
-                res = $.parseJSON(msg);
-                showMessage(res.info);
-            },
-            ajaxOptions: {
-                beforeSend: function(xhr, settings) {
-                    xhr.setRequestHeader("X-CSRFToken", $.cookie('csrftoken'));
-                    settings.data += '&action=change_port';
-                },
-            }
-            //validate: function (value) {
-            //    if (!$.trim(value)) {
-            //        return '不能为空';
-            //    }
-            //    else if($(this).hasClass("enviromentKey"))
-            //    {
-            //        var variableReg = /^[A-Z][A-Z0-9_]*$/;
-            //        if( !variableReg.test($(".editable-input").find("input").val()) )
-            //        {
-            //            return '变量名由大写字母与数字组成且大写字母开头';
-            //        }
-            //    }
-            //}
-        });
-    }
+    $("a.changeName").click(function(){
+       $("p.cdn_name").show();
+    });
+    $("p.cdn_name input").onblur(function(){
+        $("p.cdn_name").hide();
+        $(this).val("");
+    });
+    $("button.name_cancel").click(function(){
+        $("p.cdn_name").hide();
+        $("p.cdn_name input").val("");
+    })
+    $("button.name_sure").click(function(){
+        if( $("p.cdn_name input").val() )
+        {
+            var tenantName = $("#tenantName").val();
+            var app_id = $("#app_id").val();
+            $("#cdn_name").html($("p.cdn_name input").val());
+        }
+        else{
+            swal("请输入名称");
+        }
+    });
 })
