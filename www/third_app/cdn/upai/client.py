@@ -39,7 +39,7 @@ class YouPaiApi(BaseHttpClient):
         return res, body
     
     def deleteDomain(self, bucket, domain):
-        url = self.BaseAPIURL + "/buckets/domains?bucket_name={0}&domain={1}".format(bucket, domain)
+        url = self.BaseAPIURL + "buckets/domains?bucket_name={0}&domain={1}".format(bucket, domain)
         res, body = self._delete(url, self.default_headers)
         return res, body
     
@@ -49,21 +49,31 @@ class YouPaiApi(BaseHttpClient):
         return res, body
     
     def addOperator(self, body):
-        url = self.BaseAPIURL + "/operators"
+        url = self.BaseAPIURL + "operators"
         res, body = self._put(url, self.default_headers, body)
         return res, body
     
     def deleteOperator(self, operator):
-        url = self.BaseAPIURL + "/operators?operator_name={0}".format(operator)
+        url = self.BaseAPIURL + "operators?operator_name={0}".format(operator)
         res, body = self._delete(url, self.default_headers)
         return res, body
     
     def disableOperator(self, operator):
-        url = self.BaseAPIURL + "/operators/disable?operator_name={0}".format(operator)
+        url = self.BaseAPIURL + "operators/disable?operator_name={0}".format(operator)
         res, body = self._post(url, self.default_headers)
         return res, body
     
     def enableOperator(self, operator):
-        url = self.BaseAPIURL + "/operators/enable?operator_name={0}".format(operator)
+        url = self.BaseAPIURL + "operators/enable?operator_name={0}".format(operator)
         res, body = self._post(url, self.default_headers)
+        return res, body
+    
+    def addOperatorAuth(self, body):
+        url = self.BaseAPIURL + "buckets/operators"
+        res, body = self._put(url, self.default_headers, body)
+        return res, body
+    
+    def deleteOperatorAuth(self, bucket, operator):
+        url = self.BaseAPIURL + "buckets/operators?bucket_name={0}&operator_name={1}".format(bucket, operator)
+        res, body = self._delete(url, self.default_headers)
         return res, body
