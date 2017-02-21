@@ -34,7 +34,7 @@ $(function(){
         $("p.input_operator").show();
     });
     $("button.operator_sure").click(function(){
-        if( $(".input_operator.operator_name") && $(".input_operator.operator_realName").val() && $(".input_operator.operator_password").val() )
+        if( $(".input_operator.operator_name").val() && $(".input_operator.operator_realName").val() && $(".input_operator.operator_password").val() )
         {
             var str = "<tr><td>"+$(".input_operator.operator_name").val()+"</td>";
             str += "<td>"+$(".input_operator.operator_realName").val()+"</td>";
