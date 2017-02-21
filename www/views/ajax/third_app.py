@@ -15,6 +15,7 @@ class UpdateAppView(AuthedView):
         
         self.app_id = kwargs.get('app_id', None)
         self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
         """
@@ -39,9 +40,12 @@ class UpdateAppView(AuthedView):
 
 
 class AppDomainView(AuthedView):
+    
     def __init__(self, request, *args, **kwargs):
+        
         self.app_id = kwargs.get('app_id', None)
         self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
         result = {}
@@ -74,6 +78,7 @@ class AppDomainDeleteView(AuthedView):
     def __init__(self, request, *args, **kwargs):
         self.app_id = kwargs.get('app_id', None)
         self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
         result = {}
@@ -103,6 +108,7 @@ class AppOperatorView(AuthedView):
     def __init__(self, request, *args, **kwargs):
         self.app_id = kwargs.get('app_id', None)
         self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
     
     def is_number(s):
         try:
@@ -181,6 +187,7 @@ class AppOperatorDeleteView(AuthedView):
     def __init__(self, request, *args, **kwargs):
         self.app_id = kwargs.get('app_id', None)
         self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
         result = {}
