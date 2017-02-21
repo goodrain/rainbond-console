@@ -12,7 +12,7 @@ $(function(){
                 type : "POST",
                 url : "/ajax/"+tenantName+"/"+app_id+"/domain/add",
                 data : {
-                    doamin : $("input.domain_name").val()
+                    domain : $("input.domain_name").val()
                 },
                 cache: false,
                 beforeSend : function(xhr, settings) {
