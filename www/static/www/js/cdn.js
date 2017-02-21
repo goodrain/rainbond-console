@@ -73,6 +73,7 @@ $(function(){
 
     $("button.add_operator").click(function(){
         $("p.input_operator").show();
+        $("input.operator_name").focus();
     });
     $("button.operator_sure").click(function(){
         if( $("input.operator_name").val() && $("input.operator_realName").val() && $("input.operator_password").val() )
@@ -154,6 +155,8 @@ $(function(){
             var tenantName = $("#tenantName").val();
             var app_id = $("#app_id").val();
             $("#cdn_name").html($("p.cdn_name input").val());
+            $("p.cdn_name").hide();
+            $("p.cdn_name input").val("");
         }
         else{
             swal("请输入名称");
