@@ -18,7 +18,7 @@ span.title{
     float: right;
     margin-left: 20px;
 }
-.table table a.del_domain{
+.table table a.del_domain,a.del_operator{
     color: red;
     cursor: pointer;
 }

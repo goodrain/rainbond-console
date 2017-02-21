@@ -38,7 +38,9 @@ $(function(){
         {
             var str = "<tr><td>"+$("input.operator_name").val()+"</td>";
             str += "<td>"+$("input.operator_realName").val()+"</td>";
-            str += "<td>"+$("input.operator_password").val()+"</td>";
+            str += "<td>"+'<span class="check"></span><span class="text_auth">读取</span><span class="check"></span><span class="text_auth">写入</span><span class="check"></span><span class="text_auth">删除</span>'+"</td>";
+            str += '<td style="color:#28cb75;">正常</td>';
+            str += '<td>2017-02-17 12:00</td>';
             str += "<td><a class='authorize_cancel'>取消权限</a></td></tr>";
             $(str).appendTo("tbody.operator_box");
             $("p.input_operator").hide();
