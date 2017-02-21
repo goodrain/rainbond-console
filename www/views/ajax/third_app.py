@@ -7,7 +7,7 @@ from www.third_app.cdn.upai.client import YouPaiApi
 import logging
 from www.utils.crypt import make_uuid
 import datetime
-
+from django.db import transaction
 logger = logging.getLogger('default')
 upai_client = YouPaiApi()
 
@@ -236,7 +236,8 @@ class CDNTrafficRecordView(AuthedView):
             "1PB": 1024 * 1024 * 1024,
         }
         AuthedView.__init__(self, request, *args, **kwargs)
-    
+
+    @transaction.commit_manually
     def post(self, request, *args, **kwargs):
         result = {}
         try:
@@ -265,7 +266,7 @@ class CDNTrafficRecordView(AuthedView):
             
             # 创建流量包消费初始纪录或为历史纪录充值流量
             hour = CDNTrafficHourRecord.objects. \
-                order_by("end_time desc").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
+                order_by("-end_time").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
             if hour is None:
                 hour = CDNTrafficHourRecord()
                 hour.balance = record.traffic_size
@@ -273,6 +274,7 @@ class CDNTrafficRecordView(AuthedView):
                 hour.service_id = self.app_info.service_id
                 hour.tenant_id = self.tenantName
                 hour.traffic_number = 0
+                hour.start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 hour.end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 hour.save()
             else:
@@ -284,7 +286,9 @@ class CDNTrafficRecordView(AuthedView):
             result["status"] = "success"
             result["message"] = "购买成功"
             result["balance"] = hour.balance
+            transaction.commit()
         except Exception, e:
+            transaction.rollback()
             logger.exception(e)
             result["status"] = "failure"
             result["message"] = "购买失败"
