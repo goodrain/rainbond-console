@@ -21,39 +21,52 @@
         <div class="appOutline">
             <ul class="outlineTop clearfix">
                 <li>
-                    <p>运行中</p>
-                    <p class="text-center pImg">
-                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
-                    </p>
-                    <p></p>
+                    <div>
+                        <p>状态</p>
+                        <p class="pImg">
+                            <img id="service_status-img" src="{% static "www/img/appOutline/appOutline1.png" %}"/>
+                        </p>
+                        <p>未知</p>
+                    </div>
                 </li>
                 <li>
-                    <p>当前使用内存</p>
-                    <p class="text-center pImg">
-                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
-                    </p>
-                    <p class="text-center">512MB✖️2</p>
+                    <div>
+                        <p>昨日使用存储</p>
+                        <p class="pImg">
+                            <img src="{% static "www/img/appOutline/appOutline2.png" %}"/>
+                        </p>
+                        <p>0M</p>
+                    </div>
                 </li>
                 <li>
-                    <p>当前使用磁盘</p>
-                    <p class="text-center pImg">
-                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}" style="height: 48px"/></span>
-                    </p>
-                    <p class="text-center">1.2GB</p>
+                    <div>
+                        <p>昨日使用流量</p>
+                        <p class="pImg">
+                            <img src="{% static "www/img/appOutline/appOutline3.png" %}"/>
+                        </p>
+                        <p>0M</p>
+                        <!--<p>未知</p>-->
+                    </div>
                 </li>
                 <li>
-                    <p>上一小时流量</p>
-                    <p class="text-center pImg">
-                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
-                    </p>
-                    <p class="text-center">1.2GB</p>
+                    <div>
+                        <p>昨日请求次数</p>
+                        <p class="pImg">
+                            <img src="{% static "www/img/appOutline/appOutline4.png" %}"/>
+                        </p>
+                        <p>0次</p>
+                        <!--<p>未知</p>-->
+                    </div>
                 </li>
                 <li>
-                    <p>上一小时费用</p>
-                    <p class="text-center pImg">
-                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
-                    </p>
-                    <p class="text-center">12元</p>
+                    <div>
+                        <p style="text-align: left">昨日费用</p>
+                        <p class="pImg">
+                            <img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
+                        </p>
+                        <p>0元</p>
+                        <!--<p>未知</p>-->
+                    </div>
                 </li>
             </ul>
         </div>

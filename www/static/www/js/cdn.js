@@ -14,7 +14,12 @@ $(function(){
                     doamin : $("input.domain_name").val()
                 },
                 cache: false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
                 success : function(data){
+                    console.log(data);
                     if(data["status"] == "success")
                     {
                         var str = "<tr><td>"+$("input.domain_name").val()+"</td>";
