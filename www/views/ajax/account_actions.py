@@ -164,7 +164,7 @@ class PayModelInfo(AuthedView):
                 logger.debug(needTotalMoney)
                 tenant = Tenants.objects.get(tenant_id=tenant_id)
                 if tenant.balance > needTotalMoney:
-                    tenant.balance = tenant.balance - Decimal(needTotalMoney)
+                    tenant.balance = tenant.balance - (needTotalMoney)
                     tenant.save()
                     logger.debug(tenant_id + "cost money" + str(needTotalMoney))
                     TenantConsume(tenant_id=tenant_id, total_memory=int(buy_memory) * int(buy_period),

@@ -951,3 +951,51 @@ class ThirdAppInfo(BaseModel):
     app_type = models.CharField(max_length=32, help_text=u"第三方应用类型")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     name = models.CharField(max_length=32, help_text=u"应用名称")
+    bill_type = models.CharField(default="demand", max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
+    open = models.BooleanField(default=1, help_text=u"是否开启状态")
+
+
+class CDNTrafficRecord(BaseModel):
+    class Meta:
+        db_table = 'cdn_traffic_record'
+    
+    order_id = models.CharField(max_length=32, help_text=u"订单id")
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
+    traffic_size = models.IntegerField(help_text=u"流量包大小")
+    traffic_price = models.IntegerField(help_text=u"流量包价格")
+    buy_time = models.DateTimeField(auto_now_add=True, help_text=u"购买时间")
+    payment_status = models.CharField(default=0, max_length=1, help_text=u"支付状态")
+
+
+class CDNTrafficHourRecord(BaseModel):
+    class Meta:
+        db_table = 'cdn_traffic_hour_record'
+    
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
+    start_time = models.DateTimeField(help_text=u"订单开始时间")
+    end_time = models.DateTimeField(help_text=u"订单结束时间")
+    traffic_number = models.IntegerField(help_text=u"流量消费数量")
+    balance = models.IntegerField(help_text=u"流量包余额")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+
+class ThirdAppOrder(BaseModel):
+    class Meta:
+        db_table = 'third_app_order'
+    
+    order_id = models.CharField(max_length=32, help_text=u"订单id")
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
+    start_time = models.DateTimeField(help_text=u"订单开始时间")
+    end_time = models.DateTimeField(help_text=u"订单结束时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    traffic_size = models.IntegerField(help_text=u"流量使用大小")
+    oos_size = models.IntegerField(help_text=u"存储使用大小")
+    request_size = models.IntegerField(help_text=u"请求次数")
+    bill_type = models.CharField(max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
+    total_cost = models.FloatField(help_text=u"费用总计")
+    total_traffic_cost = models.IntegerField(help_text=u"月度套餐外流量总计")

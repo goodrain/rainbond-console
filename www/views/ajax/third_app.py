@@ -2,9 +2,11 @@
 from django.http import JsonResponse
 import json
 from www.views import AuthedView
-from www.models import ThirdAppInfo
+from www.models import ThirdAppInfo, CDNTrafficRecord, Tenants, CDNTrafficHourRecord
 from www.third_app.cdn.upai.client import YouPaiApi
 import logging
+from www.utils.crypt import make_uuid
+import datetime
 
 logger = logging.getLogger('default')
 upai_client = YouPaiApi()
@@ -208,4 +210,82 @@ class AppOperatorDeleteView(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
             result["message"] = "删除失败"
+        return JsonResponse(result)
+
+
+class CDNTrafficRecordView(AuthedView):
+    def __init__(self, request, *args, **kwargs):
+        self.app_id = kwargs.get('app_id', None)
+        self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        self.price_map = {
+            "500G": 130,
+            "1T": 260,
+            "5T": 1250,
+            "10T": 2440,
+            "50T": 11200,
+            "200T": 43000,
+            "1PB": 204800,
+        }
+        self.size_map = {
+            "500G": 1024 * 500,
+            "1T": 1024 * 1024,
+            "5T": 1024 * 1024 * 5,
+            "10T": 1024 * 1024 * 10,
+            "50T": 1024 * 1024 * 50,
+            "200T": 1024 * 1024 * 200,
+            "1PB": 1024 * 1024 * 1024,
+        }
+        AuthedView.__init__(self, request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        result = {}
+        try:
+            traffic_size = request.POST.get("traffic_size", "500G")
+            new_tenant = Tenants.objects.get(tenant_id=self.tenant.tenant_id)
+            if new_tenant.balance < self.price_map[traffic_size]:
+                result["status"] = "failure"
+                result["message"] = "余额不足，请先充值！"
+                return JsonResponse(result)
+            
+            # 创建订单
+            record = CDNTrafficRecord()
+            record.traffic_price = self.price_map[traffic_size]
+            record.traffic_size = self.size_map[traffic_size]
+            record.bucket_name = self.app_id
+            record.service_id = self.app_info.service_id
+            record.order_id = make_uuid()
+            record.tenant_id = self.tenantName
+            record.save()
+            # 支付
+            
+            new_tenant.balance = float(new_tenant.balance) - float(self.price_map[traffic_size])
+            new_tenant.save()
+            record.payment_status = 1
+            record.save()
+            
+            # 创建流量包消费初始纪录或为历史纪录充值流量
+            hour = CDNTrafficHourRecord.objects. \
+                order_by("end_time desc").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
+            if hour is None:
+                hour = CDNTrafficHourRecord()
+                hour.balance = record.traffic_size
+                hour.bucket_name = self.app_id
+                hour.service_id = self.app_info.service_id
+                hour.tenant_id = self.tenantName
+                hour.traffic_number = 0
+                hour.end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                hour.save()
+            else:
+                hour.balance = float(hour.balance) + float(record.traffic_size)
+                hour.save()
+            # 更新应用付费方式为包流量
+            self.app_info.bill_type = "packet"
+            self.app_info.save()
+            result["status"] = "success"
+            result["message"] = "购买成功"
+            result["balance"] = hour.balance
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+            result["message"] = "购买失败"
         return JsonResponse(result)

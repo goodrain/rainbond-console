@@ -80,4 +80,5 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/domain/delete$', AppDomainDeleteView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/operator/add', AppOperatorView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/operator/delete', AppOperatorDeleteView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/traffic/add', CDNTrafficRecordView.as_view()),
 )
