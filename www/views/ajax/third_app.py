@@ -154,7 +154,6 @@ class AppOperatorView(AuthedView):
                 body = {}
                 body["operator_name"] = operator_name
                 body["password"] = password
-                body["repassword"] = password
                 body["realname"] = realname
                 res, rebody = upai_client.addOperator(json.dumps(body))
                 if res.status == 201:

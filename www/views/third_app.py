@@ -109,7 +109,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                 if res.status == 200:
                     dos = []
                     for domain in body.domains:
-                        domain.updated_at = time.localtime(domain.updated_at)
+                        domain.updated_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(domain.updated_at))
                         dos.append(domain)
                     context["domains"] = dos
                 res, body = upai_client.getOperatorsList(app_info.bucket_name)
@@ -117,7 +117,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                 if res.status == 200:
                     ops = []
                     for op in body.operators:
-                        op.bind_at = time.localtime(op.bind_at)
+                        op.bind_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(op.bind_at))
                         ops.append(op)
                     context["operators"] = ops
                 return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
