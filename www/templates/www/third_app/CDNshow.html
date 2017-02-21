@@ -15,11 +15,46 @@
 {% block main-content %}
 <section class="wrapper site-min-height">
     <section class="main-box">
+        <input type="hidden" id="tenantName" value="{{tenantName}}">
+        <input type="hidden" id="app_id" value="{{app_id}}">
         <span class="title edit-port">又拍云</span>
-
-        <div>
-            <ul class="clearfix">
-                <li></li>
+        <div class="appOutline">
+            <ul class="outlineTop clearfix">
+                <li>
+                    <p>运行中</p>
+                    <p class="text-center pImg">
+                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
+                    </p>
+                    <p></p>
+                </li>
+                <li>
+                    <p>当前使用内存</p>
+                    <p class="text-center pImg">
+                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
+                    </p>
+                    <p class="text-center">512MB✖️2</p>
+                </li>
+                <li>
+                    <p>当前使用磁盘</p>
+                    <p class="text-center pImg">
+                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}" style="height: 48px"/></span>
+                    </p>
+                    <p class="text-center">1.2GB</p>
+                </li>
+                <li>
+                    <p>上一小时流量</p>
+                    <p class="text-center pImg">
+                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
+                    </p>
+                    <p class="text-center">1.2GB</p>
+                </li>
+                <li>
+                    <p>上一小时费用</p>
+                    <p class="text-center pImg">
+                        <span><img src="{% static "www/img/appOutline/appOutline1.png" %}"/></span>
+                    </p>
+                    <p class="text-center">12元</p>
+                </li>
             </ul>
         </div>
         <section class="table content-tab">
