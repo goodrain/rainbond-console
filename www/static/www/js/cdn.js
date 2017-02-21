@@ -201,6 +201,7 @@ $(function(){
     });
     $("select.flow_size").change(function(){
         var data = {
+            "请选择" : "0元",
             "500GB" : "130元",
             "1T" : "260元",
             "5T" : "1250元",
