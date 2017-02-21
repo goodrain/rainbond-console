@@ -150,6 +150,7 @@ $(function(){
     }
     $("a.changeName").click(function(){
        $("p.cdn_name").show();
+        $("p.cdn_name input").focus();
     });
     $("button.name_cancel").click(function(){
         $("p.cdn_name").hide();
