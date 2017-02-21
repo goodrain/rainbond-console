@@ -14,7 +14,7 @@ p.cdn_name button{margin-left: 20px;}
 .outlineTop div p.pImg{width: 100%; text-align: center; height: 60px; margin: 20px 0;}
 .outlineTop div p:nth-child(2) img{width: 60px; height: 60px; display: block; margin: 0 auto;}
 
-.table div.clearfix h4{float: left;width: 30%;}
+.table div.clearfix h4{float: left;width: 30%;color:#303030;}
 .table div.clearfix ul{float: right;}
 .table div.clearfix ul li{float: right;margin-left: 20px;}
 .table table a.del_domain,a.del_operator{color: red;cursor: pointer;}
