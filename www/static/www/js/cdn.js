@@ -20,6 +20,8 @@ $(function(){
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(data){
+                    swal(data["message"]);
+                    console.log(data);
                     if(data["status"] == "success")
                     {
                         var str = "<tr><td>"+$("input.domain_name").val()+"</td>";
@@ -64,6 +66,7 @@ $(function(){
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(data){
+                    swal(data["message"]);
                     console.log(data);
                     if( data["status"] == "success" )
                     {
