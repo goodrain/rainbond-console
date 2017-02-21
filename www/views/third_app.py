@@ -46,7 +46,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     create_body["bucket_name"] = "gr" + service_id[-6:]
                     create_body["type"] = "ucdn"
                     create_body["business_type"] = "file"
-                    
+                
                 elif app_type == "upai_oos":
                     service_id = make_uuid()
                     create_body["bucket_name"] = "gr" + service_id[-6:]
@@ -62,7 +62,8 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     info.tenant_id = tenant_name
                     info.name = "又拍云应用"
                     info.save()
-                    return HttpResponseRedirect("/apps/" + tenant_name + "/" + create_body["bucket_name"] + "/third_show")
+                    return HttpResponseRedirect(
+                        "/apps/" + tenant_name + "/" + create_body["bucket_name"] + "/third_show")
                 else:
                     logger.error("create upai cdn bucket error,:" + body.message)
                     return HttpResponse(u"创建错误", status=res.status)
@@ -92,6 +93,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             app_bucket = kwargs.get('app_bucket', None)
+            
             tenant_name = self.tenantName
             if app_bucket is None:
                 return HttpResponse(u"参数错误", status=415)
@@ -100,6 +102,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                 return HttpResponse(u"参数错误", status=415)
             context = self.get_context()
             context["app_info"] = app_info
+            context["app_id"] = app_bucket
             if app_info.app_type == "upai_cdn":
                 res, body = upai_client.getDomainList(app_info.bucket_name)
                 if res.status == 200:
