@@ -201,7 +201,7 @@ $(function(){
     });
     $("select.flow_size").change(function(){
         var data = {
-            "500GB" : "130元",
+            "500G" : "130元",
             "1T" : "260元",
             "5T" : "1250元",
             "10T" : "2440元",
@@ -228,7 +228,6 @@ $(function(){
             },
             success : function(data){
                 swal(data["message"]);
-                console.log(data);
                 if( data["status"] == "success" )
                 {
                     history.go(0);
