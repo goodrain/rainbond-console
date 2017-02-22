@@ -7,7 +7,7 @@ from www.third_app.cdn.upai.client import YouPaiApi
 import logging
 from www.utils.crypt import make_uuid
 import datetime
-
+from django.db import transaction
 logger = logging.getLogger('default')
 upai_client = YouPaiApi()
 
@@ -236,13 +236,14 @@ class CDNTrafficRecordView(AuthedView):
             "1PB": 1024 * 1024 * 1024,
         }
         AuthedView.__init__(self, request, *args, **kwargs)
-    
+
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         result = {}
         try:
             traffic_size = request.POST.get("traffic_size", "500G")
             new_tenant = Tenants.objects.get(tenant_id=self.tenant.tenant_id)
-            if new_tenant.balance < self.price_map[traffic_size]:
+            if new_tenant.balance < self.price_map[traffic_size] and new_tenant.pay_type != "unpay":
                 result["status"] = "failure"
                 result["message"] = "余额不足，请先充值！"
                 return JsonResponse(result)
@@ -257,15 +258,15 @@ class CDNTrafficRecordView(AuthedView):
             record.tenant_id = self.tenantName
             record.save()
             # 支付
-            
-            new_tenant.balance = float(new_tenant.balance) - float(self.price_map[traffic_size])
-            new_tenant.save()
+            if new_tenant.pay_type != "unpay":
+                new_tenant.balance = float(new_tenant.balance) - float(self.price_map[traffic_size])
+                new_tenant.save()
             record.payment_status = 1
             record.save()
             
             # 创建流量包消费初始纪录或为历史纪录充值流量
             hour = CDNTrafficHourRecord.objects. \
-                order_by("end_time desc").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
+                order_by("-end_time").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
             if hour is None:
                 hour = CDNTrafficHourRecord()
                 hour.balance = record.traffic_size
@@ -273,6 +274,7 @@ class CDNTrafficRecordView(AuthedView):
                 hour.service_id = self.app_info.service_id
                 hour.tenant_id = self.tenantName
                 hour.traffic_number = 0
+                hour.start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 hour.end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 hour.save()
             else:
@@ -285,6 +287,7 @@ class CDNTrafficRecordView(AuthedView):
             result["message"] = "购买成功"
             result["balance"] = hour.balance
         except Exception, e:
+            transaction.rollback()
             logger.exception(e)
             result["status"] = "failure"
             result["message"] = "购买失败"
