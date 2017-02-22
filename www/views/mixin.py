@@ -5,6 +5,7 @@ from www.models import PermRelTenant, Tenants, AppServicePort, AppServiceEnv, Ap
 from www.tenantservice.baseservice import BaseTenantService
 from www.region import RegionInfo
 from www.utils import sn
+from www.models.activity import TenantActivity
 import logging
 logger = logging.getLogger('default')
 
@@ -102,6 +103,13 @@ class LeftSideBarMixin(object):
                 if self.user.origion in ('ucloud',):
                     continue
                 arrival_regions.append(region)
+        # 判断租户是否在998活动中
+        if self.tenant is not None:
+            ta_num = TenantActivity.objects.filter(tenant_id=self.tenant.tenant_id).count()
+            if ta_num > 0:
+                arrival_regions = [RegionInfo.region_list[0]]
+                context['current_region'] = RegionInfo.region_list[0]
+                context['activity_id'] = 998
 
         context['arrival_regions'] = tuple(arrival_regions)
         return context

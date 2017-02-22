@@ -1,0 +1,323 @@
+<div class="cost">
+   
+    <div class="cost-fun">
+         <h2 class="tit-two">计费方式</h2>
+        <table>
+            <tbody>
+            <tr>
+                <td>内存计费方式：<span>{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %} 后付费 {% endif %}</span><a href="javascript:void(0)" class="change">更改</a></td>
+                <td>当前使用：<span>{{service.min_memory}}MB×{{service.min_node}}</span><a href="javascript:void(0)" class="larger">扩容</a></td>
+                <td>上1小时费用：<span>{{last_hour_detail.memory_fee}}元</span></td>
+                <td>累计费用：<span>{{total_memory_price}}元</span></td>
+            </tr>
+            <tr>
+                <td>磁盘计费方式：<span>{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费 {% else %} 后付费 {% endif %}</span><a href="javascript:void(0)" class="change">更改</a></td>
+                <td>当前使用：<span>{{last_hour_detail.disk}}MB</span></td>
+                <td>上1小时费用：<span>{{last_hour_detail.disk_fee}}元</span></td>
+                <td>累计费用：<span>{{total_disk_price}}元</span></td>
+            </tr>
+            <tr>
+                <td>流量计费方式：<span>后付费</span></td>
+                <td>当前使用：<span>{{last_hour_detail.net}}MB</span></td>
+                <td>上1小时费用：<span>{{last_hour_detail.net_fee}}元</span></td>
+                <td>累计费用：<span>{{total_net_price}}元</span></td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr>
+                <td colspan="4">预付费项目有效期：<span>{{service_attach_info.buy_end_time}}</span><a href="javascript:void(0)" class="expand">延期</a></td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+   
+    <div class="content-tab">
+         <h2 class="tit-two">计费明细</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>计费时段</th>
+                    <th>内存</th>
+                    <th>费用</th>
+                    <th>实际扣费</th>
+                    <th>磁盘</th>
+                    <th>费用</th>
+                    <th>实际扣费</th>
+                    <th>流量</th>
+                    <th>费用</th>
+                    <th>实际扣费</th>
+                    <th>总扣费</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service_consume in service_consume_detail_list %}
+
+                <tr>
+                    <td>{{service_consume.time|difftime:-3600}}--{{service_consume.time}}</td>
+                    <!--<td>{{service_consume.memory}}GB</td>-->
+                    <td>{%  widthratio service_consume.memory 1 service_consume.node_num %}MB</td>
+                    <td>{{ service_consume.memory_fee }}元</td>
+                    <td>{% if service_consume.is_memory_pre_paid %}service_consume.infact_memory_fee元(预付费){% else %}{{service_consume.memory_fee}} 元(后付费){% endif %}</td>
+                    <td>{{service_consume.disk}}GB</td>
+                    <td>{{service_consume.disk_fee}}元</td>
+                    <td>{% if service_consume.is_disk_pre_paid %}service_consume.infact_disk_fee元(预付费){% else %}{{service_consume.disk_fee}} 元(后付费){% endif %}</td>
+                    <td>{{service_consume.net}}GB</td>
+                    <td>{{service_consume.net_fee}}元</td>
+                    <td>{{service_consume.net_fee}}(后付费)</td>
+                    <td>{{service_consume.one_hour_total}}元</td>
+                </tr>
+                {% endfor %}
+                <!--
+                <tr>
+                    <td>12：00-13：00</td>
+                    <td>256MB</td>
+                    <td>12元</td>
+                    <td>0元(预付费)</td>
+                    <td>0.12GB</td>
+                    <td>0元</td>
+                    <td>0元(预付费)</td>
+                    <td>0.12GB</td>
+                    <td>0元</td>
+                    <td>0元(预付费)</td>
+                    <td>12元</td>
+                </tr>
+                -->
+            </tbody>
+            <tfoot>
+
+            </tfoot>
+        </table>
+    </div>
+    <div class="layer-body-bg">
+        <!--弹层1-->
+        <div class="endDate layer-body">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <div>
+                修改后付费成功，在当前使用期限(2016-12-12 12：12：12)到期以后生效
+            </div>
+            <p class="bottom">
+                <button class="cancel">关闭</button>
+            </p>
+        </div>
+        <!--弹层2-->
+        <div class="chooseFun layer-body">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
+            <div class="layer-height-overflow infor-fm-box">
+                <div class="fm-input-range clearfix">
+                    <label>应用购买时长</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="TimeLongWid"></cite></span>
+                        <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
+                    </p>
+                    <span><cite id="TimeLongText">1</cite>个月</span>
+                </div>
+            </div>
+            <p class="bottom">
+                <button class="sure sureTimeLong">付款</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+        <!--弹层3-->
+        <div class="chooseData layer-body">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <h3 class="layer-tit">请选择延期时间</h3>
+            <div class="layer-height-overflow infor-fm-box">
+                <div class="fm-input-range clearfix">
+                    <label>应用延期时长</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="TimeLongW"></cite></span>
+                        <input type="range" min="1" max="24"  step="1" id="Time" value="1"／>
+                    </p>
+                    <span><cite id="TimeText">1</cite>个月</span>
+                </div>
+            </div>
+            <p class="bottom">
+                <button class="sure sureTime">付款</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+        <!--弹层4-->
+        <div class="chooseLarge layer-body">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <h3 class="layer-tit">请选择要实用的内存与节点数</h3>
+            <div class="layer-height-overflow infor-fm-box">
+                <div class="fm-input-range clearfix fn-memory-node">
+                    <label>节点数</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="NodeWid"></cite></span>
+                        <input type="range" min="1" max="99"  step="1" id="NodeNum" value="1"／>
+                    </p>
+                    <span><cite id="NodeText">1</cite>个</span>
+                </div>
+                <div class="fm-input-range clearfix fn-memory-node">
+                    <label>单节点内存</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
+                        <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
+                    </p>
+                    <span><cite id="OneMemoryText">128</cite>M</span>
+                </div>
+            </div>
+            <p class="bottom">
+                <button class="sure sureDeploy">付款</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+    </div>
+</div>
+<script>
+    $(function(){
+        var that;
+        $('.change').on('click',function(){
+            if($(this).parent().find('span').html() == "预付费")
+            {
+                $(this).parent().find('span').html("后付费");
+                //弹出层，告知修改成功
+                $(".endDate").css({"display":"block"});
+                $(".chooseFun").css({"display":"none"});
+                $(".chooseData").css({"display":"none"});
+                $(".chooseLarge").css({"display":"none"});
+                $(".layer-body-bg").css({"display":"block"});
+            }
+            else{
+                //弹出层，选择购买配置，付费
+                $(".chooseFun").css({"display":"block"});
+                $(".chooseData").css({"display":"none"});
+                $(".chooseLarge").css({"display":"none"});
+                $(".layer-body-bg").css({"display":"block"});
+            }
+            that = $(this);
+        });
+        //关闭弹出层
+        $(".del").on("click",function(){
+            $(".layer-body-bg").css({"display":"none"});
+        });
+        //扩容
+        $(".larger").on("click",function(){
+            $(".endDate").css({"display":"none"});
+            $(".chooseFun").css({"display":"none"});
+            $(".chooseData").css({"display":"none"});
+            $(".chooseLarge").css({"display":"block"});
+            $(".layer-body-bg").css({"display":"block"});
+        });
+        //延期
+        $(".expand").on("click",function(){
+            $(".endDate").css({"display":"none"});
+            $(".chooseFun").css({"display":"none"});
+            $(".chooseData").css({"display":"block"});
+            $(".chooseLarge").css({"display":"none"});
+            $(".layer-body-bg").css({"display":"block"});
+        });
+        //跳转支付
+        $("button.sureTimeLong").on("click",function(){
+            console.log( $('#TimeLongText').html() );
+            that.parent().find('span').html("预付费");
+        });
+        $("button.sureTime").on("click",function(){
+            console.log( $('#TimeText').html() );
+        });
+        $("button.sureDeploy").on("click",function(){
+            console.log( $('#NodeText').html() +";"+ $('#OneMemoryText').html() );
+        });
+        //取消，关闭弹出层
+        $("button.cancel").on("click",function(){
+            $(".endDate").css({"display":"none"});
+            $(".layer-body-bg").css({"display":"none"});
+            $(".chooseFun").css({"display":"none"});
+            $(".chooseData").css({"display":"none"});
+            $(".chooseLarge").css({"display":"none"});
+        })
+    });
+
+
+    function FnRange(inputid,textid,widid,num){
+        var range= document.getElementById(inputid);
+        var result = document.getElementById(textid);
+        var wid = document.getElementById(widid);
+        var maxnum = range.getAttribute("max");
+        cachedRangeValue = /*localStorage.rangeValue ? localStorage.rangeValue :*/ num;
+        // 检测浏览器
+        var o = document.createElement('input');
+        o.type = 'range';
+        if ( o.type === 'text' ) alert('不好意思，你的浏览器还不够酷，试试最新的浏览器吧。');
+        range.value = cachedRangeValue;
+        wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+        range.addEventListener("mouseup", function() {
+//            if(inputid == "OneMemory"){
+//                if(range.value >= 128 && range.value < 256){
+//                    result.innerHTML = "128M";
+//                }else if(range.value >= 256 && range.value < 512){
+//                    result.innerHTML = "256M";
+//                }else if(range.value >= 512 && range.value < 1024){
+//                    result.innerHTML = "512M";
+//                }else if(range.value >= 1024 && range.value < 2048){
+//                    result.innerHTML = "1G";
+//                }else if(range.value >= 2048 && range.value < 3072){
+//                    result.innerHTML = "2G";
+//                }else if(range.value >= 3072 && range.value < 4096){
+//                    result.innerHTML = "3G";
+//                }else if(range.value >= 4096 && range.value < 5120){
+//                    result.innerHTML = "4G";
+//                }else if(range.value >= 5120 && range.value < 6144){
+//                    result.innerHTML = "5G";
+//                }else if(range.value >= 6144 && range.value < 7168){
+//                    result.innerHTML = "6G";
+//                }else if(range.value >= 7168 && range.value < 8100){
+//                    result.innerHTML = "7G";
+//                }else{
+//                    result.innerHTML = "8G";
+//                }
+//            }else{
+//                result.innerHTML = range.value;
+//            }
+            result.innerHTML = range.value;
+            wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+            //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
+            //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
+            //result.innerHTML = range.value;
+        }, false);
+        // 滑动时显示选择的值
+        range.addEventListener("input", function() {
+//            if(inputid == "OneMemory"){
+//                if(range.value >= 128 && range.value < 256){
+//                    result.innerHTML = "128M";
+//                }else if(range.value >= 256 && range.value < 512){
+//                    result.innerHTML = "256M";
+//                }else if(range.value >= 512 && range.value < 1024){
+//                    result.innerHTML = "512M";
+//                }else if(range.value >= 1024 && range.value < 2048){
+//                    result.innerHTML = "1G";
+//                }else if(range.value >= 2048 && range.value < 3072){
+//                    result.innerHTML = "2G";
+//                }else if(range.value >= 3072 && range.value < 4096){
+//                    result.innerHTML = "3G";
+//                }else if(range.value >= 4096 && range.value < 5120){
+//                    result.innerHTML = "4G";
+//                }else if(range.value >= 5120 && range.value < 6144){
+//                    result.innerHTML = "5G";
+//                }else if(range.value >= 6144 && range.value < 7168){
+//                    result.innerHTML = "6G";
+//                }else if(range.value >= 7168 && range.value < 8100){
+//                    result.innerHTML = "7G";
+//                }else{
+//                    result.innerHTML = "8G";
+//                }
+//            }else{
+//                result.innerHTML = range.value;
+//            }
+            result.innerHTML = range.value;
+            wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+
+        }, false);
+    }
+
+    FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
+    FnRange("NodeNum","NodeText","NodeWid",1);
+    FnRange("TimeLong","TimeLongText","TimeLongWid",1);
+    FnRange("Time","TimeText","TimeLongW",1);
+</script>

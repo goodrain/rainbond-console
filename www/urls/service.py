@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, url
 
 from www.services_group_view import *
-from www.compose_service_view import ComposeServiceDeploy, ComposeServiceParams
+from www.compose_service_view import ComposeServiceDeploy, ComposeCreateStep2, ComposeCreateStep3
 from www.create_services_view import CreateServiceEntranceView
 from www.image_service_view import ImageServiceDeploy, ImageParamsViews
 from www.services_view import *
@@ -29,11 +29,13 @@ urlpatterns = patterns(
 
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-waiting/$', login_required(AppWaitingCodeView.as_view())),
 
+    url(r'^/(?P<serviceAlias>[\w\-]+)/app-setting/$', login_required(AppSettingsView.as_view())),
+
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-language/$', login_required(AppLanguageCodeView.as_view())),
 
-    url(r'^/(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),
-
     url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra/?$', ServiceDeployExtraView.as_view()),
+
+    url(r'^/(?P<serviceAlias>[\w\-]+)/deploy/setting/?$', ServiceDeploySettingView.as_view()),
 
     url(r'^/service/$', login_required(ServiceMarket.as_view())),
 
@@ -81,7 +83,8 @@ urlpatterns = patterns(
     url(r'^/image-params/$', login_required(ImageParamsViews.as_view())),
     # docker-compose
     url(r'^/compose-create/$', login_required(ComposeServiceDeploy.as_view())),
-    url(r'^/compose-params/$', login_required(ComposeServiceParams.as_view())),
+    url(r'^/compose-step2/$', login_required(ComposeCreateStep2.as_view())),
+    url(r'^/compose-step3/$', login_required(ComposeCreateStep3.as_view())),
     # new monitor service source
     #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/monitor$', SourcesMonitorServicelView.as_view()),
     #url(r'^/(?P<serviceAlias>[\w\-]+)/resource/alert$', SourcesAlertServicelView.as_view()),

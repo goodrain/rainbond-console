@@ -103,7 +103,9 @@
           source: [{value: "http", text: 'http'}, {value: "stream", text: 'stream'}],
           pk: 1,
           success: function(data){
-             window.location.reload();
+              var res = eval(data);
+              showMessage(res.info);
+              window.location.reload();
           },
           error: function (data) {
             msg = data.responseText;
@@ -177,6 +179,7 @@
 
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
         $.post(url, dict, function(res) {
+          console.log(dict);
           if (res.success) {
             del_tr.remove();
           }
@@ -258,7 +261,16 @@
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
-          dict[name] = value;
+          dict[name] = value; 
+          if(!isNaN(value)){
+              if(value>=1025 && value<=65535){
+                 console.log(value);
+              }else{
+                showMessage("端口号必须在1025~65535之间！");
+                return flase;
+              }
+          }
+          //dict[name] = value;
         });
 
         add_tr.find('select').each(function() {

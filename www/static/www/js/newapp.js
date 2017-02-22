@@ -465,12 +465,28 @@ $(function(){
 		console.log(percentComplete)
 	}
 	
+	$("#create_name").blur(function(){
+		var g_name = $("#create_name").val();
+		if(g_name == ""){
+			$("#create_name_notice").slideDown();
+		}else{
+			$("#create_name_notice").slideUp();
+		}
+	});
     //上传compose文件
     $("#nextcomposestep").click(function(){
         var formData = new FormData($("#myForm")[0]);
 		var tenantName = $("#tenantNameValue").val();
+		var group_name = $("#create_name").val();
+		if(group_name == ""){
+			$("#create_name_notice").slideDown();
+			return;
+		}else{
+			$("#create_name_notice").slideUp();
+		}
+		formData.append("group_name",group_name);
 
-		upload_url = "/apps/"+tenantName+"/compose-create/"
+		upload_url = "/apps/"+tenantName+"/compose-create/";
         $.ajax({  
                 url : upload_url,  
                 type : 'POST',  
@@ -490,10 +506,12 @@ $(function(){
                 },
                 success : function(responseStr) { 
 					if(responseStr.success){
-						window.location.href = "/apps/"+tenantName+"/compose-params?id="+responseStr.compose_file_id
+						window.location.href = "/apps/" + tenantName + "/compose-step2?id=" + responseStr.compose_file_id + "&group_id=" + responseStr.group_id;
 
 					}else{
-						swal("文件上传异常")
+						if (responseStr.info == "group_exist"){
+							swal("组名已存在");
+						}
 					}
                 },  
                 error : function(responseStr) {  
@@ -511,6 +529,21 @@ $(function(){
     // 	$("#app-market li").hide();
     // 	$("#app-market li").eq(indexnum).show();
     // });
+
+    //
+    $("#compose_file").on("change",function(){
+        var filePath=$(this).val();
+        if(filePath.indexOf("yml")!=-1){
+            var arr=filePath.split('\\');
+            var fileName=arr[arr.length-1];
+            console.log(fileName)
+            $(this).next("span").html(fileName);
+        }else{
+            $(this).next("span").html("请重新上传！");
+            return false;
+        }
+    });
+    //
 });
 function service_create(tenantName, service_key, app_version) {
 	window.location.href = "/apps/" + tenantName

@@ -1,8 +1,14 @@
  <!-- statistic start -->
  <div role="tabpanel" class="tab-pane active" id="statistic">
+    <div style="padding-bottom: 20px;" id="TabShow">
+        <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=history" class="writebtn {% if statistic_type == 'history' %} gre {% endif %} " data-id="history">历史走势</a>
+        {% if has_outer_port %}
+        <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime" class="writebtn  {% if statistic_type == 'realtime' %} gre {% endif %}" data-id="realtime">实时分析</a>
+        {% endif %}
+    </div>
   <input type="hidden" id="websocketUrl" name="websocketUrl" value="{{websocket_uri}}">
   {% if statistic_type == 'history' %}
-   <div>
+   <div style="margin-top: -50px; margin-bottom: 60px;">
      <div class="col-xs-9"></div>
      <div class="col-xs-3">
        <select id="graph-period" class="form-control input-sm m-bot15">
@@ -13,13 +19,14 @@
        </select>
      </div>
    </div>
+    <div class="row">
    {% if hasHttpServices %}
-   <div class="row">
+  
      <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
+       <section class="content-tab-lit">
+         <p class="tit-two">
            响应时间 (5分钟平均值)
-         </header>
+         </p>
          <div class="panel-body">
            <div id="response-time-stat" class="graph">
              <svg></svg>
@@ -29,10 +36,10 @@
      </div>
 
      <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
+       <section class="content-tab-lit">
+         <p class="tit-two">
            在线人数 (10分钟)
-         </header>
+         </p>
          <div class="panel-body">
            <div id="online-stat" class="graph">
              <svg></svg>
@@ -40,14 +47,14 @@
          </div>
        </section>
      </div>
-   </div>
+  
 
-   <div class="row">
+  
      <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
+       <section class="content-tab-lit">
+         <p class="tit-two">
            吞吐率 (1分钟总数)
-         </header>
+         </p>
          <div class="panel-body">
            <div id="throughput-stat" class="graph">
              <svg></svg>
@@ -56,15 +63,15 @@
        </section>
      </div>
 
-   </div>
+   
    {% endif %}<!--end http_history-->
    {% if tenantServiceInfo.service_type == "mysql" %}
-   <div class="row">
+  
      <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
+       <section class="content-tab-lit">
+         <p class="tit-two">
            sql响应时间 (5分钟平均值)
-         </header>
+         </p>
          <div class="panel-body">
            <div id="sqltime-stat" class="graph">
              <svg></svg>
@@ -74,10 +81,10 @@
      </div>
 
      <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
+       <section class="content-tab-lit">
+         <p class="tit-two">
            sql执行次数 (1分钟总数)
-         </header>
+         </p>
          <div class="panel-body">
            <div id="sql-throughput-stat" class="graph">
              <svg></svg>
@@ -85,15 +92,15 @@
          </div>
        </section>
      </div>
-   </div>
+   
    {% endif %}
 
-   <div class="row">
+  
      <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
+       <section class="content-tab-lit">
+         <p class="tit-two">
            内存
-         </header>
+         </p>
          <div class="panel-body">
            <div id="memory-stat" class="graph">
              <svg></svg>
@@ -103,10 +110,10 @@
      </div>
 
      <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
+       <section class="content-tab-lit">
+         <p class="tit-two">
            带宽
-         </header>
+         </p>
          <div class="panel-body">
            <div id="bandwidth-stat" class="graph">
              <svg></svg>
@@ -116,10 +123,10 @@
      </div>
 
      <div class="col-md-6">
-       <section class="panel">
-         <header class="panel-heading">
+       <section class="content-tab-lit">
+         <p class="tit-two">
            磁盘
-         </header>
+         </p>
          <div class="panel-body">
            <div id="disk-stat" class="graph">
              <svg></svg>
@@ -128,86 +135,96 @@
        </section>
      </div>
 
-   </div>
+   
 
   {% endif %}<!--end statistic_history-->
+  </div>
   {% if statistic_type == 'realtime' %}
     {% if hasHttpServices %}
-    <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-3">
-      <ul>
+    <div id="realtime-stat" class="monitor-ul">
+      <ul class="clearfix">
         <li>
-          <h1 id="response-time-stat">0</h1>
-          平均响应时间
+          <div>
+            <p>平均响应时间</p>
+            <p class="monitor01"></p>
+            <h1 id="response-time-stat">0</h1>
+          </div>
         </li>
         <li>
-          <h1 id="throughput-stat">0</h1>
-          吞吐率
+          <div>
+            <p>吞吐率</p>
+            <p class="monitor02"></p>
+            <h1 id="throughput-stat">0</h1>
+          </div>
         </li>
         <li>
-          <h1 id="online-stat">0</h1>
-          在线人数
+          <div>
+            <p>在线人数</p>
+            <p class="monitor03"></p>
+            <h1 id="online-stat">0</h1>
+          </div>
         </li>
       </ul>
     </div>
-    <div class="row">
-      <div class="col-sm-12">
-        <section class="panel">
-            <header class="panel-heading">
-                过去5分钟耗时最多的URl排行
-                <span class="pull-right rtm-update-time"></span>
-            </header>
-            <table id="rtm-SumTimeByUrl" class="table table-striped table-advance table-hover">
+
+        <section class="content-tab">
+            <p class="tit-two">
+                过去5分钟耗时最多的URl排行<span class="pull-right rtm-update-time"></span>
+             </p>
+            <table id="rtm-SumTimeByUrl">
                 <thead>
                 <tr>
-                    <th name="url" class="text-left col-md-8">Url</th>
-                    <th name="sumtime" class="text-right col-md-2">累计时间(ms)</th>
-                    <th name="avgtime" class="text-right col-md-1">平均时间(ms)</th>
-                    <th name="counts" class="text-right col-md-1">个数</th>
+                    <th name="url">Url</th>
+                    <th name="sumtime">累计时间(ms)</th>
+                    <th name="avgtime">平均时间(ms)</th>
+                    <th name="counts" >个数</th>
                 </tr>
                 </thead>
                 <tbody>
                 </tbody>
             </table>
         </section>
-      </div>
-    </div>
+    
     {% endif %}<!--finish http_realtime-->
 
     {% if tenantServiceInfo.service_type == 'mysql' %}
-    <div id="realtime-stat" class="weather-category twt-category rtm-category rtm-category-2">
-      <ul>
-        <li>
-          <h1 id="sqltime-stat">0</h1>
-          sql平均响应时间
+    <div id="realtime-stat" class="monitor-ul">
+      <ul class="clearfix">
+        <li class="two">
+          <div>
+            <p>sql平均响应时间</p>
+            <p class="monitor01"></p>
+            <p id="sqltime-stat">0</p>
+          </div>
         </li>
-        <li>
-          <h1 id="sql-throughput-stat">0</h1>
-          sql吞吐率
+        <li class="two">
+          <div>
+            <p>sql吞吐率</p>
+            <p class="monitor02"></p>
+            <p id="sql-throughput-stat">0</p>
+          </div>
         </li>
       </ul>
     </div>
-    <div class="row">
-      <div class="col-sm-12">
-        <section class="panel">
-            <header class="panel-heading">
+   
+        <section class="content-tab">
+            <p class="tit-two">
                 过去5分钟耗时最多的SQL排行
                 <span class="pull-right rtm-update-time"></span>
-            </header>
-            <table id="rtm-SumTimeBySql" class="table table-striped table-advance table-hover">
+            </p>
+            <table id="rtm-SumTimeBySql">
                 <thead>
                 <tr>
-                    <th name="sql" class="text-left col-md-8">SQL</th>
-                    <th name="sumtime" class="text-right col-md-2">累计时间(ms)</th>
-                    <th name="avgtime" class="text-right col-md-1">平均时间(ms)</th>
-                    <th name="counts" class="text-right col-md-1">个数</th>
+                    <th name="sql">SQL</th>
+                    <th name="sumtime" >累计时间(ms)</th>
+                    <th name="avgtime" >平均时间(ms)</th>
+                    <th name="counts" >个数</th>
                 </tr>
                 </thead>
                 <tbody>
                 </tbody>
             </table>
         </section>
-      </div>
-    </div>
     {% endif %}<!--finish mysql_realtime-->
 
   {% endif %}<!--finish realtime-->

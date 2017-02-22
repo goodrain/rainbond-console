@@ -1,77 +1,224 @@
 <!-- log start -->
-<div role="tabpanel" class="tab-pane active">
-  <div>
-  	<button type="button" class="btn btn-success" onclick="_pause()" id="logbtn">暂停</button>
-  	&nbsp;&nbsp;&nbsp;&nbsp;
-  	<a href="/apps/{{tenantName}}/{{serviceAlias}}/history-log/" target="_blank">历史日志下载</a>
-  	&nbsp;&nbsp;&nbsp;&nbsp;
-  	<a href="/apps/{{tenantName}}/{{serviceAlias}}/latest-log/" target="_blank">最新1000条日志</a>
+<div role="tabpanel">
+  <div style="padding-bottom: 20px;" class="clearfix">
+     <button type="button" class="greenbtn" onclick="_pause()" id="logbtn">暂停</button>
+      <button style="margin-left: 15px;" type="button" class="greenbtn" id="logbtn_out" style="display: none;">日志输出</button>
+     <p style="float: right; text-align: right; width: 220px;">
+  	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/history-log/" target="_blank" style="color: #28cb75; margin-right: 10px;  line-height: 30px; text-decoration:underline">历史日志下载</a>
+  	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/latest-log/" target="_blank" style="color: #28cb75;  line-height: 30px; text-decoration:underline">最新1000条日志</a>
+    </p>
   </div>
-  <div id="docker_log" role="tabpanel" class="tab-pane active  blackbg">
+  <div class="">
+       <div id="docker_log" role="tabpanel" class="tab-pane active  blackbg">
+       </div>
   </div>
+  <div  style="padding-top: 30px; padding-left: 40px;">
+
+  </div>
+   
 </div>
+<p id="parameter" style="display: none;" data-tenantName="{{tenantName}}"  data-serviceAlias="{{serviceAlias}}"></p>
 <!-- log end-->
 <script>
-	var service_id='{{tenantServiceInfo.service_id}}'
-	String.prototype.trim = function() {
-	    return this.replace(/(^\s*)|(\s*$)/g, "");
-	}
-	
-	var pauseFlag = "start";
-	
-	function getLog(){
-		$.ajax({
-       	  type: "GET",
-    		  url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
-    		  data: "action=service",
-    		  cache: false,
-    		  beforeSend: function(xhr, settings){
-    		      var csrftoken = $.cookie('csrftoken');
-    		      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-    		  },
-    	  	  success: function(msg) {
-    	  		var dataObj = msg;
-    	  		$("#docker_log").html(dataObj["log"])
-    		  },
-    		  error: function(){
-    			//swal("系统异常");
-      	  	}
-       })
-	}
-	$(document).ready(function () {
-		getLog();
-		extPushWebSocketClient.prototype = {
-   			onMessage : function(msg) {
-   				if(typeof(msg) !="undefined" && pauseFlag == "start"){
-       				var msgs = msg.split(":")
-       				if(msgs[0].trim() != "deploy" && msgs[0].trim() != "compile"){
-       					var finalMsg=""
-       					var arr=$("#docker_log").html().split('<br>');
-       					var totalSize=150;
-       					if(arr.length > totalSize){
-       						for(var i = 0; i < totalSize; i++){
-       							finalMsg += arr[totalSize-1-i]+"<br/>"
-       						}
-       					}else{
-       						finalMsg = $("#docker_log").html()
-       					}
-       					finalMsg = msg.substr(14) +"<br/>"+ finalMsg
-       					$("#docker_log").html(finalMsg)       					
-       				}
-   				}
-   			}
-    	}
-   		var connect = new extPushWebSocketConnect('{{websocket_uri}}');
-   		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
+    var service_id = '{{tenantServiceInfo.service_id}}'
+    String.prototype.trim = function () {
+        return this.replace(/(^\s*)|(\s*$)/g, "");
+    }
+
+    var pauseFlag = "start";
+
+    function getLog() {
+        $.ajax({
+            type: "GET",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
+            data: "action=service",
+            cache: false,
+            beforeSend: function (xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (msg) {
+                var dataObj = msg;
+                $("#docker_log").html(dataObj["log"])
+            },
+            error: function () {
+                //swal("系统异常");
+            }
+        })
+    }
+    $(document).ready(function () {
+        getLog();
+        extPushWebSocketClient.prototype = {
+            onMessage: function (msg) {
+                if (typeof(msg) != "undefined" && pauseFlag == "start") {
+                    var msgs = msg.split(":")
+                    if (msgs[0].trim() != "deploy" && msgs[0].trim() != "compile") {
+                        var finalMsg = ""
+                        var arr = $("#docker_log").html().split('<br>');
+                        var totalSize = 150;
+                        if (arr.length > totalSize) {
+                            for (var i = 0; i < totalSize; i++) {
+                                finalMsg += arr[totalSize - 1 - i] + "<br/>"
+                            }
+                        } else {
+                            finalMsg = $("#docker_log").html()
+                        }
+                        finalMsg = msg.substr(14) + "<br/>" + finalMsg
+                        $("#docker_log").html(finalMsg)
+                    }
+                }
+            }
+        }
+        var connect = new extPushWebSocketConnect('{{websocket_uri}}');
+        connect.init(new extPushWebSocketClient(), service_id, "submsg", "submsg", "123456789", "987654321");
     });
-	
-	function _pause(){
-		if(pauseFlag=="stop"){
-			pauseFlag="start";
-			$('#logbtn').html("暂停");
-		}else if(pauseFlag=="start"){
-			pauseFlag="stop";
-			$('#logbtn').html("开始");
-		}
-	}
+
+    function _pause() {
+        if (pauseFlag == "stop") {
+            pauseFlag = "start";
+            $('#logbtn').html("暂停");
+        } else if (pauseFlag == "start") {
+            pauseFlag = "stop";
+            $('#logbtn').html("开始");
+        }
+    }
+    function layerlog(tit, ptit, ptext, onoff) {
+        var odiv = '<div class="layerbg"><div class="layermainlog"><p class="titlog">' + tit + '</p><a href="javascript:;" class="closebtn fn-quxiao"><i class="fa fa-times"></i></a></div></div>'
+        var optit = '<p class="layertitlog">' + ptit + '</p>';
+        var optext = '<p class="tipstextlog">' + ptext + '</p>';
+        var obtntwo = '<p class="text-center"><button type="button" class="btn btn-success" id="sure-btn">确定</button><button type="button" class="btn btn-danger fn-quxiao">取消</button></p>';
+        var obtn = '<p class="text-center"><button type="button" class="btn btn-success fn-quxiao">好的</button>';
+        var fdiv = '<div class="fm-div"><form id="fm-divbox"></form></div>';
+        $(odiv).appendTo("body");
+        $(optit).appendTo($(".layermainlog"));
+        $(optext).appendTo($(".layermainlog"));
+        if (onoff) {
+            $(fdiv).appendTo($(".layermainlog"));
+            $(obtntwo).appendTo($(".layermainlog"));
+        } else {
+            $(obtn).appendTo($(".layermainlog"));
+        }
+        $(".fn-quxiao").click(function () {
+            $(".layerbg").remove();
+        });
+    }
+
+    $(function () {
+        if($("#top_menu").children("div").children("button").html() == "迅达云[北京]"){
+            $("#logbtn_out").hide();
+        }else{
+            $("#logbtn_out").show();
+        }
+        var tenantName = $("#parameter").attr("data-tenantName");
+        var serviceAlias = $("#parameter").attr("data-serviceAlias");
+        $(document).on("click","#logbtn_out",function () {
+            $.ajax({
+                type: "GET",
+                url: "/ajax/" + tenantName + "/logtype/services",
+                data: "",
+                cache: false,
+                beforeSend: function (xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function (msg) {
+                    var dataObj = eval(msg);
+                    //ajax
+                    var dataArr = [];
+                    layerlog("日志输出设置", "指定日志应用", "下方为当前团队已经安装的日志应用列表，可以为当前应用指定一个应用来接受日志数据的输入。目前支持日志的应用类型有：<a href=\"http://app.goodrain.com/detail/31/\">elasticsearch</a>、<a href=\"http://app.goodrain.com/detail/3/\">mongodb</a>、influxdb等，如需安装可直接点击文字去部署。", true);
+                    for (var key in dataObj) {
+                        //console.log(key);
+                        //console.log(dataObj[key]);
+                        dataArr.push(dataObj[key]);
+                    }
+
+                    var longstr = "";
+                    for (var i = 0; i < dataArr.length; i++) {
+                        //console.log(longstr + "///" + i);
+                        longstr += '<label><input type="radio" name="app" id="' + dataArr[i].service_id + '"data-type="' + dataArr[i].service_type + '"data-alias="' + dataArr[i].service_alias + '"value="' + dataArr[i].service_cname + '" />' + '<span class="radiobg"></span>' + dataArr[i].service_cname + '</label>';
+                    }
+                    $("#fm-divbox").append(longstr).find("input").eq(0).attr("checked", "true");
+
+                },
+                error: function () {
+                    //swal("系统异常");
+                }
+            });
+        });
+        $(document).on("click", "#sure-btn", function () {
+            var appname = $("#fm-divbox").find("input[type='radio']:checked").val();
+            var appid = $("#fm-divbox").find("input[type='radio']:checked").attr("id");
+            var apptype = $("#fm-divbox").find("input[type='radio']:checked").attr("data-type");
+            var appalias = $("#fm-divbox").find("input[type='radio']:checked").attr("data-alias");
+            var ontext = '以设置"' + appname + '"接收当前应用的数据。请访问日志应用参看当前应用的日志数据。';
+
+            $.ajax({
+                type: "POST",
+                url: "/ajax/" + tenantName + "/" + serviceAlias + "/match-log",
+                data: {
+                    "dep_service_id": appid,
+                    "dep_service_type": apptype
+                },
+                cache: false,
+                beforeSend: function (xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function (data) {
+                    var data = eval(data);
+                    if (data.status == "success") {
+                        $(".layerbg").remove();
+                        layerlog("日志输出设置", "设置成功！", ontext, false);
+                        $("#logbtn_out").html("取消日志对接").attr("id","logbtn_delete")
+                    } else {
+                        $(".layerbg").remove();
+                        layerlog("日志输出设置", "设置失败！", data.message, false);
+                    }
+                },
+                error: function (data) {
+                    if (data.message == undefined) {
+                        data.message = "系统错误。"
+                    }
+                    $(".layerbg").remove();
+                    layerlog("日志输出设置", "设置失败！", data.message, false);
+                }
+            });
+        });
+        $.ajax({
+            type: "GET",
+            url: "/ajax/" + tenantName + "/" + serviceAlias + "/match-log/check",
+            cache: false,
+            beforeSend: function (xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (data) {
+                var data = eval(data);
+                if (data.status == "success") {
+                    $("#logbtn_out").html("取消日志对接").attr("id","logbtn_delete")
+                }
+            }
+        })
+        $(document).on("click","#logbtn_delete",function(){
+            $.ajax({
+            type: "POST",
+            url: "/ajax/" + tenantName + "/" + serviceAlias + "/match-log/delete",
+            cache: false,
+            beforeSend: function (xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (data) {
+                var data = eval(data);
+                if (data.status == "success") {
+                    $("#logbtn_delete").html("日志对接").attr("id","logbtn_out")
+                    swal("取消成功,重启后生效");
+                }else{
+                    swal("取消失败");
+                }
+            }
+        })
+        })
+    });
+
 </script>

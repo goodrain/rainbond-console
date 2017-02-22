@@ -3,7 +3,15 @@ from www.tests import *
 from www.services_view import *
 from www.views import ajax
 from www.views.ajax import UpdateGroupView, BatchActionView
+
+from www.views.ajax.service_rule import *
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
+from www.views.ajax.service_log import *
+
+from www.views.ajax.price_detail import PriceDetailView
+from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
+from www.views.service import CreateServiceDepInfo
+
 
 urlpatterns = patterns(
     '',
@@ -36,6 +44,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/paymodel', ajax.PayModelInfo.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/code_repos', ajax.CodeAction.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/remote/market', ajax.RemoteServiceMarketAjax.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/logtype/services', ajax.ServiceLogTypeView.as_view()),
     url(r'form_valid', ajax.FormValidView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/volume', ajax.ServiceVolumeView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-mnt-share-type', ajax.MntShareTypeView.as_view()),
@@ -50,4 +59,17 @@ urlpatterns = patterns(
 
     url(r'^(?P<tenantName>[\w\-]+)/batch-action$', BatchActionView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/change-service-name', ajax.ServiceNameChangeView.as_view()),
+
+    # service rule
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule$', ServiceRuleManage.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/update$', ServiceRuleUpdate.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/delete$', ServiceRuleDelete.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/rule/status$', ServiceRuleUpdateStatus.as_view()),
+    # service log
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log$', ServiceLogMatch.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log/check$', ServiceLogMatchCheck.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/match-log/delete$', ServiceLogMatchDelete.as_view()),
+
+    url(r'^(?P<tenantName>[\w\-]+)/create/dep-info', CreateServiceDepInfo.as_view()),
+    url(r'^region/price-info', PriceDetailView.as_view()),
 )
