@@ -983,6 +983,17 @@ class CDNTrafficHourRecord(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
 
 
+class ThirdAppOperator(BaseModel):
+    class Meta:
+        db_table = 'third_app_operator'
+    
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    bucket_name = models.CharField(max_length=32, help_text=u"空间名")
+    operator_name = models.CharField(max_length=100, help_text=u"用户名")
+    real_name = models.CharField(max_length=100, help_text=u"真实姓名")
+    password = models.CharField(max_length=100, help_text=u"密码")
+
+
 class ThirdAppOrder(BaseModel):
     class Meta:
         db_table = 'third_app_order'

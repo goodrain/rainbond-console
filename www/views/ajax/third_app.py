@@ -2,7 +2,7 @@
 from django.http import JsonResponse
 import json
 from www.views import AuthedView
-from www.models import ThirdAppInfo, CDNTrafficRecord, Tenants, CDNTrafficHourRecord
+from www.models import ThirdAppInfo, CDNTrafficRecord, Tenants, CDNTrafficHourRecord, ThirdAppOperator
 from www.third_app.cdn.upai.client import YouPaiApi
 import logging
 from www.utils.crypt import make_uuid
@@ -169,6 +169,12 @@ class AppOperatorView(AuthedView):
                         if res.status == 201:
                             result["status"] = "success"
                             result["message"] = "添加成功"
+                            count = ThirdAppOperator.objects.filter(operator_name=operator_name).count()
+                            if count < 1:
+                                operator = ThirdAppOperator(service_id=self.app_info.service_id,
+                                                            bucket_name=self.app_id,
+                                                            operator_name=operator_name, real_name=realname,
+                                                            password=password)
                         else:
                             if type(rebody) is str:
                                 rebody = json.loads(rebody)
@@ -207,6 +213,7 @@ class AppOperatorDeleteView(AuthedView):
             res, rebody = upai_client.deleteOperatorAuth(self.app_id, operator_name)
             if res.status == 200:
                 upai_client.deleteOperator(operator_name)
+                ThirdAppOperator.objects.filter(operator_name=operator_name).delete()
                 result["status"] = "success"
                 result["message"] = "删除成功"
             else:
