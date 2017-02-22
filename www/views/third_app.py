@@ -10,6 +10,8 @@ from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 import logging
 import time
+import datetime
+from django.db import transaction
 
 logger = logging.getLogger('default')
 upai_client = YouPaiApi()
@@ -35,6 +37,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
     
     # form提交.
     @perm_required('app_create')
+    @transaction.atomic
     def get(self, request, *args, **kwargs):
         try:
             app_type = kwargs.get('app_type', None)
@@ -56,6 +59,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                 
                 res, body = upai_client.createService(json.dumps(create_body))
                 if res.status == 201:
+                    # 创建应用
                     info = ThirdAppInfo()
                     info.service_id = service_id
                     info.bucket_name = create_body["bucket_name"]
@@ -63,14 +67,25 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     info.tenant_id = tenant_name
                     info.name = "又拍云应用"
                     info.save()
+                    # 创建初始化账单
+                    order = ThirdAppOrder(bucket_name=info.bucket_name, tenant_id=self.tenantName,
+                                          service_id=service_id)
+                    order.order_id = make_uuid()
+                    order.start_time = datetime.datetime.now()
+                    order.end_time = datetime.datetime.now()
+                    order.create_time = datetime.datetime.now()
+                    order.save()
+                    
                     return HttpResponseRedirect(
                         "/apps/" + tenant_name + "/" + create_body["bucket_name"] + "/third_show")
                 else:
+                    
                     logger.error("create upai cdn bucket error,:" + body.message)
                     return HttpResponse(u"创建错误", status=res.status)
             else:
                 return HttpResponse(u"参数错误", status=415)
         except Exception as e:
+            transaction.rollback()
             logger.exception(e)
         return HttpResponse(u"创建异常", status=500)
 
@@ -120,7 +135,12 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                         op.bind_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(op.bind_at))
                         ops.append(op)
                     context["operators"] = ops
-                return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
+                    pre_min = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1),
+                                                        datetime.time.min)
+                    pre_max = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1),
+                                                        datetime.time.max)
+            
+            return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         except Exception as e:
             logger.exception(e)
             return HttpResponse(u"创建异常", status=500)

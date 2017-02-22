@@ -8,6 +8,7 @@ import logging
 from www.utils.crypt import make_uuid
 import datetime
 from django.db import transaction
+
 logger = logging.getLogger('default')
 upai_client = YouPaiApi()
 
@@ -159,13 +160,20 @@ class AppOperatorView(AuthedView):
                 body["realname"] = realname
                 res, rebody = upai_client.addOperator(json.dumps(body))
                 if res.status == 201:
-                    authBody = {}
-                    authBody["bucket_name"] = self.app_id
-                    authBody["operator_name"] = operator_name
-                    res, rebody = upai_client.addOperatorAuth(json.dumps(authBody))
-                    if res.status == 201:
-                        result["status"] = "success"
-                        result["message"] = "添加成功"
+                    res, rebody = upai_client.enableOperator(operator_name)
+                    if res.status == 200:
+                        authBody = {}
+                        authBody["bucket_name"] = self.app_id
+                        authBody["operator_name"] = operator_name
+                        res, rebody = upai_client.addOperatorAuth(json.dumps(authBody))
+                        if res.status == 201:
+                            result["status"] = "success"
+                            result["message"] = "添加成功"
+                        else:
+                            if type(rebody) is str:
+                                rebody = json.loads(rebody)
+                            result["status"] = "failure"
+                            result["message"] = rebody.message
                     else:
                         if type(rebody) is str:
                             rebody = json.loads(rebody)
@@ -236,7 +244,7 @@ class CDNTrafficRecordView(AuthedView):
             "1PB": 1024 * 1024 * 1024,
         }
         AuthedView.__init__(self, request, *args, **kwargs)
-
+    
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         result = {}
