@@ -32,4 +32,4 @@ p.input_operator input{height: 36px;width: 20%;margin-right: 20px;}
 p.input_operator button{margin-left: 20px;}
 
 
-#sidebar ul.sidebar-menu ul.sub{display: block!important;}
+#sidebar ul.sidebar-menu:nth-child(3) ul.sub{display: block!important;}
