@@ -175,6 +175,7 @@ class AppOperatorView(AuthedView):
                                                             bucket_name=self.app_id,
                                                             operator_name=operator_name, real_name=realname,
                                                             password=password)
+                                operator.save()
                         else:
                             if type(rebody) is str:
                                 rebody = json.loads(rebody)

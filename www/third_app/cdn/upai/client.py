@@ -64,8 +64,9 @@ class YouPaiApi(BaseHttpClient):
         return res, body
     
     def enableOperator(self, operator):
-        url = self.BaseAPIURL + "operators/enable?operator_name={0}".format(operator)
-        res, body = self._post(url, self.default_headers)
+        url = self.BaseAPIURL + "operators/enable"
+        body = {"operator_name": operator}
+        res, body = self._post(url, self.default_headers, json.dumps(body))
         return res, body
     
     def addOperatorAuth(self, body):
