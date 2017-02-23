@@ -71,6 +71,12 @@ class Login(BaseView):
             return Http404
 
     def get(self, request, *args, **kwargs):
+        # 社区版console判断当前系统是否有注册用户
+        if sn.instance.is_private():
+            user_count = Users.objects.all().count()
+            if user_count == 0:
+                return self.redirect_to("/wizard/prefix/")
+
         user = request.user
         referer = request.get_full_path()
         next_url = ""

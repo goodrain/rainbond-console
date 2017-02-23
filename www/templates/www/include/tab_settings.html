@@ -5,10 +5,11 @@
         <p class="tit-two">基础信息</p>
         <div class="">
             <div class="row">
-                <label class="col-xs-2 control-label text-right">应用名称</label><label class="col-xs-8 control-label"
-                                                                                    id="lit-appname">{{ tenantServiceInfo.service_cname }}<a
-                    href="javascript:;" class="fn-rename"
-                    style="color: #28cb75; text-decoration: underline; padding-left: 10px;">更名</a></label>
+                <label class="col-xs-2 control-label text-right">应用名称</label>
+                <label class="col-xs-8 control-label" id="lit-appname">
+                    {{ tenantServiceInfo.service_cname }}
+                    <a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; padding-left: 10px;">更名</a>
+                </label>
             </div>
             <div class="row">
                 <label class="col-xs-2 control-label text-right">所属组</label>
@@ -27,16 +28,14 @@
                     <div class="fn-show-select  choose-layer">
                         <select>
                             {% for group in groupList %}
-
                                 <option value="{{ group.ID }}">{{ group.group_name }}</option>
-
                             {% endfor %}
                             <option value="-1">未分组</option>
                         </select>
-                        <button class="fn-groupname-sure btn btn-success" data-id="" style="padding: 0 2px;"><i
-                                class="fa fa-check"></i></button>
-                        <button class="fn-groupname-close btn btn-danger" style="padding: 0 4px;"><i
-                                class="fa fa-times"></i></button>
+                        <button class="fn-groupname-sure btn btn-success" data-id="" style="padding: 0 2px;">
+                            <i class="fa fa-check"></i></button>
+                        <button class="fn-groupname-close btn btn-danger" style="padding: 0 4px;">
+                            <i class="fa fa-times"></i></button>
                     </div>
                 </div>
             </div>
@@ -71,20 +70,17 @@
                                 } else {
                                     swal("修改组错误");
                                 }
-
                             },
                             error: function () {
                                 swal("系统异常,请重试");
                             }
                         });
                         /////
-
                     });
                     $(".fn-groupname-close").click(function () {
                         $(this).parent("div.fn-show-select ").hide();
                     });
                     //  选择分组
-
                 });
             </script>
             {% if tenantServiceInfo.category == "application" and show_git %}
@@ -118,24 +114,7 @@
 
             <div class="row">
                 <label class="col-xs-2 control-label text-right">持久化配置</label>
-                <div class="col-xs-2" style="line-height: 30px;"> 共享
-                    <!--<select class="form-control" id="mnt_share_type" name="mnt_share_type">
-                      {% for key,extend in mnt_share_choices.iteritems %}
-                      {% if key == tenantServiceInfo.volume_type %}
-                      <option value="{{ key }}" selected="selected">{{ extend }}</option>
-                      {% else %}
-                      <option value="{{ key }}">{{ extend }}</option>
-                      {% endif %}
-                      {% endfor %}
-                  </select>-->
-                </div>
-                <!--
-              <div class="col-xs-2">
-                  <button type="button" class="btn btn-success volume-type-service" id="volume_type_btn"
-                          onclick="mnt_share_set('{{ tenantName }}','{{ serviceAlias }}')">设置
-                  </button>
-              </div>
-              -->
+                <div class="col-xs-2" style="line-height: 30px;">共享</div>
             </div>
 
             <div class="row" style="display: none;">
@@ -246,27 +225,6 @@
                     </td>
                     <td>
                         <div id="showLink{{ port.container_port }}" class="showlink-box">
-                            <!--
-                     {% if port.is_outer_service and port.protocol == 'http' %}
-                     <span>绑定域名:</span>
-                     <input type="text" class="form-control" id="service_app_name_{{port.container_port}}"
-                                {% if port.container_port in serviceDomainDict.keys %}value="
-                                    {{serviceDomainDict|mkey:port.container_port}}"{% endif %} placeholder="请输入新域名，如：www.example.com">
-                       {% if 'manage_service' in user.actions %}
-                        <p style="padding-top: 10px;">
-                          {% if port.container_port in serviceDomainDict.keys %}
-                          <button type="button" class="btn btn-danger btn-xs" onclick="domainSubmit('close','
-                                    {{tenantServiceInfo.service_id}}','{{tenantName}}','
-                                    {{tenantServiceInfo.service_alias}}','{{port.container_port}}')">解绑</button>
-                          {% else %}
-                          <button type="button" class="btn btn-success btn-xs" onclick="domainSubmit('start','
-                                    {{tenantServiceInfo.service_id}}','{{tenantName}}','
-                                    {{tenantServiceInfo.service_alias}}','{{port.container_port}}')">绑定</button>
-                          {% endif %}
-                        </p>
-                      {% endif %}
-                    {% endif %}
-                    -->
                             {% if port.is_outer_service and port.protocol == 'http' %}
                                 <span>绑定域名:</span>
                                 <div class="domain-box" id="domain-box">
@@ -280,7 +238,6 @@
                                             </button>
                                         </p>
                                     {% endfor %}
-
                                     <!-- 多个域名 展示-->
                                 </div>
                                 <button type="button" class="btn greenbtn btn-xs fn-bind-domain">绑定</button>

@@ -26,6 +26,7 @@ from www.monitorservice.monitorhook import MonitorHook
 from www.utils.url import get_redirect_url
 from www.utils.md5Util import md5fun
 import datetime
+import www.utils.sn as sn
 
 logger = logging.getLogger('default')
 regionClient = RegionServiceApi()
@@ -260,6 +261,14 @@ class TenantService(LeftSideBarMixin, AuthedView):
         extends_dict["state-expend"] = u'有状态可水平扩容'
         return extends_dict
 
+    # 端口开放下拉列表选项
+    def multi_port_choices(self):
+        multi_port = {}
+        multi_port["one_outer"] = u'单一端口开放'
+        # multi_port["dif_protocol"] = u'按协议开放'
+        multi_port["multi_outer"] = u'多端口开放'
+        return multi_port
+
     # 服务挂载卷类型下拉列表选项
     def mnt_share_choices(self):
         mnt_share_type = {}
@@ -299,6 +308,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
         context['serviceAlias'] = self.serviceAlias
         fr = request.GET.get("fr", "deployed")
         context["fr"] = fr
+        # 判断是否社区版云帮
+        context["community"] = False
+        if sn.instance.is_private():
+            context["community"] = True
         try:
             regionBo = rpmManager.get_work_region_by_name(self.response_region)
             memory_post_paid_price = regionBo.memory_trial_price  # 内存按需使用价格
@@ -378,7 +391,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     context["hasInnerServices"] = True
 
                 envMap = {}
-                envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"),is_change=False)
+                envVarlist = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("outer", "both"), is_change=False)
                 if len(envVarlist) > 0:
                     for evnVarObj in envVarlist:
                         arr = envMap.get(evnVarObj.service_id)
@@ -518,7 +531,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["memorydict"] = self.memory_choices()
                 context["extends_choices"] = self.extends_choices()
                 context["add_port"] = settings.MODULES["Add_Port"]
-                if custom_config.GITLAB_SERVICE_API :
+                if custom_config.GITLAB_SERVICE_API:
                     context["git_tag"] = True
                 else:
                     context["git_tag"] = False
@@ -560,7 +573,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["outer_auth"] = self.tenant.pay_type != "free" or self.service.service_type == 'mysql' or self.service.language == "docker"
                 # 付费用户,管理员的application类型服务可以修改port
                 context["port_auth"] = (self.tenant.pay_type != "free" or self.user.is_sys_admin) and self.service.service_type == "application"
-                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port= -1)
+                context["envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port=-1)
 
                 # 获取挂载信息,查询
                 volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
