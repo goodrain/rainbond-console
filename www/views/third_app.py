@@ -139,6 +139,11 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                                                         datetime.time.min)
                     pre_max = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1),
                                                         datetime.time.max)
+                    order_info = ThirdAppOrder.objects.raw(
+                        "SELECT max(oos_size) as oos_size,sum(traffic_size) as traffic_size,sum(total_cost) as total_cost FROM `third_app_order` WHERE tenant_id=%s and create_time>%s and create_time<%s",
+                        app_bucket, pre_min, pre_max)
+                    context["order_info"] = order_info
+                    
             
             return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         except Exception as e:

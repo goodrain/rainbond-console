@@ -182,10 +182,10 @@
                             <span {% if work.operator_auth.delete %} class="check" {% else %} class="noCheck" {% endif %}></span>
                             <span class="text_auth">删除</span>
                         </td>
-                        {% if app.status == "enabled" %}
+                        {% if work.status == "enabled" %}
                         <td style="color:#28cb75;">正常</td>
                         {% else %}
-                        <td style="color: red">未通过</td>
+                        <td style="color: red">未启用</td>
                         {% endif %}
                         <td>{{work.bind_at}}</td>
                         <td>
