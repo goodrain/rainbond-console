@@ -427,7 +427,7 @@ $(function(){
             success : function(data) {
                
                 var oData = eval(data);
-                //console.log(oData.status);
+                console.log(data);
                 
                 //console.log(oData.json_svg);
                 //console.log(oData.json_data);

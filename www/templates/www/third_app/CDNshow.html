@@ -102,8 +102,8 @@
                 <tbody class="domain_box">
                 {% for app in domains %}
                     <tr>
-                        <td>{{app.domain}} {{app.status}}</td>
-                        {% if app.status == "NORMAl" %}
+                        <td>{{app.domain}}</td>
+                        {% if app.status == "NORMAL" %}
                         <td style="color:#28cb75;">正常</td>
                         {% elif app.status == "PENDING" %}
                         <td>未审核</td>
