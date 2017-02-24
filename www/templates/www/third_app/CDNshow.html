@@ -33,7 +33,7 @@
                         <p class="pImg">
                             <img id="service_status-img" src="{% static "www/img/appOutline/appOutline1.png" %}"/>
                         </p>
-                        <p>未知</p>
+                        <p>{% if app_info.open == 0 %}已欠费{% else %}正常{% endif %}</p>
                     </div>
                 </li>
                 <li>
@@ -42,7 +42,7 @@
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline2.png" %}"/>
                         </p>
-                        <p>0M</p>
+                        <p>{{order_info.oos_size}}</p>
                     </div>
                 </li>
                 <li>
@@ -51,7 +51,7 @@
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline3.png" %}"/>
                         </p>
-                        <p>0M</p>
+                        <p>{{order_info.traffic_size}}</p>
                         <!--<p>未知</p>-->
                     </div>
                 </li>
@@ -61,7 +61,7 @@
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline4.png" %}"/>
                         </p>
-                        <p>0次</p>
+                        <p>{{order_info.total_cost}}</p>
                         <!--<p>未知</p>-->
                     </div>
                 </li>
@@ -71,7 +71,7 @@
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
                         </p>
-                        <p>0元</p>
+                        <p>{{order_info.request_size}}</p>
                         <!--<p>未知</p>-->
                     </div>
                 </li>
@@ -102,7 +102,7 @@
                 <tbody class="domain_box">
                 {% for app in domains %}
                     <tr>
-                        <td>{{app.domain}}</td>
+                        <td>{{app.domain}} {{app.status}}</td>
                         {% if app.status == "NORMAl" %}
                         <td style="color:#28cb75;">正常</td>
                         {% elif app.status == "PENDING" %}
