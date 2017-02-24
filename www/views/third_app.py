@@ -11,6 +11,7 @@ from www.decorator import perm_required
 import logging
 import time
 import datetime
+from django.db import connection
 from django.db import transaction
 
 logger = logging.getLogger('default')
@@ -109,7 +110,6 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         try:
             app_bucket = kwargs.get('app_bucket', None)
-            
             tenant_name = self.tenantName
             if app_bucket is None:
                 return HttpResponse(u"参数错误", status=415)
@@ -135,18 +135,43 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                         op.bind_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(op.bind_at))
                         ops.append(op)
                     context["operators"] = ops
-                    pre_min = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1),
-                                                        datetime.time.min)
-                    pre_max = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1),
-                                                        datetime.time.max)
-                    order_info = ThirdAppOrder.objects.raw(
-                        "SELECT max(oos_size) as oos_size,sum(traffic_size) as traffic_size,sum(total_cost) as total_cost,sum(request_size) as request_size FROM `third_app_order` WHERE tenant_id=%s and create_time>%s and create_time<%s",
-                        app_bucket, pre_min, pre_max)[0]
-                    logger.info(order_info)
-                    order_info.oos_size = int(order_info.oos_size / 1024 / 1024) + "MB"
-                    order_info.traffic_size = int(order_info.traffic_size / 1024 / 1024) + "MB"
-                    order_info.request_size = int(order_info.request_size / 1024 / 1024) + "MB"
-                    context["order_info"] = order_info
+                    pre_min = datetime.datetime.combine(
+                        datetime.date.today() - datetime.timedelta(days=1),
+                        datetime.time.min).strftime("%Y-%m-%d %H:%M:%S")
+                    pre_max = datetime.datetime.combine(
+                        datetime.date.today() - datetime.timedelta(days=1),
+                        datetime.time.max).strftime("%Y-%m-%d %H:%M:%S")
+                    sql = '''
+                        SELECT max(oos_size) as oos_size,sum(traffic_size) as
+                        traffic_size,sum(total_cost) as total_cost,sum(request_size) as request_size FROM
+                        `third_app_order` WHERE `bucket_name`="%s" and `create_time`>"%s" and `create_time`<"%s"
+                     ''' % (app_bucket, pre_min, pre_max)
+                    logger.info(sql)
+                    cursor = connection.cursor()
+                    cursor.execute(sql)
+                    fetchall = cursor.fetchall()
+                    order_info = {
+                        
+                    }
+                    for info in fetchall:
+                        logger.info(info)
+                        if info[0] is not None:
+                            order_info["oos_size"] = "{0}MB".format(int(info[0] / 1024 / 1024))
+                        else:
+                            order_info["oos_size"] = "0MB"
+                        if info[1] is not None:
+                            order_info["traffic_size"] = "{0}MB".format(int(info[1] / 1024 / 1024))
+                        else:
+                            order_info["traffic_size"] = "0MB"
+                        if info[2] is not None:
+                            order_info["total_cost"] = "{0}元".format(info[2])
+                        else:
+                            order_info["total_cost"] = "0元"
+                        if info[3] is not None:
+                            order_info["request_size"] = "{0}MB".format(int(info[3] / 1024 / 1024))
+                        else:
+                            order_info["request_size"] = "0次"
+                        context["order_info"] = order_info
             
             return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         except Exception as e:
