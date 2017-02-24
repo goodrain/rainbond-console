@@ -168,7 +168,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                         else:
                             order_info["total_cost"] = "0元"
                         if info[3] is not None:
-                            order_info["request_size"] = "{0}MB".format(int(info[3] / 1024 / 1024))
+                            order_info["request_size"] = "{0}次".format(int(info[3] / 1024 / 1024))
                         else:
                             order_info["request_size"] = "0次"
                         context["order_info"] = order_info
