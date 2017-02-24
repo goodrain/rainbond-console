@@ -78,3 +78,9 @@ class YouPaiApi(BaseHttpClient):
         url = self.BaseAPIURL + "buckets/operators?bucket_name={0}&operator_name={1}".format(bucket, operator)
         res, body = self._delete(url, self.default_headers)
         return res, body
+    
+    def openApp(self, bucket_name):
+        url = self.BaseAPIURL + "buckets/visible"
+        body = {"bucket_name": bucket_name, "visible": True}
+        res, body = self._post(url, self.default_headers, json.dumps(body))
+        return res, body

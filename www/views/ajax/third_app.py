@@ -308,3 +308,37 @@ class CDNTrafficRecordView(AuthedView):
             result["status"] = "failure"
             result["message"] = "购买失败"
         return JsonResponse(result)
+
+
+class OpenThirdAppView(AuthedView):
+    def __init__(self, request, *args, **kwargs):
+        self.app_id = kwargs.get('app_id', None)
+        self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        """
+        添加操作员并授权。
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        result = {}
+        try:
+            if self.tenant.balance > 0:
+                res, body = upai_client.openApp(self.app_id)
+                if res.status == 200:
+                    self.app_info.open = 1
+                    self.app_info.save()
+                else:
+                    result["status"] = "failure"
+                    result["message"] = body.message
+            else:
+                result["status"] = "failure"
+                result["message"] = "余额不足"
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+            result["message"] = "开启失败"
+        return JsonResponse(result)
