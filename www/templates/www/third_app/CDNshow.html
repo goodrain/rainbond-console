@@ -31,7 +31,11 @@
                     <div>
                         <p>状态</p>
                         <p class="pImg">
-                            <img id="service_status-img" src="{% static "www/img/appOutline/appOutline1.png" %}"/>
+                            {% if app_info.open == 0 %}
+                            <img src="{% static "www/img/appOutline/appOutline1.png" %}"/>
+                            {% else %}
+                            <img src="{% static "www/img/appOutline/appOutline0.png" %}"/>
+                            {% endif %}
                         </p>
                         <p>{% if app_info.open == 0 %}已欠费{% else %}正常{% endif %}</p>
                     </div>
@@ -49,30 +53,27 @@
                     <div>
                         <p>昨日使用流量</p>
                         <p class="pImg">
-                            <img src="{% static "www/img/appOutline/appOutline3.png" %}"/>
-                        </p>
-                        <p>{{order_info.traffic_size}}</p>
-                        <!--<p>未知</p>-->
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p>昨日请求次数</p>
-                        <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline4.png" %}"/>
                         </p>
-                        <p>{{order_info.total_cost}}</p>
-                        <!--<p>未知</p>-->
+                        <p>{{order_info.traffic_size}}</p>
                     </div>
                 </li>
                 <li>
                     <div>
-                        <p style="text-align: left">昨日费用</p>
+                        <p>昨日费用</p>
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
                         </p>
+                        <p>{{order_info.total_cost}}</p>
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <p style="text-align: left">昨日请求次数</p>
+                        <p class="pImg">
+                            <img src="{% static "www/img/appOutline/appOutline6.png" %}"/>
+                        </p>
                         <p>{{order_info.request_size}}</p>
-                        <!--<p>未知</p>-->
                     </div>
                 </li>
             </ul>
