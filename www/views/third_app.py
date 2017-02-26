@@ -155,11 +155,11 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                     for info in fetchall:
                         logger.info(info)
                         if info[0] is not None:
-                            order_info["oos_size"] = "{0}MB".format(int(info[0] / 1024 / 1024))
+                            order_info["oos_size"] = "{0}MB".format(round(float(info[0]) / 1024 / 1024), 2)
                         else:
                             order_info["oos_size"] = "0MB"
                         if info[1] is not None:
-                            order_info["traffic_size"] = "{0}MB".format(int(info[1] / 1024 / 1024))
+                            order_info["traffic_size"] = "{0}MB".format(round(float(info[1]) / 1024 / 1024), 2)
                         else:
                             order_info["traffic_size"] = "0MB"
                         if info[2] is not None:
@@ -167,13 +167,17 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                         else:
                             order_info["total_cost"] = "0元"
                         if info[3] is not None:
-                            order_info["request_size"] = "{0}次".format(int(info[3] / 1024 / 1024))
+                            order_info["request_size"] = "{0}次".format(info[3])
                         else:
                             order_info["request_size"] = "0次"
                         context["order_info"] = order_info
-                    traffic_record = CDNTrafficHourRecord.objects.order_by("-create_time").get(bucket_name=app_bucket)
-                    traffic_record.balance = traffic_record.balance / 1024 / 1024 / 1024
-                    context["traffic_record"] = traffic_record
+                    traffic_record = CDNTrafficHourRecord.objects.order_by("-create_time").filter(
+                        bucket_name=app_bucket)
+                    if traffic_record.count() > 0:
+                        context["traffic_balance"] = round(float(traffic_record.first().balance) / 1024 / 1024 / 1024,
+                                                           4)
+                    else:
+                        context["traffic_balance"] = 0
             return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         except Exception as e:
             logger.exception(e)
