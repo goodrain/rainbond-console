@@ -84,3 +84,11 @@ class YouPaiApi(BaseHttpClient):
         body = {"bucket_name": bucket_name, "visible": True}
         res, body = self._post(url, self.default_headers, json.dumps(body))
         return res, body
+    
+    def stopApp(self, bucket_name):
+        url = self.BaseAPIURL + "buckets/visible"
+        body = {"bucket_name": bucket_name, "visible": False}
+        res, body = self._post(url, self.default_headers, json.dumps(body))
+        return res, body
+
+    
