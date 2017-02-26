@@ -44,7 +44,6 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
             app_type = kwargs.get('app_type', None)
             tenant_name = self.tenantName
             create_body = {}
-            context = self.get_context()
             if app_type is not None:
                 if app_type == "upai_cdn":
                     service_id = make_uuid()
@@ -64,7 +63,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     info = ThirdAppInfo()
                     info.service_id = service_id
                     info.bucket_name = create_body["bucket_name"]
-                    info.app_type = "upai_cdn"
+                    info.app_type = app_type
                     info.tenant_id = tenant_name
                     info.name = "又拍云应用"
                     info.save()
@@ -172,7 +171,9 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                         else:
                             order_info["request_size"] = "0次"
                         context["order_info"] = order_info
-            
+                    traffic_record = CDNTrafficHourRecord.objects.order_by("-create_time").get(bucket_name=app_bucket)
+                    traffic_record.balance = traffic_record.balance / 1024 / 1024 / 1024
+                    context["traffic_record"] = traffic_record
             return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         except Exception as e:
             logger.exception(e)
@@ -197,7 +198,7 @@ class ThirdAppListView(LeftSideBarMixin, AuthedView):
     
     def get(self, request, *args, **kwargs):
         tenant_name = self.tenantName
-        apps = ThirdAppInfo.objects.filter(tenant_id=tenant_name).all()
+        apps = ThirdAppInfo.objects.filter(tenant_id=tenant_name, delete=0).all()
         context = self.get_context()
         context["apps"] = apps
         return TemplateResponse(self.request, "www/third_app/thirdApp.html", context)

@@ -953,6 +953,7 @@ class ThirdAppInfo(BaseModel):
     name = models.CharField(max_length=32, help_text=u"应用名称")
     bill_type = models.CharField(default="demand", max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
     open = models.BooleanField(default=1, help_text=u"是否开启状态")
+    delete = models.BooleanField(default=0, help_text=u"是否删除状态")
 
 
 class CDNTrafficRecord(BaseModel):
