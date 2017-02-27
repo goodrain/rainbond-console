@@ -174,7 +174,7 @@
                     {% for work in operators %}
                     <tr>
                         <td>{{work.operator_name}}</td>
-                        <td>{{work.realname}}</td>
+                        <td>{{work.operator_auth.read}}</td>
                         <td class="operator_auth clearfix">
                             <span {% if work.operator_auth.read == "True" %} class="check" {% else %} class="noCheck" {% endif %}></span>
                             <span class="text_auth">读取</span>
