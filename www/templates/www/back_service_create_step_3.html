@@ -144,7 +144,7 @@
              }
              var sel_val = deps;
              var envs = [];
-             var flag = false
+             var flag = false;
              $('.tb tr').each(function() {
                  var env = {};
                  $(this).find('[name^=attr]').each(function(event) {
@@ -155,13 +155,17 @@
                          env[name] = value;
                      } else {
                          showMessage("有未填写的内容");
-                         flag = true
+                         flag = true;
                      }
                  });
                  envs.push(env);
              });
-             ///
-              $("#back_service_step2").attr('disabled', true);
+             //校验未通过
+             if (flag) {
+                 return;
+             }
+
+             $("#back_service_step2").attr('disabled', true);
              var tenantName= $('#tenantName').val();
              var service_alias = $("#service_alias").val();
 

@@ -11,12 +11,14 @@
 {% block extrajs %}
 <script src='{% static "www/js/app_create_step_3_setting.js" %}'></script>
 <script src='{% static "www/js/bootstrap-editable.min.js" %}'></script>
+<script src='{% static "www/js/app-waiting.js" %}'></script>
 {% endblock %}
 
 {% block main-content%}
 <section class="wrapper site-min-height">
     <!-- start -->
     <section class="main-box">
+        <input type="hidden" id="service_name" name="service_name" value="{{tenantService.service_alias}}" />
         <input type="hidden" id="tenantName" value="{{tenantName}}">
         <input type="hidden" id="tenantService" value="{{tenantService}}">
         <input type="hidden" id="service_name" value="{{tenantService.service_cname}}">
@@ -176,7 +178,10 @@
                 </tfoot>
             </table>
         </div>
-        <p class="next"><button class="submit">下一步</button></p>
+        <div class="clearfix" style="width: 240px; margin:10px auto;">
+            <a class="redbtn seconbtn" style="cursor: pointer; float: left;  margin:0 5px;" onclick="app_create_delete();" >停止创建</a>
+            <button class="submit greenbtn" style="float: left; margin:0 5px;">下一步</button>
+        </div>
     </section>
     <!-- end -->
 </section>

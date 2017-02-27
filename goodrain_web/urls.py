@@ -54,4 +54,5 @@ urlpatterns = patterns(
     url(r'^cadmin/ajax/', include('cadmin.urls_ajax')),
     url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
     url(r'^share/', include('share.urls')),
+    url(r'^wizard/', include('www.urls.wizard')),
 ) + staticfiles_urlpatterns() + openapi_urlpatterns()

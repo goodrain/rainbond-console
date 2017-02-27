@@ -35,6 +35,7 @@ codeRepositoriesService = CodeRepositoriesService()
 tenantRegionService = TenantRegionService()
 rpmManager = RegionProviderManager()
 
+
 class AppCreateView(LeftSideBarMixin, AuthedView):
 
     def get_media(self):
@@ -251,6 +252,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             data["service_alias"] = service_alias
             data["service_id"] = service_id
         except Exception as e:
+            logger.exception("create console service failed!")
             logger.exception(e)
             tempTenantService = TenantServiceInfo.objects.get(service_id=service_id)
             codeRepositoriesService.deleteProject(tempTenantService)
@@ -260,109 +262,6 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             ServiceGroupRelation.objects.filter(service_id=service_id)
             ServiceAttachInfo.objects.filter(service_id=service_id)
             monitorhook.serviceMonitor(self.user.nick_name, tempTenantService, 'create_service_error', False)
-            data["status"] = "failure"
-        return JsonResponse(data, status=200)
-
-
-class AppDependencyCodeView(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
-
-    def get_media(self):
-        media = super(AuthedView, self).get_media() + self.vendor(
-            'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
-            'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js', 'www/js/app-dependency.js')
-        return media
-
-    @never_cache
-    @perm_required('create_service')
-    def get(self, request, *args, **kwargs):
-        try:
-            context = self.get_context()
-            context["myAppStatus"] = "active"
-            context["tenantName"] = self.tenantName
-            context["tenantService"] = self.service
-
-            types = ServiceType.type_lists()
-            cacheServiceList = ServiceInfo.objects.filter(status="published", service_type__in=types)
-            context["cacheServiceList"] = cacheServiceList
-
-            tenant_id = self.tenant.tenant_id
-            deployTenantServices = TenantServiceInfo.objects.filter(
-                tenant_id=tenant_id,
-                service_region=self.response_region,
-                service_origin='assistant').exclude(category='application')
-            context["deployTenantServices"] = deployTenantServices
-        except Exception as e:
-            logger.exception(e)
-        return TemplateResponse(self.request, "www/app_create_step_2_dependency.html", context)
-
-    def calRelationServiceResource(self, createService):
-        totalmemory = 0
-        if settings.MODULES["Memory_Limit"]:
-            try:
-                serviceKeys = createService.split(",")
-                for skey in serviceKeys:
-                    if skey != "":
-                        service_key, app_version = skey.split(':', 1)
-                        dep_service = ServiceInfo.objects.get(service_key=service_key, version=app_version)
-                        totalmemory = totalmemory + dep_service.min_memory
-            except Exception as e:
-                logger.exception(e)
-        return totalmemory
-
-    @never_cache
-    @perm_required('create_service')
-    def post(self, request, *args, **kwargs):
-        data = {}
-        try:
-            tenant_id = self.tenant.tenant_id
-            service_cname = self.service.service_cname
-            service_id = self.service.service_id
-            # create service dependency
-            createService = request.POST.get("createService", "")
-            logger.debug(createService)
-            if createService is not None and createService != "":
-                # resource check
-                diffMemory = self.service.min_memory + self.calRelationServiceResource(createService)
-                rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, diffMemory, False)
-                if not flag:
-                    if rt_type == "memory":
-                        data["status"] = "over_memory"
-                    else:
-                        data["status"] = "over_money"
-                    return JsonResponse(data, status=200)
-
-                # create service
-                serviceKeys = createService.split(",")
-                for skey in serviceKeys:
-                    try:
-                        service_key, app_version = skey.split(':', 1)
-                        dep_service = ServiceInfo.objects.get(service_key=service_key, version=app_version)
-                        dep_service_id = make_uuid(service_key)
-                        dep_service_alias="gr"+dep_service_id[-6:]
-                        depTenantService = baseService.create_service(
-                            dep_service_id, tenant_id, dep_service_alias, dep_service.service_name.lower() + "_" + service_cname, dep_service, self.user.pk, region=self.response_region)
-                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'create_service', True)
-                        self.copy_port_and_env(dep_service, depTenantService)
-                        baseService.create_region_service(depTenantService, self.tenantName, self.response_region, self.user.nick_name)
-                        monitorhook.serviceMonitor(self.user.nick_name, depTenantService, 'init_region_service', True)
-                        # baseService.create_service_env(tenant_id, dep_service_id, self.response_region)
-                        baseService.create_service_dependency(tenant_id, service_id, dep_service_id, self.response_region)
-                    except Exception as e:
-                        logger.exception(e)
-            # exist service dependency.
-            hasService = request.POST.get("hasService", "")
-            logger.debug(hasService)
-            if hasService is not None and hasService != "":
-                serviceIds = hasService.split(",")
-                for sid in serviceIds:
-                    try:
-                        baseService.create_service_dependency(tenant_id, service_id, sid, self.response_region)
-                    except Exception as e:
-                        logger.exception(e)
-            data["status"] = "success"
-        except Exception as e:
-            logger.exception(e)
             data["status"] = "failure"
         return JsonResponse(data, status=200)
 
@@ -394,24 +293,6 @@ class AppWaitingCodeView(LeftSideBarMixin, AuthedView):
             else:
                 ServiceCreateStep.objects.create(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id,
                                                  app_step=2)
-            # tenantServiceRelations = TenantServiceRelation.objects.filter(
-            #     tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
-            # if len(tenantServiceRelations) > 0:
-            #     dpsids = []
-            #     for tsr in tenantServiceRelations:
-            #         dpsids.append(tsr.dep_service_id)
-            #     deployTenantServices = TenantServiceInfo.objects.filter(service_id__in=dpsids)
-            #     context["deployTenantServices"] = deployTenantServices
-            #     # 获取服务的端口信息
-            #     dep_port_list = TenantServicesPort.objects.filter(service_id__in=dpsids)
-            #     port_map = {x.service_id: x for x in list(dep_port_list)}
-            #     context["port_map"] = port_map
-            #     authList = TenantServiceAuth.objects.filter(service_id__in=dpsids)
-            #     if len(authList) > 0:
-            #         authMap = {}
-            #         for auth in authList:
-            #             authMap[auth.service_id] = auth
-            #         context["authMap"] = authMap
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/app_create_step_2_waiting.html", context)
@@ -440,6 +321,15 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
 
         for volume in volumes:
             baseService.add_volume_list(tenant_serivce, volume["volume_path"])
+
+    def saveAdapterEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+            TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
 
     @never_cache
     @perm_required('create_service')
@@ -487,6 +377,8 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
     @perm_required('create_service')
     def post(self, request, *args, **kwargs):
         data = {}
+        service_alias_list = []
+        init_region = False
         try:
             # 端口信息
             port_list = json.loads(request.POST.get("port_list", "[]"))
@@ -501,10 +393,18 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
 
             # 将刚开始创建的5000端口删除
             previous_list = map(lambda containerPort: containerPort["container_port"], port_list)
-            TenantServicesPort.objects.filter(service_id=self.service.service_id,
-                                              container_port__in=previous_list).delete()
-            TenantServiceEnvVar.objects.filter(service_id=self.service.service_id,
-                                               container_port__in=previous_list).delete()
+            # 处理用户自定义的port
+            if len(previous_list) == 0:
+                TenantServicesPort.objects.filter(service_id=self.service.service_id).delete()
+            else:
+                delete_default_port = True
+                for tmp_port in previous_list:
+                    if tmp_port == 5000:
+                        delete_default_port = False
+                        continue
+                if delete_default_port:
+                    TenantServicesPort.objects.filter(service_id=self.service.service_id,
+                                                      container_port=5000).delete()
 
             newTenantService = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                              service_id=self.service.service_id)
@@ -516,12 +416,17 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
 
             baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
                                               self.user.nick_name)
+            init_region = True
+
             logger.debug(depIds)
-            for sid in depIds:
-                try:
-                    baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, sid, self.response_region)
-                except Exception as e:
-                    logger.exception(e)
+            if len(depIds) > 0:
+                # 检查当前服务是否有GDADAPTER参数
+                # self.saveAdapterEnv(newTenantService)
+                for sid in depIds:
+                    try:
+                        baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, sid, self.response_region)
+                    except Exception as e:
+                        logger.exception(e)
 
             data["status"] = "success"
 
@@ -529,14 +434,16 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id).delete()
             TenantServiceVolume.objects.filter(service_id=self.service.service_id).delete()
             TenantServiceMountRelation.objects.filter(service_id=self.service.service_id).delete()
-            for dep_service_alias in service_alias_list:
-                baseService.cancel_service_mnt(self.tenant.tenant_id, self.service.service_id, dep_service_alias,
-                                               self.service.service_region)
-            regionClient.delete(self.service.service_region, self.service.service_id)
+            if len(service_alias_list) > 0:
+                for dep_service_alias in service_alias_list:
+                    baseService.cancel_service_mnt(self.tenant.tenant_id, self.service.service_id, dep_service_alias,
+                                                   self.service.service_region)
+            if init_region:
+                regionClient.delete(self.service.service_region, self.service.service_id)
             logger.exception(e)
+            logger.error("AppSettingsView create service error!")
             data["status"] = "failure"
         return JsonResponse(data,status=200)
-
 
 
 class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
@@ -577,10 +484,6 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             self.service.cmd = ''
             self.service.save()
             regionClient.update_service(self.response_region, self.service.service_id, {"cmd": ""})
-            # 设置docker构建显示的内存
-            # memdict, keylist = self.memory_choices(self.tenant.pay_type == "free")
-            # context["keylist"] = keylist
-            # context["memorydict"] = memdict
             return TemplateResponse(self.request, "www/app_create_step_4_default.html", context)
         ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).update(app_step=4)
         return TemplateResponse(self.request, "www/app_create_step_4_" + language.replace(".", "").lower() + ".html", context)

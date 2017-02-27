@@ -33,9 +33,13 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-setting/$', login_required(AppSettingsView.as_view())),
     
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-language/$', login_required(AppLanguageCodeView.as_view())),
+<<<<<<< HEAD
     
     url(r'^/(?P<serviceAlias>[\w\-]+)/app-dependency/$', login_required(AppDependencyCodeView.as_view())),
     
+=======
+
+>>>>>>> 9a2f654a21e5e2eadb4970756060fa9f05a1f94e
     url(r'^/(?P<serviceAlias>[\w\-]+)/setup/extra/?$', ServiceDeployExtraView.as_view()),
     
     url(r'^/(?P<serviceAlias>[\w\-]+)/deploy/setting/?$', ServiceDeploySettingView.as_view()),

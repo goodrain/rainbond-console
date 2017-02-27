@@ -19,7 +19,7 @@ requests==2.7.0
 python-dateutil==2.4.2
 rsa==3.4.2
 django-oauth-toolkit==0.10.0
-docker-compose
+docker-compose==1.9.0
 
 
 
