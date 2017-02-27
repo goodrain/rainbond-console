@@ -270,11 +270,10 @@ $(function(){
                     },
                     success : function(msg) {
                         var dataObj = msg;
-                        console.log(msg);
                         if (dataObj["status"] == "success")
                         {
                             swal("操作成功");
-                            window.location.href = "/apps/" + tenantName
+                            window.location.href = "/apps/"+tenantName+"/third_app/list"
                         }
                         else
                         {
