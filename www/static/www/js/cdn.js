@@ -238,4 +238,59 @@ $(function(){
             }
         });
     });
+    function delete_cdn(){
+        var code_from = $("#cur_delete_service").attr("data-code");
+        var notify_text = "确定删除当前服务吗？";
+        if (code_from == "gitlab_new") {
+            notify_text = "关联git代码将同步删除，确定删除当前服务吗？"
+        }
+        swal({
+            title : notify_text,
+            type : "warning",
+            showCancelButton : true,
+            confirmButtonColor : "#DD6B55",
+            confirmButtonText : "确定",
+            cancelButtonText : "取消",
+            closeOnConfirm : false,
+            closeOnCancel : false
+        }, function(isConfirm) {
+            if (isConfirm) {
+                var tenantName = $("#tenantName").val();
+                var app_id = $("#app_id").val();
+                $.ajax({
+                    type : "POST",
+                    url : "/ajax/"+tenantName+"/"+app_id+"/delete",
+                    data : {},
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        swal({
+                            title : "正在执行删除操作，请稍候...",
+                            text : "5秒后自动关闭",
+                            timer : 5000,
+                            showConfirmButton : false
+                        });
+                    },
+                    success : function(msg) {
+                        var dataObj = msg
+                        if (dataObj["status"] == "success")
+                        {
+                            swal("操作成功");
+                            window.location.href = "/apps/" + tenantName
+                        }
+                        else
+                        {
+                            swal("操作失败");
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常");
+                    }
+                });
+            } else {
+                swal.close();
+            }
+        });
+    }
 })
