@@ -421,7 +421,7 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             logger.debug(depIds)
             if len(depIds) > 0:
                 # 检查当前服务是否有GDADAPTER参数
-                self.saveAdapterEnv(newTenantService)
+                # self.saveAdapterEnv(newTenantService)
                 for sid in depIds:
                     try:
                         baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, sid, self.response_region)
