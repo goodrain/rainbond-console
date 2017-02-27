@@ -41,6 +41,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
     @transaction.atomic
     def get(self, request, *args, **kwargs):
         try:
+            
             app_type = kwargs.get('app_type', None)
             tenant_name = self.tenantName
             create_body = {}
@@ -206,3 +207,27 @@ class ThirdAppListView(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         context["apps"] = apps
         return TemplateResponse(self.request, "www/third_app/thirdApp.html", context)
+
+
+class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
+    def get_context(self):
+        context = super(ThirdAppOrdersListView, self).get_context()
+        return context
+    
+    def get_media(self):
+        media = super(ThirdAppOrdersListView, self).get_media() + self.vendor(
+            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css',
+            'www/css/owl.carousel.css', 'www/css/goodrainstyle.css', 'www/css/style.css',
+            'www/css/bootstrap-switch.min.css', 'www/css/bootstrap-editable.css',
+            'www/css/style-responsive.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+            'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js', 'www/js/gr/app_publish.js',
+            'www/js/validator.min.js'
+        )
+        return media
+    
+    def get(self, request, *args, **kwargs):
+        app_bucket = kwargs.get('app_bucket', None)
+        orders = ThirdAppOrder.objects.filter(bucket_name=app_bucket).all()
+        context = self.get_context()
+        context["orders"] = orders
+        return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)

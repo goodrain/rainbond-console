@@ -38,14 +38,14 @@
                 </tr>
                 </thead>
                 <tbody>
-                {% for app in apps %}
+                {% for order in orders %}
                 <tr>
-                    <td>{{app.name}}</td>
-                    <td>{{app.app_type}}</td>
-                    <td>{{app.create_time}}</td>
-                    <td>{{app.name}}</td>
-                    <td>{{app.app_type}}</td>
-                    <td>{{app.create_time}}</td>
+                    <td>{{order.start_time}}</td>
+                    <td>{{order.end_time}}</td>
+                    <td>{{app.traffic_size}}</td>
+                    <td>{{app.oos_size}}</td>
+                    <td>{{app.request_size}}</td>
+                    <td>{{app.total_cost}}</td>
                 </tr>
                 {% endfor %}
                 </tbody>
