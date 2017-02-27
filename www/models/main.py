@@ -890,10 +890,10 @@ class ServiceRule(BaseModel):
     service_alias = models.CharField(max_length=100, help_text=u"服务别名")
     service_region = models.CharField(max_length=32, help_text=u"数据中心")
     item = models.CharField(max_length=50, help_text=u"规则项目")
-    maxvalue = models.IntegerField(max_length=11)
-    minvalue = models.IntegerField(max_length=11)
+    maxvalue = models.IntegerField(default=0)
+    minvalue = models.IntegerField(default=0)
     status = models.BooleanField(default=False, blank=True, help_text=u"是否生效；0:停止；1:生效")
-    count = models.IntegerField(max_length=10)
+    count = models.IntegerField(max_length=10, default=0)
     node_number = models.IntegerField(help_text=u"实例启动个数", default=1)
     port = models.CharField(max_length=10)
     port_type = models.CharField(max_length=15, default='multi_outer',
@@ -907,9 +907,9 @@ class ServiceRuleHistory(BaseModel):
         db_table = 'tenant_service_rule_history'
     
     rule_id = models.CharField(max_length=32, help_text=u"规则id")
-    trigger_time = models.CharField(help_text=u"触发时间")
+    trigger_time = models.CharField(max_length=100, help_text=u"触发时间")
     action = models.CharField(max_length=10, help_text=u"触发动作")
-    message = models.CharField(help_text=u"描述")
+    message = models.CharField(max_length=1024, help_text=u"描述")
 
 
 class ServiceAttachInfo(BaseModel):
