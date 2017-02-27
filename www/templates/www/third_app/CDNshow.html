@@ -174,14 +174,13 @@
                     {% for work in operators %}
                     <tr>
                         <td>{{work.operator_name}}</td>
-                        <!--<td>{{work.realname}}</td>-->
-                        <td>{{work.operator_auth.read}}</td>
+                        <td>{{work.realname}}</td>
                         <td class="operator_auth clearfix">
-                            <span {% if work.operator_auth.read == "true" %} class="check" {% else %} class="noCheck" {% endif %}></span>
+                            <span {% if work.operator_auth.read == "True" %} class="check" {% else %} class="noCheck" {% endif %}></span>
                             <span class="text_auth">读取</span>
-                            <span {% if work.operator_auth.write == "true" %} class="check" {% else %} class="noCheck" {% endif %}></span>
+                            <span {% if work.operator_auth.write == "True" %} class="check" {% else %} class="noCheck" {% endif %}></span>
                             <span class="text_auth">写入</span>
-                            <span {% if work.operator_auth.delete == "true" %} class="check" {% else %} class="noCheck" {% endif %}></span>
+                            <span {% if work.operator_auth.delete == "True" %} class="check" {% else %} class="noCheck" {% endif %}></span>
                             <span class="text_auth">删除</span>
                         </td>
                         {% if work.status == "enabled" %}
