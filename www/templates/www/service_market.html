@@ -25,11 +25,13 @@
                         <h4>团队共享</h4>
                         {% for service in tenant_service_list %}
                             <div class="col-lg-4 col-md-6 applistbox">
-                                <h4>{{service.app_alias}}</h4>
-                                <h5>{{service.app_version}}</h5>
-                                <button type="button" class="btn btn-success"
-                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
-                                </button>
+                                <div class="inbox">
+                                    <h4>{{service.app_alias}}</h4>
+                                    <h5>{{service.app_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                    </button>
+                                </div>
                             </div>
                         {% endfor %}
                     {% endif %}
@@ -40,11 +42,13 @@
                         <h4>云帮共享</h4>
                         {% for service in assistant_service_list %}
                             <div class="col-lg-4 col-md-6 applistbox">
-                                <h4>{{service.app_alias}}</h4>
-                                <h5>{{service.app_version}}</h5>
-                                <button type="button" class="btn btn-success"
-                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
-                                </button>
+                                <div class="inbox">
+                                    <h4>{{service.app_alias}}</h4>
+                                    <h5>{{service.app_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                    </button>
+                                </div>
                             </div>
                         {% endfor %}
                     {% endif %}
@@ -54,11 +58,13 @@
                         <h4>云市共享</h4>
                         {% for service in cloud_service_list %}
                             <div class="col-lg-4 col-md-6 applistbox">
-                                <h4>{{service.app_alias}}</h4>
-                                <h5>{{service.app_version}}</h5>
-                                <button type="button" class="btn btn-success"
-                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
-                                </button>
+                                <div  class="inbox">
+                                    <h4>{{service.app_alias}}</h4>
+                                    <h5>{{service.app_version}}</h5>
+                                    <button type="button" class="btn btn-success greenbtn"
+                                            onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')">部署
+                                    </button>
+                                </div>
                             </div>
                         {% endfor %}
                     {% endif %}
@@ -70,11 +76,13 @@
                         </div>
                         {% for service in service_list %}
                         <div class="col-lg-4 col-md-6 applistbox">
-                            <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
-                            <h5>{{service.version}}</h5>
-                            <button type="button" class="btn btn-success"
-                                    onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
-                            </button>
+                            <div  class="inbox">
+                                <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                                <h5>{{service.version}}</h5>
+                                <button type="button" class="btn btn-success greenbtn"
+                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                                </button>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
@@ -85,11 +93,13 @@
                         </div>
                         {% for service in service_list %}
                         <div class="col-lg-4 col-md-6 applistbox">
-                            <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
-                            <h5>{{service.version}}</h5>
-                            <button type="button" class="btn btn-success"
-                                    onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
-                            </button>
+                            <div  class="inbox">
+                                <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                                <h5>{{service.version}}</h5>
+                                <button type="button" class="btn btn-success greenbtn"
+                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                                </button>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
@@ -100,11 +110,13 @@
                     </div>
                     {% for service in service_list %}
                         <div class="col-lg-4 col-md-6 applistbox">
-                            <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
-                            <h5>{{service.version}}</h5>
-                            <button type="button" class="btn btn-success"
-                                    onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
-                            </button>
+                            <div  class="inbox">
+                                <h4><a target="_blank" href="http://app.goodrain.com/detail/extend/{{service.service_key}}/?version={{service.version}}">{{service.service_name}}</a></h4>
+                                <h5>{{service.version}}</h5>
+                                <button type="button" class="btn btn-success greenbtn"
+                                        onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')">部署
+                                </button>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
@@ -112,24 +124,26 @@
                     {% if cacheServiceList %}
                     {% for cache in cacheServiceList %}
                     <div class="col-lg-4 col-md-6 applistbox">
-                        <h4>{{cache.service_name}}</h4>
-                        <h5>{{cache.version}}</h5>
-                        <div style="position:absolute;top:50%;right:20px;">
-                            <button type="button" class="btn btn-success" style="position: static;"
-                                    onclick="service_create('{{tenantName}}','{{cache.service_key}}', '{{cache.version}}')">部署
-                            </button>
-                            {% with tkey=cache.service_key|add:"_"|add:cache.version %}
-                                {% with update_version=appService|mkey:tkey %}
-                                    {% if update_version %}
-                                        {% if update_version = cache.update_version %}
-                                        {% else %}
-                                            <button type="button" class="btn" style="position: static;"
-                                                    onclick="service_update('{{tenantName}}','{{cache.service_key}}','{{appVersion|mkey:tkey}}','{{update_version}}')">更新
-                                            </button>
+                        <div  class="inbox">
+                            <h4>{{cache.service_name}}</h4>
+                            <h5>{{cache.version}}</h5>
+                            <div style="position:absolute;top:50%;right:20px;">
+                                <button type="button" class="btn btn-success greenbtn" style="position: static;"
+                                        onclick="service_create('{{tenantName}}','{{cache.service_key}}', '{{cache.version}}')">部署
+                                </button>
+                                {% with tkey=cache.service_key|add:"_"|add:cache.version %}
+                                    {% with update_version=appService|mkey:tkey %}
+                                        {% if update_version %}
+                                            {% if update_version = cache.update_version %}
+                                            {% else %}
+                                                <button type="button" class="btn greenbtn" style="position: static;"
+                                                        onclick="service_update('{{tenantName}}','{{cache.service_key}}','{{appVersion|mkey:tkey}}','{{update_version}}')">更新
+                                                </button>
+                                            {% endif %}
                                         {% endif %}
-                                    {% endif %}
+                                    {% endwith %}
                                 {% endwith %}
-                            {% endwith %}
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
@@ -157,16 +171,16 @@
                                     var dataObj = msg.data
                                     tmpdata = eval(dataObj)
                                     for (var i = 0; i < tmpdata.length; i++) {
-                                        $("<div/>").addClass("col-lg-4 col-md-6 applistbox").append(
+                                        $("<div/>").addClass("col-lg-4 col-md-6 applistbox").append("<div class='inbox'>").append(
                                                 $("<h4/>").text(tmpdata[i].service_name)
                                         ).append(
                                                 $("<h5/>").text(tmpdata[i].version)
                                         ).append(
                                                 $("<button/>").attr("type", "button")
-                                                        .addClass("btn btn-success")
+                                                        .addClass("btn btn-success greenbtn")
                                                         .attr("onclick", "remoteservice('"+tmpdata[i].service_key+"','" + tmpdata[i].version + "')")
                                                         .text("部署")
-                                        ).appendTo($("#servicepanel"))
+                                        ).append("</div>").appendTo($("#servicepanel"))
                                     }
                                 }
 
