@@ -95,7 +95,11 @@ class RegionProviderManager(object):
     def get_work_region_by_name(self, region_name):
         regions = Region.objects.filter(work_status="work", name=region_name)
         if not regions:
-            region_bo = None
+            region_bo = RegionBo()
+            region_bo.name = region_name
+            region_bo.show_name = region_name
+            region_bo.provider_name = "self"
+
         else:
             region = regions[0]
             region_bo = self._load_region_bo(region)
