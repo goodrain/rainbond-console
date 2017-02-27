@@ -135,54 +135,57 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                         op.bind_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(op.bind_at))
                         ops.append(op)
                     context["operators"] = ops
-                    pre_min = datetime.datetime.combine(
-                        datetime.date.today() - datetime.timedelta(days=1),
-                        datetime.time.min).strftime("%Y-%m-%d %H:%M:%S")
-                    pre_max = datetime.datetime.combine(
-                        datetime.date.today() - datetime.timedelta(days=1),
-                        datetime.time.max).strftime("%Y-%m-%d %H:%M:%S")
-                    sql = '''
-                        SELECT max(oos_size) as oos_size,sum(traffic_size) as
-                        traffic_size,sum(total_cost) as total_cost,sum(request_size) as request_size FROM
-                        `third_app_order` WHERE `bucket_name`="%s" and `create_time`>"%s" and `create_time`<"%s"
-                     ''' % (app_bucket, pre_min, pre_max)
-                    logger.info(sql)
-                    cursor = connection.cursor()
-                    cursor.execute(sql)
-                    fetchall = cursor.fetchall()
-                    order_info = {
-                        
-                    }
-                    for info in fetchall:
-                        logger.info(info)
-                        if info[0] is not None:
-                            order_info["oos_size"] = "{0}MB".format(round(float(info[0]) / 1024 / 1024), 2)
-                        else:
-                            order_info["oos_size"] = "0MB"
-                        if info[1] is not None:
-                            order_info["traffic_size"] = "{0}MB".format(round(float(info[1]) / 1024 / 1024), 2)
-                        else:
-                            order_info["traffic_size"] = "0MB"
-                        if info[2] is not None:
-                            order_info["total_cost"] = "{0}元".format(info[2])
-                        else:
-                            order_info["total_cost"] = "0元"
-                        if info[3] is not None:
-                            order_info["request_size"] = "{0}次".format(info[3])
-                        else:
-                            order_info["request_size"] = "0次"
-                        context["order_info"] = order_info
-                    traffic_record = CDNTrafficHourRecord.objects.order_by("-create_time").filter(
-                        bucket_name=app_bucket)
-                    if traffic_record.count() > 0:
-                        context["traffic_balance"] = round(float(traffic_record.first().balance) / 1024 / 1024 / 1024,
-                                                           4)
+                    # pre_min = datetime.datetime.combine(
+                    #     datetime.date.today() - datetime.timedelta(days=1),
+                    #     datetime.time.min).strftime("%Y-%m-%d %H:%M:%S")
+                    # pre_max = datetime.datetime.combine(
+                    #     datetime.date.today() - datetime.timedelta(days=1),
+                    #     datetime.time.max).strftime("%Y-%m-%d %H:%M:%S")
+                    # sql = '''
+                    #     SELECT max(oos_size) as oos_size,sum(traffic_size) as
+                    #     traffic_size,sum(total_cost) as total_cost,sum(request_size) as request_size FROM
+                    #     `third_app_order` WHERE `bucket_name`="%s" and `create_time`>"%s" and `create_time`<"%s"
+                    #  ''' % (app_bucket, pre_min, pre_max)
+                    # logger.info(sql)
+                    # cursor = connection.cursor()
+                    # cursor.execute(sql)
+                    # fetchall = cursor.fetchall()
+                    # order_info = {
+                    #
+                    # }
+                    info = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).first()
+                    
+                    logger.info(info)
+                    order_info = {}
+                    if info.oos_size > 0:
+                        order_info["oos_size"] = "{0}MB".format(round(float(info.oos_size) / 1024 / 1024), 2)
                     else:
-                        context["traffic_balance"] = 0
+                        order_info["oos_size"] = "0MB"
+                    if info.traffic_size > 0:
+                        order_info["traffic_size"] = "{0}MB".format(round(float(info.traffic_size) / 1024 / 1024), 2)
+                    else:
+                        order_info["traffic_size"] = "0MB"
+                    if info.total_cost > 0:
+                        order_info["total_cost"] = "{0}元".format(info.total_cost)
+                    else:
+                        order_info["total_cost"] = "0元"
+                    if info.request_size > 0:
+                        order_info["request_size"] = "{0}次".format(info.request_size)
+                    else:
+                        order_info["request_size"] = "0次"
+                    context["order_info"] = order_info
+                traffic_record = CDNTrafficHourRecord.objects.order_by("-create_time").filter(
+                    bucket_name=app_bucket)
+                if traffic_record.count() > 0:
+                    context["traffic_balance"] = round(float(traffic_record.first().balance) / 1024 / 1024 / 1024,
+                                                       4)
+                else:
+                    context["traffic_balance"] = 0
             return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
+        
         except Exception as e:
             logger.exception(e)
-            return HttpResponse(u"创建异常", status=500)
+        return HttpResponse(u"创建异常", status=500)
 
 
 class ThirdAppListView(LeftSideBarMixin, AuthedView):
