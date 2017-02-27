@@ -269,7 +269,8 @@ $(function(){
                         });
                     },
                     success : function(msg) {
-                        var dataObj = msg
+                        var dataObj = msg;
+                        console.log(msg);
                         if (dataObj["status"] == "success")
                         {
                             swal("操作成功");
