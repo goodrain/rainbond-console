@@ -238,8 +238,7 @@ $(function(){
             }
         });
     });
-    function delete_cdn(){
-        var code_from = $("#cur_delete_service").attr("data-code");
+    $("button.delete_cdn").click(function(){
         var notify_text = "确定删除当前服务吗？";
         if (code_from == "gitlab_new") {
             notify_text = "关联git代码将同步删除，确定删除当前服务吗？"
@@ -292,5 +291,5 @@ $(function(){
                 swal.close();
             }
         });
-    }
+    });
 })
