@@ -23,29 +23,31 @@
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
 </style>
 <section class="wrapper site-min-height">
-    <h3>第三方应用</h3>
+    <h3>又拍云CDN费用明细</h3>
     <section class="panel">
         <section class="content-tab">
             <table>
                 <thead>
-                    <tr>
-                        <th>应用名</th>
-                        <th>类型</th>
-                        <th>创建时间</th>
-                        <th>操作</th>
-                    </tr>
+                <tr>
+                    <th>开始时间</th>
+                    <th>结束时间</th>
+                    <th>流量</th>
+                    <th>存储</th>
+                    <th>请求次数</th>
+                    <th>套餐外费用</th>
+                </tr>
                 </thead>
                 <tbody>
-                    {% for app in apps %}
-                        <tr>
-                            <td>{{app.name}}</td>
-                            <td>{{app.app_type}}</td>
-                            <td>{{app.create_time}}</td>
-                            <td>
-                                <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show">管理</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
+                {% for app in apps %}
+                <tr>
+                    <td>{{app.name}}</td>
+                    <td>{{app.app_type}}</td>
+                    <td>{{app.create_time}}</td>
+                    <td>{{app.name}}</td>
+                    <td>{{app.app_type}}</td>
+                    <td>{{app.create_time}}</td>
+                </tr>
+                {% endfor %}
                 </tbody>
             </table>
         </section>
