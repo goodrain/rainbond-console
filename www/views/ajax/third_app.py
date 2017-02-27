@@ -371,8 +371,10 @@ class DeleteThirdAppView(AuthedView):
                 if res.status == 200:
                     self.app_info.delete = 1
                     self.app_info.save()
+                    result["status"] = "success"
+                    result["message"] = "删除成功"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
-            result["message"] = "开启失败"
+            result["message"] = "删除失败"
         return JsonResponse(result)
