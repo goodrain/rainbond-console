@@ -10,7 +10,6 @@ import datetime
 from django.db import transaction
 
 logger = logging.getLogger('default')
-upai_client = YouPaiApi()
 
 
 class UpdateAppView(AuthedView):
@@ -60,6 +59,7 @@ class AppDomainView(AuthedView):
                 body = {}
                 body["domain"] = domain
                 body["bucket_name"] = self.app_id
+                upai_client = YouPaiApi()
                 res, rebody = upai_client.addDomain(json.dumps(body))
                 if res.status == 200:
                     result["status"] = "success"
@@ -90,6 +90,7 @@ class AppDomainDeleteView(AuthedView):
                 result["status"] = "failure"
                 result["message"] = "域名不能为空"
             else:
+                upai_client = YouPaiApi()
                 res, rebody = upai_client.deleteDomain(domain=domain, bucket=self.app_id)
                 if res.status == 200:
                     result["status"] = "success"
@@ -138,6 +139,7 @@ class AppOperatorView(AuthedView):
         """
         result = {}
         try:
+            upai_client = YouPaiApi()
             operator_name = request.POST.get("operator_name", "")
             password = request.POST.get("password", "")
             realname = request.POST.get("realname", "")
@@ -207,6 +209,7 @@ class AppOperatorDeleteView(AuthedView):
     def post(self, request, *args, **kwargs):
         result = {}
         try:
+            upai_client = YouPaiApi()
             operator_name = request.POST.get("operator_name", "")
             if operator_name == "":
                 result["status"] = "failure"
@@ -326,6 +329,7 @@ class OpenThirdAppView(AuthedView):
         """
         result = {}
         try:
+            upai_client = YouPaiApi()
             if self.tenant.balance > 0:
                 res, body = upai_client.openApp(self.app_id)
                 if res.status == 200:
@@ -364,6 +368,7 @@ class DeleteThirdAppView(AuthedView):
                 res = {}
                 body = {}
                 try:
+                    upai_client = YouPaiApi()
                     res, body = upai_client.stopApp(self.app_id)
                 except Exception, e:
                     result["status"] = "failure"

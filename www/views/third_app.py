@@ -15,7 +15,6 @@ from django.db import connection
 from django.db import transaction
 
 logger = logging.getLogger('default')
-upai_client = YouPaiApi()
 
 
 class CreateThirdAppView(LeftSideBarMixin, AuthedView):
@@ -57,7 +56,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     create_body["bucket_name"] = "gr" + service_id[-6:]
                     create_body["type"] = "file"
                     create_body["business_type"] = "file"
-                
+                upai_client = YouPaiApi()
                 res, body = upai_client.createService(json.dumps(create_body))
                 if res.status == 201:
                     # 创建应用
@@ -109,6 +108,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
     
     def get(self, request, *args, **kwargs):
         try:
+            upai_client = YouPaiApi()
             app_bucket = kwargs.get('app_bucket', None)
             tenant_name = self.tenantName
             if app_bucket is None:
