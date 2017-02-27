@@ -118,7 +118,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
             context = self.get_context()
             context["app_info"] = app_info
             context["app_id"] = app_bucket
-            if app_info.app_type == "upai_cdn":
+            if app_info.app_type == "upai_cdn" or app_info.app_type == "upai_oos":
                 res, body = upai_client.getDomainList(app_info.bucket_name)
                 if res.status == 200:
                     dos = []
