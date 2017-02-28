@@ -37,7 +37,6 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
         )
         return media
     
-    @perm_required('app_create')
     def get(self, request, *args, **kwargs):
         
         app_type = kwargs.get('app_type', None)
