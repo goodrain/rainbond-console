@@ -36,21 +36,34 @@
         </div>
 
         <script>
-            function _page(page){
-                var curpagesize= $("#pageSizeScope").val()
-                if(typeof(curpagesize) == "undefined"){
-                    curpagesize=10
-                }
-                console.log(page+":"+curpagesize);
-                $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
-            }
-            $(document).ready(function(){
-                console.log("qwe");
+            $(function(){
                 _page(1);
                 $("body").on("change","#pageSizeScope", function () {
                     _page(1);
                 });
-            })
+                function _page(page){
+                    var curpagesize= $("#pageSizeScope").val()
+                    if(typeof(curpagesize) == "undefined"){
+                        curpagesize=10
+                    }
+                    console.log(page+":"+curpagesize);
+                    $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
+                }
+            })()
+//            function _page(page){
+//                var curpagesize= $("#pageSizeScope").val()
+//                if(typeof(curpagesize) == "undefined"){
+//                    curpagesize=10
+//                }
+//                console.log(page+":"+curpagesize);
+//                $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
+//            }
+//            $(document).ready(function(){
+//                _page(1);
+//                $("body").on("change","#pageSizeScope", function () {
+//                    _page(1);
+//                });
+//            })
         </script>
     </section>
 </section>
