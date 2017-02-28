@@ -37,10 +37,6 @@
 
         <script>
             function _page(page){
-                var curdatescope= $("#datescope").val()
-                if(typeof(curdatescope) == "undefined"){
-                    curdatescope=1
-                }
                 var curpagesize= $("#pageSizeScope").val()
                 if(typeof(curpagesize) == "undefined"){
                     curpagesize=10
@@ -49,17 +45,14 @@
                 $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
             }
             $(document).ready(function(){
-                var o = ($('#sidebar .sub-menu > a').offset());
-                diff = 250 - o.top;
-                if(diff>0)
-                    $("#sidebar").scrollTo("-="+Math.abs(diff),500);
-                else
-                    $("#sidebar").scrollTo("+="+Math.abs(diff),500);
+//                var o = ($('#sidebar .sub-menu > a').offset());
+//                diff = 250 - o.top;
+//                if(diff>0)
+//                    $("#sidebar").scrollTo("-="+Math.abs(diff),500);
+//                else
+//                    $("#sidebar").scrollTo("+="+Math.abs(diff),500);
 
                 _page(1);
-                $("body").on("change","#datescope", function () {
-                    _page(1);
-                });
                 $("body").on("change","#pageSizeScope", function () {
                     _page(1);
                 });
