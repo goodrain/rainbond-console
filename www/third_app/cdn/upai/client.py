@@ -43,6 +43,11 @@ class YouPaiApi(BaseHttpClient):
         res, body = self._delete(url, self.default_headers)
         return res, body
     
+    def checkDomain(self, domain):
+        url = self.BaseAPIURL + "buckets/domain/detect&domain={0}".format(domain)
+        res, body = self._get(url, self.default_headers)
+        return res, body
+    
     def getOperatorsList(self, bucket):
         url = self.BaseAPIURL + "buckets/operators?bucket_name={0}".format(bucket)
         res, body = self._get(url, self.default_headers)
@@ -90,5 +95,3 @@ class YouPaiApi(BaseHttpClient):
         body = {"bucket_name": bucket_name, "visible": False}
         res, body = self._post(url, self.default_headers, json.dumps(body))
         return res, body
-
-    

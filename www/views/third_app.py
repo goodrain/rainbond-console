@@ -12,6 +12,7 @@ import logging
 import time
 import datetime
 from django.db import connection
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db import transaction
 
 logger = logging.getLogger('default')
@@ -125,6 +126,8 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                     dos = []
                     for domain in body.domains:
                         domain.updated_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(domain.updated_at))
+                        if app_info.app_type == "upai_cdn" and domain.endswith("upaiyun.com"):
+                            continue
                         dos.append(domain)
                     context["domains"] = dos
                 res, body = upai_client.getOperatorsList(app_info.bucket_name)
@@ -135,24 +138,6 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                         op.bind_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(op.bind_at))
                         ops.append(op)
                     context["operators"] = ops
-                    # pre_min = datetime.datetime.combine(
-                    #     datetime.date.today() - datetime.timedelta(days=1),
-                    #     datetime.time.min).strftime("%Y-%m-%d %H:%M:%S")
-                    # pre_max = datetime.datetime.combine(
-                    #     datetime.date.today() - datetime.timedelta(days=1),
-                    #     datetime.time.max).strftime("%Y-%m-%d %H:%M:%S")
-                    # sql = '''
-                    #     SELECT max(oos_size) as oos_size,sum(traffic_size) as
-                    #     traffic_size,sum(total_cost) as total_cost,sum(request_size) as request_size FROM
-                    #     `third_app_order` WHERE `bucket_name`="%s" and `create_time`>"%s" and `create_time`<"%s"
-                    #  ''' % (app_bucket, pre_min, pre_max)
-                    # logger.info(sql)
-                    # cursor = connection.cursor()
-                    # cursor.execute(sql)
-                    # fetchall = cursor.fetchall()
-                    # order_info = {
-                    #
-                    # }
                     info = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).first()
                     
                     logger.info(info)
@@ -232,14 +217,23 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
         app_bucket = kwargs.get('app_bucket', None)
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 24)
-        start = (page - 1) * page_size
-        end = start + page_size
         orders = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).all()
+        paginator = Paginator(orders, page_size)
         orders_size = orders.count()
-        last_page = int(orders_size) / int(page_size) == page - 1
-        page_orders = orders[start, end]
+        last_page = orders_size / page_size == page - 1
         context = self.get_context()
-        context["orders"] = page_orders
+        try:
+            
+            page_orders = paginator.page(page)
+            context["orders"] = page_orders
+        except PageNotAnInteger:
+            # 页码不是整数，返回第一页。
+            page_orders = paginator.page(1)
+            context["orders"] = page_orders
+        except EmptyPage:
+            page_orders = paginator.page(paginator.num_pages)
+            context["orders"] = page_orders
+        
         context["current_page"] = page
         context["current_page_size"] = page_size
         context["last_page"] = last_page

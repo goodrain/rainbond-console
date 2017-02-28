@@ -60,6 +60,12 @@ class AppDomainView(AuthedView):
                 body["domain"] = domain
                 body["bucket_name"] = self.app_id
                 upai_client = YouPaiApi()
+                try:
+                    upai_client.checkDomain(domain)
+                except Exception, e:
+                    result["status"] = "failure"
+                    result["message"] = "域名不能绑定"
+                    return JsonResponse(result)
                 res, rebody = upai_client.addDomain(json.dumps(body))
                 if res.status == 200:
                     result["status"] = "success"
