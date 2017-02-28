@@ -44,7 +44,7 @@ class YouPaiApi(BaseHttpClient):
         return res, body
     
     def checkDomain(self, domain):
-        url = self.BaseAPIURL + "buckets/domain/detect&domain={0}".format(domain)
+        url = self.BaseAPIURL + "buckets/domain/detect?domain={0}".format(domain)
         res, body = self._get(url, self.default_headers)
         return res, body
     
