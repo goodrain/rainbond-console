@@ -239,7 +239,7 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
         app_bucket = kwargs.get('app_bucket', None)
         context = self.get_context()
         context["app_id"] = app_bucket
-        app_info = ThirdAppInfo.objects.filter(bucket_name=app_bucket, tenant_id=self.tenant_name).first()
+        app_info = ThirdAppInfo.objects.filter(bucket_name=app_bucket).first()
         if app_info is None:
             return HttpResponse(u"参数错误", status=415)
         context["app_info"] = app_info
