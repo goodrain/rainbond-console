@@ -18,14 +18,14 @@
 <section class="wrapper site-min-height">
     <h3 class="main-tit">{% if app_type == "upai_oos" %}创建又拍云对象存储{% else %}创建CDN服务{% endif %}</h3>
     <section class="content-tab">
-        <div class="clearfix">
+        <div class="fm-select clearfix">
             <div class="text_label">应用名：</div>
             <div class="app_info">
                 <input type="text" id="app_name" placeholder="给应用取个名字，支持中英文">
                 <span class="prompt">请输入应用名</span>
             </div>
         </div>
-        <div class="clearfix">
+        <div class="fm-select clearfix">
             <div class="text_label">选择分组：</div>
             <div class="app_info">
                 <select disabled>
@@ -34,7 +34,7 @@
             </div>
         </div>
         <p style="text-align: center">
-            <button id="submit" class="btn btn-primary">开始使用</button>
+            <button id="submit" class="greenbtn">开始使用</button>
         </p>
     </section>
 </section>
@@ -45,7 +45,7 @@
             {
                 $.ajax({
                     type : "POST",
-                    url : "/apps/{{tenantName}}/third_app/{{app_type}}/create",
+                    url : "/ajax/{{tenantName}}/third_app/{{app_type}}/create",
                     data : {
                         app_name : $("input#app_name").val()
                     },
