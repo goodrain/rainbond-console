@@ -39,6 +39,9 @@
         <div class="adv-table">
             <div id="example_wrapper" role="grid">
                 <div class="pages">
+                    <span>{{current_page}}</span>
+                    <span>{{last_page}}</span>
+                    <span>{{current_page_size}}</span>
                     {% if current_page == 1 and last_page %}
 
                     {% elif last_page  %}
