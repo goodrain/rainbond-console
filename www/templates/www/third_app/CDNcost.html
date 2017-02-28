@@ -45,13 +45,7 @@
                 $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
             }
             $(document).ready(function(){
-//                var o = ($('#sidebar .sub-menu > a').offset());
-//                diff = 250 - o.top;
-//                if(diff>0)
-//                    $("#sidebar").scrollTo("-="+Math.abs(diff),500);
-//                else
-//                    $("#sidebar").scrollTo("+="+Math.abs(diff),500);
-
+                console.log("qwe");
                 _page(1);
                 $("body").on("change","#pageSizeScope", function () {
                     _page(1);
