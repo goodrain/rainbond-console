@@ -92,5 +92,6 @@ urlpatterns = patterns(
     url(r'/(?P<app_bucket>[\w\-]+)/third_show$', login_required(ThirdAppView.as_view())),
     url(r'/third_app/list', login_required(ThirdAppListView.as_view())),
     url(r'/(?P<app_bucket>[\w\-]+)/orders', ThirdAppOrdersListView.as_view()),
+    url(r'/(?P<app_bucket>[\w\-]+)/orders_data', ThirdAppOrdersListDataView.as_view()),
 )
 

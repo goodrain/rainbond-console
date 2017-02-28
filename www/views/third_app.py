@@ -126,7 +126,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                     dos = []
                     for domain in body.domains:
                         domain.updated_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(domain.updated_at))
-                        if app_info.app_type == "upai_cdn" and domain.endswith("upaiyun.com"):
+                        if app_info.app_type == "upai_cdn" and domain.domain.endswith("upaiyun.com"):
                             continue
                         dos.append(domain)
                     context["domains"] = dos
@@ -215,6 +215,21 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
     
     def get(self, request, *args, **kwargs):
         app_bucket = kwargs.get('app_bucket', None)
+        context = self.get_context()
+        
+        context["app_id"] = app_bucket
+        
+        return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)
+
+
+class ThirdAppOrdersListDataView(LeftSideBarMixin, AuthedView):
+    
+    def get_context(self):
+        context = super(ThirdAppOrdersListDataView, self).get_context()
+        return context
+    
+    def get(self, request, *args, **kwargs):
+        app_bucket = kwargs.get('app_bucket', None)
         page = request.GET.get("page", 1)
         page_size = request.GET.get("page_size", 24)
         orders = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).all()
@@ -237,4 +252,4 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
         context["current_page"] = page
         context["current_page_size"] = page_size
         context["last_page"] = last_page
-        return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)
+        return TemplateResponse(self.request, "www/third_app/cost_list.html", context)
