@@ -1,25 +1,13 @@
 <div id="example_wrapper" class="content-tab" role="grid">
     <form role="form">
         <div class="clearfix">
-            <div class="lit-select text-left" style="width: 40%; float: left;">
-                <label>时间范围</label>
-                <select id="datescope">
-                    <option {% if datescope == "1" %} selected="selected" {% endif %} value="1">最近1天</option>
-                    <option {% if datescope == "7" %} selected="selected" {% endif %} value="7">最近7天</option>
-                    <option {% if datescope == "30" %} selected="selected" {% endif %} value="30">最近1个月</option>
-                    <option {% if datescope == "180" %} selected="selected" {% endif %} value="180">最近6个月</option>
-                    <option {% if datescope == "0" %} selected="selected" {% endif %} value="0">所有记录</option>
-                </select>
-            </div>
-
-
             <div id="example_length" class="lit-select text-right"  style="width: 40%; float: right;">
                 <label>每页显示</label>
                 <select name="example_length" aria-controls="example" id="pageSizeScope">
-                    <option {% if per_page == "10" %} selected="selected" {% endif %} value="10">10</option>
-                    <option {% if per_page == "25" %} selected="selected" {% endif %} value="25">25</option>
-                    <option {% if per_page == "50" %} selected="selected" {% endif %} value="50">50</option>
-                    <option {% if per_page == "100" %} selected="selected" {% endif %} value="100">100</option>
+                    <option {% if current_page_size == 10 %} selected="selected" {% endif %} value="10">10</option>
+                    <option {% if current_page_size == 25 %} selected="selected" {% endif %} value="25">25</option>
+                    <option {% if current_page_size == 50 %} selected="selected" {% endif %} value="50">50</option>
+                    <option {% if current_page_size == 100 %} selected="selected" {% endif %} value="100">100</option>
                 </select>
                 <label>行</label>
             </div>
@@ -51,12 +39,17 @@
         <div class="adv-table">
             <div id="example_wrapper" role="grid">
                 <div class="pages">
-                    {% if not current_page == 1 %}
+                    {% if current_page == 1 and last_page %}
+
+                    {% elif last_page  %}
                     <button class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
-                    {% else %}
-                        {% if not last_page %}
+                    {% endif %}
+                    {% elif current_page == 1 %}
+                    <button class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
+                    {% endif %}
+                    {% else%}
+                        <button class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
                         <button class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
-                        {% endif %}
                     {% endif %}
                 </div>
 
