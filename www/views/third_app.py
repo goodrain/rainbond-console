@@ -234,9 +234,13 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
         page_size = request.GET.get("page_size", 24)
         start = (page - 1) * page_size
         end = start + page_size
-        orders = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).all()[start, end]
+        orders = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).all()
+        orders_size = orders.count()
+        last_page = int(orders_size) / int(page_size) == page - 1
+        page_orders = orders[start, end]
         context = self.get_context()
-        context["orders"] = orders
+        context["orders"] = page_orders
         context["current_page"] = page
         context["current_page_size"] = page_size
+        context["last_page"] = last_page
         return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)
