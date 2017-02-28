@@ -230,7 +230,11 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
     
     def get(self, request, *args, **kwargs):
         app_bucket = kwargs.get('app_bucket', None)
-        orders = ThirdAppOrder.objects.filter(bucket_name=app_bucket).all()
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 24)
+        start = (page - 1) * page_size
+        end = start + page_size
+        orders = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).all()[start, end]
         context = self.get_context()
         context["orders"] = orders
         return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)
