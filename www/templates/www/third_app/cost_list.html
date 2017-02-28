@@ -17,10 +17,10 @@
             <tr>
                 <th>开始时间</th>
                 <th>结束时间</th>
-                <th>流量</th>
-                <th>存储</th>
+                <th>流量(Byte)</th>
+                <th>存储(Byte)</th>
                 <th>请求次数</th>
-                <th>套餐外费用</th>
+                <th>套餐外费用(元)</th>
             </tr>
             </thead>
             <tbody>
@@ -29,7 +29,7 @@
                 <td>{{order.start_time}}</td>
                 <td>{{order.end_time}}</td>
                 <td>{{order.traffic_size}}</td>
-                <td>{{orer.oos_size}}</td>
+                <td>{{order.oos_size}}</td>
                 <td>{{order.request_size}}</td>
                 <td>{{order.total_cost}}</td>
             </tr>
@@ -39,23 +39,19 @@
         <div class="adv-table">
             <div id="example_wrapper" role="grid">
                 <div class="pages">
-                    <span>{{current_page}}</span>
-                    <span>{{last_page}}</span>
-                    <span>{{current_page_size}}</span>
-                    {% if current_page == "1" and last_page == "True" %}
+                    {% if current_page == "1" and last_page == True %}
 
-                    {% elif last_page == "True"  %}
-                    <button class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
+                    {% elif last_page == True  %}
+                    <button type="button" class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
                     {% elif current_page == "1" %}
-                    <button class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
+                    <button type="button" class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
                     {% else%}
-                        <button class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
-                        <button class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
+                        <button type="button" class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
+                        <button type="button" class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
                     {% endif %}
                 </div>
 
             </div>
         </div>
     </form>
-
 </div>
