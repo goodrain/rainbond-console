@@ -17,10 +17,10 @@
             <tr>
                 <th>开始时间</th>
                 <th>结束时间</th>
-                <th>流量</th>
-                <th>存储</th>
+                <th>流量(Byte)</th>
+                <th>存储(Byte)</th>
                 <th>请求次数</th>
-                <th>套餐外费用</th>
+                <th>套餐外费用(元)</th>
             </tr>
             </thead>
             <tbody>
@@ -39,9 +39,6 @@
         <div class="adv-table">
             <div id="example_wrapper" role="grid">
                 <div class="pages">
-                    <span>{{current_page}}</span>
-                    <span>{{last_page}}</span>
-                    <span>{{current_page_size}}</span>
                     {% if current_page == "1" and last_page == True %}
 
                     {% elif last_page == True  %}
