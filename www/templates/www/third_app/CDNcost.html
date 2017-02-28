@@ -54,7 +54,7 @@
                     console.log(page+":"+curpagesize);
                     $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
                 }
-                $(function(){
+                $(document).ready(function(){
                     _page(1);
                     $("body").on("change","#pageSizeScope", function () {
                         _page(1);

@@ -45,12 +45,12 @@
                     {% if current_page == "1" and last_page == "True" %}
 
                     {% elif last_page == "True"  %}
-                    <button class="greenbtn privous">上一页</button>
+                    <button type="button" class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
                     {% elif current_page == "1" %}
-                    <button class="greenbtn next">下一页</button>
+                    <button type="button" class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
                     {% else%}
-                        <button class="greenbtn privous">上一页</button>
-                        <button class="greenbtn next">下一页</button>
+                        <button type="button" class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
+                        <button type="button" class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
                     {% endif %}
                 </div>
 
@@ -58,7 +58,3 @@
         </div>
     </form>
 </div>
-<script>
-    $(".privous").on("click",_page({{current_page}}-1));
-    $(".next").on("click",_page({{current_page}}+1));
-</script>
