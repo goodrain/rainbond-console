@@ -45,7 +45,7 @@
                 if(typeof(curpagesize) == "undefined"){
                     curpagesize=10
                 }
-                $("#tenantConsumeList").load('/ajax/{{tenantName}}/{{app_id}}/order_data?page='+page+'&pagesize='+curpagesize);
+                $("#tenantConsumeList").load('/ajax/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
             }
             $(document).ready(function(){
                 var o = ($('#sidebar .sub-menu > a').offset());
