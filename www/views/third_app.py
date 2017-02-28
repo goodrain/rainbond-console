@@ -237,4 +237,6 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
         orders = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).all()[start, end]
         context = self.get_context()
         context["orders"] = orders
+        context["current_page"] = page
+        context["current_page_size"] = page_size
         return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)
