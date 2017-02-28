@@ -222,8 +222,7 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
         return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)
 
 
-class ThirdAppOrdersListDataView(LeftSideBarMixin, AuthedView):
-    
+class ThirdAppOrdersListDataView(AuthedView):
     def get_context(self):
         context = super(ThirdAppOrdersListDataView, self).get_context()
         return context
