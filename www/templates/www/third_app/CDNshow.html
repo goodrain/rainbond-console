@@ -25,6 +25,18 @@
             <button class="btn btn-primary name_sure">确认</button>
             <button class="btn btn-danger name_cancel">取消</button>
         </p>
+
+        <header class="panel-heading ">
+            <ul class="nav nav-tabs" id="nav-tabs">
+                <li class="active">
+                    <a href="/apps/{{tenantName}}/{{app_id}}/third_show">概览</a>
+                </li>
+                <li>
+                    <a href="/apps/{{tenantName}}/{{app_id}}/orders">费用</a>
+                </li>
+            </ul>
+        </header>
+
         <div class="appOutline">
             <ul class="outlineTop clearfix">
                 <li>
@@ -51,11 +63,11 @@
                 </li>
                 <li>
                     <div>
-                        <p>{% if app_info.app_type == "package" %}流量包剩余{% else %}上一小时流量{% endif %}</p>
+                        <p>{% if app_info.bill_type == "package" %}流量包剩余{% else %}上一小时流量{% endif %}</p>
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline4.png" %}"/>
                         </p>
-                        <p><a href="apps/{{tenantName}}/{{app_id}}/orders">{% if app_info.app_type == "packet" %}{{ traffic_balance }} GB{% else %}{{order_info.traffic_size}}{% endif %}</a></p>
+                        <p>{% if app_info.app_type == "packet" %}{{ traffic_balance }} GB{% else %}{{order_info.traffic_size}}{% endif %}</p>
                     </div>
                 </li>
                 <li>
@@ -89,7 +101,7 @@
             </div>
             <p>
                 <span>绑定域名后，请在域名服务商处将其CNAME配置为：</span>
-                <a>{{app_id}}.b0.eicon.com</a>
+                <a>{{app_id}}.b0.aicdn.com</a>
             </p>
             <table>
                 <thead>
@@ -150,6 +162,7 @@
                 </p>
             </div>
         </section>
+        {% if app_info.app_type == "upai_oos" %}
         <section class="table content-tab">
             <div class="clearfix">
                 <h4>已授权操作员</h4>
@@ -204,6 +217,7 @@
                 <button class="btn btn-danger operator_cancel">取消</button>
             </p>
         </section>
+        {% endif %}
         <section class="table content-tab">
             <div class="clearfix">
                 <h4>删除服务</h4>
