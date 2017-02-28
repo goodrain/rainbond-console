@@ -31,10 +31,10 @@
 
         <header class="panel-heading ">
             <ul class="nav nav-tabs" id="nav-tabs">
-                <li class="active">
+                <li>
                     <a href="/apps/{{tenantName}}/{{app_id}}/third_show">概览</a>
                 </li>
-                <li>
+                <li class="active">
                     <a href="/apps/{{tenantName}}/{{app_id}}/orders">费用</a>
                 </li>
             </ul>
@@ -54,7 +54,7 @@
                     console.log(page+":"+curpagesize);
                     $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
                 }
-                $(document).ready(function(){
+                $(function(){
                     _page(1);
                     $("body").on("change","#pageSizeScope", function () {
                         _page(1);
