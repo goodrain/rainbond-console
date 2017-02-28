@@ -25,34 +25,6 @@
 <section class="wrapper site-min-height">
     <h3>又拍云CDN费用明细</h3>
     <section class="panel">
-<<<<<<< Updated upstream
-        <section class="content-tab">
-            <table>
-                <thead>
-                <tr>
-                    <th>开始时间</th>
-                    <th>结束时间</th>
-                    <th>流量</th>
-                    <th>存储</th>
-                    <th>请求次数</th>
-                    <th>套餐外费用</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{order.start_time}}</td>
-                    <td>{{order.end_time}}</td>
-                    <td>{{app.traffic_size}}</td>
-                    <td>{{app.oos_size}}</td>
-                    <td>{{app.request_size}}</td>
-                    <td>{{app.total_cost}}</td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </section>
-=======
         <div id="example_wrapper" class="content-tab" role="grid">
             <form role="form">
                 <div class="clearfix">
@@ -91,14 +63,14 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for tenantConsume in tenantConsumes %}
+                    {% for order in orders %}
                     <tr>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                        <td>cdn</td>
+                        <td>{{order.start_time}}</td>
+                        <td>{{order.end_time}}</td>
+                        <td>{{app.traffic_size}}</td>
+                        <td>{{app.oos_size}}</td>
+                        <td>{{app.request_size}}</td>
+                        <td>{{app.total_cost}}</td>
                     </tr>
                     {% endfor %}
                     </tbody>
@@ -127,7 +99,6 @@
             </form>
 
         </div>
->>>>>>> Stashed changes
     </section>
 </section>
 <script>
