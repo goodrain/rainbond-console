@@ -51,7 +51,6 @@
                     if(typeof(curpagesize) == "undefined"){
                         curpagesize=10
                     }
-                    console.log(page+":"+curpagesize);
                     $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
                 }
                 $(document).ready(function(){
