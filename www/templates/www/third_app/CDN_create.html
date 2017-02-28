@@ -16,7 +16,7 @@
     p.prompt{display: none;color: red;}
 </style>
 <section class="wrapper site-min-height">
-    <h3 class="main-tit">{ if app_type == "upai_oos" }创建又拍云对象存储{% else %}创建CDN服务{% endif %}</h3>
+    <h3 class="main-tit">{% if app_type == "upai_oos" %}创建又拍云对象存储{% else %}创建CDN服务{% endif %}</h3>
     <section class="content-tab">
         <div class="clearfix">
             <div class="text_label">应用名：</div>
