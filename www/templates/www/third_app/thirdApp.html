@@ -25,7 +25,7 @@
 </style>
 <section class="wrapper site-min-height">
     <section class="panel">
-        <p class="group-tit">第三方应用</p>
+        <p class="group-tit" style="margin-bottom: 20px;">第三方应用</p>
         <section class="content-tab">
             <table>
                 <thead>
@@ -39,11 +39,13 @@
                 <tbody>
                     {% for app in apps %}
                         <tr>
-                            <td>{{app.name}}</td>
+                            <td>
+                                <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show" style="color: #28cb75;font-size: 16px;">{{app.name}}</a>
+                            </td>
                             <td>{{app.app_type}}</td>
                             <td>{{app.create_time}}</td>
                             <td>
-                                <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show">管理</a>
+                                <a class="greenbtn" href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show">管理</a>
                             </td>
                         </tr>
                     {% endfor %}
