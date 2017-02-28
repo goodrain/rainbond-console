@@ -11,10 +11,11 @@
 <style>
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
-    div.text_label{width: 35%;float: left;text-align: right}
+    div.text_label{width: 35%;float: left;line-height: 30px;text-align: right}
     div.app_info{width: 65%;float: left;}
     div.app_info input{width: 50%;height: 30px;padding-left: 10px;color:#303030;-moz-border-radius: 6px;-webkit-border-radius: 6px;border-radius: 6px;}
     .prompt{display: none;color: red;}
+    div.app_info select{width: 50%;cursor: not-allowed;}
 </style>
 <section class="wrapper site-min-height">
     <h3 class="main-tit">{% if app_type == "upai_oos" %}创建又拍云对象存储{% else %}创建CDN服务{% endif %}</h3>
@@ -34,7 +35,7 @@
                 </select>
             </div>
         </div>
-        <p style="text-align: center">
+        <p style="text-align: center;padding: 15px;">
             <button id="submit" class="greenbtn">开始使用</button>
         </p>
     </section>
@@ -58,7 +59,7 @@
                     success : function(data){
                         if(data["status"] == "success")
                         {
-                            window.location.href = "/apps/{{tenantName}}"+data["app_id"]+"/third_show";
+                            window.location.href = "/apps/{{tenantName}}/"+data["app_id"]+"/third_show";
                         }
                         else{
                             swal(data["message"]);
