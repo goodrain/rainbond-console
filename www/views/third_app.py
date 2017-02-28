@@ -35,15 +35,24 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
             'www/js/validator.min.js'
         )
         return media
+
+    @perm_required('app_create')
+    def get(self, request, *args, **kwargs):
+        
+        app_type = kwargs.get('app_type', None)
+        context = self.get_context()
+        context["app_type"] = app_type
+        return TemplateResponse(self.request, "www/third_app/CDN_create.html", context)
     
     # form提交.
     @perm_required('app_create')
     @transaction.atomic
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         try:
             
             app_type = kwargs.get('app_type', None)
             tenant_name = self.tenantName
+            app_name = request.POST.get("app_name", None)
             create_body = {}
             if app_type is not None:
                 if app_type == "upai_cdn":
@@ -66,7 +75,12 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     info.bucket_name = create_body["bucket_name"]
                     info.app_type = app_type
                     info.tenant_id = tenant_name
-                    info.name = "又拍云应用"
+                    if app_name is not None:
+                        info.name = app_name
+                    elif app_type == "upai_oos":
+                        info.name = "又拍云对象存储"
+                    elif app_type == "upai_cdn":
+                        info.name = "又拍云CDN"
                     info.save()
                     # 创建初始化账单
                     order = ThirdAppOrder(bucket_name=info.bucket_name, tenant_id=self.tenantName,
@@ -111,6 +125,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
         try:
             upai_client = YouPaiApi()
             app_bucket = kwargs.get('app_bucket', None)
+            
             tenant_name = self.tenantName
             if app_bucket is None:
                 return HttpResponse(u"参数错误", status=415)
@@ -223,7 +238,6 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
 
 
 class ThirdAppOrdersListDataView(AuthedView):
-   
     def get(self, request, *args, **kwargs):
         app_bucket = kwargs.get('app_bucket', None)
         page = request.GET.get("page", 1)
@@ -231,7 +245,7 @@ class ThirdAppOrdersListDataView(AuthedView):
         orders = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).all()
         paginator = Paginator(orders, page_size)
         orders_size = orders.count()
-        last_page = orders_size / page_size == page - 1
+        last_page = orders_size / int(page_size) == int(page) - 1
         context = self.get_context()
         try:
             page_orders = paginator.page(page)
