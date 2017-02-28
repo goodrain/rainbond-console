@@ -10,21 +10,21 @@
 <style>
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
-    div.text_label{width: 35%;float: left;}
+    div.text_label{width: 35%;float: left;text-align: right}
     div.app_info{width: 65%;float: left;}
-    div.app_info input{width: 60%;}
-    p.prompt{display: none;color: red;}
+    div.app_info input{width: 50%;height: 30px;padding-left: 10px;color:#303030;-moz-border-radius: 6px;-webkit-border-radius: 6px;border-radius: 6px;}
+    .prompt{display: none;color: red;}
 </style>
 <section class="wrapper site-min-height">
-    <h3 class="main-tit">{ if app_type == "upai_oos" }创建又拍云对象存储{% else %}创建CDN服务{% endif %}</h3>
+    <h3 class="main-tit">{% if app_type == "upai_oos" %}创建又拍云对象存储{% else %}创建CDN服务{% endif %}</h3>
     <section class="content-tab">
         <div class="clearfix">
             <div class="text_label">应用名：</div>
             <div class="app_info">
                 <input type="text" id="app_name" placeholder="给应用取个名字，支持中英文">
+                <span class="prompt">请输入应用名</span>
             </div>
         </div>
-        <p class="prompt">请输入应用名</p>
         <div class="clearfix">
             <div class="text_label">选择分组：</div>
             <div class="app_info">
@@ -33,8 +33,8 @@
                 </select>
             </div>
         </div>
-        <p>
-            <button id="submit">开始使用</button>
+        <p style="text-align: center">
+            <button id="submit" class="btn btn-primary">开始使用</button>
         </p>
     </section>
 </section>
@@ -69,7 +69,7 @@
                 });
             }
             else{
-                $("p.prompt").css({"display":"block"});
+                $(".prompt").css({"display":"block"});
             }
         })
     });
