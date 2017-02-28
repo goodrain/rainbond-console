@@ -25,8 +25,8 @@ p.input_domain button{margin-left: 20px;}
 tbody.domain_box td{width: 25%;}
 .table td.operator_auth span{display: block;width: 15px;height: 15px;margin-left: 3px;float: left;}
 .table td.operator_auth span.text_auth{width: 30px;}
-.table td.operator_auth span.check{background: url('../images/checkmany.png') no-repeat;background-size: 100% 100%;}
-.table td.operator_auth span.noCheck{background: url('../images/noCheck.png') no-repeat;background-size: 100% 100%;}
+.table td.operator_auth span.check{cursor: not-allowed;background: url('../images/checkmany.png') no-repeat;background-size: 100% 100%;}
+.table td.operator_auth span.noCheck{cursor: not-allowed;background: url('../images/noCheck.png') no-repeat;background-size: 100% 100%;}
 p.input_operator{padding: 10px;}
 p.input_operator input{height: 36px;width: 20%;margin-right: 20px;}
 p.input_operator button{margin-left: 20px;}
