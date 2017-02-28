@@ -8,22 +8,70 @@
 {% endblock %}
 {% block main-content %}
 <style>
-    h3{
-        height: 34px;
-        line-height: 34px;
-        color: #28cb75;
-        font-size: 22px;
-        font-weight: 200;
-        text-align: center;
-        border-bottom: 1px solid #ececec;
-    }
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
+    div.text_label{width: 35%;float: left;}
+    div.app_info{width: 65%;float: left;}
+    div.app_info input{width: 60%;}
+    p.prompt{display: none;color: red;}
 </style>
 <section class="wrapper site-min-height">
-    <h3>创建又拍云CDN</h3>
+    <h3 class="main-tit">{ if app_type == "upai_oos" }创建又拍云对象存储{% else %}创建CDN服务{% endif %}</h3>
     <section class="content-tab">
-        <p></p>
+        <div class="clearfix">
+            <div class="text_label">应用名：</div>
+            <div class="app_info">
+                <input type="text" id="app_name" placeholder="给应用取个名字，支持中英文">
+            </div>
+        </div>
+        <p class="prompt">请输入应用名</p>
+        <div class="clearfix">
+            <div class="text_label">选择分组：</div>
+            <div class="app_info">
+                <select disabled>
+                    <option>第三方应用</option>
+                </select>
+            </div>
+        </div>
+        <p>
+            <button id="submit">开始使用</button>
+        </p>
     </section>
 </section>
+<script>
+    $(function(){
+        $("#submit").click(function(){
+            if( $("#app_name").val() )
+            {
+                $.ajax({
+                    type : "POST",
+                    url : "/apps/{{tenantName}}/third_app/{{app_type}}/create",
+                    data : {
+                        app_name : $("input#app_name").val()
+                    },
+                    cache: false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(data){
+                        if(data["status"] == "success")
+                        {
+                            window.location.href = "apps/{{tenantName}}"+data["app_id"]+"/third_show";
+                        }
+                        else{
+                            swal(data["message"]);
+                        }
+                    },
+                    error : function(){
+                        swal("系统异常");
+                    }
+                });
+            }
+            else{
+                $("p.prompt").css({"display":"block"});
+            }
+        })
+    });
+</script>
 {% endblock %}
