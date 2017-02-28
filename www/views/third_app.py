@@ -12,6 +12,7 @@ import logging
 import time
 import datetime
 from django.db import connection
+from django.http import JsonResponse
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db import transaction
 
@@ -35,7 +36,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
             'www/js/validator.min.js'
         )
         return media
-
+    
     @perm_required('app_create')
     def get(self, request, *args, **kwargs):
         
@@ -48,6 +49,7 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
     @perm_required('app_create')
     @transaction.atomic
     def post(self, request, *args, **kwargs):
+        result = {}
         try:
             
             app_type = kwargs.get('app_type', None)
@@ -90,19 +92,25 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     order.end_time = datetime.datetime.now()
                     order.create_time = datetime.datetime.now()
                     order.save()
-                    
-                    return HttpResponseRedirect(
-                        "/apps/" + tenant_name + "/" + create_body["bucket_name"] + "/third_show")
+                    result["status"] = "success"
+                    result["app_id"] = info.bucket_name
+                    JsonResponse(result)
                 else:
                     
                     logger.error("create upai cdn bucket error,:" + body.message)
-                    return HttpResponse(u"创建错误", status=res.status)
+                    result["status"] = "failure"
+                    result["message"] = body.message
+                    JsonResponse(result)
             else:
-                return HttpResponse(u"参数错误", status=415)
+                result["status"] = "failure"
+                result["message"] = "参数错误"
+                JsonResponse(result)
         except Exception as e:
             transaction.rollback()
             logger.exception(e)
-        return HttpResponse(u"创建异常", status=500)
+            result["status"] = "failure"
+            result["message"] = "内部错误"
+        return JsonResponse(result)
 
 
 class ThirdAppView(LeftSideBarMixin, AuthedView):
