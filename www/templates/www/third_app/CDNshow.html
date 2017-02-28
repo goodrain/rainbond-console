@@ -25,6 +25,18 @@
             <button class="btn btn-primary name_sure">确认</button>
             <button class="btn btn-danger name_cancel">取消</button>
         </p>
+
+        <header class="panel-heading ">
+            <ul class="nav nav-tabs" id="nav-tabs">
+                <li class="active">
+                    <a href="/apps/{{tenantName}}/{{appid}}/third_show">概览</a>
+                </li>
+                <li>
+                    <a href="/apps/{{tenantName}}/{{appid}}/order">费用</a>
+                </li>
+            </ul>
+        </header>
+
         <div class="appOutline">
             <ul class="outlineTop clearfix">
                 <li>
@@ -55,7 +67,7 @@
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline4.png" %}"/>
                         </p>
-                        <p><a href="apps/{{tenantName}}/{{app_id}}/orders">{% if app_info.app_type == "packet" %}{{ traffic_balance }} GB{% else %}{{order_info.traffic_size}}{% endif %}</a></p>
+                        <p>{% if app_info.app_type == "packet" %}{{ traffic_balance }} GB{% else %}{{order_info.traffic_size}}{% endif %}</p>
                     </div>
                 </li>
                 <li>
