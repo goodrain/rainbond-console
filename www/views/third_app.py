@@ -238,9 +238,11 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
     def get(self, request, *args, **kwargs):
         app_bucket = kwargs.get('app_bucket', None)
         context = self.get_context()
-        
         context["app_id"] = app_bucket
-        
+        app_info = ThirdAppInfo.objects.filter(bucket_name=app_bucket, tenant_id=tenant_name).first()
+        if app_info is None:
+            return HttpResponse(u"参数错误", status=415)
+        context["app_info"] = app_info
         return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)
 
 
