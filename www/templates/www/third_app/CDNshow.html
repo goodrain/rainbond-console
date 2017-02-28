@@ -67,7 +67,7 @@
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline4.png" %}"/>
                         </p>
-                        <p>{% if app_info.app_type == "packet" %}{{ traffic_balance }} GB{% else %}{{order_info.traffic_size}}{% endif %}</p>
+                        <p>{% if app_info.bill_type == "packet" %}{{ traffic_balance }} GB{% else %}{{order_info.traffic_size}}{% endif %}</p>
                     </div>
                 </li>
                 <li>
