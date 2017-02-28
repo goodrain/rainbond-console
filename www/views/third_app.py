@@ -223,10 +223,7 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
 
 
 class ThirdAppOrdersListDataView(AuthedView):
-    def get_context(self):
-        context = super(ThirdAppOrdersListDataView, self).get_context()
-        return context
-    
+   
     def get(self, request, *args, **kwargs):
         app_bucket = kwargs.get('app_bucket', None)
         page = request.GET.get("page", 1)
@@ -237,7 +234,6 @@ class ThirdAppOrdersListDataView(AuthedView):
         last_page = orders_size / page_size == page - 1
         context = self.get_context()
         try:
-            
             page_orders = paginator.page(page)
             context["orders"] = page_orders
         except PageNotAnInteger:
@@ -247,7 +243,6 @@ class ThirdAppOrdersListDataView(AuthedView):
         except EmptyPage:
             page_orders = paginator.page(paginator.num_pages)
             context["orders"] = page_orders
-        
         context["current_page"] = page
         context["current_page_size"] = page_size
         context["last_page"] = last_page
