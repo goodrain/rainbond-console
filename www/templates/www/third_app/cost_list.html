@@ -43,10 +43,8 @@
 
                     {% elif last_page  %}
                     <button class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
-                    {% endif %}
                     {% elif current_page == 1 %}
                     <button class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
-                    {% endif %}
                     {% else%}
                         <button class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
                         <button class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
