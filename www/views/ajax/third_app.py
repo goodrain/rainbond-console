@@ -2,7 +2,7 @@
 from django.http import JsonResponse
 import json
 from www.views import AuthedView
-from www.models import ThirdAppInfo, CDNTrafficRecord, Tenants, CDNTrafficHourRecord, ThirdAppOperator
+from www.models import ThirdAppInfo, CDNTrafficRecord, Tenants, CDNTrafficHourRecord, ThirdAppOperator,ThirdAppOrder
 from www.third_app.cdn.upai.client import YouPaiApi
 import logging
 from www.utils.crypt import make_uuid
@@ -11,6 +11,72 @@ from django.db import transaction
 
 logger = logging.getLogger('default')
 
+
+class CreateAppView(AuthedView):
+    
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        result = {}
+        try:
+            app_type = kwargs.get('app_type', None)
+            tenant_name = self.tenantName
+            app_name = request.POST.get("app_name", None)
+            create_body = {}
+            if app_type is not None:
+                if app_type == "upai_cdn":
+                    service_id = make_uuid()
+                    create_body["bucket_name"] = "gr" + service_id[-6:]
+                    create_body["type"] = "ucdn"
+                    create_body["business_type"] = "file"
+                
+                elif app_type == "upai_oos":
+                    service_id = make_uuid()
+                    create_body["bucket_name"] = "gr" + service_id[-6:]
+                    create_body["type"] = "file"
+                    create_body["business_type"] = "file"
+                upai_client = YouPaiApi()
+                res, body = upai_client.createService(json.dumps(create_body))
+                if res.status == 201:
+                    # 创建应用
+                    info = ThirdAppInfo()
+                    info.service_id = service_id
+                    info.bucket_name = create_body["bucket_name"]
+                    info.app_type = app_type
+                    info.tenant_id = tenant_name
+                    if app_name is not None:
+                        info.name = app_name
+                    elif app_type == "upai_oos":
+                        info.name = "又拍云对象存储"
+                    elif app_type == "upai_cdn":
+                        info.name = "又拍云CDN"
+                    info.save()
+                    # 创建初始化账单
+                    order = ThirdAppOrder(bucket_name=info.bucket_name, tenant_id=self.tenantName,
+                                          service_id=service_id)
+                    order.order_id = make_uuid()
+                    order.start_time = datetime.datetime.now()
+                    order.end_time = datetime.datetime.now()
+                    order.create_time = datetime.datetime.now()
+                    order.save()
+                    result["status"] = "success"
+                    result["app_id"] = info.bucket_name
+                    JsonResponse(result)
+                else:
+                    
+                    logger.error("create upai cdn bucket error,:" + body.message)
+                    result["status"] = "failure"
+                    result["message"] = body.message
+                    JsonResponse(result)
+            else:
+                result["status"] = "failure"
+                result["message"] = "参数错误"
+                JsonResponse(result)
+        except Exception as e:
+            transaction.rollback()
+            logger.exception(e)
+            result["status"] = "failure"
+            result["message"] = "内部错误"
+        return JsonResponse(result)
 
 class UpdateAppView(AuthedView):
     def __init__(self, request, *args, **kwargs):
