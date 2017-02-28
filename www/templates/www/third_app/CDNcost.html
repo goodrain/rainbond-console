@@ -6,51 +6,61 @@
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/style.css" %}' />
 {% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/cdn.js" %}'></script>
+{% endblock %}
 {% block main-content %}
 <style>
-    h3{
-        height: 34px;
-        line-height: 34px;
-        color: #28cb75;
-        font-size: 22px;
-        font-weight: 200;
-    }
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
     #sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
 </style>
 <section class="wrapper site-min-height">
-    <h3>又拍云CDN费用明细</h3>
-    <header class="panel-heading ">
-        <ul class="nav nav-tabs" id="nav-tabs">
-            <li>
-                <a href="/apps/{{tenantName}}/{{app_id}}/third_show">概览</a>
-            </li>
-            <li class="active">
-                <a href="/apps/{{tenantName}}/{{app_id}}/orders">费用</a>
-            </li>
-        </ul>
-    </header>
-    <section class="panel">
-        <div id="tenantConsumeList">
+    <section class="main-box">
+        <input type="hidden" id="tenantName" value="{{tenantName}}">
+        <input type="hidden" id="app_id" value="{{app_id}}">
+        <p>
+            <span id="cdn_name">{{app_info.name}}</span>
+            <a class="changeName">更名</a>
+        </p>
+        <p class="cdn_name">
+            <input type="text" placeholder="请输入名称">
+            <button class="btn btn-primary name_sure">确认</button>
+            <button class="btn btn-danger name_cancel">取消</button>
+        </p>
 
-        </div>
+        <header class="panel-heading ">
+            <ul class="nav nav-tabs" id="nav-tabs">
+                <li class="active">
+                    <a href="/apps/{{tenantName}}/{{app_id}}/third_show">概览</a>
+                </li>
+                <li>
+                    <a href="/apps/{{tenantName}}/{{app_id}}/orders">费用</a>
+                </li>
+            </ul>
+        </header>
 
-        <script>
-            function _page(page){
-                var curpagesize= $("#pageSizeScope").val()
-                if(typeof(curpagesize) == "undefined"){
-                    curpagesize=10
+        <section class="panel">
+            <div id="tenantConsumeList">
+
+            </div>
+
+            <script>
+                function _page(page){
+                    var curpagesize= $("#pageSizeScope").val()
+                    if(typeof(curpagesize) == "undefined"){
+                        curpagesize=10
+                    }
+                    console.log(page+":"+curpagesize);
+                    $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
                 }
-                console.log(page+":"+curpagesize);
-                $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
-            }
-            $(document).ready(function(){
-                _page(1);
-                $("body").on("change","#pageSizeScope", function () {
+                $(document).ready(function(){
                     _page(1);
-                });
-            })
-        </script>
+                    $("body").on("change","#pageSizeScope", function () {
+                        _page(1);
+                    });
+                })
+            </script>
+        </section>
     </section>
 </section>
 {% endblock %}
