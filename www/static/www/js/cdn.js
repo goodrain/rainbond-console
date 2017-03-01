@@ -432,7 +432,9 @@ $(function(){
             for( var i = 0; i<line.length; i++ )
             {
                 var data_json = {};
-                if( line.eq(i).find("input").eq(0).val() )
+                var reg1 = /[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?/;  //验证域名
+                var reg2 = /((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]\d)|\d)(\.((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]\d)|\d)){3}/;    //验证ip
+                if( reg1.test( line.eq(i).find("input").eq(0).val() ) || reg2.test( line.eq(i).find("input").eq(0).val() ) )
                 {
                     data_json["host"] = line.eq(i).find("input").eq(0).val();
                     if( line.eq(i).find("input").eq(1).val() )
@@ -449,7 +451,7 @@ $(function(){
                     }
                 }
                 else{
-                    swal("请输入第"+(i+1)+"个回源地址");
+                    swal("第"+(i+1)+"个回源地址不合法");
                 }
             }
             data["servers"] = servers;
@@ -459,10 +461,11 @@ $(function(){
         }
         console.log(data);
     });
-    $("#http").click(port_change(80));
-    $("#https").click(port_change(443));
-    $("#protocol_follow").click(port_change(80));
+    $("#http").on('change',port_change(80));
+    $("#https").on('change',port_change(443));
+    $("#protocol_follow").on('change',port_change(80));
     function port_change(num){
+        console.log(num);
         var line = $(".manage table.tab-box tbody tr");
         for( var i = 0; i<line.length; i++ )
         {
