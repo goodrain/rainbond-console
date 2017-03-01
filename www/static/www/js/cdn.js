@@ -399,4 +399,10 @@ $(function(){
             }
         });
     });
+    $(".app_manage").click(function(){
+        $(".layer-body-bg").css({"display":"block"});
+    });
+    $(".cancel").on("click",function(){
+        $(".layer-body-bg").css({"display":"none"});
+    });
 })

@@ -166,7 +166,7 @@
                 <h4>回源配置</h4>
                 <ul class="clearfix">
                     <li>
-                        <button class="btn btn-primary">管理</button>
+                        <button class="btn btn-primary app_manage">管理</button>
                     </li>
                 </ul>
             </div>
@@ -277,4 +277,21 @@
         </section>
     </section>
 </section>
+{% if not app_info.app_type == "upai_oos" %}
+<div class="layer-body-bg">
+    <div class="layer-body">
+        <div class="manage">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <p class="layer-tit">回源管理</p>
+            <div class="layer-height-overflow">
+
+            </div>
+            <p class="bottom">
+                <button class="saveManage btn-success">保存</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
