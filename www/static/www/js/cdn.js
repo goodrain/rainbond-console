@@ -424,11 +424,10 @@ $(function(){
     $(".saveManage").click(function(){
         var data = {};
         data["manage_host"] = $(".manage_host").val();
-        console.log($(".manage input[type='radio'][name='way']:checked"));
         if( $(".manage input[type='radio'][name='way']:checked").data("id") )
         {
             data["source_type"] = $(".manage input[type='radio'][name='way']:checked").data("data-id");
-            data["line"] = $(".manage table.tab_box tbody tr");
+            var line = $(".manage table.tab_box tbody tr");
             data["servers"] = [];
             for( var i = 0; i<line.length; i++ )
             {
