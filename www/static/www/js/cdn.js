@@ -429,10 +429,14 @@ $(function(){
         {
             data["domain_follow"] = "enable";
         }
+        else{
+            data["domain_follow"] = "disable";
+        }
         if( $(".manage input[type='radio'][name='way']:checked").data("id") )
         {
             data["source_type"] = $(".manage input[type='radio'][name='way']:checked").attr("data-id");
             var line = $(".manage table.tab-box tbody tr");
+            var data_cdn = {};
             var servers = [];
             for( var i = 0; i<line.length; i++ )
             {
@@ -444,11 +448,11 @@ $(function(){
                     data_json["host"] = line.eq(i).find("input").eq(0).val();
                     if( line.eq(i).find("input").eq(1).val() )
                     {
-                        data_json["port"] = line.eq(i).find("input").eq(1).val();
-                        data_json["weight"] = line.eq(i).find("input").eq(2).val();
-                        data_json["max_fails"] = line.eq(i).find("input").eq(3).val();
-                        data_json["fail_timeout"] = line.eq(i).find("input").eq(4).val();
-                        data_json["backup"] = line.eq(i).find("option:checked").attr("data-toggle")?"true":"false";
+                        data_json["port"] = Number(line.eq(i).find("input").eq(1).val());
+                        data_json["weight"] = Number(line.eq(i).find("input").eq(2).val());
+                        data_json["max_fails"] = Number(line.eq(i).find("input").eq(3).val());
+                        data_json["fail_timeout"] = Number(line.eq(i).find("input").eq(4).val());
+                        data_json["backup"] = line.eq(i).find("option:checked").attr("data-toggle")?"false":"true";
                         servers.push(data_json);
                     }
                     else{
@@ -459,7 +463,8 @@ $(function(){
                     swal("第"+(i+1)+"个回源地址不合法");
                 }
             }
-            data["servers"] = servers;
+            data_cdn["servers"] = servers;
+            data["cdn"] = data_cdn;
         }
         else{
             swal("请选择回源方式");
