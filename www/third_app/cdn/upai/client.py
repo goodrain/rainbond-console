@@ -95,3 +95,14 @@ class YouPaiApi(BaseHttpClient):
         body = {"bucket_name": bucket_name, "visible": False}
         res, body = self._post(url, self.default_headers, json.dumps(body))
         return res, body
+    
+    def purge(self, bucket_name):
+        url = self.BaseAPIURL + "buckets/purge"
+        body = {"bucket_name": bucket_name}
+        res, body = self._post(url, self.default_headers, json.dumps(body))
+        return res, body
+    
+    def cdn_source(self, body):
+        url = self.BaseAPIURL + "v2/buckets/cdn/source/"
+        res, body = self._post(url, self.default_headers, body)
+        return res, body

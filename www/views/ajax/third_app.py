@@ -2,7 +2,7 @@
 from django.http import JsonResponse
 import json
 from www.views import AuthedView
-from www.models import ThirdAppInfo, CDNTrafficRecord, Tenants, CDNTrafficHourRecord, ThirdAppOperator,ThirdAppOrder
+from www.models import ThirdAppInfo, CDNTrafficRecord, Tenants, CDNTrafficHourRecord, ThirdAppOperator, ThirdAppOrder
 from www.third_app.cdn.upai.client import YouPaiApi
 import logging
 from www.utils.crypt import make_uuid
@@ -13,7 +13,6 @@ logger = logging.getLogger('default')
 
 
 class CreateAppView(AuthedView):
-    
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         result = {}
@@ -43,6 +42,7 @@ class CreateAppView(AuthedView):
                     info.bucket_name = create_body["bucket_name"]
                     info.app_type = app_type
                     info.tenant_id = tenant_name
+                    info.create_user = self.user.user_id
                     if app_name is not None:
                         info.name = app_name
                     elif app_type == "upai_oos":
@@ -77,6 +77,7 @@ class CreateAppView(AuthedView):
             result["status"] = "failure"
             result["message"] = "内部错误"
         return JsonResponse(result)
+
 
 class UpdateAppView(AuthedView):
     def __init__(self, request, *args, **kwargs):
@@ -355,22 +356,22 @@ class CDNTrafficRecordView(AuthedView):
             record.payment_status = 1
             record.save()
             
-            # 创建流量包消费初始纪录或为历史纪录充值流量
+            # 创建流量包消费增值纪录
             hour = CDNTrafficHourRecord.objects. \
                 order_by("-end_time").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
+            n_hour = CDNTrafficHourRecord()
             if hour is None:
-                hour = CDNTrafficHourRecord()
-                hour.balance = record.traffic_size
-                hour.bucket_name = self.app_id
-                hour.service_id = self.app_info.service_id
-                hour.tenant_id = self.tenantName
-                hour.traffic_number = 0
-                hour.start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                hour.end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                hour.save()
+                n_hour.balance = record.traffic_size
             else:
-                hour.balance = float(hour.balance) + float(record.traffic_size)
-                hour.save()
+                n_hour.balance = record.traffic_size + hour.balance
+            n_hour.bucket_name = self.app_id
+            n_hour.service_id = self.app_info.service_id
+            n_hour.tenant_id = self.tenantName
+            n_hour.traffic_number = 0
+            n_hour.start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            n_hour.end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            n_hour.save()
+            
             # 更新应用付费方式为包流量
             self.app_info.bill_type = "packet"
             self.app_info.save()
@@ -420,6 +421,37 @@ class OpenThirdAppView(AuthedView):
         return JsonResponse(result)
 
 
+class CloseThirdAppView(AuthedView):
+    def __init__(self, request, *args, **kwargs):
+        self.app_id = kwargs.get('app_id', None)
+        self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        """
+        关闭app
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        result = {}
+        try:
+            upai_client = YouPaiApi()
+            res, body = upai_client.stopApp(self.app_id)
+            if res.status == 200:
+                self.app_info.open = 0
+                self.app_info.save()
+            else:
+                result["status"] = "failure"
+                result["message"] = body.message
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+            result["message"] = "关闭失败"
+        return JsonResponse(result)
+
+
 class DeleteThirdAppView(AuthedView):
     def __init__(self, request, *args, **kwargs):
         self.app_id = kwargs.get('app_id', None)
@@ -454,4 +486,76 @@ class DeleteThirdAppView(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
             result["message"] = "删除失败"
+        return JsonResponse(result)
+
+
+class PurgeCDNAppView(AuthedView):
+    def __init__(self, request, *args, **kwargs):
+        self.app_id = kwargs.get('app_id', None)
+        self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        """
+        刷新全网cdn应用
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        result = {}
+        try:
+            if self.app_info.app_type == "upai_cdn":
+                res = {}
+                body = {}
+                try:
+                    upai_client = YouPaiApi()
+                    res, body = upai_client.purge(self.app_id)
+                except Exception, e:
+                    result["status"] = "failure"
+                    result["message"] = "刷新失败" + body.message
+                if res.status == 200:
+                    result["status"] = "success"
+                    result["message"] = "刷新成功"
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+            result["message"] = "刷新失败"
+        return JsonResponse(result)
+
+
+class CDNSourceView(AuthedView):
+    def __init__(self, request, *args, **kwargs):
+        self.app_id = kwargs.get('app_id', None)
+        self.app_info = ThirdAppInfo.objects.get(bucket_name=self.app_id)
+        AuthedView.__init__(self, request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        """
+        cdn回源添加
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        result = {}
+        try:
+            if self.app_info.app_type == "upai_cdn":
+                res = {}
+                body = {}
+                try:
+                    rbody = {}
+                    
+                    upai_client = YouPaiApi()
+                    res, body = upai_client.cdn_source(self.app_id, json.loads(rbody))
+                except Exception, e:
+                    result["status"] = "failure"
+                    result["message"] = "添加失败" + body.message
+                if res.status == 200:
+                    result["status"] = "success"
+                    result["message"] = "添加成功"
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+            result["message"] = "添加失败"
         return JsonResponse(result)

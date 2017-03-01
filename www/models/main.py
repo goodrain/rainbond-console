@@ -954,7 +954,7 @@ class ThirdAppInfo(BaseModel):
     bill_type = models.CharField(default="demand", max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
     open = models.BooleanField(default=1, help_text=u"是否开启状态")
     delete = models.BooleanField(default=0, help_text=u"是否删除状态")
-
+    create_user = models.IntegerField(help_text=u"创建的用户的user_id")
 
 class CDNTrafficRecord(BaseModel):
     class Meta:
@@ -982,7 +982,7 @@ class CDNTrafficHourRecord(BaseModel):
     traffic_number = models.IntegerField(help_text=u"流量消费数量")
     balance = models.IntegerField(help_text=u"流量包余额")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-
+    order_id = models.CharField(max_length=32, help_text=u"扣除流量的订单id")
 
 class ThirdAppOperator(BaseModel):
     class Meta:
