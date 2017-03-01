@@ -1,4 +1,9 @@
 $(function(){
+    $(document).ready(function(){
+        $(".dcjq-parent").eq(0).addClass("active");
+        $("#sidebar ul.sidebar-menu li").eq(2).find("ul.sub").css({"display":"block"});
+        $("#sidebar ul.sidebar-menu li").eq(2).find("ul.sub li").eq(8).addClass("active");
+    });
     $("button.add_domain").click(function(){
         $("p.input_domain").show();
         $("input.domain_name").focus();
@@ -286,6 +291,111 @@ $(function(){
                 });
             } else {
                 swal.close();
+            }
+        });
+    });
+    $("#open_thirdApp").click(function(){
+        var tenantName = $("#tenantName").val();
+        var app_id = $("#app_id").val();
+        $.ajax({
+            type : "POST",
+            url : "/ajax/"+tenantName+"/"+app_id+"/open",
+            data : {},
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                swal({
+                    title : "正在执行启动操作，请稍候...",
+                    text : "5秒后自动关闭",
+                    timer : 5000,
+                    showConfirmButton : false
+                });
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "success")
+                {
+                    swal("操作成功");
+                    history.go(0);
+                }
+                else
+                {
+                    swal("操作失败");
+                }
+            },
+            error : function() {
+                swal("系统异常");
+            }
+        });
+    });
+    $("#close_thirdApp").click(function(){
+        var tenantName = $("#tenantName").val();
+        var app_id = $("#app_id").val();
+        $.ajax({
+            type : "POST",
+            url : "/ajax/"+tenantName+"/"+app_id+"/close",
+            data : {},
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                swal({
+                    title : "正在执行关闭操作，请稍候...",
+                    text : "5秒后自动关闭",
+                    timer : 5000,
+                    showConfirmButton : false
+                });
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "success")
+                {
+                    swal("操作成功");
+                    history.go(0);
+                }
+                else
+                {
+                    swal("操作失败");
+                }
+            },
+            error : function() {
+                swal("系统异常");
+            }
+        });
+    });
+    $("#app_refresh").click(function(){
+        var tenantName = $("#tenantName").val();
+        var app_id = $("#app_id").val();
+        $.ajax({
+            type : "POST",
+            url : "/ajax/"+tenantName+"/"+app_id+"/purge",
+            data : {},
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                swal({
+                    title : "正在执行刷新操作，请稍候...",
+                    text : "5秒后自动关闭",
+                    timer : 5000,
+                    showConfirmButton : false
+                });
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "success")
+                {
+                    swal("操作成功");
+                    history.go(0);
+                }
+                else
+                {
+                    swal("操作失败");
+                }
+            },
+            error : function() {
+                swal("系统异常");
             }
         });
     });

@@ -1,10 +1,10 @@
+ol,ul{margin: 0px;}
 .edit-port{cursor: pointer;}
 span#cdn_name{height: 34px;line-height: 34px;color: #28cb75;font-size: 28px;font-weight: 200;margin-right: 20px;}
 a.changeName{cursor: pointer;}
 p.cdn_name{display: none;margin: 10px 0px;}
 p.cdn_name input{width: 20%;height: 30px;padding-left: 10px;color:#303030;-moz-border-radius: 6px;-webkit-border-radius: 6px;border-radius: 6px;}
 p.cdn_name button{margin-left: 20px;}
-.appOutline{margin-bottom: 20px;}
 .appOutline ul.outlineTop{margin: 0 -10px;}
 .appOutline ul.outlineTop li{width: 20%;float: left;}
 .appOutline ul.outlineTop li div{margin:0 10px;background-color: #ffffff;border-radius: 10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;padding: 20px 0;}
@@ -19,6 +19,7 @@ p.cdn_name button{margin-left: 20px;}
 .table div.clearfix ul li{float: right;margin-left: 20px;}
 .table table a.del_domain,a.del_operator{color: red;cursor: pointer;}
 .table .flow p{float: left;width: 25%;}
+.table .flow p span.icon_tip{display: inline-block;width: 20px;height: 20px;background: url("../images/tip.png");background-size: 100% 100%;}
 p.input_domain{padding: 10px;}
 p.input_domain input.domain_name{height: 36px;width: 30%;}
 p.input_domain button{margin-left: 20px;}
@@ -32,5 +33,5 @@ p.input_operator input{height: 36px;width: 20%;margin-right: 20px;}
 p.input_operator button{margin-left: 20px;}
 
 
-#sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
-#sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
+/*#sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block;}*/
+/*#sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}*/

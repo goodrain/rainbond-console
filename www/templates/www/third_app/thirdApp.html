@@ -8,7 +8,7 @@
 <link rel="stylesheet" href='{% static "www/css/grouping.css" %}' />
 {% endblock %}
 {% block extrajs %}
-<!--<script src='{% static "www/js/group.js" %}'></script>-->
+<script src='{% static "www/js/cdn.js" %}'></script>
 {% endblock %}
 
 {% block main-content %}
@@ -20,8 +20,6 @@
         font-size: 22px;
         font-weight: 200;
     }
-    #sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
-    #sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
 </style>
 <section class="wrapper site-min-height">
     <section class="panel">
@@ -32,6 +30,7 @@
                     <tr>
                         <th>应用名</th>
                         <th>类型</th>
+                        <th>状态</th>
                         <th>创建时间</th>
                         <th>操作</th>
                     </tr>
@@ -43,6 +42,11 @@
                                 <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show" style="color: #28cb75;font-size: 16px;">{{app.name}}</a>
                             </td>
                             <td>{{app.app_type}}</td>
+                            {% if app.open %}
+                            <td style="color: #28cb75;">正常</td>
+                            {% else %}
+                            <td style="color: red">关闭</td>
+                            {% endif %}
                             <td>{{app.create_time}}</td>
                             <td>
                                 <a class="greenbtn" href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show">管理</a>
