@@ -295,16 +295,16 @@
                     <div class="left_text">回源方式</div>
                     <div class="right_content">
                         <span class="choose">
-                            <input type="radio" name="way">
-                            <span>HTTP协议回源</span>
+                            <input id="http" type="radio" name="way">
+                            <label for="http">HTTP协议回源</label>
                         </span>
                         <span class="choose">
-                            <input type="radio" name="way">
-                            <span>HTTPS协议回源</span>
+                            <input id="https" type="radio" name="way">
+                            <label for="https">HTTPS协议回源</label>
                         </span>
                         <span class="choose">
-                            <input type="radio" name="way">
-                            <span>协议跟随</span>
+                            <input id="protocol_follow" type="radio" name="way">
+                            <label for="protocol_follow">协议跟随</label>
                         </span>
                     </div>
                 </div>
@@ -319,7 +319,7 @@
                                 <th>主／备</th>
                                 <th>轮询权重</th>
                                 <th>最大失败次数</th>
-                                <th>静默时间</th>
+                                <th>静默时间(秒)</th>
                                 <th>
                                     <span class="manage_add"></span>
                                 </th>
@@ -331,26 +331,23 @@
                                     <input type="text" placeholder="IP或域名">
                                 </td>
                                 <td>
-                                    <input type="text">
+                                    <input type="number" value="443">
                                 </td>
                                 <td>
                                     <select>
-                                        <option>主线路</option>
-                                        <option>备用线路</option>
+                                        <option data-toggle="true">主线路</option>
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="text">
+                                    <input type="number" value="1">
                                 </td>
                                 <td>
-                                    <input type="text">
+                                    <input type="number" value="3">
                                 </td>
                                 <td>
-                                    <input type="text">
+                                    <input type="number" value="30">
                                 </td>
-                                <td>
-                                    <span class="manage_del"></span>
-                                </td>
+                                <td></td>
                             </tr>
                             </tbody>
                         </table>

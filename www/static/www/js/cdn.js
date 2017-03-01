@@ -416,9 +416,46 @@ $(function(){
         });
     }
     $("span.manage_add").click(function(){
-        var str = '<tr><td><input type="text" placeholder="IP或域名"></td><td><input type="text"></td><td><select><option>主线路</option><option>备用线路</option></select></td>';
-        str += '<td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><span class="manage_del"></span></td></tr>';
+        var str = '<tr><td><input type="text" placeholder="IP或域名"></td><td><input type="number" value="443"></td><td><select><option data-toggle="true">主线路</option><option>备用线路</option></select></td>';
+        str += '<td><input type="number" value="1"></td><td><input type="number" value="3"></td><td><input type="number" value="30"></td><td><span class="manage_del"></span></td></tr>';
         $(str).appendTo("table.tab-box tbody");
         manage_del();
+    });
+    $(".saveManage").click(function(){
+        var data = {};
+        data["manage_host"] = $(".manage_host").val();
+        if( $(".manage input[type='radio'][name='way']:checked").data("id") )
+        {
+            data["source_type"] = $(".manage input[type='radio'][name='way']:checked").data("id");
+            data["line"] = $(".manage table.tab_box tbody tr");
+            data["servers"] = [];
+            for( var i = 0; i<line.length; i++ )
+            {
+                var data_json = {};
+                if( line.eq(i).find("input").eq(0).val() )
+                {
+                    data_json["host"] = line.eq(i).find("input").eq(0).val();
+                    if( line.eq(i).find("input").eq(1).val() )
+                    {
+                        data_json["port"] = line.eq(i).find("input").eq(1).val();
+                        data_json["weight"] = line.eq(i).find("input").eq(2).val();
+                        data_json["max_fails"] = line.eq(i).find("input").eq(3).val();
+                        data_json["fail_timeout"] = line.eq(i).find("input").eq(4).val();
+                        data_json["backup"] = line.eq(i).find("option:checked").data("data-toggle")?1:0;
+                        data["servers"].push(data_json);
+                    }
+                    else{
+                        swal("请输入第"+(i+1)+"个端口号");
+                    }
+                }
+                else{
+                    swal("请输入第"+(i+1)+"个回源地址");
+                }
+            }
+        }
+        else{
+            swal("请选择回源方式");
+        }
+        console.log(data);
     });
 })
