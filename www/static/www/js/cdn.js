@@ -426,12 +426,15 @@ $(function(){
         data["manage_host"] = $(".manage_host").val();
         if( $(".manage input[type='radio'][name='way']:checked").data("id") )
         {
+            console.log($(".manage input[type='radio'][name='way']:checked"));
             data["source_type"] = $(".manage input[type='radio'][name='way']:checked").data("data-id");
             var line = $(".manage table.tab_box tbody tr");
-            data["servers"] = [];
+            var servers = [];
             for( var i = 0; i<line.length; i++ )
             {
                 var data_json = {};
+                console.log(line.eq(i).find("input").eq(0).val());
+                console.log(line.eq(i).find("input").eq(1).val());
                 if( line.eq(i).find("input").eq(0).val() )
                 {
                     data_json["host"] = line.eq(i).find("input").eq(0).val();
@@ -442,7 +445,7 @@ $(function(){
                         data_json["max_fails"] = line.eq(i).find("input").eq(3).val();
                         data_json["fail_timeout"] = line.eq(i).find("input").eq(4).val();
                         data_json["backup"] = line.eq(i).find("option:checked").data("data-toggle")?1:0;
-                        data["servers"].push(data_json);
+                        servers.push(data_json);
                     }
                     else{
                         swal("请输入第"+(i+1)+"个端口号");
@@ -452,6 +455,7 @@ $(function(){
                     swal("请输入第"+(i+1)+"个回源地址");
                 }
             }
+            data["servers"] = servers;
         }
         else{
             swal("请选择回源方式");
