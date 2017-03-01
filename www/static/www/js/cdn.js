@@ -2,7 +2,7 @@ $(function(){
     $(document).ready(function(){
         $(".dcjq-parent").eq(0).addClass("active");
         $("#sidebar ul.sidebar-menu li").eq(2).find("ul.sub").css({"display":"block"});
-        $("#sidebar ul.sidebar-menu li").eq(2).find("ul.sub li").eq(8).addClass("active");
+        $("#sidebar ul.sidebar-menu li").eq(2).find("ul.sub li.third_app").addClass("active");
     });
     $("button.add_domain").click(function(){
         $("p.input_domain").show();
