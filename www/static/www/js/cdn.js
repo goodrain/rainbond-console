@@ -408,4 +408,7 @@ $(function(){
     $(".del").on("click",function(){
         $(".layer-body-bg").css({"display":"none"});
     });
+    $("span.manage_del").click(function(){
+        $(this).parents("tr").remove();
+    })
 })
