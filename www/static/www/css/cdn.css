@@ -33,7 +33,11 @@ p.input_operator input{height: 36px;width: 20%;margin-right: 20px;}
 p.input_operator button{margin-left: 20px;}
 
 .manage{width: 100%;height: 100%;position: relative;}
-
+.layer-body-bg .manage .left_text{float: left;width: 20%;}
+.layer-body-bg .manage .right_content{float: left;}
+.layer-body-bg .manage .right_content input.manage_host{width: 70%;height: 30px;padding-left: 10px;color:#303030;-moz-border-radius: 6px;-webkit-border-radius: 6px;border-radius: 6px;}
+.layer-body-bg .manage .right_content span.choose{padding-right: 10px;}
+.layer-body-bg .manage .right_content span.choose input:checked{color: #28cb75;}
 /*layer start */
 .layer-body-bg{ width: 100%; height: 100%; background: rgba(0, 0, 0,.6); position: fixed; top: 0; left: 0; bottom: 0; z-index: 1100;  display: none;}
 .layer-body{width:80%;  background: #fff;   max-width: 600px; position: absolute; z-index: 1101; top: 50%; left: 50%; height: 400px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; margin:-200px 0 0 -300px; padding:20px;}

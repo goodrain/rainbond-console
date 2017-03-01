@@ -405,4 +405,7 @@ $(function(){
     $(".cancel").on("click",function(){
         $(".layer-body-bg").css({"display":"none"});
     });
+    $(".del").on("click",function(){
+        $(".layer-body-bg").css({"display":"none"});
+    });
 })
