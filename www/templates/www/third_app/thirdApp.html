@@ -44,7 +44,7 @@
                                 <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show" style="color: #28cb75;font-size: 16px;">{{app.name}}</a>
                             </td>
                             <td>{{app.app_type}}</td>
-                            {% if app.open == "1" %}
+                            {% if app.open %}
                             <td style="color: #28cb75;">正常</td>
                             {% else %}
                             <td style="color: red">欠费</td>
