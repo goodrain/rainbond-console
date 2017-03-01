@@ -100,11 +100,15 @@
                                 {% else %}
                                 <button id="open_thirdApp" type="button" class="bgColor">启动</button>
                                 {% endif %}
-                                {% if not app_info.app_type == "upai_oos" %}
-                                <button id="app_refresh" type="button" class="bgColor">全网刷新</button>
-                                {% endif %}
                             </div>
                         </li>
+                        {% if not app_info.app_type == "upai_oos" %}
+                        <li class="button">
+                            <div class="btn-group">
+                                <button id="app_refresh" type="button" class="bgColor">全网刷新</button>
+                            </div>
+                        </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
