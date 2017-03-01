@@ -49,7 +49,7 @@
                             <img src="{% static "www/img/appOutline/appOutline0.png" %}"/>
                             {% endif %}
                         </p>
-                        <p>{% if app_info.open == 0 %}已欠费{% else %}正常{% endif %}</p>
+                        <p>{% if app_info.open == 0 %}关闭{% else %}正常{% endif %}</p>
                     </div>
                 </li>
                 <li>
@@ -89,6 +89,21 @@
                     </div>
                 </li>
             </ul>
+            <div class="alternative clearfix">
+                <div class="alterRight">
+                    <ul class="clearfix">
+                        <li class="button">
+                            <div class="btn-group">
+                                {% if app.open %}
+                                <button id="close_thirdApp" type="button" class="bgColor">关闭</button>
+                                {% else %}
+                                <button id="open_thirdApp" type="button" class="bgColor" style="color: #f63a47;">启动</button>
+                                {% endif %}
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
         <section class="table content-tab">
             <div class="clearfix">
