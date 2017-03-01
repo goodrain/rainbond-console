@@ -56,7 +56,7 @@ p.bottom button.sure{ background-color: #28cb75; color: #ffffff;}
 p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; color: #303030; }
 
 .infor-fm-box{ padding: 10px 0; }
-.infor-fm-box label{width: 20%;padding-right: 10px;}
+.infor-fm-box label{width: 20%;padding-right: 10px;margin: 0;}
 .fm-input-range{max-width: 90%;}
 .fm-input-range span{width: 20%;}
 .fm-input-range .range-box{width: 60%;}
