@@ -33,5 +33,5 @@ p.input_operator input{height: 36px;width: 20%;margin-right: 20px;}
 p.input_operator button{margin-left: 20px;}
 
 
-#sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
-#sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
+/*#sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block;}*/
+/*#sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}*/
