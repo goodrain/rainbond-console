@@ -408,7 +408,17 @@ $(function(){
     $(".del").on("click",function(){
         $(".layer-body-bg").css({"display":"none"});
     });
-    $("span.manage_del").click(function(){
-        $(this).parents("tr").remove();
-    })
+    manage_del();
+    function manage_del(){
+        $("span.manage_del").off("click");
+        $("span.manage_del").on('click',function(){
+            $(this).parents("tr").remove();
+        });
+    }
+    $("span.manage_add").click(function(){
+        var str = '<tr><td><input type="text" placeholder="IP或域名"></td><td><input type="text"></td><td><select><option>主线路</option><option>备用线路</option></select></td>';
+        str += '<td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><span class="manage_del"></span></td></tr>';
+        $(str).appendTo("table.tab-box tbody");
+        manage_del();
+    });
 })
