@@ -424,6 +424,7 @@ $(function(){
     $(".saveManage").click(function(){
         var data = {};
         data["manage_host"] = $(".manage_host").val();
+        console.log($(".manage input[type='radio'][name='way']:checked"));
         if( $(".manage input[type='radio'][name='way']:checked").data("id") )
         {
             data["source_type"] = $(".manage input[type='radio'][name='way']:checked").data("id");
