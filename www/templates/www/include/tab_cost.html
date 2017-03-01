@@ -77,84 +77,86 @@
         </table>
     </div>
     <div class="layer-body-bg">
-        <!--弹层1-->
-        <div class="endDate layer-body">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <div>
-                修改后付费成功，在当前使用期限(2016-12-12 12：12：12)到期以后生效
-            </div>
-            <p class="bottom">
-                <button class="cancel">关闭</button>
-            </p>
-        </div>
-        <!--弹层2-->
-        <div class="chooseFun layer-body">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
-            <div class="layer-height-overflow infor-fm-box">
-                <div class="fm-input-range clearfix">
-                    <label>应用购买时长</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="TimeLongWid"></cite></span>
-                        <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
-                    </p>
-                    <span><cite id="TimeLongText">1</cite>个月</span>
+        <div class="layer-body">
+            <!--弹层1-->
+            <div class="endDate">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <div>
+                    修改后付费成功，在当前使用期限(2016-12-12 12：12：12)到期以后生效
                 </div>
+                <p class="bottom">
+                    <button class="cancel">关闭</button>
+                </p>
             </div>
-            <p class="bottom">
-                <button class="sure sureTimeLong">付款</button>
-                <button class="cancel">取消</button>
-            </p>
-        </div>
-        <!--弹层3-->
-        <div class="chooseData layer-body">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <h3 class="layer-tit">请选择延期时间</h3>
-            <div class="layer-height-overflow infor-fm-box">
-                <div class="fm-input-range clearfix">
-                    <label>应用延期时长</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="TimeLongW"></cite></span>
-                        <input type="range" min="1" max="24"  step="1" id="Time" value="1"／>
-                    </p>
-                    <span><cite id="TimeText">1</cite>个月</span>
+            <!--弹层2-->
+            <div class="chooseFun">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix">
+                        <label>应用购买时长</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="TimeLongWid"></cite></span>
+                            <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
+                        </p>
+                        <span><cite id="TimeLongText">1</cite>个月</span>
+                    </div>
                 </div>
+                <p class="bottom">
+                    <button class="sure sureTimeLong">付款</button>
+                    <button class="cancel">取消</button>
+                </p>
             </div>
-            <p class="bottom">
-                <button class="sure sureTime">付款</button>
-                <button class="cancel">取消</button>
-            </p>
-        </div>
-        <!--弹层4-->
-        <div class="chooseLarge layer-body">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <h3 class="layer-tit">请选择要实用的内存与节点数</h3>
-            <div class="layer-height-overflow infor-fm-box">
-                <div class="fm-input-range clearfix fn-memory-node">
-                    <label>节点数</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="NodeWid"></cite></span>
-                        <input type="range" min="1" max="99"  step="1" id="NodeNum" value="1"／>
-                    </p>
-                    <span><cite id="NodeText">1</cite>个</span>
+            <!--弹层3-->
+            <div class="chooseData">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit">请选择延期时间</h3>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix">
+                        <label>应用延期时长</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="TimeLongW"></cite></span>
+                            <input type="range" min="1" max="24"  step="1" id="Time" value="1"／>
+                        </p>
+                        <span><cite id="TimeText">1</cite>个月</span>
+                    </div>
                 </div>
-                <div class="fm-input-range clearfix fn-memory-node">
-                    <label>单节点内存</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
-                        <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
-                    </p>
-                    <span><cite id="OneMemoryText">128</cite>M</span>
-                </div>
+                <p class="bottom">
+                    <button class="sure sureTime">付款</button>
+                    <button class="cancel">取消</button>
+                </p>
             </div>
-            <p class="bottom">
-                <button class="sure sureDeploy">付款</button>
-                <button class="cancel">取消</button>
-            </p>
+            <!--弹层4-->
+            <div class="chooseLarge">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit">请选择要实用的内存与节点数</h3>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix fn-memory-node">
+                        <label>节点数</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="NodeWid"></cite></span>
+                            <input type="range" min="1" max="99"  step="1" id="NodeNum" value="1"／>
+                        </p>
+                        <span><cite id="NodeText">1</cite>个</span>
+                    </div>
+                    <div class="fm-input-range clearfix fn-memory-node">
+                        <label>单节点内存</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
+                            <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
+                        </p>
+                        <span><cite id="OneMemoryText">128</cite>M</span>
+                    </div>
+                </div>
+                <p class="bottom">
+                    <button class="sure sureDeploy">付款</button>
+                    <button class="cancel">取消</button>
+                </p>
+            </div>
         </div>
     </div>
 </div>
