@@ -19,6 +19,7 @@ from www.views.serviceshare import *
 from www.views.consume import *
 from  www.views.servicemonitor import *
 from www.views.third_app import *
+from www.views.servicegroup import *
 
 urlpatterns = patterns(
     '',
@@ -72,6 +73,13 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step4$', ShareServiceStep4View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/package$', ShareServicePackageView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
+
+    # new service group share
+    url(r'^/(?P<groupId>[\w\-]+)/preview/$', ServiceGroupSharePreview.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/first/$', ServiceGroupShareOneView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/second/$', ServiceGroupShareTwoView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/third/$', ServiceGroupShareThreeView.as_view()),
+
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
     

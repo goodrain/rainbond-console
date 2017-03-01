@@ -11,6 +11,7 @@
 {% endblock %}
 
 {% block main-content %}
+<input type="hidden" id="group_id_input" value="{{group_id}}"/>
 <section class="wrapper site-min-height">
 	<section class="panel">
 	<!-- main start  -->
@@ -169,6 +170,7 @@
 				<button id="batchStart" class="btn greenbtn">批量启动</button>
 				<button id="batchEnd" class="btn redbtn">批量关闭</button>
 				<button id="newStart" class="btn greenbtn">批量重新部署</button>
+				<button id="groupShare" class="btn greenbtn">批量分享</button>
 			</div>
 			<!-- Mass deployment End-->
 		</section>

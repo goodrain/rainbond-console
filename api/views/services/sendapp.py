@@ -115,3 +115,27 @@ class AppSendUtil:
         except requests.exceptions.RequestException as ce:
             logger.error('send service to app error!', ce)
             return json.dumps({"code": 500})
+
+    def send_group(self, app_service_group):
+        retry = 3
+        num = 0
+        while retry > 0:
+            num = self._send_group(app_service_group)
+            if num == 0:
+                retry = 0
+            else:
+                retry -= 1
+        if num != 0:
+            return num
+
+    def _send_group(self, app_service_group):
+        try:
+            logger.debug(app_service_group)
+            data = json.dumps(app_service_group)
+            logger.debug('post service group json data={}'.format(data))
+            res, resp = appClient.publish_service_group(data)
+            logger.debug(res)
+            return 0
+        except requests.exceptions.RequestException as ce:
+            logger.exception('send service group to app error!', ce)
+            return 2

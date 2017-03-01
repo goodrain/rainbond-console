@@ -276,3 +276,15 @@ class AppServicePackages(BaseModel):
     total_price = models.FloatField(help_text=u"定价元/月")
     dep_info = models.CharField(max_length=2000, default='[]', help_text=u"依赖服务内存、节点信息")
 
+
+class AppServiceGroup(BaseModel):
+    """服务组分享记录"""
+    class Meta:
+        db_table = "app_service_group"
+
+    group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
+    group_share_alias = models.CharField(max_length=100, help_text=u"服务组发布名称")
+    group_id = models.CharField(max_length=100, help_text=u"对应的服务组")
+    service_ids = models.CharField(max_length=200, null=False, help_text=u"对应的服务id")
+    is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
+    step = models.IntegerField(default=0, help_text=u"当前发布进度")

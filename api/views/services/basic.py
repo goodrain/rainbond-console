@@ -5,7 +5,7 @@ from api.views.base import APIView
 from www.models import TenantServiceInfo, AppService, ServiceInfo, \
     AppServiceRelation, AppServicePort, AppServiceEnv, ServiceExtendMethod, \
     Tenants, Users, PermRelTenant, TenantServiceVolume, TenantServicesPort, \
-    AppServiceExtend
+    AppServiceExtend, AppServiceGroup
 from www.service_http import RegionServiceApi
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import BaseTenantService
@@ -264,10 +264,16 @@ class PublishServiceView(APIView):
               required: false
               type: boolean
               paramType: form
+            - name: share_id
+              description: share_id
+              required: false
+              type: string
+              paramType: form
 
         """
         data = {}
         isys = False
+        serviceInfo = None
         try:
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
@@ -290,7 +296,6 @@ class PublishServiceView(APIView):
                 slug = "/" + slug
             if isok:
                 update_version = 1
-                serviceInfo = None
                 try:
                     serviceInfo = ServiceInfo.objects.get(service_key=service_key, version=app_version)
                     update_version = serviceInfo.update_version + 1
@@ -345,6 +350,7 @@ class PublishServiceView(APIView):
             isys = app.dest_ys
         except Exception as e:
             logger.exception(e)
+            return Response({"ok": False}, status=500)
 
         # 发布到云市,调用http接口发送数据
         if isok and isys and settings.MODULES["Publish_YunShi"]:
@@ -373,6 +379,45 @@ class PublishServiceView(APIView):
                 apputil.send_image('app_logo', image_url)
             # 发送请求到所有的数据中心进行数据同步
             self.downloadImage(serviceInfo)
+
+            # 判断是否服务组发布,发布是否成功
+            share_id = request.data.get('share_id', None)
+            try:
+                if share_id is not None:
+                    app_service_group = None
+                    try:
+                        app_service_group = AppServiceGroup.objects.get(group_share_id=share_id)
+                    except AppServiceGroup.DoesNotExist as e:
+                        logger.exception(e)
+                    if app_service_group is not None:
+                        curr_step = app_service_group.step
+                        if curr_step > 0:
+                            curr_step -= 1
+                            app_service_group.step = curr_step
+                            app_service_group.save()
+                        if curr_step == 0:
+                            # 将服务组信息发送到云市
+                            tenant_id = data["tenant_id"]
+                            param_data = {"group_name": app_service_group.group_share_alias,
+                                          "tenant_id": tenant_id}
+                            tmp_ids = app_service_group.service_ids
+                            service_id_list = json.loads(tmp_ids)
+                            if len(service_id_list) > 0:
+                                service_list = AppService.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
+                                service_data = []
+                                for service in service_list:
+                                    service_map = {"service_key": service.service_key,
+                                                   "version": service.app_version}
+                                    service_data.append(service_map)
+                                param_data["data"] = service_data
+                                # 发送到云市
+
+                                num = apputil.send_group(param_data)
+                                if num != 0:
+                                    logger.exception("publish service group failed!")
+            except Exception as e:
+                logger.exception(e)
+                logger.error("publish service group failed!")
 
         return Response({"ok": True}, status=200)
 

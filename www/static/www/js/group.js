@@ -8,10 +8,12 @@ $(function(){
         $("#batchStart").prop("disabled",true);
         $("#batchEnd").prop("disabled",true);
         $("#newStart").prop("disabled",true);
+        $("#groupShare").prop("disabled",true);
     }else{
         $("#batchStart").removeAttr("disabled",true);
         $("#batchEnd").removeAttr("disabled",true);
         $("#newStart").removeAttr("disabled",true);
+        $("#groupShare").removeAttr("disabled",true);
     }
 	$(".fn-SelectItem input").click(function(){
     	chackboxnums = $(".fn-SelectItem input:checked").length;
@@ -25,10 +27,12 @@ $(function(){
             $("#batchStart").prop("disabled",true);
             $("#batchEnd").prop("disabled",true);
             $("#newStart").prop("disabled",true);
+            $("#groupShare").prop("disabled",true);
         }else{
             $("#batchStart").removeAttr("disabled",true);
             $("#batchEnd").removeAttr("disabled",true);
             $("#newStart").removeAttr("disabled",true);
+            $("#groupShare").removeAttr("disabled",true);
         }
     });
     $(".fn-SelectAll input").on("click",function(){
@@ -39,12 +43,14 @@ $(function(){
             $("#batchStart").removeAttr("disabled",true);
             $("#batchEnd").removeAttr("disabled",true);
             $("#newStart").removeAttr("disabled",true);
+            $("#groupShare").removeAttr("disabled",true);
 		}else{
 			$(".fn-SelectItem input").removeAttr("checked");
     		$("#nums-app p").children("span").html("0");
             $("#batchStart").prop("disabled",true);
             $("#batchEnd").prop("disabled",true);
             $("#newStart").prop("disabled",true);
+            $("#groupShare").prop("disabled",true);
 		}
     });
 
@@ -171,7 +177,41 @@ $(function(){
         ///
     });
     //批量启动
-     
+
+    //批量分享
+    $("#groupShare").click(function(){
+        var Arraycheck = [];
+        $(".fn-SelectItem input:checked").each(function(){
+            Arraycheck.push($(this).val());
+        });
+        var data = Arraycheck.join(',');
+        console.log(data);
+        var group_id = $("#group_id_input").val();
+        $.ajax({
+            type : "POST",
+            url : "/apps/" + tenantName + "/" + group_id + "/preview/",
+            data : {
+                "service_ids":JSON.stringify(Arraycheck)
+            },
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                var json_data = eval(msg);
+                if (json_data.code == 200 || json_data.code == 201) {
+                    location.href = json_data.next_url;
+                } else {
+                    swal(json_data.msg);
+                }
+            },
+            error : function() {
+                swal("系统异常");
+            }
+        });
+    });
+    //批量分享
 
 
     
