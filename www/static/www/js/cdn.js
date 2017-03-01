@@ -423,7 +423,12 @@ $(function(){
     });
     $(".saveManage").click(function(){
         var data = {};
-        data["manage_host"] = $(".manage_host").val();
+        data["bucket_name"] = $("#app_id").val();
+        data["domain"] = $(".manage_host").val();
+        if( !$(".manage_host").val() )
+        {
+            data["domain_follow"] = "enable";
+        }
         if( $(".manage input[type='radio'][name='way']:checked").data("id") )
         {
             data["source_type"] = $(".manage input[type='radio'][name='way']:checked").attr("data-id");
@@ -443,7 +448,7 @@ $(function(){
                         data_json["weight"] = line.eq(i).find("input").eq(2).val();
                         data_json["max_fails"] = line.eq(i).find("input").eq(3).val();
                         data_json["fail_timeout"] = line.eq(i).find("input").eq(4).val();
-                        data_json["backup"] = line.eq(i).find("option:checked").attr("data-toggle")?1:0;
+                        data_json["backup"] = line.eq(i).find("option:checked").attr("data-toggle")?"true":"false";
                         servers.push(data_json);
                     }
                     else{
@@ -492,15 +497,25 @@ $(function(){
         //    }
         //});
     });
-    $("#http").on('click',port_change(80));
-    $("#https").on('click',port_change(443));
-    $("#protocol_follow").on('click',port_change(80));
-    function port_change(num){
-        console.log(num);
+    $("#http").on('click',function(){
         var line = $(".manage table.tab-box tbody tr");
         for( var i = 0; i<line.length; i++ )
         {
-            line.eq(i).find("input").eq(1).val(num);
+            line.eq(i).find("input").eq(1).val(80);
         }
-    }
+    });
+    $("#https").on('click',function(){
+        var line = $(".manage table.tab-box tbody tr");
+        for( var i = 0; i<line.length; i++ )
+        {
+            line.eq(i).find("input").eq(1).val(443);
+        }
+    });
+    $("#protocol_follow").on('click',function(){
+        var line = $(".manage table.tab-box tbody tr");
+        for( var i = 0; i<line.length; i++ )
+        {
+            line.eq(i).find("input").eq(1).val(80);
+        }
+    });
 })
