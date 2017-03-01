@@ -426,16 +426,12 @@ $(function(){
         data["manage_host"] = $(".manage_host").val();
         if( $(".manage input[type='radio'][name='way']:checked").data("id") )
         {
-            console.log($(".manage input[type='radio'][name='way']:checked"));
             data["source_type"] = $(".manage input[type='radio'][name='way']:checked").attr("data-id");
             var line = $(".manage table.tab-box tbody tr");
             var servers = [];
-            console.log(line.length);
             for( var i = 0; i<line.length; i++ )
             {
                 var data_json = {};
-                console.log(line.eq(i).find("input").eq(0).val());
-                console.log(line.eq(i).find("input").eq(1).val());
                 if( line.eq(i).find("input").eq(0).val() )
                 {
                     data_json["host"] = line.eq(i).find("input").eq(0).val();
@@ -463,4 +459,14 @@ $(function(){
         }
         console.log(data);
     });
+    $("#http").click(port_change(80));
+    $("#https").click(port_change(443));
+    $("#protocol_follow").click(port_change(80));
+    function port_change(num){
+        var line = $(".manage table.tab-box tbody tr");
+        for( var i = 0; i<line.length; i++ )
+        {
+            line.eq(i).find("input").eq(1).val(num);
+        }
+    }
 })
