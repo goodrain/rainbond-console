@@ -574,7 +574,9 @@ class CDNSourceView(AuthedView):
             except YouPaiApi.CallApiError, e:
                 logger.exception(e)
                 result["status"] = "failure"
-                result["message"] = "添加失败"+e.message.body.message
+                result["message"] = "添加失败"
+                if e.message.body.message:
+                    result["message"] = e.message.body.message
         
         else:
             result["status"] = "failure"
