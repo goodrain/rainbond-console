@@ -257,8 +257,8 @@
                     <span>金额：</span>
                     <span class="flow_money">130元</span>
                 </p>
-                <p>
-                    <button class="btn btn-primary flow_buy" style="text-align: right;">购买</button>
+                <p style="text-align: right;">
+                    <button class="btn btn-primary flow_buy">购买</button>
                 </p>
             </div>
         </section>
@@ -350,7 +350,9 @@
                                     <td>
                                         <input type="number" value="{{ser.fail_timeout}}">
                                     </td>
-                                    <td></td>
+                                    <td>
+                                        <span class="manage_del"></span>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
