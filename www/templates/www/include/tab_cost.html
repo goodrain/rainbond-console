@@ -193,7 +193,7 @@
             {
                 $.ajax({
                     type : "get",
-                    url : "/apps/"+tenantName+"/memory-pay-method",
+                    url : "/apps/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
                     cache : false,
                     beforeSend : function(xhr, settings) {
                         var csrftoken = $.cookie('csrftoken');
@@ -210,7 +210,7 @@
             else{
                 $.ajax({
                     type : "get",
-                    url : "/apps/"+tenantName+"/disk-pay-method",
+                    url : "/apps/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
                     cache : false,
                     beforeSend : function(xhr, settings) {
                         var csrftoken = $.cookie('csrftoken');
