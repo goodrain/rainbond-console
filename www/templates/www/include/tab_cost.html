@@ -406,6 +406,9 @@
                 {
                     swal("修改成功")
                 }
+                else if( msg["status"] == "not_enough" ){
+                    swal("余额不足");
+                }
                 else{
                     swal(msg["info"]);
                 }
