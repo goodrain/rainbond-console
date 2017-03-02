@@ -470,37 +470,37 @@ $(function(){
             swal("请选择回源方式");
         }
         console.log(data);
-        //$.ajax({
-        //    type : "POST",
-        //    url : "/ajax/"+tenantName+"/"+app_id+"/purge",
-        //    data : {},
-        //    cache : false,
-        //    beforeSend : function(xhr, settings) {
-        //        var csrftoken = $.cookie('csrftoken');
-        //        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        //        swal({
-        //            title : "正在执行刷新操作，请稍候...",
-        //            text : "5秒后自动关闭",
-        //            timer : 5000,
-        //            showConfirmButton : false
-        //        });
-        //    },
-        //    success : function(msg) {
-        //        var dataObj = msg;
-        //        if (dataObj["status"] == "success")
-        //        {
-        //            swal("操作成功");
-        //            history.go(0);
-        //        }
-        //        else
-        //        {
-        //            swal("操作失败");
-        //        }
-        //    },
-        //    error : function() {
-        //        swal("系统异常");
-        //    }
-        //});
+        $.ajax({
+            type : "POST",
+            url : "/ajax/"+tenantName+"/"+app_id+"/cdn_source",
+            data : {},
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                swal({
+                    title : "正在执行保存操作，请稍候...",
+                    text : "5秒后自动关闭",
+                    timer : 5000,
+                    showConfirmButton : false
+                });
+            },
+            success : function(msg) {
+                var dataObj = msg;
+                if (dataObj["status"] == "success")
+                {
+                    swal("保存成功");
+                    history.go(0);
+                }
+                else
+                {
+                    swal("操作失败");
+                }
+            },
+            error : function() {
+                swal("系统异常");
+            }
+        });
     });
     $("#http").on('click',function(){
         var line = $(".manage table.tab-box tbody tr");
