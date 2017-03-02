@@ -12,7 +12,7 @@
                 <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
-                <td>磁盘计费方式：<span class="diskFun">{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="changeDisk"> 更改</a></td>
+                <td>磁盘计费方式：<span class="diskFun">{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费{% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="changeDisk"> 更改</a></td>
                 <td>当前使用：<span>{% if last_hour_consume.disk %} {{last_hour_consume.disk}} {% else %} 0 {% endif %} MB</span></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.disk_money %} {{last_hour_consume.disk_money}} {% else %} 0 {% endif %}元</span></td>
                 <td>累计费用：<span>{% if service_total_disk_fee %} {{service_total_disk_fee}} {% else %} 0 {% endif %}元</span></td>
@@ -26,7 +26,7 @@
             </tbody>
             <tfoot>
             <tr>
-                <td colspan="4">预付费项目有效期：<span>{{service_attach_info.buy_end_time}}</span><a href="javascript:void(0)" class="expand">延期</a></td>
+                <td colspan="4">预付费项目有效期：<span id="end_time">{{service_attach_info.buy_end_time}}</span><a href="javascript:void(0)" class="expand">延期</a></td>
             </tr>
             </tfoot>
         </table>
@@ -407,6 +407,7 @@
                 {
                     swal("修改成功");
                     $("span.memoryFun").html("预付费");
+                    $("#end_time").html(msg["end_time"]);
                     $(".chooseDisk").css({"display":"none"});
                     $(".layer-body-bg").css({"display":"none"});
                 }
