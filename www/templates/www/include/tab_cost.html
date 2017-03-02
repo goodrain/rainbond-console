@@ -95,7 +95,7 @@
             <!--弹层2-->
             <div class="chooseFun">
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                <h3 class="layer-tit">修改预付费成功，请选择购买内存时长</h3>
+                <h3 class="layer-tit">请选择购买内存时长</h3>
                 <div class="layer-height-overflow infor-fm-box">
                     <div class="fm-input-range clearfix">
                         <label>应用购买时长</label>
@@ -119,7 +119,7 @@
             </div>
             <div class="chooseDisk">
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                <h3 class="layer-tit">修改预付费成功，请选择购买磁盘时长</h3>
+                <h3 class="layer-tit">请选择购买磁盘时长</h3>
                 <div class="layer-height-overflow infor-fm-box">
                     <div class="fm-input-range clearfix">
                         <label>应用购买时长</label>
@@ -260,11 +260,11 @@
                             else{
                                 $(".chooseFun .layer-height-overflow").css({"display":"none"});
                                 var time = msg["left_hours"];
-                                var day = time/24;
+                                var day = parseInt(time/24);
                                 var hour = time%24;
                                 var str = "<p style='color: red;'>内存与磁盘预付费时长应保持一致，剩余时间"+day+"天"+hour+"小时</p>";
                                 $("#TimeLongMoney").html(msg["memory_fee"]);
-                                $(str).prependTo($(".chooseFun .layer-height-overflow"));
+                                $(str).prependTo($(".chooseFun  "));
                             }
                         }
                         else{
