@@ -131,11 +131,11 @@
                         <span><cite id="LongDiskText">1</cite>个月</span>
                     </div>
                     <div class="fm-input-range clearfix">
-                        <label>应用购买磁盘大小</label>
+                        <label>购买磁盘大小</label>
                         <p class="range-box">
                             <span class="renge-bg"></span>
                             <span class="range-choose"><cite id="DiskSize"></cite></span>
-                            <input type="range" min="1" max="200"  step="5" id="LongDiskSize" value="1"／>
+                            <input type="range" min="1" max="200"  step="1" id="LongDiskSize" value="1"／>
                         </p>
                         <span><cite id="DiskSizeText">1</cite>G</span>
                     </div>
@@ -307,7 +307,7 @@
                     {
                         if(msg["choosable"])
                         {
-                            var money = msg["disk_unit_fee"]*msg["memory"]*24*30/1024;
+                            var money = msg["disk_unit_fee"]*24*30*$("#LongDiskText").val()*$("#DiskSizeText").val();
                             $("#LongDiskMoney").html(money);
                         }
                         else{
