@@ -475,7 +475,7 @@ $(function(){
         $.ajax({
             type : "POST",
             url : "/ajax/"+tenantName+"/"+app_id+"/cdn_source",
-            data : {},
+            data : data,
             cache : false,
             beforeSend : function(xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
