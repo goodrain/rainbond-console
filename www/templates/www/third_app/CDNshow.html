@@ -287,7 +287,7 @@
                 <div class="clearfix">
                     <div class="left_text">回源Host</div>
                     <div class="right_content">
-                        <input type="text" class="manage_host" value="{{cdn_source.domain}}">
+                        <input type="text" class="manage_host" {% if cdn_source.domain %}value="{{cdn_source.domain}}"{% endif %}>
                         <li style="list-style-type: disc;color: #28cb75;">可选配置项，可自定义域名，如不填则表示使用加速域名进行回源访问</li>
                     </div>
                 </div>
@@ -330,7 +330,7 @@
                                 {% for ser in cdn_source.cdn.bgp.servers %}
                                 <tr>
                                     <td>
-                                        <input type="text" {% if not ser.host %}value="{{ser.host}}"{% endif %}>
+                                        <input type="text" value="{{ser.host}}">
                                     </td>
                                     <td>
                                         <input type="number" value="{{ser.port}}">
