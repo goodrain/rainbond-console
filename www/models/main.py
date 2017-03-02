@@ -1030,7 +1030,7 @@ class ServiceFeeBill(BaseModel):
     node_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=128)
     node_num = models.IntegerField(help_text=u"节点个数", default=1)
     disk = models.IntegerField(help_text=u'磁盘大小')
-    buy_period = models.IntegerField(help_text=u"预付费项目购买时长(单位:月)", default=0)
+    buy_period = models.IntegerField(help_text=u"预付费时长(单位:小时)", default=0)
 
 
 class ServiceConsume(BaseModel):

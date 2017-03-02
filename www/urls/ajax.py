@@ -4,6 +4,7 @@ from www.tests import *
 from www.services_view import *
 from www.views import ajax
 from www.views.ajax import UpdateGroupView, BatchActionView
+from www.views.ajax.service_fee import *
 
 from www.views.ajax.service_rule import *
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
@@ -83,4 +84,9 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/traffic/add', CDNTrafficRecordView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/open', OpenThirdAppView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/delete', DeleteThirdAppView.as_view()),
+    # service fee
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/memory-pay-method$', MemoryPayMethodView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/disk-pay-method$', DiskPayMethodView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-extend$', ExtendServiceView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/postpone$', PrePaidPostponeView.as_view()),
 )
