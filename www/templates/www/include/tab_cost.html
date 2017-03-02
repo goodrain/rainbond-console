@@ -263,8 +263,8 @@
                                 var day = time/24;
                                 var hour = time%24;
                                 var str = "<p style='color: red;'>内存与磁盘预付费时长应保持一致，剩余时间"+day+"天"+hour+"小时</p>";
-                                $("#TimeLongMoney").html(mag["memory_fee"]);
-                                $(str).appendTo($(".chooseFun .layer-height-overflow"));
+                                $("#TimeLongMoney").html(msg["memory_fee"]);
+                                $(str).prependTo($(".chooseFun .layer-height-overflow"));
                             }
                         }
                         else{
