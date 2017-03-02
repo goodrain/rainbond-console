@@ -113,7 +113,7 @@
                     </p>
                 </div>
                 <p class="bottom">
-                    <button class="sure sureTimeLong">付款</button>
+                    <button class="sure sureMemory">付款</button>
                     <button class="cancel">取消</button>
                 </p>
             </div>
@@ -145,7 +145,7 @@
                     </p>
                 </div>
                 <p class="bottom">
-                    <button class="sure sureTimeLong">付款</button>
+                    <button class="sure sureDisk">付款</button>
                     <button class="cancel">取消</button>
                 </p>
             </div>
@@ -341,6 +341,7 @@
             $(".chooseData").css({"display":"none"});
             $(".chooseLarge").css({"display":"block"});
             $(".layer-body-bg").css({"display":"block"});
+            $(".chooseDisk").css({"display":"none"});
         });
         //延期
         $(".expand").on("click",function(){
@@ -349,6 +350,7 @@
             $(".chooseData").css({"display":"block"});
             $(".chooseLarge").css({"display":"none"});
             $(".layer-body-bg").css({"display":"block"});
+            $(".chooseDisk").css({"display":"none"});
         });
         //跳转支付
         $("button.sureTimeLong").on("click",function(){
@@ -368,8 +370,25 @@
             $(".chooseFun").css({"display":"none"});
             $(".chooseData").css({"display":"none"});
             $(".chooseLarge").css({"display":"none"});
+            $(".chooseDisk").css({"display":"none"});
         })
     });
+
+
+
+    $(".sureMemory").on("click",function(){
+        var way = $(".changeMemory").parent().find("span").html();
+        if( way == "后付费" )
+        {
+            console.log(1);
+        }
+        else{
+            console.log(0);
+        }
+    });
+
+
+
 
 
     function FnRange(inputid,textid,widid,num){
