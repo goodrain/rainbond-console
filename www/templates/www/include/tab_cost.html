@@ -380,11 +380,40 @@
         var way = $(".changeMemory").parent().find("span").html();
         if( way == "后付费" )
         {
-            console.log(1);
+            var msg = "post2pre"
         }
         else{
-            console.log(0);
+            var msg = "pre2post"
         }
+        var tenantName = $("#tenantName").val();
+        var serviceAlias = $("#serviceAlias").val();
+        $.ajax({
+            type : "post",
+            url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
+            data : {
+                update_method : msg,
+                pay_period : $("#TimeLongText").html(),
+                pay_money : $("#TimeLongMoney").html()
+            },
+            cache : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(msg) {
+                console.log(msg);
+                if( msg["status"] == "success" )
+                {
+                    swal("修改成功")
+                }
+                else{
+                    swal(msg["info"]);
+                }
+            },
+            error : function() {
+                swal("系统异常,请重试");
+            }
+        });
     });
 
 
