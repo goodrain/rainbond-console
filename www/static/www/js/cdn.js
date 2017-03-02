@@ -464,7 +464,7 @@ $(function(){
                 }
             }
             data_cdn["servers"] = servers;
-            data["cdn"] = data_cdn;
+            data["cdn"] = JSON.stringify(data_cdn);
         }
         else{
             swal("请选择回源方式");
@@ -496,7 +496,7 @@ $(function(){
                 }
                 else
                 {
-                    swal("操作失败");
+                    swal(msg["message"]);
                 }
             },
             error : function() {
