@@ -307,7 +307,7 @@
                     {
                         if(msg["choosable"])
                         {
-                            var money = msg["disk_unit_fee"]*24*30*$("#LongDiskText").val()*$("#DiskSizeText").val();
+                            var money = msg["disk_unit_fee"]*24*30*$("#LongDiskText").html()*$("#DiskSizeText").html();
                             $("#LongDiskMoney").html(money);
                         }
                         else{
