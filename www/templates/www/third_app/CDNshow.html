@@ -239,7 +239,14 @@
         {% endif %}
         <section class="table content-tab">
             <div class="flow clearfix">
-                <h4 style="width: 100%">购买流量包</h4>
+                <h4>购买流量包</h4>
+                <ul class="clearfix">
+                    <li>
+                        <button class="btn btn-primary flow_buy">购买</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="flow clearfix">
                 <p>当前可用流量{{ traffic_balance }} GB</p>
                 <p>
                     <span>新购流量包</span>
@@ -256,9 +263,6 @@
                 <p>
                     <span>金额：</span>
                     <span class="flow_money">130元</span>
-                </p>
-                <p style="text-align: right;">
-                    <button class="btn btn-primary flow_buy">购买</button>
                 </p>
             </div>
         </section>
