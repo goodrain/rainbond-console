@@ -236,41 +236,40 @@
                 $(".chooseLarge").css({"display":"none"});
                 $(".layer-body-bg").css({"display":"block"});
                 $(".chooseDisk").css({"display":"none"});
-            }
-            $.ajax({
-                type : "get",
-                url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
-                cache : false,
-                beforeSend : function(xhr, settings) {
-                    var csrftoken = $.cookie('csrftoken');
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success : function(msg) {
-                    console.log(msg);
-                    if( msg["status"] == "success" )
-                    {
-                        if(msg["choosable"])
+                $.ajax({
+                    type : "get",
+                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        console.log(msg);
+                        if( msg["status"] == "success" )
                         {
-                            var money = msg["memory_unit_fee"]*msg["memory"]*24*30/1024;
-                            $("#TimeLongMoney").attr("data-money",money);
-                            $("#TimeLongMoney").html(money);
+                            if(msg["choosable"])
+                            {
+                                var money = msg["memory_unit_fee"]*msg["memory"]*24*30/1024;
+                                $("#TimeLongMoney").attr("data-money",money);
+                                $("#TimeLongMoney").html(money);
+                            }
+                            else{
+                                $("input#TimeLong").attr("disabled");
+                                $("input#TimeLong").css({"cursor":"not-allowed"});
+                                var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
+                                $(str).appendTo($(".chooseFun .layer-height-overflow"));
+                            }
                         }
                         else{
-                            $("input#TimeLong").attr("disabled");
-                            $("input#TimeLong").css({"cursor":"not-allowed"});
-                            var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
-                            $(str).appendTo($(".chooseFun .layer-height-overflow"));
-                            that.parent().find('span').html("后付费");
+                            swal(msg["info"]);
                         }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
                     }
-                    else{
-                        swal(msg["info"]);
-                    }
-                },
-                error : function() {
-                    swal("系统异常,请重试");
-                }
-            });
+                });
+            }
         });
         $('.changeDisk').on('click',function(){
             var tenantName = $("#tenantName").val();
@@ -293,41 +292,41 @@
                 $(".chooseLarge").css({"display":"none"});
                 $(".layer-body-bg").css({"display":"block"});
                 $(".chooseDisk").css({"display":"block"});
-            }
-            $.ajax({
-                type : "get",
-                url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
-                cache : false,
-                beforeSend : function(xhr, settings) {
-                    var csrftoken = $.cookie('csrftoken');
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success : function(msg) {
-                    console.log(msg);
-                    if( msg["status"] == "success" )
-                    {
-                        if(msg["choosable"])
+                $.ajax({
+                    type : "get",
+                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        console.log(msg);
+                        if( msg["status"] == "success" )
                         {
-                            var eachMoney = msg["disk_unit_fee"]*24*30;
-                            var money = eachMoney*$("#LongDiskText").html()*$("#DiskSizeText").html();
-                            $("#LongDiskMoney").html(money);
-                            $("#LongDiskMoney").attr("data-money",eachMoney);
+                            if(msg["choosable"])
+                            {
+                                var eachMoney = msg["disk_unit_fee"]*24*30;
+                                var money = eachMoney*$("#LongDiskText").html()*$("#DiskSizeText").html();
+                                $("#LongDiskMoney").html(money);
+                                $("#LongDiskMoney").attr("data-money",eachMoney);
+                            }
+                            else{
+                                $("input#TimeLong").attr("disabled");
+                                $("input#TimeLong").css({"cursor":"not-allowed"});
+                                var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
+                                $(str).appendTo($(".chooseDisk .layer-height-overflow"));
+                            }
                         }
                         else{
-                            $("input#TimeLong").attr("disabled");
-                            $("input#TimeLong").css({"cursor":"not-allowed"});
-                            var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
-                            $(str).appendTo($(".chooseDisk .layer-height-overflow"));
+                            swal(msg["info"]);
                         }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
                     }
-                    else{
-                        swal(msg["info"]);
-                    }
-                },
-                error : function() {
-                    swal("系统异常,请重试");
-                }
-            });
+                });
+            }
         });
         //关闭弹出层
         $(".del").on("click",function(){
@@ -404,7 +403,7 @@
                 if( msg["status"] == "success" )
                 {
                     swal("修改成功");
-                    $(".changeMemory").parent().find("span").html("预付费");
+                    $("span.memoryFun").html("预付费");
                     $(".chooseDisk").css({"display":"none"});
                     $(".layer-body-bg").css({"display":"none"});
                 }
