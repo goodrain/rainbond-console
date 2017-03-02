@@ -6,13 +6,13 @@
         <table>
             <tbody>
             <tr>
-                <td>内存计费方式：<span>{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="change"> 更改</a></td>
+                <td>内存计费方式：<span>{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="change changeMemory"> 更改</a></td>
                 <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span><a href="javascript:void(0)" class="larger">扩容</a></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.memory_money %} {{last_hour_consume.memory_money}} {% else %} 0 {% endif %} 元</span></td>
                 <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
-                <td>磁盘计费方式：<span>{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="change"> 更改</a></td>
+                <td>磁盘计费方式：<span>{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="change changeDisk"> 更改</a></td>
                 <td>当前使用：<span>{% if last_hour_consume.disk %} {{last_hour_consume.disk}} {% else %} 0 {% endif %} MB</span></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.disk_money %} {{last_hour_consume.disk_money}} {% else %} 0 {% endif %}元</span></td>
                 <td>累计费用：<span>{% if service_total_disk_fee %} {{service_total_disk_fee}} {% else %} 0 {% endif %}元</span></td>
@@ -182,29 +182,6 @@
                 $(".layer-body-bg").css({"display":"block"});
             }
             else{
-//                $.ajax({
-//                    type : "get",
-//                    url : "/apps/"+tenantName+"/memory-pay-method",
-//                    cache : false,
-//                    beforeSend : function(xhr, settings) {
-//                        var csrftoken = $.cookie('csrftoken');
-//                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-//                    },
-//                    success : function(msg) {
-//                        if (msg["status"] == "success") {
-//                            var service_alias = msg["service_alias"];
-//                            window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
-//                        }else if(msg["status"] == "notfound"){
-//                            swal("服务不存在");
-//                        }else{
-//                            swal("配置失败");
-//                        }
-//                    },
-//                    error : function() {
-//                        swal("系统异常,请重试");
-//                        $(".submit").attr('disabled', false);
-//                    }
-//                });
                 //弹出层，选择购买配置，付费
                 $(".chooseFun").css({"display":"block"});
                 $(".chooseData").css({"display":"none"});
@@ -212,6 +189,41 @@
                 $(".layer-body-bg").css({"display":"block"});
             }
             that = $(this);
+            if( $(this).hasClass("changeMemory") )
+            {
+                $.ajax({
+                    type : "get",
+                    url : "/apps/"+tenantName+"/memory-pay-method",
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        console.log(msg);
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+            }
+            else{
+                $.ajax({
+                    type : "get",
+                    url : "/apps/"+tenantName+"/disk-pay-method",
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        console.log(msg);
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+            }
         });
         //关闭弹出层
         $(".del").on("click",function(){
