@@ -401,23 +401,23 @@ class OpenThirdAppView(AuthedView):
         :return:
         """
         result = {}
-        try:
-            upai_client = YouPaiApi()
-            if self.tenant.balance > 0:
+        
+        upai_client = YouPaiApi()
+        if self.tenant.balance > 0:
+            try:
                 res, body = upai_client.openApp(self.app_id)
                 if res.status == 200:
                     self.app_info.open = 1
                     self.app_info.save()
-                else:
-                    result["status"] = "failure"
-                    result["message"] = body.message
-            else:
+                    result["status"] = "success"
+                    result["message"] = "操作成功"
+            except Exception, e:
+                logger.exception(e)
                 result["status"] = "failure"
-                result["message"] = "余额不足"
-        except Exception, e:
-            logger.exception(e)
+                result["message"] = "开启失败"
+        else:
             result["status"] = "failure"
-            result["message"] = "开启失败"
+            result["message"] = "余额不足"
         return JsonResponse(result)
 
 
@@ -436,19 +436,23 @@ class CloseThirdAppView(AuthedView):
         :return:
         """
         result = {}
-        try:
-            upai_client = YouPaiApi()
-            res, body = upai_client.stopApp(self.app_id)
-            if res.status == 200:
-                self.app_info.open = 0
-                self.app_info.save()
-            else:
+
+        upai_client = YouPaiApi()
+        if self.tenant.balance > 0:
+            try:
+                res, body = upai_client.stopApp(self.app_id)
+                if res.status == 200:
+                    self.app_info.open = 0
+                    self.app_info.save()
+                    result["status"] = "success"
+                    result["message"] = "操作成功"
+            except Exception, e:
+                logger.exception(e)
                 result["status"] = "failure"
-                result["message"] = body.message
-        except Exception, e:
-            logger.exception(e)
+                result["message"] = "开启失败"
+        else:
             result["status"] = "failure"
-            result["message"] = "关闭失败"
+            result["message"] = "余额不足"
         return JsonResponse(result)
 
 
