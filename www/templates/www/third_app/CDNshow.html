@@ -176,8 +176,8 @@
                     <span>回源途径：自主源站</span>
                     <!--<span class="icon_tip fn-tips" data-tips="提示提示提示" data-position="top"></span>-->
                 </p>
-                <p>回源方式：{{cdn_source.source_type}}</p>
-                <p>源站线路：{{cdn_source.cdn.servers|length}}条</p>
+                <p>回源方式：{% if cdn_source.source_type == "protocol_follow" %}回源跟随{% else %}{{cdn_source.source_type}}{% endif %}</p>
+                <p>源站线路：{{cdn_source.cdn.bgp.servers|length}}条</p>
             </div>
         </section>
         {% endif %}
@@ -326,8 +326,8 @@
                             </tr>
                             </thead>
                             <tbody>
-                            {% if cdn_source.cdn.servers|length %}
-                                {% for ser in cdn_source.cdn.servers %}
+                            {% if cdn_source.cdn.bgp.servers|length %}
+                                {% for ser in cdn_source.cdn.bgp.servers %}
                                 <tr>
                                     <td>
                                         <input type="text" value="{{ser.host}}">
