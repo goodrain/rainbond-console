@@ -6,13 +6,13 @@
         <table>
             <tbody>
             <tr>
-                <td>内存计费方式：<span>{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="change changeMemory"> 更改</a></td>
+                <td>内存计费方式：<span>{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="changeMemory"> 更改</a></td>
                 <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span><a href="javascript:void(0)" class="larger">扩容</a></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.memory_money %} {{last_hour_consume.memory_money}} {% else %} 0 {% endif %} 元</span></td>
                 <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
-                <td>磁盘计费方式：<span>{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="change changeDisk"> 更改</a></td>
+                <td>磁盘计费方式：<span>{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="changeDisk"> 更改</a></td>
                 <td>当前使用：<span>{% if last_hour_consume.disk %} {{last_hour_consume.disk}} {% else %} 0 {% endif %} MB</span></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.disk_money %} {{last_hour_consume.disk_money}} {% else %} 0 {% endif %}元</span></td>
                 <td>累计费用：<span>{% if service_total_disk_fee %} {{service_total_disk_fee}} {% else %} 0 {% endif %}元</span></td>
@@ -117,6 +117,30 @@
                     <button class="cancel">取消</button>
                 </p>
             </div>
+            <div class="chooseDisk">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix">
+                        <label>应用购买时长</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="TimeLongWid"></cite></span>
+                            <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
+                        </p>
+                        <span><cite id="TimeLongText">1</cite>个月</span>
+                    </div>
+
+                    <p class="calMoney">
+                        <span>费用总计</span>
+                        <span id="TimeLongMoney"></span>元
+                    </p>
+                </div>
+                <p class="bottom">
+                    <button class="sure sureTimeLong">付款</button>
+                    <button class="cancel">取消</button>
+                </p>
+            </div>
             <!--弹层3-->
             <div class="chooseData">
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
@@ -183,20 +207,19 @@
 </div>
 <script>
     $(function(){
-        var that;
-        $('.change').on('click',function(){
+        $('.changeMemory').on('click',function(){
             var tenantName = $("#tenantName").val();
             var serviceAlias = $("#serviceAlias").val();
-            console.log(tenantName+";"+serviceAlias);
+            var that = $(this);
             if($(this).parent().find('span').html() == "预付费")
             {
-                $(this).parent().find('span').html("后付费");
                 //弹出层，告知修改成功
                 $(".endDate").css({"display":"block"});
                 $(".chooseFun").css({"display":"none"});
                 $(".chooseData").css({"display":"none"});
                 $(".chooseLarge").css({"display":"none"});
                 $(".layer-body-bg").css({"display":"block"});
+                $(".chooseDisk").css({"display":"none"});
             }
             else{
                 //弹出层，选择购买配置，付费
@@ -204,60 +227,41 @@
                 $(".chooseData").css({"display":"none"});
                 $(".chooseLarge").css({"display":"none"});
                 $(".layer-body-bg").css({"display":"block"});
+                $(".chooseDisk").css({"display":"none"});
             }
-            that = $(this);
-            if( $(this).hasClass("changeMemory") )
-            {
-                $.ajax({
-                    type : "get",
-                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
-                    cache : false,
-                    beforeSend : function(xhr, settings) {
-                        var csrftoken = $.cookie('csrftoken');
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                    },
-                    success : function(msg) {
-                        console.log(msg);
-                        if( msg["status"] == "success" )
+            $.ajax({
+                type : "get",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    console.log(msg);
+                    if( msg["status"] == "success" )
+                    {
+                        if(msg["choosable"])
                         {
-                            if(msg["choosable"])
-                            {
-                                var money = msg["memory_unit_fee"]*msg["memory"]*24*30/1024;
-                                $("#TimeLongMoney").html(money);
-                            }
-                            else{
-                                $("input#TimeLong").attr("disabled");
-                                $("input#TimeLong").css({"cursor":"not-allowed"});
-                                var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
-                                $(str).appendTo($(".chooseFun .layer-height-overflow"));
-                            }
+                            var money = msg["memory_unit_fee"]*msg["memory"]*24*30/1024;
+                            $("#TimeLongMoney").html(money);
                         }
                         else{
-                            swal(msg["info"]);
+                            $("input#TimeLong").attr("disabled");
+                            $("input#TimeLong").css({"cursor":"not-allowed"});
+                            var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
+                            $(str).appendTo($(".chooseFun .layer-height-overflow"));
+                            that.parent().find('span').html("后付费");
                         }
-                    },
-                    error : function() {
-                        swal("系统异常,请重试");
                     }
-                });
-            }
-            else{
-                $.ajax({
-                    type : "get",
-                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
-                    cache : false,
-                    beforeSend : function(xhr, settings) {
-                        var csrftoken = $.cookie('csrftoken');
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                    },
-                    success : function(msg) {
-                        console.log(msg);
-                    },
-                    error : function() {
-                        swal("系统异常,请重试");
+                    else{
+                        swal(msg["info"]);
                     }
-                });
-            }
+                },
+                error : function() {
+                    swal("系统异常,请重试");
+                }
+            });
         });
         //关闭弹出层
         $(".del").on("click",function(){
