@@ -106,6 +106,12 @@
                         </p>
                         <span><cite id="TimeLongText">1</cite>个月</span>
                     </div>
+                    <div class="fm-input-range calMoney clearfix">
+                        <label>费用总计</label>
+                        <p class="range-box">
+                            <span id="TimeLongMoney">200</span>元
+                        </p>
+                    </div>
                 </div>
                 <p class="bottom">
                     <button class="sure sureTimeLong">付款</button>
@@ -125,6 +131,12 @@
                             <input type="range" min="1" max="24"  step="1" id="Time" value="1"／>
                         </p>
                         <span><cite id="TimeText">1</cite>个月</span>
+                    </div>
+                    <div class="fm-input-range calMoney clearfix">
+                        <label>费用总计</label>
+                        <p class="range-box">
+                            <span id="TimeMoney">200</span>元
+                        </p>
                     </div>
                 </div>
                 <p class="bottom">
@@ -154,6 +166,12 @@
                             <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
                         </p>
                         <span><cite id="OneMemoryText">128</cite>M</span>
+                    </div>
+                    <div class="fm-input-range calMoney clearfix">
+                        <label>费用总计</label>
+                        <p class="range-box">
+                            <span id="deployMoney">200</span>元
+                        </p>
                     </div>
                 </div>
                 <p class="bottom">
@@ -201,6 +219,23 @@
                     },
                     success : function(msg) {
                         console.log(msg);
+                        if( msg["status"] == "success" )
+                        {
+                            if(msg["choosable"])
+                            {
+                                var money = msg["memory_unit_fee"]*msg["memory"]*24*30;
+                                $("#TimeLongMoney").html(money);
+                            }
+                            else{
+                                $("input#TimeLong").attr("disabled");
+                                $("input#TimeLong").css({"cursor":"not-allowed"});
+                                var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
+                                $(str).appendTo($(".chooseFun .layer-height-overflow"));
+                            }
+                        }
+                        else{
+                            swal(msg["info"]);
+                        }
                     },
                     error : function() {
                         swal("系统异常,请重试");
