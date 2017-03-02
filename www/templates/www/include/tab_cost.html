@@ -6,7 +6,7 @@
         <table>
             <tbody>
             <tr>
-                <td>内存计费方式：<span class="memoryFun">{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="changeMemory"> 更改</a></td>
+                <td>内存计费方式：<span class="memoryFun">{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费{% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="changeMemory"> 更改</a></td>
                 <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span><a href="javascript:void(0)" class="larger">扩容</a></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.memory_money %} {{last_hour_consume.memory_money}} {% else %} 0 {% endif %} 元</span></td>
                 <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
@@ -219,8 +219,10 @@
             var tenantName = $("#tenantName").val();
             var serviceAlias = $("#serviceAlias").val();
             var that = $(this);
+            console.log($("span.memoryFun").html());
             if($("span.memoryFun").html() == "预付费")
             {
+                console.log(1);
                 //弹出层，告知修改成功
                 $(".endDate").css({"display":"block"});
                 $(".chooseFun").css({"display":"none"});
@@ -230,6 +232,7 @@
                 $(".chooseDisk").css({"display":"none"});
             }
             else{
+                console.log(2);
                 //弹出层，选择购买配置，付费
                 $(".chooseFun").css({"display":"block"});
                 $(".chooseData").css({"display":"none"});
