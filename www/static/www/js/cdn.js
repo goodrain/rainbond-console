@@ -416,7 +416,7 @@ $(function(){
         });
     }
     $("span.manage_add").click(function(){
-        var str = '<tr><td><input type="text" placeholder="IP或域名"></td><td><input type="number" value="443"></td><td><select><option data-toggle="true">主线路</option><option>备用线路</option></select></td>';
+        var str = '<tr><td><input type="text" placeholder="IP或域名"></td><td><input type="number" value="80"></td><td><select><option data-toggle="true">主线路</option><option>备用线路</option></select></td>';
         str += '<td><input type="number" value="1"></td><td><input type="number" value="3"></td><td><input type="number" value="30"></td><td><span class="manage_del"></span></td></tr>';
         $(str).appendTo("table.tab-box tbody");
         manage_del();
@@ -469,7 +469,6 @@ $(function(){
         else{
             swal("请选择回源方式");
         }
-        console.log(data);
         var tenantName = $("#tenantName").val();
         var app_id = $("#app_id").val();
         $.ajax({
