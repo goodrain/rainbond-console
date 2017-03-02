@@ -30,6 +30,9 @@ $(function(){
                     {
                         history.go(0);
                     }
+                    else{
+                        swal(data["message"]);
+                    }
                 },
                 error : function(){
                     swal("系统异常");
@@ -70,6 +73,9 @@ $(function(){
                         //that.parents("tr").remove();
                         history.go(0);
                     }
+                    else{
+                        swal(data["message"]);
+                    }
                 },
                 error : function(){
                     swal("系统异常");
@@ -108,6 +114,9 @@ $(function(){
                         if( data["status"] == "success" )
                         {
                             history.go(0);
+                        }
+                        else{
+                            swal(data["message"]);
                         }
                     },
                     error : function(){
@@ -155,6 +164,9 @@ $(function(){
                         //that.parents("tr").remove();
                         history.go(0);
                     }
+                    else{
+                        swal(data["message"]);
+                    }
                 },
                 error : function(){
                     swal("系统异常");
@@ -193,6 +205,9 @@ $(function(){
                         $("#cdn_name").html($("p.cdn_name input").val());
                         $("p.cdn_name").hide();
                         $("p.cdn_name input").val("");
+                    }
+                    else{
+                        swal(data["message"]);
                     }
                 },
                 error : function(){
@@ -236,6 +251,9 @@ $(function(){
                 if( data["status"] == "success" )
                 {
                     history.go(0);
+                }
+                else {
+                    swal(data["message"]);
                 }
             },
             error : function(){
@@ -282,7 +300,7 @@ $(function(){
                         }
                         else
                         {
-                            swal("操作失败");
+                            swal(msg["message"]);
                         }
                     },
                     error : function() {
@@ -321,7 +339,7 @@ $(function(){
                 }
                 else
                 {
-                    swal("操作失败");
+                    swal(msg["message"]);
                 }
             },
             error : function() {
@@ -356,7 +374,7 @@ $(function(){
                 }
                 else
                 {
-                    swal("操作失败");
+                    swal(msg["message"]);
                 }
             },
             error : function() {
@@ -391,7 +409,7 @@ $(function(){
                 }
                 else
                 {
-                    swal("操作失败");
+                    swal(msg["message"]);
                 }
             },
             error : function() {
