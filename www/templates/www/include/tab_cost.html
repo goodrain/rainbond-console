@@ -106,12 +106,11 @@
                         </p>
                         <span><cite id="TimeLongText">1</cite>个月</span>
                     </div>
-
-                    <p class="calMoney">
-                        <span>费用总计</span>
-                        <span id="TimeLongMoney"></span>元
-                    </p>
                 </div>
+                <p class="calMoney">
+                    <span>费用总计</span>
+                    <span id="TimeLongMoney"></span>元
+                </p>
                 <p class="bottom">
                     <button class="sure sureMemory">付款</button>
                     <button class="cancel">取消</button>
@@ -139,11 +138,11 @@
                         </p>
                         <span><cite id="DiskSizeText">1</cite>G</span>
                     </div>
-                    <p class="calMoney">
-                        <span>费用总计</span>
-                        <span id="LongDiskMoney"></span>元
-                    </p>
                 </div>
+                <p class="calMoney">
+                    <span>费用总计</span>
+                    <span id="LongDiskMoney"></span>元
+                </p>
                 <p class="bottom">
                     <button class="sure sureDisk">付款</button>
                     <button class="cancel">取消</button>
@@ -263,8 +262,8 @@
                                 var day = parseInt(time/24);
                                 var hour = time%24;
                                 var str = "<p style='color: red;'>内存与磁盘预付费时长应保持一致，剩余时间"+day+"天"+hour+"小时</p>";
+                                $(str).appendTo($(".chooseFun  "));
                                 $("#TimeLongMoney").html(msg["memory_fee"]);
-                                $(str).prependTo($(".chooseFun  "));
                             }
                         }
                         else{
