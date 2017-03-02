@@ -539,23 +539,40 @@ class CDNSourceView(AuthedView):
         :return:
         """
         result = {}
-        try:
-            if self.app_info.app_type == "upai_cdn":
-                res = {}
-                body = {}
-                try:
-                    rbody = {}
-                    
-                    upai_client = YouPaiApi()
-                    res, body = upai_client.cdn_source(self.app_id, json.loads(rbody))
-                except Exception, e:
-                    result["status"] = "failure"
-                    result["message"] = "添加失败" + body.message
-                if res.status == 200:
-                    result["status"] = "success"
-                    result["message"] = "添加成功"
-        except Exception, e:
-            logger.exception(e)
+        
+        if self.app_info.app_type == "upai_cdn":
+            domain = request.POST.get("domain", "")
+            source_type = request.POST.get("source_type", "protocol_follow")
+            domain_follow = request.POST.get("domain_follow", "enable")
+            cdn = request.POST.get("cdn", None)
+            if domain == "" and domain_follow != "enable":
+                result["status"] = "failure"
+                result["message"] = "域名为空且域名跟随未开启"
+                return JsonResponse(result)
+            if cdn is None:
+                result["status"] = "failure"
+                result["message"] = "CDN回源地址未定义"
+                return JsonResponse(result)
+            rbody = {}
+            rbody["domain"] = domain
+            rbody["source_type"] = source_type
+            rbody["domain_follow"] = domain_follow
+            rbody["cdn"] = cdn
+            rbody["bucket_name"] = self.app_id
+            upai_client = YouPaiApi()
+            res = {}
+            body = {}
+            try:
+                res, body = upai_client.cdn_source(self.app_id, json.loads(rbody))
+            except Exception, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                result["message"] = "添加失败" + body.message
+            
+            if res.status == 200:
+                result["status"] = "success"
+                result["message"] = "添加成功"
+        else:
             result["status"] = "failure"
-            result["message"] = "添加失败"
+            result["message"] = "操作不允许"
         return JsonResponse(result)

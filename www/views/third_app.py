@@ -188,11 +188,19 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                                                        4)
                 else:
                     context["traffic_balance"] = 0
+            if app_info.app_type == "upai_cdn":
+                try:
+                    res, body = upai_client.get_cdn_source(app_info.bucket_name)
+                    if res.status == 200:
+                        context["cdn_source"] = body.data
+                except Exception as e:
+                    logger.exception(e)
+            
             return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         
         except Exception as e:
             logger.exception(e)
-        return HttpResponse(u"创建异常", status=500)
+        return HttpResponse(u"获取应用异常", status=500)
 
 
 class ThirdAppListView(LeftSideBarMixin, AuthedView):
