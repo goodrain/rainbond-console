@@ -470,6 +470,8 @@ $(function(){
             swal("请选择回源方式");
         }
         console.log(data);
+        var tenantName = $("#tenantName").val();
+        var app_id = $("#app_id").val();
         $.ajax({
             type : "POST",
             url : "/ajax/"+tenantName+"/"+app_id+"/cdn_source",
