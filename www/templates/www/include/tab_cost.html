@@ -258,9 +258,12 @@
                                 $("#TimeLongMoney").html(money);
                             }
                             else{
-                                $("input#TimeLong").attr("disabled");
-                                $("input#TimeLong").css({"cursor":"not-allowed"});
-                                var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
+                                $(".chooseFun .layer-height-overflow").css({"display":"none"});
+                                var time = msg["left_hours"];
+                                var day = time/24;
+                                var hour = time%24;
+                                var str = "<p style='color: red;'>内存与磁盘预付费时长应保持一致，剩余时间"+day+"天"+hour+"小时</p>";
+                                $("#TimeLongMoney").html(mag["memory_fee"]);
                                 $(str).appendTo($(".chooseFun .layer-height-overflow"));
                             }
                         }
