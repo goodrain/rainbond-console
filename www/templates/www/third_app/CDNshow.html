@@ -330,7 +330,7 @@
                                 {% for ser in cdn_source.cdn.bgp.servers %}
                                 <tr>
                                     <td>
-                                        <input type="text" {% if not ser.host == None %}value="{{ser.host}}"{% endif %}>
+                                        <input type="text" {% if not ser.host %}value="{{ser.host}}"{% endif %}>
                                     </td>
                                     <td>
                                         <input type="number" value="{{ser.port}}">
