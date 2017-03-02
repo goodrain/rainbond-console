@@ -60,4 +60,5 @@ p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; colo
 .fm-input-range{max-width: 90%;}
 .fm-input-range span{width: 20%;}
 .fm-input-range .range-box{width: 60%;}
-.calMoney{margin-top: 20px;text-align: right;font-size: 20px;}
+.calMoney{margin-top: 20px;text-align: right;}
+#TimeLongMoney{font-size: 20px;color: #28cb75;}
