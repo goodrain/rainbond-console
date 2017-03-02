@@ -81,8 +81,11 @@
             <!--弹层1-->
             <div class="endDate">
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                <div>
-                    修改后付费成功，在当前使用期限(2016-12-12 12：12：12)到期以后生效
+                <h3 class="layer-tit"></h3>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix">
+                        修改后付费成功，在当前使用期限(2016-12-12 12：12：12)到期以后生效
+                    </div>
                 </div>
                 <p class="bottom">
                     <button class="cancel">关闭</button>
@@ -164,6 +167,9 @@
     $(function(){
         var that;
         $('.change').on('click',function(){
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            console.log(tenantName+";"+serviceAlias);
             if($(this).parent().find('span').html() == "预付费")
             {
                 $(this).parent().find('span').html("后付费");
@@ -175,6 +181,29 @@
                 $(".layer-body-bg").css({"display":"block"});
             }
             else{
+//                $.ajax({
+//                    type : "get",
+//                    url : "/apps/"+tenantName+"/memory-pay-method",
+//                    cache : false,
+//                    beforeSend : function(xhr, settings) {
+//                        var csrftoken = $.cookie('csrftoken');
+//                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+//                    },
+//                    success : function(msg) {
+//                        if (msg["status"] == "success") {
+//                            var service_alias = msg["service_alias"];
+//                            window.location.href = "/apps/" + tenantName + "/" + service_alias + "/detail/";
+//                        }else if(msg["status"] == "notfound"){
+//                            swal("服务不存在");
+//                        }else{
+//                            swal("配置失败");
+//                        }
+//                    },
+//                    error : function() {
+//                        swal("系统异常,请重试");
+//                        $(".submit").attr('disabled', false);
+//                    }
+//                });
                 //弹出层，选择购买配置，付费
                 $(".chooseFun").css({"display":"block"});
                 $(".chooseData").css({"display":"none"});
