@@ -320,7 +320,7 @@
                                 $("input#TimeLong").attr("disabled");
                                 $("input#TimeLong").css({"cursor":"not-allowed"});
                                 var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
-                                $(str).appendTo($(".chooseDisk .layer-height-overflow"));
+                                $(str).insertAfter($(".chooseDisk .layer-tit"));
                             }
                         }
                         else{
