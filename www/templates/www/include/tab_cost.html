@@ -95,7 +95,7 @@
             <!--弹层2-->
             <div class="chooseFun">
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
+                <h3 class="layer-tit">修改预付费成功，请选择购买内存时长</h3>
                 <div class="layer-height-overflow infor-fm-box">
                     <div class="fm-input-range clearfix">
                         <label>应用购买时长</label>
@@ -119,21 +119,21 @@
             </div>
             <div class="chooseDisk">
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-                <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
+                <h3 class="layer-tit">修改预付费成功，请选择购买磁盘时长</h3>
                 <div class="layer-height-overflow infor-fm-box">
                     <div class="fm-input-range clearfix">
                         <label>应用购买时长</label>
                         <p class="range-box">
                             <span class="renge-bg"></span>
-                            <span class="range-choose"><cite id="TimeLongWid"></cite></span>
-                            <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
+                            <span class="range-choose"><cite id="TimeLongDisk"></cite></span>
+                            <input type="range" min="1" max="24"  step="1" id="LongDisk" value="1"／>
                         </p>
-                        <span><cite id="TimeLongText">1</cite>个月</span>
+                        <span><cite id="LongDiskText">1</cite>个月</span>
                     </div>
 
                     <p class="calMoney">
                         <span>费用总计</span>
-                        <span id="TimeLongMoney"></span>元
+                        <span id="LongDiskMoney"></span>元
                     </p>
                 </div>
                 <p class="bottom">
@@ -263,6 +263,62 @@
                 }
             });
         });
+        $('.changeDisk').on('click',function(){
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            var that = $(this);
+            if($(this).parent().find('span').html() == "预付费")
+            {
+                //弹出层，告知修改成功
+                $(".endDate").css({"display":"block"});
+                $(".chooseFun").css({"display":"none"});
+                $(".chooseData").css({"display":"none"});
+                $(".chooseLarge").css({"display":"none"});
+                $(".layer-body-bg").css({"display":"block"});
+                $(".chooseDisk").css({"display":"none"});
+            }
+            else{
+                //弹出层，选择购买配置，付费
+                $(".chooseFun").css({"display":"none"});
+                $(".chooseData").css({"display":"none"});
+                $(".chooseLarge").css({"display":"none"});
+                $(".layer-body-bg").css({"display":"block"});
+                $(".chooseDisk").css({"display":"block"});
+            }
+            $.ajax({
+                type : "get",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    console.log(msg);
+                    if( msg["status"] == "success" )
+                    {
+                        if(msg["choosable"])
+                        {
+                            var money = msg["memory_unit_fee"]*msg["memory"]*24*30/1024;
+                            $("#LongDiskMoney").html(money);
+                        }
+                        else{
+                            $("input#TimeLong").attr("disabled");
+                            $("input#TimeLong").css({"cursor":"not-allowed"});
+                            var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
+                            $(str).appendTo($(".chooseDisk .layer-height-overflow"));
+                            that.parent().find('span').html("后付费");
+                        }
+                    }
+                    else{
+                        swal(msg["info"]);
+                    }
+                },
+                error : function() {
+                    swal("系统异常,请重试");
+                }
+            });
+        });
         //关闭弹出层
         $(".del").on("click",function(){
             $(".layer-body-bg").css({"display":"none"});
@@ -333,4 +389,5 @@
     FnRange("NodeNum","NodeText","NodeWid",1);
     FnRange("TimeLong","TimeLongText","TimeLongWid",1);
     FnRange("Time","TimeText","TimeLongW",1);
+    FnRange("LongDisk","LongDiskText","TimeLongDisk",1);
 </script>
