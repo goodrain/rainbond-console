@@ -32,6 +32,40 @@ p.input_operator{padding: 10px;}
 p.input_operator input{height: 36px;width: 20%;margin-right: 20px;}
 p.input_operator button{margin-left: 20px;}
 
+.manage{width: 100%;height: 100%;position: relative;}
+.layer-body-bg .manage .clearfix{padding: 10px 0px;}
+.layer-body-bg .manage .left_text{float: left;width: 10%;padding-left: 10px;}
+.layer-body-bg .manage .right_content{float: left;width: 90%;}
+.layer-body-bg .manage .right_content input.manage_host{width: 70%;height: 30px;padding-left: 10px;color:#303030;-moz-border-radius: 6px;-webkit-border-radius: 6px;border-radius: 6px;}
+.layer-body-bg .manage .right_content span.choose{padding-right: 20px;}
+.layer-body-bg .manage .right_content span.choose label{padding-left: 10px;}
+/*layer start */
+.layer-body-bg{ width: 100%; height: 100%; background: rgba(0, 0, 0,.6); position: fixed; top: 0; left: 0; bottom: 0; z-index: 1100;  display: none;}
+.layer-body{width:80%;  background: #fff;   max-width: 1000px; position: absolute; z-index: 1101; top: 50%; left: 50%; height: 400px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; margin:-200px 0 0 -500px; padding:20px;}
+.layer-body .layer-tit{ color: #303030; line-height: 40px; background: #f7f7f7;  font-size: 16px; margin:0 0 10px 0; height: 40px; padding-left: 20px;}
+.layer-body .layer-tit-lit{ color: #303030; line-height: 30px;  font-size: 16px;}
+.del{width: 22px; height: 22px; background: #f63a47; position: absolute; border-radius:50%; -webkit-border-radius:50%; -moz-border-radius:50%; top: 7px; right: 10px; font-size: 18px; line-height: 22px; text-align: center; color: #fff;}
+.layer-height-overflow{height:250px; overflow-y:auto; width: 100%; overflow-x: hidden; }
+/*layer end */
 
-/*#sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block;}*/
-/*#sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}*/
+/*  table start */
+.tab-box{width: 100%;}
+table.tab-box tbody tr,table tfoot tr{border-left: 1px #ececec solid; border-right: 1px #ececec solid; border-bottom: 1px #f7f7f7 solid;}
+table.tab-box thead th{color: #838383; font-size: 16px; font-weight: 100;}
+table.tab-box thead tr{background: #f7f7f7; height: 40px;  text-align: left; font-size: 16px; color: #303030; font-weight: 100;}
+table.tab-box td{font-size: 14px; height: 60px;}
+table.tab-box td,table.tab-box th{border-collapse:collapse; padding:0 10px; }
+table.tab-box td select{height: 28px;}
+table.tab-box td input{width: 90%;padding-left: 5px;color:#303030;-moz-border-radius: 5px;-webkit-border-radius: 5px;border-radius: 5px;}
+
+table.tab-box.lit thead tr{height: 40px; font-size: 14px;}
+table.tab-box.lit td{height: 30px;}
+/*  table end */
+
+table.tab-box thead th span.manage_add{display: block;width: 15px;height: 15px;background: url("../images/manage_add.png");background-size: 100% 100%;cursor: pointer;}
+table.tab-box tbody td span.manage_del{display: block;width: 15px;height: 15px;background: url("../images/manage_del.png");background-size: 100% 100%;cursor: pointer;}
+
+p.bottom {text-align: right; padding: 20px 0;}
+p.bottom button{outline: none; border:none; text-align: center; border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; height: 30px; padding:0px 20px; line-height: 30px; display: inline-block; margin:0 10px;}
+p.bottom button.sure{ background-color: #28cb75; color: #ffffff;}
+p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; color: #303030; }

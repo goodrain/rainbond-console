@@ -166,7 +166,7 @@
                 <h4>回源配置</h4>
                 <ul class="clearfix">
                     <li>
-                        <button class="btn btn-primary">管理</button>
+                        <button class="btn btn-primary app_manage">管理</button>
                     </li>
                 </ul>
             </div>
@@ -277,4 +277,89 @@
         </section>
     </section>
 </section>
+{% if not app_info.app_type == "upai_oos" %}
+<div class="layer-body-bg">
+    <div class="layer-body">
+        <div class="manage">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <p class="layer-tit">回源管理</p>
+            <div class="layer-height-overflow">
+                <div class="clearfix">
+                    <div class="left_text">回源Host</div>
+                    <div class="right_content">
+                        <input type="text" class="manage_host">
+                        <li style="list-style-type: disc;color: #28cb75;">可选配置项，可自定义域名，如不填则表示使用加速域名进行回源访问</li>
+                    </div>
+                </div>
+                <div class="clearfix">
+                    <div class="left_text">回源方式</div>
+                    <div class="right_content">
+                        <span class="choose">
+                            <input id="http" type="radio" name="way" data-id="http">
+                            <label for="http">HTTP协议回源</label>
+                        </span>
+                        <span class="choose">
+                            <input id="https" type="radio" name="way" data-id="https">
+                            <label for="https">HTTPS协议回源</label>
+                        </span>
+                        <span class="choose">
+                            <input id="protocol_follow" type="radio" name="way" data-id="protocol_follow">
+                            <label for="protocol_follow">协议跟随</label>
+                        </span>
+                    </div>
+                </div>
+                <div class="clearfix">
+                    <div class="left_text">线路配置</div>
+                    <div class="right_content">
+                        <table class="tab-box">
+                            <thead>
+                            <tr>
+                                <th>回源地址</th>
+                                <th>端口号</th>
+                                <th>主/备</th>
+                                <th>轮询权重</th>
+                                <th>最大失败次数</th>
+                                <th>静默时间(秒)</th>
+                                <th>
+                                    <span class="manage_add"></span>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>
+                                    <input type="text" placeholder="IP或域名">
+                                </td>
+                                <td>
+                                    <input type="number" value="443">
+                                </td>
+                                <td>
+                                    <select>
+                                        <option data-toggle="true">主线路</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" value="1">
+                                </td>
+                                <td>
+                                    <input type="number" value="3">
+                                </td>
+                                <td>
+                                    <input type="number" value="30">
+                                </td>
+                                <td></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <p class="bottom">
+                <button class="saveManage btn-success">保存</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
