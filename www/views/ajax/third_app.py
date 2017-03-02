@@ -436,7 +436,7 @@ class CloseThirdAppView(AuthedView):
         :return:
         """
         result = {}
-
+        
         upai_client = YouPaiApi()
         if self.tenant.balance > 0:
             try:
@@ -548,12 +548,12 @@ class CDNSourceView(AuthedView):
             domain = request.POST.get("domain", "")
             source_type = request.POST.get("source_type", "protocol_follow")
             domain_follow = request.POST.get("domain_follow", "enable")
-            cdn = request.POST.get("cdn", None)
+            cdn = request.POST.get("cdn", "")
             if domain == "" and domain_follow != "enable":
                 result["status"] = "failure"
                 result["message"] = "域名为空且域名跟随未开启"
                 return JsonResponse(result)
-            if cdn is None:
+            if not cdn:
                 result["status"] = "failure"
                 result["message"] = "CDN回源地址未定义"
                 return JsonResponse(result)
@@ -564,18 +564,19 @@ class CDNSourceView(AuthedView):
             rbody["cdn"] = cdn
             rbody["bucket_name"] = self.app_id
             upai_client = YouPaiApi()
-            res = {}
-            body = {}
             try:
-                res, body = upai_client.cdn_source(self.app_id, json.loads(rbody))
+                res, body = upai_client.cdn_source(json.dumps(rbody))
+                logger.debug(body)
+                if res.status == 200 or body.result:
+                    result["status"] = "success"
+                    result["message"] = "添加成功"
             except Exception, e:
                 logger.exception(e)
                 result["status"] = "failure"
-                result["message"] = "添加失败" + body.message
-            
-            if res.status == 200:
-                result["status"] = "success"
-                result["message"] = "添加成功"
+                result["message"] = "添加失败"
+                if body.message:
+                    result["message"] = "添加失败" + body.message
+        
         else:
             result["status"] = "failure"
             result["message"] = "操作不允许"
