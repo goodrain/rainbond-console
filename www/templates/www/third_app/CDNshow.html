@@ -177,7 +177,7 @@
                     <!--<span class="icon_tip fn-tips" data-tips="提示提示提示" data-position="top"></span>-->
                 </p>
                 <p>回源方式：{{cdn_source.source_type}}</p>
-                <p>源站线路：{{cdn_source.cdn.servers.length}}条</p>
+                <p>源站线路：{{cdn_source.cdn.servers|length}}条</p>
             </div>
         </section>
         {% endif %}
@@ -326,7 +326,7 @@
                             </tr>
                             </thead>
                             <tbody>
-                            {% if cdn_source.cdn.servers %}
+                            {% if cdn_source.cdn.servers|length %}
                                 {% for ser in cdn_source.cdn.servers %}
                                 <tr>
                                     <td>
