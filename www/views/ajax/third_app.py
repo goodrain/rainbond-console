@@ -564,18 +564,17 @@ class CDNSourceView(AuthedView):
             rbody["cdn"] = cdn
             rbody["bucket_name"] = self.app_id
             upai_client = YouPaiApi()
+            
             try:
                 res, body = upai_client.cdn_source(json.dumps(rbody))
                 logger.debug(body)
                 if res.status == 200 or body.result:
                     result["status"] = "success"
                     result["message"] = "添加成功"
-            except Exception, e:
+            except YouPaiApi.CallApiError, e:
                 logger.exception(e)
                 result["status"] = "failure"
-                result["message"] = "添加失败"
-                if body.message:
-                    result["message"] = "添加失败" + body.message
+                result["message"] = "添加失败"+e.message.body.message
         
         else:
             result["status"] = "failure"
