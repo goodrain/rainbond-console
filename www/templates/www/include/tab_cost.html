@@ -252,6 +252,7 @@
                         if(msg["choosable"])
                         {
                             var money = msg["memory_unit_fee"]*msg["memory"]*24*30/1024;
+                            $("#TimeLongMoney").attr("data-money",money);
                             $("#TimeLongMoney").html(money);
                         }
                         else{
@@ -307,8 +308,10 @@
                     {
                         if(msg["choosable"])
                         {
-                            var money = msg["disk_unit_fee"]*24*30*$("#LongDiskText").html()*$("#DiskSizeText").html();
+                            var eachMoney = msg["disk_unit_fee"]*24*30;
+                            var money = eachMoney*$("#LongDiskText").html()*$("#DiskSizeText").html();
                             $("#LongDiskMoney").html(money);
+                            $("#LongDiskMoney").attr("data-money",eachMoney);
                         }
                         else{
                             $("input#TimeLong").attr("disabled");
@@ -389,7 +392,15 @@
         range.addEventListener("input", function() {
             result.innerHTML = range.value;
             wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
-
+            if( inputid == "TimeLong" )
+            {
+                var money = range.value * $("#TimeLongMoney").attr("data-money");
+                $("#TimeLongMoney").html(money);
+            }
+            else if( inputid == "LongDisk" || inputid == "LongDiskSize" ){
+                var money = $("#LongDisk").val() * $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money");
+                $("#LongDiskMoney").html(money);
+            }
         }, false);
     }
 
