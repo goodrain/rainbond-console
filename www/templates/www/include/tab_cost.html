@@ -96,6 +96,7 @@
             <div class="chooseFun">
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
                 <h3 class="layer-tit">请选择购买内存时长</h3>
+                <p class="the_same" style="color: red;display: none;">内存与磁盘预付费时长应保持一致，剩余时间<span class="day"></span>天<span class="hour"></span>小时</p>
                 <div class="layer-height-overflow infor-fm-box">
                     <div class="fm-input-range clearfix">
                         <label>应用购买时长</label>
@@ -119,6 +120,7 @@
             <div class="chooseDisk">
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
                 <h3 class="layer-tit">请选择购买磁盘时长</h3>
+                <p class="the_same" style="color: red;display: none;">内存与磁盘预付费时长应保持一致，剩余时间<span class="day"></span>天<span class="hour"></span>小时</p>
                 <div class="layer-height-overflow infor-fm-box">
                     <div class="fm-input-range clearfix">
                         <label>应用购买时长</label>
@@ -221,7 +223,6 @@
             console.log($("span.memoryFun").html());
             if($("span.memoryFun").html() == "预付费")
             {
-                console.log(1);
                 //弹出层，告知修改成功
                 $(".endDate").css({"display":"block"});
                 $(".chooseFun").css({"display":"none"});
@@ -231,7 +232,6 @@
                 $(".chooseDisk").css({"display":"none"});
             }
             else{
-                console.log(2);
                 //弹出层，选择购买配置，付费
                 $(".chooseFun").css({"display":"block"});
                 $(".chooseData").css({"display":"none"});
@@ -258,11 +258,12 @@
                             }
                             else{
                                 $(".chooseFun .layer-height-overflow").css({"display":"none"});
+                                $(".chooseFun .the_same").css({"display":"block"});
                                 var time = msg["left_hours"];
                                 var day = parseInt(time/24);
                                 var hour = time%24;
-                                var str = "<p style='color: red;'>内存与磁盘预付费时长应保持一致，剩余时间"+day+"天"+hour+"小时</p>";
-                                $(str).appendTo($(".chooseFun  "));
+                                $(".chooseFun .the_same span.day").html(day);
+                                $(".chooseFun .the_same span.hour").html(hour);
                                 $("#TimeLongMoney").html(msg["memory_fee"]);
                             }
                         }
@@ -317,10 +318,14 @@
                                 $("#LongDiskMoney").attr("data-money",eachMoney);
                             }
                             else{
-                                $("input#TimeLong").attr("disabled");
-                                $("input#TimeLong").css({"cursor":"not-allowed"});
-                                var str = "<p style='color: red;'>内存与磁盘预付费时长一致</p>";
-                                $(str).insertAfter($(".chooseDisk .layer-tit"));
+                                $(".chooseDisk .layer-height-overflow").css({"display":"none"});
+                                $(".chooseDisk .the_same").css({"display":"block"});
+                                var time = msg["left_hours"];
+                                var day = parseInt(time/24);
+                                var hour = time%24;
+                                $(".chooseDisk .the_same span.day").html(day);
+                                $(".chooseDisk .the_same span.hour").html(hour);
+                                $("#LongDiskMoney").html(msg["memory_fee"]);
                             }
                         }
                         else{
