@@ -197,12 +197,9 @@
                         </p>
                         <span><cite id="OneMemoryText">128</cite>M</span>
                     </div>
-                    <div class="fm-input-range calMoney clearfix">
-                        <label>费用总计</label>
-                        <p class="range-box">
-                            <span id="deployMoney">200</span>元
-                        </p>
-                    </div>
+                    <p class="calMoney">
+                        <span id="deployMoney"></span>元
+                    </p>
                 </div>
                 <p class="bottom">
                     <button class="sure sureDeploy">付款</button>
@@ -341,6 +338,33 @@
         });
         //扩容
         $(".larger").on("click",function(){
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            $.ajax({
+                type : "get",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    console.log(msg);
+//                    if( msg["status"] == "success" )
+//                    {
+//                        var value = (msg["unit_price"]*24*30).toFixed(2);
+//                        var money = value * $("#TimeText").html();
+//                        $("#deployMoney").html( (money).toFixed(2) );
+//                        $("#deployMoney").attr("data-money",value);
+//                    }
+//                    else{
+//                        swal(msg["info"]);
+//                    }
+                },
+                error : function() {
+                    swal("系统异常,请重试");
+                }
+            });
             $(".endDate").css({"display":"none"});
             $(".chooseFun").css({"display":"none"});
             $(".chooseData").css({"display":"none"});
@@ -565,6 +589,10 @@
             else if( inputid == "Time" ){
                 var money = range.value * $("#TimeMoney").attr("data-money");
                 $("#TimeMoney").html( (money).toFixed(2) );
+            }
+            else if( inputid == "OneMemory" || inputid == "NodeNum" )
+            {
+
             }
         }, false);
     }
