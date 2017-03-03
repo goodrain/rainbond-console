@@ -277,6 +277,7 @@ $(function(){
     });
     $("#DiskBefore").change(function(){
         var onoff = $("#DiskBefore").prop("checked");
+        var onoff = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
             $("#aft-disk-box").hide();
@@ -284,16 +285,31 @@ $(function(){
             $(".fn-disk").hide();
             $("#aft-disk-box").show();
         }
+        if((onoff == true) | (onoff2 == true)){
+            $("#bef-month").show();
+            $("#bef-money").show();
+        }else{
+            $("#bef-month").hide();
+            $("#bef-money").hide();
+        }
         FnPrice();
     });
     $("#DiskAfter").change(function(){
-        var onoff = $("#After").prop("checked");
-        if(onoff == false){
+        var onoff = $("#DiskBefore").prop("checked");
+        var onoff = $("#MoneyBefore").prop("checked");
+        if(onoff == true){
             $(".fn-disk").show();
             $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
             $("#aft-disk-box").show();
+        }
+        if((onoff == true) | (onoff2 == true)){
+            $("#bef-month").show();
+            $("#bef-money").show();
+        }else{
+            $("#bef-month").hide();
+            $("#bef-money").hide();
         }
         FnPrice();
     });
