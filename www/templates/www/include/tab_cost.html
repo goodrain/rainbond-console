@@ -304,12 +304,11 @@
                     success : function(msg) {
                         if( msg["status"] == "success" )
                         {
+                            var eachMoney = (msg["disk_unit_fee"]*24*30).toFixed(2);
                             if(msg["choosable"])
                             {
-                                var eachMoney = (msg["disk_unit_fee"]*24*30).toFixed(2);
                                 var money = eachMoney*$("#LongDiskText").html()*$("#DiskSizeText").html();
                                 $("#LongDiskMoney").html( (money).toFixed(2) );
-                                $("#LongDiskMoney").attr("data-money",eachMoney);
                             }
                             else{
                                 $(".chooseDisk .fm-input-range").css({"display":"none"});
@@ -323,6 +322,7 @@
                                 $(".calMoney").css({"display":"block"});
                                 $("#LongDiskMoney").html(msg["disk_fee"]);
                             }
+                            $("#LongDiskMoney").attr("data-money",eachMoney);
                         }
                         else{
                             swal(msg["info"]);
