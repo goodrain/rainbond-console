@@ -241,7 +241,6 @@
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     },
                     success : function(msg) {
-                        console.log(msg);
                         if( msg["status"] == "success" )
                         {
                             if(msg["choosable"])
@@ -319,7 +318,7 @@
                                 var hour = time%24;
                                 $(".chooseDisk .the_same span.day").html(day);
                                 $(".chooseDisk .the_same span.hour").html(hour);
-                                $("#LongDiskMoney").html(msg["memory_fee"]);
+                                $("#LongDiskMoney").html(msg["disk_fee"]);
                             }
                         }
                         else{
