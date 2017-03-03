@@ -365,7 +365,7 @@
                     console.log(msg);
                     if( msg["status"] == "success" )
                     {
-                        var value = msg["unit_price"]*24*30;
+                        var value = (msg["unit_price"]*24*30).toFixed(2);
                         var money = value * $("#TimeText").html();
                         $("#TimeMoney").html(money);
                         $("#TimeMoney").attr("data-money",value);
@@ -393,6 +393,37 @@
         });
         $("button.sureTime").on("click",function(){
             console.log( $('#TimeText').html() );
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            $.ajax({
+                type : "post",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                data : {
+                    pay_period : $('#TimeText').html()
+                },
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    console.log(msg);
+                    if( msg["status"] == "success" )
+                    {
+                        swal("修改成功");
+                        history.go(0);
+                    }
+                    else if( msg["status"] == "not_enough" ){
+                        swal("余额不足");
+                    }
+                    else{
+                        swal(msg["info"]);
+                    }
+                },
+                error : function() {
+                    swal("系统异常,请重试");
+                }
+            });
         });
         $("button.sureDeploy").on("click",function(){
             console.log( $('#NodeText').html() +";"+ $('#OneMemoryText').html() );
