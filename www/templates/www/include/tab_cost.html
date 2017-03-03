@@ -301,7 +301,6 @@
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     },
                     success : function(msg) {
-                        console.log(msg);
                         if( msg["status"] == "success" )
                         {
                             if(msg["choosable"])
@@ -349,7 +348,6 @@
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(msg) {
-                    console.log(msg);
                     if( !msg["choosable"] )
                     {
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
@@ -387,7 +385,6 @@
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(msg) {
-                    console.log(msg);
                     if( msg["status"] == "success" )
                     {
                         var value = (msg["unit_price"]*24*30).toFixed(2);
@@ -424,8 +421,6 @@
             else{
                 var msg = "pre2post"
             }
-            console.log( $('#LongDiskText').html() );
-            console.log( $('#DiskSizeText').html() );
             var tenantName = $("#tenantName").val();
             var serviceAlias = $("#serviceAlias").val();
             $.ajax({
@@ -496,6 +491,37 @@
         });
         $("button.sureDeploy").on("click",function(){
             console.log( $('#NodeText').html() +";"+ $('#OneMemoryText').html() );
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            $.ajax({
+                type : "post",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                data : {
+                    node_num : $('#NodeText').html(),
+                    node_memory : $('#OneMemoryText').html()
+                },
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    if( msg["status"] == "success" )
+                    {
+                        swal("修改成功");
+                        history.go(0);
+                    }
+                    else if( msg["status"] == "not_enough" ){
+                        swal("余额不足");
+                    }
+                    else{
+                        swal(msg["info"]);
+                    }
+                },
+                error : function() {
+                    swal("系统异常,请重试");
+                }
+            });
         });
         //取消，关闭弹出层
         $("button.cancel").on("click",function(){
@@ -536,7 +562,6 @@
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success : function(msg) {
-                console.log(msg);
                 if( msg["status"] == "success" )
                 {
                     swal("修改成功");
