@@ -197,7 +197,7 @@
                         </p>
                         <span><cite id="OneMemoryText">128</cite>M</span>
                     </div>
-                    <p class="calMoney">
+                    <p class="calMoney" style="display: none;">
                         <span id="deployMoney"></span>元
                     </p>
                 </div>
@@ -355,9 +355,9 @@
                         $("#deployMoney").html( (money).toFixed(2) );
                         $("#deployMoney").attr("data-money",value);
                         $("#deployMoney").attr("data-memory",msg["service_memory"]);
+                        $(".chooseLarge p.calMoney").css({"display":"block"});
                     }
                     else{
-                        $(".chooseLarge p.calMoney").css({"display":"none"});
                         $(".sureDeploy").html("确认");
                     }
                 },
@@ -533,9 +533,6 @@
             $(".chooseDisk").css({"display":"none"});
         })
     });
-
-
-
     $(".sureMemory").on("click",function(){
         var way = $(".memoryFun").html();
         if( way == "后付费" )
@@ -579,11 +576,6 @@
             }
         });
     });
-
-
-
-
-
     function FnRange(inputid,textid,widid,num){
         var range= document.getElementById(inputid);
         var result = document.getElementById(textid);
