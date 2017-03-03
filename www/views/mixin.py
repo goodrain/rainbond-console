@@ -97,10 +97,7 @@ class LeftSideBarMixin(object):
             if region['name'] == self.response_region:
                 context['current_region'] = region
             else:
-                if region['name'] == 'aws-bj-1':
-                    if self.tenant.region != 'aws-bj-1':
-                        continue
-                if self.user.origion in ('ucloud',):
+                if region['name'] == 'aws-jp-1' and self.tenant.pay_level == 'free' and self.tenant.balance == 0:
                     continue
                 arrival_regions.append(region)
         # 判断租户是否在998活动中
