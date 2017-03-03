@@ -258,6 +258,7 @@
                                 var hour = time%24;
                                 $(".chooseFun .the_same span.day").html(day);
                                 $(".chooseFun .the_same span.hour").html(hour);
+                                $(".calMoney").css({"display":"block"});
                                 $("#TimeLongMoney").html(msg["memory_fee"]);
                             }
                         }
@@ -318,6 +319,7 @@
                                 var hour = time%24;
                                 $(".chooseDisk .the_same span.day").html(day);
                                 $(".chooseDisk .the_same span.hour").html(hour);
+                                $(".calMoney").css({"display":"block"});
                                 $("#LongDiskMoney").html(msg["disk_fee"]);
                             }
                         }
@@ -391,6 +393,7 @@
                         var money = value * $("#TimeText").html();
                         $("#TimeMoney").html( (money).toFixed(2) );
                         $("#TimeMoney").attr("data-money",value);
+                        $(".calMoney").css({"display":"block"});
                         $(".endDate").css({"display":"none"});
                         $(".chooseFun").css({"display":"none"});
                         $(".chooseData").css({"display":"block"});
@@ -437,7 +440,6 @@
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(msg) {
-                    console.log(msg);
                     if( msg["status"] == "success" )
                     {
                         swal("修改成功");
