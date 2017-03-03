@@ -600,6 +600,7 @@ $(function(){
         var this_id= $(this).attr("id");
         $("#"+ this_id +"_MoneyBefore").change(function(){
             var onoff = $("#"+ this_id +"_MoneyBefore").prop("checked");
+            var onoff2 = $("#"+ this_id +"_DiskBefore").prop("checked");
             if(onoff == true){
                 // $(".fn-memory-node").show();
                 $("#"+ this_id + "_aft-memory-box").hide();
@@ -607,22 +608,37 @@ $(function(){
                 //$(".fn-memory-node").hide();
                 $("#"+ this_id + "_aft-memory-box").show();
             }
+            if((onoff == true) | (onoff2 == true)){
+                $("#"+ this_id +"_bef-month").show();
+                $("#"+ this_id +"_bef-money").show();
+            }else{
+                $("#"+ this_id +"_bef-month").hide();
+                $("#"+ this_id +"_bef-money").hide();
+            } 
             FnPrice(this_id);
         });
         $("#"+ this_id +"_MoneyAfter").change(function(){
-            
-            var onoff = $("#"+ this_id +"_MoneyAfter").prop("checked");
-            if(onoff == false){
-                //$(".fn-memory-node").show();
-                $("#"+ this_id +"_aft-memory-box").hide();
+            var onoff = $("#"+ this_id +"_MoneyBefore").prop("checked");
+            var onoff2 = $("#"+ this_id +"_DiskBefore").prop("checked");
+            if(onoff == true){
+                // $(".fn-memory-node").show();
+                $("#"+ this_id + "_aft-memory-box").hide();
             }else{
                 //$(".fn-memory-node").hide();
-                $("#"+ this_id +"_aft-memory-box").show();
+                $("#"+ this_id + "_aft-memory-box").show();
             }
+            if((onoff == true) | (onoff2 == true)){
+                $("#"+ this_id +"_bef-month").show();
+                $("#"+ this_id +"_bef-money").show();
+            }else{
+                $("#"+ this_id +"_bef-month").hide();
+                $("#"+ this_id +"_bef-money").hide();
+            } 
             FnPrice(this_id);
         });
         $("#"+ this_id +"_DiskBefore").change(function(){
             var onoff = $("#"+ this_id +"_DiskBefore").prop("checked");
+            var onoff2 = $("#"+ this_id +"_MoneyBefore").prop("checked");
             if(onoff == true){
                 $("#"+ this_id + "_disk_box").show();
                 $("#"+ this_id +"_aft-disk-box").hide();
@@ -630,17 +646,32 @@ $(function(){
                 $("#"+ this_id + "_disk_box").hide();
                 $("#"+ this_id +"_aft-disk-box").show();
             }
+            if((onoff == true) | (onoff2 == true)){
+                $("#"+ this_id +"_bef-month").show();
+                $("#"+ this_id +"_bef-money").show();
+            }else{
+                $("#"+ this_id +"_bef-month").hide();
+                $("#"+ this_id +"_bef-money").hide();
+            } 
             FnPrice(this_id);
         });
         $("#"+ this_id +"_DiskAfter").change(function(){
-            var onoff = $("#"+ this_id +"_After").prop("checked");
-            if(onoff == false){
-                $("#"+this_id +"_disk_box").show();
+            var onoff = $("#"+ this_id +"_DiskBefore").prop("checked");
+            var onoff2 = $("#"+ this_id +"_MoneyBefore").prop("checked");
+            if(onoff == true){
+                $("#"+ this_id + "_disk_box").show();
                 $("#"+ this_id +"_aft-disk-box").hide();
             }else{
-                $("#"+this_id +"_disk_box").hide();
+                $("#"+ this_id + "_disk_box").hide();
                 $("#"+ this_id +"_aft-disk-box").show();
             }
+            if((onoff == true) | (onoff2 == true)){
+                $("#"+ this_id +"_bef-month").show();
+                $("#"+ this_id +"_bef-money").show();
+            }else{
+                $("#"+ this_id +"_bef-month").hide();
+                $("#"+ this_id +"_bef-money").hide();
+            } 
             FnPrice(this_id);
         });
      });
