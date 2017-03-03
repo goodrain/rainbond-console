@@ -277,7 +277,7 @@ $(function(){
     });
     $("#DiskBefore").change(function(){
         var onoff = $("#DiskBefore").prop("checked");
-        var onoff = $("#MoneyBefore").prop("checked");
+        var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
             $("#aft-disk-box").hide();
@@ -296,7 +296,7 @@ $(function(){
     });
     $("#DiskAfter").change(function(){
         var onoff = $("#DiskBefore").prop("checked");
-        var onoff = $("#MoneyBefore").prop("checked");
+        var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
             $("#aft-disk-box").hide();
