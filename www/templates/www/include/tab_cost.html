@@ -370,9 +370,13 @@
                         $("#TimeMoney").html( (money).toFixed(2) );
                         $("#TimeMoney").attr("data-money",value);
                     }
-                    else{
+                    else if(msg["status"] == "no_prepaid"){
+                        $(".layer-body-bg").css({"display":"none"});
                         swal(msg["info"]);
+                    }else{
+                        swal("操作失败");
                     }
+
                 },
                 error : function() {
                     swal("系统异常,请重试");

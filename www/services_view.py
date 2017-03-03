@@ -614,6 +614,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     pass
                 if service_attach_info is None:
                     service_attach_info = self.generate_service_attach_info()
+                now = datetime.datetime.now()
+                if service_attach_info.buy_end_time < now:
+                    if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method == "prepaid":
+                        service_attach_info.disk_pay_method = "postpaid"
+                        service_attach_info.memory_pay_method = "postpaid"
+                        service_attach_info.save()
 
                 context["service_attach_info"] = service_attach_info
                 context["service"] = self.service
@@ -637,7 +643,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     service_total_memory_fee += service_consume.memory_money
                     service_total_disk_fee += service_consume.disk_money
                     service_total_net_fee += service_consume.net_money
-                    print service_total_memory_fee
 
                 context["service_consume_list"] = consume_list
                 context["service_total_memory_fee"] = service_total_memory_fee
