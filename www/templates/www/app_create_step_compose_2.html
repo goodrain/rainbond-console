@@ -218,7 +218,7 @@
                 <!-- 费用估算 start -->
                 <div class="infor-fm-box">
                     <h4 class="step-tit">费用估算</h4>
-                    <div class="fm-input-range clearfix" style="display: none;">
+                    <div id="bef-month" class="fm-input-range clearfix" style="display: none;">
                         <label>预付费项购买时长</label>
                         <p class="range-box">
                             <span class="renge-bg"></span>
@@ -227,7 +227,7 @@
                         </p>
                         <span><cite id="{{service.service_id}}_TimeLongText">1</cite>个月</span>    
                     </div>
-                    <div class="fm-money clearfix" style="display: none;">
+                    <div id="bef-money" class="fm-money clearfix" style="display: none;">
                         <label>预付费用</label>
                         <span class="fn-tips"  data-tips="创建和调试应用时，无需支付费用，应用正常运行后才会提请您支付该费用。"><cite id="{{service.service_id}}_need-money">123.00</cite>元</span>
                     </div>
