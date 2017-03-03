@@ -404,7 +404,7 @@
             var serviceAlias = $("#serviceAlias").val();
             $.ajax({
                 type : "post",
-                url : "/ajax/"+tenantName+"/"+serviceAlias+"/postpone",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
                 data : {
                     update_method : msg,
                     pay_period : $('#LongDiskText').html(),
