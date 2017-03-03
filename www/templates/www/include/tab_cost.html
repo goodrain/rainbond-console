@@ -107,11 +107,11 @@
                         </p>
                         <span><cite id="TimeLongText">1</cite>个月</span>
                     </div>
+                    <p class="calMoney">
+                        <span>费用总计</span>
+                        <span id="TimeLongMoney"></span>元
+                    </p>
                 </div>
-                <p class="calMoney">
-                    <span>费用总计</span>
-                    <span id="TimeLongMoney"></span>元
-                </p>
                 <p class="bottom">
                     <button class="sure sureMemory">付款</button>
                     <button class="cancel">取消</button>
@@ -215,7 +215,6 @@
             var tenantName = $("#tenantName").val();
             var serviceAlias = $("#serviceAlias").val();
             var that = $(this);
-            console.log($("span.memoryFun").html());
             if($("span.memoryFun").html() == "预付费")
             {
                 //弹出层，告知修改成功
@@ -248,10 +247,10 @@
                             {
                                 var money = (msg["memory_unit_fee"]*msg["memory"]*24*30/1024).toFixed(2);
                                 $("#TimeLongMoney").attr("data-money",money);
-                                $("#TimeLongMoney").html( (money).toFixed(2) );
+                                $("#TimeLongMoney").html(money);
                             }
                             else{
-                                $(".chooseFun .layer-height-overflow").css({"display":"none"});
+                                $(".chooseFun .calMoney").css({"display":"none"});
                                 $(".chooseFun .the_same").css({"display":"block"});
                                 var time = msg["left_hours"];
                                 var day = parseInt(time/24);
