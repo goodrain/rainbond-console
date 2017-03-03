@@ -241,6 +241,7 @@
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     },
                     success : function(msg) {
+                        console.log(msg);
                         if( msg["status"] == "success" )
                         {
                             if(msg["choosable"])
