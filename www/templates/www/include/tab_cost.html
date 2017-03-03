@@ -368,9 +368,14 @@
                         var money = value * $("#TimeText").html();
                         $("#TimeMoney").html( (money).toFixed(2) );
                         $("#TimeMoney").attr("data-money",value);
+                        $(".endDate").css({"display":"none"});
+                        $(".chooseFun").css({"display":"none"});
+                        $(".chooseData").css({"display":"block"});
+                        $(".chooseLarge").css({"display":"none"});
+                        $(".layer-body-bg").css({"display":"block"});
+                        $(".chooseDisk").css({"display":"none"});
                     }
                     else if(msg["status"] == "no_prepaid"){
-                        $(".layer-body-bg").css({"display":"none"});
                         swal(msg["info"]);
                     }else{
                         swal("操作失败");
@@ -381,13 +386,6 @@
                     swal("系统异常,请重试");
                 }
             });
-
-            $(".endDate").css({"display":"none"});
-            $(".chooseFun").css({"display":"none"});
-            $(".chooseData").css({"display":"block"});
-            $(".chooseLarge").css({"display":"none"});
-            $(".layer-body-bg").css({"display":"block"});
-            $(".chooseDisk").css({"display":"none"});
         });
         //跳转支付
         $("button.sureDisk").on("click",function(){
