@@ -257,14 +257,21 @@ $(function(){
         FnPrice();
     });
     $("#MoneyAfter").change(function(){
-        var onoff = $("#MoneyAfter").prop("checked");
-        var onoff2 = $
-        if(onoff == false){
-            //$(".fn-memory-node").show();
+        var onoff = $("#MoneyBefore").prop("checked");
+        var onoff2 = $("#DiskBefore").prop("checked");
+        if(onoff == true){
+            // $(".fn-memory-node").show();
             $("#aft-memory-box").hide();
         }else{
             //$(".fn-memory-node").hide();
             $("#aft-memory-box").show();
+        }
+        if((onoff == true) | (onoff2 == true)){
+            $("#bef-month").show();
+            $("#bef-money").show();
+        }else{
+            $("#bef-month").hide();
+            $("#bef-money").hide();
         }
         FnPrice();
     });
