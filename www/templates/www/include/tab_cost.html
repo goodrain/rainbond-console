@@ -304,10 +304,10 @@
                     success : function(msg) {
                         if( msg["status"] == "success" )
                         {
-                            var eachMoney = (msg["disk_unit_fee"]*24*30).toFixed(2);
+                            var eachMoney = ["disk_unit_fee"];
                             if(msg["choosable"])
                             {
-                                var money = eachMoney*$("#LongDiskText").html()*$("#DiskSizeText").html();
+                                var money = eachMoney*24*30*$("#LongDiskText").html()*$("#DiskSizeText").html();
                                 $("#LongDiskMoney").html( (money).toFixed(2) );
                             }
                             else{
@@ -320,9 +320,11 @@
                                 $(".chooseDisk .the_same span.day").html(day);
                                 $(".chooseDisk .the_same span.hour").html(hour);
                                 $(".calMoney").css({"display":"block"});
-                                $("#LongDiskMoney").html(msg["disk_fee"]);
+                                var money = eachMoney*msg["left_hours"]*$("#DiskSizeText").html();
+                                $("#LongDiskMoney").html( (money).toFixed(2) );
                             }
                             $("#LongDiskMoney").attr("data-money",eachMoney);
+                            $("#LongDiskMoney").attr("data-hours",msg["left_hours"]);
                         }
                         else{
                             swal(msg["info"]);
@@ -605,7 +607,13 @@
                 $("#TimeLongMoney").html( (money).toFixed(2) );
             }
             else if( inputid == "LongDisk" || inputid == "LongDiskSize" ){
-                var money = $("#LongDisk").val() * $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money");
+                if( $("#LongDiskMoney").attr("data-hours") )
+                {
+                    var money = $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money") * $("#LongDiskMoney").attr("data-hours");
+                }
+                else{
+                    var money = $("#LongDisk").val() * $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money");
+                }
                 $("#LongDiskMoney").html( (money).toFixed(2) );
             }
             else if( inputid == "Time" ){
