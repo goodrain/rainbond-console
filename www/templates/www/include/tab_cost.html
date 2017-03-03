@@ -26,7 +26,7 @@
             </tbody>
             <tfoot>
             <tr>
-                <td colspan="4">预付费项目有效期：<span>{{service_attach_info.buy_end_time}}</span><a href="javascript:void(0)" class="expand">延期</a></td>
+                <td colspan="4">预付费项目有效期：<span>{{service_attach_info.buy_end_time}}</span><a href="javascript:void(0)" class="postpone">延期</a></td>
             </tr>
             </tfoot>
         </table>
@@ -164,13 +164,11 @@
                         </p>
                         <span><cite id="TimeText">1</cite>个月</span>
                     </div>
-                    <div class="fm-input-range calMoney clearfix">
-                        <label>费用总计</label>
-                        <p class="range-box">
-                            <span id="TimeMoney">200</span>元
-                        </p>
-                    </div>
                 </div>
+                <p class="calMoney">
+                    <span>费用总计</span>
+                    <span id="TimeMoney"></span>元
+                </p>
                 <p class="bottom">
                     <button class="sure sureTime">付款</button>
                     <button class="cancel">取消</button>
@@ -352,7 +350,36 @@
             $(".chooseDisk").css({"display":"none"});
         });
         //延期
-        $(".expand").on("click",function(){
+        $(".postpone").on("click",function(){
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            $.ajax({
+                type : "get",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/postpone",
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    console.log(msg);
+//                    if( msg["status"] == "success" )
+//                    {
+//                        swal("修改成功");
+//                        history.go(0);
+//                    }
+//                    else if( msg["status"] == "not_enough" ){
+//                        swal("余额不足");
+//                    }
+//                    else{
+//                        swal(msg["info"]);
+//                    }
+                },
+                error : function() {
+                    swal("系统异常,请重试");
+                }
+            });
+
             $(".endDate").css({"display":"none"});
             $(".chooseFun").css({"display":"none"});
             $(".chooseData").css({"display":"block"});
@@ -389,6 +416,7 @@
         if( way == "后付费" )
         {
             var msg = "post2pre"
+            var data
         }
         else{
             var msg = "pre2post"
