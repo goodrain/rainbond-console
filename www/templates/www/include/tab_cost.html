@@ -612,7 +612,7 @@
                     var money = $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money") * $("#LongDiskMoney").attr("data-hours");
                 }
                 else{
-                    var money = $("#LongDisk").val() * $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money");
+                    var money = $("#LongDisk").val() * $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money") * 24 *30;
                 }
                 $("#LongDiskMoney").html( (money).toFixed(2) );
             }
