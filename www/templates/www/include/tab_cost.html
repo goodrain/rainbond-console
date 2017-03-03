@@ -353,7 +353,7 @@
                     if( !msg["choosable"] )
                     {
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
-                        var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() - msg["service_memory"] );
+                        var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() - msg["service_memory"] )/1024;
                         $("#deployMoney").html( (money).toFixed(2) );
                         $("#deployMoney").attr("data-money",value);
                         $("#deployMoney").attr("data-memory",msg["service_memory"]);
@@ -594,7 +594,7 @@
             }
             else if( inputid == "OneMemory" || inputid == "NodeNum" )
             {
-                var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money");
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
                 $("#deployMoney").html( (money).toFixed(2) );
             }
         }, false);
