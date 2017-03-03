@@ -131,7 +131,7 @@
                         </p>
                         <span><cite id="LongDiskText">1</cite>个月</span>
                     </div>
-                    <div class="fm-input-range clearfix">
+                    <div class="fm-input-range diskSize clearfix">
                         <label>购买磁盘大小</label>
                         <p class="range-box">
                             <span class="renge-bg"></span>
@@ -313,6 +313,7 @@
                             }
                             else{
                                 $(".chooseDisk .fm-input-range").css({"display":"none"});
+                                $(".chooseDisk .diskSize").css({"display":"block"});
                                 $(".chooseDisk .the_same").css({"display":"block"});
                                 var time = msg["left_hours"];
                                 var day = parseInt(time/24);
