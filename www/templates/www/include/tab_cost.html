@@ -304,7 +304,7 @@
                     success : function(msg) {
                         if( msg["status"] == "success" )
                         {
-                            var eachMoney = ["disk_unit_fee"];
+                            var eachMoney = msg["disk_unit_fee"];
                             if(msg["choosable"])
                             {
                                 var money = eachMoney*24*30*$("#LongDiskText").html()*$("#DiskSizeText").html();
