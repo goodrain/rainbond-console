@@ -513,15 +513,15 @@
             if( inputid == "TimeLong" )
             {
                 var money = range.value * $("#TimeLongMoney").attr("data-money");
-                $("#TimeLongMoney").html(money);
+                $("#TimeLongMoney").html( (money).toFixed(2) );
             }
             else if( inputid == "LongDisk" || inputid == "LongDiskSize" ){
                 var money = $("#LongDisk").val() * $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money");
-                $("#LongDiskMoney").html(money);
+                $("#LongDiskMoney").html( (money).toFixed(2) );
             }
             else if( inputid == "Time" ){
                 var money = range.value * $("#TimeMoney").attr("data-money");
-                $("#TimeMoney").html(money);
+                $("#TimeMoney").html( (money).toFixed(2) );
             }
         }, false);
     }
