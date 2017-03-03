@@ -397,7 +397,7 @@
             var serviceAlias = $("#serviceAlias").val();
             $.ajax({
                 type : "post",
-                url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/postpone",
                 data : {
                     pay_period : $('#TimeText').html()
                 },
