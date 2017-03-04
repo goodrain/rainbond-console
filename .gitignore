@@ -3,7 +3,6 @@ goodrain_web/conf/local.py
 /.settings/
 /.project
 /.pydevproject
-/.gitignore
 /doc/
 migrations/
 /.DS_Store
