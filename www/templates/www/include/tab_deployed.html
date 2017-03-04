@@ -42,7 +42,7 @@
 					<!--<p>未知</p>-->
 				</div>
 			</li>
-			<li>
+			<li data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
 				<div>
 					<p style="text-align: left">上一小时费用</p>
 					<p class="pImg">
@@ -178,189 +178,8 @@
 			</div>
 		</div>
 	</div>
-
-	<!--<div class="row">-->
-		<!--<div class="col-sm-3">-->
-			<!--<p>状态</p>-->
-			<!--<span class="badge badge-sm label-success" style="font-size:18pt" id="service_status" name="service_status">未知</span>-->
-		<!--</div>-->
-		<!--<div class="col-sm-3">-->
-			<!--<p>内存使用</p>-->
-			<!--<p style="font-size:18pt" id="service_memory" name="service_memory">{{totalMemory}}M</p>-->
-		<!--</div>-->
-		<!--<div class="col-sm-3">
-                  <p>磁盘占用</p>
-                  <p style="font-size:18pt" id="service_disk" name="service_disk">0M</p>
-                </div>
-                <div class="col-sm-3">
-                  <p>流量</p>
-                  <p style="font-size:18pt" id="service_network" name="service_network">0K</p>
-                </div>
-                 -->
-	<!--</div>-->
-	<!--<div class="row">-->
-		<!--<div class="col-lg-12">-->
-			<!--<section class="panel text-left">-->
-				<!--<header class="panel-heading">控制</header>-->
-				<!--<div class="panel-body">-->
-					<!--<div class="row">-->
-						<!--<div class="col-xs-8 text-left">-->
-							<!--{% ifequal tenantServiceInfo.category "application" %}-->
-							<!--{% if user.is_sys_admin %}-->
-							<!--<button type="button" class="btn btn-success" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');"><i class="fa fa-eye"></i>发布</button>-->
-							<!--{% endif %}-->
-
-							<!--{% if 'code_deploy' in user.actions %}-->
-							<!--<button type="button" class="btn btn-info " id="onekey_deploy" onclick="service_oneKeyDeploy('{{tenantServiceInfo.category}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}','no');"><i class="fa fa-refresh"></i> 一键部署</button>-->
-							<!--{% endif %}-->
-
-							<!--{% endifequal %}-->
-
-							<!--<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">-->
-							<!--{% if hasHttpServices %}-->
-							<!--<button type="button" class="btn btn-success" id="service_visitor" onclick="visit()"><i class="fa fa-eye"></i>访问</button>-->
-							<!--{% if visit_port_type == "multi_outer" %}-->
-							<!--{% if http_outer_service_ports|length == 1 %}-->
-							<!--<select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">-->
-								<!--{% else %}-->
-								<!--<select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">-->
-									<!--{% endif %}-->
-									<!--{% for port in http_outer_service_ports %}-->
-									<!--{% if port.container_port == serviceDomain.container_port %}-->
-									<!--<option value="{{ port.container_port }}"-->
-										<!--selected="selected">{{ port.container_port }}</option>-->
-									<!--{% else %}-->
-									<!--<option value="{{ port.container_port }}">{{ port.container_port }}</option>-->
-									<!--{% endif %}-->
-									<!--{% endfor %}-->
-
-								<!--</select>-->
-								<!--{%endif%}-->
-
-								<!--{% endif  %}-->
-
-								<!--{% ifequal tenantServiceInfo.service_type "mysql" %}-->
-								<!--{% if service_manager.deployed %}-->
-								<!--{% if 'manage_service' in user.actions %}-->
-								<!--<button type="button" class="btn btn-success" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>管理</button>-->
-								<!--{% endif %}-->
-								<!--{% else %}-->
-								<!--{% if 'manage_service' in user.actions %}-->
-								<!--<button type="button" class="btn btn-info" id="service_visitor" onclick="window.open('{{service_manager.url}}');"><i class="fa fa-eye"></i>添加管理服务</button>-->
-								<!--{% endif %}-->
-								<!--{% endif %}-->
-								<!--{% endifequal %}-->
-								<!--{% if updateService %}-->
-								<!--<button type="button" class="btn btn-danger" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i>服务更新</button>-->
-								<!--{% endif %}-->
-								<!-- -->
-								<!--{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}-->
-								<!--<button name="join_container" class="btn btn-success"  id="join_container" onclick="join_container();"/> 管理容器 </button>-->
-								<!--<div style="width: 300px; height: auto; position: relative; z-index: 9; top: 30px;">-->
-									<!--<table width="100%;" class="table table-hover">-->
-										<!--<tbody id="cur_container_content">-->
-										<!--</tbody>-->
-									<!--</table>-->
-								<!--</div>-->
-								<!--{% endif %}-->
-								<!-- -->
-						<!--</div>-->
-						<!--{% if 'manage_service' in user.actions %}-->
-						<!--<div class="col-xs-4 text-right">-->
-							<!--<input type="hidden" id="service_status_value" name="service_status_value" value="" />-->
-							<!--<button type="button" class="btn btn-danger" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><i class="fa  fa-power-off"></i><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>-->
-						<!--</div>-->
-						<!--{% endif %}-->
-					<!--</div>-->
-				<!--</div>-->
-			<!--</section>-->
-		<!--</div>-->
-	<!--</div>-->
-	<!--
-        {% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
-        <div class="row">
-          <div class="col-lg-12 text-left">
-             <section class="panel">
-               <header class="panel-heading"><button name="join_container" id="join_container" onclick="join_container();"/> 管理容器 </header>
-               <table class="table table-hover">
-                 <thead>
-                   <tr>
-                     <th>容器名</th>
-                     <th>操作</th>
-                   </tr>
-                 </thead>
-                 <tbody id="cur_container_content">
-
-                 </tbody>
-               </table>
-             </section>
-           </div>
-        </div>
-        {% endif %}
-        -->
-	<!--
-                {% if user.is_sys_admin %}
-                <div class="row">
-                        <div class="col-lg-12 text-left">
-                                <section class="panel">
-                                        <header class="panel-heading"><button name="container_stats" id="show_stats" onclick="showStatus();"/> 容器状态 </header>
-                                        <table class="table table-hover">
-                                                <thead>
-                                                <tr>
-                                                        <th>容器名</th>
-                                                        <th>已使用内存</th>
-                                                        <th>最大内存</th>
-                                                        <th>内存百分比</th>
-                                                        <th>CPU百分比</th>
-                                                </tr>
-                                                </thead>
-                                                <tbody id="container_stats">
-
-                                                </tbody>
-                                        </table>
-                                </section>
-                        </div>
-                </div>
-                {% endif %}
-         -->
-	<!--
-	{% if 'manage_service' in user.actions %}
-	{% with curServiceEnvVarList=envMap|mkey:tenantServiceInfo.service_id %}
-	<section class="panel">
-		<div class="content-tab">
-			<h2 class="tit-two">连接信息</h2>
-			<table>
-				<thead>
-						<tr>
-							<th>说明</th>
-							<th>变量名</th>
-							<th>变量值</th>
-						</tr>
-				</thead>
-				<tbody>
-						{% for curServiceEnvVar in curServiceEnvVarList %}
-						{% if curServiceEnvVar.name != "" %}
-						{% if containerPortList|hasvalue:curServiceEnvVar.container_port or curServiceEnvVar.container_port < 1 %}
-						<tr>
-							<td>{{curServiceEnvVar.name}}</td>
-							<td>{{curServiceEnvVar.attr_name}}</td>
-							<td>{{curServiceEnvVar.attr_value}}</td>
-						</tr>
-						{% endif %}
-						{% endif %}
-						{% endfor %}
-				</tbody>
-			</table>
-		</div>
-	</section>
-	{% endwith %}
-	{% endif %}
-	-->
 	<section class="panel">
 		<div class="">
-			<!--
-			<h2 class="tit-two">关键日志</h2>
-			-->
 				<div class="text-left  logtxtbox">
 						<input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
 						<p id="keylog"></p>
@@ -747,6 +566,83 @@
 				swal("容器信息获取异常");
 			}
 		});
+	}
+	tip();
+	function tip(){
+		$(".fn-tips").mouseover(function(){
+			var tips = $(this).attr("data-tips");
+			var pos = $(this).attr("data-position");
+			var x = $(this).offset().left;
+			var y = $(this).offset().top;
+			var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
+			$("body").append(oDiv);
+			var oDivheight = $(".tips-box").height();
+			var oDivwidth = $(".tips-box").width();
+			var othiswid = $(this).width();
+			var othisheight = $(this).height();
+			if(pos){
+				if(pos == "top"){
+					//
+					$(".tips-box").css({"top":y-oDivheight -25});
+					if(oDivwidth > othiswid){
+						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+					}else if(oDivwidth < othiswid){
+						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+					}else{
+						$(".tips-box").css({"left":x});
+					}
+					$(".tips-box").find("cite").addClass("top");
+					//
+				}else if(pos == "bottom"){
+					//
+					$(".tips-box").css({"top":y + othisheight + 25});
+					if(oDivwidth > othiswid){
+						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+					}else if(oDivwidth < othiswid){
+						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+					}else{
+						$(".tips-box").css({"left":x});
+					}
+					$(".tips-box").find("cite").addClass("bottom");
+					//
+				}else if(pos == "left"){
+					$(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+					$(".tips-box").find("cite").addClass("left");
+				}else if(pos == "right"){
+					$(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+					$(".tips-box").find("cite").addClass("right");
+				}else{
+					//
+					$(".tips-box").css({"top":y-oDivheight -25});
+					if(oDivwidth > othiswid){
+						$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+					}else if(oDivwidth < othiswid){
+						$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+					}else{
+						$(".tips-box").css({"left":x});
+					}
+					$(".tips-box").find("cite").addClass("top");
+					//
+				}
+			}else{
+				//
+				$(".tips-box").css({"top":y-oDivheight -25});
+				if(oDivwidth > othiswid){
+					$(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+				}else if(oDivwidth < othiswid){
+					$(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+				}else{
+					$(".tips-box").css({"left":x});
+				}
+				$(".tips-box").find("cite").addClass("top");
+				//
+			}
+
+		});
+		$(".fn-tips").mouseout(function(){
+			$(".tips-box").remove();
+		});
+		////tips end
 	}
 </script>
 
