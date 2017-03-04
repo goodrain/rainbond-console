@@ -42,7 +42,7 @@
 					<!--<p>未知</p>-->
 				</div>
 			</li>
-			<li class="fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+			<li class="fn-tips layer_pay" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
 				<div>
 					<p style="text-align: left">上一小时费用</p>
 					<p class="pImg">
@@ -189,6 +189,24 @@
 		
 </div>
 <!-- deployed end-->
+<div class="layer-body-bg">
+	<div class="layer-body">
+		<!-- 01 start -->
+		<div class="payMoney">
+			<div class="del" title="关闭"><i class="fa fa-times"></i></div>
+			<p class="layer-tit">付费确认</p>
+			<div class="layer-height-overflow">
+				<p>将从您的账户中扣除100元，用于购买当前应用的预付费项目，其余费用仍按小时结算。</p>
+				<p>当前应用将于2017-01-01 12：12开始计费，逾期未成功支付，应用将会停止运行。</p>
+			</div>
+			<p class="bottom">
+				<button class="sure btn-success sure_pay">确认支付</button>
+				<button class="cancel">取消</button>
+			</p>
+		</div>
+		<!-- 01 end -->
+	</div>
+</div>
 <script>
 	var service_id='{{tenantServiceInfo.service_id}}'
 	String.prototype.trim = function() {
@@ -644,5 +662,15 @@
 		});
 		////tips end
 	}
+
+	$(".layer_pay").on("click",function(){
+		$(".layer-body-bg").css({"display":"block"});
+	})
+	$("button.cancel").on("click",function(){
+		$(".layer-body-bg").css({"display":"none"});
+	});
+	$(".del").on("click",function(){
+		$(".layer-body-bg").css({"display":"none"});
+	});
 </script>
 
