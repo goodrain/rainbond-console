@@ -462,9 +462,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 now = datetime.datetime.now()
                 diff_minutes = int((buy_start_time - now).total_seconds() / 60)
                 need_to_pay = 0.00
-                # body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
-                # status = body[self.service.service_id]
-                status = "running"
+                body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
+                status = body[self.service.service_id]
+                # status = "running"
                 service_fee_bill_list = ServiceFeeBill.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id,pay_status="unpayed")
                 service_fee_bill = None
                 if service_fee_bill_list:
