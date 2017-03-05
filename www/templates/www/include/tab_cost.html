@@ -6,19 +6,19 @@
         <table>
             <tbody>
             <tr>
-                <td>内存计费方式：<span class="memoryFun">{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费{% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="changeMemory"> 更改</a></td>
-                <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span><a href="javascript:void(0)" class="larger">扩容</a></td>
+                <td>内存计费方式：{% if service_attach_info.memory_pay_method == 'prepaid'  %}<span class="memoryFun">预付费</span>{% else %}<span class="memoryFun">按小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeMemory">更改</a>{% endif %}</td>
+                <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span>&nbsp;<a href="javascript:void(0)" class="larger">扩容</a></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.memory_money %} {{last_hour_consume.memory_money}} {% else %} 0 {% endif %} 元</span></td>
                 <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
-                <td>磁盘计费方式：<span class="diskFun">{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费{% else %}后付费{% endif %}</span><a href="javascript:void(0)" class="changeDisk"> 更改</a></td>
+                <td>磁盘计费方式：{% if service_attach_info.disk_pay_method == 'prepaid'  %}<span class="diskFun">预付费</span>{% else %}<span class="diskFun">按使用每小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeDisk">更改</a>{% endif %}</td>
                 <td>当前使用：<span>{% if last_hour_consume.disk %} {{last_hour_consume.disk}} {% else %} 0 {% endif %} MB</span></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.disk_money %} {{last_hour_consume.disk_money}} {% else %} 0 {% endif %}元</span></td>
                 <td>累计费用：<span>{% if service_total_disk_fee %} {{service_total_disk_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
-                <td>流量计费方式：<span>后付费</span></td>
+                <td>流量计费方式：<span>按使用每小时扣费</span></td>
                 <td>当前使用：<span>{% if last_hour_consume.net %} {{last_hour_consume.net}} {% else %} 0 {% endif %} MB</span></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.net_money %} {{last_hour_consume.net_money}} {% else %} 0 {% endif %}元</span></td>
                 <td>累计费用：<span>{% if service_total_net_fee %} {{service_total_net_fee}} {% else %} 0 {% endif %} 元</span></td>
@@ -198,7 +198,7 @@
                         <span><cite id="OneMemoryText">128</cite>M</span>
                     </div>
                     <p class="calMoney" style="display: none;">
-                        <span id="deployMoney"></span>元
+                        <span id="deployMoney"></span>
                     </p>
                 </div>
                 <p class="bottom">
@@ -624,7 +624,9 @@
             {
                 var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
                 if( money > 0){
-                    $("#deployMoney").html( (money).toFixed(2) );
+                    $("#deployMoney").html( "基于当前的预付费时长，扩容需要支付" + (money).toFixed(2) + "元");
+                }else{
+                    $("#deployMoney").html();
                 }; 
             }
         }, false);
