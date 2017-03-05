@@ -403,7 +403,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                 # 付费用户一个小时调试
                 startTime = datetime.datetime.now() + datetime.timedelta(hours=2)
                 startTime = startTime.strftime("%Y-%m-%d %H:00:00")
-                # startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
+                startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                 endTime = startTime + relativedelta(months=int(pre_paid_period))
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
                                                                                             buy_end_time=endTime)
