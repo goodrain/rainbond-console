@@ -384,7 +384,7 @@ class PrePaidPostponeView(AuthedView):
                 pre_paid_memory_price = regionBo.memory_package_price
                 pre_paid_disk_price = regionBo.disk_package_price
                 if memory_pay_method == "prepaid":
-                    memory_fee = (service_attach_info.min_memory * service_attach_info.min_node) / 1024.0 * float(pre_paid_memory_price)
+                    memory_fee = (int(service_attach_info.min_memory) * int(service_attach_info.min_node)) / 1024.0 * float(pre_paid_memory_price)
                     need_money += Decimal(memory_fee)
                 if disk_pay_method == "prepaid":
                     disk_fee = service_attach_info.disk / 1024.0 * float(pre_paid_disk_price)
@@ -419,7 +419,7 @@ class PrePaidPostponeView(AuthedView):
                 pre_paid_memory_price = regionBo.memory_package_price
                 pre_paid_disk_price = regionBo.disk_package_price
                 if memory_pay_method == "prepaid":
-                    memory_fee = service_attach_info.min_memory * service_attach_info.min_node / 1024.0 * float(pre_paid_memory_price)
+                    memory_fee = int(service_attach_info.min_memory) * int(service_attach_info.min_node) / 1024.0 * float(pre_paid_memory_price)
                     need_money += Decimal(memory_fee)
                 if disk_pay_method == "prepaid":
                     disk_fee = service_attach_info.disk / 1024.0 * float(pre_paid_disk_price)
