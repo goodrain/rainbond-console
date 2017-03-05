@@ -143,8 +143,8 @@
                     <div class="fm-choose-box clearfix">
                         <label>磁盘存储</label>
                         <div class="btn-cho-box clearfix">
-                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_fbscc" checked="true"  disabled="true" /><label class="cho-bg" for="{{service.service_id}}_fbscc"></label><label for="{{service.service_id}}_fbscc" class="cho-text fn-tips" data-tips="默认即支持，暂不支持取消。">分布式存储</label></p>
-                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_ssd" checked="true"  disabled="true" /><label class="cho-bg" for="{{service.service_id}}_ssd"></label><label for="{{service.service_id}}_ssd" class="cho-text fn-tips" data-tips="默认即支持，暂不支持取消。">SSD</label></p>
+                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_fbscc" checked="true"  disabled="true" /><label class="cho-bg" for="{{service.service_id}}_fbscc"></label><label for="{{service.service_id}}_fbscc" class="cho-text fn-tips" data-tips="默认即免费支持，暂不支持取消。">分布式存储</label></p>
+                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_ssd" checked="true"  disabled="true" /><label class="cho-bg" for="{{service.service_id}}_ssd"></label><label for="{{service.service_id}}_ssd" class="cho-text fn-tips" data-tips="默认即免费支持，暂不支持取消。">SSD</label></p>
                         </div>
                     </div>
                     <div class="fm-input-radio clearfix">
@@ -193,18 +193,18 @@
                     <div class="fm-choose-box clearfix">
                         <label>计算资源</label>
                         <div class="btn-cho-box clearfix">
-                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_dlzy" checked="true" disabled="true" /><label class="cho-bg" for="{{service.service_id}}_dlzy"></label><label for="{{service.service_id}}_dlzy" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">独立资源</label></p>
-                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_fzjh" checked="true" disabled="true" /><label class="cho-bg" for="{{service.service_id}}_fzjh"></label><label for="{{service.service_id}}_fzjh" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">负载均衡</label></p>
-                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_txss" checked="true" disabled="true" /><label class="cho-bg" for="{{service.service_id}}_txss"></label><label for="{{service.service_id}}_txss" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">弹性伸缩</label></p>
-                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_sfkz" checked="true" disabled="true" /><label class="cho-bg" for="{{service.service_id}}_sfkz"></label><label for="{{service.service_id}}_sfkz" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">三份快照</label></p>
+                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_dlzy" checked="true" /><label class="cho-bg" for="{{service.service_id}}_dlzy"></label><label for="{{service.service_id}}_dlzy" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">独立资源</label></p>
+                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_fzjh" checked="true" /><label class="cho-bg" for="{{service.service_id}}_fzjh"></label><label for="{{service.service_id}}_fzjh" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">负载均衡</label></p>
+                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_txss" checked="true" /><label class="cho-bg" for="{{service.service_id}}_txss"></label><label for="{{service.service_id}}_txss" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">弹性伸缩</label></p>
+                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_sfkz" checked="true" /><label class="cho-bg" for="{{service.service_id}}_sfkz"></label><label for="{{service.service_id}}_sfkz" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">三份快照</label></p>
                         </div>
                     </div>
                     <div class="fm-choose-box clearfix">
                         <label>部署回滚</label>
                         <div class="btn-cho-box clearfix">
-                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_yjbs" checked="true" disabled="true" /><label class="cho-bg" for="{{service.service_id}}_yjbs"></label><label for="{{service.service_id}}_yjbs" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">一键部署</label></p>
-                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_yjhg" checked="true"  disabled="true" /><label class="cho-bg" for="{{service.service_id}}_yjhg"></label><label for="{{service.service_id}}_yjhg" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">一键回滚</label></p>
-                            <p  class="clearfix"><input type="checkbox" id="{{service.service_id}}_gdsj" checked="true" disabled="true" /><label class="cho-bg" for="{{service.service_id}}_gdsj"></label><label for="{{service.service_id}}_gdsj" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">滚动升级</label></p>
+                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_yjbs" checked="true" /><label class="cho-bg" for="{{service.service_id}}_yjbs"></label><label for="{{service.service_id}}_yjbs" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">一键部署</label></p>
+                            <p class="clearfix"><input type="checkbox" id="{{service.service_id}}_yjhg" checked="true" /><label class="cho-bg" for="{{service.service_id}}_yjhg"></label><label for="{{service.service_id}}_yjhg" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">一键回滚</label></p>
+                            <p  class="clearfix"><input type="checkbox" id="{{service.service_id}}_gdsj" checked="true" /><label class="cho-bg" for="{{service.service_id}}_gdsj"></label><label for="{{service.service_id}}_gdsj" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">滚动升级</label></p>
                         </div>
                     </div>
                     <div class="fm-choose-box clearfix">
