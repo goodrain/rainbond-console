@@ -363,7 +363,7 @@
                         if( money > 0){
                             $("#kuorongmoney").css({"display":"block"});
                             $("#deployMoney").html( (money).toFixed(2) );
-                            $(".sureDeploy").css({"display":"block"});
+                            $(".sureDeploy").css({"display":"inline-block"});
                         }else{
                             $("#kuorongmoney").css({"display":"none"});
                             $(".sureDeploy").css({"display":"none"});
@@ -374,7 +374,7 @@
                     }
                     else{
                         $(".sureDeploy").html("确定");
-                        $(".sureDeploy").css({"display":"block"});
+                        $(".sureDeploy").css({"display":"inline-block"});
                     }
                 },
                 error : function() {
@@ -638,7 +638,7 @@
                 if( money > 0){
                     $("#kuorongmoney").css({"display":"block"});
                     $("#deployMoney").html( (money).toFixed(2) );
-                    $(".sureDeploy").css({"display":"block"});
+                    $(".sureDeploy").css({"display":"inline-block"});
                 }else{
                     $("#kuorongmoney").css({"display":"none"});
                     $(".sureDeploy").css({"display":"none"});
