@@ -598,6 +598,7 @@ class ServiceDetail(AuthedView):
                     result["status"] = status
         except Exception, e:
             logger.debug(self.service.service_region + "-" + self.service.service_id + " check_service_status is error")
+            logger.exception(e)
             result["totalMemory"] = 0
             result['status'] = "failure"
         return JsonResponse(result)

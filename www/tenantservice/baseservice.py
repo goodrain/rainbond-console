@@ -31,7 +31,7 @@ appClient = AppServiceApi()
 
 
 class BaseTenantService(object):
-    
+
     def get_service_list(self, tenant_pk, user, tenant_id, region):
         user_pk = user.pk
         tmp = TenantServiceInfo()
@@ -693,7 +693,7 @@ class TenantAccountService(object):
         if self.MODULES["Owned_Fee"]:
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=region_name)
             # if tenant_region.service_status == 2 and tenant.pay_type == "payed":
-            if tenant_region.balance < 0 and tenant.pay_type == "payed":
+            if tenant.balance < 0 and tenant.pay_type == "payed":
                 return True
         return False
 
