@@ -25,7 +25,7 @@
                  	{% endfor %}
                 {% endif %}
                 {% if not is_private %}
-                <li><a href="/apps/{{tenantName}}/third_app/list">第三方应用</a></li>
+                <li class="third_app"><a href="/apps/{{tenantName}}/third_app/list">第三方应用</a></li>
                 {% endif %}
                 <li {% if -1 ==  group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid=-1">未分组</a></li>
             </ul>

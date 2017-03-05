@@ -27,6 +27,9 @@
 	<img height="1" width="1" style="border-style:none;" alt="" src="//www.googleadservices.com/pagead/conversion/867795233/?label=0_d8CLyEpmwQoYLmnQM&amp;guid=ON&amp;script=0"/>
 	</div>
 	</noscript>
+	<!-- 同一公告-->
+	<div class="infotips tipsbox">好雨云帮 亚马逊（日本）数据中心 将于2017年3月15日起做出新的调整，<a href="http://t.goodrain.com/t/topic/272/1" target="_blank" style="cursor:pointer;">点击此处查看详情。</a></div>
+
 	<!-- 免费使用阶段 -->
 	{% if pay_type == "free" and not expired %}
 	<div class="infotips tipsbox">您可以全功能免费使用至 {{ expired_time|date:'Y-m-d H:i:s' }}。<a style="cursor:pointer;" onclick="payed_upgrade('{{tenantName}}','')">点击此处立刻升级为付费用户</a><a class="close" href="#">×</a></div>
@@ -36,7 +39,7 @@
 	{% endif %}
 	<!-- 付费使用阶段 -->
 	{% if pay_type == "payed" and tenant_balance < 20 and tenant_balance > 0 %}
-	<div class="warntips tipsbox">您的余额偏低。 <a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a> <a class="close" href="#">×</a></div>
+	<div class="warntips tipsbox">您的余额偏低。<a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a> <a class="close" href="#">×</a></div>
 	{% endif %}
 	{% if pay_type == "payed" and monthly_payment_status == 1 %}
 	<div class="warntips tipsbox">您的云帮将于 {{ buy_end_time|date:'Y-m-d H:i:s' }}到期。<a href="/apps/{{tenantName}}/paymodel/" target="_blank">点击此处购买预付费套餐</a><a class="close" href="#">×</a></div>

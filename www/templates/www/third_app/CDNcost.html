@@ -5,142 +5,58 @@
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/style.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/cdn.css" %}' />
 {% endblock %}
 {% block extrajs %}
-<!--<script src='{% static "www/js/group.js" %}'></script>-->
+<script src='{% static "www/js/cdn.js" %}'></script>
 {% endblock %}
-
 {% block main-content %}
-<style>
-    h3{
-        height: 34px;
-        line-height: 34px;
-        color: #28cb75;
-        font-size: 22px;
-        font-weight: 200;
-    }
-    #sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
-    #sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
-</style>
 <section class="wrapper site-min-height">
-    <h3>又拍云CDN费用明细</h3>
-    <section class="panel">
-<<<<<<< Updated upstream
-        <section class="content-tab">
-            <table>
-                <thead>
-                <tr>
-                    <th>开始时间</th>
-                    <th>结束时间</th>
-                    <th>流量</th>
-                    <th>存储</th>
-                    <th>请求次数</th>
-                    <th>套餐外费用</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{order.start_time}}</td>
-                    <td>{{order.end_time}}</td>
-                    <td>{{app.traffic_size}}</td>
-                    <td>{{app.oos_size}}</td>
-                    <td>{{app.request_size}}</td>
-                    <td>{{app.total_cost}}</td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+    <section class="main-box">
+        <input type="hidden" id="tenantName" value="{{tenantName}}">
+        <input type="hidden" id="app_id" value="{{app_id}}">
+        <p>
+            <span id="cdn_name">{{app_info.name}}</span>
+            <a class="changeName">更名</a>
+        </p>
+        <p class="cdn_name">
+            <input type="text" placeholder="请输入名称">
+            <button class="btn btn-primary name_sure">确认</button>
+            <button class="btn btn-danger name_cancel">取消</button>
+        </p>
+
+        <header class="panel-heading ">
+            <ul class="nav nav-tabs" id="nav-tabs">
+                <li>
+                    <a href="/apps/{{tenantName}}/{{app_id}}/third_show">概览</a>
+                </li>
+                <li class="active">
+                    <a href="/apps/{{tenantName}}/{{app_id}}/orders">费用</a>
+                </li>
+            </ul>
+        </header>
+
+        <section class="panel">
+            <div id="tenantConsumeList">
+
+            </div>
+
+            <script>
+                function _page(page){
+                    var curpagesize= $("#pageSizeScope").val()
+                    if(typeof(curpagesize) == "undefined"){
+                        curpagesize=10
+                    }
+                    $("#tenantConsumeList").load('/apps/{{tenantName}}/{{app_id}}/orders_data?page='+page+'&page_size='+curpagesize);
+                }
+                $(document).ready(function(){
+                    _page(1);
+                    $("body").on("change","#pageSizeScope", function () {
+                        _page(1);
+                    });
+                })
+            </script>
         </section>
-=======
-        <div id="example_wrapper" class="content-tab" role="grid">
-            <form role="form">
-                <div class="clearfix">
-                    <div class="lit-select text-left" style="width: 40%; float: left;">
-                        <label>时间范围</label>
-                        <select id="datescope">
-                            <option {% if datescope == "1" %} selected="selected" {% endif %} value="1">最近1天</option>
-                            <option {% if datescope == "7" %} selected="selected" {% endif %} value="7">最近7天</option>
-                            <option {% if datescope == "30" %} selected="selected" {% endif %} value="30">最近1个月</option>
-                            <option {% if datescope == "180" %} selected="selected" {% endif %} value="180">最近6个月</option>
-                            <option {% if datescope == "0" %} selected="selected" {% endif %} value="0">所有记录</option>
-                        </select>
-                    </div>
-
-
-                    <div id="example_length" class="lit-select text-right"  style="width: 40%; float: right;">
-                        <label>每页显示</label>
-                        <select name="example_length" aria-controls="example" id="pageSizeScope">
-                            <option {% if per_page == "10" %} selected="selected" {% endif %} value="10">10</option>
-                            <option {% if per_page == "25" %} selected="selected" {% endif %} value="25">25</option>
-                            <option {% if per_page == "50" %} selected="selected" {% endif %} value="50">50</option>
-                            <option {% if per_page == "100" %} selected="selected" {% endif %} value="100">100</option>
-                        </select>
-                        <label>行</label>
-                    </div>
-                </div>
-                <table >
-                    <thead>
-                    <tr>
-                        <th>开始时间</th>
-                        <th>结束时间</th>
-                        <th>流量</th>
-                        <th>存储</th>
-                        <th>请求次数</th>
-                        <th>套餐外费用</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for tenantConsume in tenantConsumes %}
-                    <tr>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                        <td>cdn</td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                <div class="adv-table">
-                    <div id="example_wrapper" role="grid">
-                        <div class="pages">
-                            {% if tenantConsumes.has_previous %}
-                            <a  class="prev" href="javascript:;" onclick="_page({{tenantConsumes.previous_page_number}})">&lt;</a>
-                            {% endif %}
-
-                            {% for page in tenantConsumes.paginator.page_range %}
-                            {% if page = tenantConsumes.number %}
-                            <a href="javascript:;" class="active">{{ page }}</a>
-                            {% else %}
-                            <a href="javascript:;" onclick="_page({{page}})">{{page}}</a>
-                            {% endif %}
-                            {% endfor %}
-                            {% if tenantConsumes.has_next %}
-                            <a href="javascript:;"  class="next" onclick="_page({{ tenantConsumes.next_page_number }})">&gt;</a>
-                            {% endif %}
-                        </div>
-
-                    </div>
-                </div>
-            </form>
-
-        </div>
->>>>>>> Stashed changes
     </section>
 </section>
-<script>
-    $(document).ready(function(){
-//        console.log($("ul.sub").eq(0));
-//        $("li.sub-menu ul.sub").eq(0).css({"display":"block"});
-//        $("li.sub-menu ul.sub").eq(0).show();
-        var o = ($('#sidebar .sub-menu > a').offset());
-        diff = 250 - o.top;
-        if(diff>0)
-            $("#sidebar").scrollTo("-="+Math.abs(diff),500);
-        else
-            $("#sidebar").scrollTo("+="+Math.abs(diff),500);
-    })
-</script>
 {% endblock %}

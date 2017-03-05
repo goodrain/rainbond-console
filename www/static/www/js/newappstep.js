@@ -239,6 +239,7 @@ $(function(){
     // 显示 隐藏
     $("#MoneyBefore").change(function(){
         var onoff = $("#MoneyBefore").prop("checked");
+        var onoff2 = $("#DiskBefore").prop("checked");
         if(onoff == true){
             // $(".fn-memory-node").show();
             $("#aft-memory-box").hide();
@@ -246,22 +247,37 @@ $(function(){
             //$(".fn-memory-node").hide();
             $("#aft-memory-box").show();
         }
+        if((onoff == true) | (onoff2 == true)){
+            $("#bef-month").show();
+            $("#bef-money").show();
+        }else{
+            $("#bef-month").hide();
+            $("#bef-money").hide();
+        }
         FnPrice();
     });
     $("#MoneyAfter").change(function(){
-        
-        var onoff = $("#MoneyAfter").prop("checked");
-        if(onoff == false){
-            //$(".fn-memory-node").show();
+        var onoff = $("#MoneyBefore").prop("checked");
+        var onoff2 = $("#DiskBefore").prop("checked");
+        if(onoff == true){
+            // $(".fn-memory-node").show();
             $("#aft-memory-box").hide();
         }else{
             //$(".fn-memory-node").hide();
             $("#aft-memory-box").show();
         }
+        if((onoff == true) | (onoff2 == true)){
+            $("#bef-month").show();
+            $("#bef-money").show();
+        }else{
+            $("#bef-month").hide();
+            $("#bef-money").hide();
+        }
         FnPrice();
     });
     $("#DiskBefore").change(function(){
         var onoff = $("#DiskBefore").prop("checked");
+        var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
             $("#aft-disk-box").hide();
@@ -269,16 +285,31 @@ $(function(){
             $(".fn-disk").hide();
             $("#aft-disk-box").show();
         }
+        if((onoff == true) | (onoff2 == true)){
+            $("#bef-month").show();
+            $("#bef-money").show();
+        }else{
+            $("#bef-month").hide();
+            $("#bef-money").hide();
+        }
         FnPrice();
     });
     $("#DiskAfter").change(function(){
-        var onoff = $("#After").prop("checked");
-        if(onoff == false){
+        var onoff = $("#DiskBefore").prop("checked");
+        var onoff2 = $("#MoneyBefore").prop("checked");
+        if(onoff == true){
             $(".fn-disk").show();
             $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
             $("#aft-disk-box").show();
+        }
+        if((onoff == true) | (onoff2 == true)){
+            $("#bef-month").show();
+            $("#bef-money").show();
+        }else{
+            $("#bef-month").hide();
+            $("#bef-money").hide();
         }
         FnPrice();
     });

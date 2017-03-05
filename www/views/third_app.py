@@ -12,6 +12,8 @@ import logging
 import time
 import datetime
 from django.db import connection
+from django.http import JsonResponse
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db import transaction
 
 logger = logging.getLogger('default')
@@ -35,14 +37,23 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
         )
         return media
     
+    def get(self, request, *args, **kwargs):
+        
+        app_type = kwargs.get('app_type', None)
+        context = self.get_context()
+        context["app_type"] = app_type
+        return TemplateResponse(self.request, "www/third_app/CDN_create.html", context)
+    
     # form提交.
     @perm_required('app_create')
     @transaction.atomic
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
+        result = {}
         try:
             
             app_type = kwargs.get('app_type', None)
             tenant_name = self.tenantName
+            app_name = request.POST.get("app_name", None)
             create_body = {}
             if app_type is not None:
                 if app_type == "upai_cdn":
@@ -65,7 +76,12 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     info.bucket_name = create_body["bucket_name"]
                     info.app_type = app_type
                     info.tenant_id = tenant_name
-                    info.name = "又拍云应用"
+                    if app_name is not None:
+                        info.name = app_name
+                    elif app_type == "upai_oos":
+                        info.name = "又拍云对象存储"
+                    elif app_type == "upai_cdn":
+                        info.name = "又拍云CDN"
                     info.save()
                     # 创建初始化账单
                     order = ThirdAppOrder(bucket_name=info.bucket_name, tenant_id=self.tenantName,
@@ -75,19 +91,25 @@ class CreateThirdAppView(LeftSideBarMixin, AuthedView):
                     order.end_time = datetime.datetime.now()
                     order.create_time = datetime.datetime.now()
                     order.save()
-                    
-                    return HttpResponseRedirect(
-                        "/apps/" + tenant_name + "/" + create_body["bucket_name"] + "/third_show")
+                    result["status"] = "success"
+                    result["app_id"] = info.bucket_name
+                    JsonResponse(result)
                 else:
                     
                     logger.error("create upai cdn bucket error,:" + body.message)
-                    return HttpResponse(u"创建错误", status=res.status)
+                    result["status"] = "failure"
+                    result["message"] = body.message
+                    JsonResponse(result)
             else:
-                return HttpResponse(u"参数错误", status=415)
+                result["status"] = "failure"
+                result["message"] = "参数错误"
+                JsonResponse(result)
         except Exception as e:
             transaction.rollback()
             logger.exception(e)
-        return HttpResponse(u"创建异常", status=500)
+            result["status"] = "failure"
+            result["message"] = "内部错误"
+        return JsonResponse(result)
 
 
 class ThirdAppView(LeftSideBarMixin, AuthedView):
@@ -110,6 +132,7 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
         try:
             upai_client = YouPaiApi()
             app_bucket = kwargs.get('app_bucket', None)
+            
             tenant_name = self.tenantName
             if app_bucket is None:
                 return HttpResponse(u"参数错误", status=415)
@@ -125,6 +148,8 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                     dos = []
                     for domain in body.domains:
                         domain.updated_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(domain.updated_at))
+                        if app_info.app_type == "upai_cdn" and domain.domain.endswith("upaiyun.com"):
+                            continue
                         dos.append(domain)
                     context["domains"] = dos
                 res, body = upai_client.getOperatorsList(app_info.bucket_name)
@@ -135,24 +160,6 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                         op.bind_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(op.bind_at))
                         ops.append(op)
                     context["operators"] = ops
-                    # pre_min = datetime.datetime.combine(
-                    #     datetime.date.today() - datetime.timedelta(days=1),
-                    #     datetime.time.min).strftime("%Y-%m-%d %H:%M:%S")
-                    # pre_max = datetime.datetime.combine(
-                    #     datetime.date.today() - datetime.timedelta(days=1),
-                    #     datetime.time.max).strftime("%Y-%m-%d %H:%M:%S")
-                    # sql = '''
-                    #     SELECT max(oos_size) as oos_size,sum(traffic_size) as
-                    #     traffic_size,sum(total_cost) as total_cost,sum(request_size) as request_size FROM
-                    #     `third_app_order` WHERE `bucket_name`="%s" and `create_time`>"%s" and `create_time`<"%s"
-                    #  ''' % (app_bucket, pre_min, pre_max)
-                    # logger.info(sql)
-                    # cursor = connection.cursor()
-                    # cursor.execute(sql)
-                    # fetchall = cursor.fetchall()
-                    # order_info = {
-                    #
-                    # }
                     info = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).first()
                     
                     logger.info(info)
@@ -181,11 +188,19 @@ class ThirdAppView(LeftSideBarMixin, AuthedView):
                                                        4)
                 else:
                     context["traffic_balance"] = 0
+            if app_info.app_type == "upai_cdn":
+                try:
+                    res, body = upai_client.get_cdn_source(app_info.bucket_name)
+                    if res.status == 200:
+                        context["cdn_source"] = body.data
+                except Exception as e:
+                    logger.exception(e)
+            
             return TemplateResponse(self.request, "www/third_app/CDNshow.html", context)
         
         except Exception as e:
             logger.exception(e)
-        return HttpResponse(u"创建异常", status=500)
+        return HttpResponse(u"获取应用异常", status=500)
 
 
 class ThirdAppListView(LeftSideBarMixin, AuthedView):
@@ -230,7 +245,36 @@ class ThirdAppOrdersListView(LeftSideBarMixin, AuthedView):
     
     def get(self, request, *args, **kwargs):
         app_bucket = kwargs.get('app_bucket', None)
-        orders = ThirdAppOrder.objects.filter(bucket_name=app_bucket).all()
         context = self.get_context()
-        context["orders"] = orders
+        context["app_id"] = app_bucket
+        app_info = ThirdAppInfo.objects.filter(bucket_name=app_bucket).first()
+        if app_info is None:
+            return HttpResponse(u"参数错误", status=415)
+        context["app_info"] = app_info
         return TemplateResponse(self.request, "www/third_app/CDNcost.html", context)
+
+
+class ThirdAppOrdersListDataView(AuthedView):
+    def get(self, request, *args, **kwargs):
+        app_bucket = kwargs.get('app_bucket', None)
+        page = request.GET.get("page", 1)
+        page_size = request.GET.get("page_size", 24)
+        orders = ThirdAppOrder.objects.order_by("-create_time").filter(bucket_name=app_bucket).all()
+        paginator = Paginator(orders, page_size)
+        orders_size = orders.count()
+        last_page = orders_size / int(page_size) == int(page) - 1
+        context = self.get_context()
+        try:
+            page_orders = paginator.page(page)
+            context["orders"] = page_orders
+        except PageNotAnInteger:
+            # 页码不是整数，返回第一页。
+            page_orders = paginator.page(1)
+            context["orders"] = page_orders
+        except EmptyPage:
+            page_orders = paginator.page(paginator.num_pages)
+            context["orders"] = page_orders
+        context["current_page"] = page
+        context["current_page_size"] = page_size
+        context["last_page"] = last_page
+        return TemplateResponse(self.request, "www/third_app/cost_list.html", context)

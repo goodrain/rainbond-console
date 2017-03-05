@@ -1,0 +1,77 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load goodrain_extras %}
+{% load static %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/style.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
+{% endblock %}
+{% block main-content %}
+<style>
+    div.text_label{width: 35%;float: left;line-height: 30px;text-align: right}
+    div.app_info{width: 65%;float: left;}
+    div.app_info input{width: 50%;height: 30px;padding-left: 10px;color:#303030;-moz-border-radius: 6px;-webkit-border-radius: 6px;border-radius: 6px;}
+    .prompt{display: none;color: red;}
+    div.app_info select{width: 50%;cursor: not-allowed;}
+</style>
+<section class="wrapper site-min-height">
+    <h3 class="main-tit">{% if app_type == "upai_oos" %}创建又拍云对象存储{% else %}创建CDN服务{% endif %}</h3>
+    <section class="content-tab">
+        <div class="fm-select clearfix">
+            <div class="text_label">应用名：</div>
+            <div class="app_info">
+                <input type="text" id="app_name" placeholder="给应用取个名字，支持中英文">
+                <span class="prompt">请输入应用名</span>
+            </div>
+        </div>
+        <div class="fm-select clearfix">
+            <div class="text_label">选择分组：</div>
+            <div class="app_info">
+                <select disabled>
+                    <option>第三方应用</option>
+                </select>
+            </div>
+        </div>
+        <p style="text-align: center;padding: 15px;">
+            <button id="submit" class="greenbtn">开始使用</button>
+        </p>
+    </section>
+</section>
+<script>
+    $(function(){
+        $("#submit").click(function(){
+            if( $("#app_name").val() )
+            {
+                $.ajax({
+                    type : "POST",
+                    url : "/ajax/{{tenantName}}/third_app/{{app_type}}/create",
+                    data : {
+                        app_name : $("input#app_name").val()
+                    },
+                    cache: false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(data){
+                        if(data["status"] == "success")
+                        {
+                            window.location.href = "/apps/{{tenantName}}/"+data["app_id"]+"/third_show";
+                        }
+                        else{
+                            swal(data["message"]);
+                        }
+                    },
+                    error : function(){
+                        swal("系统异常");
+                    }
+                });
+            }
+            else{
+                $(".prompt").css({"display":"block"});
+            }
+        })
+    });
+</script>
+{% endblock %}
