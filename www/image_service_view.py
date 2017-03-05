@@ -131,9 +131,9 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                     result["status"] = "failure"
                     return JsonResponse(result, status=200)
 
-                if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                    result["status"] = "owed"
-                    return JsonResponse(result, status=200)
+                # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+                #     result["status"] = "owed"
+                #     return JsonResponse(result, status=200)
 
                 # calculate resource
                 tempService = TenantServiceInfo()
@@ -302,9 +302,9 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             if not success:
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)
-            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                result["status"] = "owed"
-                return JsonResponse(result, status=200)
+            # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+            #     result["status"] = "owed"
+            #     return JsonResponse(result, status=200)
             # if tenantAccountService.isExpired(self.tenant,self.service):
             #     result["status"] = "expired"
             #     return JsonResponse(result, status=200)

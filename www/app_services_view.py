@@ -125,9 +125,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
 
-            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                data["status"] = "owed"
-                return JsonResponse(data, status=200)
+            # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+            #     data["status"] = "owed"
+            #     return JsonResponse(data, status=200)
 
             # if tenantAccountService.isExpired(self.tenant,self.service):
             #     data["status"] = "expired"

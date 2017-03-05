@@ -7,7 +7,7 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceVolume, ServiceInfo, AppServiceRelation, AppServiceEnv, \
-    AppServicePort, ServiceExtendMethod, AppServiceVolume
+    AppServicePort, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo
 
 from www.models.main import TenantRegionPayModel
 from www.service_http import RegionServiceApi
@@ -692,7 +692,8 @@ class TenantAccountService(object):
     def isOwnedMoney(self, tenant, region_name):
         if self.MODULES["Owned_Fee"]:
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=region_name)
-            if tenant_region.service_status == 2 and tenant.pay_type == "payed":
+            # if tenant_region.service_status == 2 and tenant.pay_type == "payed":
+            if tenant_region.balance < 0 and tenant.pay_type == "payed":
                 return True
         return False
 

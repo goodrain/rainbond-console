@@ -226,9 +226,9 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)
 
-            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                result["status"] = "owed"
-                return JsonResponse(result, status=200)
+            # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+            #     result["status"] = "owed"
+            #     return JsonResponse(result, status=200)
             if group_id == "":
                 result["status"] = "no_group"
                 return JsonResponse(result, status=200)
@@ -458,9 +458,9 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)
 
-            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                result["status"] = "owed"
-                return JsonResponse(result, status=200)
+            # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+            #     result["status"] = "owed"
+            #     return JsonResponse(result, status=200)
 
             # if tenantAccountService.isExpired(self.tenant,self.service):
             #     result["status"] = "expired"
