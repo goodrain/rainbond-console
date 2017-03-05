@@ -439,7 +439,7 @@ class PrePaidPostponeView(AuthedView):
                 service_attach_info.buy_end_time = now + datetime.timedelta(days=extend_time * 30)
                 service_attach_info.save()
             else:
-                service_attach_info.buy_end_time = service_attach_info.buy_start_time + datetime.timedelta(
+                service_attach_info.buy_end_time = service_attach_info.buy_end_time + datetime.timedelta(
                     days=extend_time * 30)
                 service_attach_info.save()
             self.tenant.balance = balance - need_money
