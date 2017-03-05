@@ -1,6 +1,11 @@
 <!-- deployed start -->
 {% load staticfiles %}
 <div role="tabpanel"  id="deployed">
+	<input type="hidden" value="{{can_pay}}" id="can_pay_btn">
+	<input type="hidden" value="{{tenantName}}" id="tenantName">
+	<input type="hidden" value="{{serviceAlias}}" id="serviceAlias">
+	<input type="hidden" value="{{tenantServiceInfo.service_id}}" id="service_id">
+	<input type="hidden" value="{{tenantServiceInfo.tenant_id}}" id="tenant_id">
 
 	<div class="appOutline">
 		<ul class="outlineTop clearfix">
@@ -42,13 +47,13 @@
 					<!--<p>未知</p>-->
 				</div>
 			</li>
-			<li class="fn-tips layer_pay" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+			<li class="fn-tips layer_pay" data-tips="{{tips}}">
 				<div>
 					<p style="text-align: left">上一小时费用</p>
 					<p class="pImg">
 						<img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
 					</p>
-					<p id="last_hour_fee" name="last_hour_fee">{% if last_hour_cost.total_fee %}{{last_hour_cost.total_fee}}{% else %}0{% endif %}元</p>
+					<p id="last_hour_fee" name="last_hour_fee">{{current_status}}</p>
 					<!--<p>未知</p>-->
 				</div>
 			</li>
@@ -196,7 +201,7 @@
 			<div class="del" title="关闭"><i class="fa fa-times"></i></div>
 			<p class="layer-tit">付费确认</p>
 			<div class="layer-height-overflow">
-				<p>将从您的账户中扣除100元，用于购买当前应用的预付费项目，其余费用仍按小时结算。</p>
+				<p>将从您的账户中扣除{{need_to_pay}}元，用于购买当前应用的预付费项目，其余费用仍按小时结算。</p>
 				<p>当前应用将于2017-01-01 12：12开始计费，逾期未成功支付，应用将会停止运行。</p>
 			</div>
 			<p class="bottom">
@@ -664,7 +669,10 @@
 	}
 
 	$(".layer_pay").on("click",function(){
-		$(".layer-body-bg").css({"display":"block"});
+		var can_pay = $("#can_pay_btn").val()
+		if(can_pay=="True"){
+			$(".layer-body-bg").css({"display":"block"});
+		}
 	})
 	$("button.cancel").on("click",function(){
 		$(".layer-body-bg").css({"display":"none"});
@@ -674,11 +682,14 @@
 	});
 	$(".sure_pay").on("click",function(){
 		var tenantName = $("#tenantName").val();
+//		var tenant_id = $("#tenant_id").val();
+//		var service_id = $("#service_id").val();
 		var serviceAlias = $("#serviceAlias").val();
+
 		$.ajax({
 			type : "post",
-			url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
-			data : {},
+			url : "/ajax/"+tenantName+"/"+serviceAlias+"/pay-money",
+			data:{},
 			cache : false,
 			beforeSend : function(xhr, settings) {
 				var csrftoken = $.cookie('csrftoken');
@@ -687,8 +698,9 @@
 			success : function(msg) {
 				if( msg["status"] == "success" )
 				{
-					swal("修改成功");
-					history.go(0);
+					swal("支付成功");
+					$(".layer-body-bg").css({"display":"none"});
+					window.location.href = window.location.href
 				}
 				else if( msg["status"] == "not_enough" ){
 					swal("余额不足");

@@ -6,7 +6,7 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
-from www.models.main import ServiceAttachInfo
+from www.models.main import ServiceAttachInfo, ServiceFeeBill
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
@@ -443,6 +443,12 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             sai.create_time = create_time
             sai.pre_paid_money = self.get_estimate_service_fee(sai)
             sai.save()
+            # 创建预付费订单
+            if sai.pre_paid_money > 0:
+                ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
+                                              prepaid_money=sai.pre_paid_money, pay_status="unpayed",
+                                              cost_type="firs_create", node_memory=min_memory, node_num=min_node,
+                                              disk=disk, buy_period=pre_paid_period * 24 * 30)
 
             if min_memory != "":
                 cm = int(min_memory)

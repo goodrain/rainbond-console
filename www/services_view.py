@@ -10,7 +10,7 @@ from django.http import Http404
 
 from share.manager.region_provier import RegionProviderManager
 from www.models.main import TenantRegionPayModel, ServiceGroupRelation, ServiceCreateStep, ServiceAttachInfo, \
-    TenantConsumeDetail, ServiceConsume
+    TenantConsumeDetail, ServiceConsume, ServiceFeeBill
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
@@ -344,18 +344,18 @@ class TenantService(LeftSideBarMixin, AuthedView):
                                                     tenant_id=self.tenant.tenant_id).count() > 0:
                     return self.redirect_to('/apps/{0}/{1}/deploy/setting/'.format(self.tenantName, self.serviceAlias))
 
-            service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                                             service_id=self.service.service_id).order_by("-ID")
-            last_hour_cost = None
-            if len(service_consume_detail_list) > 0:
-                last_hour_cost = service_consume_detail_list[0]
-            if last_hour_cost is not None:
-                last_hour_cost.memory_fee = round(
-                    last_hour_cost.memory / 1024 * memory_post_paid_price * last_hour_cost.node_num, 2)
-                last_hour_cost.disk_fee = round(last_hour_cost.disk / 1024 * disk_post_paid_price, 2)
-                last_hour_cost.net_fee = round(last_hour_cost.net / 1024 * net_post_paid_price, 2)
-                last_hour_cost.total_fee = last_hour_cost.disk_fee + last_hour_cost.memory_fee + last_hour_cost.net_fee
-                context["last_hour_cost"] = last_hour_cost
+            # service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
+            #                                                                  service_id=self.service.service_id).order_by("-ID")
+            # last_hour_cost = None
+            # if len(service_consume_detail_list) > 0:
+            #     last_hour_cost = service_consume_detail_list[0]
+            # if last_hour_cost is not None:
+            #     last_hour_cost.memory_fee = round(
+            #         last_hour_cost.memory / 1024 * memory_post_paid_price * last_hour_cost.node_num, 2)
+            #     last_hour_cost.disk_fee = round(last_hour_cost.disk / 1024 * disk_post_paid_price, 2)
+            #     last_hour_cost.net_fee = round(last_hour_cost.net / 1024 * net_post_paid_price, 2)
+            #     last_hour_cost.total_fee = last_hour_cost.disk_fee + last_hour_cost.memory_fee + last_hour_cost.net_fee
+            #     context["last_hour_cost"] = last_hour_cost
             context['is_tenant_free'] = (self.tenant.pay_type == "free")
 
             context["tenantServiceInfo"] = self.service
@@ -378,6 +378,22 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
             http_port_str = settings.WILD_PORTS[self.response_region]
             context['http_port_str'] = ":" + http_port_str
+
+            service_attach_info = None
+            try:
+                service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                                    service_id=self.service.service_id)
+            except ServiceAttachInfo.DoesNotExist:
+                pass
+            if service_attach_info is None:
+                service_attach_info = self.generate_service_attach_info()
+
+            now = datetime.datetime.now()
+            if service_attach_info.buy_end_time < now:
+                if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method == "prepaid":
+                    service_attach_info.disk_pay_method = "postpaid"
+                    service_attach_info.memory_pay_method = "postpaid"
+                    service_attach_info.save()
 
             if fr == "deployed":
                 if self.service.service_type == 'mysql':
@@ -424,6 +440,102 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if self.service.port_type == "multi_outer":
                     context["http_outer_service_ports"] = self.get_outer_service_port()
 
+                service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id,service_id=self.service.service_id).order_by("-ID")
+                last_hour_cost = None
+                if service_consume_list:
+                    last_hour_cost = service_consume_list[0]
+                context["last_hour_cost"] = last_hour_cost
+
+            # 处理付费状态
+                service_attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id,
+                                                                    tenant_id=self.tenant.tenant_id)
+                buy_start_time = service_attach_info.buy_start_time
+                buy_end_time = service_attach_info.buy_end_time
+                memory_pay_method = service_attach_info.memory_pay_method
+                disk_pay_method = service_attach_info.disk_pay_method
+                is_package_servie = False
+                if memory_pay_method == "prepaid" or disk_pay_method == "prepaid":
+                    is_package_servie = True
+                tips = "暂无"
+                current_status = "未知"
+                can_pay = False
+                now = datetime.datetime.now()
+                diff_minutes = int((buy_start_time - now).total_seconds() / 60)
+                need_to_pay = 0.00
+                # body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
+                # status = body[self.service.service_id]
+                status = "running"
+                service_fee_bill_list = ServiceFeeBill.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id,pay_status="unpayed")
+                service_fee_bill = None
+                if service_fee_bill_list:
+                    service_fee_bill = service_fee_bill_list[0]
+                prepaid_money = 0.00
+                if service_fee_bill:
+                    prepaid_money = service_fee_bill.prepaid_money
+                start_time_str = buy_start_time.strftime("%Y-%m-%d %H:%M:%S")
+
+                if is_package_servie:
+                    if diff_minutes > 0:
+                        if status != "running":
+                            current_status = "调试中"
+                            tips = "应用未运行"
+                        elif prepaid_money > 0:
+                            can_pay = True
+                            need_to_pay = prepaid_money
+                            current_status = "等待支付"
+                            tips = "请于{0}前付款{1}元".format(start_time_str,str(prepaid_money))
+                        else:
+                            current_status = "即将计费"
+                            tips = "将于{0}开始计费".format(start_time_str)
+                    else:
+                        if prepaid_money > 0 and status != "running":
+                            current_status = "到期关闭"
+                            tips = "请在费用页延期,或更改计费方式然后重启应用"
+                        elif status != "running" and self.tenant.balance < 0:
+                            current_status = "欠费关闭"
+                            tips = "请为账户充值然后重启应用"
+                        else:
+                            if buy_end_time > now:
+                                tips = "预付费将于{0}到期".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
+                                if last_hour_cost:
+                                    current_status = str(last_hour_cost.pay_money)+"元"
+                                else:
+                                    current_status = "0元"
+                            else:
+                                tips = "当前应用所有项目均按小时计算"
+                                if last_hour_cost:
+                                    current_status = str(last_hour_cost.pay_money)+"元"
+                                else:
+                                    current_status = "0元"
+                else:
+                    if diff_minutes > 0:
+                        if status != "running":
+                            current_status = "调试中"
+                            tips = "应用未运行"
+                        else:
+                            if diff_minutes < 15:
+                                current_status = "即将计费"
+                                tips = "将于{0}开始计费".format(start_time_str)
+                            else:
+                                tips = "当前应用所有项目均按小时计算"
+                                if last_hour_cost:
+                                    current_status = str(last_hour_cost.pay_money)+"元"
+                                else:
+                                    current_status = "0元"
+                    else:
+                        if status != "running" and self.tenant.balance < 0:
+                            current_status = "欠费关闭"
+                            tips = "请为账户充值然后重启应用"
+                        else:
+                            tips = "当前应用所有项目均按小时计算"
+                            if last_hour_cost:
+                                current_status = str(last_hour_cost.pay_money)+"元"
+                            else:
+                                current_status = "0元"
+                context["tips"] = tips
+                context["current_status"] = current_status
+                context["can_pay"] = can_pay
+                context["need_to_pay"] = need_to_pay
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
@@ -605,21 +717,16 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 for group in group_list:
                     serviceGroupNameMap[group.ID] = group.group_name
                 context["serviceGroupNameMap"] = serviceGroupNameMap
+
             elif fr == "cost":
-                service_attach_info = None
-                try:
-                    service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
-                                                                        service_id=self.service.service_id)
-                except ServiceAttachInfo.DoesNotExist:
-                    pass
-                if service_attach_info is None:
-                    service_attach_info = self.generate_service_attach_info()
-                now = datetime.datetime.now()
-                if service_attach_info.buy_end_time < now:
-                    if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method == "prepaid":
-                        service_attach_info.disk_pay_method = "postpaid"
-                        service_attach_info.memory_pay_method = "postpaid"
-                        service_attach_info.save()
+                # service_attach_info = None
+                # try:
+                #     service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                #                                                         service_id=self.service.service_id)
+                # except ServiceAttachInfo.DoesNotExist:
+                #     pass
+                # if service_attach_info is None:
+                #     service_attach_info = self.generate_service_attach_info()
 
                 context["service_attach_info"] = service_attach_info
                 context["service"] = self.service

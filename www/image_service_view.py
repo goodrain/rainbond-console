@@ -9,7 +9,7 @@ from django.views.decorators.cache import never_cache
 from share.manager.region_provier import RegionProviderManager
 from www.decorator import perm_required
 from www.models.main import TenantServiceInfo, ServiceInfo, ImageServiceRelation, TenantServiceEnvVar, \
-    TenantServicesPort, TenantServiceVolume, ServiceAttachInfo, ServiceGroupRelation
+    TenantServicesPort, TenantServiceVolume, ServiceAttachInfo, ServiceGroupRelation, ServiceFeeBill
 from www.monitorservice.monitorhook import MonitorHook
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
@@ -175,6 +175,12 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                 sai.create_time = create_time
                 sai.pre_paid_money = self.get_estimate_service_fee(sai)
                 sai.save()
+                # 创建预付费订单
+                if sai.pre_paid_money > 0:
+                    ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
+                                                  prepaid_money=sai.pre_paid_money, pay_status="unpayed",
+                                                  cost_type="firs_create", node_memory=min_memory, node_num=min_node,
+                                                  disk=disk, buy_period=pre_paid_period * 24 * 30)
 
                 result["status"] = "success"
                 result["id"] = service_id

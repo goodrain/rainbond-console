@@ -10,7 +10,7 @@ from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
 from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar, TenantServiceMountRelation, \
-    TenantServiceVolume, ServiceCreateStep
+    TenantServiceVolume, ServiceCreateStep, ServiceFeeBill
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
@@ -195,6 +195,12 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             sai.create_time = create_time
             sai.pre_paid_money = self.get_estimate_service_fee(sai)
             sai.save()
+            # 创建订单
+            if sai.pre_paid_money > 0:
+                ServiceFeeBill.objects.create(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id,
+                                              prepaid_money=sai.pre_paid_money, pay_status="unpayed",
+                                              cost_type="firs_create", node_memory=min_memory, node_num=min_node,
+                                              disk=disk, buy_period=pre_paid_period * 24 * 30)
 
             # create console service
             service.desc = service_desc
@@ -576,7 +582,10 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
                                                                                             buy_end_time=endTime)
             else:
+                # 付费用户有1小时调试时间
                 startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                # startTime = startTime.strftime("%Y-%m-%d %H:00:00")
+                # startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                 endTime = startTime + relativedelta(months=int(pre_paid_period))
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
                                                                                             buy_end_time=endTime)

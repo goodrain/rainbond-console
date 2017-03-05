@@ -410,7 +410,10 @@ function delete_service(tenantName, service_alias) {
                         }else{
                             swal("当前服务被("+dep_service+")挂载依赖不能删除");
                         }
-                    } else {
+                    }else if (dataObj["status"] == "payed") {
+						swal("已付款应用在")
+					}
+					else {
 						swal("操作失败");
 					}
 				},

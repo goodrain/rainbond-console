@@ -6,7 +6,7 @@ from django.views.decorators.cache import never_cache
 from share.manager.region_provier import RegionProviderManager
 from www.decorator import perm_required
 from www.models import ComposeServiceRelation, TenantServiceInfo, ServiceInfo, TenantServiceEnvVar, TenantServicesPort, \
-    TenantServiceVolume
+    TenantServiceVolume, ServiceFeeBill
 from www.models.main import ServiceGroup, ServiceGroupRelation, ServiceAttachInfo
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
@@ -300,6 +300,12 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                 sai.create_time = create_time
                 sai.pre_paid_money = self.get_estimate_service_fee(sai)
                 sai.save()
+
+                if sai.pre_paid_money > 0:
+                    ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
+                                                  prepaid_money=sai.pre_paid_money, pay_status="unpayed",
+                                                  cost_type="firs_create", node_memory=min_memory, node_num=min_node,
+                                                  disk=disk, buy_period=pre_paid_period * 24 * 30)
 
                 service_alias = "gr" + service_id[-6:]
                 service_image = service_attach_info.get("service_image")

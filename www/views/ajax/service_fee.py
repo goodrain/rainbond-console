@@ -159,7 +159,8 @@ class DiskPayMethodView(AuthedView):
                     left_hours = int((buy_end_time - now).total_seconds() / 3600)
                     # 时长不可选择
                     result["choosable"] = False
-                    result["disk_fee"] = round(disk_unit_fee * left_hours, 2)
+                    result["disk_unit_fee"] = disk_unit_fee
+                    result["left_hours"] = left_hours
                 else:
                     result["choosable"] = True
                     result["disk_unit_fee"] = disk_unit_fee
@@ -175,32 +176,71 @@ class DiskPayMethodView(AuthedView):
     @never_cache
     @perm_required("manage_service")
     def post(self, request, *args, **kwargs):
-        pay_money = request.POST.get("pay_money", 0.0)
-        pay_period = int(request.POST.get("pay_period", 0))
-        buy_disk = int(request.POST.get("buy_disk",0))
+        # pay_money = request.POST.get("pay_money", 0.0)
+        pay_period = int(request.POST.get("pay_period", 1))
+        buy_disk = int(request.POST.get("pay_disk", 1))
+        change_method = request.POST.get("update_method", None)
+
+        buy_days = pay_period
         result = {}
         try:
+            if not change_method:
+                return JsonResponse({"status": "failure", "info": "参数错误"}, status=200)
+            now = datetime.datetime.now()
             service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                 service_id=self.service.service_id)
-            now = datetime.datetime.now()
-            if pay_money > 0:
+            # 如果为预付费改后付费
+            if change_method == "pre2post":
+                if service_attach_info.buy_end_time > now:
+                    return JsonResponse({"status": "not_now", "info": "请在预付费({0})结束后进行修改".format(
+                        service_attach_info.buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))}, status=200)
+                else:
+                    service_attach_info.memory_pay_method = "postpaid"
+                    service_attach_info.save()
+                    return JsonResponse({"status": "success", "info": "修改成功"}, status=200)
+
+            need_pay_money = Decimal(0)
+            regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
+            disk_unit_fee = regionBo.disk_package_price
+            disk_fee = 0.0
+            is_period_hour = False
+            if service_attach_info.memory_pay_method == "prepaid":
+                buy_end_time = service_attach_info.buy_end_time
+                # 计算剩余的预付费时间
+                if buy_end_time >= now:
+                    is_period_hour = True
+                    left_hours = int((buy_end_time - now).total_seconds() / 3600)
+                    disk_fee = float(disk_unit_fee) * buy_disk * left_hours
+                    need_pay_money = Decimal(disk_fee)
+                    pay_period = left_hours
+                else:
+                    disk_fee = buy_disk * disk_unit_fee * buy_days * 24 * 30
+                    need_pay_money = Decimal(disk_fee)
+            else:
+                disk_fee = buy_disk * disk_unit_fee * buy_days * 24 * 30
+                need_pay_money = Decimal(disk_fee)
+            if not is_period_hour:
+                pay_period = pay_period * 24 * 30
+
+            if need_pay_money > 0:
                 balance = self.tenant.balance
-                if balance < pay_money:
+                if balance < need_pay_money:
                     return JsonResponse({"status": "not_enough"}, status=200)
                 else:
                     service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
-                                        "prepaid_money": pay_money, "pay_status": "payed", "cost_type": "change_disk",
+                                        "prepaid_money": need_pay_money, "pay_status": "payed", "cost_type": "change_disk",
                                         "node_memory": self.service.min_memory, "node_num": self.service.min_node,
-                                        "disk": 0, "buy_period": pay_period}
+                                        "disk": buy_disk*1024, "buy_period": pay_period}
                     ServiceFeeBill.objects.create(**service_fee_bill)
                     service_attach_info.disk_pay_method = "prepaid"
-                    if pay_period != 0:
-                        service_attach_info.pre_paid_period = pay_period
+                    service_attach_info.disk = buy_disk*1024
+                    if not is_period_hour:
+                        service_attach_info.pre_paid_period = buy_days
                         service_attach_info.buy_start_time = now
-                        days = pay_period * 30
-                        service_attach_info.buy_start_time = now+datetime.timedelta(days=days)
+                        days = buy_days * 30
+                        service_attach_info.buy_end_time = now+datetime.timedelta(days=days)
                     service_attach_info.save()
-                    self.tenant.balance = balance - pay_money
+                    self.tenant.balance = balance - need_pay_money
                     self.tenant.save()
                     result["status"] = "success"
             result["status"] = "success"
@@ -222,38 +262,35 @@ class ExtendServiceView(AuthedView):
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             memory_unit_fee = regionBo.memory_package_price
             now = datetime.datetime.now()
-            if service_attach_info.disk_pay_method == "prepaid":
-                buy_end_time = service_attach_info.buy_end_time
-                # 计算剩余的预付费时间
-                if buy_end_time > now:
-                    left_hours = (buy_end_time - now).total_seconds() / 3600
-                    # 只能扩容,不能缩容
-                    result["choosable"] = False
-                    result["memory_unit_fee"] = memory_unit_fee
-                    result["min_memory"] = self.service.min_memory
-                    result["min_node"] = self.service.min_node
-                    result["left_hours"] = left_hours
-                else:
-                    result["choosable"] = True
-                    result["memory_unit_fee"] = memory_unit_fee
+            buy_end_time = service_attach_info.buy_end_time
+            if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
+                left_hours =int((buy_end_time - now).total_seconds()/3600)
+                result["choosable"] = False
+                result["status"] = "success"
+                result["min_memory"] = self.service.min_memory
+                result["min_node"] = self.service.min_node
+                result["left_hours"] = left_hours
+                result["memory_unit_fee"] = memory_unit_fee
+                result["service_memory"] = self.service.min_memory * self.service.min_node
             else:
                 result["choosable"] = True
+                result["status"] = "success"
                 result["memory_unit_fee"] = memory_unit_fee
 
         except Exception as e:
+            result["status"] = "failure"
+            result["info"] = "操作失败"
             logger.exception(e)
-        return JsonResponse(result,status=200)
+        return JsonResponse(result, status=200)
 
     @never_cache
     @perm_required("manage_service")
     def post(self, request, *args, **kwargs):
-        node_num = request.POST.get("node_num", 1)
-        node_memory = request.POST.get("node_memory", 128)
+        node_num = int(request.POST.get("node_num", 1))
+        node_memory = int(request.POST.get("node_memory", 128))
         cur_memory = self.service.min_memory * self.service.min_node
         result = {}
         balance = self.tenant.balance
-        node_num = int(node_num)
-        node_memory = int(node_memory)
         try:
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             memory_unit_fee = regionBo.memory_package_price
@@ -266,13 +303,14 @@ class ExtendServiceView(AuthedView):
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
                 if cur_memory >= node_num * node_memory:
                     result["status"] = "failure"
-                    result["info"] = "not_support"
+                    result["info"] = "预付费不支持缩容"
                     return JsonResponse(result, status=200)
-                left_hours = (buy_end_time - now).total_seconds() / 3600
-                memory_fee = memory_unit_fee * (node_num * node_memory - cur_memory) / 1024 * left_hours
+                left_hours = int((buy_end_time - now).total_seconds() / 3600)
+                memory_fee = float(memory_unit_fee) * (node_num * node_memory - cur_memory) / 1024.0 * left_hours
                 need_pay_money = round(memory_fee, 2)
                 if balance < need_pay_money:
                     result["status"] = "not_enough"
+                    result["info"] = "账户余额不足"
                     return JsonResponse(result, status=200)
             # horizontal 水平扩容
             if node_num >= 0 and self.service.min_node != node_memory:
@@ -280,7 +318,8 @@ class ExtendServiceView(AuthedView):
                 body["node_num"] = node_num
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
-                regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                print "调用region 水平扩容"
+                # regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
                 self.service.min_node = node_num
                 self.service.save()
             # vertical 垂直扩容
@@ -293,11 +332,16 @@ class ExtendServiceView(AuthedView):
                     body["deploy_version"] = self.service.deploy_version
                     body["container_cpu"] = new_cpu
                     body["operator"] = str(self.user.nick_name)
-                    regionClient.verticalUpgrade(self.service.service_region, self.service.service_id,
-                                                 json.dumps(body))
+                    print "调用region 垂直扩容"
+                    # regionClient.verticalUpgrade(self.service.service_region, self.service.service_id,
+                    #                              json.dumps(body))
                     self.service.min_memory = node_memory
                     self.service.min_cpu = new_cpu
                     self.service.save()
+
+            service_attach_info.min_node = node_num
+            service_attach_info.min_memory = node_memory
+            service_attach_info.save()
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
                 # 预付费期间扩容,扣钱
                 service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
@@ -305,8 +349,10 @@ class ExtendServiceView(AuthedView):
                                     "node_memory": int(node_memory), "node_num": int(node_num),
                                     "disk": 0, "buy_period": 0}
                 ServiceFeeBill.objects.create(**service_fee_bill)
-                self.tenant.balance = balance - need_pay_money
+                self.tenant.balance = balance - Decimal(need_pay_money)
                 self.tenant.save()
+                result["status"] = "success"
+            else:
                 result["status"] = "success"
 
         except Exception as e:
@@ -344,11 +390,10 @@ class PrePaidPostponeView(AuthedView):
                     disk_fee = service_attach_info.disk / 1024.0 * float(pre_paid_disk_price)
                     need_money += Decimal(disk_fee)
             result["status"] = "success"
-            result["unit_price"] = round(need_money,2)
+            result["unit_price"] = need_money
         except Exception as e:
             result["status"] = "failure"
             logger.exception(e)
-            print e
         return JsonResponse(result, status=200)
 
     @never_cache
@@ -404,7 +449,40 @@ class PrePaidPostponeView(AuthedView):
             result["info"] = "修改成功"
         except Exception as e:
             logger.exception(e)
-            print e
             result["status"] = "failure"
             result["info"] = "修改失败"
+        return JsonResponse(result, status=200)
+
+
+class PayPrepaidMoney(AuthedView):
+
+    @never_cache
+    @perm_required("manage_service")
+    def post(self, request, *args, **kwargs):
+        service_id = self.service.service_id
+        tenant_id = self.tenant.tenant_id
+        balance = self.tenant.balance
+        result = {}
+        try:
+            service_fee_bill = None
+            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=tenant_id,service_id=service_id,pay_status="unpayed")
+            if service_fee_bill_list:
+                service_fee_bill = service_fee_bill_list[0]
+            if service_fee_bill:
+                need_to_pay_money = service_fee_bill.prepaid_money
+                if balance < need_to_pay_money:
+                    result["status"] = "not_enough"
+                    result["info"] = "账户余额不足"
+                    return JsonResponse(result, status=200)
+                else:
+                    service_fee_bill.pay_status = "payed"
+                    service_fee_bill.save()
+                    self.tenant.balance = balance - need_to_pay_money
+                    self.tenant.save()
+                    result["status"] = "success"
+                    result["info"] = "付款成功"
+        except Exception as e:
+            result["status"] = "failure"
+            result["info"] = "修改失败"
+            logger.exception(e)
         return JsonResponse(result, status=200)
