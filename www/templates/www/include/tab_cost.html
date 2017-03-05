@@ -204,7 +204,7 @@
                     </p>
                 </div>
                 <p class="bottom">
-                    <button class="sure sureDeploy">付款</button>
+                    <button class="sure sureDeploy" style="display: none;">付款</button>
                     <button class="cancel">取消</button>
                 </p>
             </div>
@@ -363,15 +363,18 @@
                         if( money > 0){
                             $("#kuorongmoney").css({"display":"block"});
                             $("#deployMoney").html( (money).toFixed(2) );
+                            $(".sureDeploy").css("display":"block");
                         }else{
                             $("#kuorongmoney").css({"display":"none"});
+                            $(".sureDeploy").css("display":"none");
                         }; 
 
                         $("#deployMoney").attr("data-money",value);
                         $("#deployMoney").attr("data-memory",msg["service_memory"]);
                     }
                     else{
-                        $(".sureDeploy").html("确认");
+                        $(".sureDeploy").html("确定");
+                        $(".sureDeploy").css("display":"block");
                     }
                 },
                 error : function() {
@@ -635,8 +638,10 @@
                 if( money > 0){
                     $("#kuorongmoney").css({"display":"block"});
                     $("#deployMoney").html( (money).toFixed(2) );
+                    $(".sureDeploy").css("display":"block");
                 }else{
                     $("#kuorongmoney").css({"display":"none"});
+                    $(".sureDeploy").css("display":"none");
                 };  
             }
         }, false);
