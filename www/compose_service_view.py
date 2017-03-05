@@ -524,6 +524,7 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                         # 免费租户的应用过期时间为7天
                         startTime = datetime.datetime.now() + datetime.timedelta(days=7)+datetime.timedelta(hours=1)
                         startTime = startTime.strftime("%Y-%m-%d %H:00:00")
+                        startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                         service = self.service
                         service.expired_time = startTime
                         service.save()
