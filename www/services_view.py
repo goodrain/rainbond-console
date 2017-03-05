@@ -479,14 +479,15 @@ class TenantService(LeftSideBarMixin, AuthedView):
                         if status != "running":
                             current_status = "调试中"
                             tips = "应用未运行"
-                        elif prepaid_money > 0:
-                            can_pay = True
-                            need_to_pay = prepaid_money
-                            current_status = "等待支付"
-                            tips = "请于{0}前付款{1}元".format(start_time_str,str(prepaid_money))
                         else:
-                            current_status = "即将计费"
-                            tips = "将于{0}开始计费".format(start_time_str)
+                            if prepaid_money > 0:
+                                can_pay = True
+                                need_to_pay = prepaid_money
+                                current_status = "等待支付"
+                                tips = "请于{0}前付款{1}元".format(start_time_str,str(prepaid_money))
+                            else:
+                                current_status = "即将计费"
+                                tips = "将于{0}开始计费".format(start_time_str)
                     else:
                         if prepaid_money > 0 and status != "running":
                             current_status = "到期关闭"

@@ -120,14 +120,14 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
 
     def get_estimate_service_fee(self, service_attach_info):
         """根据附加信心获取服务的预估价格"""
-        total_price = 0
+        total_price = 0.00
         regionBo = rpmManager.get_work_region_by_name(self.response_region)
         pre_paid_memory_price = regionBo.memory_package_price
         pre_paid_disk_price = regionBo.disk_package_price
         if service_attach_info.memory_pay_method == "prepaid":
-            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024 * pre_paid_memory_price
+            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024.0 * pre_paid_memory_price
         if service_attach_info.disk_pay_method == "prepaid":
-            total_price += service_attach_info.disk / 1024 * pre_paid_disk_price
+            total_price += service_attach_info.disk / 1024.0 * pre_paid_disk_price
         total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
         return round(total_price, 2)
 
