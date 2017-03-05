@@ -198,7 +198,7 @@
                         <span><cite id="OneMemoryText">128</cite>M</span>
                     </div>
                     <p class="calMoney" style="display: none;">
-                        <span id="deployMoney"></span>
+                        <span>费用总计</span><span id="deployMoney"></span><span>元（按当前预付费项目购买时长计算）</span>
                     </p>
                 </div>
                 <p class="bottom">
@@ -357,7 +357,14 @@
                     {
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
                         var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() - msg["service_memory"] )/1024;
-                        $("#deployMoney").html( (money).toFixed(2) );
+
+                        if( money > 0){
+                            $(".calMoney").css({"display":"block"});
+                            $("#deployMoney").html( (money).toFixed(2) );
+                        }else{
+                            $(".calMoney").css({"display":"none"});
+                        }; 
+
                         $("#deployMoney").attr("data-money",value);
                         $("#deployMoney").attr("data-memory",msg["service_memory"]);
                         $(".chooseLarge p.calMoney").css({"display":"block"});
@@ -623,11 +630,13 @@
             else if( inputid == "OneMemory" || inputid == "NodeNum" )
             {
                 var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
+
                 if( money > 0){
-                    $("#deployMoney").html( "基于当前的预付费时长，扩容需要支付" + (money).toFixed(2) + "元");
+                    $(".calMoney").css({"display":"block"});
+                    $("#deployMoney").html( (money).toFixed(2) );
                 }else{
-                    $("#deployMoney").html();
-                }; 
+                    $(".calMoney").css({"display":"none"});
+                };  
             }
         }, false);
     }
