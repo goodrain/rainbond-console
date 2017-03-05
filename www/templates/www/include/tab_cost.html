@@ -623,7 +623,9 @@
             else if( inputid == "OneMemory" || inputid == "NodeNum" )
             {
                 var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
-                $("#deployMoney").html( (money).toFixed(2) );
+                if( money > 0){
+                    $("#deployMoney").html( (money).toFixed(2) );
+                }; 
             }
         }, false);
     }
