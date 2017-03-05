@@ -217,7 +217,7 @@ class ServiceManage(AuthedView):
                 has_prepaid_items = False
                 if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method=="prepaid":
                     has_prepaid_items = True
-                service_fee_bill = ServiceFeeBill.object.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id, pay_status="unpayed").count()
+                service_fee_bill = ServiceFeeBill.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id, pay_status="unpayed").count()
                 if has_prepaid_items:
                     if now < service_attach_info.buy_end_time:
                         #  开始计费之前,如果已经付款
