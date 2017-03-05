@@ -364,10 +364,8 @@
                             $("#kuorongmoney").css({"display":"block"});
                             $("#deployMoney").html( (money).toFixed(2) );
                             $(".sureDeploy").html("付款");
-                            $(".sureDeploy").css({"display":"inline-block"});
                         }else{
                             $("#kuorongmoney").css({"display":"none"});
-                            $(".sureDeploy").css({"display":"none"});
                         }; 
 
                         $("#deployMoney").attr("data-money",value);
@@ -375,7 +373,6 @@
                     }
                     else{
                         $(".sureDeploy").html("确定");
-                        $(".sureDeploy").css({"display":"inline-block"});
                     }
                 },
                 error : function() {
@@ -640,10 +637,8 @@
                     $("#kuorongmoney").css({"display":"block"});
                     $("#deployMoney").html( (money).toFixed(2) );
                     $(".sureDeploy").html("付款");
-                    $(".sureDeploy").css({"display":"inline-block"});
                 }else{
                     $("#kuorongmoney").css({"display":"none"});
-                    $(".sureDeploy").css({"display":"none"});
                 };  
             }
         }, false);
