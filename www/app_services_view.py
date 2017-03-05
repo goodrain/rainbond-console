@@ -197,7 +197,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             sai.save()
             # 创建订单
             if sai.pre_paid_money > 0:
-                ServiceFeeBill.objects.create(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id,
+                ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
                                               prepaid_money=sai.pre_paid_money, pay_status="unpayed",
                                               cost_type="firs_create", node_memory=min_memory, node_num=min_node,
                                               disk=disk, buy_period=pre_paid_period * 24 * 30)
