@@ -8,7 +8,7 @@
 .app-step p cite{width: 100%; text-align: center; color: #838383; font-size: 16px; line-height: 1; padding-top: 10px;}
 .app-step p.sed span{background: #00d777;}
 .app-step p.sed cite{color: #00d777;}
-.step-tit{color: #838383; font-size:18px; text-align: center;}
+.step-tit{color: #838383; font-size:18px; text-align: center; margin-top:30px;}
 .app-step.two p{width: 50%;} 
 .app-step.three p{width: 33%;} 
 
