@@ -156,7 +156,7 @@
 			<!-- 基本信息 end -->
 			<!-- 配套信息 start -->
             <div class="infor-fm-box">
-                <h4 class="step-tit">配套信息</h4>
+                <h4 class="step-tit">内存配置</h4>
                 <!-- 01 -->
                 <div class="fm-input-range clearfix fn-memory-node">
                     <label>应用单节点内存</label>
@@ -207,6 +207,9 @@
                     <label class="radio-bg" for="MoneyBefore"></label>
                     <label for="MoneyBefore" class="radio-text fn-tips" data-tips="预付费采购内存，整体费用相对便宜，支持随时扩容，适用于相对稳定的项目。若要转为每小时扣费，在当前付费周期结束后才会生效。">预付费</label>
                 </div>
+            </div>
+            <div class="infor-fm-box">
+                <h4 class="step-tit">磁盘配置</h4>
                 <!-- 02 -->
                 <div class="fm-choose-box clearfix">
                     <label>磁盘存储</label>
@@ -244,6 +247,9 @@
                     {% endif %}
                     <span><cite id="DiskText">1</cite>G</span>
                 </div>
+            </div>
+            <div class="infor-fm-box">
+                <h4 class="step-tit">网络配置</h4>
                 <!-- 03 -->
                 <div class="fm-input-radio clearfix" style="padding-bottom:30px; padding-top: 30px;">
                     <label>外网访问流量</label>
@@ -257,6 +263,9 @@
                     <span><cite>12</cite>元／月</span>
                 </div>
                 -->
+            </div>
+            <div class="infor-fm-box">
+                <h4 class="step-tit">其他配置</h4>
                 <!-- 04 -->
                 <div class="fm-choose-box clearfix">
                     <label>部署支持</label>
@@ -288,7 +297,11 @@
             <!-- 配套信息 end -->
             <!-- 费用估算 start -->
             <div class="infor-fm-box" style="border-bottom: 0 none;">
-                <h4 class="step-tit">费用估算</h4>
+                <h4 class="step-tit">购买选项</h4>
+                <div class="fm-aft-money clearfix">
+                    <label>按小时结算项目</label>
+                    <p><span id="aft-memory-box" class="fn-tips" data-tips="创建和调试应用时，内存是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">内存<cite id="aft-memory"></cite>元/GB·小时；</span><span id="aft-disk-box" class="fn-tips" data-tips="创建和调试应用时，磁盘是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">磁盘<cite id="aft-disk"></cite>元/GB·小时；</span><span id="aft-net-box" class="fn-tips" data-tips="创建和调试应用时，流量是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">流量<cite id="aft-net"></cite>元/GB</span></p>
+                </div>
                 <div id="bef-month" class="fm-input-range clearfix" style="display: none;">
                     <label>预付费项购买时长</label>
                     <p class="range-box">
@@ -299,17 +312,13 @@
                     <span><cite id="TimeLongText">1</cite>个月</span>    
                 </div>
                 <div id="bef-money" class="fm-money clearfix" style="display: none;">
-                    <label>预付费用</label>
+                    <label>预付费项目费用总计</label>
                     <span class="fn-tips"  data-tips="创建和调试应用时，无需支付费用，应用正常运行后才会提请您支付该费用。"><cite id="need-money">123.00</cite>元</span>
-                </div>
-                <div class="fm-aft-money clearfix">
-                    <label>按小时结算费用</label>
-                    <p><span id="aft-memory-box" class="fn-tips" data-tips="创建和调试应用时，内存是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">内存<cite id="aft-memory"></cite>元/GB·小时；</span><span id="aft-disk-box" class="fn-tips" data-tips="创建和调试应用时，磁盘是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">磁盘<cite id="aft-disk"></cite>元/GB·小时；</span><span id="aft-net-box" class="fn-tips" data-tips="创建和调试应用时，流量是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">流量<cite id="aft-net"></cite>元/GB</span></p>
                 </div>
             </div>
             <!-- 费用估算 end -->
 			<div class="fm-btn clearfix">
-                    <a class="greenbtn" id="BtnFirst" style="cursor: pointer;">下一步</a>
+                    <a class="greenbtn" id="BtnFirst" style="cursor: pointer;">免费创建</a>
             </div>			
         </form>
 	</section>
