@@ -407,10 +407,10 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
 
             # calculate resource
             tempService = TenantServiceInfo()
-            tempService.min_memory = service.min_memory
+            tempService.min_memory = min_memory
             tempService.service_region = self.response_region
-            tempService.min_node = service.min_node
-            diffMemory = service.min_node * service.min_memory
+            tempService.min_node = min_node
+            diffMemory = min_node * min_memory
             rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
             if not flag:
                 if rt_type == "memory":
