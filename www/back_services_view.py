@@ -332,6 +332,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             context["app_version"] = app_version
             context["service_name"] = serviceObj.service_name
             context["min_memory"] = serviceObj.min_memory
+            context["service_category"] = serviceObj.service_type
 
             regionBo = rpmManager.get_work_region_by_name(self.response_region)
             context['pre_paid_memory_price'] = regionBo.memory_package_price

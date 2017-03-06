@@ -78,7 +78,7 @@
                     {% endif %}
                     <span><cite id="OneMemoryText"></cite></span>
                 </div>
-                <div class="fm-input-range clearfix fn-memory-node">
+                <div class="fm-input-range clearfix fn-memory-node" {% ifnotequal service_category 'application' %}style="display: none;"{% endifnotequal %}>
                     <label>节点数</label>
                     {% if is_tenant_free %}
                     <p class="range-box nouser02 fn-tips" data-tips="新用户单应用只能创建1个节点，付费用户可创建100个节点。">
