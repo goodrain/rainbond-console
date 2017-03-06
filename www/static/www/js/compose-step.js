@@ -563,7 +563,7 @@ $(function(){
         }
         //计算 
         function Fnmemory(my_id){
-            var total_money= onehour * 24 * time_num  *30 * 4 * node_num;
+            var total_money= onehour * 24 * time_num  *30 * node_num;
             var buy_money;
             if(time_num>=12){
                 buy_money = onehour * 24 * time_num *1.5 *30;

@@ -47,6 +47,7 @@ class MemoryPayMethodView(AuthedView):
                     memory_fee = round(memory * memory_unit_fee * Decimal(left_hours) / 1024, 2)
                     result["memory_fee"] = memory_fee
                     result["left_hours"] = left_hours
+                    result["memory_unit_fee"] = memory_unit_fee
                 else:
                     result["choosable"] = True
                     result["memory_unit_fee"] = memory_unit_fee
