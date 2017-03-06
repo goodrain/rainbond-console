@@ -537,6 +537,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["current_status"] = current_status
                 context["can_pay"] = can_pay
                 context["need_to_pay"] = need_to_pay
+                context["start_time"] = start_time_str
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
