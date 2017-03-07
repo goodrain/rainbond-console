@@ -206,11 +206,19 @@ $(function(){
         //计算 
         function Fnmemory(){
             var total_money= onehour * 24 * time_num  *30 * node_num;
-            var buy_money;
-            if(time_num>=12){
-                buy_money = onehour * 24 * time_num *1.5 *30;
-            }else{
-                buy_money = onehour * 24 * time_num *2*30;
+            //var buy_money;
+            //if(time_num>=12){
+            //    buy_money = onehour * 24 * time_num *1.5 *30;
+            //}else{
+            //    buy_money = onehour * 24 * time_num *2*30;
+            //}
+            if( time_num == 12 )
+            {
+                total_money = total_money * 0.8;
+            }
+            else if( time_num == 24 )
+            {
+                total_money = total_money * 0.75;
             }
             $("#need-money").html(total_money.toFixed(2));
         }
