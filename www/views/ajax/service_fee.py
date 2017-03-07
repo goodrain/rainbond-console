@@ -7,6 +7,7 @@ from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
 from www.decorator import perm_required
+from www.models import ServiceExtendMethod
 from www.models.main import ServiceAttachInfo, ServiceFeeBill
 from www.monitorservice.monitorhook import MonitorHook
 from www.service_http import RegionServiceApi
@@ -266,6 +267,19 @@ class ExtendServiceView(AuthedView):
             buy_end_time = service_attach_info.buy_end_time
             service_type = self.service.category
             result["node_choosable"] = False
+
+            # 获取对应扩展数
+            app_min_memory = 128
+            app_max_memory = 65536
+            sem = None
+            try:
+                sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
+            except ServiceExtendMethod.DoesNotExist:
+                pass
+            if sem:
+                app_min_memory = sem.min_memory
+                app_max_memory = sem.max_memory
+
             if service_type == "application":
                 result["node_choosable"] = True
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
@@ -277,10 +291,14 @@ class ExtendServiceView(AuthedView):
                 result["left_hours"] = left_hours
                 result["memory_unit_fee"] = memory_unit_fee
                 result["service_memory"] = self.service.min_memory * self.service.min_node
+                result["app_min_memory"] = self.service.min_memory
+                result["app_max_memory"] = app_max_memory
             else:
                 result["choosable"] = True
                 result["status"] = "success"
                 result["memory_unit_fee"] = memory_unit_fee
+                result["app_min_memory"] = app_min_memory
+                result["app_max_memory"] = app_max_memory
 
         except Exception as e:
             result["status"] = "failure"
