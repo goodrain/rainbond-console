@@ -411,7 +411,7 @@ function delete_service(tenantName, service_alias) {
                             swal("当前服务被("+dep_service+")挂载依赖不能删除");
                         }
                     }else if (dataObj["status"] == "payed") {
-						swal("已付款应用无法删除")
+						swal("您尚在包月期内无法删除应用")
 					}
 					else {
 						swal("操作失败");
