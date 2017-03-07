@@ -161,7 +161,7 @@
                 <div class="fm-input-range clearfix fn-memory-node">
                     <label>应用单节点内存</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户单应用内存最大32G，总内存无限制。">
+                    <p class="range-box nouser fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户单应用内存最大8G，总内存无限制。">
                         <span class="renge-bg"></span>
                         <span class="range-choose fn-tips"><cite id="OneMemoryWid"></cite></span>
                         <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="128"／>
@@ -169,10 +169,10 @@
                     <!-- user -->
                     {% else %}
                     <!-- no user -->
-                    <p class="range-box fn-tips" data-tips="单应用内存最大32G，总内存无限制。如需使用64G，请联系客服申请。">
+                    <p class="range-box fn-tips" data-tips="单应用内存最大8G，总内存无限制。如需使用更多，请联系客服申请。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
-                        <input type="range" min="128" max="32768"  step="128" id="OneMemory" value="128"／>
+                        <input type="range" min="128" max="8192"  step="128" id="OneMemory" value="128"／>
                     </p>
                     <!-- no user -->
                     {% endif %}
@@ -292,11 +292,7 @@
             <!-- 费用估算 start -->
             <div id="baoyuegoumai" class="infor-fm-box">
                 <h4 class="step-tit">包月购买</h4>
-                <div class="fm-aft-money clearfix">
-                    <label>按小时结算费用</label>
-                    <p><span id="aft-memory-box" class="fn-tips" data-tips="创建和调试应用时，内存是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">内存<cite></cite>元/GB·小时；</span><span id="aft-disk-box" class="fn-tips" data-tips="创建和调试应用时，磁盘是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">磁盘<cite></cite>元/GB·小时；</span><span id="aft-net-box" class="fn-tips" data-tips="创建和调试应用时，流量是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">流量<cite></cite>元/GB</span></p>
-                </div>
-                <div id="bef-month" class="fm-input-range clearfix" style="display: none;">
+                <div id="bef-month" class="fm-input-range clearfix">
                     <label>包月时长</label>
                     <p class="range-box">
                         <span class="renge-bg"></span>
@@ -305,7 +301,7 @@
                     </p>
                     <span><cite id="TimeLongText">1</cite>个月</span>    
                 </div>
-                <div id="bef-money" class="fm-money clearfix" style="display: none;">
+                <div id="bef-money" class="fm-money clearfix">
                     <label>包月费用总计</label>
                     <span class="fn-tips"  data-tips="该包月费用在应用正常运行后才会提请您支付。本费用不包括其他按小时扣费的项目，请保持账户有一定的可用额度。"><cite id="need-money"></cite>元</span>
                 </div>

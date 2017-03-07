@@ -124,10 +124,28 @@ $(function(){
 	    // 滑动时显示选择的值
 	    range.addEventListener("input", function() {
             if(inputid == "OneMemory"){
-                if(range.value < 1024){
-                    result.innerHTML = range.value + "M";
-                }else if(range.value >= 1024){
-                    result.innerHTML = range.value/1024 + "G";
+                if(range.value >= 128 && range.value < 256){
+                    result.innerHTML = "128M";
+                }else if(range.value >= 256 && range.value < 512){
+                    result.innerHTML = "256M";
+                }else if(range.value >= 512 && range.value < 1024){
+                    result.innerHTML = "512M";
+                }else if(range.value >= 1024 && range.value < 2048){
+                    result.innerHTML = "1G";
+                }else if(range.value >= 2048 && range.value < 3072){
+                    result.innerHTML = "2G";
+                }else if(range.value >= 3072 && range.value < 4096){
+                    result.innerHTML = "3G";
+                }else if(range.value >= 4096 && range.value < 5120){
+                    result.innerHTML = "4G";
+                }else if(range.value >= 5120 && range.value < 6144){
+                    result.innerHTML = "5G";
+                }else if(range.value >= 6144 && range.value < 7168){
+                    result.innerHTML = "6G";
+                }else if(range.value >= 7168 && range.value < 8100){
+                   result.innerHTML = "7G";
+                }else{
+                   result.innerHTML = "8G";
                 }
             }else{
                result.innerHTML = range.value; 
@@ -222,38 +240,20 @@ $(function(){
     $("#MoneyBefore").change(function(){
         var onoff = $("#MoneyBefore").prop("checked");
         var onoff2 = $("#DiskBefore").prop("checked");
-        if(onoff == true){
-            // $(".fn-memory-node").show();
-            $("#aft-memory-box").hide();
-        }else{
-            //$(".fn-memory-node").hide();
-            $("#aft-memory-box").show();
-        }
         if((onoff == true) | (onoff2 == true)){
-            $("#bef-month").show();
-            $("#bef-money").show();
+            $("#baoyuegoumai").show();
         }else{
-            $("#bef-month").hide();
-            $("#bef-money").hide();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
     $("#MoneyAfter").change(function(){
         var onoff = $("#MoneyBefore").prop("checked");
         var onoff2 = $("#DiskBefore").prop("checked");
-        if(onoff == true){
-            // $(".fn-memory-node").show();
-            $("#aft-memory-box").hide();
-        }else{
-            //$(".fn-memory-node").hide();
-            $("#aft-memory-box").show();
-        }
         if((onoff == true) | (onoff2 == true)){
-            $("#bef-month").show();
-            $("#bef-money").show();
+            $("#baoyuegoumai").show();
         }else{
-            $("#bef-month").hide();
-            $("#bef-money").hide();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
@@ -262,17 +262,13 @@ $(function(){
         var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
-            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").show();
         }
         if((onoff == true) | (onoff2 == true)){
-            $("#bef-month").show();
-            $("#bef-money").show();
+            $("#baoyuegoumai").show();
         }else{
-            $("#bef-month").hide();
-            $("#bef-money").hide();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
@@ -281,17 +277,13 @@ $(function(){
         var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
-            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").show();
         }
         if((onoff == true) | (onoff2 == true)){
-            $("#bef-month").show();
-            $("#bef-money").show();
+            $("#baoyuegoumai").show();
         }else{
-            $("#bef-month").hide();
-            $("#bef-money").hide();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
