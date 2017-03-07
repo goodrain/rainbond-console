@@ -222,12 +222,20 @@
                     <h4 class="step-tit">包月购买</h4>
                     <div class="fm-input-range clearfix">
                         <label>包月时长</label>
-                        <p class="range-box fn-tips" data-tips="目前包月价格5折。包月时段内也请保持账户有一定余额，用于支付按小时扣费的项目。">
-                            <span class="renge-bg"></span>
-                            <span class="range-choose"><cite id="{{service.service_id}}_TimeLongWid"></cite></span>
-                            <input type="range" min="1" max="24"  step="1" id="{{service.service_id}}_TimeLong" value="1"／>
-                        </p>
-                        <span><cite id="{{service.service_id}}_TimeLongText">1</cite>个月</span>    
+                        <ul class="range-box clearfix buy_month">
+                            <li class="active" data-time="1">1<span>个月</span></li>
+                            <li data-time="2">2<span>个月</span></li>
+                            <li data-time="3">3<span>个月</span></li>
+                            <li data-time="4">4<span>个月</span></li>
+                            <li data-time="5">5<span>个月</span></li>
+                            <li data-time="6">6<span>个月</span></li>
+                            <li data-time="7">7<span>个月</span></li>
+                            <li data-time="8">8<span>个月</span></li>
+                            <li data-time="9">9<span>个月</span></li>
+                            <li class="fn-tips" data-tips="购买一年八五折优惠" data-time="12">1年</li>
+                            <li class="fn-tips" data-tips="购买两年七五折优惠" data-time="24">2年</li>
+                        </ul>
+                        <!--<span><cite id="TimeLongText">1</cite>个月</span>   -->
                     </div>
                     <div class="fm-money clearfix">
                         <label>包月费用折后总计</label>

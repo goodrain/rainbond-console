@@ -508,7 +508,7 @@ $(function(){
         FnRange(OneMemory,OneMemoryText,OneMemoryWid,128,this_id);
         FnRange(NodeNum,NodeText,NodeWid,1,this_id);
         FnRange(Disk,DiskText,DiskWid,1,this_id);
-        FnRange(TimeLong,TimeLongText,TimeLongWid,1,this_id);
+        //FnRange(TimeLong,TimeLongText,TimeLongWid,1,this_id);
     });
     
     // 滑动框 结束
@@ -533,7 +533,7 @@ $(function(){
         var oId = "#" +  myid+"_OneMemoryText";
         var oNode ="#" + myid+ "_NodeText" ;
         var oDisk = "#" + myid+ "_DiskText";
-        var oTime ="#" + myid + "_TimeLongText";
+        var oTime ="#" + myid + " .buy_month li.active";
         var omemory_onoff = "#" + myid + "_MoneyBefore";
         var odisk_onoff = "#" + myid + "_DiskBefore";
         var  memory_num = parseInt($(oId).html());
@@ -543,7 +543,7 @@ $(function(){
 
         var node_num = parseInt($(oNode).html());
         var Disk_num = parseInt($(oDisk).html());
-        var time_num = parseInt($(oTime).html());
+        var time_num = parseInt($(oTime).attr("data-time"));
         var memory_onoff = $(omemory_onoff).prop("checked");
         var disk_onoff = $(odisk_onoff).prop("checked");
         var onehour;
@@ -565,10 +565,10 @@ $(function(){
         function Fnmemory(my_id){
             var total_money= onehour * 24 * time_num  *30 * node_num;
             var buy_money;
-            if(time_num>=12){
-                buy_money = onehour * 24 * time_num *1.5 *30;
-            }else{
-                buy_money = onehour * 24 * time_num *2*30;
+            if(time_num==12){
+                total_money = total_money * 0.85;
+            }else if(time_num==24){
+                total_money = total_money * 0.75;
             }
             var htmlid = "#" + my_id + "_need-money" ;
             $(htmlid).html(total_money.toFixed(2));
@@ -844,4 +844,11 @@ $(function(){
             $(".tips-box").remove();
         });
     // // // 第二步 基本设置 end
+
+    /* ljh 2017-03-07 */
+    $(".buy_month li").click(function(){
+        $(this).addClass("active").siblings().removeClass("active");
+        FnPrice($(this).parents("section.fn-circle").attr(id));
+    });
+    /* ljh 2017-03-07 */
 });

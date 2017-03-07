@@ -311,7 +311,7 @@ $(function(){
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",small_memory);
     FnRange("NodeNum","NodeText","NodeWid",1);
     FnRange("Disk","DiskText","DiskWid",1);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",1);
+    //FnRange("TimeLong","TimeLongText","TimeLongWid",1);
     
    
    
@@ -338,7 +338,7 @@ $(function(){
         }
         var node_num = parseInt(document.getElementById("NodeText").innerHTML);
         var Disk_num = parseInt(document.getElementById("DiskText").innerHTML);
-        var time_num = parseInt(document.getElementById("TimeLongText").innerHTML);
+        var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         var memory_onoff = document.getElementById("MoneyBefore").checked;
         var disk_onoff = document.getElementById("DiskBefore").checked;
         var onehour;
@@ -360,11 +360,10 @@ $(function(){
         function Fnmemory(){
             var total_money= onehour * 24 * time_num  *30 * node_num;
             // console.log("===> onehour "+onehour+" \t node_num "+node_num+"\t time_num "+time_num);
-            var buy_money;
-            if(time_num>=12){
-                buy_money = onehour * 24 * time_num *1.5 *30;
-            }else{
-                buy_money = onehour * 24 * time_num *2*30;
+            if(time_num == 12){
+                total_money = total_money * 0.85;
+            }else if(time_num == 24){
+                total_money = total_money * 0.75;
             }
             $("#need-money").html(total_money.toFixed(2));
         }
@@ -720,4 +719,13 @@ $(function(){
          $(".tips-box").remove();
      });
     ////tips end
+
+
+
+    /* ljh 2017-03-07 */
+    $(".buy_month li").click(function(){
+        $(this).addClass("active").siblings().removeClass("active");
+        FnPrice();
+    });
+    /* ljh 2017-03-07 */
 });
