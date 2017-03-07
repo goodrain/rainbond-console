@@ -337,6 +337,9 @@
 			$("#can_pay_btn").val("True");
 			$("#need_to_pay").html(msg["need_pay_money"]);
 			$("#start_time").html(msg["start_time_str"]);
+			$("#need_to_pay").css("color","#28cb75");
+			$("#start_time").css("color","#28cb75");
+
 		}else if(pay_status=="soon"){
 			$("#last_hour_fee").html("即将计费");
 			$(".layer_pay").attr("data-tips",tips);

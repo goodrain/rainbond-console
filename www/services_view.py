@@ -661,7 +661,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     service_total_disk_fee += service_consume.disk_money
                     service_total_net_fee += service_consume.net_money
 
-                context["service_consume_list"] = consume_list
+                context["service_consume_list"] = consume_list[:24]
                 context["service_total_memory_fee"] = service_total_memory_fee
                 context["service_total_disk_fee"] = service_total_disk_fee
                 context["service_total_net_fee"] = service_total_net_fee
