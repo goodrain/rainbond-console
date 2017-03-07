@@ -222,10 +222,10 @@
                     <label>磁盘使用方式</label>
                     <input type="radio" name="Disk" value="DiskAfter" id="DiskAfter"  checked="true"/>
                     <label class="radio-bg"  for="DiskAfter"></label>
-                    <label for="DiskAfter" class="radio-text fn-tips" data-tips="免费额度可以覆盖绝大部分应用，由于存储量是逐步增多的，所以很合算。可转为打包购买模式，即时生效。">300MB以内免费（超出部分<cite id="aft-disk"></cite>元/GB/小时）</label>
+                    <label for="DiskAfter" class="radio-text fn-tips" data-tips="免费额度可覆盖绝大部分应用，超出部分按实际使用量付费。">300MB以内免费（超出部分<cite id="aft-disk"></cite>元/GB/小时）</label>
                     <input type="radio" name="Disk" value="DiskBefore" id="DiskBefore" />
                     <label class="radio-bg" for="DiskBefore"></label>
-                    <label for="DiskBefore" class="radio-text fn-tips" data-tips="提前采购存储，整体费用相对便宜，支持随时扩容，超出包月额度部分会按小时扣费。包月时长用完自动转为按小时扣费。">打包购买</label>         
+                    <label for="DiskBefore" class="radio-text fn-tips" data-tips="提前采购存储，支持随时扩容，超出额度部分按小时扣费。包月时长用完自动转为按小时扣费。">打包购买</label>         
                 </div>
                 <div class="fm-input-range clearfix fn-disk" style="display: none;">
                     <label>购买额度</label>
@@ -292,22 +292,22 @@
             <!-- 费用估算 start -->
             <div id="baoyuegoumai" class="infor-fm-box">
                 <h4 class="step-tit">包月购买</h4>
-                <div id="bef-month" class="fm-input-range clearfix">
+                <div class="fm-input-range clearfix">
                     <label>包月时长</label>
-                    <p class="range-box">
+                    <p class="range-box fn-tips" data-tips="包月时长越长，折扣越大。包月时段内也请保持账户有一定的可用额度，用于支付按小时扣费的项目。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="TimeLongWid"></cite></span>
                         <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
                     </p>
                     <span><cite id="TimeLongText">1</cite>个月</span>    
                 </div>
-                <div id="bef-money" class="fm-money clearfix">
+                <div class="fm-money clearfix">
                     <label>包月费用总计</label>
                     <span class="fn-tips"  data-tips="该包月费用在应用正常运行后才会提请您支付。本费用不包括其他按小时扣费的项目，请保持账户有一定的可用额度。"><cite id="need-money"></cite>元</span>
                 </div>
             </div>
             <!-- 费用估算 end -->
-			<div class="fm-btn clearfix fn-tips" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定的可用额度。">
+			<div class="fm-btn clearfix fn-tips" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定的可用额度。">
                     <a class="greenbtn" id="BtnFirst" style="cursor: pointer;">免费创建</a>
             </div>			
         </form>
