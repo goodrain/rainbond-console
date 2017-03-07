@@ -47,13 +47,13 @@
 					<!--<p>未知</p>-->
 				</div>
 			</li>
-			<li class="fn-tips layer_pay" data-tips="{{tips}}">
+			<li class="fn-tips layer_pay" data-tips="应用状态未知">
 				<div>
 					<p style="text-align: left">上一小时费用</p>
 					<p class="pImg">
 						<img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
 					</p>
-					<p id="last_hour_fee" name="last_hour_fee">{{current_status}}</p>
+					<p id="last_hour_fee" name="last_hour_fee">0元</p>
 					<!--<p>未知</p>-->
 				</div>
 			</li>
@@ -308,11 +308,44 @@
 						$("#multi_ports").hide()
 					}
 				}
+				processServicePayStatus(obj)
 			},
 			error: function(){
 				//swal("系统异常");
 			}
 		})
+	}
+	/**
+	 * 处理应用上一小时费用状态
+	 * @param msg
+     */
+	function processServicePayStatus(msg) {
+		var pay_status = msg["service_pay_status"];
+		var tips = msg["tips"];
+		if(pay_status == "no_money"){
+			$("#last_hour_fee").html("欠费 关闭")
+			$(".layer_pay").attr("data-tips",tips);
+		}else if (pay_status=="debugging"){
+			$("#last_hour_fee").html("调试中");
+			$(".layer_pay").attr("data-tips",tips);
+		}else if(pay_status == "unknown"){
+			$("#last_hour_fee").html("0元");
+			$(".layer_pay").attr("data-tips",tips);
+		}else if(pay_status == "wait_for_pay"){
+			$("#last_hour_fee").html("等待支付");
+			$(".layer_pay").attr("data-tips",tips);
+			$("#can_pay_btn").val("True");
+		}else if(pay_status=="soon"){
+			$("#last_hour_fee").html("即将计费");
+			$(".layer_pay").attr("data-tips",tips);
+		}else if(pay_status=="show_money"){
+			$("#last_hour_fee").html(msg["cost_money"]+"元");
+			$(".layer_pay").attr("data-tips",tips);
+		}else {
+			$("#last_hour_fee").html("-");
+			$(".layer_pay").attr("data-tips",tips);
+		}
+
 	}
 
 	function getLog(){

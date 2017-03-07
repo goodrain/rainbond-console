@@ -585,14 +585,20 @@ class ServiceDetail(AuthedView):
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
                 result["service_pay_status"] = "no_money"
+                result["tips"] = "请为账户充值,然后重启应用"
             else:
                 if self.service.deploy_version is None or self.service.deploy_version == "":
                     result["totalMemory"] = 0
                     result["status"] = "Undeployed"
                     result["service_pay_status"] = "debugging"
+                    result["tips"] = "应用尚未运行"
                 else:
                     body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
                     status = body[self.service.service_id]
+                    service_pay_status, tips, cost_money = self.get_pay_status(status)
+                    result["service_pay_status"] = service_pay_status
+                    result["tips"] = tips
+                    result["cost_money"] = cost_money
                     if status == "running":
                         result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
@@ -646,15 +652,12 @@ class ServiceDetail(AuthedView):
                 if memory_pay_method == "prepaid" or disk_pay_method == "prepaid":
                     if now < buy_end_time:
                         rt_status = "show_money"
-                        # TODO 获取价格
                         rt_tips = "预付费项目于{0}到期".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
                     else:
                         rt_status = "show_money"
-                        # TODO 获取价格
                         rt_tips = "预付费项目已于{0}到期,应用所有项目均按需结算".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
                 else:
                     rt_status = "show_money"
-                    # TODO 获取价格
                     rt_tips = "当前应用所有项目均按小时结算"
         else:
             if diff_minutes > 0:
@@ -662,8 +665,9 @@ class ServiceDetail(AuthedView):
                 rt_tips = "应用尚未运行"
             else:
                 rt_status = "show_money"
-                # TODO 获取价格
                 rt_tips = "应用尚未运行"
+
+        return rt_status,rt_tips,rt_money
 
 class ServiceNetAndDisk(AuthedView):
     @method_perf_time
