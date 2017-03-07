@@ -361,6 +361,8 @@
 
                     if( !msg["choosable"] )
                     {
+                        $("#OneMemory").attr("min",msg["app_min_memory"]);
+                        $("#OneMemory").attr("max",msg["app_max_memory"]);
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
                         var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() - msg["service_memory"] )/1024;
 
@@ -696,8 +698,39 @@
                 var money = range.value * $("#TimeMoney").attr("data-money");
                 $("#TimeMoney").html( (money).toFixed(2) );
             }
-            else if( inputid == "OneMemory" || inputid == "NodeNum" )
+            else if( inputid == "OneMemory" )
             {
+
+                var arr = [];
+                var value_min = $("#OneMemory").attr("min");
+                var value_max = $("#OneMemory").attr("max");
+                var next = value_min;
+                var num = 0;
+                while(true){
+                    if( next > value_max )
+                    {
+                        break;
+                    }
+                    next = value_min * Math.pow(2,num);
+                    arr.push(next);
+                    num++;
+                }
+                console.log(arr);
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        if( size < 1024 )
+                        {
+                            result.innerHTML = size + "M";
+                        }
+                        else{
+                            result.innerHTML = parseInt(size/1024) + "G";
+                        }
+                    }
+                }
+
                 var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
 
                 if( money > 0){
@@ -708,6 +741,18 @@
                     $("#kuorongmoney").css({"display":"none"});
                     $(".sureDeploy").html("确定");
                 };  
+            }
+            else if( inputid == "NodeNum" ){
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
+
+                if( money > 0){
+                    $("#kuorongmoney").css({"display":"block"});
+                    $("#deployMoney").html( (money).toFixed(2) );
+                    $(".sureDeploy").html("付款");
+                }else{
+                    $("#kuorongmoney").css({"display":"none"});
+                    $(".sureDeploy").html("确定");
+                };
             }
         }, false);
     }

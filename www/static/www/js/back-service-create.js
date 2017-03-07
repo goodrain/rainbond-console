@@ -208,24 +208,6 @@ $(function(){
 
     // 滑块 开始 
     function FnRange(inputid,textid,widid,num){
-        //
-        //var arr = [];
-        //var min = 256;
-        //var max = 4096;
-        //var next = 256;
-        //var num = 0;
-        //while (true) {
-        //    arr.push(next);
-        //    if (next >= max) {
-        //        break;
-        //    }
-        //    next = min * Math.pow(2, num);
-        //    num += 1
-        //}
-
-
-
-
         var range= document.getElementById(inputid);
         var result = document.getElementById(textid);
         var wid = document.getElementById(widid);
@@ -251,7 +233,6 @@ $(function(){
             arr.push(next);
             num++;
         }
-        console.log(arr);
         range.addEventListener("mouseup", function() {
             if(inputid == "OneMemory"){
                 for( var i = 0;i<arr.length-1;i++ )
@@ -268,29 +249,6 @@ $(function(){
                         }
                     }
                 }
-                //if(range.value >= 128 && range.value < 256){
-                //    result.innerHTML = "128M";
-                //}else if(range.value >= 256 && range.value < 512){
-                //    result.innerHTML = "256M";
-                //}else if(range.value >= 512 && range.value < 1024){
-                //    result.innerHTML = "512M";
-                //}else if(range.value >= 1024 && range.value < 2048){
-                //    result.innerHTML = "1G";
-                //}else if(range.value >= 2048 && range.value < 3072){
-                //    result.innerHTML = "2G";
-                //}else if(range.value >= 3072 && range.value < 4096){
-                //    result.innerHTML = "3G";
-                //}else if(range.value >= 4096 && range.value < 5120){
-                //    result.innerHTML = "4G";
-                //}else if(range.value >= 5120 && range.value < 6144){
-                //    result.innerHTML = "5G";
-                //}else if(range.value >= 6144 && range.value < 7168){
-                //    result.innerHTML = "6G";
-                //}else if(range.value >= 7168 && range.value < 8100){
-                //   result.innerHTML = "7G";
-                //}else{
-                //   result.innerHTML = "8G";
-                //}
             }else{
                result.innerHTML = range.value; 
             }
@@ -317,29 +275,6 @@ $(function(){
                         }
                     }
                 }
-                //if(range.value >= 128 && range.value < 256){
-                //    result.innerHTML = "128M";
-                //}else if(range.value >= 256 && range.value < 512){
-                //    result.innerHTML = "256M";
-                //}else if(range.value >= 512 && range.value < 1024){
-                //    result.innerHTML = "512M";
-                //}else if(range.value >= 1024 && range.value < 2048){
-                //    result.innerHTML = "1G";
-                //}else if(range.value >= 2048 && range.value < 3072){
-                //    result.innerHTML = "2G";
-                //}else if(range.value >= 3072 && range.value < 4096){
-                //    result.innerHTML = "3G";
-                //}else if(range.value >= 4096 && range.value < 5120){
-                //    result.innerHTML = "4G";
-                //}else if(range.value >= 5120 && range.value < 6144){
-                //    result.innerHTML = "5G";
-                //}else if(range.value >= 6144 && range.value < 7168){
-                //    result.innerHTML = "6G";
-                //}else if(range.value >= 7168 && range.value < 8100){
-                //   result.innerHTML = "7G";
-                //}else{
-                //   result.innerHTML = "8G";
-                //}
             }else{
                result.innerHTML = range.value; 
             }
@@ -623,89 +558,7 @@ $(function(){
         ///
 
     }); 
-    /// 从应用提交
-    ///
-    // $("#back_service_step_two").click(function(){
-    //     alert("Hello !!!!");
-    //     // var arr = $(".dependency_service");
-    //     // var len = arr.length;
-    //     // var deps = [];
-    //     //
-    //     // for (var i =0;i<len;i++){
-    //     //     deps.push($(".dependency_service").eq(i).find("option:selected").attr("value"));
-    //     // }
-    //     // var sel_val = deps;
-    //     // var envs = [];
-    //     // var flag = false
-    //     // $('.tb tr').each(function() {
-    //     //     var env = {};
-    //     //     $(this).find('[name^=attr]').each(function(event) {
-    //     //         i = $(this);
-    //     //         name = $(this).attr('name');
-    //     //         value = $(this).val() || i.html();
-    //     //         if (value) {
-    //     //             env[name] = value;
-    //     //         } else {
-    //     //             showMessage("有未填写的内容");
-    //     //             flag = true
-    //     //         }
-    //     //     });
-    //     //     envs.push(env);
-    //     // });
-    //     // ///
-    //     //  $("#back_service_step2").attr('disabled', true);
-    //     // var tenantName= $('#currentTeantName').val();
-    //     // var service_alias = $("#service_alias").val();
-    //     //
-    //     // alert("依赖服务:"+sel_val);
-    //     // alert("环境变量"+envs);
-    //     // $.ajax({
-    //     //     type : "post",
-    //     //     // url : "/apps/" + tenantName + "/" + service_alias + "/deploy/setting/",
-    //     //     url : "",
-    //     //     data : {
-    //     //         "dep_list" : sel_val,
-    //     //         "envs": envs
-    //     //     },
-    //     //     cache : false,
-    //     //     beforeSend : function(xhr, settings) {
-    //     //         var csrftoken = $.cookie('csrftoken');
-    //     //         xhr.setRequestHeader("X-CSRFToken", csrftoken);
-    //     //     },
-    //     //     success : function(msg) {
-    //     //         var dataObj = msg;
-    //     //         if (dataObj["status"] == "exist") {
-    //     //             swal("服务名已存在");
-    //     //         } else if (dataObj["status"] == "owed"){
-    //     //             swal("余额不足请及时充值")
-    //     //         } else if (dataObj["status"] == "expired"){
-    //     //             swal("试用已到期")
-    //     //         } else if (dataObj["status"] == "over_memory") {
-    //     //             swal("资源已达上限，不能创建");
-    //     //         } else if (dataObj["status"] == "over_money") {
-    //     //             swal("余额不足，不能创建");
-    //     //         } else if (dataObj["status"] == "empty") {
-    //     //             swal("应用名称不能为空");
-    //     //         }else if (dataObj["status"] == "code_from") {
-    //     //             swal("应用资源库未选择");
-    //     //         }else if (dataObj["status"] == "code_repos") {
-    //     //             swal("代码仓库异常");
-    //     //         }else if (dataObj["status"] == "success") {
-    //     //             service_alias = dataObj["service_alias"]
-    //     //             window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
-    //     //         } else {
-    //     //             swal("创建失败");
-    //     //         }
-    //     //         $("#back_service_step2").attr('disabled', false);
-    //     //     },
-    //     //     error : function() {
-    //     //         swal("系统异常,请重试");
-    //     //         $("#BtnFirst").attr('disabled', false);
-    //     //     }
-    //     // });
-    //     ///
-    // });
-    // ///
+
      ////tips
     $(".fn-tips").mouseover(function(){
         var tips = $(this).attr("data-tips");
