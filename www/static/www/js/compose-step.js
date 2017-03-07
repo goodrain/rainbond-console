@@ -682,17 +682,17 @@ $(function(){
                 var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
                 var node_num = parseInt($("#"+appid+"_NodeText").html());
                 var disk_num = parseInt($("#"+appid+"_NodeText").html());
-                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+                var time_num = parseInt($("#"+appid+" .buy_month li.active").attr("data-time"));
             }else if(memory_onoff == true && disk_onoff == false ){
                 var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
                 var node_num = parseInt($("#"+appid+"_NodeText").html());
                 var disk_num = 0;
-                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+                var time_num = parseInt($("#"+appid+" .buy_month li.active").attr("data-time"));;
             }else if(memory_onoff == false && disk_onoff == true){
                 var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
                 var node_num = parseInt($("#"+appid+"_NodeText").html());
                 var disk_num = parseInt($("#"+appid+"_NodeText").html());
-                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+                var time_num = parseInt($("#"+appid+" .buy_month li.active").attr("data-time"));;
             }else{
                 var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
                 var node_num = parseInt($("#"+appid+"_NodeText").html());
