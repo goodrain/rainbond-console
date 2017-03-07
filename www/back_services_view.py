@@ -314,7 +314,20 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
                 else:
                     serviceObj = base_info
+            # 获取对应扩展数
+            app_min_memory = 128
+            app_max_memory = 65536
+            sem = None
+            try:
+                sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
+            except ServiceExtendMethod.DoesNotExist:
+                pass
+            if sem:
+                app_min_memory = sem.min_memory
+                app_max_memory = sem.max_memory
 
+            context["app_min_memory"] = app_min_memory
+            context["app_max_memory"] = app_max_memory
             context["service"] = serviceObj
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
