@@ -229,6 +229,7 @@ $(function(){
             arr.push(next);
             num++;
         }
+        console.log(arr);
         range.addEventListener("mouseup", function() {
             if(inputid == "OneMemory"){
                 for( var i = 0;i<arr.length-1;i++ )
