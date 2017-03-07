@@ -319,7 +319,7 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             app_max_memory = 65536
             sem = None
             try:
-                sem = ServiceExtendMethod.objects.get(service_key=service_key, app_version=app_version)
+                sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
             except ServiceExtendMethod.DoesNotExist:
                 pass
             if sem:
