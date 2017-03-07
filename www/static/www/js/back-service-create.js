@@ -394,38 +394,20 @@ $(function(){
     $("#MoneyBefore").change(function(){
         var onoff = $("#MoneyBefore").prop("checked");
         var onoff2 = $("#DiskBefore").prop("checked");
-        if(onoff == true){
-            // $(".fn-memory-node").show();
-            $("#aft-memory-box").hide();
-        }else{
-            //$(".fn-memory-node").hide();
-            $("#aft-memory-box").show();
-        }
         if((onoff == true) | (onoff2 == true)){
-            $("#bef-month").show();
-            $("#bef-money").show();
+            $("#baoyuegoumai").show();
         }else{
-            $("#bef-month").hide();
-            $("#bef-money").hide();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
     $("#MoneyAfter").change(function(){
         var onoff = $("#MoneyBefore").prop("checked");
         var onoff2 = $("#DiskBefore").prop("checked");
-        if(onoff == true){
-            // $(".fn-memory-node").show();
-            $("#aft-memory-box").hide();
-        }else{
-            //$(".fn-memory-node").hide();
-            $("#aft-memory-box").show();
-        }
         if((onoff == true) | (onoff2 == true)){
-            $("#bef-month").show();
-            $("#bef-money").show();
+            $("#baoyuegoumai").show();
         }else{
-            $("#bef-month").hide();
-            $("#bef-money").hide();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
@@ -434,17 +416,13 @@ $(function(){
         var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
-            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").show();
         }
         if((onoff == true) | (onoff2 == true)){
-            $("#bef-month").show();
-            $("#bef-money").show();
+            $("#baoyuegoumai").show();
         }else{
-            $("#bef-month").hide();
-            $("#bef-money").hide();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
@@ -453,17 +431,13 @@ $(function(){
         var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
-            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").show();
         }
         if((onoff == true) | (onoff2 == true)){
-            $("#bef-month").show();
-            $("#bef-money").show();
+            $("#baoyuegoumai").show();
         }else{
-            $("#bef-month").hide();
-            $("#bef-money").hide();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
