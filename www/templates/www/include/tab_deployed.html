@@ -719,36 +719,52 @@
 		$(".layer-body-bg").css({"display":"none"});
 	});
 	$(".sure_pay").on("click",function(){
-		var tenantName = $("#tenantName").val();
-//		var tenant_id = $("#tenant_id").val();
-//		var service_id = $("#service_id").val();
-		var serviceAlias = $("#serviceAlias").val();
+		var notify_text = "确认付款吗？"
+		swal({
+			title : notify_text,
+			type : "warning",
+			showCancelButton : true,
+			confirmButtonColor : "#DD6B55",
+			confirmButtonText : "确定",
+			cancelButtonText : "取消",
+			closeOnConfirm : false,
+			closeOnCancel : false
+		}, function(isConfirm) {
+			if (isConfirm) {
+				var tenantName = $("#tenantName").val();
+//				var tenant_id = $("#tenant_id").val();
+//				var service_id = $("#service_id").val();
+				var serviceAlias = $("#serviceAlias").val();
 
-		$.ajax({
-			type : "post",
-			url : "/ajax/"+tenantName+"/"+serviceAlias+"/pay-money",
-			data:{},
-			cache : false,
-			beforeSend : function(xhr, settings) {
-				var csrftoken = $.cookie('csrftoken');
-				xhr.setRequestHeader("X-CSRFToken", csrftoken);
-			},
-			success : function(msg) {
-				if( msg["status"] == "success" )
-				{
-					swal("支付成功");
-					$(".layer-body-bg").css({"display":"none"});
-					window.location.href = window.location.href
-				}
-				else if( msg["status"] == "not_enough" ){
-					swal("余额不足");
-				}
-				else{
-					swal(msg["info"]);
-				}
-			},
-			error : function() {
-				swal("系统异常,请重试");
+				$.ajax({
+					type : "post",
+					url : "/ajax/"+tenantName+"/"+serviceAlias+"/pay-money",
+					data:{},
+					cache : false,
+					beforeSend : function(xhr, settings) {
+						var csrftoken = $.cookie('csrftoken');
+						xhr.setRequestHeader("X-CSRFToken", csrftoken);
+					},
+					success : function(msg) {
+						if( msg["status"] == "success" )
+						{
+							swal("支付成功");
+							$(".layer-body-bg").css({"display":"none"});
+							window.location.href = window.location.href
+						}
+						else if( msg["status"] == "not_enough" ){
+							swal("余额不足");
+						}
+						else{
+							swal(msg["info"]);
+						}
+					},
+					error : function() {
+						swal("系统异常,请重试");
+					}
+				});
+			} else {
+				swal.close();
 			}
 		});
 	})
