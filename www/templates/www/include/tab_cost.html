@@ -361,8 +361,8 @@
 
                     if( !msg["choosable"] )
                     {
-                        $("#OneMemory").attr("min",msg["app_min_memory"]);
-                        $("#OneMemory").attr("max",msg["app_max_memory"]);
+                        $("#OneMemory").setAttribute("min",msg["app_min_memory"]);
+                        $("#OneMemory").setAttribute("max",msg["app_max_memory"]);
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
                         var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() - msg["service_memory"] )/1024;
 
@@ -706,11 +706,7 @@
                 var value_max = $("#OneMemory").attr("max");
                 var next = value_min;
                 var num = 0;
-                while(true){
-                    if( next > value_max )
-                    {
-                        break;
-                    }
+                while(next <= value_max){
                     next = value_min * Math.pow(2,num);
                     arr.push(next);
                     num++;

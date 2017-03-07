@@ -224,11 +224,7 @@ $(function(){
         var value_max = $(".node_memory").attr("max");
         var next = value_min;
         var num = 0;
-        while(true){
-            if( next > value_max )
-            {
-                break;
-            }
+        while(next<=value_max){
             next = value_min * Math.pow(2,num);
             arr.push(next);
             num++;
