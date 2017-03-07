@@ -201,8 +201,8 @@
 			<div class="del" title="关闭"><i class="fa fa-times"></i></div>
 			<p class="layer-tit">付费确认</p>
 			<div class="layer-height-overflow">
-				<p>将从您的账户中扣除{{need_to_pay}}元，用于购买当前应用的预付费项目，其余费用仍按小时结算。</p>
-				<p>当前应用将于{{start_time}}开始计费，逾期未成功支付，应用将会停止运行。</p>
+				<p>将从您的账户中扣除<span id="need_to_pay"></span>元，用于购买当前应用的预付费项目，其余费用仍按小时结算。</p>
+				<p>当前应用将于<span id="start_time"></span>开始计费，逾期未成功支付，应用所有项目将会按需支付。</p>
 			</div>
 			<p class="bottom">
 				<button class="sure btn-success sure_pay">确认支付</button>
@@ -335,6 +335,8 @@
 			$("#last_hour_fee").html("等待支付");
 			$(".layer_pay").attr("data-tips",tips);
 			$("#can_pay_btn").val("True");
+			$("#need_to_pay").html(msg["need_pay_money"]);
+			$("#start_time").html(msg["start_time_str"]);
 		}else if(pay_status=="soon"){
 			$("#last_hour_fee").html("即将计费");
 			$(".layer_pay").attr("data-tips",tips);

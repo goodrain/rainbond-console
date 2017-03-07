@@ -595,10 +595,12 @@ class ServiceDetail(AuthedView):
                 else:
                     body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
                     status = body[self.service.service_id]
-                    service_pay_status, tips, cost_money = self.get_pay_status(status)
+                    service_pay_status, tips, cost_money, need_pay_money, start_time_str = self.get_pay_status(status)
                     result["service_pay_status"] = service_pay_status
                     result["tips"] = tips
                     result["cost_money"] = cost_money
+                    result["need_pay_money"] = need_pay_money
+                    result["start_time_str"]=start_time_str
                     if status == "running":
                         result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
@@ -618,6 +620,8 @@ class ServiceDetail(AuthedView):
         rt_status = "unknown"
         rt_tips = "应用状态未知"
         rt_money = 0.0
+        need_pay_money = 0.0
+        start_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         status = service_current_status
         now = datetime.datetime.now()
@@ -642,6 +646,8 @@ class ServiceDetail(AuthedView):
                     if service_unpay_bill_list:
                         rt_status = "wait_for_pay"
                         rt_tips = "请于{0}前支付{1}元".format(buy_start_time_str,service_unpay_bill_list[0].prepaid_money)
+                        need_pay_money = service_unpay_bill_list[0].prepaid_money
+                        start_time_str = buy_start_time_str
                     else:
                         rt_status = "soon"
                         rt_tips = "将于{0}开始计费".format(buy_start_time_str)
@@ -667,7 +673,7 @@ class ServiceDetail(AuthedView):
                 rt_status = "show_money"
                 rt_tips = "应用尚未运行"
 
-        return rt_status,rt_tips,rt_money
+        return rt_status, rt_tips, rt_money, need_pay_money, start_time_str
 
 class ServiceNetAndDisk(AuthedView):
     @method_perf_time
