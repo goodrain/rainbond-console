@@ -601,38 +601,20 @@ $(function(){
         $("#"+ this_id +"_MoneyBefore").change(function(){
             var onoff = $("#"+ this_id +"_MoneyBefore").prop("checked");
             var onoff2 = $("#"+ this_id +"_DiskBefore").prop("checked");
-            if(onoff == true){
-                // $(".fn-memory-node").show();
-                $("#"+ this_id + "_aft-memory-box").hide();
-            }else{
-                //$(".fn-memory-node").hide();
-                $("#"+ this_id + "_aft-memory-box").show();
-            }
             if((onoff == true) | (onoff2 == true)){
-                $("#"+ this_id +"_bef-month").show();
-                $("#"+ this_id +"_bef-money").show();
+                $("#"+ this_id +"_baoyuegoumai").show();
             }else{
-                $("#"+ this_id +"_bef-month").hide();
-                $("#"+ this_id +"_bef-money").hide();
+                $("#"+ this_id +"_baoyuegoumai").hide();
             } 
             FnPrice(this_id);
         });
         $("#"+ this_id +"_MoneyAfter").change(function(){
             var onoff = $("#"+ this_id +"_MoneyBefore").prop("checked");
             var onoff2 = $("#"+ this_id +"_DiskBefore").prop("checked");
-            if(onoff == true){
-                // $(".fn-memory-node").show();
-                $("#"+ this_id + "_aft-memory-box").hide();
-            }else{
-                //$(".fn-memory-node").hide();
-                $("#"+ this_id + "_aft-memory-box").show();
-            }
             if((onoff == true) | (onoff2 == true)){
-                $("#"+ this_id +"_bef-month").show();
-                $("#"+ this_id +"_bef-money").show();
+                $("#"+ this_id +"_baoyuegoumai").show();
             }else{
-                $("#"+ this_id +"_bef-month").hide();
-                $("#"+ this_id +"_bef-money").hide();
+                $("#"+ this_id +"_baoyuegoumai").hide();
             } 
             FnPrice(this_id);
         });
@@ -641,17 +623,13 @@ $(function(){
             var onoff2 = $("#"+ this_id +"_MoneyBefore").prop("checked");
             if(onoff == true){
                 $("#"+ this_id + "_disk_box").show();
-                $("#"+ this_id +"_aft-disk-box").hide();
             }else{
                 $("#"+ this_id + "_disk_box").hide();
-                $("#"+ this_id +"_aft-disk-box").show();
             }
             if((onoff == true) | (onoff2 == true)){
-                $("#"+ this_id +"_bef-month").show();
-                $("#"+ this_id +"_bef-money").show();
+                $("#"+ this_id +"_baoyuegoumai").show();
             }else{
-                $("#"+ this_id +"_bef-month").hide();
-                $("#"+ this_id +"_bef-money").hide();
+                $("#"+ this_id +"_baoyuegoumai").hide();
             } 
             FnPrice(this_id);
         });
@@ -660,17 +638,13 @@ $(function(){
             var onoff2 = $("#"+ this_id +"_MoneyBefore").prop("checked");
             if(onoff == true){
                 $("#"+ this_id + "_disk_box").show();
-                $("#"+ this_id +"_aft-disk-box").hide();
             }else{
                 $("#"+ this_id + "_disk_box").hide();
-                $("#"+ this_id +"_aft-disk-box").show();
             }
             if((onoff == true) | (onoff2 == true)){
-                $("#"+ this_id +"_bef-month").show();
-                $("#"+ this_id +"_bef-money").show();
+                $("#"+ this_id +"_baoyuegoumai").show();
             }else{
-                $("#"+ this_id +"_bef-month").hide();
-                $("#"+ this_id +"_bef-money").hide();
+                $("#"+ this_id +"_baoyuegoumai").hide();
             } 
             FnPrice(this_id);
         });

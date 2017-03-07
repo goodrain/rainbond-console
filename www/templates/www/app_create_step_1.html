@@ -159,9 +159,9 @@
                 <h4 class="step-tit">内存选项</h4>
                 <!-- 01 -->
                 <div class="fm-input-range clearfix fn-memory-node">
-                    <label>应用单节点内存</label>
+                    <label>单节点内存</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户单应用内存最大8G，总内存无限制。">
+                    <p class="range-box nouser fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户单应用内存最大8G，总内存无限。">
                         <span class="renge-bg"></span>
                         <span class="range-choose fn-tips"><cite id="OneMemoryWid"></cite></span>
                         <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="128"／>
@@ -169,7 +169,7 @@
                     <!-- user -->
                     {% else %}
                     <!-- no user -->
-                    <p class="range-box fn-tips" data-tips="单应用内存最大8G，总内存无限制。如需使用更多，请联系客服申请。">
+                    <p class="range-box fn-tips" data-tips="单应用内存最大8G，总内存无限。如需使用更多，请联系客服申请。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
                         <input type="range" min="128" max="8192"  step="128" id="OneMemory" value="128"／>
@@ -202,7 +202,7 @@
                     <label>内存使用方式</label>
                     <input type="radio" name="Memory" value="Before" id="MoneyBefore" checked="true" />
                     <label class="radio-bg" for="MoneyBefore"></label>
-                    <label for="MoneyBefore" class="radio-text fn-tips" data-tips="包月购买内存，整体费用相对便宜，支持随时扩容，在包月时长用完后会自动转为按小时扣费。">包月包年</label>
+                    <label for="MoneyBefore" class="radio-text fn-tips" data-tips="包月购买内存，整体费用相对便宜，支持随时扩容，在包月时长用完后会自动转为按小时扣费。">包月包年（5折）</label>
                     <input type="radio" name="Memory" value="After" id="MoneyAfter"  />
                     <label class="radio-bg"  for="MoneyAfter"></label>
                     <label for="MoneyAfter" class="radio-text fn-tips" data-tips="内存按小时扣费，支持随时扩容和缩容。">按小时扣费（<cite id="aft-memory"></cite>元/GB/小时）</label>
@@ -294,7 +294,7 @@
                 <h4 class="step-tit">包月购买</h4>
                 <div class="fm-input-range clearfix">
                     <label>包月时长</label>
-                    <p class="range-box fn-tips" data-tips="包月时长越长，折扣越大。包月时段内也请保持账户有一定的可用额度，用于支付按小时扣费的项目。">
+                    <p class="range-box fn-tips" data-tips="目前包月价格5折，满1年再折上7.5折。包月时段内也请保持账户有一定的可用额度，用于支付按小时扣费的项目。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="TimeLongWid"></cite></span>
                         <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
