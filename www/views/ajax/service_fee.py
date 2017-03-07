@@ -264,6 +264,10 @@ class ExtendServiceView(AuthedView):
             memory_unit_fee = regionBo.memory_package_price
             now = datetime.datetime.now()
             buy_end_time = service_attach_info.buy_end_time
+            service_type = self.service.category
+            result["node_choosable"] = False
+            if service_type == "application":
+                result["node_choosable"] = True
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
                 left_hours =int((buy_end_time - now).total_seconds()/3600)
                 result["choosable"] = False
@@ -319,10 +323,10 @@ class ExtendServiceView(AuthedView):
                 body["node_num"] = node_num
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
-                print "调用region 水平扩容"
-                # regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
                 self.service.min_node = node_num
                 self.service.save()
+                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', True)
             # vertical 垂直扩容
             new_cpu = 20 * (node_memory / 128)
             old_cpu = self.service.min_cpu
@@ -333,12 +337,13 @@ class ExtendServiceView(AuthedView):
                     body["deploy_version"] = self.service.deploy_version
                     body["container_cpu"] = new_cpu
                     body["operator"] = str(self.user.nick_name)
-                    print "调用region 垂直扩容"
-                    # regionClient.verticalUpgrade(self.service.service_region, self.service.service_id,
-                    #                              json.dumps(body))
+                    logger.info("invocke region to verticalUpgrade")
+                    regionClient.verticalUpgrade(self.service.service_region, self.service.service_id,
+                                                 json.dumps(body))
                     self.service.min_memory = node_memory
                     self.service.min_cpu = new_cpu
                     self.service.save()
+                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
 
             service_attach_info.min_node = node_num
             service_attach_info.min_memory = node_memory
