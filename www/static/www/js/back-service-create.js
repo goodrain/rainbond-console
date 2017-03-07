@@ -360,7 +360,7 @@ $(function(){
         function Fnmemory(){
             var total_money= onehour * 24 * time_num  *30 * node_num;
             // console.log("===> onehour "+onehour+" \t node_num "+node_num+"\t time_num "+time_num);
-            $("del.before_money").html(total_money.toFixed(2));
+            $("del.before_money").html((total_money*2).toFixed(2));
             if(time_num == 12){
                 total_money = total_money * 0.85;
             }else if(time_num == 24){
