@@ -243,12 +243,12 @@ $(function(){
         var next = value_min;
         var num = 0;
         while(true){
-            arr.push(next);
             if( next > value_max )
             {
                 break;
             }
             next = value_min * Math.pow(2,num);
+            arr.push(next);
             num++;
         }
         console.log(arr);
