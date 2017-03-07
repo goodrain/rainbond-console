@@ -80,7 +80,7 @@ class MemoryPayMethodView(AuthedView):
             # 如果为预付费改后付费
             if change_method == "pre2post":
                 if service_attach_info.buy_end_time > now:
-                    return JsonResponse({"status": "not_now", "info": "请在预付费({0})结束后进行修改".format(
+                    return JsonResponse({"status": "not_now", "info": "请在包月包年({0})结束后进行修改".format(
                         service_attach_info.buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))}, status=200)
                 else:
                     service_attach_info.memory_pay_method = "postpaid"
@@ -193,7 +193,7 @@ class DiskPayMethodView(AuthedView):
             # 如果为预付费改后付费
             if change_method == "pre2post":
                 if service_attach_info.buy_end_time > now:
-                    return JsonResponse({"status": "not_now", "info": "请在预付费({0})结束后进行修改".format(
+                    return JsonResponse({"status": "not_now", "info": "请在包月包年({0})结束后进行修改".format(
                         service_attach_info.buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))}, status=200)
                 else:
                     service_attach_info.memory_pay_method = "postpaid"
@@ -308,7 +308,7 @@ class ExtendServiceView(AuthedView):
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
                 if cur_memory >= node_num * node_memory:
                     result["status"] = "failure"
-                    result["info"] = "预付费不支持缩容"
+                    result["info"] = "包月包年不支持缩容"
                     return JsonResponse(result, status=200)
                 left_hours = int((buy_end_time - now).total_seconds() / 3600)
                 memory_fee = float(memory_unit_fee) * (node_num * node_memory - cur_memory) / 1024.0 * left_hours
@@ -383,7 +383,7 @@ class PrePaidPostponeView(AuthedView):
             need_money = Decimal(0)
             if memory_pay_method == "postpaid" and disk_pay_method == "postpaid":
                 result["status"] = "no_prepaid"
-                result["info"] = "没有预付费项目无法延期"
+                result["info"] = "没有包月包年项目无法延期"
                 return JsonResponse(result, status=200)
             else:
                 regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
@@ -418,7 +418,7 @@ class PrePaidPostponeView(AuthedView):
             # 没有预付费项目
             if memory_pay_method == "postpaid" and disk_pay_method == "postpaid":
                 result["status"] = "no_prepaid"
-                result["info"] = "没有预付费项目无法延期"
+                result["info"] = "没有包月包年项目无法延期"
                 return JsonResponse(result, status=200)
             else:
                 regionBo = rpmManager.get_work_region_by_name(self.service.service_region)

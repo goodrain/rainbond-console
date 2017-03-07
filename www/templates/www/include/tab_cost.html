@@ -181,7 +181,7 @@
                 <div class="del" title="关闭"><i class="fa fa-times"></i></div>
                 <h3 class="layer-tit">请选择要实用的内存与节点数</h3>
                 <div class="layer-height-overflow infor-fm-box">
-                    <div class="fm-input-range clearfix fn-memory-node">
+                    <div class="fm-input-range clearfix fn-memory-node" id="servie_node">
                         <label>节点数</label>
                         <p class="range-box">
                             <span class="renge-bg"></span>
@@ -355,6 +355,10 @@
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(msg) {
+                    if(!msg["node_choosable"]){
+                        $("#servie_node").attr("style", "display:none");
+                    }
+
                     if( !msg["choosable"] )
                     {
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
