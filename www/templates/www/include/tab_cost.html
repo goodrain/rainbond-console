@@ -681,6 +681,47 @@
             var maxnum = range.getAttribute("max");
             result.innerHTML = range.value;
             wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+            if( inputid == "OneMemory" )
+            {
+
+                var arr = [];
+                var value_min = parseInt($("#OneMemory").attr("min"));
+                var value_max = parseInt($("#OneMemory").attr("max"));
+                var next = value_min;
+                var sum = 0;
+                while(next <= value_max){
+                    next = value_min * Math.pow(2,sum);
+                    arr.push(next);
+                    sum++;
+                }
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        if( size < 1024 )
+                        {
+                            result.innerHTML = size + "M";
+                        }
+                        else{
+                            result.innerHTML = parseInt(size/1024) + "G";
+                        }
+                    }
+                }
+
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
+
+                if( money > 0){
+                    $("#kuorongmoney").css({"display":"block"});
+                    $("#deployMoney").html( (money).toFixed(2) );
+                    $(".sureDeploy").html("付款");
+                }else{
+                    $("#kuorongmoney").css({"display":"none"});
+                    $(".sureDeploy").html("确定");
+                };
+            }
+
+
             if( inputid == "TimeLong" )
             {
                 var money = range.value * $("#TimeLongMoney").attr("data-money");
