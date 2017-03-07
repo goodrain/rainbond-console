@@ -214,7 +214,7 @@ $(function(){
             //}
             if( time_num == 12 )
             {
-                total_money = total_money * 0.8;
+                total_money = total_money * 0.85;
             }
             else if( time_num == 24 )
             {
