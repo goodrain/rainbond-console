@@ -358,11 +358,9 @@
                     if(!msg["node_choosable"]){
                         $("#servie_node").attr("style", "display:none");
                     }
-//                    var str = '<span class="renge-bg"></span><span class="range-choose"><cite id="OneMemoryWid"></cite></span><input type="range" min="'+msg["app_min_memory"]+'" max="'+msg["app_max_memory"]+'"  step="128" id="OneMemory" value="128"／>'
-//                    $(".change_input").html(str);
                     document.getElementById("OneMemory").setAttribute("min",msg["app_min_memory"]);
                     document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
-                    if( msg["choosable"] )
+                    if( !msg["choosable"] )
                     {
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
                         var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() - msg["service_memory"] )/1024;
