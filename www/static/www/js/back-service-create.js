@@ -237,6 +237,7 @@ $(function(){
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
+                        result.attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -263,6 +264,7 @@ $(function(){
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
+                        result.attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -325,7 +327,7 @@ $(function(){
     FnPrice();
 
     function FnPrice(){
-        var  memory_num = parseInt(document.getElementById("OneMemoryText").innerHTML);
+        var  memory_num = parseInt($("#OneMemoryText").attr("data-size"));
         if(memory_num > 10){
             memory_num = memory_num / 1024;
         }
