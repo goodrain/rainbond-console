@@ -848,7 +848,7 @@ $(function(){
     /* ljh 2017-03-07 */
     $(".buy_month li").click(function(){
         $(this).addClass("active").siblings().removeClass("active");
-        FnPrice($(this).parents("section.fn-circle").attr(id));
+        FnPrice($(this).parents("section.fn-circle").attr("id"));
     });
     /* ljh 2017-03-07 */
 });
