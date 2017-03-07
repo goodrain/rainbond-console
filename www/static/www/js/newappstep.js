@@ -212,6 +212,7 @@ $(function(){
             //}else{
             //    buy_money = onehour * 24 * time_num *2*30;
             //}
+            $("del.before_money").html(total_money.toFixed(2));
             if( time_num == 12 )
             {
                 total_money = total_money * 0.85;
