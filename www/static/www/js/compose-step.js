@@ -759,6 +759,7 @@ $(function(){
                 else{
                     swal("创建失败");
                 }
+                $("#compose2").attr('disabled',false);
             },
             error: function() {
                 $("#compose2").attr('disabled',false);

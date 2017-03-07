@@ -521,7 +521,6 @@ $(function(){
     /// 从应用提交
     //提交 
     $("#back_service_step1").click(function(event){
-        //
         var small_memory = $("#small-memory").attr("value");
         var is_tenant_free = $("#is_tenant_free").attr("value");
         if(is_tenant_free == "True"){
@@ -618,6 +617,7 @@ $(function(){
             error : function() {
                 swal("系统异常,请重试");
                 $("#BtnFirst").attr('disabled', false);
+                $("#back_service_step1").attr('disabled', false);
             }
         });
         ///

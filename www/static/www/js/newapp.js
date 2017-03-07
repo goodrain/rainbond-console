@@ -325,6 +325,7 @@ $(function(){
 
 	///// 提交
     $("#build-app").click(function(){
+		$(this).attr('disabled',true);
     	console.log(1);
     	var port_tr = $("#new-port tbody tr");
     	var environment = $("#new-environment tbody tr");
@@ -406,11 +407,11 @@ $(function(){
 				}else{
 					swal("创建失败");
 				}
-				
+				$("#build-app").attr('disabled',false);
 				
 			},
 			error: function() {
-               
+				$("#build-app").attr('disabled',false);
             },
             cache: false
             // processData: false
