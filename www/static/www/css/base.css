@@ -88,7 +88,7 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .fm-input-range .range-box .range-choose cite{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; display: block; margin:0; padding:0;}
 
 /* ljh 2017-03-07 */
-.fm-input-range ul.range-box li{float: left;padding: 5px 10px;width: 70px;border: 1px solid #ececec;}
+.fm-input-range ul.range-box li{float: left;padding: 0px 10px;width: 70px;border: 1px solid #ececec;height: 32px;display: flex;align-items: center;justify-content: center;}
 .fm-input-range ul.range-box li.active{border:1px solid #28cb75;}
 .fm-input-range ul.range-box li span{display: none;}
 .fm-input-range ul.range-box li.active span{display: block;}
