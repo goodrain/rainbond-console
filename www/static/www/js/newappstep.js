@@ -185,23 +185,23 @@ $(function(){
         }
         var node_num = parseInt(document.getElementById("NodeText").innerHTML);
         var Disk_num = parseInt(document.getElementById("DiskText").innerHTML);
-        //var time_num = parseInt(document.getElementById("TimeLongText").innerHTML);
+        var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         var memory_onoff = document.getElementById("MoneyBefore").checked;
         var disk_onoff = document.getElementById("DiskBefore").checked;
         var onehour;
         //计算
         if(memory_onoff == true && disk_onoff == true){
             onehour = before_memory * memory_num  +  before_disk * Disk_num;
-            //Fnmemory();
+            Fnmemory();
         }else if(memory_onoff == true && disk_onoff != true){
             onehour = before_memory * memory_num;
-            //Fnmemory();
+            Fnmemory();
         }else if(memory_onoff != true && disk_onoff == true){
             onehour = before_disk * Disk_num;
-            //Fnmemory();
+            Fnmemory();
         }else{
             onehour = 0;
-            //Fnmemory();
+            Fnmemory();
         }
         //计算 
         function Fnmemory(){
@@ -875,11 +875,8 @@ $(function(){
     /* ljh 2017-03-07 */
     $(".buy_month li").click(function(){
        $(this).addClass("active").siblings().removeClass("active");
+        FnPrice();
     });
-
-
-
-
     /* ljh 2017-03-07 */
 })
 
