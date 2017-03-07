@@ -388,7 +388,7 @@ function delete_service(tenantName, service_alias) {
 					});
 				},
 				success : function(msg) {
-					var dataObj = msg
+					var dataObj = msg;
 					if (dataObj["status"] == "success") {
 						swal("操作成功");
 						window.location.href = "/apps/" + tenantName
@@ -411,7 +411,7 @@ function delete_service(tenantName, service_alias) {
                             swal("当前服务被("+dep_service+")挂载依赖不能删除");
                         }
                     }else if (dataObj["status"] == "payed") {
-						swal("已付款应用在")
+						swal("已付款应用无法删除")
 					}
 					else {
 						swal("操作失败");

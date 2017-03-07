@@ -217,13 +217,14 @@ class ServiceManage(AuthedView):
                 has_prepaid_items = False
                 if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method=="prepaid":
                     has_prepaid_items = True
-                service_fee_bill = ServiceFeeBill.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id, pay_status="unpayed").count()
+                unpayed_bills = ServiceFeeBill.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id, pay_status="unpayed")
                 if has_prepaid_items:
                     if now < service_attach_info.buy_end_time:
                         #  开始计费之前,如果已经付款
-                        if not service_fee_bill:
+                        if not unpayed_bills:
                             result["status"] = "payed"
                             result["info"] = u"已付款应用无法删除"
+                            return JsonResponse(result)
 
                 published = AppService.objects.filter(service_id=self.service.service_id).count()
                 if published:
