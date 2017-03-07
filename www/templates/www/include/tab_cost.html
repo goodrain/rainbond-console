@@ -362,20 +362,15 @@
                     document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
                     if( !msg["choosable"] )
                     {
-                        var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
-                        var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() - msg["service_memory"] )/1024;
+                        var value = (msg["memory_unit_fee"]*msg["left_hours"]/1024).toFixed(2);
+                        var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() );
 
-                        if( money > 0){
-                            $("#kuorongmoney").css({"display":"block"});
-                            $("#deployMoney").html( (money).toFixed(2) );
-                            $(".sureDeploy").html("付款");
-                        }else{
-                            $("#kuorongmoney").css({"display":"none"});
-                            $(".sureDeploy").html("确定");
-                        }; 
+
+                        $("#kuorongmoney").css({"display":"block"});
+                        $("#deployMoney").html( (value).toFixed(2) );
+                        $(".sureDeploy").html("付款");
 
                         $("#deployMoney").attr("data-money",value);
-                        $("#deployMoney").attr("data-memory",msg["service_memory"]);
                     }
                     else{
                         $(".sureDeploy").html("确定");
@@ -693,6 +688,7 @@
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
+                        result.attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -738,6 +734,7 @@
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
+                        result.attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -798,6 +795,7 @@
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
+                        result.attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -808,16 +806,11 @@
                     }
                 }
 
-                var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
-
-                if( money > 0){
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") * $("#deployMoney").attr("data-memory") )
                     $("#kuorongmoney").css({"display":"block"});
                     $("#deployMoney").html( (money).toFixed(2) );
                     $(".sureDeploy").html("付款");
-                }else{
-                    $("#kuorongmoney").css({"display":"none"});
-                    $(".sureDeploy").html("确定");
-                };  
+
             }
             else if( inputid == "NodeNum" ){
                 var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
