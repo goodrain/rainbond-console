@@ -158,8 +158,8 @@ $(function(){
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
     FnRange("NodeNum","NodeText","NodeWid",1);
     FnRange("Disk","DiskText","DiskWid",1);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",1);
-    
+    //FnRange("TimeLong","TimeLongText","TimeLongWid",1);
+
    
    
     
@@ -519,12 +519,12 @@ $(function(){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
             var disk_num = parseInt($("#NodeText").html());
-            var time_num = parseInt($("#TimeLongText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else if(memory_onoff == true && disk_onoff == false ){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
             var disk_num = 0;
-            var time_num = parseInt($("#TimeLongText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else if(memory_onoff == false && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
@@ -629,60 +629,60 @@ $(function(){
         ///
         $("#BtnFirst").attr('disabled', true);
         var tenantName= $('#currentTeantName').val();
-        $.ajax({
-            type : "post",
-            url : "/apps/" + tenantName + "/app-create/",
-            data : {
-                "create_app_name" : appname,
-                "groupname" : groupname,
-                "select_group_id" : groupid,
-                "service_code_from":service_code_from,
-                "service_code_clone_url" : code_url,
-                "service_code_id" : code_id,
-                "service_code_version" : code_branch,
-                "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
-                "disk_pay_method" : disk_onoff ? "prepaid":"postpaid",
-                "service_min_memory" : memory_num,
-                "service_min_node" : node_num,
-                "disk_num" : disk_num,
-                "pre_paid_period" : time_num
-            },
-            cache : false,
-            beforeSend : function(xhr, settings) {
-                var csrftoken = $.cookie('csrftoken');
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success : function(msg) {
-                var dataObj = msg;
-                if (dataObj["status"] == "exist") {
-                    swal("服务名已存在");
-                } else if (dataObj["status"] == "owed"){
-                    swal("余额不足请及时充值")
-                } else if (dataObj["status"] == "expired"){
-                    swal("试用已到期")
-                } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能创建");
-                } else if (dataObj["status"] == "over_money") {
-                    swal("余额不足，不能创建");
-                } else if (dataObj["status"] == "empty") {
-                    swal("应用名称不能为空");
-                }else if (dataObj["status"] == "code_from") {
-                    swal("应用资源库未选择");
-                }else if (dataObj["status"] == "code_repos") {
-                    swal("代码仓库异常");
-                }else if (dataObj["status"] == "success") {
-                    service_alias = dataObj["service_alias"]
-                    window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
-                } else {
-                    swal("创建失败");
-                }
-                $("#BtnFirst").attr('disabled', false);
-            },
-            error : function() {
-                swal("系统异常,请重试");
-                $("#BtnFirst").attr('disabled', false);
-            }
-        });
+        //$.ajax({
+        //    type : "post",
+        //    url : "/apps/" + tenantName + "/app-create/",
+        //    data : {
+        //        "create_app_name" : appname,
+        //        "groupname" : groupname,
+        //        "select_group_id" : groupid,
+        //        "service_code_from":service_code_from,
+        //        "service_code_clone_url" : code_url,
+        //        "service_code_id" : code_id,
+        //        "service_code_version" : code_branch,
+        //        "memory_pay_method" : memory_onoff ? "prepaid":"postpaid",
+        //        "disk_pay_method" : disk_onoff ? "prepaid":"postpaid",
+        //        "service_min_memory" : memory_num,
+        //        "service_min_node" : node_num,
+        //        "disk_num" : disk_num,
+        //        "pre_paid_period" : time_num
+        //    },
+        //    cache : false,
+        //    beforeSend : function(xhr, settings) {
+        //        var csrftoken = $.cookie('csrftoken');
+        //        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        //    },
+        //    success : function(msg) {
+        //        var dataObj = msg;
+        //        if (dataObj["status"] == "exist") {
+        //            swal("服务名已存在");
+        //        } else if (dataObj["status"] == "owed"){
+        //            swal("余额不足请及时充值")
+        //        } else if (dataObj["status"] == "expired"){
+        //            swal("试用已到期")
+        //        } else if (dataObj["status"] == "over_memory") {
+        //            swal("资源已达上限，不能创建");
+        //        } else if (dataObj["status"] == "over_money") {
+        //            swal("余额不足，不能创建");
+        //        } else if (dataObj["status"] == "empty") {
+        //            swal("应用名称不能为空");
+        //        }else if (dataObj["status"] == "code_from") {
+        //            swal("应用资源库未选择");
+        //        }else if (dataObj["status"] == "code_repos") {
+        //            swal("代码仓库异常");
+        //        }else if (dataObj["status"] == "success") {
+        //            service_alias = dataObj["service_alias"]
+        //            window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
+        //        } else {
+        //            swal("创建失败");
+        //        }
+        //        $("#BtnFirst").attr('disabled', false);
+        //    },
+        //    error : function() {
+        //        swal("系统异常,请重试");
+        //        $("#BtnFirst").attr('disabled', false);
+        //    }
+        //});
         ///
 
     });
@@ -872,8 +872,15 @@ $(function(){
         $(".tips-box").remove();
     });
     ////tips end
+    /* ljh 2017-03-07 */
+    $(".buy_month li").click(function(){
+       $(this).addClass("active").siblings().removeClass("active");
+    });
 
-    
+
+
+
+    /* ljh 2017-03-07 */
 })
 
 
