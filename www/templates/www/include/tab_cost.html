@@ -192,7 +192,7 @@
                     </div>
                     <div class="fm-input-range clearfix fn-memory-node">
                         <label>单节点内存</label>
-                        <p class="range-box">
+                        <p class="range-box change_input">
                             <span class="renge-bg"></span>
                             <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
                             <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
@@ -361,8 +361,8 @@
 
                     if( !msg["choosable"] )
                     {
-                        document.getElementById("OneMemory").setAttribute("min",msg["app_min_memory"]);
-                        document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
+                        var str = '<span class="renge-bg"></span><span class="range-choose"><cite id="OneMemoryWid"></cite></span><input type="range" min="'+msg["app_min_memory"]+'" max="'+msg["app_max_memory"]+'"  step="128" id="OneMemory" value="128"／>'
+                        $(".change_input").html(str);
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]).toFixed(2);
                         var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() - msg["service_memory"] )/1024;
 
