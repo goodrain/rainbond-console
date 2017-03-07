@@ -659,10 +659,10 @@ class ServiceDetail(AuthedView):
                 if memory_pay_method == "prepaid" or disk_pay_method == "prepaid":
                     if now < buy_end_time:
                         rt_status = "show_money"
-                        rt_tips = "预付费项目于{0}到期".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
+                        rt_tips = "包月包年项目于{0}到期".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
                     else:
                         rt_status = "show_money"
-                        rt_tips = "预付费项目已于{0}到期,应用所有项目均按需结算".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
+                        rt_tips = "包月包年项目已于{0}到期,应用所有项目均按需结算".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
                 else:
                     rt_status = "show_money"
                     rt_tips = "当前应用所有项目均按小时结算"
