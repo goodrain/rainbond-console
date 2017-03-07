@@ -238,6 +238,7 @@ $(function(){
                     {
                         var size = arr[i];
                         result.attr("data-size",size);
+                        console.log(result);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -265,6 +266,7 @@ $(function(){
                     {
                         var size = arr[i];
                         result.attr("data-size",size);
+                        console.log(result);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
