@@ -244,13 +244,14 @@ $(function(){
         var num = 0;
         while(true){
             arr.push(next);
-            if( next > max )
+            if( next > value_max )
             {
                 break;
             }
-            next = min * Math.pow(2,num);
+            next = value_min * Math.pow(2,num);
             num++;
         }
+        console.log(arr);
         range.addEventListener("mouseup", function() {
             if(inputid == "OneMemory"){
                 for( var i = 0;i<arr.length-1;i++ )
