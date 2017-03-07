@@ -517,7 +517,7 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                         service.expired_time = startTime
                         service.save()
                         endTime = startTime + relativedelta(months=int(pre_paid_period))
-                        ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
+                        ServiceAttachInfo.objects.filter(service_id=service_id).update(buy_start_time=startTime,
                                                                                                     buy_end_time=endTime)
                     else:
                         # 付费用户一个小时调试
@@ -525,23 +525,8 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                         startTime = startTime.strftime("%Y-%m-%d %H:00:00")
                         startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                         endTime = startTime + relativedelta(months=int(pre_paid_period))
-                        ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
+                        ServiceAttachInfo.objects.filter(service_id=service_id).update(buy_start_time=startTime,
                                                                                                     buy_end_time=endTime)
-                    # if self.tenant.pay_type == "free":
-                    #     # 免费租户的应用过期时间为7天
-                    #     service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_id=service_id)
-                    #     service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
-                    #     service.save()
-                    #     startTime = datetime.datetime.now() + datetime.timedelta(days=7)
-                    #     endTime = startTime + relativedelta(months=int(pre_paid_period))
-                    #     ServiceAttachInfo.objects.filter(service_id=service_id).update(buy_start_time=startTime,
-                    #                                                                    buy_end_time=endTime)
-                    # else:
-                    #     # buy_start_time 即为应用启动时间
-                    #     startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
-                    #     endTime = startTime + relativedelta(months=int(pre_paid_period))
-                    #     ServiceAttachInfo.objects.filter(service_id=service_id).update(buy_start_time=startTime,
-                    #                                                                    buy_end_time=endTime)
         except Exception as e:
             logger.exception(e)
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
