@@ -705,16 +705,13 @@
                 var arr = [];
                 var value_min = parseInt($("#OneMemory").attr("min"));
                 var value_max = parseInt($("#OneMemory").attr("max"));
-                console.log(value_min+";"+value_max);
                 var next = value_min;
-                var num = 0;
+                var sum = 0;
                 while(next <= value_max){
-                    console.log(next);
-                    next = value_min * Math.pow(2,num);
+                    next = value_min * Math.pow(2,sum);
                     arr.push(next);
-                    num++;
+                    sum++;
                 }
-                console.log(arr);
                 for( var i = 0;i<arr.length-1;i++ )
                 {
                     if( range.value >= arr[i] && range.value < arr[i+1] )
