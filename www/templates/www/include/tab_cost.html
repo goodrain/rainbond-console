@@ -432,113 +432,159 @@
         });
         //跳转支付
         $("button.sureDisk").on("click",function(){
-            var way = $(".diskFun").attr("data-currentway");
-            if( way == "postpaid" )
-            {
-                var msg = "post2pre"
-                var data
-            }
-            else{
-                var msg = "pre2post"
-            }
-            var tenantName = $("#tenantName").val();
-            var serviceAlias = $("#serviceAlias").val();
-            $.ajax({
-                type : "post",
-                url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
-                data : {
-                    update_method : msg,
-                    pay_period : $('#LongDiskText').html(),
-                    pay_disk : $('#DiskSizeText').html()
-                },
-                cache : false,
-                beforeSend : function(xhr, settings) {
-                    var csrftoken = $.cookie('csrftoken');
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success : function(msg) {
-                    if( msg["status"] == "success" )
+            var notify_text = "确认付款吗？"
+            swal({
+                title : notify_text,
+                type : "warning",
+                showCancelButton : true,
+                confirmButtonColor : "#DD6B55",
+                confirmButtonText : "确定",
+                cancelButtonText : "取消",
+                closeOnConfirm : false,
+                closeOnCancel : false
+            }, function(isConfirm) {
+                if (isConfirm) {
+                    var way = $(".diskFun").attr("data-currentway");
+                    if( way == "postpaid" )
                     {
-                        swal("修改成功");
-                        history.go(0);
-                    }
-                    else if( msg["status"] == "not_enough" ){
-                        swal("余额不足");
+                        var msg = "post2pre"
+                        var data
                     }
                     else{
-                        swal(msg["info"]);
+                        var msg = "pre2post"
                     }
-                },
-                error : function() {
-                    swal("系统异常,请重试");
+                    var tenantName = $("#tenantName").val();
+                    var serviceAlias = $("#serviceAlias").val();
+                    $.ajax({
+                        type : "post",
+                        url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
+                        data : {
+                            update_method : msg,
+                            pay_period : $('#LongDiskText').html(),
+                            pay_disk : $('#DiskSizeText').html()
+                        },
+                        cache : false,
+                        beforeSend : function(xhr, settings) {
+                            var csrftoken = $.cookie('csrftoken');
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success : function(msg) {
+                            if( msg["status"] == "success" )
+                            {
+                                swal("修改成功");
+                                history.go(0);
+                            }
+                            else if( msg["status"] == "not_enough" ){
+                                swal("余额不足");
+                            }
+                            else{
+                                swal(msg["info"]);
+                            }
+                        },
+                        error : function() {
+                            swal("系统异常,请重试");
+                        }
+                    });
+                } else {
+                    swal.close();
                 }
             });
         });
         $("button.sureTime").on("click",function(){
-            console.log( $('#TimeText').html() );
-            var tenantName = $("#tenantName").val();
-            var serviceAlias = $("#serviceAlias").val();
-            $.ajax({
-                type : "post",
-                url : "/ajax/"+tenantName+"/"+serviceAlias+"/postpone",
-                data : {
-                    pay_period : $('#TimeText').html()
-                },
-                cache : false,
-                beforeSend : function(xhr, settings) {
-                    var csrftoken = $.cookie('csrftoken');
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success : function(msg) {
-                    console.log(msg);
-                    if( msg["status"] == "success" )
-                    {
-                        swal("修改成功");
-                        history.go(0);
-                    }
-                    else if( msg["status"] == "not_enough" ){
-                        swal("余额不足");
-                    }
-                    else{
-                        swal(msg["info"]);
-                    }
-                },
-                error : function() {
-                    swal("系统异常,请重试");
+            var notify_text = "确认付款吗？"
+            swal({
+                title : notify_text,
+                type : "warning",
+                showCancelButton : true,
+                confirmButtonColor : "#DD6B55",
+                confirmButtonText : "确定",
+                cancelButtonText : "取消",
+                closeOnConfirm : false,
+                closeOnCancel : false
+            }, function(isConfirm) {
+                if (isConfirm) {
+                    var tenantName = $("#tenantName").val();
+                    var serviceAlias = $("#serviceAlias").val();
+                    $.ajax({
+                        type : "post",
+                        url : "/ajax/"+tenantName+"/"+serviceAlias+"/postpone",
+                        data : {
+                            pay_period : $('#TimeText').html()
+                        },
+                        cache : false,
+                        beforeSend : function(xhr, settings) {
+                            var csrftoken = $.cookie('csrftoken');
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success : function(msg) {
+                            console.log(msg);
+                            if( msg["status"] == "success" )
+                            {
+                                swal("修改成功");
+                                history.go(0);
+                            }
+                            else if( msg["status"] == "not_enough" ){
+                                swal("余额不足");
+                            }
+                            else{
+                                swal(msg["info"]);
+                            }
+                        },
+                        error : function() {
+                            swal("系统异常,请重试");
+                        }
+                    });
+                } else {
+                    swal.close();
                 }
             });
         });
         $("button.sureDeploy").on("click",function(){
-            console.log( $('#NodeText').html() +";"+ $('#OneMemoryText').html() );
-            var tenantName = $("#tenantName").val();
-            var serviceAlias = $("#serviceAlias").val();
-            $.ajax({
-                type : "post",
-                url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
-                data : {
-                    node_num : $('#NodeText').html(),
-                    node_memory : $('#OneMemoryText').html()
-                },
-                cache : false,
-                beforeSend : function(xhr, settings) {
-                    var csrftoken = $.cookie('csrftoken');
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success : function(msg) {
-                    if( msg["status"] == "success" )
-                    {
-                        swal("修改成功");
-                        history.go(0);
-                    }
-                    else if( msg["status"] == "not_enough" ){
-                        swal("余额不足");
-                    }
-                    else{
-                        swal(msg["info"]);
-                    }
-                },
-                error : function() {
-                    swal("系统异常,请重试");
+            var notify_text = "确认付款吗？"
+            swal({
+                title : notify_text,
+                type : "warning",
+                showCancelButton : true,
+                confirmButtonColor : "#DD6B55",
+                confirmButtonText : "确定",
+                cancelButtonText : "取消",
+                closeOnConfirm : false,
+                closeOnCancel : false
+            }, function(isConfirm) {
+                if (isConfirm) {
+                    var tenantName = $("#tenantName").val();
+                    var serviceAlias = $("#serviceAlias").val();
+                    $.ajax({
+                        type : "post",
+                        url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                        data : {
+                            node_num : $('#NodeText').html(),
+                            node_memory : $('#OneMemoryText').html()
+                        },
+                        cache : false,
+                        beforeSend : function(xhr, settings) {
+                            var csrftoken = $.cookie('csrftoken');
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success : function(msg) {
+                            if( msg["status"] == "success" )
+                            {
+                                swal("修改成功");
+                                history.go(0);
+                            }
+                            else if( msg["status"] == "not_enough" ){
+                                swal("余额不足");
+                            }
+                            else{
+                                swal(msg["info"]);
+                            }
+                        },
+                        error : function() {
+                            swal("系统异常,请重试");
+                        }
+                    });
+                } else {
+                    swal.close();
                 }
             });
         });
@@ -553,45 +599,61 @@
         })
     });
     $(".sureMemory").on("click",function(){
-        var way = $(".diskFun").attr("data-currentway");
-        if( way == "postpaid" )
-        {
-            var msg = "post2pre"
-            var data
-        }
-        else{
-            var msg = "pre2post"
-        }
-        var tenantName = $("#tenantName").val();
-        var serviceAlias = $("#serviceAlias").val();
-        $.ajax({
-            type : "post",
-            url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
-            data : {
-                update_method : msg,
-                pay_period : $("#TimeLongText").html(),
-                pay_money : $("#TimeLongMoney").html()
-            },
-            cache : false,
-            beforeSend : function(xhr, settings) {
-                var csrftoken = $.cookie('csrftoken');
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success : function(msg) {
-                if( msg["status"] == "success" )
+        var notify_text = "确认付款吗？"
+        swal({
+            title : notify_text,
+            type : "warning",
+            showCancelButton : true,
+            confirmButtonColor : "#DD6B55",
+            confirmButtonText : "确定",
+            cancelButtonText : "取消",
+            closeOnConfirm : false,
+            closeOnCancel : false
+        }, function(isConfirm) {
+            if (isConfirm) {
+                var way = $(".diskFun").attr("data-currentway");
+                if( way == "postpaid" )
                 {
-                    swal("修改成功");
-                    history.go(0);
-                }
-                else if( msg["status"] == "not_enough" ){
-                    swal("余额不足");
+                    var msg = "post2pre"
+                    var data
                 }
                 else{
-                    swal(msg["info"]);
+                    var msg = "pre2post"
                 }
-            },
-            error : function() {
-                swal("系统异常,请重试");
+                var tenantName = $("#tenantName").val();
+                var serviceAlias = $("#serviceAlias").val();
+                $.ajax({
+                    type : "post",
+                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
+                    data : {
+                        update_method : msg,
+                        pay_period : $("#TimeLongText").html(),
+                        pay_money : $("#TimeLongMoney").html()
+                    },
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        if( msg["status"] == "success" )
+                        {
+                            swal("修改成功");
+                            history.go(0);
+                        }
+                        else if( msg["status"] == "not_enough" ){
+                            swal("余额不足");
+                        }
+                        else{
+                            swal(msg["info"]);
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+            } else {
+                swal.close();
             }
         });
     });

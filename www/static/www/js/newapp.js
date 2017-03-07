@@ -366,11 +366,6 @@ $(function(){
     	});
 		var image_url = $("#image_url").val()
 		var service_id = $("#service_id").val()
-    	console.log(port_nums);
-    	console.log(env_nums);
-    	console.log(dir_nums);
-    	console.log(resources);
-    	console.log(order);
 		service_config = {
 			"image_url":image_url,
 			"port_list" : JSON.stringify(port_nums),
