@@ -6,13 +6,13 @@
         <table>
             <tbody>
             <tr>
-                <td>内存：{% if service_attach_info.memory_pay_method == 'prepaid'  %}<span class="memoryFun">预付费</span>{% else %}<span class="memoryFun">按小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeMemory">更改</a>{% endif %}</td>
+                <td>内存：{% if service_attach_info.memory_pay_method == 'prepaid'  %}<span class="memoryFun" data-currentway="prepaid" >预付费</span>{% else %}<span class="memoryFun" data-currentway="postpaid">按小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeMemory">更改</a>{% endif %}</td>
                 <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span>&nbsp;<a href="javascript:void(0)" class="larger">扩容</a></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.memory_money %} {{last_hour_consume.memory_money}} {% else %} 0 {% endif %} 元</span></td>
                 <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
-                <td>磁盘：{% if service_attach_info.disk_pay_method == 'prepaid'  %}<span class="diskFun">预付费</span>{% else %}<span class="diskFun">按使用每小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeDisk">更改</a>{% endif %}</td>
+                <td>磁盘：{% if service_attach_info.disk_pay_method == 'prepaid'  %}<span class="diskFun" data-currentway="prepaid">预付费</span>{% else %}<span class="diskFun" data-currentway="postpaid">按使用每小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeDisk">更改</a>{% endif %}</td>
                 <td>当前使用：<span>{% if last_hour_consume.disk %} {{last_hour_consume.disk}} {% else %} 0 {% endif %} MB</span></td>
                 <td>上1小时费用：<span>{% if last_hour_consume.disk_money %} {{last_hour_consume.disk_money}} {% else %} 0 {% endif %}元</span></td>
                 <td>累计费用：<span>{% if service_total_disk_fee %} {{service_total_disk_fee}} {% else %} 0 {% endif %}元</span></td>
@@ -217,7 +217,7 @@
             var tenantName = $("#tenantName").val();
             var serviceAlias = $("#serviceAlias").val();
             var that = $(this);
-            if($("span.memoryFun").html() == "预付费")
+            if($("span.memoryFun").attr("data-currentway") == "prepaid")
             {
                 //弹出层，告知修改成功
                 $(".endDate").css({"display":"block"});
@@ -278,7 +278,7 @@
             var tenantName = $("#tenantName").val();
             var serviceAlias = $("#serviceAlias").val();
             var that = $(this);
-            if($("span.diskFun").html() == "预付费")
+            if($("span.diskFun").attr("data-currentway") == "prepaid")
             {
                 //弹出层，告知修改成功
                 $(".endDate").css({"display":"block"});
@@ -432,8 +432,8 @@
         });
         //跳转支付
         $("button.sureDisk").on("click",function(){
-            var way = $(".diskFun").html();
-            if( way == "后付费" )
+            var way = $(".diskFun").attr("data-currentway");
+            if( way == "postpaid" )
             {
                 var msg = "post2pre"
                 var data
@@ -553,8 +553,8 @@
         })
     });
     $(".sureMemory").on("click",function(){
-        var way = $(".memoryFun").html();
-        if( way == "后付费" )
+        var way = $(".diskFun").attr("data-currentway");
+        if( way == "postpaid" )
         {
             var msg = "post2pre"
             var data
