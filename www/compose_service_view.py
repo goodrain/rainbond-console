@@ -12,7 +12,7 @@ from www.models import ComposeServiceRelation, TenantServiceInfo, ServiceInfo, T
 from www.models.main import ServiceGroup, ServiceGroupRelation, ServiceAttachInfo
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
-    BaseTenantService
+    BaseTenantService, AppCreateService
 from www.utils.docker.compose_parse import compose_list
 from www.utils.crypt import make_uuid
 from www.views import LeftSideBarMixin
@@ -32,6 +32,7 @@ baseService = BaseTenantService()
 monitorhook = MonitorHook()
 rpmManager = RegionProviderManager()
 regionClient = RegionServiceApi()
+appCreateService = AppCreateService()
 
 class ComposeServiceDeploy(LeftSideBarMixin, AuthedView):
     def get_media(self):
@@ -119,19 +120,6 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             return json.loads(json_string)
         else:
             return ""
-
-    def get_estimate_service_fee(self, service_attach_info):
-        """根据附加信心获取服务的预估价格"""
-        total_price = 0.00
-        regionBo = rpmManager.get_work_region_by_name(self.response_region)
-        pre_paid_memory_price = float(regionBo.memory_package_price)
-        pre_paid_disk_price = float(regionBo.disk_package_price)
-        if service_attach_info.memory_pay_method == "prepaid":
-            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024.0 * pre_paid_memory_price
-        if service_attach_info.disk_pay_method == "prepaid":
-            total_price += service_attach_info.disk / 1024.0 * pre_paid_disk_price
-        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
-        return round(Decimal(total_price), 2)
 
     @never_cache
     @perm_required('code_deploy')
@@ -300,7 +288,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                 sai.buy_start_time = startTime
                 sai.buy_end_time = endTime
                 sai.create_time = create_time
-                sai.pre_paid_money = self.get_estimate_service_fee(sai)
+                sai.pre_paid_money = appCreateService.get_estimate_service_fee(sai, self.response_region)
                 sai.save()
 
                 if sai.pre_paid_money > 0:
