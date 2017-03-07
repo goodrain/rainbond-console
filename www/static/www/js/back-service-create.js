@@ -208,6 +208,24 @@ $(function(){
 
     // 滑块 开始 
     function FnRange(inputid,textid,widid,num){
+        //
+        //var arr = [];
+        //var min = 256;
+        //var max = 4096;
+        //var next = 256;
+        //var num = 0;
+        //while (true) {
+        //    arr.push(next);
+        //    if (next >= max) {
+        //        break;
+        //    }
+        //    next = min * Math.pow(2, num);
+        //    num += 1
+        //}
+
+
+
+
         var range= document.getElementById(inputid);
         var result = document.getElementById(textid);
         var wid = document.getElementById(widid);
@@ -219,31 +237,59 @@ $(function(){
         if ( o.type === 'text' ) alert('不好意思，你的浏览器还不够酷，试试最新的浏览器吧。');
         range.value = cachedRangeValue;
         wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+        var arr = [];
+        var value_min = $(".node_memory").attr("min");
+        var value_max = $(".node_memory").attr("max");
+        var next = value_min;
+        var num = 0;
+        while(true){
+            arr.push(next);
+            if( next > max )
+            {
+                break;
+            }
+            next = min * Math.pow(2,num);
+            num++;
+        }
         range.addEventListener("mouseup", function() {
             if(inputid == "OneMemory"){
-                if(range.value >= 128 && range.value < 256){
-                    result.innerHTML = "128M";
-                }else if(range.value >= 256 && range.value < 512){
-                    result.innerHTML = "256M";
-                }else if(range.value >= 512 && range.value < 1024){
-                    result.innerHTML = "512M";
-                }else if(range.value >= 1024 && range.value < 2048){
-                    result.innerHTML = "1G";
-                }else if(range.value >= 2048 && range.value < 3072){
-                    result.innerHTML = "2G";
-                }else if(range.value >= 3072 && range.value < 4096){
-                    result.innerHTML = "3G";
-                }else if(range.value >= 4096 && range.value < 5120){
-                    result.innerHTML = "4G";
-                }else if(range.value >= 5120 && range.value < 6144){
-                    result.innerHTML = "5G";
-                }else if(range.value >= 6144 && range.value < 7168){
-                    result.innerHTML = "6G";
-                }else if(range.value >= 7168 && range.value < 8100){
-                   result.innerHTML = "7G";
-                }else{
-                   result.innerHTML = "8G";
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        if( size < 1024 )
+                        {
+                            result.innerHTML = size + "M";
+                        }
+                        else{
+                            result.innerHTML = parseInt(size/1024) + "G";
+                        }
+                    }
                 }
+                //if(range.value >= 128 && range.value < 256){
+                //    result.innerHTML = "128M";
+                //}else if(range.value >= 256 && range.value < 512){
+                //    result.innerHTML = "256M";
+                //}else if(range.value >= 512 && range.value < 1024){
+                //    result.innerHTML = "512M";
+                //}else if(range.value >= 1024 && range.value < 2048){
+                //    result.innerHTML = "1G";
+                //}else if(range.value >= 2048 && range.value < 3072){
+                //    result.innerHTML = "2G";
+                //}else if(range.value >= 3072 && range.value < 4096){
+                //    result.innerHTML = "3G";
+                //}else if(range.value >= 4096 && range.value < 5120){
+                //    result.innerHTML = "4G";
+                //}else if(range.value >= 5120 && range.value < 6144){
+                //    result.innerHTML = "5G";
+                //}else if(range.value >= 6144 && range.value < 7168){
+                //    result.innerHTML = "6G";
+                //}else if(range.value >= 7168 && range.value < 8100){
+                //   result.innerHTML = "7G";
+                //}else{
+                //   result.innerHTML = "8G";
+                //}
             }else{
                result.innerHTML = range.value; 
             }
@@ -256,29 +302,43 @@ $(function(){
         // 滑动时显示选择的值
         range.addEventListener("input", function() {
             if(inputid == "OneMemory"){
-                if(range.value >= 128 && range.value < 256){
-                    result.innerHTML = "128M";
-                }else if(range.value >= 256 && range.value < 512){
-                    result.innerHTML = "256M";
-                }else if(range.value >= 512 && range.value < 1024){
-                    result.innerHTML = "512M";
-                }else if(range.value >= 1024 && range.value < 2048){
-                    result.innerHTML = "1G";
-                }else if(range.value >= 2048 && range.value < 3072){
-                    result.innerHTML = "2G";
-                }else if(range.value >= 3072 && range.value < 4096){
-                    result.innerHTML = "3G";
-                }else if(range.value >= 4096 && range.value < 5120){
-                    result.innerHTML = "4G";
-                }else if(range.value >= 5120 && range.value < 6144){
-                    result.innerHTML = "5G";
-                }else if(range.value >= 6144 && range.value < 7168){
-                    result.innerHTML = "6G";
-                }else if(range.value >= 7168 && range.value < 8100){
-                   result.innerHTML = "7G";
-                }else{
-                   result.innerHTML = "8G";
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        if( size < 1024 )
+                        {
+                            result.innerHTML = size + "M";
+                        }
+                        else{
+                            result.innerHTML = parseInt(size/1024) + "G";
+                        }
+                    }
                 }
+                //if(range.value >= 128 && range.value < 256){
+                //    result.innerHTML = "128M";
+                //}else if(range.value >= 256 && range.value < 512){
+                //    result.innerHTML = "256M";
+                //}else if(range.value >= 512 && range.value < 1024){
+                //    result.innerHTML = "512M";
+                //}else if(range.value >= 1024 && range.value < 2048){
+                //    result.innerHTML = "1G";
+                //}else if(range.value >= 2048 && range.value < 3072){
+                //    result.innerHTML = "2G";
+                //}else if(range.value >= 3072 && range.value < 4096){
+                //    result.innerHTML = "3G";
+                //}else if(range.value >= 4096 && range.value < 5120){
+                //    result.innerHTML = "4G";
+                //}else if(range.value >= 5120 && range.value < 6144){
+                //    result.innerHTML = "5G";
+                //}else if(range.value >= 6144 && range.value < 7168){
+                //    result.innerHTML = "6G";
+                //}else if(range.value >= 7168 && range.value < 8100){
+                //   result.innerHTML = "7G";
+                //}else{
+                //   result.innerHTML = "8G";
+                //}
             }else{
                result.innerHTML = range.value; 
             }
