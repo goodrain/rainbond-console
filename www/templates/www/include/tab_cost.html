@@ -364,7 +364,7 @@
                     {
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]/1024).toFixed(2);
                         var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() );
-
+                        console.log(value);
 
                         $("#kuorongmoney").css({"display":"block"});
                         $("#deployMoney").html( (value).toFixed(2) );
