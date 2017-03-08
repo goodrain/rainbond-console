@@ -325,9 +325,9 @@ $(function(){
 
     function FnPrice(){
         var  memory_num = parseInt($("#OneMemoryText").attr("data-size"));
-        //if(memory_num > 10){
-        //    memory_num = memory_num / 1024;
-        //}
+        if(memory_num > 10){
+           memory_num = memory_num / 1024;
+        }
         var node_num = parseInt(document.getElementById("NodeText").innerHTML);
         var Disk_num = parseInt(document.getElementById("DiskText").innerHTML);
         var time_num = parseInt($(".buy_month li.active").attr("data-time"));
@@ -350,7 +350,7 @@ $(function(){
         }
         //计算 
         function Fnmemory(){
-            var total_money= onehour * 24 * time_num  *30 * node_num/1024;
+            var total_money= onehour * 24 * time_num  *30 * node_num;
             // console.log("===> onehour "+onehour+" \t node_num "+node_num+"\t time_num "+time_num);
             $("del.before_money").html((total_money*2).toFixed(2));
             if(time_num == 12){
@@ -469,7 +469,7 @@ $(function(){
         if(memory_onoff == true && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
-            var disk_num = parseInt($("#NodeText").html());
+            var disk_num = parseInt($("#DiskText").html());
             var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else if(memory_onoff == true && disk_onoff == false ){
             var memory_num = parseInt($("#OneMemoryText").html());
@@ -479,7 +479,7 @@ $(function(){
         }else if(memory_onoff == false && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
-            var disk_num = parseInt($("#NodeText").html());
+            var disk_num = parseInt($("#DiskText").html());
             var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else{
             var memory_num = parseInt($("#OneMemoryText").html());
