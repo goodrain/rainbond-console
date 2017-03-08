@@ -293,7 +293,7 @@ class ExtendServiceView(AuthedView):
             memory_unit_fee = regionBo.memory_package_price
             now = datetime.datetime.now()
             buy_end_time = service_attach_info.buy_end_time
-            service_type = self.service.category
+            service_type = self.service.service_type
             result["node_choosable"] = False
 
             # 获取对应扩展数
@@ -308,7 +308,7 @@ class ExtendServiceView(AuthedView):
                 app_min_memory = sem.min_memory
                 app_max_memory = sem.max_memory
 
-            if service_type == "application":
+            if service_type == "application" :
                 result["node_choosable"] = True
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
                 left_hours =int((buy_end_time - now).total_seconds()/3600)
