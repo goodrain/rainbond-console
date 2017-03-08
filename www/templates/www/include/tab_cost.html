@@ -360,14 +360,14 @@
                     }
                     document.getElementById("OneMemory").setAttribute("min",msg["app_min_memory"]);
                     document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
+                    $("#OneMemoryText").attr("data-size",msg["app_min_memory"]);
                     if( !msg["choosable"] )
                     {
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]/1024).toFixed(2);
-                        var money = value * ( $("#NodeText").html()*$("#OneMemoryText").html() );
-                        console.log(value);
+                        var money = value * ( $("#NodeText").html()*$("#OneMemoryText").attr("data-size")-msg["service_memory"] );
 
                         $("#kuorongmoney").css({"display":"block"});
-                        $("#deployMoney").html( value );
+                        $("#deployMoney").html( money );
                         $(".sureDeploy").html("付款");
 
                         $("#deployMoney").attr("data-money",value);
