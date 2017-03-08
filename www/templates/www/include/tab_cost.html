@@ -367,7 +367,7 @@
                         console.log(value);
 
                         $("#kuorongmoney").css({"display":"block"});
-                        $("#deployMoney").html( (value).toFixed(2) );
+                        $("#deployMoney").html( value );
                         $(".sureDeploy").html("付款");
 
                         $("#deployMoney").attr("data-money",value);
@@ -689,7 +689,7 @@
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
-                        result.attr("data-size",size);
+                        $("#OneMemoryText").attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -700,7 +700,7 @@
                     }
                 }
 
-                var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") - $("#OneMemory").attr("min") )*$("#deployMoney").attr("data-money");
 
                 if( money > 0){
                     $("#kuorongmoney").css({"display":"block"});
@@ -735,7 +735,7 @@
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
-                        result.attr("data-size",size);
+                        $("#OneMemoryText").attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -746,7 +746,7 @@
                     }
                 }
 
-                var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") - $("#OneMemory").attr("min") )*$("#deployMoney").attr("data-money");
 
                 if( money > 0){
                     $("#kuorongmoney").css({"display":"block"});
@@ -796,7 +796,7 @@
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
-                        result.attr("data-size",size);
+                        $("#OneMemoryText").attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -807,14 +807,14 @@
                     }
                 }
 
-                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") * $("#deployMoney").attr("data-memory") )
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") - $("#OneMemory").attr("min") )*$("#deployMoney").attr("data-money");
                     $("#kuorongmoney").css({"display":"block"});
                     $("#deployMoney").html( (money).toFixed(2) );
                     $(".sureDeploy").html("付款");
 
             }
             else if( inputid == "NodeNum" ){
-                var money = ( $("#NodeText").html() * $("#OneMemoryText").html() - $("#deployMoney").attr("data-memory") )*$("#deployMoney").attr("data-money")/1024;
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") - $("#OneMemory").attr("min") )*$("#deployMoney").attr("data-money");
 
                 if( money > 0){
                     $("#kuorongmoney").css({"display":"block"});
