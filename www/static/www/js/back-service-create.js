@@ -224,7 +224,7 @@ $(function(){
         var value_max = $(".node_memory").attr("max");
         var next = value_min;
         var num = 0;
-        while(next<value_max){
+        while(next<=value_max){
             next = value_min * Math.pow(2,num);
             arr.push(next);
             num++;
@@ -285,8 +285,6 @@ $(function(){
    
     var small_memory = $("#small-memory").attr("value");
     var is_tenant_free = $("#is_tenant_free").attr("value");
-    console.log(is_tenant_free);
-    console.log(1);
     if(small_memory >= 1024){
         console.log(2);
         $("#OneMemoryText").html(small_memory/1024 + "G");
@@ -356,9 +354,9 @@ $(function(){
             // console.log("===> onehour "+onehour+" \t node_num "+node_num+"\t time_num "+time_num);
             $("del.before_money").html((total_money*2).toFixed(2));
             if(time_num == 12){
-                total_money = total_money * 0.85;
+                total_money = total_money * 0.9;
             }else if(time_num == 24){
-                total_money = total_money * 0.75;
+                total_money = total_money * 0.8;
             }
             $("#need-money").html(total_money.toFixed(2));
         }

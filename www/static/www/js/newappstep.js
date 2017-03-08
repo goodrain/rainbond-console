@@ -215,11 +215,11 @@ $(function(){
             $("del.before_money").html((total_money*2).toFixed(2));
             if( time_num == 12 )
             {
-                total_money = total_money * 0.85;
+                total_money = total_money * 0.9;
             }
             else if( time_num == 24 )
             {
-                total_money = total_money * 0.75;
+                total_money = total_money * 0.8;
             }
             $("#need-money").html(total_money.toFixed(2));
         }
