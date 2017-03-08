@@ -76,7 +76,7 @@
                     </p>
                     <!-- no user -->
                     {% endif %}
-                    <span><cite id="OneMemoryText">{{app_min_memory}}</cite></span>
+                    <span><cite id="OneMemoryText" data-size="{{app_min_memory}}">{{app_min_memory}}</cite></span>
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node" {% ifnotequal service_category 'application' %}style="display: none;"{% endifnotequal %}>
                     <label>节点数</label>
