@@ -367,6 +367,8 @@
                     if(msg["status"]=="unsupport"){
                         swal(msg["info"]);
                     }else{
+                        $(".chooseLarge").css({"display":"block"});
+                        $(".layer-body-bg").css({"display":"block"});
                         if(!msg["node_choosable"]){
                             $("#servie_node").attr("style", "display:none");
                         }
@@ -404,8 +406,7 @@
             $(".endDate").css({"display":"none"});
             $(".chooseFun").css({"display":"none"});
             $(".chooseData").css({"display":"none"});
-            $(".chooseLarge").css({"display":"block"});
-            $(".layer-body-bg").css({"display":"block"});
+
             $(".chooseDisk").css({"display":"none"});
         });
         //延期
