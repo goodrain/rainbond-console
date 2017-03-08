@@ -34,7 +34,7 @@ class MemoryPayMethodView(AuthedView):
             service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
             if service_fee_bill_list:
                 result["status"] = "unsupport"
-                result["info"] = "磁盘包月包年尚未支付,无法操作"
+                result["info"] = "磁盘包月包年尚未支付,请前往概览页支付"
                 return JsonResponse(result,status=200)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             memory_unit_fee = regionBo.memory_package_price
@@ -162,7 +162,7 @@ class DiskPayMethodView(AuthedView):
             service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
             if service_fee_bill_list:
                 result["status"] = "unsupport"
-                result["info"] = "内存包月包年尚未支付,无法操作"
+                result["info"] = "内存包月包年尚未支付,请前往概览页支付"
                 return JsonResponse(result,status=200)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             disk_unit_fee = regionBo.disk_package_price
@@ -284,7 +284,7 @@ class ExtendServiceView(AuthedView):
             service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
             if service_fee_bill_list:
                 result["status"] = "unsupport"
-                result["info"] = "包月包年尚未支付,无法操作"
+                result["info"] = "包月包年尚未支付,请前往概览页支付"
                 return JsonResponse(result, status=200)
 
             service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
@@ -430,7 +430,7 @@ class PrePaidPostponeView(AuthedView):
             service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
             if service_fee_bill_list:
                 result["status"] = "unsupport"
-                result["info"] = "包月包年尚未支付,无法操作"
+                result["info"] = "包月包年尚未支付,请前往概览页支付"
                 return JsonResponse(result,status=200)
             if memory_pay_method == "postpaid" and disk_pay_method == "postpaid":
                 result["status"] = "no_prepaid"
