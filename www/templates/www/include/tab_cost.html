@@ -678,7 +678,7 @@
                 var value_max = parseInt($("#OneMemory").attr("max"));
                 var next = value_min;
                 var sum = 0;
-                while(next < value_max){
+                while(next <= value_max){
                     next = value_min * Math.pow(2,sum);
                     arr.push(next);
                     sum++;
@@ -724,7 +724,7 @@
                 var value_max = parseInt($("#OneMemory").attr("max"));
                 var next = value_min;
                 var sum = 0;
-                while(next < value_max){
+                while(next <= value_max){
                     next = value_min * Math.pow(2,sum);
                     arr.push(next);
                     sum++;
@@ -785,7 +785,7 @@
                 var value_max = parseInt($("#OneMemory").attr("max"));
                 var next = value_min;
                 var sum = 0;
-                while(next < value_max){
+                while(next <= value_max){
                     next = value_min * Math.pow(2,sum);
                     arr.push(next);
                     sum++;

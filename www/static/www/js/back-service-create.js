@@ -237,7 +237,7 @@ $(function(){
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
-                        result.setAttribute("data-size",size);
+                        $("#OneMemoryWid").attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -284,7 +284,6 @@ $(function(){
     
    
     var small_memory = $("#small-memory").attr("value");
-    console.log(small_memory);
     var is_tenant_free = $("#is_tenant_free").attr("value");
     console.log(is_tenant_free);
     console.log(1);
@@ -328,9 +327,9 @@ $(function(){
 
     function FnPrice(){
         var  memory_num = parseInt($("#OneMemoryText").attr("data-size"));
-        if(memory_num > 10){
-            memory_num = memory_num / 1024;
-        }
+        //if(memory_num > 10){
+        //    memory_num = memory_num / 1024;
+        //}
         var node_num = parseInt(document.getElementById("NodeText").innerHTML);
         var Disk_num = parseInt(document.getElementById("DiskText").innerHTML);
         var time_num = parseInt($(".buy_month li.active").attr("data-time"));
