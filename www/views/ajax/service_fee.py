@@ -31,6 +31,11 @@ class MemoryPayMethodView(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
+            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
+            if service_fee_bill_list:
+                result["status"] = "unsupport"
+                result["info"] = "磁盘包月包年尚未支付,无法操作"
+                return JsonResponse(result,status=200)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             memory_unit_fee = regionBo.memory_package_price
             now = datetime.datetime.now()
@@ -88,11 +93,11 @@ class MemoryPayMethodView(AuthedView):
                     service_attach_info.save()
                     return JsonResponse({"status": "success", "info": "修改成功"}, status=200)
             # 后付费改预付费
-            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
-            if service_fee_bill_list:
-                result["status"] = "unsupport"
-                result["info"] = "包月包年尚未支付,无法操作"
-                return JsonResponse(result,status=200)
+            # service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
+            # if service_fee_bill_list:
+            #     result["status"] = "unsupport"
+            #     result["info"] = "包月包年尚未支付,无法操作"
+            #     return JsonResponse(result,status=200)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             memory_unit_fee = regionBo.memory_package_price
             need_money = Decimal(0)
@@ -157,7 +162,7 @@ class DiskPayMethodView(AuthedView):
             service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
             if service_fee_bill_list:
                 result["status"] = "unsupport"
-                result["info"] = "包月包年尚未支付,无法操作"
+                result["info"] = "内存包月包年尚未支付,无法操作"
                 return JsonResponse(result,status=200)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             disk_unit_fee = regionBo.disk_package_price
@@ -211,12 +216,12 @@ class DiskPayMethodView(AuthedView):
                     service_attach_info.save()
                     return JsonResponse({"status": "success", "info": "修改成功"}, status=200)
 
-            # 判断是否有未付款订单
-            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
-            if service_fee_bill_list:
-                result["status"] = "unsupport"
-                result["info"] = "包月包年尚未支付,无法操作"
-                return JsonResponse(result, status=200)
+            # # 判断是否有未付款订单
+            # service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
+            # if service_fee_bill_list:
+            #     result["status"] = "unsupport"
+            #     result["info"] = "内存包月包年尚未支付,无法操作"
+            #     return JsonResponse(result, status=200)
 
             need_pay_money = Decimal(0)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)

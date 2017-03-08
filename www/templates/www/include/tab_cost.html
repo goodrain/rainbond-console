@@ -232,7 +232,7 @@
                 $(".chooseFun").css({"display":"block"});
                 $(".chooseData").css({"display":"none"});
                 $(".chooseLarge").css({"display":"none"});
-                $(".layer-body-bg").css({"display":"block"});
+
                 $(".chooseDisk").css({"display":"none"});
                 $.ajax({
                     type : "get",
@@ -243,8 +243,12 @@
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     },
                     success : function(msg) {
+                        if(msg["status"]=="unsupport"){
+                            swal(msg["info"]);
+                        }
                         if( msg["status"] == "success" )
                         {
+                            $(".layer-body-bg").css({"display":"block"});
                             if(msg["choosable"])
                             {
                                 var money = (msg["memory_unit_fee"]*msg["memory"]*24*30/1024).toFixed(2);
@@ -293,8 +297,7 @@
                 $(".chooseFun").css({"display":"none"});
                 $(".chooseData").css({"display":"none"});
                 $(".chooseLarge").css({"display":"none"});
-                $(".layer-body-bg").css({"display":"block"});
-                $(".chooseDisk").css({"display":"block"});
+
                 $.ajax({
                     type : "get",
                     url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
@@ -304,8 +307,14 @@
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     },
                     success : function(msg) {
-                        if( msg["status"] == "success" )
+
+                        if (msg["status"] == "unsupport"){
+                            swal(msg["info"]);
+                        }
+                        else if( msg["status"] == "success" )
                         {
+                            $(".layer-body-bg").css({"display":"block"});
+                            $(".chooseDisk").css({"display":"block"});
                             var eachMoney = msg["disk_unit_fee"];
                             if(msg["choosable"])
                             {
@@ -355,33 +364,38 @@
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(msg) {
-                    if(!msg["node_choosable"]){
-                        $("#servie_node").attr("style", "display:none");
-                    }
-                    document.getElementById("OneMemory").setAttribute("min",msg["app_min_memory"]);
-                    document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
-                    $("#OneMemoryText").attr("data-size",msg["app_min_memory"]);
-                    $("#NodeNum").val(msg["min_node"]);
-                    $("#NodeText").html(msg["min_node"]);
-                    $("#OneMemory").val(msg["app_min_memory"]);
-                    $("#OneMemoryText").html(msg["app_min_memory"]);
-                    $("#OneMemoryWid").css({"width":0});
-                    $("#NodeWid").css({"width":0});
-                    if( !msg["choosable"] )
-                    {
-                        var value = (msg["memory_unit_fee"]*msg["left_hours"]/1024).toFixed(2);
-                        var money = value * ( $("#NodeText").html()*$("#OneMemoryText").attr("data-size")-msg["service_memory"] );
+                    if(msg["status"]=="unsupport"){
+                        swal(msg["info"]);
+                    }else{
+                        if(!msg["node_choosable"]){
+                            $("#servie_node").attr("style", "display:none");
+                        }
+                        document.getElementById("OneMemory").setAttribute("min",msg["app_min_memory"]);
+                        document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
+                        $("#OneMemoryText").attr("data-size",msg["app_min_memory"]);
+                        $("#NodeNum").val(msg["min_node"]);
+                        $("#NodeText").html(msg["min_node"]);
+                        $("#OneMemory").val(msg["app_min_memory"]);
+                        $("#OneMemoryText").html(msg["app_min_memory"]);
+                        $("#OneMemoryWid").css({"width":0});
+                        $("#NodeWid").css({"width":0});
+                        if( !msg["choosable"] )
+                        {
+                            var value = (msg["memory_unit_fee"]*msg["left_hours"]/1024).toFixed(2);
+                            var money = value * ( $("#NodeText").html()*$("#OneMemoryText").attr("data-size")-msg["service_memory"] );
 
-                        $("#kuorongmoney").css({"display":"block"});
-                        $("#deployMoney").html( money );
-                        $(".sureDeploy").html("付款");
+                            $("#kuorongmoney").css({"display":"block"});
+                            $("#deployMoney").html( money );
+                            $(".sureDeploy").html("付款");
 
-                        $("#deployMoney").attr("data-money",value);
+                            $("#deployMoney").attr("data-money",value);
+                        }
+                        else{
+                            $("#kuorongmoney").css({"display":"none"});
+                            $(".sureDeploy").html("确定");
+                        }
                     }
-                    else{
-                        $("#kuorongmoney").css({"display":"none"});
-                        $(".sureDeploy").html("确定");
-                    }
+
                 },
                 error : function() {
                     swal("系统异常,请重试");
@@ -422,6 +436,8 @@
                         $(".chooseDisk").css({"display":"none"});
                     }
                     else if(msg["status"] == "no_prepaid"){
+                        swal(msg["info"]);
+                    }else if(msg["status"]=="unsupport"){
                         swal(msg["info"]);
                     }else{
                         swal("操作失败");
