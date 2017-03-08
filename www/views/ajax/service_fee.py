@@ -88,6 +88,11 @@ class MemoryPayMethodView(AuthedView):
                     service_attach_info.save()
                     return JsonResponse({"status": "success", "info": "修改成功"}, status=200)
             # 后付费改预付费
+            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
+            if service_fee_bill_list:
+                result["status"] = "unsupport"
+                result["info"] = "包月包年尚未支付,无法操作"
+                return JsonResponse(result,status=200)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             memory_unit_fee = regionBo.memory_package_price
             need_money = Decimal(0)
@@ -149,6 +154,11 @@ class DiskPayMethodView(AuthedView):
     def get(self, request, *args, **kwargs):
         result = {}
         try:
+            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
+            if service_fee_bill_list:
+                result["status"] = "unsupport"
+                result["info"] = "包月包年尚未支付,无法操作"
+                return JsonResponse(result,status=200)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             disk_unit_fee = regionBo.disk_package_price
             now = datetime.datetime.now()
@@ -200,6 +210,13 @@ class DiskPayMethodView(AuthedView):
                     service_attach_info.memory_pay_method = "postpaid"
                     service_attach_info.save()
                     return JsonResponse({"status": "success", "info": "修改成功"}, status=200)
+
+            # 判断是否有未付款订单
+            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
+            if service_fee_bill_list:
+                result["status"] = "unsupport"
+                result["info"] = "包月包年尚未支付,无法操作"
+                return JsonResponse(result, status=200)
 
             need_pay_money = Decimal(0)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
@@ -259,6 +276,12 @@ class ExtendServiceView(AuthedView):
     def get(self,request, *args, **kwargs):
         result = {}
         try:
+            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
+            if service_fee_bill_list:
+                result["status"] = "unsupport"
+                result["info"] = "包月包年尚未支付,无法操作"
+                return JsonResponse(result, status=200)
+
             service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                 service_id=self.service.service_id)
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
@@ -399,6 +422,11 @@ class PrePaidPostponeView(AuthedView):
             memory_pay_method = service_attach_info.memory_pay_method
             disk_pay_method = service_attach_info.disk_pay_method
             need_money = Decimal(0)
+            service_fee_bill_list = ServiceFeeBill.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id, pay_status="unpayed")
+            if service_fee_bill_list:
+                result["status"] = "unsupport"
+                result["info"] = "包月包年尚未支付,无法操作"
+                return JsonResponse(result,status=200)
             if memory_pay_method == "postpaid" and disk_pay_method == "postpaid":
                 result["status"] = "no_prepaid"
                 result["info"] = "没有包月包年项目无法延期"
