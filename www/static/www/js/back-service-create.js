@@ -224,7 +224,7 @@ $(function(){
         var value_max = $(".node_memory").attr("max");
         var next = value_min;
         var num = 0;
-        while(next<=value_max){
+        while(next<value_max){
             next = value_min * Math.pow(2,num);
             arr.push(next);
             num++;
@@ -237,8 +237,7 @@ $(function(){
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
-                        result.attr("data-size",size);
-                        console.log(result);
+                        result.setAttribute("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
@@ -265,8 +264,7 @@ $(function(){
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
-                        result.attr("data-size",size);
-                        console.log(result);
+                        result.setAttribute("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
