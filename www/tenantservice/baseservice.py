@@ -939,7 +939,7 @@ class AppCreateService(object):
             total_price += service_attach_info.disk / 1024.0 * pre_paid_disk_price
         total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
         if service_attach_info.pre_paid_period >= 12:
-            total_price *= 0.85
+            total_price *= 0.9
         if service_attach_info.pre_paid_period >= 24:
-            total_price *= 0.75
+            total_price *= 0.8
         return round(Decimal(total_price), 2)
