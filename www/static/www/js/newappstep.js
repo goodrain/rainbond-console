@@ -538,7 +538,7 @@ $(function(){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
             var disk_num = parseInt($("#NodeText").html());
-            var time_num = parseInt($("#TimeLongText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else{
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
