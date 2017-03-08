@@ -365,6 +365,8 @@
                     $("#NodeText").html(msg["min_node"]);
                     $("#OneMemory").val(msg["app_min_memory"]);
                     $("#OneMemoryText").html(msg["app_min_memory"]);
+                    $("#OneMemoryWid").css({"width":0});
+                    $("#NodeWid").css({"width":0});
                     if( !msg["choosable"] )
                     {
                         var value = (msg["memory_unit_fee"]*msg["left_hours"]/1024).toFixed(2);
