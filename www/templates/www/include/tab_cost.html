@@ -57,14 +57,14 @@
                 <tr>
                     <td>{{service_consume.time|difftime:-3600|date:"mm-dd HH:00"}}--{{service_consume.time|date:"HH:00"}}</td>
                     <!--<td>{{service_consume.memory}}GB</td>-->
-                    <td>{{service_consume.memory}} MB</td>
+                    <td>{{service_consume.memory}}MB</td>
                     <!--费用-->
                     <td>{{ service_consume.real_memory_money }}元</td>
                     <!--实际扣费-->
-                    <td>{{service_consume.memory_money}} 元{% if service_consume.memory_pay_method == 'prepaid' %}(包){% else %}(时){% endif %}</td>
+                    <td>{{service_consume.memory_money}}元{% if service_consume.memory_pay_method == 'prepaid' %}(包){% else %}(时){% endif %}</td>
                     <td>{{service_consume.disk}}MB</td>
                     <td>{{service_consume.real_disk_money}}元</td>
-                    <td>{{service_consume.disk_money}} 元{% if service_consume.disk_pay_method == 'prepaid' %}(包){% else %}(时){% endif %}</td>
+                    <td>{{service_consume.disk_money}}元{% if service_consume.disk_pay_method == 'prepaid' %}(包){% else %}(时){% endif %}</td>
                     <td>{{service_consume.net}}MB</td>
                     <td>{{service_consume.net_money}}元</td>
                     <td>{{service_consume.net_money}}元(时)</td>
