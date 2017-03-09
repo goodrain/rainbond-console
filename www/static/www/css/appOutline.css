@@ -69,5 +69,7 @@ button{
     -moz-border-radius: 6px;
     line-height: 36px;
 }
-
+.alternative ul a.bgColor{
+    display: block;
+}
 
