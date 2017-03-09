@@ -319,7 +319,7 @@ class ExtendServiceView(AuthedView):
                 result["left_hours"] = left_hours
                 result["memory_unit_fee"] = memory_unit_fee
                 result["service_memory"] = service_attach_info.min_memory * self.service.min_node
-                result["app_min_memory"] = service_attach_info.min_memory
+                result["app_min_memory"] = self.service.min_memory
                 result["app_max_memory"] = app_max_memory
             else:
                 result["show_money"] = False
@@ -356,10 +356,10 @@ class ExtendServiceView(AuthedView):
                     result["status"] = "failure"
                     result["info"] = "包月包年不支持缩容"
                     return JsonResponse(result, status=200)
-                if service_attach_info.min_memory == node_memory and cur_memory == node_num * node_memory:
-                    result["status"] = "no_change"
-                    result["info"] = "内存未发生修改"
-                    return JsonResponse(result, status=200)
+                # if service_attach_info.min_memory == node_memory and cur_memory == node_num * node_memory:
+                #     result["status"] = "no_change"
+                #     result["info"] = "内存未发生修改"
+                #     return JsonResponse(result, status=200)
                 left_hours = int((buy_end_time - now).total_seconds() / 3600)
                 memory_fee = float(memory_unit_fee) * (node_num * node_memory - cur_memory) / 1024.0 * left_hours
                 need_pay_money = round(memory_fee, 2)
@@ -405,8 +405,9 @@ class ExtendServiceView(AuthedView):
                                     "node_memory": int(node_memory), "node_num": int(node_num),
                                     "disk": 0, "buy_period": 0}
                 ServiceFeeBill.objects.create(**service_fee_bill)
-                self.tenant.balance = balance - Decimal(need_pay_money)
-                self.tenant.save()
+                if need_pay_money > 0:
+                    self.tenant.balance = balance - Decimal(need_pay_money)
+                    self.tenant.save()
                 result["status"] = "success"
             else:
                 result["status"] = "success"
