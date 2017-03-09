@@ -6,28 +6,25 @@
         <table>
             <tbody>
             <tr>
-                <td>内存：{% if service_attach_info.memory_pay_method == 'prepaid'  %}<span class="memoryFun" data-currentway="prepaid" >包月包年</span>{% else %}<span class="memoryFun" data-currentway="postpaid">按小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeMemory">更改</a>{% endif %}</td>
-                <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span>&nbsp;<a href="javascript:void(0)" class="larger" style="display: none;">扩容</a></td>
-                <td>上1小时费用：<span>{% if last_hour_consume.memory_money %} {{last_hour_consume.memory_money}} {% else %} 0 {% endif %} 元</span></td>
+                <td>内存：{% if service_attach_info.memory_pay_method == 'prepaid'  %}<span class="memoryFun" data-currentway="prepaid" >包月包年</span>&nbsp;<a href="javascript:void(0)" class="larger" style="display: none;">扩容</a>{% else %}<span class="memoryFun" data-currentway="postpaid">按小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeMemory">更改</a>{% endif %}</td>
+                <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span></td>
                 <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
                 <td>磁盘：{% if service_attach_info.disk_pay_method == 'prepaid'  %}<span class="diskFun" data-currentway="prepaid">包月包年</span>{% else %}<span class="diskFun" data-currentway="postpaid">按使用每小时扣费</span>&nbsp;<a href="javascript:void(0)" class="changeDisk">更改</a>{% endif %}</td>
                 <td>当前使用：<span>{% if last_hour_consume.disk %} {{last_hour_consume.disk}} {% else %} 0 {% endif %} MB</span></td>
-                <td>上1小时费用：<span>{% if last_hour_consume.disk_money %} {{last_hour_consume.disk_money}} {% else %} 0 {% endif %}元</span></td>
                 <td>累计费用：<span>{% if service_total_disk_fee %} {{service_total_disk_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
                 <td>流量：<span>按使用每小时扣费</span></td>
                 <td>当前使用：<span>{% if last_hour_consume.net %} {{last_hour_consume.net}} {% else %} 0 {% endif %} MB</span></td>
-                <td>上1小时费用：<span>{% if last_hour_consume.net_money %} {{last_hour_consume.net_money}} {% else %} 0 {% endif %}元</span></td>
                 <td>累计费用：<span>{% if service_total_net_fee %} {{service_total_net_fee}} {% else %} 0 {% endif %} 元</span></td>
             </tr>
             </tbody>
             <tfoot>
             {% if service_attach_info.memory_pay_method == 'prepaid' or service_attach_info.disk_pay_method == 'prepaid' %}
             <tr>
-                <td colspan="4">包月包年项目有效期：<span>{{service_attach_info.buy_end_time}}</span>&nbsp;<a href="javascript:void(0)" class="postpone">延期</a></td>
+                <td colspan="3">包月包年项目有效期：<span>{{service_attach_info.buy_end_time}}</span>&nbsp;<a href="javascript:void(0)" class="postpone">延期</a></td>
             </tr>
             {% endif %}
             </tfoot>
