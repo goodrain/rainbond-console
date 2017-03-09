@@ -182,7 +182,7 @@
                         <p class="range-box">
                             <span class="renge-bg"></span>
                             <span class="range-choose"><cite id="NodeWid"></cite></span>
-                            <input type="range" min="1" max="99"  step="1" id="NodeNum" value="1"／>
+                            <input type="range" min="1" max="20"  step="1" id="NodeNum" value="1"／>
                         </p>
                         <span><cite id="NodeText">1</cite>个</span>
                     </div>
@@ -193,7 +193,7 @@
                             <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
                             <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
                         </p>
-                        <span><cite id="OneMemoryText">128</cite></span>
+                        <span><cite id="OneMemoryText">128</cite><cite id="memory_unit">M</cite></span>
                     </div>
                     <p class="calMoney" id="kuorongmoney">
                         <span>新增费用</span><span id="deployMoney"></span><span>元（按当前包月时长计算）</span>
@@ -368,16 +368,21 @@
                         if(!msg["node_choosable"]){
                             $("#servie_node").attr("style", "display:none");
                         }
-                        document.getElementById("OneMemory").setAttribute("min",msg["app_min_memory"]);
-                        document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
+                        //document.getElementById("OneMemory").setAttribute("min",msg["app_min_memory"]);
+                        //document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
+                        $("#OneMemory").attr("min",msg["app_min_memory"]);
+                        $("#OneMemory").attr("max",msg["app_max_memory"]);
                         $("#OneMemoryText").attr("data-size",msg["app_min_memory"]);
+                        if(msg["app_min_memory"] > 1024){
+                            $("#memory_unit").html("G");
+                        }
                         $("#NodeNum").val(msg["min_node"]);
                         $("#NodeText").html(msg["min_node"]);
                         $("#OneMemory").val(msg["app_min_memory"]);
                         $("#OneMemoryText").html(msg["app_min_memory"]);
                         $("#OneMemoryWid").css({"width":0});
                         $("#NodeWid").css({"width":0});
-                        if( !msg["choosable"] )
+                        if( msg["show_money"] )
                         {
                             var value = (msg["memory_unit_fee"]*msg["left_hours"]/1024).toFixed(2);
                             var money = value * ( $("#NodeText").html()*$("#OneMemoryText").attr("data-size")-msg["service_memory"] );
@@ -627,7 +632,7 @@
             closeOnCancel : false
         }, function(isConfirm) {
             if (isConfirm) {
-                var way = $(".diskFun").attr("data-currentway");
+                var way = $(".memoryFun").attr("data-currentway");
                 if( way == "postpaid" )
                 {
                     var msg = "post2pre"
@@ -711,10 +716,14 @@
                         $("#OneMemoryText").attr("data-size",size);
                         if( size < 1024 )
                         {
-                            result.innerHTML = size + "M";
+                            $("#memory_unit").html("M");
+                            result.innerHTML = size ;
+
                         }
                         else{
-                            result.innerHTML = parseInt(size/1024) + "G";
+                            $("#memory_unit").html("G")
+                            result.innerHTML = parseInt(size/1024);
+
                         }
                     }
                 }
@@ -757,10 +766,12 @@
                         $("#OneMemoryText").attr("data-size",size);
                         if( size < 1024 )
                         {
-                            result.innerHTML = size + "M";
+                            $("#memory_unit").html("M");
+                            result.innerHTML = size;
                         }
                         else{
-                            result.innerHTML = parseInt(size/1024) + "G";
+                            $("#memory_unit").html("G");
+                            result.innerHTML = parseInt(size/1024);
                         }
                     }
                 }
@@ -846,12 +857,17 @@
             }
         }, false);
     }
-
+    //扩容:节点内存
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
+    //扩容:节点个数
     FnRange("NodeNum","NodeText","NodeWid",1);
+    //内存包月修改:内存时长
     FnRange("TimeLong","TimeLongText","TimeLongWid",1);
+    //延期
     FnRange("Time","TimeText","TimeLongW",1);
+    //磁盘包月修改:磁盘时长
     FnRange("LongDisk","LongDiskText","TimeLongDisk",1);
+    //磁盘包月修改:磁盘大小
     FnRange("LongDiskSize","DiskSizeText","DiskSize",1);
 
 

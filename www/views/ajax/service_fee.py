@@ -312,7 +312,7 @@ class ExtendServiceView(AuthedView):
                 result["node_choosable"] = True
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
                 left_hours =int((buy_end_time - now).total_seconds()/3600)
-                result["choosable"] = False
+                result["show_money"] = True
                 result["status"] = "success"
                 result["min_memory"] = self.service.min_memory
                 result["min_node"] = self.service.min_node
@@ -322,7 +322,7 @@ class ExtendServiceView(AuthedView):
                 result["app_min_memory"] = self.service.min_memory
                 result["app_max_memory"] = app_max_memory
             else:
-                result["choosable"] = True
+                result["show_money"] = False
                 result["status"] = "success"
                 result["memory_unit_fee"] = memory_unit_fee
                 result["app_min_memory"] = app_min_memory
@@ -345,7 +345,6 @@ class ExtendServiceView(AuthedView):
         try:
             regionBo = rpmManager.get_work_region_by_name(self.service.service_region)
             memory_unit_fee = regionBo.memory_package_price
-            now = datetime.datetime.now()
             service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                 service_id=self.service.service_id)
             now = datetime.datetime.now()
