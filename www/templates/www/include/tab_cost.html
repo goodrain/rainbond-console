@@ -61,7 +61,7 @@
                     <!--费用-->
                     <td>{{ service_consume.real_memory_money }}元</td>
                     <!--实际扣费-->
-                    <td>{{service_consume.memory_money}}元{% if service_consume.memory_pay_method == 'prepaid' %}(包){% else %}(时){% endif %}</td>
+                    <td><span class="fn-tips" data-tips="{% if service_consume.memory_pay_method == 'prepaid' %}超出包月额度的费用{% else %}按小时扣除的费用{% endif %}">{{service_consume.memory_money}}元</span></td>
                     <td>{{service_consume.disk}}MB</td>
                     <td>{{service_consume.real_disk_money}}元</td>
                     <td>{{service_consume.disk_money}}元{% if service_consume.disk_pay_method == 'prepaid' %}(包){% else %}(时){% endif %}</td>
