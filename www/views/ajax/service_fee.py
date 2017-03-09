@@ -319,7 +319,7 @@ class ExtendServiceView(AuthedView):
                 result["left_hours"] = left_hours
                 result["memory_unit_fee"] = memory_unit_fee
                 result["service_memory"] = service_attach_info.min_memory * self.service.min_node
-                result["app_min_memory"] = self.service.min_memory
+                result["app_min_memory"] = service_attach_info.min_memory
                 result["app_max_memory"] = app_max_memory
             else:
                 result["show_money"] = False

@@ -389,7 +389,12 @@
 
                             $("#kuorongmoney").css({"display":"block"});
                             $("#deployMoney").html( money );
-                            $(".sureDeploy").html("付款");
+                            if (money>0){
+                                $(".sureDeploy").html("付款");
+                                $(".sureDeploy").show();
+                            }else{
+                                $(".sureDeploy").hide();
+                            }
 
                             $("#deployMoney").attr("data-money",value);
                         }
@@ -561,58 +566,100 @@
             });
         });
         $("button.sureDeploy").on("click",function(){
-            var notify_text = "确认付款吗？"
-            swal({
-                title : notify_text,
-                type : "warning",
-                showCancelButton : true,
-                confirmButtonColor : "#DD6B55",
-                confirmButtonText : "确定",
-                cancelButtonText : "取消",
-                closeOnConfirm : false,
-                closeOnCancel : false
-            }, function(isConfirm) {
-                if (isConfirm) {
-                    var tenantName = $("#tenantName").val();
-                    var serviceAlias = $("#serviceAlias").val();
-                    var node_memory = $('#OneMemoryText').html();
-                    if (node_memory < 128){
-                        node_memory *= 1024;
-                    }
-
-                    $.ajax({
-                        type : "post",
-                        url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
-                        data : {
-                            node_num : $('#NodeText').html(),
-                            node_memory : node_memory
-                        },
-                        cache : false,
-                        beforeSend : function(xhr, settings) {
-                            var csrftoken = $.cookie('csrftoken');
-                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                        },
-                        success : function(msg) {
-                            if( msg["status"] == "success" )
-                            {
-                                swal("修改成功");
-                                history.go(0);
-                            }
-                            else if( msg["status"] == "not_enough" ){
-                                swal("余额不足");
-                            }
-                            else{
-                                swal(msg["info"]);
-                            }
-                        },
-                        error : function() {
-                            swal("系统异常,请重试");
+            var money = $("#deployMoney").html();
+            if (money > 0){
+                var notify_text = "确认付款吗？"
+                swal({
+                    title : notify_text,
+                    type : "warning",
+                    showCancelButton : true,
+                    confirmButtonColor : "#DD6B55",
+                    confirmButtonText : "确定",
+                    cancelButtonText : "取消",
+                    closeOnConfirm : false,
+                    closeOnCancel : false
+                }, function(isConfirm) {
+                    if (isConfirm) {
+                        var tenantName = $("#tenantName").val();
+                        var serviceAlias = $("#serviceAlias").val();
+                        var node_memory = $('#OneMemoryText').html();
+                        if (node_memory < 128){
+                            node_memory *= 1024;
                         }
-                    });
-                } else {
-                    swal.close();
+
+                        $.ajax({
+                            type : "post",
+                            url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                            data : {
+                                node_num : $('#NodeText').html(),
+                                node_memory : node_memory
+                            },
+                            cache : false,
+                            beforeSend : function(xhr, settings) {
+                                var csrftoken = $.cookie('csrftoken');
+                                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                            },
+                            success : function(msg) {
+                                if( msg["status"] == "success" )
+                                {
+                                    swal("修改成功");
+                                    history.go(0);
+                                }
+                                else if( msg["status"] == "not_enough" ){
+                                    swal("余额不足");
+                                }
+                                else{
+                                    swal(msg["info"]);
+                                }
+                            },
+                            error : function() {
+                                swal("系统异常,请重试");
+                            }
+                        });
+                    } else {
+                        swal.close();
+                    }
+                });
+            }else{
+                var tenantName = $("#tenantName").val();
+                var serviceAlias = $("#serviceAlias").val();
+                var node_memory = $('#OneMemoryText').html();
+                if (node_memory < 128){
+                    node_memory *= 1024;
                 }
-            });
+
+                $.ajax({
+                    type : "post",
+                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                    data : {
+                        node_num : $('#NodeText').html(),
+                        node_memory : node_memory
+                    },
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        if( msg["status"] == "success" )
+                        {
+                            swal("修改成功");
+                            history.go(0);
+                        }
+                        else if( msg["status"] == "not_enough" ){
+                            swal("余额不足");
+                        }
+                        else{
+                            swal(msg["info"]);
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+            }
+
+
         });
         //取消，关闭弹出层
         $("button.cancel").on("click",function(){
@@ -739,9 +786,10 @@
                     $("#kuorongmoney").css({"display":"block"});
                     $("#deployMoney").html( (money).toFixed(2) );
                     $(".sureDeploy").html("付款");
+                    $(".sureDeploy").show();
                 }else{
                     $("#kuorongmoney").css({"display":"none"});
-                    $(".sureDeploy").html("确定");
+                    $(".sureDeploy").hide();
                 };
             }
         }, false);
@@ -787,9 +835,11 @@
                     $("#kuorongmoney").css({"display":"block"});
                     $("#deployMoney").html( (money).toFixed(2) );
                     $(".sureDeploy").html("付款");
+                    $(".sureDeploy").show();
                 }else{
                     $("#kuorongmoney").css({"display":"none"});
-                    $(".sureDeploy").html("确定");
+                    $(".sureDeploy").hide();
+
                 };
             }
 
@@ -857,9 +907,11 @@
                     $("#kuorongmoney").css({"display":"block"});
                     $("#deployMoney").html( (money).toFixed(2) );
                     $(".sureDeploy").html("付款");
+                    $(".sureDeploy").show();
                 }else{
                     $("#kuorongmoney").css({"display":"none"});
                     $(".sureDeploy").html("确定");
+                    $(".sureDeploy").hide();
                 };
             }
         }, false);
