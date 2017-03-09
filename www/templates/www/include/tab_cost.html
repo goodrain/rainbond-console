@@ -40,16 +40,16 @@
             <thead>
                 <tr>
                     <th>时段</th>
-                    <th>内存</th>
-                    <th>费用</th>
-                    <th>实扣</th>
-                    <th>磁盘</th>
-                    <th>费用</th>
-                    <th>实扣</th>
-                    <th>流量</th>
-                    <th>费用</th>
-                    <th>实扣</th>
-                    <th>总扣费</th>
+                    <th>内存(MB)</th>
+                    <th>费用(元)</th>
+                    <th>实扣(元)</th>
+                    <th>磁盘(MB)</th>
+                    <th>费用(元)</th>
+                    <th>实扣(元)</th>
+                    <th>流量(MB)</th>
+                    <th>费用(元)</th>
+                    <th>实扣(元)</th>
+                    <th>总扣费(元)</th>
                 </tr>
             </thead>
             <tbody>
@@ -57,18 +57,18 @@
                 <tr>
                     <td>{{service_consume.time|difftime:-3600|date:"m-d H:00"}}~{{service_consume.time|date:"H:00"}}</td>
                     <!--<td>{{service_consume.memory}}GB</td>-->
-                    <td>{{service_consume.memory}}MB</td>
+                    <td>{{service_consume.memory}}</td>
                     <!--费用-->
-                    <td>{{ service_consume.real_memory_money }}元</td>
+                    <td>{{ service_consume.real_memory_money }}</td>
                     <!--实际扣费-->
-                    <td><span class="fn-tips" data-tips="{% if service_consume.memory_pay_method == 'prepaid' %}超出包月额度的费用{% else %}按小时扣除的费用{% endif %}">{{service_consume.memory_money}}元</span></td>
-                    <td>{{service_consume.disk}}MB</td>
-                    <td>{{service_consume.real_disk_money}}元</td>
-                    <td>{{service_consume.disk_money}}元{% if service_consume.disk_pay_method == 'prepaid' %}(包){% else %}(时){% endif %}</td>
-                    <td>{{service_consume.net}}MB</td>
-                    <td>{{service_consume.net_money}}元</td>
-                    <td>{{service_consume.net_money}}元(时)</td>
-                    <td>{{service_consume.pay_money}}元</td>
+                    <td><span class="fn-tips" data-tips="{% if service_consume.memory_pay_method == 'prepaid' %}超出包月额度的费用{% else %}按小时扣除的费用{% endif %}">{{service_consume.memory_money}}</span></td>
+                    <td>{{service_consume.disk}}</td>
+                    <td>{{service_consume.real_disk_money}}</td>
+                    <td><span class="fn-tips" data-tips="{% if service_consume.disk_pay_method == 'prepaid' %}超出包月额度的费用{% else %}按小时扣除的费用{% endif %}">{{service_consume.disk_money}}</span></td>
+                    <td>{{service_consume.net}}</td>
+                    <td>{{service_consume.net_money}}</td>
+                    <td><span class="fn-tips" data-tips="按小时扣除的费用">{{service_consume.net_money}}</span></td>
+                    <td>{{service_consume.pay_money}}</td>
                 </tr>
                 {% endfor %}
             </tbody>
