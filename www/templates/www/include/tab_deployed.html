@@ -126,8 +126,12 @@
 					{% if updateService %}
 					<button type="button" class="bgColor" id="service_image_operate" onclick="service_image_reboot('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" >服务更新</button>
 					{% endif %}
-
 					</li>
+					{% if not community and tenantServiceInfo.category = "application" %}
+	                <li class="button">
+	                    <a href="/apps/{{tenantName}}/{{serviceAlias}}/share/step1?fr=share">分享</a>
+	                </li>
+	                {% endif %}
 				</ul>
 			</div>
 			<div class="alterRight">
