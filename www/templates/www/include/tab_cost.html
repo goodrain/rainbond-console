@@ -55,7 +55,7 @@
             <tbody>
                 {% for service_consume in service_consume_list %}
                 <tr>
-                    <td>{{service_consume.time|difftime:-3600|date:"mm-dd HH:00"}}--{{service_consume.time|date:"HH:00"}}</td>
+                    <td>{{service_consume.time|difftime:-3600|date:"m-d H:00"}}~{{service_consume.time|date:"H:00"}}</td>
                     <!--<td>{{service_consume.memory}}GB</td>-->
                     <td>{{service_consume.memory}}MB</td>
                     <!--费用-->
