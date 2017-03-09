@@ -575,12 +575,17 @@
                 if (isConfirm) {
                     var tenantName = $("#tenantName").val();
                     var serviceAlias = $("#serviceAlias").val();
+                    var node_memory = $('#OneMemoryText').html();
+                    if (node_memory < 128){
+                        node_memory *= 1024;
+                    }
+
                     $.ajax({
                         type : "post",
                         url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
                         data : {
                             node_num : $('#NodeText').html(),
-                            node_memory : $('#OneMemoryText').html()
+                            node_memory : node_memory
                         },
                         cache : false,
                         beforeSend : function(xhr, settings) {
@@ -829,10 +834,12 @@
                         $("#OneMemoryText").attr("data-size",size);
                         if( size < 1024 )
                         {
-                            result.innerHTML = size + "M";
+                            $("#memory_unit").html("M");
+                            result.innerHTML = size ;
                         }
                         else{
-                            result.innerHTML = parseInt(size/1024) + "G";
+                            $("#memory_unit").html("G");
+                            result.innerHTML = parseInt(size/1024);
                         }
                     }
                 }

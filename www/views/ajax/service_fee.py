@@ -318,8 +318,8 @@ class ExtendServiceView(AuthedView):
                 result["min_node"] = self.service.min_node
                 result["left_hours"] = left_hours
                 result["memory_unit_fee"] = memory_unit_fee
-                result["service_memory"] = self.service.min_memory * self.service.min_node
-                result["app_min_memory"] = self.service.min_memory
+                result["service_memory"] = service_attach_info.min_memory * self.service.min_node
+                result["app_min_memory"] = service_attach_info.min_memory
                 result["app_max_memory"] = app_max_memory
             else:
                 result["show_money"] = False
@@ -339,7 +339,6 @@ class ExtendServiceView(AuthedView):
     def post(self, request, *args, **kwargs):
         node_num = int(request.POST.get("node_num", 1))
         node_memory = int(request.POST.get("node_memory", 128))
-        cur_memory = self.service.min_memory * self.service.min_node
         result = {}
         balance = self.tenant.balance
         try:
@@ -347,13 +346,19 @@ class ExtendServiceView(AuthedView):
             memory_unit_fee = regionBo.memory_package_price
             service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                 service_id=self.service.service_id)
+            cur_memory = service_attach_info.min_memory * service_attach_info.min_node
             now = datetime.datetime.now()
             buy_end_time = service_attach_info.buy_end_time
             need_pay_money = 0.0
+            new_memory = node_num * node_memory
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
-                if cur_memory >= node_num * node_memory:
+                if cur_memory > new_memory:
                     result["status"] = "failure"
                     result["info"] = "包月包年不支持缩容"
+                    return JsonResponse(result, status=200)
+                if service_attach_info.min_memory == node_memory and cur_memory == node_num * node_memory:
+                    result["status"] = "no_change"
+                    result["info"] = "内存未发生修改"
                     return JsonResponse(result, status=200)
                 left_hours = int((buy_end_time - now).total_seconds() / 3600)
                 memory_fee = float(memory_unit_fee) * (node_num * node_memory - cur_memory) / 1024.0 * left_hours
