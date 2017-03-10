@@ -373,10 +373,10 @@ class ExtendServiceView(AuthedView):
                 body["node_num"] = node_num
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
-                regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
+                # 费用也不进行真实扩容操作,只记录
+                # regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id, json.dumps(body))
                 self.service.min_node = node_num
                 self.service.save()
-                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_horizontal', True)
             # vertical 垂直扩容
             new_cpu = 20 * (node_memory / 128)
             old_cpu = self.service.min_cpu
@@ -388,12 +388,11 @@ class ExtendServiceView(AuthedView):
                     body["container_cpu"] = new_cpu
                     body["operator"] = str(self.user.nick_name)
                     logger.info("invocke region to verticalUpgrade")
-                    regionClient.verticalUpgrade(self.service.service_region, self.service.service_id,
-                                                 json.dumps(body))
+                    # regionClient.verticalUpgrade(self.service.service_region, self.service.service_id,
+                    #                              json.dumps(body))
                     self.service.min_memory = node_memory
                     self.service.min_cpu = new_cpu
                     self.service.save()
-                    monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_vertical', True)
 
             service_attach_info.min_node = node_num
             service_attach_info.min_memory = node_memory

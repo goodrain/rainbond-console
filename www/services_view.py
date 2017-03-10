@@ -639,6 +639,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 #     service_attach_info = self.generate_service_attach_info()
 
                 context["service_attach_info"] = service_attach_info
+                context["total_buy_memory"] = service_attach_info.min_memory * service_attach_info.min_node
                 context["service"] = self.service
                 service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id).order_by("-ID")
                 last_hour_consume = None

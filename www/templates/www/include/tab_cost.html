@@ -6,7 +6,7 @@
         <table>
             <tbody>
             <tr>
-                <td>内存：{% if service_attach_info.memory_pay_method == 'prepaid'  %}<span class="memoryFun" data-currentway="prepaid">包&nbsp;{{service_attach_info.min_memory}}*{{service_attach_info.min_node}}MB 至</span><span>{{service_attach_info.buy_end_time}}</span>&nbsp;&nbsp;<a href="javascript:void(0)" class="postpone">增加时长</a>&nbsp;&nbsp;<a href="javascript:void(0)" class="larger">增加额度</a>{% else %}<span class="memoryFun" data-currentway="postpaid">按小时扣费</span>&nbsp;&nbsp;<a href="javascript:void(0)" class="changeMemory">购买包月</a>{% endif %}</td>
+                <td>内存：{% if service_attach_info.memory_pay_method == 'prepaid'  %}<span class="memoryFun" data-currentway="prepaid">包&nbsp;{{total_buy_memory}} 至</span><span>{{service_attach_info.buy_end_time}}</span>&nbsp;&nbsp;<a href="javascript:void(0)" class="postpone">增加时长</a>&nbsp;&nbsp;<a href="javascript:void(0)" class="larger">增加额度</a>{% else %}<span class="memoryFun" data-currentway="postpaid">按小时扣费</span>&nbsp;&nbsp;<a href="javascript:void(0)" class="changeMemory">购买包月</a>{% endif %}</td>
                 <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span></td>
                 <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
