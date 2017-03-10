@@ -502,7 +502,7 @@ class WeChatInfoView(BaseView):
                 is_sensitive(nick_name)
             except Exception:
                 success = False
-                err_info['name'] = "用户名格式错误"
+                err_info['name'] = "用户名不能包含大写字母、中文和特殊字符"
             # password
             try:
                 password_len(password)
