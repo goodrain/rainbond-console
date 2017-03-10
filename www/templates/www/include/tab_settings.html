@@ -333,7 +333,7 @@
     <!-- 04-->
     <!-- 05-->
     <section class="content-tab">
-        <p class="tit-two">手动伸缩<span>(如当前应用内存已购买包月，在此处扩容会按小时扣费，如想按照包月扩容，<a href="/apps/{{ tenantName }}/{{ serviceAlias }}/detail/?fr=cost">请点击前往费用页面</a>)</span></p>
+        <p class="tit-two">手动伸缩<span>(如当前应用内存已购买包月，扩容超出包月额度部分会按小时扣费，如想增加包月额度，<a href="/apps/{{ tenantName }}/{{ serviceAlias }}/detail/?fr=cost">请前往费用页面购买</a>)</span></p>
         <div class="">
             <div class="krfs clearfix">
                 {% ifequal tenantServiceInfo.category "application" %}
@@ -409,7 +409,7 @@
 
     {% if not is_private %}
     <section class="content-tab" id="autoScaling">
-        <p class="tit-two">自动伸缩<span>(如当前应用内存已购买包月，使用自动伸缩超出包月部分会按小时扣费，如想按照包月扩容，<a href="/apps/{{ tenantName }}/{{ serviceAlias }}/detail/?fr=cost">请点击前往费用页面</a>)</span></p>
+        <p class="tit-two">自动伸缩<span>(如当前应用内存已购买包月，使用自动伸缩超出包月额度部分会按小时扣费，如想增加包月额度，<a href="/apps/{{ tenantName }}/{{ serviceAlias }}/detail/?fr=cost">请前往费用页面购买</a>)</span></p>
         <table perm-type="service" style="margin-bottom: 10px;">
             <thead>
             <tr>

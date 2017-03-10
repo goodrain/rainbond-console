@@ -131,10 +131,10 @@
                         <label>内存使用方式</label>
                         <input type="radio" name="{{service.service_id}}Memory" value="{{service.service_id}}Before" id="{{service.service_id}}_MoneyBefore" checked="true" />
                         <label class="radio-bg" for="{{service.service_id}}_MoneyBefore"></label>
-                        <label for="{{service.service_id}}_MoneyBefore" class="radio-text fn-tips" data-tips="包月购买内存，整体费用相对便宜，支持随时扩容，在包月时长用完后会自动转为按小时扣费。">包月包年（5折）</label>
+                        <label for="{{service.service_id}}_MoneyBefore" class="radio-text fn-tips" data-tips="超出包月额度部分按小时扣费，包月时长用完自动转为按小时扣费。">包月包年（5折）</label>
                         <input type="radio" name="{{service.service_id}}Memory" value="{{service.service_id}}After" id="{{service.service_id}}_MoneyAfter" />
                         <label class="radio-bg"  for="{{service.service_id}}_MoneyAfter"></label>
-                        <label for="{{service.service_id}}_MoneyAfter" class="radio-text fn-tips" data-tips="内存按小时扣费，支持随时扩容和缩容。">按小时扣费（<cite class="aft-memory"></cite>元/GB/小时）</label>
+                        <label for="{{service.service_id}}_MoneyAfter" class="radio-text fn-tips" data-tips="按小时扣费。可随时转包月。">按小时扣费（<cite class="aft-memory"></cite>元/GB/小时）</label>
                     </div>
                 </div>
                 <div class="infor-fm-box">
@@ -151,15 +151,15 @@
                         <label>磁盘使用方式</label>
                         <input type="radio" name="{{service.service_id}}Disk" value="{{service.service_id}}DiskAfter" id="{{service.service_id}}_DiskAfter" checked="true"/>
                         <label class="radio-bg"  for="{{service.service_id}}_DiskAfter"></label>
-                        <label for="{{service.service_id}}_DiskAfter" class="radio-text fn-tips" data-tips="免费额度可覆盖绝大部分应用，超出部分按实际使用量付费。">300MB以内免费（超出部分<cite class="aft-disk"></cite>元/GB/小时）</label>
+                        <label for="{{service.service_id}}_DiskAfter" class="radio-text fn-tips" data-tips="免费额度可覆盖绝大部分应用，超出免费额度部分按小时扣费。可随时转包月。">300MB以内免费（超出部分<cite class="aft-disk"></cite>元/GB/小时）</label>
                         <input type="radio" name="{{service.service_id}}Disk" value="{{service.service_id}}DiskBefore" id="{{service.service_id}}_DiskBefore"  />
                         <label class="radio-bg" for="{{service.service_id}}_DiskBefore"></label>
-                        <label for="{{service.service_id}}_DiskBefore" class="radio-text fn-tips" data-tips="提前采购存储，支持随时扩容，超出额度部分按小时扣费。包月时长用完自动转为按小时扣费。">打包购买</label>
+                        <label for="{{service.service_id}}_DiskBefore" class="radio-text fn-tips" data-tips="超出包月额度部分按小时扣费，包月时长用完自动转为按小时扣费。">包月包年</label>
                     </div>
                     <div class="fm-input-range clearfix" id="{{service.service_id}}_disk_box" style="display: none;">
-                        <label>购买额度</label>
+                        <label>包月额度</label>
                         {% if is_tenant_free %}
-                        <p class="range-box nouser02 fn-tips" data-tips="新用户单应用可购买容量最大1G，付费用户最大1000G。">
+                        <p class="range-box nouser02 fn-tips" data-tips="新用户单应用最多可购买包月容量1G，付费用户1000G。">
                             <span class="renge-bg"></span>
                             <span class="range-choose"><cite id="{{service.service_id}}_DiskWid"></cite></span>
                             <input type="range" min="1" max="1"  step="1" id="{{service.service_id}}_Disk" value="1"／>
@@ -167,7 +167,7 @@
                         <!-- user -->
                         {% else %}
                         <!-- no user -->
-                        <p class="range-box fn-tips" data-tips="单应用最多可购买1000G。如需使用更多，请联系客服申请。">
+                        <p class="range-box fn-tips" data-tips="单应用最多可购买包月容量1000G。如需购买更多，请联系客服申请。">
                             <span class="renge-bg"></span>
                             <span class="range-choose"><cite id="{{service.service_id}}_DiskWid"></cite></span>
                             <input type="range" min="1" max="1000"  step="1" id="{{service.service_id}}_Disk" value="1"／>
