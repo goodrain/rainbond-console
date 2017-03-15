@@ -456,12 +456,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["serviceIds"] = relationsids
                 # service map
                 map = {}
-                sids = [self.service.service_id]
+                sids = []
                 tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
                 for tenantService in tenantServiceList:
                     if TenantServicesPort.objects.filter(service_id=tenantService.service_id, is_inner_service=True).exists():
                         sids.append(tenantService.service_id)
-                        map[tenantService.service_id] = tenantService
+                        if tenantService.service_id != self.service.service_id:
+                            map[tenantService.service_id] = tenantService
                     if tenantService.service_id in relationsids:
                         map[tenantService.service_id] = tenantService
                 context["serviceMap"] = map
