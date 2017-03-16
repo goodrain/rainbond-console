@@ -338,14 +338,23 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             deployTenantServices = TenantServiceInfo.objects.filter(
                 tenant_id=self.tenant.tenant_id,
                 service_region=self.response_region,
-                service_origin='assistant').exclude(category='application')
-            context["deployTenantServices"] = deployTenantServices
+                service_origin='assistant')
+
+            openInnerServices = []
+            for dts in deployTenantServices:
+                if dts.category == "application":
+                    if TenantServicesPort.objects.filter(service_id=dts.service_id,is_inner_service=True):
+                        openInnerServices.append(dts)
+                else:
+                    openInnerServices.append(dts)
+
+            context["openInnerServices"] = openInnerServices
             context["service_envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port= -1)
             port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
             context["service_ports"] = list(port_list)
             dpsids = []
 
-            for hasService in deployTenantServices:
+            for hasService in openInnerServices:
                 dpsids.append(hasService.service_id)
             hasTenantServiceEnvs = TenantServiceEnvVar.objects.filter(service_id__in=dpsids)
             # 已有服务的一个服务id对应一条服务的环境变量

@@ -219,8 +219,16 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             deployTenantServices = TenantServiceInfo.objects.filter(
                 tenant_id=self.tenant.tenant_id,
                 service_region=self.response_region,
-                service_origin='assistant').exclude(category='application')
-            context["deployTenantServices"] = deployTenantServices
+                service_origin='assistant')
+            openInnerServices = []
+            for dts in deployTenantServices:
+                if dts.category == "application":
+                    if TenantServicesPort.objects.filter(service_id=dts.service_id,is_inner_service=True):
+                        openInnerServices.append(dts)
+                else:
+                    openInnerServices.append(dts)
+
+            context["openInnerServices"] = openInnerServices
 
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id,
                                                              region=self.response_region)
