@@ -222,10 +222,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
                 service_origin='assistant')
             openInnerServices = []
             for dts in deployTenantServices:
-                if dts.category == "application":
-                    if TenantServicesPort.objects.filter(service_id=dts.service_id,is_inner_service=True):
-                        openInnerServices.append(dts)
-                else:
+                if TenantServicesPort.objects.filter(service_id=dts.service_id,is_inner_service=True):
                     openInnerServices.append(dts)
 
             context["openInnerServices"] = openInnerServices
