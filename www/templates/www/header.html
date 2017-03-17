@@ -99,15 +99,16 @@
 
                 {% if MODULES.Finance_Center %}
                 <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
+                <!--
                 <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
                 {% if tenant_pay_type != "payed" %}
                     <li><a onclick="payed_upgrade('{{tenantName}}','')"><i class="fa fa-flag"></i> 升级为付费用户</a></li>
                 {% endif %}
-
-                    {% if is_private %}
-                        <li><a href="/apps/{{tenantName}}/license"><i class="fa fa-exclamation-circle"></i> 关于</a></li>
-                    {% endif %}
-                    <li><a href="/account/changepwd"><i class="fa fa-lock"></i> 修改密码</a></li>
+                -->
+                {% if is_private %}
+                    <li><a href="/apps/{{tenantName}}/license"><i class="fa fa-exclamation-circle"></i> 关于</a></li>
+                {% endif %}
+                <li><a href="/account/changepwd"><i class="fa fa-lock"></i> 修改密码</a></li>
                 <li class="divider"></li>
                 {% endif %}
                 <li><a href="/logout"><i class="fa fa-sign-out"></i> 退出</a></li>
