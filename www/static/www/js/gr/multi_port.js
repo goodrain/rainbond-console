@@ -263,10 +263,10 @@
           value = $(this).val();
           dict[name] = value; 
           if(!isNaN(value)){
-              if(value>=1025 && value<=65535){
+              if(value>=1 && value<=65535){
                  console.log(value);
               }else{
-                showMessage("端口号必须在1025~65535之间！");
+                showMessage("端口号必须在1~65535之间！");
                 return flase;
               }
           }
