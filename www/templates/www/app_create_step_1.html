@@ -66,8 +66,8 @@
                 {% endif %}
                 <!-- 01 -->
                 <!--  02 自建Git start-->
-                {% if cur_type == "gitlab_new" %}
-                <span style="display: none"; data-action="gitlab_new" class="fn-way"></span>
+                {% if cur_type == "gitlab_self" %}
+                <span style="display: none"; data-action="gitlab_self" class="fn-way"></span>
                 <div class="fm-input-text clearfix">
                     <label>自建Git</label><input type="text" name="" value="" placeholder="请输入自建 Git 的代码仓库地址。" id="my_git_url" class="fn-tips" data-tips="请将下方授权key添加到自建 Git 用户的 ssh 列表中，授权平台可以获取您的代码，如已添加，请略过。" />
                 </div>

@@ -516,7 +516,7 @@ $(function(){
         var appname = $("#create_name").val();
         var groupname = $("#group-name option:selected").html();
         var groupid = $("#group-name option:selected").attr("value");
-        var service_code_from = "gitlab_new";
+        var service_code_from = "gitlab_self";
         var myWay = $(".fn-way").attr("data-action");
         var code_url;
         var code_id;
@@ -574,8 +574,8 @@ $(function(){
                 swal("git路径不合法!");
                 return;
             }
-        }else if(myWay == "gitlab_new"){
-            service_code_from = "gitlab_new";
+        }else if(myWay == "gitlab_self"){
+            service_code_from = "gitlab_self";
             //02
             code_url =$("#my_git_url").val();
             code_branch = $(".fn-code-branch").val(); 

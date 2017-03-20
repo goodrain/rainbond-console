@@ -67,8 +67,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
         try:
             type = request.GET.get("type", "gitlab_new")
-            if type not in("gitlab_new","gitlab_manual","github","gitlab_exit","gitlab_demo",):
-                type = "gitlab_new"
+            if type not in("gitlab_new","gitlab_manual","github","gitlab_exit","gitlab_demo","gitlab_self",):
+                type = "gitlab_self"
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"
             request.session["app_tenant"] = self.tenantName
@@ -200,6 +200,10 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias='', is_inner_service=False, is_outer_service=True)
 
             # code repos
+            # 自建git (gitlab_self)与gitlab_manual一样
+            if service_code_from == "gitlab_self":
+                service_code_from = "gitlab_manual"
+
             if service_code_from == "gitlab_new":
                 codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, "", "", "")
             elif service_code_from == "gitlab_exit":
