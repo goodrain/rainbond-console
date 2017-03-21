@@ -80,11 +80,13 @@ function getGitCodeCheck() {
 					$("#git_code_upload").html(
 							"代码已同步，语言识别为 " + dataObj["language"]);
 					//$("#BtnSecond").removeAttr('disabled')
+					$("#BtnSecond").show();
 				} else if (dataObj["status"] == "check_error") {
 					$("#second-loading").hide();
 					$("#git-success").show();
 					$("#git_btn").show();
 					$("#git_code_upload").html("语言未识别，请重新提交代码...");
+					$("#BtnSecond").hide();
 				}
 			},
 			error : function() {
