@@ -154,6 +154,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             if not flag:
                 if rt_type == "memory":
                     data["status"] = "over_memory"
+                    data["tenant_type"] = self.tenant.pay_type
                 else:
                     data["status"] = "over_money"
                 return JsonResponse(data, status=200)

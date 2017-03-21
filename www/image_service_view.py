@@ -341,6 +341,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             if not flag:
                 if rt_type == "memory":
                     result["status"] = "over_memory"
+                    result["tenant_type"] = self.tenant.pay_type
                 else:
                     result["status"] = "over_money"
                 return JsonResponse(result, status=200)

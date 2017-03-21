@@ -670,7 +670,10 @@ $(function(){
                 } else if (dataObj["status"] == "expired"){
                     swal("试用已到期")
                 } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能创建");
+                    if (dataObj["tenant_type"] == "free"){
+                        swal("资源已达上限,免费用户最多使用1G内存");
+                    }else
+                        swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {
                     swal("余额不足，不能创建");
                 } else if (dataObj["status"] == "empty") {
@@ -778,7 +781,10 @@ $(function(){
                 } else if (dataObj["status"] == "expired"){
                     swal("试用已到期")
                 } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能创建");
+                    if (dataObj["tenant_type"] == "free"){
+                        swal("资源已达上限,免费用户最多使用1G内存");
+                    }else
+                        swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {
                     swal("余额不足，不能创建");
                 } else if (dataObj["status"] == "empty") {
