@@ -529,6 +529,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
             elif fr == "settings":
                 nodeList = []
                 memoryList = []
+                port_changeable = self.service.code_from
+                context["port_changeable"] = port_changeable
                 try:
                     sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
                     nodeList.append(sem.min_node)

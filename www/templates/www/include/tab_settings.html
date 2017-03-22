@@ -1,5 +1,6 @@
 <!-- settings start -->
 <div role="tabpanel" id="settings">
+
     <!-- 01 -->
     <section class="content-tab">
         <p class="tit-two">基础信息</p>
@@ -142,6 +143,8 @@
                 <div style="display: none">
                     <p id="tenant-name">{{ tenantName }}</p>
                     <p id="service-alias">{{ serviceAlias }}</p>
+                    <p id="code_from">{{ port_changeable }}</p>
+
                 </div>
             </div>
 
@@ -156,7 +159,7 @@
     <section class="content-tab">
         <!-- title line start -->
         <p class="tit-two">端口开放<span>(配置变化后需重启)</span>
-            <button type="button" class="greenbtn" id="add_service_port">新增服务端口</button>
+            <button type="button" class="greenbtn" id="add_service_port" {% if not port_changeable %}style="display:none;"{% endif %}>新增服务端口</button>
         </p>
 
         <!-- title line end -->
@@ -168,18 +171,26 @@
                 <thead>
                 <tr port="{{ port.container_port }}">
                     <th>端口号:
+                        {% if port_changeable %}
                         <a href="#" class="edit-port" data-title="更改监听端口"
                            data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ port.container_port }}"
                            data-value="{{ port.container_port }}"></a>
+                        {% else %}
+                        <span style="color: #28cb75;">{{ port.container_port }}</span>
+                        {% endif %}
                     </th>
                     <th>协议类型:
+                        {% if port_changeable %}
                         <a href="#" class="edit-protocol" id="edit_protocol_{{ port.container_port }}"
                            data-title="更改协议类型"
                            data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ port.container_port }}"
                            data-value="{{ port.protocol }}"></a>
+                        {% else %}
+                        <span style="color: #28cb75;">{{ port.protocol }}</span>
+                        {% endif %}
                     </th>
                     <th>
-                        <button type="button" class="port-delete btn redbtn btn-xs">删除</button>
+                        <button type="button" class="port-delete btn redbtn btn-xs" {% if not port_changeable %}style="display:none;"{% endif %}>删除</button>
                     </th>
                 </tr>
                 </thead>
