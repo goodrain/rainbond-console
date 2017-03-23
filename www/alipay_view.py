@@ -103,7 +103,8 @@ def notify_url(request, tenantName):
                 # concurrent question
                 tenant = Tenants.objects.get(tenant_id=tenantRecharge.tenant_id)
                 tenant.balance = tenant.balance + tenantRecharge.money + tempMoney
-                # tenant.pay_type = 'payed'
+                if tenant.pay_type == "free":
+                    tenant.pay_type = 'payed'
                 tenant.save()
                 # 删除activity998,结束后需要删除
                 if tenantRecharge.money >= 500:

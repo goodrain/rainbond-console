@@ -37,7 +37,7 @@
             <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
             <!-- 基本信息  start-->
 			<div class="infor-fm-box">
-				<h4 class="step-tit" style="display:none;">基本信息</h4>
+				<h4 class="step-tit" style="display: none;">基本信息</h4>
 				<div class="fm-input-text clearfix">
                     <label for="create_app_name">应用名</label><input type="text" id="create_name" name="create_name" value="" placeholder="给应用取个名字，支持中英文。"  />
                 </div>
@@ -66,8 +66,8 @@
                 {% endif %}
                 <!-- 01 -->
                 <!--  02 自建Git start-->
-                {% if cur_type == "gitlab_new" %}
-                <span style="display: none"; data-action="gitlab_new" class="fn-way"></span>
+                {% if cur_type == "gitlab_self" %}
+                <span style="display: none"; data-action="gitlab_self" class="fn-way"></span>
                 <div class="fm-input-text clearfix">
                     <label>自建Git</label><input type="text" name="" value="" placeholder="请输入自建 Git 的代码仓库地址。" id="my_git_url" class="fn-tips" data-tips="请将下方授权key添加到自建 Git 用户的 ssh 列表中，授权平台可以获取您的代码，如已添加，请略过。" />
                 </div>
@@ -155,28 +155,28 @@
 			</div>
 			<!-- 基本信息 end -->
 			<!-- 配套信息 start -->
-            <div class="infor-fm-box">
-                <h4 class="step-tit" style="display:none;">配套信息</h4>
+            <div class="infor-fm-box" style="display: none;">
+                <h4 class="step-tit">内存选项</h4>
                 <!-- 01 -->
                 <div class="fm-input-range clearfix fn-memory-node">
-                    <label>应用单节点内存</label>
+                    <label>单节点内存</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户单应用内存最大8G，总内存无限制。">
+                    <p class="range-box nouser fn-tips" data-tips="新用户单应用内存最大1G，全部应用总内存最大1G。付费用户无限制。">
                         <span class="renge-bg"></span>
                         <span class="range-choose fn-tips"><cite id="OneMemoryWid"></cite></span>
-                        <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="128"／>
+                        <input type="range" min="128" max="1024"  step="128" id="OneMemory" value="512"／>
                     </p>
                     <!-- user -->
                     {% else %}
                     <!-- no user -->
-                    <p class="range-box">
+                    <p class="range-box fn-tips" data-tips="单应用内存最大8G，总内存无限。如需使用更多，请联系客服申请。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
-                        <input type="range" min="128" max="8192"  step="128" id="OneMemory" value="128"／>
+                        <input type="range" min="128" max="8192"  step="128" id="OneMemory" value="512"／>
                     </p>
                     <!-- no user -->
                     {% endif %}
-                    <span><cite id="OneMemoryText">128M</cite></span>
+                    <span><cite id="OneMemoryText">512M</cite></span>
                 </div>
                 <div class="fm-input-range clearfix fn-memory-node">
                     <label>节点数</label>
@@ -189,7 +189,7 @@
                     <!-- user -->
                     {% else %}
                     <!-- no user -->
-                    <p class="range-box">
+                    <p class="range-box fn-tips" data-tips="单应用最多可创建100个节点。如需创建更多，请联系客服申请。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="NodeWid"></cite></span>
                         <input type="range" min="1" max="100"  step="1" id="NodeNum" value="1"／>
@@ -198,37 +198,39 @@
                     {% endif %}
                     <span><cite id="NodeText">1</cite>个</span>
                 </div>
-				<div  style="display:none;">
-                <div class="fm-input-radio clearfix" style="padding-bottom:30px;">
+                <div class="fm-input-radio clearfix">
                     <label>内存使用方式</label>
-                    <input type="radio" name="Memory" value="After" id="MoneyAfter" checked="true"  />
-                    <label class="radio-bg"  for="MoneyAfter"></label>
-                    <label for="MoneyAfter" class="radio-text fn-tips" data-tips="内存按小时扣费，支持随时扩容和缩容，适用于高速发展中的项目。可转为预付费模式，即时生效。">每小时扣费</label>
                     <input type="radio" name="Memory" value="Before" id="MoneyBefore" />
                     <label class="radio-bg" for="MoneyBefore"></label>
-                    <label for="MoneyBefore" class="radio-text fn-tips" data-tips="预付费采购内存，整体费用相对便宜，但不支持缩容，适用于相对稳定的项目。若要转为每小时扣费，在当前付费周期结束后才会生效。">预付费</label>
+                    <label for="MoneyBefore" class="radio-text fn-tips" data-tips="超出包月额度部分按小时扣费，包月时长用完自动转为按小时扣费。">包月包年（5折）</label>
+                    <input type="radio" name="Memory" value="After" id="MoneyAfter" checked="true" />
+                    <label class="radio-bg"  for="MoneyAfter"></label>
+                    <label for="MoneyAfter" class="radio-text fn-tips" data-tips="按小时扣费。可随时转包月。">按小时扣费（<cite id="aft-memory"></cite>元/GB/小时）</label>
                 </div>
+            </div>
+            <div class="infor-fm-box" style="display: none;">
+                <h4 class="step-tit">磁盘选项</h4>
                 <!-- 02 -->
                 <div class="fm-choose-box clearfix">
                     <label>磁盘存储</label>
                     <div class="btn-cho-box clearfix">
-                        <p class="clearfix"><input type="checkbox" id="fbscc" checked="true" disabled="true" /><label class="cho-bg" for="fbscc"></label><label for="fbscc" class="cho-text">分布式存储</label></p>
-                        <p class="clearfix"><input type="checkbox" id="ssd" checked="true"  disabled="true" /><label class="cho-bg" for="ssd"></label><label for="ssd" class="cho-text">SSD</label></p>
+                        <p class="clearfix"><input type="checkbox" id="fbscc" checked="true" disabled="true" /><label class="cho-bg" for="fbscc"></label><label for="fbscc" class="cho-text fn-tips" data-tips="默认免费支持，暂不可取消。">分布式存储</label></p>
+                        <p class="clearfix"><input type="checkbox" id="ssd" checked="true"  disabled="true" /><label class="cho-bg" for="ssd"></label><label for="ssd" class="cho-text fn-tips" data-tips="默认免费支持，暂不可取消。">SSD</label></p>
                     </div>
                 </div>
                 <div class="fm-input-radio clearfix">
                     <label>磁盘使用方式</label>
                     <input type="radio" name="Disk" value="DiskAfter" id="DiskAfter"  checked="true"/>
                     <label class="radio-bg"  for="DiskAfter"></label>
-                    <label for="DiskAfter" class="radio-text fn-tips" data-tips="存储按小时扣费，由于存储量是逐步增多的，所以很合算，适用于发展中的项目。可转为预付费模式，即时生效。">按使用每小时扣费</label>
+                    <label for="DiskAfter" class="radio-text fn-tips" data-tips="免费额度可覆盖绝大部分应用，超出免费额度部分按小时扣费。可随时转包月。">300MB以内免费（超出部分<cite id="aft-disk"></cite>元/GB/小时）</label>
                     <input type="radio" name="Disk" value="DiskBefore" id="DiskBefore" />
                     <label class="radio-bg" for="DiskBefore"></label>
-                    <label for="DiskBefore" class="radio-text fn-tips" data-tips="提前定额采购存储，整体费用相对便宜，但不支持缩容，适用于相对稳定的项目。若要转为按使用付费，在当前付费周期结束后才会生效。">提前定额购买</label>         
+                    <label for="DiskBefore" class="radio-text fn-tips" data-tips="超出包月额度部分按小时扣费，包月时长用完自动转为按小时扣费。">包月包年</label>         
                 </div>
                 <div class="fm-input-range clearfix fn-disk" style="display: none;">
-                    <label>购买额度</label>
+                    <label>包月额度</label>
                     {% if is_tenant_free %}
-                    <p class="range-box nouser02 fn-tips" data-tips="新用户单应用可购买容量最大1G，付费用户最大1000G。">
+                    <p class="range-box nouser02 fn-tips" data-tips="新用户单应用最多可购买包月容量1G，付费用户1000G。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="DiskWid"></cite></span>
                         <input type="range" min="1" max="1"  step="1" id="Disk" value="1"／>
@@ -236,7 +238,7 @@
                     <!-- user -->
                     {% else %}
                     <!-- no user -->
-                    <p class="range-box">
+                    <p class="range-box fn-tips" data-tips="单应用最多可购买包月容量1000G。如需购买更多，请联系客服申请。">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="DiskWid"></cite></span>
                         <input type="range" min="1" max="1000"  step="1" id="Disk" value="1"／>
@@ -245,74 +247,77 @@
                     {% endif %}
                     <span><cite id="DiskText">1</cite>G</span>
                 </div>
+            </div>
+            <div class="infor-fm-box" style="display: none;">
+                <h4 class="step-tit">网络选项</h4>
                 <!-- 03 -->
-                <div class="fm-input-radio clearfix" style="padding-bottom:30px; padding-top: 30px;">
-                    <label>外网访问流量</label>
+                <div class="fm-input-radio clearfix">
+                    <label>网络流量</label>
                     <input type="radio" name="flow" value="flow" id="flow" checked="true" />
                     <label class="radio-bg" for="flow"></label>
-                    <label class="radio-text fn-tips" for="flow" data-tips="应用只有开放对外访问才会计算流量，目前仅支持按使用每小时扣费，请保持账户有一定余额。">按使用每小时扣费</label>
+                    <label class="radio-text fn-tips" for="flow" data-tips="应用只有开放对外访问才会计算流量，目前仅支持按使用每小时扣费，请保持账户有一定余额。">按小时扣费（<cite id="aft-net"></cite>元/GB）</label>
                 </div>
-                <!--
-                <div class="fm-text clearfix">
-                    <label>预估费用:</label>
-                    <span><cite>12</cite>元／月</span>
-                </div>
-                -->
+            </div>
+            <div class="infor-fm-box" style="display: none;">
+                <h4 class="step-tit">其他选项</h4>
                 <!-- 04 -->
                 <div class="fm-choose-box clearfix">
-                    <label>部署支持</label>
+                    <label>计算资源</label>
                     <div class="btn-cho-box clearfix">
-                        <p class="clearfix"><input type="checkbox" id="yjbs" checked="true" disabled="true" /><label class="cho-bg" for="yjbs"></label><label for="yjbs" class="cho-text">一键部署</label></p>
-                        <p class="clearfix"><input type="checkbox" id="yjhg" checked="true"  disabled="true" /><label class="cho-bg" for="yjhg"></label><label for="yjhg" class="cho-text">一键回滚</label></p>
-                        <p  class="clearfix"><input type="checkbox" id="gdsj" checked="true" disabled="true" /><label class="cho-bg" for="gdsj"></label><label for="gdsj" class="cho-text">滚动升级</label></p>
+                        <p class="clearfix"><input type="checkbox" id="dlzy" checked="true" /><label class="cho-bg" for="dlzy"></label><label for="dlzy" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">独立资源</label></p>
+                        <p class="clearfix"><input type="checkbox" id="fzjh" checked="true" /><label class="cho-bg" for="fzjh"></label><label for="fzjh" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">负载均衡</label></p>
+                        <p class="clearfix"><input type="checkbox" id="txss" checked="true" /><label class="cho-bg" for="txss"></label><label for="txss" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">弹性伸缩</label></p>
+                        <p class="clearfix"><input type="checkbox" id="sfkz" checked="true" /><label class="cho-bg" for="sfkz"></label><label for="sfkz" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">三份快照</label></p>
                     </div>
                 </div>
                 <div class="fm-choose-box clearfix">
-                    <label>资源支持</label>
+                    <label>部署回滚</label>
                     <div class="btn-cho-box clearfix">
-                        <p class="clearfix"><input type="checkbox" id="dlzy" checked="true" disabled="true" /><label class="cho-bg" for="dlzy"></label><label for="dlzy" class="cho-text">独立资源</label></p>
-                        <p class="clearfix"><input type="checkbox" id="fzjh" checked="true" disabled="true" /><label class="cho-bg" for="fzjh"></label><label for="fzjh" class="cho-text">负载均衡</label></p>
-                        <p class="clearfix"><input type="checkbox" id="txss" checked="true" disabled="true" /><label class="cho-bg" for="txss"></label><label for="txss" class="cho-text">弹性伸缩</label></p>
-                        <p class="clearfix"><input type="checkbox" id="gky" checked="true" disabled="true" /><label class="cho-bg" for="gky"></label><label for="gky" class="cho-text">高可用</label></p>
-                        <p class="clearfix"><input type="checkbox" id="sfkz" checked="true" disabled="true" /><label class="cho-bg" for="sfkz"></label><label for="sfkz" class="cho-text">三份快照</label></p>
+                        <p class="clearfix"><input type="checkbox" id="yjbs" checked="true" /><label class="cho-bg" for="yjbs"></label><label for="yjbs" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">一键部署</label></p>
+                        <p class="clearfix"><input type="checkbox" id="yjhg" checked="true"  /><label class="cho-bg" for="yjhg"></label><label for="yjhg" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">一键回滚</label></p>
+                        <p  class="clearfix"><input type="checkbox" id="gdsj" checked="true" /><label class="cho-bg" for="gdsj"></label><label for="gdsj" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">滚动升级</label></p>
                     </div>
                 </div>
+
                 <div class="fm-choose-box clearfix">
                     <label>日志监控</label>
                     <div class="btn-cho-box clearfix">
-                        <p class="clearfix"><input type="checkbox" id="xnfxgj" checked="true" disabled="true" /><label class="cho-bg" for="xnfxgj"></label><label for="xnfxgj" class="cho-text">性能分析/告警</label></p>
-                        <p class="clearfix"><input type="checkbox" id="ywjkgj" checked="true" disabled="true" /><label class="cho-bg" for="ywjkgj"></label><label for="ywjkgj" class="cho-text">业务监控/告警</label></p>
-                        <p class="clearfix"><input type="checkbox" id="fbsrz" checked="true" disabled="true" /><label class="cho-bg" for="fbsrz"></label><label for="fbsrz" class="cho-text">分布式日志</label></p>
+                        <p class="clearfix"><input type="checkbox" id="xnfxgj" checked="true" /><label class="cho-bg" for="xnfxgj"></label><label for="xnfxgj" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">性能分析</label></p>
+                        <p class="clearfix"><input type="checkbox" id="ywjkgj" checked="true" /><label class="cho-bg" for="ywjkgj"></label><label for="ywjkgj" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">业务监控</label></p>
+                        <p class="clearfix"><input type="checkbox" id="fbsrz" checked="true" /><label class="cho-bg" for="fbsrz"></label><label for="fbsrz" class="cho-text fn-tips" data-tips="默认支持，现阶段免费使用。">分布式日志</label></p>
                     </div>
                 </div>
-				</div>
             </div>
             <!-- 配套信息 end -->
             <!-- 费用估算 start -->
-            <div class="infor-fm-box" style="border-bottom: 0 none;display:none;">
-                <h4 class="step-tit">费用估算</h4>
+            <div id="baoyuegoumai" class="infor-fm-box" style="display: none;">
+                <h4 class="step-tit">包月购买</h4>
                 <div class="fm-input-range clearfix">
-                    <label>应用购买时长</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="TimeLongWid"></cite></span>
-                        <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
-                    </p>
-                    <span><cite id="TimeLongText">1</cite>个月</span>    
+                    <label>包月时长</label>
+                    <ul class="range-box clearfix buy_month">
+                        <li class="active" data-time="1">1<span>个月</span></li>
+                        <li data-time="2">2<span>个月</span></li>
+                        <li data-time="3">3<span>个月</span></li>
+                        <li data-time="4">4<span>个月</span></li>
+                        <li data-time="5">5<span>个月</span></li>
+                        <li data-time="6">6<span>个月</span></li>
+                        <li data-time="7">7<span>个月</span></li>
+                        <li data-time="8">8<span>个月</span></li>
+                        <li data-time="9">9<span>个月</span></li>
+                        <li class="fn-tips" data-tips="购买一年再享9折优惠" data-time="12">1年</li>
+                        <li class="fn-tips" data-tips="购买两年再享8折优惠" data-time="24">2年</li>
+                    </ul>
+                    <!--<span><cite id="TimeLongText">1</cite>个月</span>   -->
                 </div>
                 <div class="fm-money clearfix">
-                    <label>应用购买费用</label>
-                    <span class="fn-tips"  data-tips="创建和调试应用时，无需支付费用，应用正常运行后才会提请您支付该费用。"><cite id="need-money">123.00</cite>元</span>
+                    <label>包月费用总计</label>
+                    <span class="fn-tips"  data-tips="该包月费用在应用正常运行后才会提请您支付。本费用不包括其他按小时扣费的项目，请保持账户有一定余额。"><cite id="need-money"></cite>元</span>
+                    <i>原价：</i><del class="before_money"></del><i>元</i>
                 </div>
-                <div class="fm-aft-money clearfix">
-                    <label>按小时结算项</label>
-                    <p><span id="aft-memory-box" class="fn-tips" data-tips="创建和调试应用时，内存是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">内存<cite id="aft-memory"></cite>元/GB·小时；</span><span id="aft-disk-box" class="fn-tips" data-tips="创建和调试应用时，磁盘是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">磁盘<cite id="aft-disk"></cite>元/GB·小时；</span><span id="aft-net-box" class="fn-tips" data-tips="创建和调试应用时，流量是免费的，正常运行后才会按小时扣费，请保持您的账户有一定的可用额度。">流量<cite id="aft-net"></cite>元/GB</span></p>
-                </div>
-                
             </div>
             <!-- 费用估算 end -->
-			<div class="fm-btn clearfix">
-                    <a class="greenbtn" id="BtnFirst" style="cursor: pointer;">下一步</a>
+			<div class="fm-btn clearfix fn-tips" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
+                    <a class="greenbtn" id="BtnFirst" style="cursor: pointer;">免费创建</a>
             </div>			
         </form>
 	</section>

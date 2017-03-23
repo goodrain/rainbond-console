@@ -32,13 +32,13 @@ standard_regex_string_extend = "^[a-z0-9][a-z0-9\-]+[a-z0-9]$"
 def is_standard_word(value):
     r = re.compile(standard_regex_string)
     if not r.match(value):
-        raise forms.ValidationError(u"允许下列字符: 小写字母 数字 _ -")
+        raise forms.ValidationError(u"只可以使用小写英文字母、数字、下划线、中划线。")
 
 
 def is_standard_word_extend(value):
     r = re.compile(standard_regex_string_extend)
     if not r.match(value):
-        raise forms.ValidationError(u"允许下列字符: 小写字母 数字 _ -")
+        raise forms.ValidationError(u"只可以使用小写英文字母、数字、下划线、中划线。")
 
 
 def is_sensitive(value):
@@ -454,8 +454,8 @@ class RegisterForm(forms.Form):
         if settings.MODULES["WeChat_Module"]:
             self.helper.layout = Layout(
                 Div(
-                    AppendedText('tenant', "", placeholder='请输入团队名', css_class="form-control") if tenant_name is None else AppendedText('tenant', "", placeholder='请输入团队名', css_class="form-control", readonly="readonly", value=tenant_name),
-                    Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                    Field('tenant', "", placeholder='请输入团队名(可使用小写英文字母、数字、下划线及中划线)', css_class="form-control") if tenant_name is None else Field('tenant', "", placeholder='请输入团队名(可使用小写英文字母、数字、下划线及中划线)', css_class="form-control", readonly="readonly", value=tenant_name),
+                    Field('nick_name', css_class="form-control", placeholder='请输入用户名(可使用小写英文字母、数字、下划线及中划线)'),
                     Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                     HTML("<hr/>"),
                     # 默认为ali-sh
@@ -466,7 +466,7 @@ class RegisterForm(forms.Form):
                     Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                     AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
                                  css_class='input-xlarge', placeholder='验证码'),
-                    HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="http://www.goodrain.com/product/goodrainlaws.html" target="_blank">云帮公有云版服务条款</a>》</div>"""),
+                    HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="http://www.goodrain.com/product/goodrainlaws.html" target="_blank">云帮服务条款</a>》</div>"""),
                     FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                     HTML("""<p class="text-center">或使用以下账号注册</p>"""),
                     HTML("""<a href="/wechat/login{0}" class="weixin"><img src="static/www/images/weixin.png">微信</a>""".format(prefix_url)),
@@ -478,8 +478,8 @@ class RegisterForm(forms.Form):
         else:
             self.helper.layout = Layout(
                 Div(
-                    AppendedText('tenant', "", placeholder='请输入团队名', css_class="form-control") if tenant_name is None else AppendedText('tenant', "", placeholder='请输入团队名', css_class="form-control", readonly="readonly", value=tenant_name),
-                    Field('nick_name', css_class="form-control", placeholder='请输入用户名'),
+                    Field('tenant', "", placeholder='请输入团队名(可使用小写英文字母、数字、下划线及中划线)', css_class="form-control") if tenant_name is None else Field('tenant', "", placeholder='请输入团队名(可使用小写英文字母、数字、下划线及中划线)', css_class="form-control", readonly="readonly", value=tenant_name),
+                    Field('nick_name', css_class="form-control", placeholder='请输入用户名(可使用小写英文字母、数字、下划线及中划线)'),
                     Field('email', css_class="form-control", placeholder='请输入邮箱(选填)'),
                     HTML("<hr/>"),
                     Hidden('machine_region', value=init_region),
@@ -489,7 +489,7 @@ class RegisterForm(forms.Form):
                     Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
                     AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
                                  css_class='input-xlarge', placeholder='验证码'),
-                    HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="http://www.goodrain.com/product/goodrainlaws.html" target="_blank">云帮公有云版服务条款</a>》</div>"""),
+                    HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="http://www.goodrain.com/product/goodrainlaws.html" target="_blank">云帮服务条款</a>》</div>"""),
                     FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                     HTML("""<div class="linkregister text-center">直接<a href="/login{0}">登录</a></div>""".format(prefix_url)),
                     # HTML("""<a href="http://www.goodrain.com/" class="linkgood text-center">goodrain.com</a>"""),

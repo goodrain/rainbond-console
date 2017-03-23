@@ -508,7 +508,7 @@ $(function(){
         FnRange(OneMemory,OneMemoryText,OneMemoryWid,128,this_id);
         FnRange(NodeNum,NodeText,NodeWid,1,this_id);
         FnRange(Disk,DiskText,DiskWid,1,this_id);
-        FnRange(TimeLong,TimeLongText,TimeLongWid,1,this_id);
+        //FnRange(TimeLong,TimeLongText,TimeLongWid,1,this_id);
     });
     
     // 滑动框 结束
@@ -533,7 +533,7 @@ $(function(){
         var oId = "#" +  myid+"_OneMemoryText";
         var oNode ="#" + myid+ "_NodeText" ;
         var oDisk = "#" + myid+ "_DiskText";
-        var oTime ="#" + myid + "_TimeLongText";
+        var oTime ="#" + myid + " .buy_month li.active";
         var omemory_onoff = "#" + myid + "_MoneyBefore";
         var odisk_onoff = "#" + myid + "_DiskBefore";
         var  memory_num = parseInt($(oId).html());
@@ -543,7 +543,7 @@ $(function(){
 
         var node_num = parseInt($(oNode).html());
         var Disk_num = parseInt($(oDisk).html());
-        var time_num = parseInt($(oTime).html());
+        var time_num = parseInt($(oTime).attr("data-time"));
         var memory_onoff = $(omemory_onoff).prop("checked");
         var disk_onoff = $(odisk_onoff).prop("checked");
         var onehour;
@@ -563,12 +563,13 @@ $(function(){
         }
         //计算 
         function Fnmemory(my_id){
-            var total_money= onehour * 24 * time_num  *30 * 4 * node_num;
+            var total_money= onehour * 24 * time_num  *30 * node_num;
             var buy_money;
-            if(time_num>=12){
-                buy_money = onehour * 24 * time_num *1.5 *30;
-            }else{
-                buy_money = onehour * 24 * time_num *2*30;
+            $("del.before_money").html((total_money*2).toFixed(2));
+            if(time_num==12){
+                total_money = total_money * 0.9;
+            }else if(time_num==24){
+                total_money = total_money * 0.8;
             }
             var htmlid = "#" + my_id + "_need-money" ;
             $(htmlid).html(total_money.toFixed(2));
@@ -600,47 +601,52 @@ $(function(){
         var this_id= $(this).attr("id");
         $("#"+ this_id +"_MoneyBefore").change(function(){
             var onoff = $("#"+ this_id +"_MoneyBefore").prop("checked");
-            if(onoff == true){
-                // $(".fn-memory-node").show();
-                $("#"+ this_id + "_aft-memory-box").hide();
+            var onoff2 = $("#"+ this_id +"_DiskBefore").prop("checked");
+            if((onoff == true) | (onoff2 == true)){
+                $("#"+ this_id +"_baoyuegoumai").show();
             }else{
-                //$(".fn-memory-node").hide();
-                $("#"+ this_id + "_aft-memory-box").show();
-            }
+                $("#"+ this_id +"_baoyuegoumai").hide();
+            } 
             FnPrice(this_id);
         });
         $("#"+ this_id +"_MoneyAfter").change(function(){
-            
-            var onoff = $("#"+ this_id +"_MoneyAfter").prop("checked");
-            if(onoff == false){
-                //$(".fn-memory-node").show();
-                $("#"+ this_id +"_aft-memory-box").hide();
+            var onoff = $("#"+ this_id +"_MoneyBefore").prop("checked");
+            var onoff2 = $("#"+ this_id +"_DiskBefore").prop("checked");
+            if((onoff == true) | (onoff2 == true)){
+                $("#"+ this_id +"_baoyuegoumai").show();
             }else{
-                //$(".fn-memory-node").hide();
-                $("#"+ this_id +"_aft-memory-box").show();
-            }
+                $("#"+ this_id +"_baoyuegoumai").hide();
+            } 
             FnPrice(this_id);
         });
         $("#"+ this_id +"_DiskBefore").change(function(){
             var onoff = $("#"+ this_id +"_DiskBefore").prop("checked");
+            var onoff2 = $("#"+ this_id +"_MoneyBefore").prop("checked");
             if(onoff == true){
                 $("#"+ this_id + "_disk_box").show();
-                $("#"+ this_id +"_aft-disk-box").hide();
             }else{
                 $("#"+ this_id + "_disk_box").hide();
-                $("#"+ this_id +"_aft-disk-box").show();
             }
+            if((onoff == true) | (onoff2 == true)){
+                $("#"+ this_id +"_baoyuegoumai").show();
+            }else{
+                $("#"+ this_id +"_baoyuegoumai").hide();
+            } 
             FnPrice(this_id);
         });
         $("#"+ this_id +"_DiskAfter").change(function(){
-            var onoff = $("#"+ this_id +"_After").prop("checked");
-            if(onoff == false){
-                $("#"+this_id +"_disk_box").show();
-                $("#"+ this_id +"_aft-disk-box").hide();
+            var onoff = $("#"+ this_id +"_DiskBefore").prop("checked");
+            var onoff2 = $("#"+ this_id +"_MoneyBefore").prop("checked");
+            if(onoff == true){
+                $("#"+ this_id + "_disk_box").show();
             }else{
-                $("#"+this_id +"_disk_box").hide();
-                $("#"+ this_id +"_aft-disk-box").show();
+                $("#"+ this_id + "_disk_box").hide();
             }
+            if((onoff == true) | (onoff2 == true)){
+                $("#"+ this_id +"_baoyuegoumai").show();
+            }else{
+                $("#"+ this_id +"_baoyuegoumai").hide();
+            } 
             FnPrice(this_id);
         });
      });
@@ -677,17 +683,17 @@ $(function(){
                 var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
                 var node_num = parseInt($("#"+appid+"_NodeText").html());
                 var disk_num = parseInt($("#"+appid+"_NodeText").html());
-                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+                var time_num = parseInt($("#"+appid+" .buy_month li.active").attr("data-time"));
             }else if(memory_onoff == true && disk_onoff == false ){
                 var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
                 var node_num = parseInt($("#"+appid+"_NodeText").html());
                 var disk_num = 0;
-                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+                var time_num = parseInt($("#"+appid+" .buy_month li.active").attr("data-time"));;
             }else if(memory_onoff == false && disk_onoff == true){
                 var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
                 var node_num = parseInt($("#"+appid+"_NodeText").html());
                 var disk_num = parseInt($("#"+appid+"_NodeText").html());
-                var time_num = parseInt($("#"+appid+"_TimeLongText").html());
+                var time_num = parseInt($("#"+appid+" .buy_month li.active").attr("data-time"));;
             }else{
                 var memory_num = parseInt($("#"+appid+"_OneMemoryText").html());
                 var node_num = parseInt($("#"+appid+"_NodeText").html());
@@ -742,7 +748,10 @@ $(function(){
                 }else if (status =="no_group"){
                     swal("当前组不存在");
                 }else if(status =="over_memory"){
-                    swal("资源已达上限,无法创建");
+                    if (dataObj["tenant_type"] == "free"){
+                        swal("资源已达上限,免费用户最多使用1G内存");
+                    }else
+                        swal("资源已达上限，不能创建");
                 }else if(status == "over_money"){
                     swal("余额不足无法创建");
                 }else if(status == "empty"){
@@ -753,6 +762,7 @@ $(function(){
                 else{
                     swal("创建失败");
                 }
+                $("#compose2").attr('disabled',false);
             },
             error: function() {
                 $("#compose2").attr('disabled',false);
@@ -839,4 +849,11 @@ $(function(){
             $(".tips-box").remove();
         });
     // // // 第二步 基本设置 end
+
+    /* ljh 2017-03-07 */
+    $(".buy_month li").click(function(){
+        $(this).addClass("active").siblings().removeClass("active");
+        FnPrice($(this).parents("section.fn-circle").attr("id"));
+    });
+    /* ljh 2017-03-07 */
 });

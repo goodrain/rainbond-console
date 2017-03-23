@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import json
+from decimal import Decimal
 
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
@@ -9,7 +10,7 @@ from django.http import Http404
 
 from share.manager.region_provier import RegionProviderManager
 from www.models.main import TenantRegionPayModel, ServiceGroupRelation, ServiceCreateStep, ServiceAttachInfo, \
-    TenantConsumeDetail
+    TenantConsumeDetail, ServiceConsume, ServiceFeeBill
 from www.views import BaseView, AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
 from www.models import (Users, ServiceInfo, TenantRegionInfo, TenantServiceInfo,
@@ -230,8 +231,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
             if has_managers:
                 service_manager['deployed'] = True
                 manager = has_managers[0]
-                service_manager[
-                    'url'] = 'http://{0}.{1}{2}:{3}'.format(manager.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[self.service.service_region], http_port_str)
+                if self.service.port_type =="one_outer":
+                    service_manager[
+                        'url'] = 'http://{0}.{1}{2}:{3}'.format(manager.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[self.service.service_region], http_port_str)
+                else:
+                    service_manager[
+                        'url'] = 'http://80.{0}.{1}{2}:{3}'.format(manager.service_alias, self.tenant.tenant_name, settings.WILD_DOMAINS[self.service.service_region], http_port_str)
             else:
                 # 根据服务版本获取对应phpmyadmin版本,暂时解决方法,待优化
                 app_version = '4.4.12'
@@ -293,9 +298,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
         service_attach_info.disk = 0
         service_attach_info.pre_paid_period = 0
         service_attach_info.pre_paid_money = 0
-        service_attach_info.buy_start_time = datetime.datetime.now()
-        service_attach_info.buy_end_time = datetime.datetime.now()
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:00:00")
+        service_attach_info.buy_start_time = datetime.datetime.strptime(now, "%Y-%m-%d %H:%M:%S")
+        service_attach_info.buy_end_time = datetime.datetime.strptime(now, "%Y-%m-%d %H:%M:%S")
         service_attach_info.create_time = datetime.datetime.now()
+        service_attach_info.save()
         return service_attach_info
 
     @never_cache
@@ -341,18 +348,18 @@ class TenantService(LeftSideBarMixin, AuthedView):
                                                     tenant_id=self.tenant.tenant_id).count() > 0:
                     return self.redirect_to('/apps/{0}/{1}/deploy/setting/'.format(self.tenantName, self.serviceAlias))
 
-            service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                                             service_id=self.service.service_id).order_by("-ID")
-            last_hour_cost = None
-            if len(service_consume_detail_list) > 0:
-                last_hour_cost = service_consume_detail_list[0]
-            if last_hour_cost is not None:
-                last_hour_cost.memory_fee = round(
-                    last_hour_cost.memory / 1024 * memory_post_paid_price * last_hour_cost.node_num, 2)
-                last_hour_cost.disk_fee = round(last_hour_cost.disk / 1024 * disk_post_paid_price, 2)
-                last_hour_cost.net_fee = round(last_hour_cost.net / 1024 * net_post_paid_price, 2)
-                last_hour_cost.total_fee = last_hour_cost.disk_fee + last_hour_cost.memory_fee + last_hour_cost.net_fee
-                context["last_hour_cost"] = last_hour_cost
+            # service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
+            #                                                                  service_id=self.service.service_id).order_by("-ID")
+            # last_hour_cost = None
+            # if len(service_consume_detail_list) > 0:
+            #     last_hour_cost = service_consume_detail_list[0]
+            # if last_hour_cost is not None:
+            #     last_hour_cost.memory_fee = round(
+            #         last_hour_cost.memory / 1024 * memory_post_paid_price * last_hour_cost.node_num, 2)
+            #     last_hour_cost.disk_fee = round(last_hour_cost.disk / 1024 * disk_post_paid_price, 2)
+            #     last_hour_cost.net_fee = round(last_hour_cost.net / 1024 * net_post_paid_price, 2)
+            #     last_hour_cost.total_fee = last_hour_cost.disk_fee + last_hour_cost.memory_fee + last_hour_cost.net_fee
+            #     context["last_hour_cost"] = last_hour_cost
             context['is_tenant_free'] = (self.tenant.pay_type == "free")
 
             context["tenantServiceInfo"] = self.service
@@ -375,6 +382,22 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
             http_port_str = settings.WILD_PORTS[self.response_region]
             context['http_port_str'] = ":" + http_port_str
+
+            service_attach_info = None
+            try:
+                service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                                    service_id=self.service.service_id)
+            except ServiceAttachInfo.DoesNotExist:
+                pass
+            if service_attach_info is None:
+                service_attach_info = self.generate_service_attach_info()
+
+            now = datetime.datetime.now()
+            if service_attach_info.buy_end_time < now:
+                if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method == "prepaid":
+                    service_attach_info.disk_pay_method = "postpaid"
+                    service_attach_info.memory_pay_method = "postpaid"
+                    service_attach_info.save()
 
             if fr == "deployed":
                 if self.service.service_type == 'mysql':
@@ -421,6 +444,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 if self.service.port_type == "multi_outer":
                     context["http_outer_service_ports"] = self.get_outer_service_port()
 
+                service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id,service_id=self.service.service_id).order_by("-ID")
+                last_hour_cost = None
+                if service_consume_list:
+                    last_hour_cost = service_consume_list[0]
+                context["last_hour_cost"] = last_hour_cost
+
             elif fr == "relations":
                 # service relationships
                 tsrs = TenantServiceRelation.objects.filter(service_id=self.service.service_id)
@@ -431,12 +460,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["serviceIds"] = relationsids
                 # service map
                 map = {}
-                sids = [self.service.service_id]
+                sids = []
                 tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id, region=self.response_region)
                 for tenantService in tenantServiceList:
                     if TenantServicesPort.objects.filter(service_id=tenantService.service_id, is_inner_service=True).exists():
                         sids.append(tenantService.service_id)
-                        map[tenantService.service_id] = tenantService
+                        if tenantService.service_id != self.service.service_id:
+                            map[tenantService.service_id] = tenantService
                     if tenantService.service_id in relationsids:
                         map[tenantService.service_id] = tenantService
                 context["serviceMap"] = map
@@ -503,6 +533,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
             elif fr == "settings":
                 nodeList = []
                 memoryList = []
+                port_changeable = self.service.code_from
+                context["port_changeable"] = port_changeable
                 try:
                     sem = ServiceExtendMethod.objects.get(service_key=self.service.service_key, app_version=self.service.version)
                     nodeList.append(sem.min_node)
@@ -603,100 +635,44 @@ class TenantService(LeftSideBarMixin, AuthedView):
                     serviceGroupNameMap[group.ID] = group.group_name
                 context["serviceGroupNameMap"] = serviceGroupNameMap
 
-
-
             elif fr == "cost":
-                service_attach_info =None
-                try:
-                    service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
-                                                                        service_id=self.service.service_id)
-                except ServiceAttachInfo.DoesNotExist:
-                    pass
-                if service_attach_info is None:
-                    service_attach_info = self.generate_service_attach_info()
+                # service_attach_info = None
+                # try:
+                #     service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                #                                                         service_id=self.service.service_id)
+                # except ServiceAttachInfo.DoesNotExist:
+                #     pass
+                # if service_attach_info is None:
+                #     service_attach_info = self.generate_service_attach_info()
 
                 context["service_attach_info"] = service_attach_info
+                context["total_buy_memory"] = service_attach_info.min_memory * service_attach_info.min_node
+                context["service"] = self.service
+                service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id).order_by("-ID")
+                last_hour_consume = None
+                if len(list(service_consume_list)) > 0:
+                    last_hour_consume = list(service_consume_list)[0]
+                context["last_hour_consume"] = last_hour_consume
+                service_total_memory_fee = Decimal(0)
+                service_total_disk_fee = Decimal(0)
+                service_total_net_fee = Decimal(0)
+                consume_list = list(service_consume_list)
+                for service_consume in consume_list:
+                    service_consume.memory_pay_method = "postpaid"
+                    service_consume.disk_pay_method = "postpaid"
+                    if service_attach_info.buy_start_time <= service_consume.time and service_consume.time <= service_attach_info.buy_end_time:
+                        if service_attach_info.memory_pay_method == "prepaid":
+                            service_consume.memory_pay_method = "prepaid"
+                        if service_attach_info.disk_pay_method == "prepaid":
+                            service_consume.disk_pay_method = "prepaid"
+                    service_total_memory_fee += service_consume.memory_money
+                    service_total_disk_fee += service_consume.disk_money
+                    service_total_net_fee += service_consume.net_money
 
-                service_consume_detail_list = TenantConsumeDetail.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                                                 service_id=self.service.service_id).order_by("-ID")
-
-                regionBo = rpmManager.get_work_region_by_name(self.response_region)
-                memory_pre_paid_price = regionBo.memory_package_price  # 内存预付费价格
-                memory_post_paid_price = regionBo.memory_trial_price  # 内存按需使用价格
-                disk_pre_paid_price = regionBo.disk_package_price  # 磁盘预付费价格
-                disk_post_paid_price = regionBo.disk_trial_price  # 磁盘按需使用价格
-                net_post_paid_price = regionBo.net_trial_price  # 网络按需使用价格
-
-                last_hour_detail = None
-                if len(list(service_consume_detail_list)) > 0:
-                    last_hour_detail = list(service_consume_detail_list)[0]
-                last_hour_detail.memory_fee = round(
-                    last_hour_detail.memory / 1024 * memory_post_paid_price * last_hour_detail.node_num, 2)
-                last_hour_detail.disk_fee = round(last_hour_detail.disk / 1024 * disk_post_paid_price, 2)
-                last_hour_detail.net_fee = round(last_hour_detail.net / 1024 * net_post_paid_price, 2)
-                context["last_hour_detail"] = last_hour_detail
-
-                # 费用总计
-                total_memory_price = 0
-                total_disk_price = 0
-                total_net_price = 0
-                for service_consume in service_consume_detail_list:
-                    service_consume.original_memory_unit_price = memory_post_paid_price
-                    service_consume.original_disk_unit_price = disk_post_paid_price
-                    service_consume.is_memory_pre_paid = False
-                    service_consume.is_disk_pre_paid = False
-                    # 未超出预付费期限
-                    if service_attach_info.buy_start_time <= service_consume.time <= service_attach_info.buy_end_time:
-                        # 如果内存为预付费
-                        if service_attach_info.memory_pay_method == 'prepaid':
-                            service_consume.memory_unit_price = memory_pre_paid_price
-                            service_consume.is_memory_pre_paid = True
-                        # 如果内存为后付费
-                        else:
-                            service_consume.memory_unit_price = memory_post_paid_price
-                        # 如果磁盘为预付费
-                        if service_attach_info.disk_pay_method == 'prepaid':
-                            service_consume.disk_unit_price = disk_pre_paid_price
-                            service_consume.is_disk_pre_paid = True
-                        # 如果磁盘为后付费
-                        else:
-                            service_consume.disk_unit_price = disk_post_paid_price
-                    # 超出预付费期限
-                    else:
-                        service_consume.disk_unit_price = disk_post_paid_price
-                        service_consume.memory_unit_price = memory_post_paid_price
-
-
-                    service_consume.net_unit_price = net_post_paid_price
-
-                    # total_memory_price += service_consume.memory / 1024 * service_consume.memory_unit_price
-                    # total_disk_price += service_consume.disk / 1024 * service_consume.disk_unit_price
-                    # total_net_price += service_consume.net / 1024 * service_consume.net_unit_price
-                    total_memory_price += float(service_consume.memory * memory_post_paid_price) / 1024
-                    total_disk_price += float(service_consume.disk * disk_post_paid_price) / 1024
-                    total_net_price += float(service_consume.net * net_post_paid_price) / 1024
-                    # 费用
-                    service_consume.memory_fee = round(float(service_consume.memory * memory_post_paid_price) / 1024, 2)
-                    service_consume.disk_fee = round(float(service_consume.disk * disk_post_paid_price) / 1024, 2)
-                    service_consume.net_fee = round(float(service_consume.net * net_post_paid_price) / 1024, 2)
-                    if service_consume.is_memory_pre_paid:
-                        service_consume.infact_memory_fee = 0
-                        service_consume.infact_disk_fee = 0
-                    else:
-                        service_consume.infact_memory_fee = service_consume.memory_fee
-                        service_consume.infact_disk_fee = service_consume.disk_fee
-                    service_consume.one_hour_total = service_consume.infact_memory_fee+service_consume.infact_disk_fee+service_consume.net_fee
-
-                    # 为了按G显示用
-                    service_consume.memory = round(float(service_consume.memory) / 1024, 3)
-                    service_consume.disk = round(float(service_consume.disk) / 1024, 3)
-                    service_consume.net = round(float(service_consume.net) / 1024, 3)
-                context['service_consume_detail_list'] = list(service_consume_detail_list)[:24]
-                context['total_memory_price'] = round(total_memory_price, 2)
-                context['total_disk_price'] = round(total_disk_price, 2)
-                context['total_net_price'] = round(total_net_price, 2)
-                context['buy_end_time'] = service_attach_info.buy_end_time
-                context['service'] = self.service
+                context["service_consume_list"] = consume_list[:24]
+                context["service_total_memory_fee"] = service_total_memory_fee
+                context["service_total_disk_fee"] = service_total_disk_fee
+                context["service_total_net_fee"] = service_total_net_fee
 
 
             else:

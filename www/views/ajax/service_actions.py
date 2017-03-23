@@ -5,7 +5,7 @@ import re
 
 from django.http import JsonResponse
 
-from www.models.main import ServiceGroupRelation, ServiceAttachInfo, ServiceCreateStep
+from www.models.main import ServiceGroupRelation, ServiceAttachInfo, ServiceCreateStep, ServiceFeeBill, ServiceConsume
 from www.views import AuthedView
 from www.decorator import perm_required
 
@@ -212,6 +212,20 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_reboot', False)
         elif action == "delete":
             try:
+                now = datetime.datetime.now()
+                service_attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id)
+                has_prepaid_items = False
+                if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method=="prepaid":
+                    has_prepaid_items = True
+                unpayed_bills = ServiceFeeBill.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id, pay_status="unpayed")
+                if has_prepaid_items:
+                    if now < service_attach_info.buy_end_time:
+                        #  开始计费之前,如果已经付款
+                        if not unpayed_bills:
+                            result["status"] = "payed"
+                            result["info"] = u"已付款应用无法删除"
+                            return JsonResponse(result)
+
                 published = AppService.objects.filter(service_id=self.service.service_id).count()
                 if published:
                     result["status"] = "published"
@@ -571,13 +585,23 @@ class ServiceDetail(AuthedView):
             if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
                 result["totalMemory"] = 0
                 result["status"] = "Owed"
+                result["service_pay_status"] = "no_money"
+                result["tips"] = "请为账户充值,然后重启应用"
             else:
                 if self.service.deploy_version is None or self.service.deploy_version == "":
                     result["totalMemory"] = 0
                     result["status"] = "Undeployed"
+                    result["service_pay_status"] = "debugging"
+                    result["tips"] = "应用尚未运行"
                 else:
                     body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
                     status = body[self.service.service_id]
+                    service_pay_status, tips, cost_money, need_pay_money, start_time_str = self.get_pay_status(status)
+                    result["service_pay_status"] = service_pay_status
+                    result["tips"] = tips
+                    result["cost_money"] = cost_money
+                    result["need_pay_money"] = need_pay_money
+                    result["start_time_str"]=start_time_str
                     if status == "running":
                         result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
@@ -585,10 +609,72 @@ class ServiceDetail(AuthedView):
                     result["status"] = status
         except Exception, e:
             logger.debug(self.service.service_region + "-" + self.service.service_id + " check_service_status is error")
+            logger.exception(e)
             result["totalMemory"] = 0
             result['status'] = "failure"
+            result["service_pay_status"] = "unknown"
+            result["tips"] = "服务状态未知"
         return JsonResponse(result)
 
+    def get_pay_status(self, service_current_status):
+
+        rt_status = "unknown"
+        rt_tips = "应用状态未知"
+        rt_money = 0.0
+        need_pay_money = 0.0
+        start_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        status = service_current_status
+        now = datetime.datetime.now()
+        service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,service_id=self.service.service_id)
+        buy_start_time = service_attach_info.buy_start_time
+        buy_end_time = service_attach_info.buy_end_time
+        memory_pay_method = service_attach_info.memory_pay_method
+        disk_pay_method = service_attach_info.disk_pay_method
+
+        service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id,service_id=self.service.service_id).order_by("-ID")
+        last_hour_cost = None
+        if service_consume_list:
+            last_hour_cost = service_consume_list[0]
+            rt_money = last_hour_cost.pay_money
+
+        service_unpay_bill_list = ServiceFeeBill.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id,pay_status="unpayed")
+        buy_start_time_str = buy_start_time.strftime("%Y-%m-%d %H:%M:%S")
+        diff_minutes = int((buy_start_time - now).total_seconds() / 60)
+        if status == "running":
+            if diff_minutes > 0:
+                if memory_pay_method == "prepaid" or disk_pay_method == "prepaid":
+                    if service_unpay_bill_list:
+                        rt_status = "wait_for_pay"
+                        rt_tips = "请于{0}前支付{1}元".format(buy_start_time_str,service_unpay_bill_list[0].prepaid_money)
+                        need_pay_money = service_unpay_bill_list[0].prepaid_money
+                        start_time_str = buy_start_time_str
+                    else:
+                        rt_status = "soon"
+                        rt_tips = "将于{0}开始计费".format(buy_start_time_str)
+                else:
+                    rt_status = "soon"
+                    rt_tips = "将于{0}开始计费".format(buy_start_time_str)
+            else:
+                if memory_pay_method == "prepaid" or disk_pay_method == "prepaid":
+                    if now < buy_end_time:
+                        rt_status = "show_money"
+                        rt_tips = "包月包年项目于{0}到期".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
+                    else:
+                        rt_status = "show_money"
+                        rt_tips = "包月包年项目已于{0}到期,应用所有项目均按需结算".format(buy_end_time.strftime("%Y-%m-%d %H:%M:%S"))
+                else:
+                    rt_status = "show_money"
+                    rt_tips = "当前应用所有项目均按小时结算"
+        else:
+            if diff_minutes > 0:
+                rt_status = "debugging"
+                rt_tips = "应用尚未运行"
+            else:
+                rt_status = "show_money"
+                rt_tips = "应用尚未运行"
+
+        return rt_status, rt_tips, rt_money, need_pay_money, start_time_str
 
 class ServiceNetAndDisk(AuthedView):
     @method_perf_time

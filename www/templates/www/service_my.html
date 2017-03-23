@@ -27,25 +27,28 @@
 	<img height="1" width="1" style="border-style:none;" alt="" src="//www.googleadservices.com/pagead/conversion/867795233/?label=0_d8CLyEpmwQoYLmnQM&amp;guid=ON&amp;script=0"/>
 	</div>
 	</noscript>
+	<!-- 同一公告-->
+	<div class="infotips tipsbox">尊敬的用户，您对当前版本的控制台有哪些意见或建议？<a href="http://goodrain123.mikecrm.com/IaIsFX9" target="_blank" style="cursor:pointer;">请点击这里进行反馈。</a></div>
+
 	<!-- 免费使用阶段 -->
 	{% if pay_type == "free" and not expired %}
-	<div class="infotips tipsbox">您可以全功能免费使用至 {{ expired_time|date:'Y-m-d H:i:s' }}。<a style="cursor:pointer;" onclick="payed_upgrade('{{tenantName}}','')">点击此处立刻升级为付费用户</a><a class="close" href="#">×</a></div>
+	<div class="infotips tipsbox"><a href="/apps/{{tenantName}}/recharge/" target="_blank">现在去充值</a>升级为付费用户，获得更多的资源支持及更好的服务支持。<!--您可以全功能免费使用至 {{ expired_time|date:'Y-m-d H:i:s' }}，<a style="cursor:pointer;" onclick="payed_upgrade('{{tenantName}}','')">点击此处立刻升级为付费用户</a>--></div>
 	{% endif %}
 	{% if pay_type == "free" and expired %}
-	<div class="errortips tipsbox">您需要升级为付费用户才能继续使用云帮。<a style="cursor:pointer;" onclick="payed_upgrade('{{tenantName}}','')">点击此处升级为付费用户</a><a class="close" href="#">×</a></div>
+	<div class="errortips tipsbox"><a href="/apps/{{tenantName}}/recharge/" target="_blank">现在去充值</a>升级为付费用户，获得更多的资源支持及更好的服务支持。<!--您需要<a style="cursor:pointer;" onclick="payed_upgrade('{{tenantName}}','')">点击此处升级为付费用户</a>才可以继续使用。--></div>
 	{% endif %}
 	<!-- 付费使用阶段 -->
 	{% if pay_type == "payed" and tenant_balance < 20 and tenant_balance > 0 %}
-	<div class="warntips tipsbox">您的余额偏低。 <a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a> <a class="close" href="#">×</a></div>
-	{% endif %}
-	{% if pay_type == "payed" and monthly_payment_status == 1 %}
-	<div class="warntips tipsbox">您的云帮将于 {{ buy_end_time|date:'Y-m-d H:i:s' }}到期。<a href="/apps/{{tenantName}}/paymodel/" target="_blank">点击此处购买预付费套餐</a><a class="close" href="#">×</a></div>
+	<div class="warntips tipsbox">您的账户余额偏低，为保证应用的持续稳定运行，请<a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a>。</div>
 	{% endif %}
 	{% if pay_type == "payed" and tenant_balance < 0 %}
-	<div class="errortips tipsbox">您需要充值才能继续使用云帮。<a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a> <a class="close" href="#">×</a></div>
+	<div class="errortips tipsbox">您需要<a href="/apps/{{tenantName}}/recharge/" target="_blank">点击此处充值</a>才能重新开启欠费应用。</div>
+	{% endif %}
+	{% if pay_type == "payed" and monthly_payment_status == 1 %}
+	<!--<div class="warntips tipsbox">您的云帮将于 {{ buy_end_time|date:'Y-m-d H:i:s' }}到期。<a href="/apps/{{tenantName}}/paymodel/" target="_blank">点击此处购买预付费套餐</a></div>-->
 	{% endif %}
 	{% if pay_type == "payed" and monthly_payment_status == 2 %}
-	<div class="errortips tipsbox">您的云帮已于{{ buy_end_time|date:'Y-m-d H:i:s' }}到期。<a href="/apps/{{tenantName}}/paymodel/" target="_blank">点击此处购买预付费套餐</a><a class="close" href="#">×</a></div>
+	<!--<div class="errortips tipsbox">您的云帮已于 {{ buy_end_time|date:'Y-m-d H:i:s' }}到期。<a href="/apps/{{tenantName}}/paymodel/" target="_blank">点击此处购买预付费套餐</a></div>-->
 	{% endif %}
 	<!-- -->
 	<div class="modal fade bs-example-modal-sm" id="mylayer" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -54,11 +57,11 @@
 	        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
 	      </div>
 	      <div class="modal-body">
-	        升级为付费用户，携手云帮一起迈向云计算的未来！
+	        立刻升级为付费用户，获得更多的资源支持及更好的服务支持。
 	      </div>
 	      <div class="modal-footer">
 	        <button type="button" class="btn btn-success" data-dismiss="modal" onclick="payed_upgrade('{{tenantName}}','')">确定升级</button>
-	        <button type="button" class="btn btn-default" data-dismiss="modal">我再想想</button>
+	        <button type="button" class="btn btn-default" data-dismiss="modal">取消升级</button>
 	      </div>
 	    </div>
 	</div>
@@ -88,7 +91,7 @@
 			</li>
 			<li>
 				<div>
-					<p>成员</p>
+					<p>团队</p>
 					<p class="mainbg04"></p>
 					<p class=" count3">{{totalNum}}人</p>
 				</div>

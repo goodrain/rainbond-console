@@ -2,6 +2,7 @@
       //加载显示 隐藏绑定域名
       var tenantName = $("#tenant-name").html();
       var serviceAlias = $("#service-alias").html();
+      var code_from = $("#code_from").html();
       //设定端口对内服务和对外服务的开关
       $('.switch-box').bootstrapSwitch();
       $('.switch-box').on('switchChange.bootstrapSwitch', function(event, state) {
@@ -261,14 +262,24 @@
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
-          dict[name] = value; 
+          dict[name] = value;
           if(!isNaN(value)){
-              if(value>=1025 && value<=65535){
-                 console.log(value);
+              if (code_from=="image_manual"){
+                  if(value>=1 && value<=65535){
+                      console.log(value);
+                  }else{
+                      showMessage("端口号必须在1~65535之间！");
+                      return flase;
+                  }
               }else{
-                showMessage("端口号必须在1025~65535之间！");
-                return flase;
+                  if(value>=1025 && value<=65535){
+                      console.log(value);
+                  }else{
+                      showMessage("端口号必须在1025~65535之间！");
+                      return flase;
+                  }
               }
+
           }
           //dict[name] = value;
         });

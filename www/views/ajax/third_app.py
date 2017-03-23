@@ -17,62 +17,62 @@ class CreateAppView(AuthedView):
     def post(self, request, *args, **kwargs):
         result = {}
         try:
-            app_type = kwargs.get('app_type', None)
-            tenant_name = self.tenantName
-            app_name = request.POST.get("app_name", None)
-            create_body = {}
-            if app_type is not None:
-                if app_type == "upai_cdn":
-                    service_id = make_uuid()
-                    create_body["bucket_name"] = "gr" + service_id[-6:]
-                    create_body["type"] = "ucdn"
-                    create_body["business_type"] = "file"
-                
-                elif app_type == "upai_oos":
-                    service_id = make_uuid()
-                    create_body["bucket_name"] = "gr" + service_id[-6:]
-                    create_body["type"] = "file"
-                    create_body["business_type"] = "file"
-                upai_client = YouPaiApi()
-                res, body = upai_client.createService(json.dumps(create_body))
-                if res.status == 201:
-                    # 创建应用
-                    info = ThirdAppInfo()
-                    info.service_id = service_id
-                    info.bucket_name = create_body["bucket_name"]
-                    info.app_type = app_type
-                    info.tenant_id = tenant_name
-                    info.create_user = self.user.user_id
-                    if app_name is not None:
-                        info.name = app_name
-                    elif app_type == "upai_oos":
-                        info.name = "又拍云对象存储"
-                    elif app_type == "upai_cdn":
-                        info.name = "又拍云CDN"
-                    info.save()
-                    # 创建初始化账单
-                    order = ThirdAppOrder(bucket_name=info.bucket_name, tenant_id=self.tenantName,
-                                          service_id=service_id)
-                    order.order_id = make_uuid()
-                    order.start_time = datetime.datetime.now()
-                    order.end_time = datetime.datetime.now()
-                    order.create_time = datetime.datetime.now()
-                    order.save()
-                    result["status"] = "success"
-                    result["app_id"] = info.bucket_name
-                    JsonResponse(result)
-                else:
+            with transaction.atomic():
+                app_type = kwargs.get('app_type', None)
+                tenant_name = self.tenantName
+                app_name = request.POST.get("app_name", None)
+                create_body = {}
+                if app_type is not None:
+                    if app_type == "upai_cdn":
+                        service_id = make_uuid()
+                        create_body["bucket_name"] = "gr" + service_id[-6:]
+                        create_body["type"] = "ucdn"
+                        create_body["business_type"] = "file"
                     
-                    logger.error("create upai cdn bucket error,:" + body.message)
+                    elif app_type == "upai_oos":
+                        service_id = make_uuid()
+                        create_body["bucket_name"] = "gr" + service_id[-6:]
+                        create_body["type"] = "file"
+                        create_body["business_type"] = "file"
+                    upai_client = YouPaiApi()
+                    res, body = upai_client.createService(json.dumps(create_body))
+                    if res.status == 201:
+                        # 创建应用
+                        info = ThirdAppInfo()
+                        info.service_id = service_id
+                        info.bucket_name = create_body["bucket_name"]
+                        info.app_type = app_type
+                        info.tenant_id = tenant_name
+                        info.create_user = self.user.user_id
+                        if app_name is not None:
+                            info.name = app_name
+                        elif app_type == "upai_oos":
+                            info.name = "又拍云对象存储"
+                        elif app_type == "upai_cdn":
+                            info.name = "又拍云CDN"
+                        info.save()
+                        # 创建初始化账单
+                        order = ThirdAppOrder(bucket_name=info.bucket_name, tenant_id=self.tenantName,
+                                              service_id=service_id)
+                        order.order_id = make_uuid()
+                        order.start_time = datetime.datetime.now()
+                        order.end_time = datetime.datetime.now()
+                        order.create_time = datetime.datetime.now()
+                        order.save()
+                        result["status"] = "success"
+                        result["app_id"] = info.bucket_name
+                        JsonResponse(result)
+                    else:
+                        
+                        logger.error("create upai cdn bucket error,:" + body.message)
+                        result["status"] = "failure"
+                        result["message"] = body.message
+                        JsonResponse(result)
+                else:
                     result["status"] = "failure"
-                    result["message"] = body.message
+                    result["message"] = "参数错误"
                     JsonResponse(result)
-            else:
-                result["status"] = "failure"
-                result["message"] = "参数错误"
-                JsonResponse(result)
         except Exception as e:
-            transaction.rollback()
             logger.exception(e)
             result["status"] = "failure"
             result["message"] = "内部错误"
@@ -333,53 +333,53 @@ class CDNTrafficRecordView(AuthedView):
     def post(self, request, *args, **kwargs):
         result = {}
         try:
-            traffic_size = request.POST.get("traffic_size", "500G")
-            new_tenant = Tenants.objects.get(tenant_id=self.tenant.tenant_id)
-            if new_tenant.balance < self.price_map[traffic_size] and new_tenant.pay_type != "unpay":
-                result["status"] = "failure"
-                result["message"] = "余额不足，请先充值！"
-                return JsonResponse(result)
-            
-            # 创建订单
-            record = CDNTrafficRecord()
-            record.traffic_price = self.price_map[traffic_size]
-            record.traffic_size = self.size_map[traffic_size]
-            record.bucket_name = self.app_id
-            record.service_id = self.app_info.service_id
-            record.order_id = make_uuid()
-            record.tenant_id = self.tenantName
-            record.save()
-            # 支付
-            if new_tenant.pay_type != "unpay":
-                new_tenant.balance = float(new_tenant.balance) - float(self.price_map[traffic_size])
-                new_tenant.save()
-            record.payment_status = 1
-            record.save()
-            
-            # 创建流量包消费增值纪录
-            hour = CDNTrafficHourRecord.objects. \
-                order_by("-end_time").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
-            n_hour = CDNTrafficHourRecord()
-            if hour is None:
-                n_hour.balance = record.traffic_size
-            else:
-                n_hour.balance = record.traffic_size + hour.balance
-            n_hour.bucket_name = self.app_id
-            n_hour.service_id = self.app_info.service_id
-            n_hour.tenant_id = self.tenantName
-            n_hour.traffic_number = 0
-            n_hour.start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            n_hour.end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            n_hour.save()
-            
-            # 更新应用付费方式为包流量
-            self.app_info.bill_type = "packet"
-            self.app_info.save()
-            result["status"] = "success"
-            result["message"] = "购买成功"
-            result["balance"] = hour.balance
+            with transaction.atomic():
+                traffic_size = request.POST.get("traffic_size", "500G")
+                new_tenant = Tenants.objects.get(tenant_id=self.tenant.tenant_id)
+                if new_tenant.balance < self.price_map[traffic_size] and new_tenant.pay_type != "unpay":
+                    result["status"] = "failure"
+                    result["message"] = "余额不足，请先充值！"
+                    return JsonResponse(result)
+                
+                # 创建订单
+                record = CDNTrafficRecord()
+                record.traffic_price = self.price_map[traffic_size]
+                record.traffic_size = self.size_map[traffic_size]
+                record.bucket_name = self.app_id
+                record.service_id = self.app_info.service_id
+                record.order_id = make_uuid()
+                record.tenant_id = self.tenantName
+                record.save()
+                # 支付
+                if new_tenant.pay_type != "unpay":
+                    new_tenant.balance = float(new_tenant.balance) - float(self.price_map[traffic_size])
+                    new_tenant.save()
+                record.payment_status = 1
+                record.save()
+                
+                # 创建流量包消费增值纪录
+                hour = CDNTrafficHourRecord.objects. \
+                    order_by("-end_time").filter(bucket_name=self.app_id, service_id=self.app_info.service_id).first()
+                n_hour = CDNTrafficHourRecord()
+                if hour is None:
+                    n_hour.balance = record.traffic_size
+                else:
+                    n_hour.balance = record.traffic_size + hour.balance
+                n_hour.bucket_name = self.app_id
+                n_hour.service_id = self.app_info.service_id
+                n_hour.tenant_id = self.tenantName
+                n_hour.traffic_number = 0
+                n_hour.start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                n_hour.end_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                n_hour.save()
+                
+                # 更新应用付费方式为包流量
+                self.app_info.bill_type = "packet"
+                self.app_info.save()
+                result["status"] = "success"
+                result["message"] = "购买成功"
+                result["balance"] = n_hour.balance
         except Exception, e:
-            transaction.rollback()
             logger.exception(e)
             result["status"] = "failure"
             result["message"] = "购买失败"
@@ -401,23 +401,23 @@ class OpenThirdAppView(AuthedView):
         :return:
         """
         result = {}
-        try:
-            upai_client = YouPaiApi()
-            if self.tenant.balance > 0:
+        
+        upai_client = YouPaiApi()
+        if self.tenant.balance > 0:
+            try:
                 res, body = upai_client.openApp(self.app_id)
                 if res.status == 200:
                     self.app_info.open = 1
                     self.app_info.save()
-                else:
-                    result["status"] = "failure"
-                    result["message"] = body.message
-            else:
+                    result["status"] = "success"
+                    result["message"] = "操作成功"
+            except Exception, e:
+                logger.exception(e)
                 result["status"] = "failure"
-                result["message"] = "余额不足"
-        except Exception, e:
-            logger.exception(e)
+                result["message"] = "开启失败"
+        else:
             result["status"] = "failure"
-            result["message"] = "开启失败"
+            result["message"] = "余额不足"
         return JsonResponse(result)
 
 
@@ -436,19 +436,23 @@ class CloseThirdAppView(AuthedView):
         :return:
         """
         result = {}
-        try:
-            upai_client = YouPaiApi()
-            res, body = upai_client.stopApp(self.app_id)
-            if res.status == 200:
-                self.app_info.open = 0
-                self.app_info.save()
-            else:
+        
+        upai_client = YouPaiApi()
+        if self.tenant.balance > 0:
+            try:
+                res, body = upai_client.stopApp(self.app_id)
+                if res.status == 200:
+                    self.app_info.open = 0
+                    self.app_info.save()
+                    result["status"] = "success"
+                    result["message"] = "操作成功"
+            except Exception, e:
+                logger.exception(e)
                 result["status"] = "failure"
-                result["message"] = body.message
-        except Exception, e:
-            logger.exception(e)
+                result["message"] = "开启失败"
+        else:
             result["status"] = "failure"
-            result["message"] = "关闭失败"
+            result["message"] = "余额不足"
         return JsonResponse(result)
 
 
@@ -539,23 +543,42 @@ class CDNSourceView(AuthedView):
         :return:
         """
         result = {}
-        try:
-            if self.app_info.app_type == "upai_cdn":
-                res = {}
-                body = {}
-                try:
-                    rbody = {}
-                    
-                    upai_client = YouPaiApi()
-                    res, body = upai_client.cdn_source(self.app_id, json.loads(rbody))
-                except Exception, e:
-                    result["status"] = "failure"
-                    result["message"] = "添加失败" + body.message
-                if res.status == 200:
+        
+        if self.app_info.app_type == "upai_cdn":
+            domain = request.POST.get("domain", "")
+            source_type = request.POST.get("source_type", "protocol_follow")
+            domain_follow = request.POST.get("domain_follow", "enable")
+            cdn = request.POST.get("cdn", "")
+            if domain == "" and domain_follow != "enable":
+                result["status"] = "failure"
+                result["message"] = "域名为空且域名跟随未开启"
+                return JsonResponse(result)
+            if not cdn:
+                result["status"] = "failure"
+                result["message"] = "CDN回源地址未定义"
+                return JsonResponse(result)
+            rbody = {}
+            rbody["domain"] = domain
+            rbody["source_type"] = source_type
+            rbody["domain_follow"] = domain_follow
+            rbody["cdn"] = cdn
+            rbody["bucket_name"] = self.app_id
+            upai_client = YouPaiApi()
+            
+            try:
+                res, body = upai_client.cdn_source(json.dumps(rbody))
+                logger.debug(body)
+                if res.status == 200 or body.result:
                     result["status"] = "success"
                     result["message"] = "添加成功"
-        except Exception, e:
-            logger.exception(e)
+            except YouPaiApi.CallApiError, e:
+                logger.exception(e)
+                result["status"] = "failure"
+                result["message"] = "添加失败"
+                if e.message["body"].message:
+                    result["message"] = e.message["body"].message
+        
+        else:
             result["status"] = "failure"
-            result["message"] = "添加失败"
+            result["message"] = "操作不允许"
         return JsonResponse(result)

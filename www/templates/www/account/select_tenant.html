@@ -26,7 +26,7 @@
                 <div id="div_id_tenant_name" class="form-group clearfix">
                     <label for="tenant_name" class="control-label col-lg-2 requiredField" style="text-align: right;">所在团队</label>
                     <div class="controls col-lg-8">
-                      <select class="select form-control" id="tenant_name" name="tenant">
+                      <select class="select form-control" id="tenant_name" name="tenant" onchange="select_change(this.value);">
                         {% for name in tenant_names %}
                         <option value="{{name}}">{{name}}</option>
                         {% endfor %}
@@ -37,9 +37,7 @@
                     <label for="region" class="control-label col-lg-2 requiredField" style="text-align: right;">数据中心</label>
                     <div class="controls col-lg-8">
                       <select class="select form-control" id="region" name="region">
-                        {% for name, display_name in regions %}
-                        <option value="{{name}}">{{display_name}}</option>
-                        {% endfor %}
+
                       </select>
                     </div>
                 </div>
@@ -52,4 +50,21 @@
         </div>
         <div class="col-sm-2"></div>
     </div>
+
+<script type="text/javascript">
+    var json_values =JSON.parse('{{ tenant_region_map|safe }}');
+    $(document).ready(function () {
+        var cur_tenant = $("#tenant_name").val()
+        select_change(cur_tenant);
+    });
+    function select_change(value) {
+        $("#region").empty();
+        var option_value = json_values[value];
+        for(var i = 0; i< option_value.length;i++ ){
+            console.log(option_value[i][1]+","+option_value[i][0])
+            var option = new Option(option_value[i][1],option_value[i][0]);
+            document.getElementById('region').options[i] = option;
+        }
+    }
+</script>
 {% endblock %}

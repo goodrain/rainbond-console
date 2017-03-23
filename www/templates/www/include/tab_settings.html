@@ -1,5 +1,6 @@
 <!-- settings start -->
 <div role="tabpanel" id="settings">
+
     <!-- 01 -->
     <section class="content-tab">
         <p class="tit-two">基础信息</p>
@@ -142,6 +143,8 @@
                 <div style="display: none">
                     <p id="tenant-name">{{ tenantName }}</p>
                     <p id="service-alias">{{ serviceAlias }}</p>
+                    <p id="code_from">{{ port_changeable }}</p>
+
                 </div>
             </div>
 
@@ -156,7 +159,7 @@
     <section class="content-tab">
         <!-- title line start -->
         <p class="tit-two">端口开放<span>(配置变化后需重启)</span>
-            <button type="button" class="greenbtn" id="add_service_port">新增服务端口</button>
+            <button type="button" class="greenbtn" id="add_service_port" {% if not port_changeable %}style="display:none;"{% endif %}>新增服务端口</button>
         </p>
 
         <!-- title line end -->
@@ -168,18 +171,26 @@
                 <thead>
                 <tr port="{{ port.container_port }}">
                     <th>端口号:
+                        {% if port_changeable %}
                         <a href="#" class="edit-port" data-title="更改监听端口"
                            data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ port.container_port }}"
                            data-value="{{ port.container_port }}"></a>
+                        {% else %}
+                        <span style="color: #28cb75;">{{ port.container_port }}</span>
+                        {% endif %}
                     </th>
                     <th>协议类型:
+                        {% if port_changeable %}
                         <a href="#" class="edit-protocol" id="edit_protocol_{{ port.container_port }}"
                            data-title="更改协议类型"
                            data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ port.container_port }}"
                            data-value="{{ port.protocol }}"></a>
+                        {% else %}
+                        <span style="color: #28cb75;">{{ port.protocol }}</span>
+                        {% endif %}
                     </th>
                     <th>
-                        <button type="button" class="port-delete btn redbtn btn-xs">删除</button>
+                        <button type="button" class="port-delete btn redbtn btn-xs" {% if not port_changeable %}style="display:none;"{% endif %}>删除</button>
                     </th>
                 </tr>
                 </thead>
@@ -240,7 +251,7 @@
                                     {% endfor %}
                                     <!-- 多个域名 展示-->
                                 </div>
-                                <button type="button" class="btn greenbtn btn-xs fn-bind-domain">绑定</button>
+                                <button type="button" class="btn greenbtn btn-xs fn-bind-domain">新增绑定</button>
                                 <div class="fn-domain-layer  domain-layer">
                                     <input type="text" placeholder="请输入绑定域名"
                                            id="service_app_name_{{ port.container_port }}"/>
@@ -333,7 +344,7 @@
     <!-- 04-->
     <!-- 05-->
     <section class="content-tab">
-        <p class="tit-two">手动伸缩</p>
+        <p class="tit-two">手动伸缩<span>(如当前应用内存已购买包月，扩容超出包月额度部分会按小时扣费，如想增加包月额度，<a href="/apps/{{ tenantName }}/{{ serviceAlias }}/detail/?fr=cost">请前往费用页面购买</a>)</span></p>
         <div class="">
             <div class="krfs clearfix">
                 {% ifequal tenantServiceInfo.category "application" %}
@@ -407,9 +418,9 @@
         </div>
     </section>
 
-
+    {% if not is_private %}
     <section class="content-tab" id="autoScaling">
-        <p class="tit-two">自动伸缩 </p>
+        <p class="tit-two">自动伸缩<span>(如当前应用内存已购买包月，使用自动伸缩超出包月额度部分会按小时扣费，如想增加包月额度，<a href="/apps/{{ tenantName }}/{{ serviceAlias }}/detail/?fr=cost">请前往费用页面购买</a>)</span></p>
         <table perm-type="service" style="margin-bottom: 10px;">
             <thead>
             <tr>
@@ -465,7 +476,7 @@
         </div>
         <button type="button" class="btn greenbtn" id="add_rule">新增规则</button>
     </section>
-
+    {% endif %}
     <!-- 05-->
     <!-- 06-->
 
@@ -533,6 +544,7 @@
     <!-- 06-->
     <!-- 07-->
     {% if 'delete_service' in user.actions %}
+
         <section class="content-tab" id="delete">
             <p class="tit-two">删除 </p>
             <div class="">

@@ -363,10 +363,16 @@ a.logo:hover, a.logo:focus {
     outline: none;
 }
 
+/* by xujinghua 2017-03-21*/
+a.logo img{
+    width: 126px;
+    height: auto;
+}
+/* by xujinghua 2017-03-21*/
+
 a.logo span {
     color: #FF6C60;
 }
-
 
 /*notification*/
 

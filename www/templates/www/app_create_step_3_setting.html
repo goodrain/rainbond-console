@@ -194,7 +194,7 @@
             <p class="layer-tit">新增依赖</p>
             <div class="layer-height-overflow">
                 <ul class="clearfix">
-                    {% for deployTenantService in deployTenantServices %}
+                    {% for deployTenantService in openInnerServices %}
                     <li class="clearfix">
                          <input type="checkbox" class="cho-input" value="{{deployTenantService.service_id}}_{{deployTenantService.service_type}}_{{deployTenantService.version}}" data-action="{{deployTenantService.service_cname}}_{{deployTenantService.version}}" data-id="{{deployTenantService.service_id}}" id="{{deployTenantService.service_id}}">
                         <label class="cho-bg" for="{{deployTenantService.service_id}}"></label>

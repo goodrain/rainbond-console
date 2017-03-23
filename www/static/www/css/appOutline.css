@@ -53,10 +53,10 @@ button{
 .alternative .alterLeft ul li.button{
     float: left;
 }
-.alternative .alterLeft ul li.button button,select{
-    margin-right: 10px;
+.alternative .alterLeft ul li.button button,select,a.bgColor{
+    margin-right: 20px;
 }
-.alternative ul button.bgColor{
+.alternative ul button.bgColor,a.bgColor{
     text-align: center;
     vertical-align: middle;
     background-color: #28cb75;
@@ -69,5 +69,7 @@ button{
     -moz-border-radius: 6px;
     line-height: 36px;
 }
-
+.alternative ul a.bgColor{
+    display: block;
+}
 

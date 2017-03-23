@@ -1,19 +1,22 @@
 # -*- coding: utf8 -*-
 import json
+from decimal import Decimal
+
 from addict import Dict
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
 from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
-from www.models.main import ServiceAttachInfo
+from www.models.main import ServiceAttachInfo, ServiceFeeBill
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
                         AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep)
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService, \
+    AppCreateService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
 from www.app_http import AppServiceApi
@@ -36,6 +39,7 @@ tenantAccountService = TenantAccountService()
 appClient = AppServiceApi()
 tenantRegionService = TenantRegionService()
 rpmManager = RegionProviderManager()
+appCreateService = AppCreateService()
 
 
 class ServiceMarket(LeftSideBarMixin, AuthedView):
@@ -275,19 +279,6 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js')
         return media
 
-    def get_estimate_service_fee(self, service_attach_info):
-        """根据附加信心获取服务的预估价格"""
-        total_price = 0
-        regionBo = rpmManager.get_work_region_by_name(self.response_region)
-        pre_paid_memory_price = regionBo.memory_package_price
-        pre_paid_disk_price = regionBo.disk_package_price
-        if service_attach_info.memory_pay_method == "prepaid":
-            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024 * pre_paid_memory_price
-        if service_attach_info.disk_pay_method == "prepaid":
-            total_price += service_attach_info.disk / 1024 * pre_paid_disk_price
-        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
-        return round(total_price, 2)
-
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
@@ -323,13 +314,27 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                     return self.redirect_to('/apps/{0}/service/'.format(self.tenant.tenant_name))
                 else:
                     serviceObj = base_info
+            # 获取对应扩展数
+            app_min_memory = 128
+            app_max_memory = 65536
+            sem = None
+            try:
+                sem = ServiceExtendMethod.objects.get(service_key=service_key, app_version=app_version)
+            except ServiceExtendMethod.DoesNotExist:
+                pass
+            if sem:
+                app_min_memory = sem.min_memory
+                app_max_memory = sem.max_memory
 
+            context["app_min_memory"] = app_min_memory
+            context["app_max_memory"] = app_max_memory
             context["service"] = serviceObj
             context["tenantName"] = self.tenantName
             context["service_key"] = service_key
             context["app_version"] = app_version
             context["service_name"] = serviceObj.service_name
             context["min_memory"] = serviceObj.min_memory
+            context["service_category"] = serviceObj.service_type
 
             regionBo = rpmManager.get_work_region_by_name(self.response_region)
             context['pre_paid_memory_price'] = regionBo.memory_package_price
@@ -362,9 +367,9 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)
 
-            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                result["status"] = "owed"
-                return JsonResponse(result, status=200)
+            # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+            #     result["status"] = "owed"
+            #     return JsonResponse(result, status=200)
 
             service_key = request.POST.get("service_key", None)
             if service_key is None:
@@ -403,16 +408,20 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
                 min_memory *= 1024
             min_node = int(request.POST.get("service_min_node", 1))
 
+            service.min_memory = min_memory
+            service.min_node = min_node
+
             # calculate resource
             tempService = TenantServiceInfo()
-            tempService.min_memory = service.min_memory
+            tempService.min_memory = min_memory
             tempService.service_region = self.response_region
-            tempService.min_node = service.min_node
-            diffMemory = service.min_node * service.min_memory
+            tempService.min_node = min_node
+            diffMemory = min_node * min_memory
             rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
             if not flag:
                 if rt_type == "memory":
                     result["status"] = "over_memory"
+                    result["tenant_type"] = self.tenant.pay_type
                 else:
                     result["status"] = "over_money"
                 return JsonResponse(result, status=200)
@@ -441,8 +450,14 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             sai.buy_start_time = startTime
             sai.buy_end_time = endTime
             sai.create_time = create_time
-            sai.pre_paid_money = self.get_estimate_service_fee(sai)
+            sai.pre_paid_money = appCreateService.get_estimate_service_fee(sai, self.response_region)
             sai.save()
+            # 创建预付费订单
+            if sai.pre_paid_money > 0:
+                ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
+                                              prepaid_money=sai.pre_paid_money, pay_status="unpayed",
+                                              cost_type="first_create", node_memory=min_memory, node_num=min_node,
+                                              disk=disk, buy_period=pre_paid_period * 24 * 30)
 
             if min_memory != "":
                 cm = int(min_memory)
@@ -658,15 +673,20 @@ class ServiceDeploySettingView(LeftSideBarMixin,AuthedView):
             pre_paid_period = attach_info.pre_paid_period
             if self.tenant.pay_type == "free":
                 # 免费租户的应用过期时间为7天
+                startTime = datetime.datetime.now() + datetime.timedelta(days=7)+datetime.timedelta(hours=1)
+                startTime = startTime.strftime("%Y-%m-%d %H:00:00")
+                startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                 service = self.service
-                service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
+                service.expired_time = startTime
                 service.save()
-                startTime = datetime.datetime.now() + datetime.timedelta(days=7)
                 endTime = startTime + relativedelta(months=int(pre_paid_period))
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
                                                                                             buy_end_time=endTime)
             else:
-                startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                # 付费用户一个小时调试
+                startTime = datetime.datetime.now() + datetime.timedelta(hours=2)
+                startTime = startTime.strftime("%Y-%m-%d %H:00:00")
+                startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                 endTime = startTime + relativedelta(months=int(pre_paid_period))
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
                                                                                             buy_end_time=endTime)

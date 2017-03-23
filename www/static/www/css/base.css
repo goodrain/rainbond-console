@@ -87,6 +87,14 @@ input[type="range"]:focus::-ms-fill-upper {background: transparent;}
 .fm-input-range .range-box .range-choose{width:100%; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 5px; display: block; padding-left: 0;}
 .fm-input-range .range-box .range-choose cite{width:0; height: 10px; background: #28cb75; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius: 10px; display: block; margin:0; padding:0;}
 
+/* ljh 2017-03-07 */
+.fm-input-range ul.range-box{width: 80%;height: 70px;}
+.fm-input-range ul.range-box li{float: left;padding: 0px 5px;width: 70px;border: 1px solid #ececec;height: 32px;display: flex;align-items: center;justify-content: center;margin-right: 10px;margin-bottom: 10px;}
+.fm-input-range ul.range-box li.active{border:1px solid #28cb75;}
+.fm-input-range ul.range-box li span{display: none;}
+.fm-input-range ul.range-box li.active span{display: block;}
+/* ljh 2017-03-07 */
+
 .fm-input-range  .range-box.nouser input{width:20%; height: 20px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
 .fm-input-range  .range-box.nouser .range-choose{width:20%; height: 10px; position: absolute;  z-index: 9;  left: 0; top: 5px; display: block;}
 .fm-input-range  .range-box.nouser02 input{width:20px; height: 20px;  position: absolute; display: block; top: 0; left: 0; z-index: 19;}
@@ -154,6 +162,10 @@ table.tab-box.lit td{height: 30px;}
 .del{width: 22px; height: 22px; background: #f63a47; position: absolute; border-radius:50%; -webkit-border-radius:50%; -moz-border-radius:50%; top: 7px; right: 10px; font-size: 18px; line-height: 22px; text-align: center; color: #fff;}
 .layer-height-overflow{height:250px; overflow-y:auto; width: 100%; overflow-x: hidden; }
 /*layer end */
+p.bottom {text-align: right; padding: 20px 0;}
+p.bottom button{outline: none; border:none; text-align: center; border-radius: 6px; -webkit-border-radius: 6px; -moz-border-radius: 6px; height: 30px; padding:0px 20px; line-height: 30px; display: inline-block; margin:0 10px;}
+p.bottom button.sure{ background-color: #28cb75; color: #ffffff;}
+p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; color: #303030; }
 
 
 .build-app-btn  button{border-radius: 6px; -moz-border-radius:6px; -webkit-border-radius:6px; margin:0;}

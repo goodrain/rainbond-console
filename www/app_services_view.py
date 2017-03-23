@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import logging
 import json
+from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
 from django.views.decorators.cache import never_cache
@@ -10,12 +11,13 @@ from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
 from www.models.main import ServiceGroupRelation, ServiceAttachInfo, TenantServiceEnvVar, TenantServiceMountRelation, \
-    TenantServiceVolume, ServiceCreateStep
+    TenantServiceVolume, ServiceCreateStep, ServiceFeeBill
 from www.views import BaseView, AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import ServiceInfo, TenantServicesPort, TenantServiceInfo, TenantServiceRelation, TenantServiceEnv, TenantServiceAuth
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService, TenantRegionService
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, CodeRepositoriesService, TenantRegionService, \
+    AppCreateService
 from www.utils.language import is_redirect
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
@@ -34,6 +36,7 @@ baseService = BaseTenantService()
 codeRepositoriesService = CodeRepositoriesService()
 tenantRegionService = TenantRegionService()
 rpmManager = RegionProviderManager()
+appCreateService = AppCreateService()
 
 
 class AppCreateView(LeftSideBarMixin, AuthedView):
@@ -44,19 +47,6 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js')
         return media
-
-    def get_estimate_service_fee(self, service_attach_info):
-        """根据附加信心获取服务的预估价格"""
-        total_price = 0
-        regionBo = rpmManager.get_work_region_by_name(self.response_region)
-        pre_paid_memory_price = regionBo.memory_package_price
-        pre_paid_disk_price = regionBo.disk_package_price
-        if service_attach_info.memory_pay_method == "prepaid":
-            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024 * pre_paid_memory_price
-        if service_attach_info.disk_pay_method == "prepaid":
-            total_price += service_attach_info.disk / 1024 * pre_paid_disk_price
-        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
-        return round(total_price, 2)
 
     @never_cache
     @perm_required('create_service')
@@ -77,8 +67,8 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
         try:
             type = request.GET.get("type", "gitlab_new")
-            if type not in("gitlab_new","gitlab_manual","github","gitlab_exit","gitlab_demo",):
-                type = "gitlab_new"
+            if type not in("gitlab_new","gitlab_manual","github","gitlab_exit","gitlab_demo","gitlab_self",):
+                type = "gitlab_self"
             context["tenantName"] = self.tenantName
             context["createApp"] = "active"
             request.session["app_tenant"] = self.tenantName
@@ -125,9 +115,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
 
-            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                data["status"] = "owed"
-                return JsonResponse(data, status=200)
+            # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+            #     data["status"] = "owed"
+            #     return JsonResponse(data, status=200)
 
             # if tenantAccountService.isExpired(self.tenant,self.service):
             #     data["status"] = "expired"
@@ -164,6 +154,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             if not flag:
                 if rt_type == "memory":
                     data["status"] = "over_memory"
+                    data["tenant_type"] = self.tenant.pay_type
                 else:
                     data["status"] = "over_money"
                 return JsonResponse(data, status=200)
@@ -193,8 +184,14 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             sai.buy_start_time = startTime
             sai.buy_end_time = endTime
             sai.create_time = create_time
-            sai.pre_paid_money = self.get_estimate_service_fee(sai)
+            sai.pre_paid_money = appCreateService.get_estimate_service_fee(sai, self.response_region)
             sai.save()
+            # 创建订单
+            if sai.pre_paid_money > 0:
+                ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
+                                              prepaid_money=sai.pre_paid_money, pay_status="unpayed",
+                                              cost_type="first_create", node_memory=min_memory, node_num=min_node,
+                                              disk=disk, buy_period=pre_paid_period * 24 * 30)
 
             # create console service
             service.desc = service_desc
@@ -204,6 +201,10 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             baseService.addServicePort(newTenantService, False, container_port=5000, protocol='http', port_alias='', is_inner_service=False, is_outer_service=True)
 
             # code repos
+            # 自建git (gitlab_self)与gitlab_manual一样
+            if service_code_from == "gitlab_self":
+                service_code_from = "gitlab_manual"
+
             if service_code_from == "gitlab_new":
                 codeRepositoriesService.initRepositories(self.tenant, self.user, newTenantService, service_code_from, "", "", "")
             elif service_code_from == "gitlab_exit":
@@ -342,14 +343,20 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             deployTenantServices = TenantServiceInfo.objects.filter(
                 tenant_id=self.tenant.tenant_id,
                 service_region=self.response_region,
-                service_origin='assistant').exclude(category='application')
-            context["deployTenantServices"] = deployTenantServices
+                service_origin='assistant')
+
+            openInnerServices = []
+            for dts in deployTenantServices:
+                if TenantServicesPort.objects.filter(service_id=dts.service_id,is_inner_service=True):
+                    openInnerServices.append(dts)
+
+            context["openInnerServices"] = openInnerServices
             context["service_envs"] = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, scope__in=("inner", "both")).exclude(container_port= -1)
             port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)
             context["service_ports"] = list(port_list)
             dpsids = []
 
-            for hasService in deployTenantServices:
+            for hasService in openInnerServices:
                 dpsids.append(hasService.service_id)
             hasTenantServiceEnvs = TenantServiceEnvVar.objects.filter(service_id__in=dpsids)
             # 已有服务的一个服务id对应一条服务的环境变量
@@ -568,15 +575,20 @@ class AppLanguageCodeView(LeftSideBarMixin, AuthedView):
             pre_paid_period = attach_info.pre_paid_period
             if self.tenant.pay_type == "free":
                 # 免费租户的应用过期时间为7天
+                startTime = datetime.datetime.now() + datetime.timedelta(days=7)+datetime.timedelta(hours=1)
+                startTime = startTime.strftime("%Y-%m-%d %H:00:00")
+                startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                 service = self.service
-                service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
+                service.expired_time = startTime
                 service.save()
-                startTime = datetime.datetime.now() + datetime.timedelta(days=7)
                 endTime = startTime + relativedelta(months=int(pre_paid_period))
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
                                                                                             buy_end_time=endTime)
             else:
-                startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                # 付费用户一个小时调试
+                startTime = datetime.datetime.now() + datetime.timedelta(hours=2)
+                startTime = startTime.strftime("%Y-%m-%d %H:00:00")
+                startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                 endTime = startTime + relativedelta(months=int(pre_paid_period))
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).update(buy_start_time=startTime,
                                                                                             buy_end_time=endTime)

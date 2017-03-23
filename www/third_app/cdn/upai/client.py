@@ -106,3 +106,8 @@ class YouPaiApi(BaseHttpClient):
         url = self.BaseAPIURL + "v2/buckets/cdn/source/"
         res, body = self._post(url, self.default_headers, body)
         return res, body
+    
+    def get_cdn_source(self, bucket_name):
+        url = self.BaseAPIURL + "v2/buckets/cdn/source/?bucket_name={0}".format(bucket_name)
+        res, body = self._get(url, self.default_headers)
+        return res, body
