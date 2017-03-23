@@ -28,7 +28,7 @@
                 <label class="control-label">数据表单错误</label>
                 {% endif %}
             </div>
-            <a href="javascript:;" class="titlink" id="infor">
+            <a href="javascript:;" class="titlink" id="infor" style="display: none;">
                 基本信息
                 <span>
                     <em class="glyphicon glyphicon-triangle-top"></em>
@@ -45,7 +45,7 @@
                     </div>
                 </div>
                 <!-- 02 -->
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="col-sm-2 control-label">应用图标:</label>
                     <div class="col-sm-8">
                         <div id="logodiv" class="appimg">
@@ -55,7 +55,7 @@
                     </div>
                 </div>
                 <!-- 03 -->
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="col-sm-2 control-label">一句话介绍:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control" id="info"
@@ -79,16 +79,16 @@
                     </div>
                 </div>
                 <!-- 05 -->
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="col-sm-2 control-label">应用简介:</label>
                     <div class="col-sm-8">
                         <textarea class="form-control" name="desc" id="desc"
                                   rows="3" maxlength="200">{{data.desc}}</textarea>
                     </div>
                 </div>
-                <div class="line-dashed"></div>
+                <div class="line-dashed" style="display: none;"></div>
                 <!-- 06 -->
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="col-sm-2 control-label">官方网站:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control" id="url_site"
@@ -96,7 +96,7 @@
                     </div>
                 </div>
                 <!-- 07 -->
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="col-sm-2 control-label">源码:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control" id="url_source"
@@ -104,7 +104,7 @@
                     </div>
                 </div>
                 <!-- 08 -->
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="col-sm-2 control-label">Demo:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control" id="url_demo"
@@ -112,7 +112,7 @@
                     </div>
                 </div>
                 <!-- 09 -->
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="col-sm-2 control-label">意见反馈:</label>
                     <div class="col-sm-8">
                         <input type="text" class="form-control" id="url_feedback"
@@ -124,7 +124,7 @@
         <!-- 一 结束 -->
         <!-- 二 开始 -->
         <div class="fm-box">
-            <a href="javascript:;" class="titlink" id="renew">更新信息<span><em class="glyphicon glyphicon-triangle-top"></em></span></a>
+            <a href="javascript:;" class="titlink" id="renew" style="display: none;">更新信息<span><em class="glyphicon glyphicon-triangle-top"></em></span></a>
             <div class="show-box">
                 <!-- 01 -->
                 <div class="form-group">
@@ -166,7 +166,7 @@
                     <label class="col-sm-2 control-label">云市展示</label>
                     <div class="col-sm-8">
                         <div class="switch switch-mini">
-                            <input data-switch="mini" name="show_app" type="checkbox" {% if data.show_app %}checked{% endif %}/>
+                            <input data-switch="mini" name="show_app" type="checkbox" {% if data.show_app %}{% endif %}/>
                         </div>
                     </div>
                 </div>
