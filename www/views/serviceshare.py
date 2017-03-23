@@ -61,13 +61,13 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         if len(dep_service_list) > 0:
             for dep_service in list(dep_service_list):
                 if dep_service["service_key"] == "application":
-                    context["dep_service_name"] = dep_service["service_alias"]
+                    context["dep_service_name"] = dep_service["service_cname"]
                     context["dep_status"] = False
                     break
                 count = AppService.objects.filter(service_key=dep_service["service_key"], app_version=dep_service["version"]).count()
                 if count == 0:
                     context["dep_status"] = False
-                    context["dep_service_name"] = dep_service["service_alias"]
+                    context["dep_service_name"] = dep_service["service_cname"]
                     break
 
         # 内存、节点
