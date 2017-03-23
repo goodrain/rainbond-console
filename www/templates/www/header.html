@@ -61,28 +61,28 @@
                 {% if MODULES.WeChat_Module %}
                     {% if user.status == 0 %}
                         <!--# 0:普通注册,未绑定微信-->
-                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="wxicon"></i>绑定微信</a></li>
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="wxicon"></i> 绑定微信</a></li>
                     {% endif %}
                     {% if user.status == 1 %}
                         <!--# 1:普通注册,绑定微信-->
-                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
+                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i> 解绑微信</a></li>
                     {% endif %}
                     {% if user.status == 2 %}
                         <!--# 2:微信注册,绑定微信,未补充信息-->
-                        <li name="wechat_li"><a href="/wechat/info"><i class="fa fa-usd"></i>设置用户信息</a></li>
+                        <li name="wechat_li"><a href="/wechat/info"><i class="fa fa-usd"></i> 设置用户信息</a></li>
                     {% endif %}
                     {% if user.status == 3 %}
                         <!--# 3:微信注册,绑定微信,已补充信息-->
-                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i>解绑微信</a></li>
+                        <li name="wechat_li"><a href="#" onclick="unbindwechat()"><i class="fa fa-usd"></i> 解绑微信</a></li>
                     {% endif %}
                     {% if user.status == 4 %}
                         <!--# 4:微信注册,解除微信绑定,已补充信息-->
-                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i>绑定微信</a></li>
+                        <li name="wechat_li"><a href="#" onclick="bindwechat()"><i class="fa fa-usd"></i> 绑定微信</a></li>
                     {% endif %}
                 {% endif %}
 
                 {% if MODULES.Finance_Center %}
-                    <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i>充值</a></li>
+                    <li><a href="/apps/{{tenantName}}/recharge/"><i class="fa  fa-usd"></i> 充值</a></li>
                     <!--
                     <li><a href="/apps/{{tenantName}}/consume/"><i class="fa fa-list-alt"></i> 消费记录</a></li>
                     {% if tenant_pay_type != "payed" %}
@@ -91,20 +91,20 @@
                     -->
                 {% endif %}
 
-                <li><a href="/account/changepwd"><i class="fa fa-lock"></i>修改密码</a></li>
+                <li><a href="/account/changepwd"><i class="fa fa-lock"></i> 修改密码</a></li>
                 <li class="divider"></li>
 
                 {% if user.is_sys_admin %}
-                    <li><a href="/cadmin"><i class="fa fa-file-text"></i>配置管理</a></li>
+                    <li><a href="/cadmin"><i class="fa fa-file-text"></i> 配置管理</a></li>
                     <li class="divider"></li>
                 {% endif%}
 
                 {% if is_private %}
-                    <li><a href="/apps/{{tenantName}}/license"><i class="fa fa-exclamation-circle"></i><span>关于</span></a></li>
+                    <li><a href="/apps/{{tenantName}}/license"><i class="fa fa-exclamation-circle"></i> 关于</a></li>
                     <li class="divider"></li>
                 {% endif %}
 
-                <li><a href="/logout"><i class="fa fa-sign-out"></i><span>退出</span></a></li>
+                <li><a href="/logout"><i class="fa fa-sign-out"></i> 退出</a></li>
             </ul>
         </li>
         <!-- user login dropdown end -->
