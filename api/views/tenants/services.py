@@ -383,7 +383,10 @@ class UpdateServiceExpireTime(APIView):
             expired_days = request.data.get("expired_days", 7)
             service = TenantServiceInfo.objects.get(service_id=service_id)
             if expired_days.strip():
-                service.expired_time = service.expired_time+datetime.timedelta(days=int(expired_days))
+                if service.expired_time:
+                    service.expired_time = service.expired_time+datetime.timedelta(days=int(expired_days))
+                else:
+                    service.expired_time = datetime.datetime.now()+datetime.timedelta(days=int(expired_days))
             service.save()
             data["status"] = "success"
         except TenantServiceInfo.DoesNotExist:
