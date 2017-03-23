@@ -146,21 +146,22 @@
                 <!-- 03 -->
                 <div class="form-group">
                     <label class="col-sm-2 control-label">分发到云市</label>
-                    <div class="col-sm-8">
+                    <div class="col-sm-2">
                         <div class="switch switch-mini">
                             <input id="is_outer" data-switch="mini" name="is_outer" type="checkbox" {% if data.is_outer %}checked{% endif %} />
                         </div>
                     </div>
-                </div>
-                <!-- 04云市展示方式 -->
-                <div class="form-group" {% if not data.is_outer %}style="display:none;"{% endif %} data-alias="show_div">
-                    <label class="col-sm-2 control-label">允许其他用户安装</label>
-                    <div class="col-sm-8">
-                        <div class="switch switch-mini">
-                            <input data-switch="mini" name="show_assistant" type="checkbox" {% if data.show_assistant %}checked{% endif %}/>
+
+                    <div {% if not data.is_outer %}style="display:none;"{% endif %} data-alias="show_div">
+                        <label class="col-sm-2 control-label">允许其他用户安装</label>
+                        <div class="col-sm-4">
+                            <div class="switch switch-mini">
+                                <input data-switch="mini" name="show_assistant" type="checkbox" {% if data.show_assistant %}checked{% endif %}/>
+                            </div>
                         </div>
                     </div>
                 </div>
+               
                 <!-- 04云市展示方式 -->
                 <div class="form-group" {% if not data.is_outer %}style="display:none;"{% endif %} data-alias="" style="display: none;">
                     <label class="col-sm-2 control-label">云市展示</label>
