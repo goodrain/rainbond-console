@@ -954,7 +954,7 @@ class ThirdAppInfo(BaseModel):
     bill_type = models.CharField(default="demand", max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
     open = models.BooleanField(default=1, help_text=u"是否开启状态")
     delete = models.BooleanField(default=0, help_text=u"是否删除状态")
-
+    create_user = models.IntegerField(help_text=u"创建的用户的user_id")
 
 class CDNTrafficRecord(BaseModel):
     class Meta:
@@ -982,7 +982,7 @@ class CDNTrafficHourRecord(BaseModel):
     traffic_number = models.IntegerField(help_text=u"流量消费数量")
     balance = models.IntegerField(help_text=u"流量包余额")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
-
+    order_id = models.CharField(max_length=32, help_text=u"扣除流量的订单id")
 
 class ThirdAppOperator(BaseModel):
     class Meta:
@@ -1012,3 +1012,43 @@ class ThirdAppOrder(BaseModel):
     bill_type = models.CharField(default="demand", max_length=10, help_text=u"计费方式，流量包packet或者demand需求")
     total_cost = models.FloatField(default=0.00, help_text=u"费用总计")
     total_traffic_cost = models.IntegerField(default=0, help_text=u"月度套餐外流量总计")
+
+
+pay_status = (
+    (u"已发布", 'payed'), (u"测试中", "unpayed"),
+)
+
+
+class ServiceFeeBill(BaseModel):
+    class Meta:
+        db_table = 'service_fee_bill'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    prepaid_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"付费金额")
+    pay_status = models.CharField(max_length=15, choices=pay_status, help_text=u"付费状态")
+    cost_type = models.CharField(max_length=15, help_text=u"消费类型")
+    node_memory = models.IntegerField(help_text=u"内存大小单位（M）", default=128)
+    node_num = models.IntegerField(help_text=u"节点个数", default=1)
+    disk = models.IntegerField(help_text=u'磁盘大小')
+    buy_period = models.IntegerField(help_text=u"预付费时长(单位:小时)", default=0)
+
+
+class ServiceConsume(BaseModel):
+    class Meta:
+        db_table = 'service_consume'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    memory = models.IntegerField(help_text=u"内存大小单位（M）", default=0)
+    node_num = models.IntegerField(help_text=u"节点个数", default=1)
+    disk = models.IntegerField(help_text=u'磁盘大小', default=0)
+    net = models.IntegerField(help_text=u"网络使用K", default=0)
+    memory_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"内存金额")
+    disk_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"磁盘金额")
+    net_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"网络金额")
+    pay_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"实际付费金额")
+    pay_status = models.CharField(max_length=15, choices=pay_status, help_text=u"付费状态")
+    region = models.CharField(max_length=32, help_text=u"数据中心")
+    status = models.IntegerField(default=0, help_text=u"0:无效；1:有效；2:操作中")
+    time = models.DateTimeField(help_text=u"创建时间")
+    real_memory_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"内存按需金额")
+    real_disk_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"磁盘按需金额")

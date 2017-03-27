@@ -6,6 +6,7 @@
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/style.css" %}' />
 <link rel="stylesheet" href='{% static "www/css/cdn.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/appOutline.css" %}' />
 {% endblock %}
 {% block extrajs %}
 <script src='{% static "www/js/cdn.js" %}'></script>
@@ -25,6 +26,18 @@
             <button class="btn btn-primary name_sure">确认</button>
             <button class="btn btn-danger name_cancel">取消</button>
         </p>
+
+        <header class="panel-heading ">
+            <ul class="nav nav-tabs" id="nav-tabs">
+                <li class="active">
+                    <a href="/apps/{{tenantName}}/{{app_id}}/third_show">概览</a>
+                </li>
+                <li>
+                    <a href="/apps/{{tenantName}}/{{app_id}}/orders">费用</a>
+                </li>
+            </ul>
+        </header>
+
         <div class="appOutline">
             <ul class="outlineTop clearfix">
                 <li>
@@ -37,12 +50,12 @@
                             <img src="{% static "www/img/appOutline/appOutline0.png" %}"/>
                             {% endif %}
                         </p>
-                        <p>{% if app_info.open == 0 %}已欠费{% else %}正常{% endif %}</p>
+                        <p>{% if app_info.open == 0 %}关闭{% else %}正常{% endif %}</p>
                     </div>
                 </li>
                 <li>
                     <div>
-                        <p>上一小时使用存储</p>
+                        <p>当前已用存储</p>
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline2.png" %}"/>
                         </p>
@@ -51,20 +64,11 @@
                 </li>
                 <li>
                     <div>
-                        <p>上一小时使用流量</p>
+                        <p>{% if app_info.bill_type == "packet" %}流量包剩余{% else %}上一小时流量{% endif %}</p>
                         <p class="pImg">
                             <img src="{% static "www/img/appOutline/appOutline4.png" %}"/>
                         </p>
-                        <p>{{order_info.traffic_size}}</p>
-                    </div>
-                </li>
-                <li>
-                    <div>
-                        <p>上一小时费用</p>
-                        <p class="pImg">
-                            <img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
-                        </p>
-                        <p>{{order_info.total_cost}}</p>
+                        <p>{% if app_info.bill_type == "packet" %}{{ traffic_balance }} GB{% else %}{{order_info.traffic_size}}{% endif %}</p>
                     </div>
                 </li>
                 <li>
@@ -76,7 +80,38 @@
                         <p>{{order_info.request_size}}</p>
                     </div>
                 </li>
+                <li>
+                    <div>
+                        <p>上一小时费用</p>
+                        <p class="pImg">
+                            <img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
+                        </p>
+                        <p>{{order_info.total_cost}}</p>
+                    </div>
+                </li>
             </ul>
+            <div class="alternative clearfix">
+                <div class="alterRight">
+                    <ul class="clearfix">
+                        <li class="button">
+                            <div class="btn-group">
+                                {% if app_info.open %}
+                                <button id="close_thirdApp" type="button" class="bgColor" style="background-color: #f63a47;">关闭</button>
+                                {% else %}
+                                <button id="open_thirdApp" type="button" class="bgColor">启动</button>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% if not app_info.app_type == "upai_oos" %}
+                        <li class="button">
+                            <div class="btn-group">
+                                <button id="app_refresh" type="button" class="bgColor">全网刷新</button>
+                            </div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
         </div>
         <section class="table content-tab">
             <div class="clearfix">
@@ -89,7 +124,7 @@
             </div>
             <p>
                 <span>绑定域名后，请在域名服务商处将其CNAME配置为：</span>
-                <a>{{app_id}}.b0.eicon.com</a>
+                <a>{{app_id}}.b0.aicdn.com</a>
             </p>
             <table>
                 <thead>
@@ -125,31 +160,28 @@
                 <button class="btn btn-danger add_cancel">取消</button>
             </p>
         </section>
+        {% if not app_info.app_type == "upai_oos" %}
         <section class="table content-tab">
+            <div class="clearfix">
+                <h4>回源配置</h4>
+                <ul class="clearfix">
+                    <li>
+                        <button class="btn btn-primary app_manage">管理</button>
+                    </li>
+                </ul>
+            </div>
             <div class="flow clearfix">
-                <h4 style="width: 100%">购买流量包</h4>
-                <p>当前可用流量{{ traffic_balance }} GB</p>
+                <p>回源Host：{% if cdn_source.domain %}{{cdn_source.domain}}{% else %}域名跟随{% endif %}</p>
                 <p>
-                    <span>新购流量包</span>
-                    <select class="flow_size">
-                        <option>500G</option>
-                        <option>1T</option>
-                        <option>5T</option>
-                        <option>10T</option>
-                        <option>50T</option>
-                        <option>200T</option>
-                        <option>1PB</option>
-                    </select>
+                    <span>回源途径：自主源站</span>
+                    <!--<span class="icon_tip fn-tips" data-tips="提示提示提示" data-position="top"></span>-->
                 </p>
-                <p>
-                    <span>金额：</span>
-                    <span class="flow_money">130元</span>
-                </p>
-                <p>
-                    <button class="btn btn-primary flow_buy">购买</button>
-                </p>
+                <p>回源方式：{% if cdn_source.source_type == "protocol_follow" %}回源跟随{% else %}{{cdn_source.source_type}}{% endif %}</p>
+                <p>源站线路：{{cdn_source.cdn.bgp.servers|length}}条</p>
             </div>
         </section>
+        {% endif %}
+        {% if app_info.app_type == "upai_oos" %}
         <section class="table content-tab">
             <div class="clearfix">
                 <h4>已授权操作员</h4>
@@ -204,6 +236,36 @@
                 <button class="btn btn-danger operator_cancel">取消</button>
             </p>
         </section>
+        {% endif %}
+        <section class="table content-tab">
+            <div class="flow clearfix">
+                <h4>购买流量包</h4>
+                <ul class="clearfix">
+                    <li>
+                        <button class="btn btn-primary flow_buy">购买</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="flow clearfix">
+                <p>当前可用流量{{ traffic_balance }} GB</p>
+                <p>
+                    <span>新购流量包</span>
+                    <select class="flow_size">
+                        <option>500G</option>
+                        <option>1T</option>
+                        <option>5T</option>
+                        <option>10T</option>
+                        <option>50T</option>
+                        <option>200T</option>
+                        <option>1PB</option>
+                    </select>
+                </p>
+                <p>
+                    <span>金额：</span>
+                    <span class="flow_money">130元</span>
+                </p>
+            </div>
+        </section>
         <section class="table content-tab">
             <div class="clearfix">
                 <h4>删除服务</h4>
@@ -219,4 +281,120 @@
         </section>
     </section>
 </section>
+{% if not app_info.app_type == "upai_oos" %}
+<div class="layer-body-bg">
+    <div class="layer-body">
+        <div class="manage">
+            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+            <p class="layer-tit">回源管理</p>
+            <div class="layer-height-overflow">
+                <div class="clearfix">
+                    <div class="left_text">回源Host</div>
+                    <div class="right_content">
+                        <input type="text" class="manage_host" {% if cdn_source.domain %}value="{{cdn_source.domain}}"{% endif %}>
+                        <li style="list-style-type: disc;color: #28cb75;">可选配置项，可自定义域名，如不填则表示使用加速域名进行回源访问</li>
+                    </div>
+                </div>
+                <div class="clearfix">
+                    <div class="left_text">回源方式</div>
+                    <div class="right_content">
+                        <span class="choose">
+                            <input id="http" type="radio" name="way" data-id="http" {% if cdn_source.source_type == "http" %}checked{% endif %}>
+                            <label for="http">HTTP协议回源</label>
+                        </span>
+                        <span class="choose">
+                            <input id="https" type="radio" name="way" data-id="https" {% if cdn_source.source_type == "https" %}checked{% endif %}>
+                            <label for="https">HTTPS协议回源</label>
+                        </span>
+                        <span class="choose">
+                            <input id="protocol_follow" type="radio" name="way" data-id="protocol_follow" {% if cdn_source.source_type == "protocol_follow" %}checked{% endif %}>
+                            <label for="protocol_follow">协议跟随</label>
+                        </span>
+                    </div>
+                </div>
+                <div class="clearfix">
+                    <div class="left_text">线路配置</div>
+                    <div class="right_content">
+                        <table class="tab-box">
+                            <thead>
+                            <tr>
+                                <th>回源地址</th>
+                                <th>端口号</th>
+                                <th>主/备</th>
+                                <th>轮询权重</th>
+                                <th>最大失败次数</th>
+                                <th>静默时间(秒)</th>
+                                <th>
+                                    <span class="manage_add"></span>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% if cdn_source.cdn.bgp.servers|length %}
+                                {% for ser in cdn_source.cdn.bgp.servers %}
+                                <tr>
+                                    <td>
+                                        <input type="text" value="{{ser.host}}">
+                                    </td>
+                                    <td>
+                                        <input type="number" value="{{ser.port}}">
+                                    </td>
+                                    <td>
+                                        <select>
+                                            <option data-toggle="true" {% if not ser.backup %}checked{% endif %}>主线路</option>
+                                            <option data-toggle="true" {% if ser.backup %}checked{% endif %}>备用线路</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" value="{{ser.weight}}">
+                                    </td>
+                                    <td>
+                                        <input type="number" value="{{ser.max_fails}}">
+                                    </td>
+                                    <td>
+                                        <input type="number" value="{{ser.fail_timeout}}">
+                                    </td>
+                                    <td>
+                                        <span class="manage_del"></span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td>
+                                    <input type="text" placeholder="IP或域名">
+                                </td>
+                                <td>
+                                    <input type="number" value="443">
+                                </td>
+                                <td>
+                                    <select>
+                                        <option data-toggle="true">主线路</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" value="1">
+                                </td>
+                                <td>
+                                    <input type="number" value="3">
+                                </td>
+                                <td>
+                                    <input type="number" value="30">
+                                </td>
+                                <td></td>
+                            </tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <p class="bottom">
+                <button class="saveManage btn-success">保存</button>
+                <button class="cancel">取消</button>
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

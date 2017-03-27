@@ -43,6 +43,11 @@ class YouPaiApi(BaseHttpClient):
         res, body = self._delete(url, self.default_headers)
         return res, body
     
+    def checkDomain(self, domain):
+        url = self.BaseAPIURL + "buckets/domain/detect?domain={0}".format(domain)
+        res, body = self._get(url, self.default_headers)
+        return res, body
+    
     def getOperatorsList(self, bucket):
         url = self.BaseAPIURL + "buckets/operators?bucket_name={0}".format(bucket)
         res, body = self._get(url, self.default_headers)
@@ -90,5 +95,19 @@ class YouPaiApi(BaseHttpClient):
         body = {"bucket_name": bucket_name, "visible": False}
         res, body = self._post(url, self.default_headers, json.dumps(body))
         return res, body
-
     
+    def purge(self, bucket_name):
+        url = self.BaseAPIURL + "buckets/purge"
+        body = {"bucket_name": bucket_name}
+        res, body = self._post(url, self.default_headers, json.dumps(body))
+        return res, body
+    
+    def cdn_source(self, body):
+        url = self.BaseAPIURL + "v2/buckets/cdn/source/"
+        res, body = self._post(url, self.default_headers, body)
+        return res, body
+    
+    def get_cdn_source(self, bucket_name):
+        url = self.BaseAPIURL + "v2/buckets/cdn/source/?bucket_name={0}".format(bucket_name)
+        res, body = self._get(url, self.default_headers)
+        return res, body

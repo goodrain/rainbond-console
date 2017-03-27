@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 import logging
+from decimal import Decimal
 
 from django.http.response import JsonResponse
 from django.template.response import TemplateResponse
@@ -9,11 +10,11 @@ from django.views.decorators.cache import never_cache
 from share.manager.region_provier import RegionProviderManager
 from www.decorator import perm_required
 from www.models.main import TenantServiceInfo, ServiceInfo, ImageServiceRelation, TenantServiceEnvVar, \
-    TenantServicesPort, TenantServiceVolume, ServiceAttachInfo, ServiceGroupRelation
+    TenantServicesPort, TenantServiceVolume, ServiceAttachInfo, ServiceGroupRelation, ServiceFeeBill
 from www.monitorservice.monitorhook import MonitorHook
 from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
-    BaseTenantService
+    BaseTenantService, AppCreateService
 from www.utils.crypt import make_uuid
 from www.views.base import AuthedView
 from www.views.mixin import LeftSideBarMixin
@@ -31,6 +32,7 @@ baseService = BaseTenantService()
 monitorhook = MonitorHook()
 regionClient = RegionServiceApi()
 rpmManager = RegionProviderManager()
+appCreateService = AppCreateService()
 
 
 class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
@@ -40,19 +42,6 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
             'www/js/respond.min.js', 'www/js/app-create.js')
         return media
-
-    def get_estimate_service_fee(self, service_attach_info):
-        """根据附加信心获取服务的预估价格"""
-        total_price = 0
-        regionBo = rpmManager.get_work_region_by_name(self.response_region)
-        pre_paid_memory_price = regionBo.memory_package_price
-        pre_paid_disk_price = regionBo.disk_package_price
-        if service_attach_info.memory_pay_method == "prepaid":
-            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024 * pre_paid_memory_price
-        if service_attach_info.disk_pay_method == "prepaid":
-            total_price += service_attach_info.disk / 1024 * pre_paid_disk_price
-        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
-        return round(total_price, 2)
 
     @never_cache
     @perm_required('code_deploy')
@@ -131,9 +120,9 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                     result["status"] = "failure"
                     return JsonResponse(result, status=200)
 
-                if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                    result["status"] = "owed"
-                    return JsonResponse(result, status=200)
+                # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+                #     result["status"] = "owed"
+                #     return JsonResponse(result, status=200)
 
                 # calculate resource
                 tempService = TenantServiceInfo()
@@ -173,8 +162,14 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                 sai.buy_start_time = startTime
                 sai.buy_end_time = endTime
                 sai.create_time = create_time
-                sai.pre_paid_money = self.get_estimate_service_fee(sai)
+                sai.pre_paid_money = appCreateService.get_estimate_service_fee(sai, self.response_region)
                 sai.save()
+                # 创建预付费订单
+                if sai.pre_paid_money > 0:
+                    ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
+                                                  prepaid_money=sai.pre_paid_money, pay_status="unpayed",
+                                                  cost_type="first_create", node_memory=min_memory, node_num=min_node,
+                                                  disk=disk, buy_period=pre_paid_period * 24 * 30)
 
                 result["status"] = "success"
                 result["id"] = service_id
@@ -224,8 +219,13 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             deployTenantServices = TenantServiceInfo.objects.filter(
                 tenant_id=self.tenant.tenant_id,
                 service_region=self.response_region,
-                service_origin='assistant').exclude(category='application')
-            context["deployTenantServices"] = deployTenantServices
+                service_origin='assistant')
+            openInnerServices = []
+            for dts in deployTenantServices:
+                if TenantServicesPort.objects.filter(service_id=dts.service_id,is_inner_service=True):
+                    openInnerServices.append(dts)
+
+            context["openInnerServices"] = openInnerServices
 
             tenantServiceList = baseService.get_service_list(self.tenant.pk, self.user, self.tenant.tenant_id,
                                                              region=self.response_region)
@@ -296,9 +296,9 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             if not success:
                 result["status"] = "failure"
                 return JsonResponse(result, status=200)
-            if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
-                result["status"] = "owed"
-                return JsonResponse(result, status=200)
+            # if tenantAccountService.isOwnedMoney(self.tenant, self.response_region):
+            #     result["status"] = "owed"
+            #     return JsonResponse(result, status=200)
             # if tenantAccountService.isExpired(self.tenant,self.service):
             #     result["status"] = "expired"
             #     return JsonResponse(result, status=200)
@@ -341,6 +341,7 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             if not flag:
                 if rt_type == "memory":
                     result["status"] = "over_memory"
+                    result["tenant_type"] = self.tenant.pay_type
                 else:
                     result["status"] = "over_money"
                 return JsonResponse(result, status=200)
@@ -382,21 +383,26 @@ class ImageParamsViews(LeftSideBarMixin, AuthedView):
             # 设置服务购买的起始时间
             attach_info = ServiceAttachInfo.objects.get(service_id=service_id)
             pre_paid_period = attach_info.pre_paid_period
+
             if self.tenant.pay_type == "free":
                 # 免费租户的应用过期时间为7天
-                service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id, service_id=service_id)
-                service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
+                startTime = datetime.datetime.now() + datetime.timedelta(days=7)+datetime.timedelta(hours=1)
+                startTime = startTime.strftime("%Y-%m-%d %H:00:00")
+                startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
+                service = self.service
+                service.expired_time = startTime
                 service.save()
-                startTime = datetime.datetime.now() + datetime.timedelta(days=7)
                 endTime = startTime + relativedelta(months=int(pre_paid_period))
                 ServiceAttachInfo.objects.filter(service_id=service_id).update(buy_start_time=startTime,
-                                                                               buy_end_time=endTime)
+                                                                                            buy_end_time=endTime)
             else:
-                startTime = datetime.datetime.now() + datetime.timedelta(hours=1)
+                # 付费用户一个小时调试
+                startTime = datetime.datetime.now() + datetime.timedelta(hours=2)
+                startTime = startTime.strftime("%Y-%m-%d %H:00:00")
+                startTime = datetime.datetime.strptime(startTime, "%Y-%m-%d %H:%M:%S")
                 endTime = startTime + relativedelta(months=int(pre_paid_period))
                 ServiceAttachInfo.objects.filter(service_id=service_id).update(buy_start_time=startTime,
-                                                                               buy_end_time=endTime)
-
+                                                                                            buy_end_time=endTime)
         except Exception as e:
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceEnvVar.objects.filter(service_id=service_id).delete()

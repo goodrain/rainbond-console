@@ -1,0 +1,57 @@
+<div id="example_wrapper" class="content-tab" role="grid">
+    <form role="form">
+        <div class="clearfix">
+            <div id="example_length" class="lit-select text-right"  style="width: 40%; float: right;">
+                <label>每页显示</label>
+                <select name="example_length" aria-controls="example" id="pageSizeScope">
+                    <option {% if current_page_size == "10" %} selected="selected" {% endif %} value="10">10</option>
+                    <option {% if current_page_size == "25" %} selected="selected" {% endif %} value="25">25</option>
+                    <option {% if current_page_size == "50" %} selected="selected" {% endif %} value="50">50</option>
+                    <option {% if current_page_size == "100" %} selected="selected" {% endif %} value="100">100</option>
+                </select>
+                <label>行</label>
+            </div>
+        </div>
+        <table >
+            <thead>
+            <tr>
+                <th>开始时间</th>
+                <th>结束时间</th>
+                <th>流量(Byte)</th>
+                <th>存储(Byte)</th>
+                <th>请求次数</th>
+                <th>套餐外费用(元)</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{order.start_time}}</td>
+                <td>{{order.end_time}}</td>
+                <td>{{order.traffic_size}}</td>
+                <td>{{order.oos_size}}</td>
+                <td>{{order.request_size}}</td>
+                <td>{{order.total_cost}}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="adv-table">
+            <div id="example_wrapper" role="grid">
+                <div class="pages">
+                    {% if current_page == "1" and last_page == True %}
+
+                    {% elif last_page == True  %}
+                    <button type="button" class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
+                    {% elif current_page == "1" %}
+                    <button type="button" class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
+                    {% else%}
+                        <button type="button" class="greenbtn" onclick="_page({{current_page}}-1)">上一页</button>
+                        <button type="button" class="greenbtn" onclick="_page({{current_page}}+1)">下一页</button>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>

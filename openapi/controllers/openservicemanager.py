@@ -594,8 +594,8 @@ class OpenTenantServiceManager(object):
             volume = TenantServiceVolume(service_id=service_id,
                                          category=category)
             # 确定host_path
-            if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
-                host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            if region == "ali-sh":
+                host_path = "/grdata-ali/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
             else:
                 host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
             volume.host_path = host_path

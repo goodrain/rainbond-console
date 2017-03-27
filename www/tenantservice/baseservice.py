@@ -1,13 +1,15 @@
 # -*- coding: utf8 -*-
 import datetime
 import json
+from decimal import Decimal
 
+from share.manager.region_provier import RegionProviderManager
 from www.db import BaseConnection
 from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceVolume, ServiceInfo, AppServiceRelation, AppServiceEnv, \
-    AppServicePort, ServiceExtendMethod, AppServiceVolume
+    AppServicePort, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo
 
 from www.models.main import TenantRegionPayModel
 from www.service_http import RegionServiceApi
@@ -28,10 +30,11 @@ regionClient = RegionServiceApi()
 gitClient = GitlabApi()
 gitHubClient = GitHubApi()
 appClient = AppServiceApi()
+rpmManager = RegionProviderManager()
 
 
 class BaseTenantService(object):
-    
+
     def get_service_list(self, tenant_pk, user, tenant_id, region):
         user_pk = user.pk
         tmp = TenantServiceInfo()
@@ -122,8 +125,8 @@ class BaseTenantService(object):
         if bool(service.volume_mount_path):
             volume_path = service.volume_mount_path
             logger.debug("region:{0} and service_type:{1}".format(region, service.service_type))
-            if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
-                host_path = "/app-data/tenant/" + tenant_id + "/service/" + service_id
+            if region == "ali-sh":
+                host_path = "/grdata-ali/tenant/" + tenant_id + "/service/" + service_id
             else:
                 host_path = "/grdata/tenant/" + tenant_id + "/service/" + service_id
         tenantServiceInfo["volume_mount_path"] = volume_path
@@ -363,8 +366,8 @@ class BaseTenantService(object):
                                          category=category)
 
             # 确定host_path
-            if (region == "ucloud-bj-1" or region == "ali-sh") and service.service_type == "mysql":
-                host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
+            if region == "ali-sh":
+                host_path = "/grdata-ali/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
             else:
                 host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
             volume.host_path = host_path
@@ -692,7 +695,8 @@ class TenantAccountService(object):
     def isOwnedMoney(self, tenant, region_name):
         if self.MODULES["Owned_Fee"]:
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=region_name)
-            if tenant_region.service_status == 2 and tenant.pay_type == "payed":
+            # if tenant_region.service_status == 2 and tenant.pay_type == "payed":
+            if tenant.balance < 0 and tenant.pay_type == "payed":
                 return True
         return False
 
@@ -919,3 +923,23 @@ class CodeRepositoriesService(object):
         if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.getReposRefs(user, repos, token)
         return ""
+
+
+class AppCreateService(object):
+
+    def get_estimate_service_fee(self, service_attach_info, region_name):
+        """根据附加信息获取服务的预估价格"""
+        total_price = 0.00
+        regionBo = rpmManager.get_work_region_by_name(region_name)
+        pre_paid_memory_price = float(regionBo.memory_package_price)
+        pre_paid_disk_price = float(regionBo.disk_package_price)
+        if service_attach_info.memory_pay_method == "prepaid":
+            total_price += service_attach_info.min_node * service_attach_info.min_memory / 1024.0 * pre_paid_memory_price
+        if service_attach_info.disk_pay_method == "prepaid":
+            total_price += service_attach_info.disk / 1024.0 * pre_paid_disk_price
+        total_price = total_price * service_attach_info.pre_paid_period * 30 * 24
+        if service_attach_info.pre_paid_period >= 12:
+            total_price *= 0.9
+        if service_attach_info.pre_paid_period >= 24:
+            total_price *= 0.8
+        return round(Decimal(total_price), 2)

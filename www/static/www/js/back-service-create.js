@@ -219,30 +219,33 @@ $(function(){
         if ( o.type === 'text' ) alert('不好意思，你的浏览器还不够酷，试试最新的浏览器吧。');
         range.value = cachedRangeValue;
         wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+        var arr = [];
+        var value_min = $(".node_memory").attr("min");
+        var value_max = $(".node_memory").attr("max");
+        var next = value_min;
+        var num = 0;
+        while(next<=value_max){
+            next = value_min * Math.pow(2,num);
+            arr.push(next);
+            num++;
+        }
+        console.log(arr);
         range.addEventListener("mouseup", function() {
             if(inputid == "OneMemory"){
-                if(range.value >= 128 && range.value < 256){
-                    result.innerHTML = "128M";
-                }else if(range.value >= 256 && range.value < 512){
-                    result.innerHTML = "256M";
-                }else if(range.value >= 512 && range.value < 1024){
-                    result.innerHTML = "512M";
-                }else if(range.value >= 1024 && range.value < 2048){
-                    result.innerHTML = "1G";
-                }else if(range.value >= 2048 && range.value < 3072){
-                    result.innerHTML = "2G";
-                }else if(range.value >= 3072 && range.value < 4096){
-                    result.innerHTML = "3G";
-                }else if(range.value >= 4096 && range.value < 5120){
-                    result.innerHTML = "4G";
-                }else if(range.value >= 5120 && range.value < 6144){
-                    result.innerHTML = "5G";
-                }else if(range.value >= 6144 && range.value < 7168){
-                    result.innerHTML = "6G";
-                }else if(range.value >= 7168 && range.value < 8100){
-                   result.innerHTML = "7G";
-                }else{
-                   result.innerHTML = "8G";
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        $("#OneMemoryWid").attr("data-size",size);
+                        if( size < 1024 )
+                        {
+                            result.innerHTML = size + "M";
+                        }
+                        else{
+                            result.innerHTML = parseInt(size/1024) + "G";
+                        }
+                    }
                 }
             }else{
                result.innerHTML = range.value; 
@@ -256,28 +259,20 @@ $(function(){
         // 滑动时显示选择的值
         range.addEventListener("input", function() {
             if(inputid == "OneMemory"){
-                if(range.value >= 128 && range.value < 256){
-                    result.innerHTML = "128M";
-                }else if(range.value >= 256 && range.value < 512){
-                    result.innerHTML = "256M";
-                }else if(range.value >= 512 && range.value < 1024){
-                    result.innerHTML = "512M";
-                }else if(range.value >= 1024 && range.value < 2048){
-                    result.innerHTML = "1G";
-                }else if(range.value >= 2048 && range.value < 3072){
-                    result.innerHTML = "2G";
-                }else if(range.value >= 3072 && range.value < 4096){
-                    result.innerHTML = "3G";
-                }else if(range.value >= 4096 && range.value < 5120){
-                    result.innerHTML = "4G";
-                }else if(range.value >= 5120 && range.value < 6144){
-                    result.innerHTML = "5G";
-                }else if(range.value >= 6144 && range.value < 7168){
-                    result.innerHTML = "6G";
-                }else if(range.value >= 7168 && range.value < 8100){
-                   result.innerHTML = "7G";
-                }else{
-                   result.innerHTML = "8G";
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        result.setAttribute("data-size",size);
+                        if( size < 1024 )
+                        {
+                            result.innerHTML = size + "M";
+                        }
+                        else{
+                            result.innerHTML = parseInt(size/1024) + "G";
+                        }
+                    }
                 }
             }else{
                result.innerHTML = range.value; 
@@ -289,10 +284,7 @@ $(function(){
     
    
     var small_memory = $("#small-memory").attr("value");
-    console.log(small_memory);
     var is_tenant_free = $("#is_tenant_free").attr("value");
-    console.log(is_tenant_free);
-    console.log(1);
     if(small_memory >= 1024){
         console.log(2);
         $("#OneMemoryText").html(small_memory/1024 + "G");
@@ -311,7 +303,7 @@ $(function(){
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",small_memory);
     FnRange("NodeNum","NodeText","NodeWid",1);
     FnRange("Disk","DiskText","DiskWid",1);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",1);
+    //FnRange("TimeLong","TimeLongText","TimeLongWid",1);
     
    
    
@@ -332,13 +324,13 @@ $(function(){
     FnPrice();
 
     function FnPrice(){
-        var  memory_num = parseInt(document.getElementById("OneMemoryText").innerHTML);
+        var  memory_num = parseInt($("#OneMemoryText").attr("data-size"));
         if(memory_num > 10){
-            memory_num = memory_num / 1024;
+           memory_num = memory_num / 1024;
         }
         var node_num = parseInt(document.getElementById("NodeText").innerHTML);
         var Disk_num = parseInt(document.getElementById("DiskText").innerHTML);
-        var time_num = parseInt(document.getElementById("TimeLongText").innerHTML);
+        var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         var memory_onoff = document.getElementById("MoneyBefore").checked;
         var disk_onoff = document.getElementById("DiskBefore").checked;
         var onehour;
@@ -358,12 +350,13 @@ $(function(){
         }
         //计算 
         function Fnmemory(){
-            var total_money= onehour * 24 * time_num  *30 * 4 * node_num;
-            var buy_money;
-            if(time_num>=12){
-                buy_money = onehour * 24 * time_num *1.5 *30;
-            }else{
-                buy_money = onehour * 24 * time_num *2*30;
+            var total_money= onehour * 24 * time_num  *30 * node_num;
+            // console.log("===> onehour "+onehour+" \t node_num "+node_num+"\t time_num "+time_num);
+            $("del.before_money").html((total_money*2).toFixed(2));
+            if(time_num == 12){
+                total_money = total_money * 0.9;
+            }else if(time_num == 24){
+                total_money = total_money * 0.8;
             }
             $("#need-money").html(total_money.toFixed(2));
         }
@@ -392,46 +385,51 @@ $(function(){
     // 显示 隐藏
     $("#MoneyBefore").change(function(){
         var onoff = $("#MoneyBefore").prop("checked");
-        if(onoff == true){
-            // $(".fn-memory-node").show();
-            $("#aft-memory-box").hide();
+        var onoff2 = $("#DiskBefore").prop("checked");
+        if((onoff == true) | (onoff2 == true)){
+            $("#baoyuegoumai").show();
         }else{
-            //$(".fn-memory-node").hide();
-            $("#aft-memory-box").show();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
     $("#MoneyAfter").change(function(){
-        
-        var onoff = $("#MoneyAfter").prop("checked");
-        if(onoff == false){
-            //$(".fn-memory-node").show();
-            $("#aft-memory-box").hide();
+        var onoff = $("#MoneyBefore").prop("checked");
+        var onoff2 = $("#DiskBefore").prop("checked");
+        if((onoff == true) | (onoff2 == true)){
+            $("#baoyuegoumai").show();
         }else{
-            //$(".fn-memory-node").hide();
-            $("#aft-memory-box").show();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
     $("#DiskBefore").change(function(){
         var onoff = $("#DiskBefore").prop("checked");
+        var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
-            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").show();
+        }
+        if((onoff == true) | (onoff2 == true)){
+            $("#baoyuegoumai").show();
+        }else{
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
     $("#DiskAfter").change(function(){
-        var onoff = $("#After").prop("checked");
-        if(onoff == false){
+        var onoff = $("#DiskBefore").prop("checked");
+        var onoff2 = $("#MoneyBefore").prop("checked");
+        if(onoff == true){
             $(".fn-disk").show();
-            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").show();
+        }
+        if((onoff == true) | (onoff2 == true)){
+            $("#baoyuegoumai").show();
+        }else{
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
@@ -454,7 +452,6 @@ $(function(){
     /// 从应用提交
     //提交 
     $("#back_service_step1").click(function(event){
-        //
         var small_memory = $("#small-memory").attr("value");
         var is_tenant_free = $("#is_tenant_free").attr("value");
         if(is_tenant_free == "True"){
@@ -472,18 +469,18 @@ $(function(){
         if(memory_onoff == true && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
-            var disk_num = parseInt($("#NodeText").html());
-            var time_num = parseInt($("#TimeLongText").html());
+            var disk_num = parseInt($("#DiskText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else if(memory_onoff == true && disk_onoff == false ){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
             var disk_num = 0;
-            var time_num = parseInt($("#TimeLongText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else if(memory_onoff == false && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
-            var disk_num = parseInt($("#NodeText").html());
-            var time_num = parseInt($("#TimeLongText").html());
+            var disk_num = parseInt($("#DiskText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else{
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
@@ -533,7 +530,10 @@ $(function(){
                 } else if (dataObj["status"] == "expired"){
                     swal("试用已到期")
                 } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能创建");
+                    if (dataObj["tenant_type"] == "free"){
+                        swal("资源已达上限,免费用户最多使用1G内存");
+                    }else
+                        swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {
                     swal("余额不足，不能创建");
                 } else if (dataObj["status"] == "empty") {
@@ -551,94 +551,13 @@ $(function(){
             error : function() {
                 swal("系统异常,请重试");
                 $("#BtnFirst").attr('disabled', false);
+                $("#back_service_step1").attr('disabled', false);
             }
         });
         ///
 
     }); 
-    /// 从应用提交
-    ///
-    // $("#back_service_step_two").click(function(){
-    //     alert("Hello !!!!");
-    //     // var arr = $(".dependency_service");
-    //     // var len = arr.length;
-    //     // var deps = [];
-    //     //
-    //     // for (var i =0;i<len;i++){
-    //     //     deps.push($(".dependency_service").eq(i).find("option:selected").attr("value"));
-    //     // }
-    //     // var sel_val = deps;
-    //     // var envs = [];
-    //     // var flag = false
-    //     // $('.tb tr').each(function() {
-    //     //     var env = {};
-    //     //     $(this).find('[name^=attr]').each(function(event) {
-    //     //         i = $(this);
-    //     //         name = $(this).attr('name');
-    //     //         value = $(this).val() || i.html();
-    //     //         if (value) {
-    //     //             env[name] = value;
-    //     //         } else {
-    //     //             showMessage("有未填写的内容");
-    //     //             flag = true
-    //     //         }
-    //     //     });
-    //     //     envs.push(env);
-    //     // });
-    //     // ///
-    //     //  $("#back_service_step2").attr('disabled', true);
-    //     // var tenantName= $('#currentTeantName').val();
-    //     // var service_alias = $("#service_alias").val();
-    //     //
-    //     // alert("依赖服务:"+sel_val);
-    //     // alert("环境变量"+envs);
-    //     // $.ajax({
-    //     //     type : "post",
-    //     //     // url : "/apps/" + tenantName + "/" + service_alias + "/deploy/setting/",
-    //     //     url : "",
-    //     //     data : {
-    //     //         "dep_list" : sel_val,
-    //     //         "envs": envs
-    //     //     },
-    //     //     cache : false,
-    //     //     beforeSend : function(xhr, settings) {
-    //     //         var csrftoken = $.cookie('csrftoken');
-    //     //         xhr.setRequestHeader("X-CSRFToken", csrftoken);
-    //     //     },
-    //     //     success : function(msg) {
-    //     //         var dataObj = msg;
-    //     //         if (dataObj["status"] == "exist") {
-    //     //             swal("服务名已存在");
-    //     //         } else if (dataObj["status"] == "owed"){
-    //     //             swal("余额不足请及时充值")
-    //     //         } else if (dataObj["status"] == "expired"){
-    //     //             swal("试用已到期")
-    //     //         } else if (dataObj["status"] == "over_memory") {
-    //     //             swal("资源已达上限，不能创建");
-    //     //         } else if (dataObj["status"] == "over_money") {
-    //     //             swal("余额不足，不能创建");
-    //     //         } else if (dataObj["status"] == "empty") {
-    //     //             swal("应用名称不能为空");
-    //     //         }else if (dataObj["status"] == "code_from") {
-    //     //             swal("应用资源库未选择");
-    //     //         }else if (dataObj["status"] == "code_repos") {
-    //     //             swal("代码仓库异常");
-    //     //         }else if (dataObj["status"] == "success") {
-    //     //             service_alias = dataObj["service_alias"]
-    //     //             window.location.href = "/apps/" + tenantName + "/" + service_alias + "/app-waiting/";
-    //     //         } else {
-    //     //             swal("创建失败");
-    //     //         }
-    //     //         $("#back_service_step2").attr('disabled', false);
-    //     //     },
-    //     //     error : function() {
-    //     //         swal("系统异常,请重试");
-    //     //         $("#BtnFirst").attr('disabled', false);
-    //     //     }
-    //     // });
-    //     ///
-    // });
-    // ///
+
      ////tips
     $(".fn-tips").mouseover(function(){
         var tips = $(this).attr("data-tips");
@@ -714,4 +633,13 @@ $(function(){
          $(".tips-box").remove();
      });
     ////tips end
+
+
+
+    /* ljh 2017-03-07 */
+    $(".buy_month li").click(function(){
+        $(this).addClass("active").siblings().removeClass("active");
+        FnPrice();
+    });
+    /* ljh 2017-03-07 */
 });

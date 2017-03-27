@@ -4,6 +4,7 @@ from www.tests import *
 from www.services_view import *
 from www.views import ajax
 from www.views.ajax import UpdateGroupView, BatchActionView
+from www.views.ajax.service_fee import *
 
 from www.views.ajax.service_rule import *
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
@@ -75,6 +76,7 @@ urlpatterns = patterns(
     url(r'^region/price-info', PriceDetailView.as_view()),
     
     # third apps manager
+    url(r'^(?P<tenantName>[\w\-]+)/third_app/(?P<app_type>[\w\-]+)/create$', CreateAppView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/updateName$', UpdateAppView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/domain/add$', AppDomainView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/domain/delete$', AppDomainDeleteView.as_view()),
@@ -82,5 +84,16 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/operator/delete', AppOperatorDeleteView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/traffic/add', CDNTrafficRecordView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/open', OpenThirdAppView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/close', CloseThirdAppView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/delete', DeleteThirdAppView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/purge', PurgeCDNAppView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<app_id>[\w\-]+)/cdn_source', CDNSourceView.as_view()),
+    # service fee
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/memory-pay-method$', MemoryPayMethodView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/disk-pay-method$', DiskPayMethodView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-extend$', ExtendServiceView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/postpone$', PrePaidPostponeView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/pay-money', PayPrepaidMoney.as_view()),
+
+
 )

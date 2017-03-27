@@ -158,8 +158,8 @@ $(function(){
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
     FnRange("NodeNum","NodeText","NodeWid",1);
     FnRange("Disk","DiskText","DiskWid",1);
-    FnRange("TimeLong","TimeLongText","TimeLongWid",1);
-    
+    //FnRange("TimeLong","TimeLongText","TimeLongWid",1);
+
    
    
     
@@ -185,7 +185,7 @@ $(function(){
         }
         var node_num = parseInt(document.getElementById("NodeText").innerHTML);
         var Disk_num = parseInt(document.getElementById("DiskText").innerHTML);
-        var time_num = parseInt(document.getElementById("TimeLongText").innerHTML);
+        var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         var memory_onoff = document.getElementById("MoneyBefore").checked;
         var disk_onoff = document.getElementById("DiskBefore").checked;
         var onehour;
@@ -205,12 +205,21 @@ $(function(){
         }
         //计算 
         function Fnmemory(){
-            var total_money= onehour * 24 * time_num  *30 * 4 * node_num;
-            var buy_money;
-            if(time_num>=12){
-                buy_money = onehour * 24 * time_num *1.5 *30;
-            }else{
-                buy_money = onehour * 24 * time_num *2*30;
+            var total_money= onehour * 24 * time_num  *30 * node_num;
+            //var buy_money;
+            //if(time_num>=12){
+            //    buy_money = onehour * 24 * time_num *1.5 *30;
+            //}else{
+            //    buy_money = onehour * 24 * time_num *2*30;
+            //}
+            $("del.before_money").html((total_money*2).toFixed(2));
+            if( time_num == 12 )
+            {
+                total_money = total_money * 0.9;
+            }
+            else if( time_num == 24 )
+            {
+                total_money = total_money * 0.8;
             }
             $("#need-money").html(total_money.toFixed(2));
         }
@@ -239,46 +248,51 @@ $(function(){
     // 显示 隐藏
     $("#MoneyBefore").change(function(){
         var onoff = $("#MoneyBefore").prop("checked");
-        if(onoff == true){
-            // $(".fn-memory-node").show();
-            $("#aft-memory-box").hide();
+        var onoff2 = $("#DiskBefore").prop("checked");
+        if((onoff == true) | (onoff2 == true)){
+            $("#baoyuegoumai").show();
         }else{
-            //$(".fn-memory-node").hide();
-            $("#aft-memory-box").show();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
     $("#MoneyAfter").change(function(){
-        
-        var onoff = $("#MoneyAfter").prop("checked");
-        if(onoff == false){
-            //$(".fn-memory-node").show();
-            $("#aft-memory-box").hide();
+        var onoff = $("#MoneyBefore").prop("checked");
+        var onoff2 = $("#DiskBefore").prop("checked");
+        if((onoff == true) | (onoff2 == true)){
+            $("#baoyuegoumai").show();
         }else{
-            //$(".fn-memory-node").hide();
-            $("#aft-memory-box").show();
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
     $("#DiskBefore").change(function(){
         var onoff = $("#DiskBefore").prop("checked");
+        var onoff2 = $("#MoneyBefore").prop("checked");
         if(onoff == true){
             $(".fn-disk").show();
-            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").show();
+        }
+        if((onoff == true) | (onoff2 == true)){
+            $("#baoyuegoumai").show();
+        }else{
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
     $("#DiskAfter").change(function(){
-        var onoff = $("#After").prop("checked");
-        if(onoff == false){
+        var onoff = $("#DiskBefore").prop("checked");
+        var onoff2 = $("#MoneyBefore").prop("checked");
+        if(onoff == true){
             $(".fn-disk").show();
-            $("#aft-disk-box").hide();
         }else{
             $(".fn-disk").hide();
-            $("#aft-disk-box").show();
+        }
+        if((onoff == true) | (onoff2 == true)){
+            $("#baoyuegoumai").show();
+        }else{
+            $("#baoyuegoumai").hide();
         }
         FnPrice();
     });
@@ -502,7 +516,7 @@ $(function(){
         var appname = $("#create_name").val();
         var groupname = $("#group-name option:selected").html();
         var groupid = $("#group-name option:selected").attr("value");
-        var service_code_from = "gitlab_new";
+        var service_code_from = "gitlab_self";
         var myWay = $(".fn-way").attr("data-action");
         var code_url;
         var code_id;
@@ -513,18 +527,18 @@ $(function(){
         if(memory_onoff == true && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
-            var disk_num = parseInt($("#NodeText").html());
-            var time_num = parseInt($("#TimeLongText").html());
+            var disk_num = parseInt($("#DiskText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else if(memory_onoff == true && disk_onoff == false ){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
             var disk_num = 0;
-            var time_num = parseInt($("#TimeLongText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else if(memory_onoff == false && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
-            var disk_num = parseInt($("#NodeText").html());
-            var time_num = parseInt($("#TimeLongText").html());
+            var disk_num = parseInt($("#DiskText").html());
+            var time_num = parseInt($(".buy_month li.active").attr("data-time"));
         }else{
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
@@ -560,8 +574,8 @@ $(function(){
                 swal("git路径不合法!");
                 return;
             }
-        }else if(myWay == "gitlab_new"){
-            service_code_from = "gitlab_new";
+        }else if(myWay == "gitlab_self"){
+            service_code_from = "gitlab_self";
             //02
             code_url =$("#my_git_url").val();
             code_branch = $(".fn-code-branch").val(); 
@@ -656,7 +670,10 @@ $(function(){
                 } else if (dataObj["status"] == "expired"){
                     swal("试用已到期")
                 } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能创建");
+                    if (dataObj["tenant_type"] == "free"){
+                        swal("资源已达上限,免费用户最多使用1G内存");
+                    }else
+                        swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {
                     swal("余额不足，不能创建");
                 } else if (dataObj["status"] == "empty") {
@@ -699,7 +716,7 @@ $(function(){
         if(memory_onoff == true && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
-            var disk_num = parseInt($("#NodeText").html());
+            var disk_num = parseInt($("#DiskText").html());
             var time_num = parseInt($("#TimeLongText").html());
         }else if(memory_onoff == true && disk_onoff == false ){
             var memory_num = parseInt($("#OneMemoryText").html());
@@ -709,7 +726,7 @@ $(function(){
         }else if(memory_onoff == false && disk_onoff == true){
             var memory_num = parseInt($("#OneMemoryText").html());
             var node_num = parseInt($("#NodeText").html());
-            var disk_num = parseInt($("#NodeText").html());
+            var disk_num = parseInt($("#DiskText").html());
             var time_num = parseInt($("#TimeLongText").html());
         }else{
             var memory_num = parseInt($("#OneMemoryText").html());
@@ -764,7 +781,10 @@ $(function(){
                 } else if (dataObj["status"] == "expired"){
                     swal("试用已到期")
                 } else if (dataObj["status"] == "over_memory") {
-                    swal("资源已达上限，不能创建");
+                    if (dataObj["tenant_type"] == "free"){
+                        swal("资源已达上限,免费用户最多使用1G内存");
+                    }else
+                        swal("资源已达上限，不能创建");
                 } else if (dataObj["status"] == "over_money") {
                     swal("余额不足，不能创建");
                 } else if (dataObj["status"] == "empty") {
@@ -867,8 +887,12 @@ $(function(){
         $(".tips-box").remove();
     });
     ////tips end
-
-    
+    /* ljh 2017-03-07 */
+    $(".buy_month li").click(function(){
+       $(this).addClass("active").siblings().removeClass("active");
+        FnPrice();
+    });
+    /* ljh 2017-03-07 */
 })
 
 

@@ -5,9 +5,10 @@
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/style.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/grouping.css" %}' />
 {% endblock %}
 {% block extrajs %}
-<!--<script src='{% static "www/js/group.js" %}'></script>-->
+<script src='{% static "www/js/cdn.js" %}'></script>
 {% endblock %}
 
 {% block main-content %}
@@ -19,18 +20,17 @@
         font-size: 22px;
         font-weight: 200;
     }
-    #sidebar ul.sidebar-menu li:nth-child(3) ul.sub{display: block!important;}
-    #sidebar ul.sidebar-menu li:nth-child(3) ul.sub li:nth-child(9) a{color: #ffffff;}
 </style>
 <section class="wrapper site-min-height">
-    <h3>第三方应用</h3>
     <section class="panel">
+        <p class="group-tit" style="margin-bottom: 20px;">第三方应用</p>
         <section class="content-tab">
             <table>
                 <thead>
                     <tr>
                         <th>应用名</th>
                         <th>类型</th>
+                        <th>状态</th>
                         <th>创建时间</th>
                         <th>操作</th>
                     </tr>
@@ -38,11 +38,18 @@
                 <tbody>
                     {% for app in apps %}
                         <tr>
-                            <td>{{app.name}}</td>
+                            <td>
+                                <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show" style="color: #28cb75;font-size: 16px;">{{app.name}}</a>
+                            </td>
                             <td>{{app.app_type}}</td>
+                            {% if app.open %}
+                            <td style="color: #28cb75;">正常</td>
+                            {% else %}
+                            <td style="color: red">关闭</td>
+                            {% endif %}
                             <td>{{app.create_time}}</td>
                             <td>
-                                <a href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show">管理</a>
+                                <a class="greenbtn" href="/apps/{{tenantName}}/{{app.bucket_name}}/third_show">管理</a>
                             </td>
                         </tr>
                     {% endfor %}
@@ -53,9 +60,6 @@
 </section>
 <script>
     $(document).ready(function(){
-//        console.log($("ul.sub").eq(0));
-//        $("li.sub-menu ul.sub").eq(0).css({"display":"block"});
-//        $("li.sub-menu ul.sub").eq(0).show();
         var o = ($('#sidebar .sub-menu > a').offset());
         diff = 250 - o.top;
         if(diff>0)

@@ -1,197 +1,347 @@
 <div class="cost">
-   
+    <input type="hidden" id="tenantName" value="{{tenantName}}">
+    <input type="hidden" id="serviceAlias" value="{{serviceAlias}}">
     <div class="cost-fun">
          <h2 class="tit-two">计费方式</h2>
         <table>
             <tbody>
             <tr>
-                <td>内存计费方式：<span>{% if service_attach_info.memory_pay_method == 'prepaid'  %}预付费 {% else %} 后付费 {% endif %}</span><a href="javascript:void(0)" class="change">更改</a></td>
-                <td>当前使用：<span>{{service.min_memory}}MB×{{service.min_node}}</span><a href="javascript:void(0)" class="larger">扩容</a></td>
-                <td>上1小时费用：<span>{{last_hour_detail.memory_fee}}元</span></td>
-                <td>累计费用：<span>{{total_memory_price}}元</span></td>
+                <td>内存：{% if service_attach_info.memory_pay_method == 'prepaid'  %}<span class="memoryFun" data-currentway="prepaid">包&nbsp;{{total_buy_memory}}MB 至</span><span>{{service_attach_info.buy_end_time}}</span>&nbsp;&nbsp;<a href="javascript:void(0)" class="postpone">增加时长</a>&nbsp;&nbsp;<a href="javascript:void(0)" class="larger">增加额度</a>{% else %}<span class="memoryFun" data-currentway="postpaid">按小时扣费</span>&nbsp;&nbsp;<a href="javascript:void(0)" class="changeMemory">购买包月</a>{% endif %}</td>
+                <td>当前使用：<span>{{service.min_memory}} MB×{{service.min_node}}</span></td>
+                <td>累计费用：<span>{% if service_total_memory_fee %} {{service_total_memory_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
-                <td>磁盘计费方式：<span>{% if service_attach_info.disk_pay_method == 'prepaid'  %}预付费 {% else %} 后付费 {% endif %}</span><a href="javascript:void(0)" class="change">更改</a></td>
-                <td>当前使用：<span>{{last_hour_detail.disk}}MB</span></td>
-                <td>上1小时费用：<span>{{last_hour_detail.disk_fee}}元</span></td>
-                <td>累计费用：<span>{{total_disk_price}}元</span></td>
+                <td>磁盘：{% if service_attach_info.disk_pay_method == 'prepaid'  %}<span class="diskFun" data-currentway="prepaid">包&nbsp;{% widthratio service_attach_info.disk 1024 1 %} GB 至</span><span>{{service_attach_info.buy_end_time}}</span>&nbsp;&nbsp;<a href="javascript:void(0)" class="postpone">增加时长</a>{% else %}<span class="diskFun" data-currentway="postpaid">按小时扣费</span>&nbsp;&nbsp;<a href="javascript:void(0)" class="changeDisk">购买包月</a>{% endif %}</td>
+                <td>当前使用：<span>{% if last_hour_consume.disk %} {{last_hour_consume.disk}} {% else %} 0 {% endif %} MB</span></td>
+                <td>累计费用：<span>{% if service_total_disk_fee %} {{service_total_disk_fee}} {% else %} 0 {% endif %}元</span></td>
             </tr>
             <tr>
-                <td>流量计费方式：<span>后付费</span></td>
-                <td>当前使用：<span>{{last_hour_detail.net}}MB</span></td>
-                <td>上1小时费用：<span>{{last_hour_detail.net_fee}}元</span></td>
-                <td>累计费用：<span>{{total_net_price}}元</span></td>
+                <td>流量：<span>按小时扣费</span></td>
+                <td>上一小时使用：<span>{% if last_hour_consume.net %} {{last_hour_consume.net}} {% else %} 0 {% endif %} MB</span></td>
+                <td>累计费用：<span>{% if service_total_net_fee %} {{service_total_net_fee}} {% else %} 0 {% endif %} 元</span></td>
             </tr>
             </tbody>
+            <!--
             <tfoot>
+            {% if service_attach_info.memory_pay_method == 'prepaid' or service_attach_info.disk_pay_method == 'prepaid' %}
             <tr>
-                <td colspan="4">预付费项目有效期：<span>{{service_attach_info.buy_end_time}}</span><a href="javascript:void(0)" class="expand">延期</a></td>
+                <td colspan="3">包月包年项目有效期：<span>{{service_attach_info.buy_end_time}}</span>&nbsp;<a href="javascript:void(0)" class="postpone">延期</a></td>
             </tr>
+            {% endif %}
             </tfoot>
+            -->
         </table>
     </div>
    
     <div class="content-tab">
-         <h2 class="tit-two">计费明细</h2>
+         <h2 class="tit-two">最近24小时计费明细</h2>
         <table>
             <thead>
                 <tr>
-                    <th>计费时段</th>
-                    <th>内存</th>
-                    <th>费用</th>
-                    <th>实际扣费</th>
-                    <th>磁盘</th>
-                    <th>费用</th>
-                    <th>实际扣费</th>
-                    <th>流量</th>
-                    <th>费用</th>
-                    <th>实际扣费</th>
-                    <th>总扣费</th>
+                    <th>时段</th>
+                    <th>内存<br />(MB)</th>
+                    <th>费用<br />(元)</th>
+                    <th>实扣<br />(元)</th>
+                    <th>磁盘<br />(MB)</th>
+                    <th>费用<br />(元)</th>
+                    <th>实扣<br />(元)</th>
+                    <th>流量<br />(MB)</th>
+                    <th>费用<br />(元)</th>
+                    <th>实扣<br />(元)</th>
+                    <th>总扣费<br />(元)</th>
                 </tr>
             </thead>
             <tbody>
-                {% for service_consume in service_consume_detail_list %}
-
+                {% for service_consume in service_consume_list %}
                 <tr>
-                    <td>{{service_consume.time|difftime:-3600}}--{{service_consume.time}}</td>
+                    <td>{{service_consume.time|difftime:-3600|date:"m-d H:00"}}~{{service_consume.time|date:"H:00"}}</td>
                     <!--<td>{{service_consume.memory}}GB</td>-->
-                    <td>{%  widthratio service_consume.memory 1 service_consume.node_num %}MB</td>
-                    <td>{{ service_consume.memory_fee }}元</td>
-                    <td>{% if service_consume.is_memory_pre_paid %}service_consume.infact_memory_fee元(预付费){% else %}{{service_consume.memory_fee}} 元(后付费){% endif %}</td>
-                    <td>{{service_consume.disk}}GB</td>
-                    <td>{{service_consume.disk_fee}}元</td>
-                    <td>{% if service_consume.is_disk_pre_paid %}service_consume.infact_disk_fee元(预付费){% else %}{{service_consume.disk_fee}} 元(后付费){% endif %}</td>
-                    <td>{{service_consume.net}}GB</td>
-                    <td>{{service_consume.net_fee}}元</td>
-                    <td>{{service_consume.net_fee}}(后付费)</td>
-                    <td>{{service_consume.one_hour_total}}元</td>
+                    <td>{{service_consume.memory}}</td>
+                    <!--费用-->
+                    <td>{{ service_consume.real_memory_money }}</td>
+                    <!--实际扣费-->
+                    <td><span class="fn-tips" data-tips="{% if service_consume.memory_pay_method == 'prepaid' %}超出包月额度的费用{% else %}按小时扣除的费用{% endif %}">{{service_consume.memory_money}}</span></td>
+                    <td>{{service_consume.disk}}</td>
+                    <td>{{service_consume.real_disk_money}}</td>
+                    <td><span class="fn-tips" data-tips="{% if service_consume.disk_pay_method == 'prepaid' %}超出包月额度的费用{% else %}按小时扣除的费用{% endif %}">{{service_consume.disk_money}}</span></td>
+                    <td>{{service_consume.net}}</td>
+                    <td>{{service_consume.net_money}}</td>
+                    <td><span class="fn-tips" data-tips="按小时扣除的费用">{{service_consume.net_money}}</span></td>
+                    <td>{{service_consume.pay_money}}</td>
                 </tr>
                 {% endfor %}
-                <!--
-                <tr>
-                    <td>12：00-13：00</td>
-                    <td>256MB</td>
-                    <td>12元</td>
-                    <td>0元(预付费)</td>
-                    <td>0.12GB</td>
-                    <td>0元</td>
-                    <td>0元(预付费)</td>
-                    <td>0.12GB</td>
-                    <td>0元</td>
-                    <td>0元(预付费)</td>
-                    <td>12元</td>
-                </tr>
-                -->
             </tbody>
             <tfoot>
-
             </tfoot>
         </table>
     </div>
     <div class="layer-body-bg">
-        <!--弹层1-->
-        <div class="endDate layer-body">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <div>
-                修改后付费成功，在当前使用期限(2016-12-12 12：12：12)到期以后生效
-            </div>
-            <p class="bottom">
-                <button class="cancel">关闭</button>
-            </p>
-        </div>
-        <!--弹层2-->
-        <div class="chooseFun layer-body">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <h3 class="layer-tit">修改预付费成功，请选择购买时长</h3>
-            <div class="layer-height-overflow infor-fm-box">
-                <div class="fm-input-range clearfix">
-                    <label>应用购买时长</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="TimeLongWid"></cite></span>
-                        <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
-                    </p>
-                    <span><cite id="TimeLongText">1</cite>个月</span>
+        <div class="layer-body">
+            <!--弹层1-->
+            <div class="endDate">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit"></h3>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix">
+                        修改按小时扣费成功，在当前使用期限({{service_attach_info.buy_end_time}})到期以后生效
+                    </div>
                 </div>
+                <p class="bottom">
+                    <button class="cancel">关闭</button>
+                </p>
             </div>
-            <p class="bottom">
-                <button class="sure sureTimeLong">付款</button>
-                <button class="cancel">取消</button>
-            </p>
-        </div>
-        <!--弹层3-->
-        <div class="chooseData layer-body">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <h3 class="layer-tit">请选择延期时间</h3>
-            <div class="layer-height-overflow infor-fm-box">
-                <div class="fm-input-range clearfix">
-                    <label>应用延期时长</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="TimeLongW"></cite></span>
-                        <input type="range" min="1" max="24"  step="1" id="Time" value="1"／>
+            <!--弹层2-->
+            <div class="chooseFun">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit">购买内存包月</h3>
+                <p class="the_same" style="color: red;display: none;">内存与磁盘包月时长应保持一致，剩余时间<span class="day"></span>天<span class="hour"></span>小时</p>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix">
+                        <label>包月时长</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="TimeLongWid"></cite></span>
+                            <input type="range" min="1" max="24"  step="1" id="TimeLong" value="1"／>
+                        </p>
+                        <span><cite id="TimeLongText">1</cite>个月</span>
+                    </div>
+                    <p class="calMoney">
+                        <span>费用总计</span>
+                        <span id="TimeLongMoney"></span>元
                     </p>
-                    <span><cite id="TimeText">1</cite>个月</span>
                 </div>
+                <p class="bottom">
+                    <button class="sure sureMemory">付款</button>
+                    <button class="cancel">取消</button>
+                </p>
             </div>
-            <p class="bottom">
-                <button class="sure sureTime">付款</button>
-                <button class="cancel">取消</button>
-            </p>
-        </div>
-        <!--弹层4-->
-        <div class="chooseLarge layer-body">
-            <div class="del" title="关闭"><i class="fa fa-times"></i></div>
-            <h3 class="layer-tit">请选择要实用的内存与节点数</h3>
-            <div class="layer-height-overflow infor-fm-box">
-                <div class="fm-input-range clearfix fn-memory-node">
-                    <label>节点数</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="NodeWid"></cite></span>
-                        <input type="range" min="1" max="99"  step="1" id="NodeNum" value="1"／>
+            <div class="chooseDisk">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit">购买磁盘包月</h3>
+                <p class="the_same" style="color: red;display: none;">内存与磁盘包月时长应保持一致，剩余时间<span class="day"></span>天<span class="hour"></span>小时</p>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix">
+                        <label>包月时长</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="TimeLongDisk"></cite></span>
+                            <input type="range" min="1" max="24"  step="1" id="LongDisk" value="1"／>
+                        </p>
+                        <span><cite id="LongDiskText">1</cite>个月</span>
+                    </div>
+                    <div class="fm-input-range diskSize clearfix">
+                        <label>包月额度</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="DiskSize"></cite></span>
+                            <input type="range" min="1" max="200"  step="1" id="LongDiskSize" value="1"／>
+                        </p>
+                        <span><cite id="DiskSizeText">1</cite>G</span>
+                    </div>
+                    <p class="calMoney">
+                        <span>费用总计</span>
+                        <span id="LongDiskMoney"></span>元
                     </p>
-                    <span><cite id="NodeText">1</cite>个</span>
                 </div>
-                <div class="fm-input-range clearfix fn-memory-node">
-                    <label>单节点内存</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
-                        <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
-                    </p>
-                    <span><cite id="OneMemoryText">128</cite>M</span>
-                </div>
+                <p class="bottom">
+                    <button class="sure sureDisk">付款</button>
+                    <button class="cancel">取消</button>
+                </p>
             </div>
-            <p class="bottom">
-                <button class="sure sureDeploy">付款</button>
-                <button class="cancel">取消</button>
-            </p>
+            <!--弹层3-->
+            <div class="chooseData">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit">增加包月时长</h3>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix">
+                        <label>增加包月时长</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="TimeLongW"></cite></span>
+                            <input type="range" min="1" max="24"  step="1" id="Time" value="1"／>
+                        </p>
+                        <span><cite id="TimeText">1</cite>个月</span>
+                    </div>
+                    <p class="calMoney">
+                        <span>费用总计</span>
+                        <span id="TimeMoney"></span><span>元（按所有包月项目同步增加时长计算）</span>
+                    </p>
+                </div>
+                <p class="bottom">
+                    <button class="sure sureTime">付款</button>
+                    <button class="cancel">取消</button>
+                </p>
+            </div>
+            <!--弹层4-->
+            <div class="chooseLarge">
+                <div class="del" title="关闭"><i class="fa fa-times"></i></div>
+                <h3 class="layer-tit">增加内存包月额度</h3>
+                <div class="layer-height-overflow infor-fm-box">
+                    <div class="fm-input-range clearfix fn-memory-node" id="servie_node">
+                        <label>节点数</label>
+                        <p class="range-box">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="NodeWid"></cite></span>
+                            <input type="range" min="1" max="20"  step="1" id="NodeNum" value="1"／>
+                        </p>
+                        <span><cite id="NodeText">1</cite>个</span>
+                    </div>
+                    <div class="fm-input-range clearfix fn-memory-node">
+                        <label>单节点内存</label>
+                        <p class="range-box change_input fn-tips" data-tips="单应用内存最大8G，总内存无限。如需使用更多，请联系客服申请。">
+                            <span class="renge-bg"></span>
+                            <span class="range-choose"><cite id="OneMemoryWid"></cite></span>
+                            <input type="range" min="128" max="10240"  step="128" id="OneMemory" value="128"／>
+                        </p>
+                        <span><cite id="OneMemoryText">128</cite><cite id="memory_unit">M</cite></span>
+                    </div>
+                    <p class="calMoney" id="kuorongmoney">
+                        <span>新增费用</span><span id="deployMoney"></span><span>元（按当前包月时长计算）</span>
+                    </p>
+                </div>
+                <p class="bottom">
+                    <button class="sure sureDeploy">确定</button>
+                    <button class="cancel">取消</button>
+                </p>
+            </div>
         </div>
     </div>
 </div>
 <script>
     $(function(){
-        var that;
-        $('.change').on('click',function(){
-            if($(this).parent().find('span').html() == "预付费")
+        $('.changeMemory').on('click',function(){
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            var that = $(this);
+            if($("span.memoryFun").attr("data-currentway") == "prepaid")
             {
-                $(this).parent().find('span').html("后付费");
                 //弹出层，告知修改成功
                 $(".endDate").css({"display":"block"});
                 $(".chooseFun").css({"display":"none"});
                 $(".chooseData").css({"display":"none"});
                 $(".chooseLarge").css({"display":"none"});
                 $(".layer-body-bg").css({"display":"block"});
+                $(".chooseDisk").css({"display":"none"});
             }
             else{
                 //弹出层，选择购买配置，付费
                 $(".chooseFun").css({"display":"block"});
                 $(".chooseData").css({"display":"none"});
                 $(".chooseLarge").css({"display":"none"});
-                $(".layer-body-bg").css({"display":"block"});
+
+                $(".chooseDisk").css({"display":"none"});
+                $.ajax({
+                    type : "get",
+                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        if(msg["status"]=="unsupport"){
+                            swal(msg["info"]);
+                        }
+                        if( msg["status"] == "success" )
+                        {
+                            $(".layer-body-bg").css({"display":"block"});
+                            if(msg["choosable"])
+                            {
+                                var money = (msg["memory_unit_fee"]*msg["memory"]*24*30/1024).toFixed(2);
+                                $("#TimeLongMoney").attr("data-money",money);
+                                $("#TimeLongMoney").html(money);
+                            }
+                            else{
+                                $(".chooseFun .calMoney").css({"display":"none"});
+                                $(".chooseFun .fm-input-range").css({"display":"none"});
+                                $(".chooseFun .the_same").css({"display":"block"});
+                                var time = msg["left_hours"];
+                                var day = parseInt(time/24);
+                                var hour = time%24;
+                                $(".chooseFun .the_same span.day").html(day);
+                                $(".chooseFun .the_same span.hour").html(hour);
+                                $(".calMoney").css({"display":"block"});
+                                $("#TimeLongMoney").html(msg["memory_fee"]);
+                            }
+                        }
+                        else{
+                            swal(msg["info"]);
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
             }
-            that = $(this);
+        });
+        $('.changeDisk').on('click',function(){
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            var that = $(this);
+            if($("span.diskFun").attr("data-currentway") == "prepaid")
+            {
+                //弹出层，告知修改成功
+                $(".endDate").css({"display":"block"});
+                $(".chooseFun").css({"display":"none"});
+                $(".chooseData").css({"display":"none"});
+                $(".chooseLarge").css({"display":"none"});
+                $(".layer-body-bg").css({"display":"block"});
+                $(".chooseDisk").css({"display":"none"});
+            }
+            else{
+                //弹出层，选择购买配置，付费
+                $(".chooseFun").css({"display":"none"});
+                $(".chooseData").css({"display":"none"});
+                $(".chooseLarge").css({"display":"none"});
+
+                $.ajax({
+                    type : "get",
+                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+
+                        if (msg["status"] == "unsupport"){
+                            swal(msg["info"]);
+                        }
+                        else if( msg["status"] == "success" )
+                        {
+                            $(".layer-body-bg").css({"display":"block"});
+                            $(".chooseDisk").css({"display":"block"});
+                            var eachMoney = msg["disk_unit_fee"];
+                            if(msg["choosable"])
+                            {
+                                var money = eachMoney*24*30*$("#LongDiskText").html()*$("#DiskSizeText").html();
+                                $("#LongDiskMoney").html( (money).toFixed(2) );
+                            }
+                            else{
+                                $(".chooseDisk .fm-input-range").css({"display":"none"});
+                                $(".chooseDisk .diskSize").css({"display":"block"});
+                                $(".chooseDisk .the_same").css({"display":"block"});
+                                var time = msg["left_hours"];
+                                var day = parseInt(time/24);
+                                var hour = time%24;
+                                $(".chooseDisk .the_same span.day").html(day);
+                                $(".chooseDisk .the_same span.hour").html(hour);
+                                $(".calMoney").css({"display":"block"});
+                                var money = eachMoney*msg["left_hours"]*$("#DiskSizeText").html();
+                                $("#LongDiskMoney").html( (money).toFixed(2) );
+                            }
+                            $("#LongDiskMoney").attr("data-money",eachMoney);
+                            $("#LongDiskMoney").attr("data-hours",msg["left_hours"]);
+                        }
+                        else{
+                            swal(msg["info"]);
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+            }
         });
         //关闭弹出层
         $(".del").on("click",function(){
@@ -199,30 +349,317 @@
         });
         //扩容
         $(".larger").on("click",function(){
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            $.ajax({
+                type : "get",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    if(msg["status"]=="unsupport"){
+                        swal(msg["info"]);
+                    }else{
+                        $(".chooseLarge").css({"display":"block"});
+                        $(".layer-body-bg").css({"display":"block"});
+                        if(!msg["node_choosable"]){
+                            $("#servie_node").attr("style", "display:none");
+                        }
+                        //document.getElementById("OneMemory").setAttribute("min",msg["app_min_memory"]);
+                        //document.getElementById("OneMemory").setAttribute("max",msg["app_max_memory"]);
+                        $("#OneMemory").attr("min",msg["app_min_memory"]);
+                        $("#OneMemory").attr("max",msg["app_max_memory"]);
+                        $("#OneMemoryText").attr("data-size",msg["app_min_memory"]);
+                        if(msg["app_min_memory"] > 1024){
+                            $("#memory_unit").html("G");
+                        }
+                        $("#NodeNum").val(msg["min_node"]);
+                        $("#NodeText").html(msg["min_node"]);
+                        $("#OneMemory").val(msg["app_min_memory"]);
+                        $("#OneMemoryText").html(msg["app_min_memory"]);
+                        $("#OneMemoryWid").css({"width":0});
+                        $("#NodeWid").css({"width":0});
+                        if( msg["show_money"] )
+                        {
+                            var value = (msg["memory_unit_fee"]*msg["left_hours"]/1024).toFixed(2);
+                            var money = value * ( $("#NodeText").html()*$("#OneMemoryText").attr("data-size")-msg["service_memory"] );
+
+                            $("#kuorongmoney").css({"display":"block"});
+                            $("#deployMoney").html( money );
+                            if (money>0){
+                                $(".sureDeploy").html("付款");
+                                $(".sureDeploy").show();
+                            }else{
+                                $(".sureDeploy").hide();
+                            }
+
+                            $("#deployMoney").attr("data-money",value);
+                        }
+                        else{
+                            $("#kuorongmoney").css({"display":"none"});
+                            $(".sureDeploy").html("确定");
+                        }
+                    }
+
+                },
+                error : function() {
+                    swal("系统异常,请重试");
+                }
+            });
             $(".endDate").css({"display":"none"});
             $(".chooseFun").css({"display":"none"});
             $(".chooseData").css({"display":"none"});
-            $(".chooseLarge").css({"display":"block"});
-            $(".layer-body-bg").css({"display":"block"});
+
+            $(".chooseDisk").css({"display":"none"});
         });
         //延期
-        $(".expand").on("click",function(){
-            $(".endDate").css({"display":"none"});
-            $(".chooseFun").css({"display":"none"});
-            $(".chooseData").css({"display":"block"});
-            $(".chooseLarge").css({"display":"none"});
-            $(".layer-body-bg").css({"display":"block"});
+        $(".postpone").on("click",function(){
+            var tenantName = $("#tenantName").val();
+            var serviceAlias = $("#serviceAlias").val();
+            $.ajax({
+                type : "get",
+                url : "/ajax/"+tenantName+"/"+serviceAlias+"/postpone",
+                cache : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(msg) {
+                    if( msg["status"] == "success" )
+                    {
+                        var value = (msg["unit_price"]*24*30).toFixed(2);
+                        var money = value * $("#TimeText").html();
+                        $("#TimeMoney").html( (money).toFixed(2) );
+                        $("#TimeMoney").attr("data-money",value);
+                        $(".calMoney").css({"display":"block"});
+                        $(".endDate").css({"display":"none"});
+                        $(".chooseFun").css({"display":"none"});
+                        $(".chooseData").css({"display":"block"});
+                        $(".chooseLarge").css({"display":"none"});
+                        $(".layer-body-bg").css({"display":"block"});
+                        $(".chooseDisk").css({"display":"none"});
+                    }
+                    else if(msg["status"] == "no_prepaid"){
+                        swal(msg["info"]);
+                    }else if(msg["status"]=="unsupport"){
+                        swal(msg["info"]);
+                    }else{
+                        swal("操作失败");
+                    }
+
+                },
+                error : function() {
+                    swal("系统异常,请重试");
+                }
+            });
         });
         //跳转支付
-        $("button.sureTimeLong").on("click",function(){
-            console.log( $('#TimeLongText').html() );
-            that.parent().find('span').html("预付费");
+        $("button.sureDisk").on("click",function(){
+            var notify_text = "确认付款吗？"
+            swal({
+                title : notify_text,
+                type : "warning",
+                showCancelButton : true,
+                confirmButtonColor : "#DD6B55",
+                confirmButtonText : "确定",
+                cancelButtonText : "取消",
+                closeOnConfirm : false,
+                closeOnCancel : false
+            }, function(isConfirm) {
+                if (isConfirm) {
+                    var way = $(".diskFun").attr("data-currentway");
+                    if( way == "postpaid" )
+                    {
+                        var msg = "post2pre"
+                        var data
+                    }
+                    else{
+                        var msg = "pre2post"
+                    }
+                    var tenantName = $("#tenantName").val();
+                    var serviceAlias = $("#serviceAlias").val();
+                    $.ajax({
+                        type : "post",
+                        url : "/ajax/"+tenantName+"/"+serviceAlias+"/disk-pay-method",
+                        data : {
+                            update_method : msg,
+                            pay_period : $('#LongDiskText').html(),
+                            pay_disk : $('#DiskSizeText').html()
+                        },
+                        cache : false,
+                        beforeSend : function(xhr, settings) {
+                            var csrftoken = $.cookie('csrftoken');
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success : function(msg) {
+                            if( msg["status"] == "success" )
+                            {
+                                swal("修改成功");
+                                history.go(0);
+                            }
+                            else if( msg["status"] == "not_enough" ){
+                                swal("余额不足");
+                            }
+                            else{
+                                swal(msg["info"]);
+                            }
+                        },
+                        error : function() {
+                            swal("系统异常,请重试");
+                        }
+                    });
+                } else {
+                    swal.close();
+                }
+            });
         });
         $("button.sureTime").on("click",function(){
-            console.log( $('#TimeText').html() );
+            var notify_text = "确认付款吗？"
+            swal({
+                title : notify_text,
+                type : "warning",
+                showCancelButton : true,
+                confirmButtonColor : "#DD6B55",
+                confirmButtonText : "确定",
+                cancelButtonText : "取消",
+                closeOnConfirm : false,
+                closeOnCancel : false
+            }, function(isConfirm) {
+                if (isConfirm) {
+                    var tenantName = $("#tenantName").val();
+                    var serviceAlias = $("#serviceAlias").val();
+                    $.ajax({
+                        type : "post",
+                        url : "/ajax/"+tenantName+"/"+serviceAlias+"/postpone",
+                        data : {
+                            pay_period : $('#TimeText').html()
+                        },
+                        cache : false,
+                        beforeSend : function(xhr, settings) {
+                            var csrftoken = $.cookie('csrftoken');
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success : function(msg) {
+                            console.log(msg);
+                            if( msg["status"] == "success" )
+                            {
+                                swal("修改成功");
+                                history.go(0);
+                            }
+                            else if( msg["status"] == "not_enough" ){
+                                swal("余额不足");
+                            }
+                            else{
+                                swal(msg["info"]);
+                            }
+                        },
+                        error : function() {
+                            swal("系统异常,请重试");
+                        }
+                    });
+                } else {
+                    swal.close();
+                }
+            });
         });
         $("button.sureDeploy").on("click",function(){
-            console.log( $('#NodeText').html() +";"+ $('#OneMemoryText').html() );
+            var money = $("#deployMoney").html();
+            if (money > 0){
+                var notify_text = "确认付款吗？"
+                swal({
+                    title : notify_text,
+                    type : "warning",
+                    showCancelButton : true,
+                    confirmButtonColor : "#DD6B55",
+                    confirmButtonText : "确定",
+                    cancelButtonText : "取消",
+                    closeOnConfirm : false,
+                    closeOnCancel : false
+                }, function(isConfirm) {
+                    if (isConfirm) {
+                        var tenantName = $("#tenantName").val();
+                        var serviceAlias = $("#serviceAlias").val();
+                        var node_memory = $('#OneMemoryText').html();
+                        if (node_memory < 128){
+                            node_memory *= 1024;
+                        }
+
+                        $.ajax({
+                            type : "post",
+                            url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                            data : {
+                                node_num : $('#NodeText').html(),
+                                node_memory : node_memory
+                            },
+                            cache : false,
+                            beforeSend : function(xhr, settings) {
+                                var csrftoken = $.cookie('csrftoken');
+                                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                            },
+                            success : function(msg) {
+                                if( msg["status"] == "success" )
+                                {
+                                    swal("修改成功");
+                                    history.go(0);
+                                }
+                                else if( msg["status"] == "not_enough" ){
+                                    swal("余额不足");
+                                }
+                                else{
+                                    swal(msg["info"]);
+                                }
+                            },
+                            error : function() {
+                                swal("系统异常,请重试");
+                            }
+                        });
+                    } else {
+                        swal.close();
+                    }
+                });
+            }else{
+                var tenantName = $("#tenantName").val();
+                var serviceAlias = $("#serviceAlias").val();
+                var node_memory = $('#OneMemoryText').html();
+                if (node_memory < 128){
+                    node_memory *= 1024;
+                }
+
+                $.ajax({
+                    type : "post",
+                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/service-extend",
+                    data : {
+                        node_num : $('#NodeText').html(),
+                        node_memory : node_memory
+                    },
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        if( msg["status"] == "success" )
+                        {
+                            swal("修改成功");
+                            history.go(0);
+                        }
+                        else if( msg["status"] == "not_enough" ){
+                            swal("余额不足");
+                        }
+                        else{
+                            swal(msg["info"]);
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+            }
+
+
         });
         //取消，关闭弹出层
         $("button.cancel").on("click",function(){
@@ -231,15 +668,74 @@
             $(".chooseFun").css({"display":"none"});
             $(".chooseData").css({"display":"none"});
             $(".chooseLarge").css({"display":"none"});
+            $(".chooseDisk").css({"display":"none"});
         })
     });
-
-
+    $(".sureMemory").on("click",function(){
+        var notify_text = "确认付款吗？"
+        swal({
+            title : notify_text,
+            type : "warning",
+            showCancelButton : true,
+            confirmButtonColor : "#DD6B55",
+            confirmButtonText : "确定",
+            cancelButtonText : "取消",
+            closeOnConfirm : false,
+            closeOnCancel : false
+        }, function(isConfirm) {
+            if (isConfirm) {
+                var way = $(".memoryFun").attr("data-currentway");
+                if( way == "postpaid" )
+                {
+                    var msg = "post2pre"
+                    var data
+                }
+                else{
+                    var msg = "pre2post"
+                }
+                var tenantName = $("#tenantName").val();
+                var serviceAlias = $("#serviceAlias").val();
+                $.ajax({
+                    type : "post",
+                    url : "/ajax/"+tenantName+"/"+serviceAlias+"/memory-pay-method",
+                    data : {
+                        update_method : msg,
+                        pay_period : $("#TimeLongText").html(),
+                        pay_money : $("#TimeLongMoney").html()
+                    },
+                    cache : false,
+                    beforeSend : function(xhr, settings) {
+                        var csrftoken = $.cookie('csrftoken');
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    },
+                    success : function(msg) {
+                        if( msg["status"] == "success" )
+                        {
+                            swal("修改成功");
+                            history.go(0);
+                        }
+                        else if( msg["status"] == "not_enough" ){
+                            swal("余额不足");
+                        }
+                        else{
+                            swal(msg["info"]);
+                        }
+                    },
+                    error : function() {
+                        swal("系统异常,请重试");
+                    }
+                });
+            } else {
+                swal.close();
+            }
+        });
+    });
     function FnRange(inputid,textid,widid,num){
         var range= document.getElementById(inputid);
         var result = document.getElementById(textid);
         var wid = document.getElementById(widid);
         var maxnum = range.getAttribute("max");
+        console.log(maxnum);
         cachedRangeValue = /*localStorage.rangeValue ? localStorage.rangeValue :*/ num;
         // 检测浏览器
         var o = document.createElement('input');
@@ -248,76 +744,265 @@
         range.value = cachedRangeValue;
         wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
         range.addEventListener("mouseup", function() {
-//            if(inputid == "OneMemory"){
-//                if(range.value >= 128 && range.value < 256){
-//                    result.innerHTML = "128M";
-//                }else if(range.value >= 256 && range.value < 512){
-//                    result.innerHTML = "256M";
-//                }else if(range.value >= 512 && range.value < 1024){
-//                    result.innerHTML = "512M";
-//                }else if(range.value >= 1024 && range.value < 2048){
-//                    result.innerHTML = "1G";
-//                }else if(range.value >= 2048 && range.value < 3072){
-//                    result.innerHTML = "2G";
-//                }else if(range.value >= 3072 && range.value < 4096){
-//                    result.innerHTML = "3G";
-//                }else if(range.value >= 4096 && range.value < 5120){
-//                    result.innerHTML = "4G";
-//                }else if(range.value >= 5120 && range.value < 6144){
-//                    result.innerHTML = "5G";
-//                }else if(range.value >= 6144 && range.value < 7168){
-//                    result.innerHTML = "6G";
-//                }else if(range.value >= 7168 && range.value < 8100){
-//                    result.innerHTML = "7G";
-//                }else{
-//                    result.innerHTML = "8G";
-//                }
-//            }else{
-//                result.innerHTML = range.value;
-//            }
+            var maxnum = range.getAttribute("max");
             result.innerHTML = range.value;
             wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
-            //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
-            //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
-            //result.innerHTML = range.value;
+            if( inputid == "OneMemory" )
+            {
+
+                var arr = [];
+                var value_min = parseInt($("#OneMemory").attr("min"));
+                var value_max = parseInt($("#OneMemory").attr("max"));
+                var next = value_min;
+                var sum = 0;
+                while(next <= value_max){
+                    next = value_min * Math.pow(2,sum);
+                    arr.push(next);
+                    sum++;
+                }
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        $("#OneMemoryText").attr("data-size",size);
+                        if( size < 1024 )
+                        {
+                            $("#memory_unit").html("M");
+                            result.innerHTML = size ;
+
+                        }
+                        else{
+                            $("#memory_unit").html("G")
+                            result.innerHTML = parseInt(size/1024);
+
+                        }
+                    }
+                }
+
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") - $("#OneMemory").attr("min") )*$("#deployMoney").attr("data-money");
+
+                if( money > 0){
+                    $("#kuorongmoney").css({"display":"block"});
+                    $("#deployMoney").html( (money).toFixed(2) );
+                    $(".sureDeploy").html("付款");
+                    $(".sureDeploy").show();
+                }else{
+                    $("#kuorongmoney").css({"display":"none"});
+                    $(".sureDeploy").hide();
+                };
+            }
         }, false);
         // 滑动时显示选择的值
         range.addEventListener("input", function() {
-//            if(inputid == "OneMemory"){
-//                if(range.value >= 128 && range.value < 256){
-//                    result.innerHTML = "128M";
-//                }else if(range.value >= 256 && range.value < 512){
-//                    result.innerHTML = "256M";
-//                }else if(range.value >= 512 && range.value < 1024){
-//                    result.innerHTML = "512M";
-//                }else if(range.value >= 1024 && range.value < 2048){
-//                    result.innerHTML = "1G";
-//                }else if(range.value >= 2048 && range.value < 3072){
-//                    result.innerHTML = "2G";
-//                }else if(range.value >= 3072 && range.value < 4096){
-//                    result.innerHTML = "3G";
-//                }else if(range.value >= 4096 && range.value < 5120){
-//                    result.innerHTML = "4G";
-//                }else if(range.value >= 5120 && range.value < 6144){
-//                    result.innerHTML = "5G";
-//                }else if(range.value >= 6144 && range.value < 7168){
-//                    result.innerHTML = "6G";
-//                }else if(range.value >= 7168 && range.value < 8100){
-//                    result.innerHTML = "7G";
-//                }else{
-//                    result.innerHTML = "8G";
-//                }
-//            }else{
-//                result.innerHTML = range.value;
-//            }
+            var maxnum = range.getAttribute("max");
             result.innerHTML = range.value;
             wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
+            if( inputid == "OneMemory" )
+            {
 
+                var arr = [];
+                var value_min = parseInt($("#OneMemory").attr("min"));
+                var value_max = parseInt($("#OneMemory").attr("max"));
+                var next = value_min;
+                var sum = 0;
+                while(next <= value_max){
+                    next = value_min * Math.pow(2,sum);
+                    arr.push(next);
+                    sum++;
+                }
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        $("#OneMemoryText").attr("data-size",size);
+                        if( size < 1024 )
+                        {
+                            $("#memory_unit").html("M");
+                            result.innerHTML = size;
+                        }
+                        else{
+                            $("#memory_unit").html("G");
+                            result.innerHTML = parseInt(size/1024);
+                        }
+                    }
+                }
+
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") - $("#OneMemory").attr("min") )*$("#deployMoney").attr("data-money");
+
+                if( money > 0){
+                    $("#kuorongmoney").css({"display":"block"});
+                    $("#deployMoney").html( (money).toFixed(2) );
+                    $(".sureDeploy").html("付款");
+                    $(".sureDeploy").show();
+                }else{
+                    $("#kuorongmoney").css({"display":"none"});
+                    $(".sureDeploy").hide();
+
+                };
+            }
+
+
+            if( inputid == "TimeLong" )
+            {
+                var money = range.value * $("#TimeLongMoney").attr("data-money");
+                $("#TimeLongMoney").html( (money).toFixed(2) );
+            }
+            else if( inputid == "LongDisk" || inputid == "LongDiskSize" ){
+                if( $("#LongDiskMoney").attr("data-hours") )
+                {
+                    var money = $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money") * $("#LongDiskMoney").attr("data-hours");
+                }
+                else{
+                    var money = $("#LongDisk").val() * $("#LongDiskSize").val() * $("#LongDiskMoney").attr("data-money") * 24 *30;
+                }
+                $("#LongDiskMoney").html( (money).toFixed(2) );
+            }
+            else if( inputid == "Time" ){
+                var money = range.value * $("#TimeMoney").attr("data-money");
+                $("#TimeMoney").html( (money).toFixed(2) );
+            }
+            else if( inputid == "OneMemory" )
+            {
+
+                var arr = [];
+                var value_min = parseInt($("#OneMemory").attr("min"));
+                var value_max = parseInt($("#OneMemory").attr("max"));
+                var next = value_min;
+                var sum = 0;
+                while(next <= value_max){
+                    next = value_min * Math.pow(2,sum);
+                    arr.push(next);
+                    sum++;
+                }
+                for( var i = 0;i<arr.length-1;i++ )
+                {
+                    if( range.value >= arr[i] && range.value < arr[i+1] )
+                    {
+                        var size = arr[i];
+                        $("#OneMemoryText").attr("data-size",size);
+                        if( size < 1024 )
+                        {
+                            $("#memory_unit").html("M");
+                            result.innerHTML = size ;
+                        }
+                        else{
+                            $("#memory_unit").html("G");
+                            result.innerHTML = parseInt(size/1024);
+                        }
+                    }
+                }
+
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") - $("#OneMemory").attr("min") )*$("#deployMoney").attr("data-money");
+                    $("#kuorongmoney").css({"display":"block"});
+                    $("#deployMoney").html( (money).toFixed(2) );
+                    $(".sureDeploy").html("付款");
+
+            }
+            else if( inputid == "NodeNum" ){
+                var money = ( $("#NodeText").html() * $("#OneMemoryText").attr("data-size") - $("#OneMemory").attr("min") )*$("#deployMoney").attr("data-money");
+
+                if( money > 0){
+                    $("#kuorongmoney").css({"display":"block"});
+                    $("#deployMoney").html( (money).toFixed(2) );
+                    $(".sureDeploy").html("付款");
+                    $(".sureDeploy").show();
+                }else{
+                    $("#kuorongmoney").css({"display":"none"});
+                    $(".sureDeploy").html("确定");
+                    $(".sureDeploy").hide();
+                };
+            }
         }, false);
     }
-
+    //扩容:节点内存
     FnRange("OneMemory","OneMemoryText","OneMemoryWid",128);
+    //扩容:节点个数
     FnRange("NodeNum","NodeText","NodeWid",1);
+    //内存包月修改:内存时长
     FnRange("TimeLong","TimeLongText","TimeLongWid",1);
+    //延期
     FnRange("Time","TimeText","TimeLongW",1);
+    //磁盘包月修改:磁盘时长
+    FnRange("LongDisk","LongDiskText","TimeLongDisk",1);
+    //磁盘包月修改:磁盘大小
+    FnRange("LongDiskSize","DiskSizeText","DiskSize",1);
+
+
+////tips
+    $(".fn-tips").mouseover(function(){
+        var tips = $(this).attr("data-tips");
+        var pos = $(this).attr("data-position");
+        var x = $(this).offset().left;
+        var y = $(this).offset().top;
+        var oDiv='<div class="tips-box"><p><span>'+ tips +'</span><cite></cite></p></div>';
+        $("body").append(oDiv);
+        var oDivheight = $(".tips-box").height();
+        var oDivwidth = $(".tips-box").width();
+        var othiswid = $(this).width();
+        var othisheight = $(this).height();
+        if(pos){
+            if(pos == "top"){
+                //
+                $(".tips-box").css({"top":y-oDivheight -25});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                 $(".tips-box").find("cite").addClass("top");
+                //
+            }else if(pos == "bottom"){
+                //
+                $(".tips-box").css({"top":y + othisheight + 25});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                $(".tips-box").find("cite").addClass("bottom");
+                //
+            }else if(pos == "left"){
+                $(".tips-box").css({"top":y+5,"left":x-othiswid-5});
+                 $(".tips-box").find("cite").addClass("left");
+            }else if(pos == "right"){
+                $(".tips-box").css({"top":y+5,"left":x+othiswid+5});
+                 $(".tips-box").find("cite").addClass("right");
+            }else{
+                //
+                $(".tips-box").css({"top":y-oDivheight -25});
+                if(oDivwidth > othiswid){
+                    $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+                }else if(oDivwidth < othiswid){
+                    $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+                }else{
+                    $(".tips-box").css({"left":x});
+                }
+                 $(".tips-box").find("cite").addClass("top");
+                //
+            }         
+        }else{
+            //
+            $(".tips-box").css({"top":y-oDivheight -25});
+            if(oDivwidth > othiswid){
+                $(".tips-box").css({"left":x-(oDivwidth-othiswid)/2});
+            }else if(oDivwidth < othiswid){
+                $(".tips-box").css({"left":x + (othiswid - oDivwidth)/2});
+            }else{
+                $(".tips-box").css({"left":x});
+            }
+            $(".tips-box").find("cite").addClass("top");
+            //
+        }
+        
+    });
+    $(".fn-tips").mouseout(function(){
+        $(".tips-box").remove();
+    });
+    ////tips end
 </script>

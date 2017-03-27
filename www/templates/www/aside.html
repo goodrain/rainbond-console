@@ -25,7 +25,7 @@
                  	{% endfor %}
                 {% endif %}
                 {% if not is_private %}
-                <li><a href="/apps/{{tenantName}}/third_app/list">第三方应用</a></li>
+                <li class="third_app"><a href="/apps/{{tenantName}}/third_app/list">第三方应用</a></li>
                 {% endif %}
                 <li {% if -1 ==  group_id %}class="active"{% endif %}><a href="/apps/{{tenantName}}/myservice/?gid=-1">未分组</a></li>
             </ul>
@@ -57,9 +57,9 @@
             <i class="fa fa-jpy"></i>
             <span>财务中心</span></a>            
             <ul class="sub">
-                <li class="{{myPayModelstatus}}"><a href="/apps/{{tenantName}}/paymodel/">打包购买</a></li>
+                <!--<li class="{{myPayModelstatus}}"><a href="/apps/{{tenantName}}/paymodel/">打包购买</a></li>-->
                 <li class="{{myFinanceRecharge}}"><a href="/apps/{{tenantName}}/recharge/">账户充值</a></li>
-                <li class="{{myFinanceAccount}}"><a href="/apps/{{tenantName}}/consume/">消费明细</a></li>                                
+                <!--<li class="{{myFinanceAccount}}"><a href="/apps/{{tenantName}}/consume/">消费明细</a></li>                                -->
             </ul>
         </li>
         {% endif %}

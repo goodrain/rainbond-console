@@ -355,18 +355,17 @@ class GitCheckCodeView(APIView):
             data["status"] = "failure"
         return Response(data, status=200)
 
-
-class UpdateTenantResourceView(APIView):
+class UpdateServiceExpireTime(APIView):
     allowed_methods = ('put',)
 
     def put(self, request, format=None):
         """
 
-        更新租户过期时间和最大内存
+        更新租户服务过期时间和最大内存
         ---
         parameters:
-            - name: tenant_name
-              description: 租户名
+            - name: service_id
+              description: 服务ID
               required: true
               type: string
               paramType: form
@@ -375,28 +374,23 @@ class UpdateTenantResourceView(APIView):
               required: false
               type: int
               paramType: form
-            - name: limit_memory
-              description: 最大内存(单位:M)
-              required: false
-              type: int
-              paramType: form
 
         """
         data = {}
         status = 200
         try:
-            tenant_name = request.data.get("tenant_name", "")
+            service_id = request.data.get("service_id", "")
             expired_days = request.data.get("expired_days", 7)
-            limit_memory = request.data.get("limit_memory",None)
-            tenant = Tenants.objects.get(tenant_name=tenant_name)
+            service = TenantServiceInfo.objects.get(service_id=service_id)
             if expired_days.strip():
-                tenant.expired_time = tenant.expired_time + datetime.timedelta(days=int(expired_days))
-            if limit_memory.strip():
-                tenant.limit_memory = int(limit_memory)
-            tenant.save()
+                if service.expired_time:
+                    service.expired_time = service.expired_time+datetime.timedelta(days=int(expired_days))
+                else:
+                    service.expired_time = datetime.datetime.now()+datetime.timedelta(days=int(expired_days))
+            service.save()
             data["status"] = "success"
-        except Tenants.DoesNotExist:
-            logger.error("tenant_name:{0} is not found".format(tenant_name))
+        except TenantServiceInfo.DoesNotExist:
+            logger.error("service_id :{0} is not found".format(service_id))
             data["status"] = "failure"
             status = 404
         except Exception as e:

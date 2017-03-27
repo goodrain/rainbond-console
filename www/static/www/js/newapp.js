@@ -325,6 +325,7 @@ $(function(){
 
 	///// 提交
     $("#build-app").click(function(){
+		$(this).attr('disabled',true);
     	console.log(1);
     	var port_tr = $("#new-port tbody tr");
     	var environment = $("#new-environment tbody tr");
@@ -366,11 +367,6 @@ $(function(){
     	});
 		var image_url = $("#image_url").val()
 		var service_id = $("#service_id").val()
-    	console.log(port_nums);
-    	console.log(env_nums);
-    	console.log(dir_nums);
-    	console.log(resources);
-    	console.log(order);
 		service_config = {
 			"image_url":image_url,
 			"port_list" : JSON.stringify(port_nums),
@@ -411,11 +407,11 @@ $(function(){
 				}else{
 					swal("创建失败");
 				}
-				
+				$("#build-app").attr('disabled',false);
 				
 			},
 			error: function() {
-               
+				$("#build-app").attr('disabled',false);
             },
             cache: false
             // processData: false
