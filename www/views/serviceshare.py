@@ -167,6 +167,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
             "app_alias": self.service.service_alias,
+            "app_cname": self.service.service_cname,
             "desc": self.service.desc,
             # "info": "",
             # "logo": "",
