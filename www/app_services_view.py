@@ -66,7 +66,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         response = TemplateResponse(self.request, "www/app_create_step_1.html", context)
         try:
-            type = request.GET.get("type", "gitlab_new")
+            type = request.GET.get("type", "gitlab_demo")
             if type not in("gitlab_new","gitlab_manual","github","gitlab_exit","gitlab_demo","gitlab_self",):
                 type = "gitlab_self"
             context["tenantName"] = self.tenantName
