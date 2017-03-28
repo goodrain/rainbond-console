@@ -49,7 +49,9 @@
     <!-- logo start -->
     <h1 class="yblogo" style="margin:150px auto 0px;"><img src="/data/media/logo/7437d3f6f17c4d3cabc1670abcb14c57.png"></h1>
     <!-- logo end -->
-	<h4 style="margin:60px auto 0px;">好雨云帮授权××××使用至××××年×月×日。</h4>
+	{% if expired_day %}
+	<h4 style="margin:60px auto 0px;">好雨云帮授权{% if user %}{{user}}{% else %}您{% endif %}使用至{{expired_day}}。</h4>
+	{% endif %}
 	<h4>当前授权已过期，如需继续使用，请联系我们。</h4>
 	<p style="margin:40px auto;">电话：010-84762936<br />
 	邮箱：info@goodrain.com<br />
