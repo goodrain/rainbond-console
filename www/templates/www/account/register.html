@@ -16,6 +16,7 @@
 {% block body %}
 
 <div class="mainbox">
+	<input type="hidden" id="a_flag" value="clickable"/>
     <h1 class="yblogo">
 		<img src="{{CUSTOM_CONFIG.LOGO|default:'/static/www/images/yunbanglogo.png'}}" />
     </h1>
@@ -49,7 +50,13 @@
   			swal("请输入图形验证码")
   			return false;
   		}
+		var clickable = $("#a_flag").val();
+		if ("clickable" != clickable){
+			return false;
+		}
+
   		$("#PhoneCodeBtn").attr("disabled", "true");
+		$("#a_flag").val("unclickable");
   		$.ajax({
     		type : "POST",
     		url : "/phone_code",
@@ -62,23 +69,28 @@
     		success : function(msg) {
     			var dataObj = msg;
     			if (dataObj["status"] == "success") {
-    				swal("发送成功,手机验证码2分钟内有效")
+    				swal("发送成功,手机验证码5分钟内有效")
     				InterValObj = window.setInterval(SetRemainTime, 1000);
     			} else if(dataObj["status"] == "often"){
     				swal("请稍后发送")
-    				$("#PhoneCodeBtn").removeAttr("disabled");
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
     			}else if(dataObj["status"] == "errorcaptchacode"){
     				swal("图片验证码异常")
-    				$("#PhoneCodeBtn").removeAttr("disabled");
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
     			}else if(dataObj["status"] == "errorphone"){
     				swal("错误的手机号")
-    				$("#PhoneCodeBtn").removeAttr("disabled");
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
     			}else if(dataObj["status"] == "limited"){
     				swal("超过发送次数")
-    				$("#PhoneCodeBtn").removeAttr("disabled");
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
     			} else {
     				swal("发送失败")
-    				$("#PhoneCodeBtn").removeAttr("disabled");
+//    				$("#PhoneCodeBtn").removeAttr("disabled");
+					$("#a_flag").val("clickable");
     			}
     		},
     		error : function() {
@@ -90,13 +102,14 @@
   	function SetRemainTime() {
         if (curCount == 0) {                
             window.clearInterval(InterValObj);//停止计时器
-            $("#PhoneCodeBtn").removeAttr("disabled");//启用按钮
+//            $("#PhoneCodeBtn").removeAttr("disabled");//启用按钮
+			$("#PhoneCodeBtn").val("clickable");
             $("#PhoneCodeBtn").html("重新发送验证码");
         }
         else {
             curCount--;
             if(curCount==0){
-            	$("#PhoneCodeBtn").html("请输入手机验证码");
+            	$("#PhoneCodeBtn").html("重新发送验证码");
             }else{
             	$("#PhoneCodeBtn").html("" + curCount + "秒后可重新发送");
             }
