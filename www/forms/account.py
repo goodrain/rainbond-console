@@ -591,7 +591,7 @@ class RegisterForm(forms.Form):
                     phoneCode = phoneCodes[0]
                     last = int(phoneCode.create_time.strftime("%s"))
                     now = int(time.time())
-                    if now - last > 120:
+                    if now - last > 300:
                         logger.info('form_valid.register', phone + "too long time")
                         raise forms.ValidationError(
                             self.error_messages['phone_captch_error'],
