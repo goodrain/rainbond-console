@@ -62,7 +62,7 @@
     		success : function(msg) {
     			var dataObj = msg;
     			if (dataObj["status"] == "success") {
-    				swal("发送成功")
+    				swal("发送成功,手机验证码2分钟内有效")
     				InterValObj = window.setInterval(SetRemainTime, 1000);
     			} else if(dataObj["status"] == "often"){
     				swal("请稍后发送")
@@ -91,14 +91,14 @@
         if (curCount == 0) {                
             window.clearInterval(InterValObj);//停止计时器
             $("#PhoneCodeBtn").removeAttr("disabled");//启用按钮
-            $("#PhoneCodeBtn").val("重新发送验证码");
+            $("#PhoneCodeBtn").html("重新发送验证码");
         }
         else {
             curCount--;
             if(curCount==0){
             	$("#PhoneCodeBtn").html("请输入手机验证码");
             }else{
-            	$("#PhoneCodeBtn").html("请在" + curCount + "秒内输入手机验证码");
+            	$("#PhoneCodeBtn").html("" + curCount + "秒后可重新发送");
             }
         }
     }

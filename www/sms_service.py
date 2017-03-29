@@ -11,7 +11,7 @@ def send_phone_message(phone, phonecode):
             "uid": "aIrG6RTFJqrR ",
             "pas": "u49kq92r",
             "mob": phone,
-            "cid": "fo92yWNMWIss",
+            "cid": "7AI27SCLr0u3",
             "p1":phonecode,
             "type": "json"
         }, timeout=3 , verify=False);    
