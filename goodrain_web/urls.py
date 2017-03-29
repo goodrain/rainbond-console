@@ -55,4 +55,5 @@ urlpatterns = patterns(
     url(r'^data/media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
     url(r'^share/', include('share.urls')),
     url(r'^wizard/', include('www.urls.wizard')),
+    url(r'^license', views.LicenceView.as_view()),
 ) + staticfiles_urlpatterns() + openapi_urlpatterns()
