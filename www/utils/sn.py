@@ -82,7 +82,7 @@ class SNUtil:
         if not self.expire_day:
             return False
         else:
-            lisecen_expire_day = datetime.datetime.strptime(self.expire_day, "%Y-%m-%d")
+            lisecen_expire_day = datetime.datetime.strptime(self.expire_day, "%Y-%m-%d %H:00:00")
             now = datetime.datetime.now()
             if now > lisecen_expire_day:
                 return True
