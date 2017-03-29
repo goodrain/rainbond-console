@@ -7,4 +7,5 @@ goodrain_web/conf/local.py
 migrations/
 /.DS_Store
 .idea/*
-
+dist/
+build/
