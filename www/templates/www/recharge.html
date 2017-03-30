@@ -1,4 +1,11 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% load goodrain_extras %} {% block main-content %}
+{% extends 'www/raster.html' %} {% load i18n %} {% load goodrain_extras %}
+{% load static %}
+
+{% block extrajs %}
+<script src='{% static "www/layui/layui.js" %}'></script>
+{% endblock %}
+
+{% block main-content %}
 
 <section class="wrapper site-min-height">
 		<header class="panel-heading">
@@ -106,6 +113,19 @@
 				</div>
 				<!-- -->
 				<div id="tenantserviceconsume" class="tab-pane">
+
+					<!--<div class="tab-pane" style="margin-top: 40px"></div>-->
+					<!--<div id="time_picker" class="lit-select text-right" style="margin:-40px 0 30px 0">-->
+						<!--<label>选择时间</label>-->
+						<!--<input class="form-control" >-->
+					<!--</div>-->
+
+					<form role="form">
+						<div class="lit-select text-left">
+							<label>选择时间</label>
+							<input type="text" readonly="readonly" class="form-control-inline" id="date_selecter">
+						</div>
+					</form>
 					<div class="adv-table" id="region_service_list"></div>
 				</div>
 
@@ -127,6 +147,13 @@
 	$(document).ready(function(){ 
 		_page(1);
 
+		laydate({
+			elem: '#date_selecter',
+			event: 'focus' 
+		});
+
+
+
 		getConsumeDetail();
 		
 		$("body").on("change","#datescope", function () { 
@@ -136,6 +163,7 @@
 		$("body").on("change","#pageSizeScope", function () { 
 			_page(1);
 		});
+
 
 	})
 	function verifyData(){
@@ -147,7 +175,7 @@
 	}
 
 	function getConsumeDetail(){
-		$("#region_service_list").load('/ajax/{{tenantName}}/regionServiceList?'+Math.random())
+		$("#region_service_list").load('/ajax/{{tenantName}}/regionServiceList?r='+Math.random())
 	}
 </script>
 
