@@ -2,6 +2,7 @@ from functools import wraps
 from django.utils.decorators import available_attrs
 from django.shortcuts import redirect
 from django.http import JsonResponse
+from django.http.response import HttpResponseRedirect
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -50,7 +51,9 @@ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIE
                     return JsonResponse({"reason": e.error}, status=403)
             except UrlParseError, e:
                 if e.code == 403:
-                    return redirect("/login")
+                    response = HttpResponseRedirect(settings.LOGIN_URL)
+                    response.delete_cookie('tenant_name')
+                    return response
                 return JsonResponse({"reason": e.error}, status=e.code)
         return _wrapped_view
     return decorator
