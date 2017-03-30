@@ -204,3 +204,10 @@ class PayModelInfo(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result, status=200)
+
+
+class RegionServiceConsumeView(AuthedView):
+    @perm_required('tenant_account')
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        return TemplateResponse(self.request,"www/region_service_consume.html",context)
