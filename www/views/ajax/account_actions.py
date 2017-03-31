@@ -252,5 +252,21 @@ class RegionServiceConsumeView(AuthedView):
 class RegionServiceDetailConsumeView(AuthedView):
     @perm_required('tenant_account')
     def get(self, request, *args, **kwargs):
-        logger.info("=======> hello")
-        pass
+        context = self.get_context()
+        time = request.GET.get("time")
+        cookie_region = self.request.COOKIES.get('region', None)
+        response_region = self.tenant.region if cookie_region is None else cookie_region
+        result = {}
+        try:
+            logger.debug("query time "+time)
+            if not time:
+                return JsonResponse({"ok": False}, status=200)
+            consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id, region=response_region,
+                                                         time=time).values("service_id", "pay_money")
+            logger.info(consume_list)
+
+            result["ok"] = True
+        except Exception as e:
+            result["ok"] = False
+            logger.error(e)
+        return JsonResponse(result, status=200)

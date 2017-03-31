@@ -6,6 +6,7 @@
 {% endblock %}
 {% block extrajs %}
 <script src='{% static "www/js/jquery-ui.js" %}'></script>
+<script src='{% static "www/js/jquery.cookie.js" %}'></script>
 {% endblock %}
 
 {% block main-content %}
@@ -200,17 +201,16 @@
 
 	function showMore(current_td,time){
 		var cur_tr = current_td.parent();
-		alert(time)
 		$.ajax({
 			type : "get",
-			url : "/ajax/"+tenantName+"/serviceCostDetail?time="+encodeURIComponent(time)+"&r="+Math.random(),
+			url : "/ajax/{{tenantName}}/serviceCostDetail?time="+encodeURIComponent(time)+"&r="+Math.random(),
 			cache : false,
 			beforeSend : function(xhr, settings) {
 				var csrftoken = $.cookie('csrftoken');
 				xhr.setRequestHeader("X-CSRFToken", csrftoken);
 			},
 			success : function(msg) {
-				alert(msg);
+				console.log(msg);
 			},
 			error : function() {
 				swal("系统异常,请重试");
