@@ -1,8 +1,11 @@
 {% extends 'www/raster.html' %} {% load i18n %} {% load goodrain_extras %}
 {% load static %}
-
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/jquery-ui.css" %}' />
+{% endblock %}
 {% block extrajs %}
-<script src='{% static "www/layui/layui.js" %}'></script>
+<script src='{% static "www/js/jquery-ui.js" %}'></script>
 {% endblock %}
 
 {% block main-content %}
@@ -133,6 +136,23 @@
 		</div>
 </section>
 <script>
+
+	Date.prototype.Format = function (fmt) {
+		var o = {
+			"M+": this.getMonth() + 1, //月份
+			"d+": this.getDate(), //日
+			"h+": this.getHours(), //小时
+			"m+": this.getMinutes(), //分
+			"s+": this.getSeconds(), //秒
+			"q+": Math.floor((this.getMonth() + 3) / 3), //季度
+			"S": this.getMilliseconds() //毫秒
+		};
+		if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+		for (var k in o)
+			if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+		return fmt;
+	}
+
 	function _page(page){
 		var curdatescope= $("#datescope").val()
 		if(typeof(curdatescope) == "undefined"){
@@ -146,15 +166,15 @@
 	}
 	$(document).ready(function(){ 
 		_page(1);
+		var current_time = new Date().Format("yyyy-MM-dd");
+		$( "#date_selecter" ).val(current_time);
 
-		laydate({
-			elem: '#date_selecter',
-			event: 'focus' 
+		getConsumeDetail(current_time);
+		$( "#date_selecter" ).datepicker({
+			onSelect: function(dateText,inst){
+				getConsumeDetail(dateText);
+			}
 		});
-
-
-
-		getConsumeDetail();
 		
 		$("body").on("change","#datescope", function () { 
 			_page(1);
@@ -173,9 +193,33 @@
 			$("#rechargeForm").submit();
 		}
 	}
+	
+	function getConsumeDetail(query_day){
+		$("#region_service_list").load('/ajax/{{tenantName}}/regionServiceList?query_day='+query_day+'&r='+Math.random())
+	}
 
-	function getConsumeDetail(){
-		$("#region_service_list").load('/ajax/{{tenantName}}/regionServiceList?r='+Math.random())
+	function showMore(current_td,time){
+		var cur_tr = current_td.parent();
+		alert(time)
+		$.ajax({
+			type : "get",
+			url : "/ajax/"+tenantName+"/serviceCostDetail?time="+encodeURIComponent(time)+"&r="+Math.random(),
+			cache : false,
+			beforeSend : function(xhr, settings) {
+				var csrftoken = $.cookie('csrftoken');
+				xhr.setRequestHeader("X-CSRFToken", csrftoken);
+			},
+			success : function(msg) {
+				alert(msg);
+			},
+			error : function() {
+				swal("系统异常,请重试");
+			}
+		});
+		var new_tr = "<tr><td></td><td>ggg</td><td>hhh</td></tr>"
+		var show_switch = $("#show_switch").attr("data-action")
+		cur_tr.after(new_tr);
+
 	}
 </script>
 
