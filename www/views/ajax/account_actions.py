@@ -231,7 +231,6 @@ class RegionServiceConsumeView(AuthedView):
                                                                  time__range=(start_time_str, end_time_str))
             time_list = service_consume_list.values_list("time", flat=True).distinct()
             result_map = {}
-            service_result_map = {}
             for time_val in time_list[1:25]:
                 current_hour_total_money = Decimal(0.00)
                 for service_consume in service_consume_list:
@@ -240,7 +239,7 @@ class RegionServiceConsumeView(AuthedView):
                             current_hour_total_money += service_consume.pay_money
                 result_map[time_val] = current_hour_total_money
 
-            result = sorted(result_map.iteritems())
+            result = sorted(result_map.iteritems(),reverse=True)
             context["length"] = len(result)
             context["result_map"] = result
 
