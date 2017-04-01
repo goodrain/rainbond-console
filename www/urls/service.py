@@ -51,6 +51,7 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/docker/$', login_required(ServiceDockerContainer.as_view())),
     
     url(r'^/recharge/$', login_required(Recharging.as_view())),
+    url(r'^/service-cost/$', login_required(RegionsServiceCostView.as_view())),
     url(r'^/consume/$', login_required(Account.as_view())),
     url(r'^/bill/$', login_required(AccountBill.as_view())),
     url(r'^/paymodel/$', login_required(PayModelView.as_view())),
