@@ -39,6 +39,11 @@
    var curCount;//当前剩余秒数
   
   	function getPhoneCode(){
+		var clickable = $("#a_flag").val();
+		if ("clickable" != clickable){
+			return false;
+		}
+
   		curCount = count;
   		var phone = $("#id_phone").val()
   		if(phone==""){
@@ -50,10 +55,6 @@
   			swal("请输入图形验证码")
   			return false;
   		}
-		var clickable = $("#a_flag").val();
-		if ("clickable" != clickable){
-			return false;
-		}
 
   		$("#PhoneCodeBtn").attr("disabled", "true");
 		$("#a_flag").val("unclickable");
@@ -103,13 +104,14 @@
         if (curCount == 0) {                
             window.clearInterval(InterValObj);//停止计时器
 //            $("#PhoneCodeBtn").removeAttr("disabled");//启用按钮
-			$("#PhoneCodeBtn").val("clickable");
+			$("#a_flag").val("clickable");
             $("#PhoneCodeBtn").html("重新发送验证码");
         }
         else {
             curCount--;
             if(curCount==0){
             	$("#PhoneCodeBtn").html("重新发送验证码");
+				$("#a_flag").val("clickable");
             }else{
             	$("#PhoneCodeBtn").html("" + curCount + "秒后可重新发送");
             }
