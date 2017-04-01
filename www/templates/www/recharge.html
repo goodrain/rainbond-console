@@ -226,6 +226,7 @@
 							new_tr += "<tr style='display: none' class='self_"+class_id+"'><td></td><td><a style='color: #00d777' target='_blank' href='/apps/{{tenantName}}/"+elem+"/detail/?fr=cost'>"+data[elem][0]+"</a></td><td>"+data[elem][1]+"</td></tr>"
 						}
 						if(show_switch == "open") {
+							$(".self_"+time.substr(11,2)).remove();
 							cur_tr.after(new_tr);
 							$(".self_"+time.substr(11,2)).show(500);
 							a_tag.attr("data-action","close");

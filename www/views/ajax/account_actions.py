@@ -233,10 +233,11 @@ class RegionServiceConsumeView(AuthedView):
             result_map = {}
             service_result_map = {}
             for time_val in time_list[1:25]:
-                current_hour_total_money = Decimal(0.0)
+                current_hour_total_money = Decimal(0.00)
                 for service_consume in service_consume_list:
                     if service_consume.time == time_val:
-                        current_hour_total_money += service_consume.pay_money
+                        if TenantServiceInfo.objects.filter(service_id=service_consume.service_id).exists():
+                            current_hour_total_money += service_consume.pay_money
                 result_map[time_val] = current_hour_total_money
 
             result = sorted(result_map.iteritems())
