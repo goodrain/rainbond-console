@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-hans" >
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+
+	<meta name="description" content="">
+	<meta name="author" content="">
+
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+	<meta name="robots" content="NONE,NOARCHIVE" />
+	<title>好雨云帮授权过期</title>
+
+	<link rel="stylesheet" href="/static/www/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/static/www/css/bootstrap-reset.css">
+	<link rel="stylesheet" href="/static/www/assets/font-awesome/css/font-awesome.css">
+	<link rel="stylesheet" href="/static/www/css/sweetalert.css">
+	<link rel="stylesheet" href="/static/www/css/gallery.css">
+	<link rel="stylesheet" href="/static/www/css/serprovision.css">
+
+	<link rel="stylesheet" href='/static/www/css/style.css'>
+	<link rel="stylesheet" href='/static/www/css/style-responsive.css'>
+	<link rel="stylesheet" href='/static/www/css/login.css'>
+
+	<link href="/static/www/css/goodrainstyle.css?v=2015122301" type="text/css" media="screen" rel="stylesheet" />
+
+	<!--[if lt IE 9]>
+	<script src="/static/www/js/html5shiv.js"></script>
+	<script src="/static/www/js/respond.min.js"></script>
+	<![endif]-->
+
+	<script src="/static/www/js/jquery.min.js"></script>
+	<script src="/static/www/js/bootstrap.min.js"></script>
+	<script src="/static/www/js/sweetalert.min.js"></script>
+	<script src="/static/www/js/jquery.nicescroll.js"></script>
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	var hm = document.createElement("script");
+	hm.src = "//hm.baidu.com/hm.js?1c1f39fceda87fde7543db370010af4d";
+	var s = document.getElementsByTagName("script")[0]; 
+	s.parentNode.insertBefore(hm, s);
+	})();
+	</script>
+  
+</head>
+<body class="login-body">
+<div class="mainbox">
+    <!-- logo start -->
+    <h1 class="yblogo" style="margin:150px auto 0px;"><img src="/data/media/logo/7437d3f6f17c4d3cabc1670abcb14c57.png"></h1>
+    <!-- logo end -->
+	{% if expired_day %}
+	<h4 style="margin:60px auto 0px;">好雨云帮授权{% if user %}{{user}}{% else %}您{% endif %}使用至{{expired_day}}。</h4>
+	{% endif %}
+	<h4>当前授权已过期，如需继续使用，请联系我们。</h4>
+	<p style="margin:40px auto;">电话：010-84762936<br />
+	邮箱：info@goodrain.com<br />
+	地址：北京市朝阳区望京街9号望京国际商业中心F座A308<br />
+	邮编：100102</p>
+</div>
+</body>
+</html>
