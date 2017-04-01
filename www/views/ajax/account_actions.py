@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
 from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants, \
-    ServiceConsume
+    ServiceConsume, TenantServiceInfo
 from www.region import RegionInfo
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -262,9 +262,19 @@ class RegionServiceDetailConsumeView(AuthedView):
             if not time:
                 return JsonResponse({"ok": False}, status=200)
             consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id, region=response_region,
-                                                         time=time).values("service_id", "pay_money")
-            logger.info(consume_list)
-
+                                                         time=time).values_list("service_id", "pay_money")
+            result_map = {}
+            for key, value in consume_list:
+                service = None
+                try:
+                    service = TenantServiceInfo.objects.get(service_id=key)
+                except TenantServiceInfo.DoesNotExist:
+                    pass
+                if service:
+                    service_cname = service.service_cname
+                    result_map[service.service_alias] = (service_cname,value,time)
+            # ["service_id":(service_cname,pay_money,time)]
+            result["data"] = result_map
             result["ok"] = True
         except Exception as e:
             result["ok"] = False

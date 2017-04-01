@@ -200,25 +200,47 @@
 	}
 
 	function showMore(current_td,time){
-		var cur_tr = current_td.parent();
-		$.ajax({
-			type : "get",
-			url : "/ajax/{{tenantName}}/serviceCostDetail?time="+encodeURIComponent(time)+"&r="+Math.random(),
-			cache : false,
-			beforeSend : function(xhr, settings) {
-				var csrftoken = $.cookie('csrftoken');
-				xhr.setRequestHeader("X-CSRFToken", csrftoken);
-			},
-			success : function(msg) {
-				console.log(msg);
-			},
-			error : function() {
-				swal("系统异常,请重试");
-			}
-		});
-		var new_tr = "<tr><td></td><td>ggg</td><td>hhh</td></tr>"
-		var show_switch = $("#show_switch").attr("data-action")
-		cur_tr.after(new_tr);
+		var a_tag = current_td.find("a")
+		var show_switch = a_tag.attr("data-action");
+		if (show_switch == "close"){
+			$(".self_"+time.substr(11,2)).hide(500);
+			a_tag.attr("data-action","open");
+			a_tag.html("+");
+		}else{
+			$.ajax({
+				type : "get",
+				url : "/ajax/{{tenantName}}/serviceCostDetail?time="+encodeURIComponent(time)+"&r="+Math.random(),
+				cache : false,
+				beforeSend : function(xhr, settings) {
+					var csrftoken = $.cookie('csrftoken');
+					xhr.setRequestHeader("X-CSRFToken", csrftoken);
+				},
+				success : function(msg) {
+					if(msg.ok){
+						var cur_tr = current_td.parent();
+						var data = msg.data;
+						var new_tr = "";
+						for(elem in data){
+							var time_str = data[elem][2];
+							var class_id = time_str.substr(11,2);
+							new_tr += "<tr style='display: none' class='self_"+class_id+"'><td></td><td><a style='color: #00d777' target='_blank' href='/apps/{{tenantName}}/"+elem+"/detail/?fr=cost'>"+data[elem][0]+"</a></td><td>"+data[elem][1]+"</td></tr>"
+						}
+						if(show_switch == "open") {
+							cur_tr.after(new_tr);
+							$(".self_"+time.substr(11,2)).show(500);
+							a_tag.attr("data-action","close");
+							a_tag.html("-");
+						}
+
+					}else{
+						console.log("can not get detail data!")
+					}
+				},
+				error : function() {
+					swal("系统异常,请重试");
+				}
+			});
+		}
 
 	}
 </script>
