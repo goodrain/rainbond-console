@@ -180,11 +180,11 @@
                                         msghtml += '<h5>';
                                         msghtml += tmpdata[i].version;
                                         msghtml += '</h5>';
-                                        msghtml += '<button type="button" class="btn greenbtn" onclick="remoteservice("';
+                                        msghtml += '<button type="button" class="btn greenbtn" onclick="remoteservice(\'';
                                         msghtml += tmpdata[i].service_key;
-                                        msghtml += ',';
+                                        msghtml += "','";
                                         msghtml += tmpdata[i].version;
-                                        msghtml += ')>部署</button>';
+                                        msghtml += '\')">部署</button>';
                                         msghtml += '</div></div>';
                                     }
                                     $("#servicepanel").append(msghtml);

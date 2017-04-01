@@ -70,9 +70,11 @@
                 </li>
                 {% endif %}
                 -->
+                {% if not community %}
                 <li {% if fr = "cost" %} class="active" {% endif %} >
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=cost">费用</a>
                 </li>
+                {% endif %}
             </ul>
         </header>
 

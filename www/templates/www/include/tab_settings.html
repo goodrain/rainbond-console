@@ -186,7 +186,7 @@
                            data-url="/ajax/{{ tenantName }}/{{ serviceAlias }}/ports/{{ port.container_port }}"
                            data-value="{{ port.protocol }}"></a>
                         {% else %}
-                        <span style="color: #28cb75;">{{ port.protocol }}</span>
+                        <span style="color: #28cb75;" id="edit_protocol_{{ port.container_port }}" data-value="{{ port.protocol }}">{{ port.protocol }}</span>
                         {% endif %}
                     </th>
                     <th>

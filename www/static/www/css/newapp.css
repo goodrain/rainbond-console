@@ -50,11 +50,11 @@ em,cite,span{font-style: normal;}
 
 /**/
 .newapp-link-box{margin:20px -10px;}
-.newapp-link-box li:nth-child(1){float:left;width: 70%;}
-.newapp-link-box li:nth-child(2){float:right; width: 28%}
+.newapp-link-box li:nth-child(1){float:left;width: 65%;}
+.newapp-link-box li:nth-child(2){float:right; width: 33%}
 .newapp-link-box li p{width: 100%;}
 .newapp-tit{color: #303030; font-size: 16px; text-indent: 10px;}
-.newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 20%; float: left;}
+.newapp-link-box li:nth-child(1) .newapp-link a{display: block; width: 25%; float: left;}
 .newapp-link-box li:nth-child(2) .newapp-link a{display: block; width: 50%; float: left;}
 .newapp-link-box li .newapp-link a{display: block; width: 100%;}
 .newapp-link-box li .newapp-link a span{background: #fff; min-height: 152px; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; display: block; margin: 10px; text-align: center; padding: 10px 5px;}

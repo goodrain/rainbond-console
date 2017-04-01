@@ -1071,3 +1071,12 @@ class ChangeLoginPassword(BaseView):
             "message": "修改密码成功!"
         })
         return TemplateResponse(request, "www/account/change_password.html", context)
+
+
+class LicenceView(BaseView):
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        expired_day = sn.instance.expire_day
+        context["expired_day"] = expired_day
+        context["user"] = self.user.nick_name
+        return TemplateResponse(request, "www/account/license.html", context)

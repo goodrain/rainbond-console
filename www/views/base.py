@@ -104,6 +104,10 @@ class BaseView(BaseObject, View):
                     self, self.request_method, self.http_method_not_allowed)
             else:
                 handler = self.http_method_not_allowed
+            # 判断license是否过期
+            is_lisence_expired = sn.instance.is_expired()
+            if is_lisence_expired and request.path != "/license":
+                return self.redirect_to('/license')
 
             if request.user.is_authenticated() and request.path != "/logout":
                 user_id = request.user.user_id

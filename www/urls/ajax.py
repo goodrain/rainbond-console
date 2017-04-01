@@ -94,6 +94,9 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/service-extend$', ExtendServiceView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/postpone$', PrePaidPostponeView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/pay-money', PayPrepaidMoney.as_view()),
+    # consume center
+    url(r'^(?P<tenantName>[\w\-]+)/regionServiceList', ajax.RegionServiceConsumeView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/serviceCostDetail', ajax.RegionServiceDetailConsumeView.as_view()),
 
 
 )

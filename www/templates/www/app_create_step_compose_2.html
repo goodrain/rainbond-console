@@ -255,7 +255,7 @@
             {% endif %}
             <!-- 切换 end -->
             <!-- 提交 start -->
-            <div class="build-app-btn fn-tips" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
+            <div class="build-app-btn {% if is_public_clound %}fn-tips{% endif %}" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
                 <button class="btn  btn-success" id="compose2">免费创建</button>
             </div>
             <!-- 提交 end -->

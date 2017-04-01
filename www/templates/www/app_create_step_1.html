@@ -316,8 +316,8 @@
                 </div>
             </div>
             <!-- 费用估算 end -->
-			<div class="fm-btn clearfix fn-tips" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
-                    <a class="greenbtn" id="BtnFirst" style="cursor: pointer;">免费创建</a>
+			<div class="fm-btn clearfix {% if is_public_clound %}fn-tips{% endif %}" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
+                    <button class="greenbtn btn" id="BtnFirst" >免费创建</button>
             </div>			
         </form>
 	</section>

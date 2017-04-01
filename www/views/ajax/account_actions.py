@@ -10,7 +10,8 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 from www.views import AuthedView
 from www.decorator import perm_required
-from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants
+from www.models import TenantFeeBill, TenantPaymentNotify, TenantRecharge, TenantConsume, TenantRegionPayModel, Tenants, \
+    ServiceConsume, TenantServiceInfo
 from www.region import RegionInfo
 from django.conf import settings
 from www.monitorservice.monitorhook import MonitorHook
@@ -203,4 +204,79 @@ class PayModelInfo(AuthedView):
         except Exception as e:
             logger.exception(e)
             result["status"] = "failure"
+        return JsonResponse(result, status=200)
+
+
+class RegionServiceConsumeView(AuthedView):
+    @perm_required('tenant_account')
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        query_day = request.GET.get("query_day", None)
+        cookie_region = self.request.COOKIES.get('region', None)
+        response_region = self.tenant.region if cookie_region is None else cookie_region
+        now = datetime.datetime.now()
+        try:
+            if query_day:
+                query_day += " 00:00:00"
+                logger.debug("tenant {0} query consume records,query day is {1}".format(self.tenantName, query_day))
+            else:
+                query_day = now.strftime("%Y-%m-%d 00:00:00")
+
+            start_time = datetime.datetime.strptime(query_day, "%Y-%m-%d 00:00:00")
+            end_time_str = (start_time + datetime.timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
+            start_time_str = start_time.strftime("%Y-%m-%d 00:00:00")
+
+            service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                                 region=response_region,
+                                                                 time__range=(start_time_str, end_time_str))
+            time_list = service_consume_list.values_list("time", flat=True).distinct()
+            result_map = {}
+            for time_val in time_list[1:25]:
+                current_hour_total_money = Decimal(0.00)
+                for service_consume in service_consume_list:
+                    if service_consume.time == time_val:
+                        if TenantServiceInfo.objects.filter(service_id=service_consume.service_id).exists():
+                            current_hour_total_money += service_consume.pay_money
+                result_map[time_val] = current_hour_total_money
+
+            result = sorted(result_map.iteritems(),reverse=True)
+            context["length"] = len(result)
+            context["result_map"] = result
+
+        except Exception as e:
+            logger.error(e)
+
+        return TemplateResponse(self.request, "www/region_service_consume.html", context)
+
+
+class RegionServiceDetailConsumeView(AuthedView):
+    @perm_required('tenant_account')
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        time = request.GET.get("time")
+        cookie_region = self.request.COOKIES.get('region', None)
+        response_region = self.tenant.region if cookie_region is None else cookie_region
+        result = {}
+        try:
+            logger.debug("query time "+time)
+            if not time:
+                return JsonResponse({"ok": False}, status=200)
+            consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id, region=response_region,
+                                                         time=time).values_list("service_id", "pay_money")
+            result_map = {}
+            for key, value in consume_list:
+                service = None
+                try:
+                    service = TenantServiceInfo.objects.get(service_id=key)
+                except TenantServiceInfo.DoesNotExist:
+                    pass
+                if service:
+                    service_cname = service.service_cname
+                    result_map[service.service_alias] = (service_cname,value,time)
+            # ["service_id":(service_cname,pay_money,time)]
+            result["data"] = result_map
+            result["ok"] = True
+        except Exception as e:
+            result["ok"] = False
+            logger.error(e)
         return JsonResponse(result, status=200)
