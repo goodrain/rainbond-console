@@ -48,7 +48,7 @@
 
                 {% for port in outer_port %}
                     <tr>
-                        <td class="fn-tips" data-tips="当前应用提供服务的端口号。">{{port.container_port}}</td>
+                        <td><span class="fn-tips" data-tips="当前应用提供服务的端口号。">{{port.container_port}}</span></td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="当前应用是否允许其他应用访问。">
                                 <input type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true"{% endif %} disabled="true" />
@@ -61,7 +61,7 @@
                                 <label class="check-bg" for="5000outer"></label>
                             </div>
                         </td>
-                        <td class="fn-tips" data-tips="用户访问协议。">{{port.protocol}}</td>
+                        <td><span class="fn-tips" data-tips="用户访问协议。">{{port.protocol}}</span></td>
                     </tr>
                 {% endfor %}
 
