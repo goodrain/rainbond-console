@@ -38,30 +38,30 @@
             <table class="tab-box">
                 <thead>
                     <tr>
-                        <th>容器端口</th>
-                        <th>协议</th>
-                        <th>对内服务</th>
+                        <th>端口</th>
+                        <th>对外服务</th>
                         <th>外部服务</th>
+                        <th>访问方式</th>
                     </tr>
                 </thead>
                 <tbody class="port">
 
                 {% for port in outer_port %}
                     <tr>
-                        <td>{{port.container_port}}</td>
-                        <td>{{port.protocol}}</td>
+                        <td class="fn-tips" data-tips="当前应用提供服务的端口号。">{{port.container_port}}</td>
                         <td>
-                            <div class="checkbox">
+                            <div class="checkbox fn-tips" data-tips="当前应用是否允许其他应用访问。">
                                 <input type="checkbox" name="" value="" id="5000inner" {% if port.is_inner_service %}checked="true"{% endif %} disabled="true" />
                                 <label class="check-bg" for="5000inner"></label>
                             </div>
                         </td>
                         <td>
-                            <div class="checkbox">
+                            <div class="checkbox fn-tips" data-tips="当前应用是否允许用户通过网络访问。">
                                 <input type="checkbox" name="" value="" id="5000outer" {% if port.is_outer_service %}checked="true"{% endif %} disabled="true"  />
                                 <label class="check-bg" for="5000outer"></label>
                             </div>
                         </td>
+                        <td class="fn-tips" data-tips="用户访问协议。">{{port.protocol}}</td>
                     </tr>
                 {% endfor %}
 
@@ -205,7 +205,7 @@
             ///
         });
         ///
-        ////tips
+        ////
         $(".fn-tips").mouseover(function(){
             var tips = $(this).attr("data-tips");
             var pos = $(this).attr("data-position");

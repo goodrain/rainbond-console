@@ -45,7 +45,7 @@ $(function(){
 			if( addOnoff )
 			{
 				var arr = ['HTTP','非HTTP'];
-				var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">'+$("#"+appid+" .add_port").val()+'</a></td>';
+				var oTr = '<tr><td><a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">'+$("#"+appid+" .add_port").val()+'</a></td>';
 				if( $("#addInner"+appid+"").prop("checked") == true )
 				{
 					oTr += '<td><div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。"><input type="checkbox" name="" value="" id="'+$("#"+appid+" .add_port").val()+'inner'+appid+'" checked="true" /><label class="check-bg" for="'+$("#"+appid+" .add_port").val()+'inner'+appid+'"></label></div></td>';
