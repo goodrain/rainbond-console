@@ -21,7 +21,7 @@
     <input type="hidden" id="parse_error" value="{{parse_error}}">
     <input type="hidden" id="compose_relations" value="{{compose_relations}}">
     <section class="main-box">
-        <h3 class="main-tit">创建一组应用</h3>
+        <h3 class="main-tit">从compose文件创建应用</h3>
         <div class="app-step clearfix three">
             <p class="sed"><span>1</span><cite>提交compose文件</cite></p>
             <p class="sed"><span>2</span><cite>创建应用</cite></p>
@@ -62,7 +62,7 @@
                     {% for outer_port in service.ports %}
                     <tr data-port="{{outer_port}}port">
                         <td>
-                            <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{outer_port}}</a>
+                            <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">{{outer_port}}</a>
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
@@ -71,13 +71,13 @@
                             </div>
                         </td>
                         <td>
-                            <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+                            <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。">
                                 <input class="checkDetail" type="checkbox" name="" value="" id="{{outer_port}}outer" />
                                 <label class="check-bg" for="{{outer_port}}outer"></label>
                             </div>
                         </td>
                         <td>
-                            <select disabled="disabled" style="color: #838383;" data-port-http="{{inner_port}}Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                            <select disabled="disabled" style="color: #838383;" data-port-http="{{inner_port}}Http" class="fn-tips" data-tips="请设定用户的访问协议。">
                                 <option class="changeOption">请打开外部访问</option>
                                 <option>HTTP</option>
                                 <option>非HTTP</option>
@@ -92,7 +92,7 @@
                     {% for inner_port in service.expose %}
                     <tr data-port="{{inner_port}}port">
                         <td>
-                            <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="源码中无 Dockerfile 文件时，默认开启服务端口为5000，请勿随意更改。如果当前应用为多端口应用，请根据您编码中定义的端口自行添加。">{{inner_port}}</a>
+                            <a href="javascript:void(0);" class="portNum edit-port fn-tips" data-tips="当前应用提供服务的端口号。">{{inner_port}}</a>
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
@@ -101,13 +101,13 @@
                             </div>
                         </td>
                         <td>
-                            <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+                            <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。">
                                 <input class="checkDetail" type="checkbox" name="" value="" id="{{inner_port}}outer"/>
                                 <label class="check-bg" for="{{inner_port}}outer"></label>
                             </div>
                         </td>
                         <td>
-                            <select disabled="disabled" style="color: #838383;" data-port-http="{{inner_port}}Http" class="fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                            <select disabled="disabled" style="color: #838383;" data-port-http="{{inner_port}}Http" class="fn-tips" data-tips="请设定用户的访问协议。">
                                 <option class="changeOption">请打开外部访问</option>
                                 <option>HTTP</option>
                                 <option>非HTTP</option>
@@ -123,7 +123,7 @@
                     <tfoot>
                         <tr class="addPort" style="display: none">
                             <td>
-                                <input type="number" class="add_port fn-tips" data-tips="为了保证安全，服务端口支持范围为 1025~65535，如您的编码中提供对外服务端口不在此范围内，请修改编码。">
+                                <input type="number" class="add_port fn-tips" data-tips="请根据当前镜像提供服务的端口号填写。">
                                 <p class="checkTip">请输入正确的端口号</p>
                             </td>
                             <td>
@@ -133,13 +133,13 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过互联网访问当前应用。">
+                                <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。">
                                     <input class="checkDetail" type="checkbox" name="" value="" id="addOuter{{service.service_id}}" checked="checked" />
                                     <label class="check-bg" for="addOuter{{service.service_id}}"></label>
                                 </div>
                             </td>
                             <td>
-                                <select class="add_http fn-tips" data-tips="如果允许用户通过互联网采用HTTP协议访问当前应用，请选择HTTP。">
+                                <select class="add_http fn-tips" data-tips="请设定用户的访问协议。">
                                     <option>HTTP</option>
                                     <option>非HTTP</option>
                                 </select>

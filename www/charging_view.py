@@ -127,3 +127,20 @@ class AssistantView(LeftSideBarMixin, AuthedView):
         context["enterprise"]=enterprise
 
         return TemplateResponse(self.request, "www/ser.html", context)
+
+
+class RegionsServiceCostView(LeftSideBarMixin, AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/css/goodrainstyle.css', 'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js',
+            'www/js/jquery.scrollTo.min.js')
+        return media
+
+    @never_cache
+    def get(self, request, *args, **kwargs):
+        context = self.get_context()
+        context["tenantName"] = self.tenantName
+        context["myServiceCost"] = "active"
+        context["myFinanceStatus"] = "active"
+        return TemplateResponse(self.request, "www/service_cost.html", context)
