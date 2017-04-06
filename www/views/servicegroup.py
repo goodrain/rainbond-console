@@ -78,7 +78,12 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
                                             service_ids=service_ids,
                                             is_success=False,
                                             group_id=groupId,
-                                            step=len(array_ids))
+                                            step=len(array_ids),
+                                            publish_type="services_group",
+                                            group_version="0.0.1",
+                                            is_market=True,
+                                            desc="",
+                                            installable=True)
         app_service_group.save()
         next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, group_share_id)
         data = {"success": False, "code": 200, 'next_url': next_url}
