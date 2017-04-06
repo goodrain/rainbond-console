@@ -184,6 +184,7 @@ $(function(){
         $(".fn-SelectItem input:checked").each(function(){
             Arraycheck.push($(this).val());
         });
+        Arraycheck.sort();
         var data = Arraycheck.join(',');
         console.log(data);
         var group_id = $("#group_id_input").val();

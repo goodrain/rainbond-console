@@ -45,9 +45,13 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
             return JsonResponse(data, status=200)
         # 检查服务是否安装的镜像服务
         service_list = TenantServiceInfo.objects.filter(service_id__in=array_ids)
-        category_list = [x.category for x in service_list if x.category != 'application']
-        if len(category_list) > 0:
-            data = {"success": False, "code": 406, 'msg': '只有源码构建服务才能发布!'}
+        category_list = [x.category for x in service_list if x.category == 'application']
+        if len(category_list) == 0:
+            data = {"success": False, "code": 406, 'msg': '您的应用组中没有自研应用,请重新选择。'}
+            return JsonResponse(data, status=200)
+
+        if len(array_ids) < 2:
+            data = {"success": False, "code": 404, "msg": "应用组发布的应用数应大于1个"}
             return JsonResponse(data, status=200)
 
         # 添加服务组分享信息
