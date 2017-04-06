@@ -24,10 +24,10 @@
 
             <div class="fm-input-radio clearfix">
                 <label>发布为</label>
-                <input type="radio" name="publish_type" value="services_group" id="services_group" checked="true" />
+                <input type="radio" name="publish_type" value="services_group" id="services_group" {% ifnotequal app_service_group.publish_type 'services_group' %}checked="true" {% endifnotequal %} />
                 <label class="radio-bg" for="services_group"></label>
                 <label for="services_group" class="radio-text">应用组</label>
-                <input type="radio" name="publish_type" value="cloud_frame" id="cloud_frame"/>
+                <input type="radio" name="publish_type" value="cloud_frame" id="cloud_frame" {% ifequal app_service_group.publish_type 'services_group' %}checked="true" {% endifequal %} />
                 <label class="radio-bg"  for="cloud_frame"></label>
                 <label for="cloud_frame" class="radio-text">云框架</label>
             </div>

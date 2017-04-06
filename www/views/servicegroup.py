@@ -101,12 +101,13 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
         # 跳转到服务发布页面
         context = self.get_context()
         try:
-            AppServiceGroup.objects.get(group_share_id=shareId)
+            app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
             service_group = ServiceGroup.objects.get(pk=groupId)
             context.update({"service_group": service_group,
                             "tenant_name": self.tenantName,
                             "group_id": groupId,
-                            "share_id": shareId})
+                            "share_id": shareId,
+                            "app_service_group": app_service_group})
         except AppServiceGroup.DoesNotExist:
             logger.error("service group not exist")
             raise Http404
