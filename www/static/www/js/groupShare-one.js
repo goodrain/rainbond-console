@@ -4,12 +4,21 @@ $(function () {
         var group_id = $("#group_id").val();
         var share_id = $("#share_id").val();
         var create_name = $("#create_name").val();
+        var version_no = $("#version_no").val();
         if (create_name) {
-            console.log($("#create_name").val());
+            console.log(create_name);
             $("#create_name_notice").css({"display": "none"});
         }
         else {
             $("#create_name_notice").css({"display": "block"});
+            return;
+        }
+
+        if (version_no){
+            console.log(version_no);
+            $("#version_no_notice").css({"display": "none"});
+        }else{
+            $("#version_no_notice").css({"display": "block"});
             return;
         }
 
@@ -37,4 +46,14 @@ $(function () {
             }
         });
     });
+
 });
+
+$("input[name=publish_dest]").change(function () {
+    var ys_dest = $("#ys_dest").prop("checked");
+    if (ys_dest){
+        $("#ys_operation").show();
+    }else{
+        $("#ys_operation").hide();
+    }
+})

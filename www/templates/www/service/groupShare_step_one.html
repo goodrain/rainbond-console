@@ -21,12 +21,55 @@
             <p><span>3</span><cite>设置应用分享信息</cite></p>
         </div>
         <div class="infor-fm-box">
+
+            <div class="fm-input-radio clearfix">
+                <label>发布为</label>
+                <input type="radio" name="publish_type" value="services_group" id="services_group" checked="true" />
+                <label class="radio-bg" for="services_group"></label>
+                <label for="services_group" class="radio-text">应用组</label>
+                <input type="radio" name="publish_type" value="cloud_frame" id="cloud_frame"/>
+                <label class="radio-bg"  for="cloud_frame"></label>
+                <label for="cloud_frame" class="radio-text">云框架</label>
+            </div>
+
             <div class="fm-input-text clearfix">
                 <label for="create_name">应用组名</label>
                 <input type="text" id="create_name" name="create_name" value="{{service_group.group_name}}" placeholder="给应用组取个名字，支持中英文。"/>
             </div>
             <p class="fm-tips" id="create_name_notice">请输入应用组名！</p>
 
+            <div class="fm-input-text clearfix">
+                <label for="version_no">版本号</label>
+                <input type="text" id="version_no" name="version_no" value="" placeholder="应用组版本"/>
+            </div>
+            <p class="fm-tips" id="version_no_notice">请输入应用组版本号！</p>
+
+            <div class="fm-input-textarea clearfix">
+                <label for="desc">更新说明</label>
+                <textarea class="textarea" id="desc" name="desc" maxlength="400" value="" ></textarea>
+            </div>
+
+            <div class="fm-input-radio clearfix">
+                <label>发布到</label>
+                <input type="radio" name="publish_dest" value="yb_dest" id="yb_dest" checked="true"/>
+                <label class="radio-bg" for="yb_dest"></label>
+                <label for="yb_dest" class="radio-text">私有云帮</label>
+
+                <input type="radio" name="publish_dest" value="ys_dest" id="ys_dest"/>
+                <label class="radio-bg"  for="ys_dest"></label>
+                <label for="ys_dest" class="radio-text">云市</label>
+            </div>
+
+            <div class="fm-input-radio clearfix" id="ys_operation" style="display: none">
+                <label>是否允许安装</label>
+                <input type="radio" name="installable" value="allow_install" id="allow_install" checked="true" />
+                <label class="radio-bg" for="allow_install"></label>
+                <label for="allow_install" class="radio-text">允许</label>
+
+                <input type="radio" name="installable" value="not_allow_install" id="not_allow_install"/>
+                <label class="radio-bg"  for="not_allow_install"></label>
+                <label for="not_allow_install" class="radio-text">不允许</label>
+            </div>
             <div class="fm-btn clearfix">
                 <a class="greenbtn" id="nextstep" style="cursor: pointer;">下一步</a>
             </div>
