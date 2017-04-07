@@ -60,7 +60,7 @@
                 <label for="ys_dest" class="radio-text">云市</label>
             </div>
 
-            <div class="fm-input-radio clearfix" id="ys_operation" style="display: none">
+            <div class="fm-input-radio clearfix" id="ys_operation" {% if not app_service_group.is_market %}style="display: none"{% endif %}>
                 <label>是否允许安装</label>
                 <input type="radio" name="installable" value="allow_install" id="allow_install" {% if app_service_group.installable %}checked="true"{% endif %} />
                 <label class="radio-bg" for="allow_install"></label>

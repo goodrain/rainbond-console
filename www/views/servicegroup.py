@@ -52,7 +52,7 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
             return JsonResponse(data, status=200)
 
         if len(array_ids) < 2:
-            data = {"success": False, "code": 404, "msg": "应用组发布的应用数应大于1个"}
+            data = {"success": False, "code": 404, "msg": "应用组发布的应用数至少为2个"}
             return JsonResponse(data, status=200)
 
         # 添加服务组分享信息
@@ -62,33 +62,39 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
         group_share_id = make_uuid(service_ids)
         if group_count == 1:
             app_service_group = AppServiceGroup.objects.get(service_ids=service_ids)
-            if app_service_group.is_success:
-                data = {"success": False, "code": 405, 'msg': '相同服务组已经发布!'}
-                return JsonResponse(data, status=200)
-            else:
-                app_service_group.step = len(array_ids)
-                next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
-                data = {"success": False, "code": 201, 'next_url': next_url}
-                return JsonResponse(data, status=200)
+
+            app_service_group.step = len(array_ids)
+            next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
+            data = {"success": True, "code": 201, "next_url": next_url}
+            return JsonResponse(data,status=200)
+            # if app_service_group.is_success:
+            #     data = {"success": False, "code": 405, 'msg': '相同服务组已经发布!'}
+            #     return JsonResponse(data, status=200)
+            # else:
+            #     app_service_group.step = len(array_ids)
+            #     next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
+            #     data = {"success": False, "code": 201, 'next_url': next_url}
+            #     return JsonResponse(data, status=200)
         elif group_count > 1:
             data = {"success": False, "code": 500, 'msg': '系统异常,请联系管理员!'}
             return JsonResponse(data, status=200)
-        # 添加发布记录
-        now = datetime.datetime.now()
-        app_service_group = AppServiceGroup(group_share_id=group_share_id,
-                                            group_share_alias=group_share_id,
-                                            service_ids=service_ids,
-                                            is_success=False,
-                                            group_id=groupId,
-                                            step=len(array_ids),
-                                            publish_type="services_group",
-                                            group_version="0.0.1",
-                                            is_market=True,
-                                            desc="",
-                                            installable=True,
-                                            create_time=now,
-                                            update_time=now)
-        app_service_group.save()
+        else:
+            # 添加发布记录
+            now = datetime.datetime.now()
+            app_service_group = AppServiceGroup(group_share_id=group_share_id,
+                                                group_share_alias=group_share_id,
+                                                service_ids=service_ids,
+                                                is_success=False,
+                                                group_id=groupId,
+                                                step=len(array_ids),
+                                                publish_type="services_group",
+                                                group_version="0.0.1",
+                                                is_market=False,
+                                                desc="",
+                                                installable=True,
+                                                create_time=now,
+                                                update_time=now)
+            app_service_group.save()
         next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, group_share_id)
         data = {"success": False, "code": 200, 'next_url': next_url}
         return JsonResponse(data, status=200)
