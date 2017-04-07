@@ -1,24 +1,6 @@
 $(function () {
     $("#nextstep").click(function () {
-        // var tenant_name = $("#tenant_name").val();
-        // var group_id = $("#group_id").val();
-        // var share_id = $("#share_id").val();
-        // var create_name = $("#create_name").val();
-        // var version_no = $("#version_no").val();
-        // var publish_type = "services_group";
-        // var is_clound_frame = $("#cloud_frame").prop("checked");
-        // if (is_clound_frame)
-        //     publish_type = "cloud_frame";
-        // var desc = $("#desc").val();
-        // var is_market = true;
-        // var ys_dest = $("#ys_dest").prop("checked");
-        // if(!ys_dest)
-        //     is_market = false;
-        // var installable = true;
-        // var not_allow_install = $("#not_allow_install").prop("checked");
-        // if(not_allow_install)
-        //     installable = false;
-        params = getParams();
+        var params = getParams();
         if (params.create_name) {
             console.log(params.create_name);
             $("#create_name_notice").css({"display": "none"});
@@ -67,9 +49,24 @@ $(function () {
         });
     });
 
+    /**
+     * 发布到云市显示是否允许安装选项
+     */
+    $("input[name=publish_dest]").change(function () {
+        var ys_dest = $("#ys_dest").prop("checked");
+        if (ys_dest){
+            $("#ys_operation").show();
+        }else{
+            $("#ys_operation").hide();
+        }
+    });
+
 });
 
-
+/**
+ * 获取页面数据
+ * @returns {{tenant_name: (*|jQuery), group_id: (*|jQuery), share_id: (*|jQuery), create_name: (*|jQuery), version_no: (*|jQuery), publish_type: string, desc: (*|jQuery), is_market: boolean, installable: boolean}}
+ */
 function getParams() {
     var tenant_name = $("#tenant_name").val();
     var group_id = $("#group_id").val();
@@ -95,12 +92,3 @@ function getParams() {
     }
     return params;
 }
-
-$("input[name=publish_dest]").change(function () {
-    var ys_dest = $("#ys_dest").prop("checked");
-    if (ys_dest){
-        $("#ys_operation").show();
-    }else{
-        $("#ys_operation").hide();
-    }
-})
