@@ -142,7 +142,7 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
             data = {"success": False, "code": 500, 'msg': '系统异常!'}
             return JsonResponse(data, status=200)
 
-        data = {"success": False, "code": 200, 'msg': '更新成功!'}
+        data = {"success": True, "code": 200, 'msg': '更新成功!'}
         return JsonResponse(data, status=200)
         # return TemplateResponse(self.request,
         #                         'www/service/groupShare_step_two.html',

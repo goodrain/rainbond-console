@@ -18,8 +18,7 @@ $(function () {
         // var not_allow_install = $("#not_allow_install").prop("checked");
         // if(not_allow_install)
         //     installable = false;
-        params = getParams
-        
+        params = getParams();
         if (params.create_name) {
             console.log(params.create_name);
             $("#create_name_notice").css({"display": "none"});
