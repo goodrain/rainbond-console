@@ -123,9 +123,19 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
         logger.debug("service group publish:{0}".format(groupId))
         try:
             service_share_alias = request.POST.get("alias", None)
-            if service_share_alias is not None:
+            publish_type = request.POST.get("publish_type", None)
+            group_version = request.POST.get("group_version", "0.0.1")
+            desc = request.POST.get("desc", None)
+            is_market = request.POST.get("is_market", True)
+            installable = request.POST.get("installable", True)
+            if service_share_alias and publish_type:
                 app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
                 app_service_group.group_share_alias = service_share_alias
+                app_service_group.publish_type = publish_type
+                app_service_group.group_version = group_version
+                app_service_group.desc = desc
+                app_service_group.is_market = is_market
+                app_service_group.installable = installable
                 app_service_group.save()
         except AppServiceGroup.DoesNotExist:
             logger.error("service group not exist")
