@@ -298,3 +298,5 @@ class AppServiceGroup(BaseModel):
     is_market = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
     desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新说明")
     installable = models.BooleanField(default=True, blank=True, help_text=u"发布到云市后是否允许安装")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, help_text=u"更新时间")

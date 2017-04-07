@@ -20,6 +20,7 @@ from www.models import AppService, AppServiceShareInfo, AppServicePort, \
     AppServiceEnv, AppServiceVolume, AppServiceRelation
 
 import logging
+import datetime
 
 logger = logging.getLogger('default')
 regionClient = RegionServiceApi()
@@ -73,6 +74,7 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
             data = {"success": False, "code": 500, 'msg': '系统异常,请联系管理员!'}
             return JsonResponse(data, status=200)
         # 添加发布记录
+        now = datetime.datetime.now()
         app_service_group = AppServiceGroup(group_share_id=group_share_id,
                                             group_share_alias=group_share_id,
                                             service_ids=service_ids,
@@ -83,7 +85,9 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
                                             group_version="0.0.1",
                                             is_market=True,
                                             desc="",
-                                            installable=True)
+                                            installable=True,
+                                            create_time=now,
+                                            update_time=now)
         app_service_group.save()
         next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, group_share_id)
         data = {"success": False, "code": 200, 'next_url': next_url}
@@ -136,6 +140,7 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
                 app_service_group.desc = desc
                 app_service_group.is_market = is_market
                 app_service_group.installable = installable
+                app_service_group.update_time = datetime.datetime.now()
                 app_service_group.save()
         except AppServiceGroup.DoesNotExist:
             logger.error("service group not exist")
