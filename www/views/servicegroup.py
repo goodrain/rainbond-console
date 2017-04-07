@@ -187,12 +187,19 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
                 tmp_list.append(port)
                 service_port_map[service_id] = tmp_list
             # 查询服务依赖信息
-            # relation_list = TenantServiceRelation.objects.filter(service_id__in=array_ids)
+            relation_list = TenantServiceRelation.objects.filter(service_id__in=array_ids)
+            dep_service_map = {}
+            for dep_service in relation_list:
+                service_id = dep_service.service_id
+                tmp_list = []
+                if service_id in dep_service_map.keys():
+                    tmp_list = dep_service_map.get(service_id)
+                dep_service_info = TenantServiceInfo.objects.filter(service_id=dep_service.dep_service_id )[0]
+                tmp_list.append(dep_service_info)
+                dep_service_map[service_id] = tmp_list
             # relation_id_list = [x.dep_service_id for x in relation_list]
-            relation_id_list = TenantServiceRelation.objects.filter(service_id__in=array_ids).values_list("service_id",
-                                                                                                          flat=True)
-            relation_info_list = TenantServiceInfo.objects.filter(service_id__in=relation_id_list)
-            relation_info_map = {x.service_id: x for x in relation_info_list}
+            # relation_info_list = TenantServiceInfo.objects.filter(service_id__in=relation_id_list)
+            # relation_info_map = {x.service_id: x for x in relation_info_list}
             # 查询服务环境变量(可变、不可变)
             env_list = TenantServiceEnvVar.objects.filter(service_id__in=array_ids, container_port__lt=0)
             env_change_list = [x for x in env_list if x.is_change]
@@ -226,7 +233,7 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
 
             context.update({"service_list": service_list,
                             "port_map": service_port_map,
-                            "relation_info_map": relation_info_map,
+                            "relation_info_map": dep_service_map,
                             "env_chagne_map": service_env_change_map,
                             "env_nochange_map": service_env_nochange_map,
                             "volume_map": service_volume_map})
