@@ -56,7 +56,7 @@ $(function () {
             success: function (msg) {
                 var json_data = eval(msg);
                 if (json_data.code == 200) {
-                    location.href = "/apps/" + tenant_name + "/" + group_id + "/" + share_id + "/second/";
+                    location.href = "/apps/" + params.tenant_name + "/" + params.group_id + "/" + params.share_id + "/second/";
                 } else {
                     swal(json_data.msg);
                 }
