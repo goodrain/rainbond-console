@@ -19,7 +19,7 @@ from www.views.serviceshare import *
 from www.views.consume import *
 from  www.views.servicemonitor import *
 from www.views.third_app import *
-from www.views.servicegroupshare import *
+from www.views.servicegroup import *
 
 urlpatterns = patterns(
     '',
