@@ -87,8 +87,8 @@ function getParams() {
     if (not_allow_install)
         installable = false;
     var params = {
-        tenant_name: tenant_name, group_id: group_id, share_id: share_id, create_name: create_name,
-        version_no: version_no, publish_type: publish_type, desc: desc, is_market: is_market, installable: installable
+        tenant_name: tenant_name, group_id: group_id, share_id: share_id, create_name: $.trim(create_name),
+        version_no: $.trim(version_no), publish_type: publish_type, desc: desc, is_market: is_market, installable: installable
     }
     return params;
 }
