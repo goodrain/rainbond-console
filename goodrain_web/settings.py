@@ -31,7 +31,7 @@ DEBUG = False
 if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
     REGION_TAG = "www_com"
 
-if REGION_TAG = "cloudbang":
+if REGION_TAG == "cloudbang":
     conf_file = '/etc/goodrain/console.py'
 else:
     conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, REGION_TAG.replace('-', '_'))
