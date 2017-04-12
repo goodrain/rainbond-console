@@ -201,7 +201,7 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
             # relation_info_list = TenantServiceInfo.objects.filter(service_id__in=relation_id_list)
             # relation_info_map = {x.service_id: x for x in relation_info_list}
             # 查询服务环境变量(可变、不可变)
-            env_list = TenantServiceEnvVar.objects.filter(service_id__in=array_ids, container_port__lt=0)
+            env_list = TenantServiceEnvVar.objects.filter(service_id__in=array_ids, container_port__lte=0)
             env_change_list = [x for x in env_list if x.is_change]
             env_nochange_list = [x for x in env_list if not x.is_change]
             service_env_change_map = {}
@@ -234,7 +234,7 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
             context.update({"service_list": service_list,
                             "port_map": service_port_map,
                             "relation_info_map": dep_service_map,
-                            "env_chagne_map": service_env_change_map,
+                            "env_change_map": service_env_change_map,
                             "env_nochange_map": service_env_nochange_map,
                             "volume_map": service_volume_map})
             context.update({"tenant_name": self.tenantName,
@@ -325,78 +325,83 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
 
         pro_data = request.POST.get("pro_data", None)
         service_ids = request.POST.get("service_ids", "[]")
-
+        try:
         # todo 这里需要一个问题，对于依赖的服务如何设置依赖信息
-        if pro_data is not None:
-            service_ids = json.loads(service_ids)
-            service_list = TenantServiceInfo.objects.filter(service_id__in=service_ids)
-            service_map = {x.service_id: x for x in service_list}
-            pro_json = json.loads(pro_data)
+            if pro_data is not None:
+                service_ids = json.loads(service_ids)
+                service_list = TenantServiceInfo.objects.filter(service_id__in=service_ids)
+                service_map = {x.service_id: x for x in service_list}
+                pro_json = json.loads(pro_data)
 
-            logger.info("------------测试-----------")
-            logger.info("pro_data =========>", pro_data)
-            logger.info("service_ids =========>", service_ids)
-            if 1 == 1:
-                data = {"success": False, "code": 300, 'msg': '测试!'}
-                return JsonResponse(data, status=300)
+                app_service_map = {}
+                app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+                for pro_service_id in pro_json:
+                    pro_map = pro_json.get(pro_service_id)
 
-            app_service_map = {}
-            app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
-            for pro_service_id in pro_json:
-                pro_map = pro_json.get(pro_service_id)
+                    app_alias = pro_map.get("name")
+                    app_version = pro_map.get("version")
+                    app_content = pro_map.get("content")
+                    # is_init = pro_map.get("is_init") == 1
+                    # 默认初始化账户
+                    is_init = True
+                    is_outer = app_service_group.is_market == 1
+                    is_private = app_service_group.is_market == 0
+                    # 云帮不显示
+                    show_assistant = False
+                    show_cloud = app_service_group.is_market == 1
 
-                app_alias = pro_map.get("name")
-                app_version = pro_map.get("version")
-                app_content = pro_map.get("content")
-                # is_init = pro_map.get("is_init") == 1
-                is_init = True
-                is_outer = app_service_group.is_market == 1
-                is_private = app_service_group.is_market == 0
-                # 云帮不显示
-                show_assistant = False
-                show_cloud = app_service_group.is_market == 1
+                    # 添加app_service记录
+                    service = service_map.get(pro_service_id)
+                    app_service = self.add_app_service(service, app_alias, app_version, app_content, is_init, is_outer, is_private, show_assistant, show_cloud)
+                    app_service_map[pro_service_id] = app_service
+                    # 保存service_port
+                    port_list = self.add_app_port(service, app_service.service_key, app_version)
+                    logger.debug(u'group.share.service. now add group shared service port ok')
+                    # 保存env
+                    self.add_app_env(service, app_service.service_key, app_version, port_list)
+                    logger.debug(u'group.share.service. now add group shared service env ok')
+                    # 保存extend_info
+                    self.add_app_extend_info(service, app_service.service_key, app_version)
+                    logger.debug(u'group.share.service. now add group shared service extend method ok')
+                    # 保存持久化设置
+                    self.add_app_volume(service, app_service.service_key, app_version)
+                    logger.debug(u'group.share.service. now add group share service volume ok')
+                # 处理服务依赖关系
+                for pro_service_id in pro_json:
+                    # 服务依赖关系
+                    service = service_map.get(pro_service_id)
+                    app_service = app_service_map.get(pro_service_id)
+                    self.add_app_relation(service, app_service.service_key, app_service.app_version, app_service.app_alias)
+                    logger.debug(u'group.share.service. now add group share service relation ok!')
 
-                # 添加app_service记录
-                service = service_map.get(pro_service_id)
-                app_service = self.add_app_service(service, app_alias, app_version, app_content, is_init, is_outer, is_private, show_assistant, show_cloud)
-                app_service_map[pro_service_id] = app_service
-                # 保存service_port
-                port_list = self.add_app_port(service, app_service.service_key, app_version)
-                logger.debug(u'group.share.service. now add group shared service port ok')
-                # 保存env
-                self.add_app_env(service, app_service.service_key, app_version, port_list)
-                logger.debug(u'group.share.service. now add group shared service env ok')
-                # 保存extend_info
-                self.add_app_extend_info(service, app_service.service_key, app_version)
-                logger.debug(u'group.share.service. now add group shared service extend method ok')
-                # 保存持久化设置
-                self.add_app_volume(service, app_service.service_key, app_version)
-                logger.debug(u'group.share.service. now add group share service volume ok')
-            # 处理服务依赖关系
-            for pro_service_id in pro_json:
-                # 服务依赖关系
-                service = service_map.get(pro_service_id)
-                app_service = app_service_map.get(pro_service_id)
-                self.add_app_relation(service, app_service.service_key, app_service.app_version, app_service.app_alias)
-                logger.debug(u'group.share.service. now add group share service relation ok!')
+                logger.info("------------测试-----------")
+                logger.info("pro_data =========>", pro_data)
+                logger.info("service_ids =========>", service_ids)
+                if 1 == 1:
+                    data = {"success": False, "code": 300, 'msg': '测试!'}
+                    return JsonResponse(data, status=300)
 
-            # 设置所有发布服务状态为未发布
-            for pro_service_id in pro_json:
-                service = service_map.get(pro_service_id)
-                app_service = app_service_map.get(pro_service_id)
-                app_service.dest_yb = False
-                app_service.dest_ys = False
-                app_service.save()
-                # 发送事件
-                if app_service.is_slug():
-                    logger.debug("service group publish slug.")
-                    self.upload_slug(app_service, service, shareId)
-                elif app_service.is_image():
-                    logger.debug("service group publish image.")
-                    self.upload_image(app_service, service, shareId)
+                # 设置所有发布服务状态为未发布
+                for pro_service_id in pro_json:
+                    service = service_map.get(pro_service_id)
+                    app_service = app_service_map.get(pro_service_id)
+                    app_service.dest_yb = False
+                    app_service.dest_ys = False
+                    app_service.save()
+                    # 发送事件
+                    if app_service.is_slug():
+                        logger.debug("service group publish slug.")
+                        self.upload_slug(app_service, service, shareId)
+                    elif app_service.is_image():
+                        logger.debug("service group publish image.")
+                        self.upload_image(app_service, service, shareId)
 
             # if len(app_share_list) > 0:
             #     AppServiceShareInfo.objects.bulk_create(app_share_list)
+        except Exception as e:
+            logger.error("service group publish failed")
+            logger.exception(e)
+            data = {"success": False, "code": 500, 'msg': '系统异常!'}
         data = {"success": True, "code": 200, 'msg': '更新成功!'}
         return JsonResponse(data, status=200)
 

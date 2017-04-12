@@ -34,7 +34,7 @@
 
             <div class="fm-input-text clearfix">
                 <label for="create_name">应用组名</label>
-                <input type="text" id="create_name" name="create_name" value="{% if not app_service_group.group_share_alias %} {{service_group.group_name}} {% else %} {{app_service_group.group_share_alias}} {% endif %}" placeholder="给应用组取个名字，支持中英文。"/>
+                <input type="text" id="create_name" name="create_name" value="{% if not app_service_group.group_share_alias %}{{service_group.group_name}}{% else %}{{app_service_group.group_share_alias}}{% endif %}" placeholder="给应用组取个名字，支持中英文。"/>
             </div>
             <p class="fm-tips" id="create_name_notice">请输入应用组名！</p>
 
