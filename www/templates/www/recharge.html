@@ -1,4 +1,5 @@
-{% extends 'www/raster.html' %} {% load i18n %} {% load goodrain_extras %} {% block main-content %}
+{% extends 'www/raster.html' %} {% load i18n %} {% load goodrain_extras %}
+{% block main-content %}
 
 <section class="wrapper site-min-height">
 		<header class="panel-heading">
@@ -97,15 +98,29 @@
 								<option value="180">最近6个月</option>
 								<option value="0">所有记录</option>
 							</select>
-						</form>
+						</div>
 					</form>
+
 					<div class="adv-table" id="rechargeList"></div>
 				</div>
 				<!-- -->
+				<div id="tenantserviceconsume" class="tab-pane">
+
+					<form role="form">
+						<div class="lit-select text-left">
+							<label>选择时间</label>
+							<input type="text" readonly="readonly" class="form-control-inline" id="date_selecter">
+						</div>
+					</form>
+					<div class="adv-table" id="region_service_list"></div>
+				</div>
+
 			</div>
 		</div>
 </section>
 <script>
+
+
 	function _page(page){
 		var curdatescope= $("#datescope").val()
 		if(typeof(curdatescope) == "undefined"){
@@ -119,6 +134,7 @@
 	}
 	$(document).ready(function(){ 
 		_page(1);
+
 		
 		$("body").on("change","#datescope", function () { 
 			_page(1);
@@ -127,6 +143,8 @@
 		$("body").on("change","#pageSizeScope", function () { 
 			_page(1);
 		});
+
+
 	})
 	function verifyData(){
 		if($("#recharge_money").val() <= 0){
@@ -135,6 +153,8 @@
 			$("#rechargeForm").submit();
 		}
 	}
+	
+
 </script>
 
 {% endblock %}

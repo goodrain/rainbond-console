@@ -23,7 +23,7 @@
                     <th>名称</th>
                     <th>容器端口</th>
                     <th>协议类型</th>
-                    <th>默认开启对内服务</th>
+                    <th>默认开启对外服务</th>
                     <th>默认开启外部访问</th>
                 </tr>
                 </thead>
@@ -114,11 +114,12 @@
         </div>
         <div class="linkbox">
             {% if dep_status %}
-                {% if have_outer %}
-                    <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="greenbtn">下一步</a>
-                {% else %}
-                    服务没有打开对外端口，无法提供对外服务
-                {% endif %}
+            <a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="greenbtn">下一步</a>
+                <!--{% if have_outer %}-->
+                    <!--<a href="/apps/{{tenant_name}}/{{service_alias}}/share/step2" class="greenbtn">下一步</a>-->
+                <!--{% else %}-->
+                    <!--服务没有打开对外端口，无法提供对外服务-->
+                <!--{% endif %}-->
             {% else %}
                 依赖服务{{dep_service_name}}未发布, 请先发布该服务
             {% endif %}

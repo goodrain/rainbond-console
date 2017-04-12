@@ -83,10 +83,10 @@
 										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick='visit("{{ port.container_port }}")'>访问</button>
 										{% endfor %}
 									{% else %}
-										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown">访问</button>
+										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown">访问<span class="caret"></span></button>
 										<ul class="dropdown-menu" role="menu">
 										{% for port in http_outer_service_ports %}
-											<li><a href="javascript:void(0)" onclick='visit("{{ port.container_port }}")'>{{ port.container_port }}</a></li>
+											<li><a href="javascript:void(0)" onclick='visit("{{ port.container_port }}")'>{{ port.container_port }}端口</a></li>
 										{% endfor %}
 									{% endif %}
 								{% else %}
@@ -148,7 +148,7 @@
 					-->
 					{% endif %}
 					{% endifequal %}
-					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
+					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' or tenantName == 'showmac' %}
 					<li class="button">
 						<div class="btn-group">
 							<button type="button" name="join_container" class="bgColor dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
@@ -198,7 +198,7 @@
 				</div>
 		</div>
 	</section>
-		
+
 </div>
 <!-- deployed end-->
 <div class="layer-body-bg">
@@ -783,4 +783,3 @@
 		});
 	})
 </script>
-
