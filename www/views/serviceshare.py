@@ -140,7 +140,8 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
             env_data = []
             tmp_id_list = env_ids.split(",")
             for tmp_id in tmp_id_list:
-                is_change = post_data.get(tmp_id, False)
+                is_change = post_data.get(tmp_id, "0")
+                is_change = (is_change == "1")
                 app_env = AppServiceShareInfo(tenant_id=self.service.tenant_id,
                                               service_id=self.service.service_id,
                                               tenant_env_id=int(tmp_id),
