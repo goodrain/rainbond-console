@@ -8,18 +8,18 @@ $(function () {
     });
 
     // 分发到云市后显示设置
-    $(".is_outer").parent().parent().on('switch-change', function (e, data) {
-        var $el = $(data.el)
-            , value = data.value;
-        //alert(value);
-        if (value) {
-            $("div.form-group[data-alias='show_div']").show();
-            $("div.form-group[data-alias='private_div']").hide();
-        } else {
-            $("div.form-group[data-alias='show_div']").hide();
-            $("div.form-group[data-alias='private_div']").show();
-        }
-    });
+    // $(".is_outer").parent().parent().on('switch-change', function (e, data) {
+    //     var $el = $(data.el)
+    //         , value = data.value;
+    //     //alert(value);
+    //     if (value) {
+    //         $("div.form-group[data-alias='show_div']").show();
+    //         $("div.form-group[data-alias='private_div']").hide();
+    //     } else {
+    //         $("div.form-group[data-alias='show_div']").hide();
+    //         $("div.form-group[data-alias='private_div']").show();
+    //     }
+    // });
 
     $("#nextstep").bind("click", function () {
         var tenant_name = $("#tenant_name").val();
@@ -31,21 +31,27 @@ $(function () {
         for( var i = 0; i<appShare.length; i++ )
         {
             app_data = {};
-            app_data["name"] = $("input.app_name").eq(i).val();
-            app_data["version"] = $("input.app_version").eq(i).val();
-            app_data["content"] = $("textarea.app_content").eq(i).val();
-            app_data["is_init"] = $("input.is_init").eq(i).prop("checked")?1:0;
-            var one = $("input.is_outer").eq(i).prop("checked")?1:0;
-            var two = $("input.is_private").eq(i).prop("checked")?1:0;
-            var three = $("input.show_assistant").eq(i).prop("checked")?1:0;
-            var four = $("input.show_cloud").eq(i).prop("checked")?1:0;
-            app_data["is_outer"] = one;
-            app_data["is_private"] = two;
-            app_data["show_assistant"] = three;
-            app_data["show_cloud"] = four;
+            app_data["name"] = $.trim($("input.app_name").eq(i).val());
+            app_data["version"] = $.trim($("input.app_version").eq(i).val());
+            app_data["content"] = $.trim($("textarea.app_content").eq(i).val());
+            // app_data["is_init"] = $("input.is_init").eq(i).prop("checked")?1:0;
+            // var one = $("input.is_outer").eq(i).prop("checked")?1:0;
+            // var two = $("input.is_private").eq(i).prop("checked")?1:0;
+            // var three = $("input.show_assistant").eq(i).prop("checked")?1:0;
+            // var four = $("input.show_cloud").eq(i).prop("checked")?1:0;
+            // app_data["is_outer"] = one;
+            // app_data["is_private"] = two;
+            // app_data["show_assistant"] = three;
+            // app_data["show_cloud"] = four;
             data[appShare.eq(i).attr("data-id")] = app_data;
             service_ids.push(appShare.eq(i).attr("data-id"));
         }
+        var flag = verifyParams(data);
+        if(!flag){
+            swal("您有尚未填写的参数!")
+            return false;
+        }
+
         data = JSON.stringify(data);
         console.log(data);
         $.ajax({
@@ -75,3 +81,21 @@ $(function () {
     });
 
 });
+
+/**
+ * 验证填写的参数是否完整
+ * @param data 页面参数
+ * @returns {boolean}
+ */
+function verifyParams(data) {
+    for (var value in data) {
+        var single_info = data[value];
+        for (var info in single_info) {
+            var param = single_info[info];
+            if (param == null || param == undefined || $.trim(param) == "") {
+                return false;
+            }
+        }
+    }
+    return true
+}

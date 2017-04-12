@@ -161,7 +161,7 @@ class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):
 
 
 class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
-    """ 服务关系配置页面 """
+    """ 服务参数配置页面 """
     def get_context(self):
         context = super(ServiceGroupShareTwoView, self).get_context()
         return context
@@ -282,12 +282,12 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
             # 批量增加
             if len(app_share_list) > 0:
                 AppServiceShareInfo.objects.bulk_create(app_share_list)
-        data = {"success": False, "code": 200, 'msg': '更新成功!'}
+        data = {"success": True, "code": 200, 'msg': '更新成功!'}
         return JsonResponse(data, status=200)
 
 
 class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
-    """ 服务关系配置页面 """
+    """ 服务基本信息配置页面 """
     def get_context(self):
         context = super(ServiceGroupShareThreeView, self).get_context()
         return context
@@ -325,24 +325,36 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
 
         pro_data = request.POST.get("pro_data", None)
         service_ids = request.POST.get("service_ids", "[]")
+
         # todo 这里需要一个问题，对于依赖的服务如何设置依赖信息
         if pro_data is not None:
             service_ids = json.loads(service_ids)
             service_list = TenantServiceInfo.objects.filter(service_id__in=service_ids)
             service_map = {x.service_id: x for x in service_list}
             pro_json = json.loads(pro_data)
+
+            logger.info("------------测试-----------")
+            logger.info("pro_data =========>", pro_data)
+            logger.info("service_ids =========>", service_ids)
+            if 1 == 1:
+                data = {"success": False, "code": 300, 'msg': '测试!'}
+                return JsonResponse(data, status=300)
+
             app_service_map = {}
+            app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
             for pro_service_id in pro_json:
                 pro_map = pro_json.get(pro_service_id)
 
                 app_alias = pro_map.get("name")
                 app_version = pro_map.get("version")
                 app_content = pro_map.get("content")
-                is_init = pro_map.get("is_init") == 1
-                is_outer = pro_map.get("is_outer") == 1
-                is_private = pro_map.get("is_private") == 1
-                show_assistant = pro_map.get("show_assistant") == 1
-                show_cloud = pro_map.get("show_cloud") == 1
+                # is_init = pro_map.get("is_init") == 1
+                is_init = True
+                is_outer = app_service_group.is_market == 1
+                is_private = app_service_group.is_market == 0
+                # 云帮不显示
+                show_assistant = False
+                show_cloud = app_service_group.is_market == 1
 
                 # 添加app_service记录
                 service = service_map.get(pro_service_id)
@@ -385,7 +397,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
 
             # if len(app_share_list) > 0:
             #     AppServiceShareInfo.objects.bulk_create(app_share_list)
-        data = {"success": False, "code": 200, 'msg': '更新成功!'}
+        data = {"success": True, "code": 200, 'msg': '更新成功!'}
         return JsonResponse(data, status=200)
 
     def add_app_service(self, service, app_alias, app_version, app_content, is_init_accout, is_outer, is_private, show_assistant, show_cloud):
@@ -555,45 +567,50 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
         if len(dep_service_ids) == 0:
             return None
         # 依赖服务的信息
-        dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)
-        app_relation_list = []
-        if len(dep_service_list) > 0:
-            for dep_service in dep_service_list:
-                dep_app_count = 0
-                if dep_service.service_key != 'application':
-                    # 首先检查key-version，不存在检查service_id,取最近的一个
-                    dep_app_count = AppService.objets.filter(service_key=dep_service.service_key,app_version=dep_service.version).count()
-                if dep_app_count == 0:
-                    # service_key, version不存在, 检查service_id取最近的一个
-                    dep_app_count = AppService.objets.filter(service_id=dep_service.service_id).count()
-                else:
-                    dep_app_service = AppService.objects.get(service_key=dep_service.service_key,app_version=dep_service.version)
+        try:
+            dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)
+            app_relation_list = []
+            if len(dep_service_list) > 0:
+                for dep_service in dep_service_list:
+                    dep_app_count = 0
+                    if dep_service.service_key != 'application':
+                        # 首先检查key-version，不存在检查service_id,取最近的一个
+                        dep_app_count = AppService.objets.filter(service_key=dep_service.service_key,app_version=dep_service.version).count()
+                    if dep_app_count == 0:
+                        # service_key, version不存在, 检查service_id取最近的一个
+                        dep_app_count = AppService.objets.filter(service_id=dep_service.service_id).count()
+                    else:
+                        dep_app_service = AppService.objects.get(service_key=dep_service.service_key,app_version=dep_service.version)
 
-                if dep_app_count > 0:
-                    dep_app_service = AppService.objects.filter(service_id=dep_service.service_id).order_by("-ID")[0]
-                else:
-                    # 不存在对应的app_service, 逻辑异常
-                    return 404
+                    if dep_app_count > 0:
+                        dep_app_service = AppService.objects.filter(service_id=dep_service.service_id).order_by("-ID")[0]
+                    else:
+                        # 不存在对应的app_service, 逻辑异常
+                        return 404
 
-                # 检查是否存在对应的app_relation
-                relation_count = AppServiceRelation.objects.filter(service_key=service_key,
-                                                                   app_version=app_version,
-                                                                   dep_service_key=dep_app_service.service_key,
-                                                                   dep_app_version=dep_app_service.version).count()
-                if relation_count == 0:
-                    app_relation = AppServiceRelation(service_key=service_key,
-                                                      app_version=app_version,
-                                                      app_alias=app_alias,
-                                                      dep_service_key=dep_app_service.service_key,
-                                                      dep_app_version=dep_app_service.version,
-                                                      dep_app_alias=dep_app_service.app_alias)
-                    app_relation_list.append(app_relation)
-            # 批量添加发布依赖
-            if len(app_relation_list) > 0:
-                AppServiceRelation.objects.bulk_create(app_relation_list)
-        else:
-            # 依赖服务的实力已经被删除,理论上不存在这种情况
-            return 400
+                    # 检查是否存在对应的app_relation
+                    relation_count = AppServiceRelation.objects.filter(service_key=service_key,
+                                                                       app_version=app_version,
+                                                                       dep_service_key=dep_app_service.service_key,
+                                                                       dep_app_version=dep_app_service.version).count()
+                    if relation_count == 0:
+                        app_relation = AppServiceRelation(service_key=service_key,
+                                                          app_version=app_version,
+                                                          app_alias=app_alias,
+                                                          dep_service_key=dep_app_service.service_key,
+                                                          dep_app_version=dep_app_service.version,
+                                                          dep_app_alias=dep_app_service.app_alias)
+                        app_relation_list.append(app_relation)
+                # 批量添加发布依赖
+                if len(app_relation_list) > 0:
+                    AppServiceRelation.objects.bulk_create(app_relation_list)
+            else:
+                # 依赖服务的实力已经被删除,理论上不存在这种情况
+                return 400
+        except Exception as e:
+            logger.error(
+                "add app relation error service_key {0},app_version{1},app_alias{2}".format(service_key, app_version,
+                                                                                            app_alias))
 
     def _create_publish_event(self, service, info):
         template = {
