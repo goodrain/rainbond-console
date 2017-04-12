@@ -515,9 +515,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 else:
                     #context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
                     if self.service.port_type=="multi_outer":
-                        tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
-                        for tsp in tsps:
-                            context['ws_topic'] = '{0}.{1}_{2}.statistic'.format(self.tenant.tenant_name, self.service.service_alias, str(tsp.container_port))
+                        context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
+                        # tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
+                        # for tsp in tsps:
+                        #     context['ws_topic'] = '{0}.{1}_{2}.statistic'.format(self.tenant.tenant_name, self.service.service_alias, str(tsp.container_port))
                     else:
                         context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
                 service_port_list = TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id,

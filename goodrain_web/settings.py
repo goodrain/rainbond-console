@@ -27,27 +27,17 @@ REGION_TAG = os.environ.get('REGION_TAG')
 IS_OPEN_API = False
 
 DEBUG = False
+
 if not DEBUG and (REGION_TAG is None or REGION_TAG == ""):
     REGION_TAG = "www_com"
 
-conf_name = '{0}.conf.{1}'.format(PROJECT_NAME, REGION_TAG.replace('-', '_'))
-__import__(conf_name)
-conf_mod = sys.modules[conf_name]
+if REGION_TAG = "cloudbang":
+    conf_file = '/etc/goodrain/console.py'
+else:
+    conf_file = '{0}/conf/{1}.py'.format(SETTING_DIR, REGION_TAG.replace('-', '_'))
 
-for k in dir(conf_mod):
-    if k.startswith('_'):
-        pass
-    else:
-        v = getattr(conf_mod, k)
-        if isinstance(v, str):
-            exec "{0} = '{1}'".format(k, v)
-        elif isinstance(v, (list, dict, tuple)):
-            exec "{0} = {1}".format(k, v)
-        elif isinstance(v, bool):
-            exec "{0} = {1}".format(k, v)
-        elif isinstance(v, int):
-            exec "{0} = {1}".format(k, v)
-
+if os.path.exists(conf_file):
+    execfile(conf_file)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
