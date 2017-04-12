@@ -1,17 +1,21 @@
-#!/bin/bash
-set -o errexit
+BASE_DIR=$PWD
+git archive community --format tgz -o hack/source.tgz
 
-FORCE=$1
-RELEASE_TAG=$(git describe)
-RELEASE_VERSION=${RELEASE_TAG%%-*}
+cd hack/
 
-PROGRAM="console"
+db_container=$(docker run -d hub.goodrain.com/dc-deploy/mysql)
+sleep 15
+docker exec $db_container ps -ef
+docker exec $db_container mysql -e "create database console;"
+docker exec $db_container mysql -e "grant all on console.* to build@'%' identified by 'build';"
+docker exec $db_container mysql -e "flush privileges;"
+db_ip=$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $db_container)
+sed -e "/^WORKDIR/i ENV MYSQL_HOST $db_ip" Dockerfile_build_template > Dockerfile_build
 
-WORKDIR=$PWD
-RELEASE_IMAGE="hub.goodrain.com/dc-deploy/$PROGRAM:$RELEASE_VERSION"
+docker build -t console-build -f Dockerfile_build .
 
-sed "$ a ENV RELEASE_TAG $RELEASE_TAG" Dockerfile_release > Dockerfile.release
-docker build $FORCE -t $RELEASE_IMAGE -f Dockerfile.release .
-docker push $RELEASE_IMAGE
+rm -rf $PWD/app
+docker run -v $PWD/app:/app -w /app-build/dist console-build rsync -a console_app /app/
+docker run -v $PWD/app:/app -w /app-build/dist console-build cp -v console_manage/console_manage /app/
 
-rm -fv Dockerfile.release
+docker build -t console-release -f Dockerfile_release .

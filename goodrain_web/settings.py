@@ -39,7 +39,7 @@ else:
 if os.path.exists(conf_file):
     execfile(conf_file)
 else:
-    raise Exception(conf_file)
+    raise Exception("config file not found: {}".format(conf_file))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/

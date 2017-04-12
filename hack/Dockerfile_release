@@ -1,0 +1,7 @@
+FROM ubuntu:14.04
+MAINTAINER qisy@goodrain.com
+
+RUN echo "Asia/Shanghai" > /etc/timezone;dpkg-reconfigure -f noninteractive tzdata
+RUN groupadd -g 200 rain && useradd -u 200 -g 200 -m -s /bin/bash rain
+
+ADD app /app
