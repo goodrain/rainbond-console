@@ -465,6 +465,10 @@ class TenantServiceInfo(BaseModel):
         else:
             return self.git_url
 
+    def is_slug(self):
+        # return bool(self.image.startswith('goodrain.me/runner'))
+        return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
+
 
 class TenantServiceInfoDelete(BaseModel):
     class Meta:
