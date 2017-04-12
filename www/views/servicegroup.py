@@ -356,23 +356,23 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     app_service_map[pro_service_id] = app_service
                     # 保存service_port
                     port_list = self.add_app_port(service, app_service.service_key, app_version)
-                    logger.debug(u'group.share.service. now add group shared service port ok')
+                    logger.debug(u'group.share.service. now add group shared service port for service {0} ok'.format(service.service_id))
                     # 保存env
                     self.add_app_env(service, app_service.service_key, app_version, port_list)
-                    logger.debug(u'group.share.service. now add group shared service env ok')
+                    logger.debug(u'group.share.service. now add group shared service env for service {0} ok'.format(service.service_id))
                     # 保存extend_info
                     self.add_app_extend_info(service, app_service.service_key, app_version)
-                    logger.debug(u'group.share.service. now add group shared service extend method ok')
+                    logger.debug(u'group.share.service. now add group shared service extend method for service {0} ok'.format(service.service_id))
                     # 保存持久化设置
                     self.add_app_volume(service, app_service.service_key, app_version)
-                    logger.debug(u'group.share.service. now add group share service volume ok')
+                    logger.debug(u'group.share.service. now add group share service volume for service {0} ok'.format(service.service_id))
                 # 处理服务依赖关系
                 for pro_service_id in pro_json:
                     # 服务依赖关系
                     service = service_map.get(pro_service_id)
                     app_service = app_service_map.get(pro_service_id)
                     self.add_app_relation(service, app_service.service_key, app_service.app_version, app_service.app_alias)
-                    logger.debug(u'group.share.service. now add group share service relation ok!')
+                    logger.debug(u'group.share.service. now add group share service relation for service {0} ok'.format(service.service_id))
 
                 logger.info("------------测试-----------")
                 logger.info("pro_data =========>", pro_data)
