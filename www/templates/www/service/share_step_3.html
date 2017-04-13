@@ -276,12 +276,12 @@
     function check_data(){
         var app_alias = $("#app_alias").val();
         if (app_alias == "") {
-            alert("应用名称不能为空!");
+            swal("应用名称不能为空!");
             return;
         }
         var regex = /^[a-zA-Z0-9]*$/;
         if(! regex.test(app_alias)) {
-            alert("应用名称只能是字母、数字!");
+            swal("应用名称只能是字母、数字!");
             return;
         }
 //        var category_first = $("#category_first").val();
