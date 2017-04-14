@@ -463,19 +463,19 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
 class ShareServiceForm(forms.Form):
     """ 服务发布详情页form """
     app_alias = forms.CharField(help_text=u"应用名称")
-    info = forms.CharField(help_text=u"一句话介绍")
-    desc = forms.CharField(help_text=u"应用简介")
+    info = forms.CharField(required=False, help_text=u"一句话介绍")
+    desc = forms.CharField(required=False, help_text=u"应用简介")
     category_first = forms.CharField(required=False, help_text=u"分类1")
     category_second = forms.CharField(required=False, help_text=u"分类2")
     category_third = forms.CharField(required=False, help_text=u"分类3")
 
-    url_site = forms.CharField(help_text=u"网站url")
-    url_source = forms.CharField(help_text=u"源码url")
-    url_demo = forms.CharField(help_text=u"样例代码url")
-    url_feedback = forms.CharField(help_text=u"反馈url")
+    url_site = forms.CharField(required=False, help_text=u"网站url")
+    url_source = forms.CharField(required=False, help_text=u"源码url")
+    url_demo = forms.CharField(required=False, help_text=u"样例代码url")
+    url_feedback = forms.CharField(required=False, help_text=u"反馈url")
 
     service_key = forms.CharField(help_text=u"服务发布key")
-    app_version = forms.CharField(required=True, help_text=u"版本")
+    app_version = forms.CharField(help_text=u"版本")
     release_note = forms.CharField(help_text=u"更新说明")
     is_outer = forms.BooleanField(required=False, initial=False, help_text=u"是否发布到云市")
     is_private = forms.BooleanField(required=False, initial=False, help_text=u"是否发布为私有应用")
