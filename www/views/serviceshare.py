@@ -688,6 +688,7 @@ class ShareServiceStep5View(LeftSideBarMixin, AuthedView):
         context["myAppStatus"] = "active"
         context["tenantName"] = self.tenant.tenant_name
         context["serviceAlias"] = self.service.service_alias
+        context["tenantServiceInfo"] = self.service
         return TemplateResponse(request, 'www/service/share_step_5.html', context)
 
 class ShareServicePackageView(BaseView):
