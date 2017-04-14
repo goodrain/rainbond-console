@@ -235,7 +235,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         # 获取form表单
         form_data = ShareServiceForm(request.POST, request.FILES)
         if not form_data.is_valid():
-            self.redirect_to('/apps/{0}/{1}/share/step3?state={2}'.format(self.tenantName, self.serviceAlias, 1))
+            return self.redirect_to('/apps/{0}/{1}/share/step3?state={2}'.format(self.tenantName, self.serviceAlias, 1))
         # 服务基础信息
         service_key = form_data.cleaned_data['service_key']
         app_version = form_data.cleaned_data['app_version']
@@ -475,7 +475,7 @@ class ShareServiceForm(forms.Form):
     url_feedback = forms.CharField(help_text=u"反馈url")
 
     service_key = forms.CharField(help_text=u"服务发布key")
-    app_version = forms.CharField(help_text=u"版本")
+    app_version = forms.CharField(required=True, help_text=u"版本")
     release_note = forms.CharField(help_text=u"更新说明")
     is_outer = forms.BooleanField(required=False, initial=False, help_text=u"是否发布到云市")
     is_private = forms.BooleanField(required=False, initial=False, help_text=u"是否发布为私有应用")
