@@ -608,7 +608,9 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             self.upload_slug(app)
         elif app.is_image():
             self.upload_image(app)
-        return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+        if not app.is_outer:
+            return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+        return self.redirect_to('/apps/{0}/{1}/share/step5'.format(self.tenantName, self.serviceAlias))
 
     def _create_publish_event(self, info):
         template = {
@@ -673,6 +675,18 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
                          "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
             logger.exception("service.publish", e)
 
+
+class ShareServiceStep5View(LeftSideBarMixin, AuthedView):
+    """用户选择编辑或返回界面"""
+    def get_context(self):
+        context = super(ShareServiceStep5View, self).get_context()
+        return context
+
+    def get(self, request, *args, **kwargs):
+        # 跳转到服务关系发布页面
+        context = self.get_context()
+        context["myAppStatus"] = "active"
+        return TemplateResponse(request, 'www/service/share_step_5.html', context)
 
 class ShareServicePackageView(BaseView):
     """添加套餐接口"""

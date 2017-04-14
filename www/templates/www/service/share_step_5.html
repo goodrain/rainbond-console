@@ -1,0 +1,32 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load goodrain_extras %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/setbox.css" %}' />
+{% endblock %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <p><span style="font-size: 22px; font-weight: 200; line-height: 30px; color: #28cb75; padding-top: 15px;" id="appname">{{tenantServiceInfo.service_cname}}</span></p>
+    <!-- -->
+    
+    <h2 class="main-tit ">设置应用套餐</h2>
+    <div class="content-tab">
+        您可以选择返回应用概览页或到云市继续编辑已发布应用信息
+    </div>
+    
+</section>
+{% endblock %}
+
+
+{% block extrajs %}
+<script type="text/javascript" src='{% static "www/js/jquery.cookie.js" %}'></script>
+<script type="text/javascript">
+    $(function () {
+
+    });
+</script>
+{% endblock %}
