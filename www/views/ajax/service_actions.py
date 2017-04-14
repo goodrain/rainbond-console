@@ -1195,10 +1195,12 @@ class ServiceEnv(AuthedView):
                     "tenant_id": self.service.tenant_id, "service_id": self.service.service_id, "name": name,
                     "attr_name": attr_name, "attr_value": attr_value, "is_change": True, "scope": scope
                 }
-                TenantServiceEnvVar.objects.create(**attr)
+                env = TenantServiceEnvVar.objects.create(**attr)
                 data = {"action": "add", "attrs": attr}
                 regionClient.createServiceEnv(self.service.service_region, self.service.service_id, json.dumps(data))
-                return JsonResponse({"success": True, "info": u"创建成功"})
+                return JsonResponse(
+                    {"success": True, "info": u"创建成功", "pk": env.pk, "attr_name": attr_name, "attr_value": attr_value,
+                     "name": name})
         elif action == 'del_attr':
             attr_name = request.POST.get("attr_name")
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).delete()
