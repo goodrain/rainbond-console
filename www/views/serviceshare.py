@@ -686,6 +686,8 @@ class ShareServiceStep5View(LeftSideBarMixin, AuthedView):
         # 跳转到服务关系发布页面
         context = self.get_context()
         context["myAppStatus"] = "active"
+        context["tenantName"] = self.tenant.tenant_name
+        context["serviceAlias"] = self.service.service_alias
         return TemplateResponse(request, 'www/service/share_step_5.html', context)
 
 class ShareServicePackageView(BaseView):
