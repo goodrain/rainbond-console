@@ -691,6 +691,7 @@ class ShareServiceStep5View(LeftSideBarMixin, AuthedView):
         context["tenantServiceInfo"] = self.service
         return TemplateResponse(request, 'www/service/share_step_5.html', context)
 
+
 class ShareServicePackageView(BaseView):
     """添加套餐接口"""
     def get_context(self):
