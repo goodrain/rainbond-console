@@ -981,6 +981,13 @@ class ServicePort(AuthedView):
     def check_port(self, port):
         if not re.match(r'^\d{2,5}$', str(port)):
             return False, u"格式不符合要求^\d{2,5}"
+
+        if self.service.code_from == "image_manual":
+            if port > 65535 or port < 1:
+                return False, u"端口号必须在1~65535之间！"
+        else:
+            if port > 65535 or port < 1025:
+                return False, u"端口号必须在1025~65535之间！"
         
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port).exists():
             return False, u"端口冲突"

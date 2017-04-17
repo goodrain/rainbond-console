@@ -286,14 +286,14 @@
                       console.log(value);
                   }else{
                       showMessage("端口号必须在1~65535之间！");
-                      return flase;
+                      return false;
                   }
               }else{
                   if(value>=1025 && value<=65535){
                       console.log(value);
                   }else{
                       showMessage("端口号必须在1025~65535之间！");
-                      return flase;
+                      return false;
                   }
               }
 
