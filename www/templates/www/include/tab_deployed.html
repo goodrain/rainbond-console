@@ -440,7 +440,14 @@
    				}
    			}
     		}
-   		var connect = new extPushWebSocketConnect('{{websocket_uri}}');
+		var is_community = "{{community}}";
+		var websocket_uri = "{{websocket_uri}}";
+
+		if (is_community == "True"){
+			var host_name = window.location.hostname
+			websocket_uri = host_name+":6060"
+		}
+   		var connect = new extPushWebSocketConnect(websocket_uri);
    		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
     	});
 
