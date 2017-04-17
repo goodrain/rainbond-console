@@ -775,11 +775,14 @@ class ServiceDockerContainer(AuthedView):
                 context["host_id"] = t_docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
                 pro = settings.DOCKER_WSS_URL.get("type", "ws")
+                context["host_name"] = settings.DOCKER_WSS_URL[self.service.service_region]
                 if pro == "ws":
-                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
+                    context["wss"] = pro + "://" + "{{DOCKER_WSS_URL}}" + "/ws?nodename=" + t_docker_h_id
                 else:
-                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
-
+                    context["wss"] = pro + "://" + "{{DOCKER_WSS_URL}}" + "/ws?nodename=" + t_docker_h_id
+                context["community"] = False
+                if sn.instance.is_private():
+                    context["community"] = True
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')
