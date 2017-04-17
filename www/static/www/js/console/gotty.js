@@ -10,10 +10,9 @@
     var autoReconnect = -1;
     var openWs = function() {
         if(is_community == "True"){
-            host_name = window.location.hostname+":8088";
+            host_name = window.location.hostname+":8188";
         }
         var url = tmp_url.replace("{{DOCKER_WSS_URL}}",host_name)
-        alert(url);
         var ws = new WebSocket(url);
         var term;
         var pingTimer;
