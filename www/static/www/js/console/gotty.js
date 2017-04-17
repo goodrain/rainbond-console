@@ -13,6 +13,7 @@
             host_name = window.location.hostname+":8188";
         }
         var url = tmp_url.replace("{{DOCKER_WSS_URL}}",host_name)
+        console.log(url)
         var ws = new WebSocket(url);
         var term;
         var pingTimer;

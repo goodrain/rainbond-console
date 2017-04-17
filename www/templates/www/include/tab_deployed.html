@@ -447,6 +447,7 @@
 			var host_name = window.location.hostname
 			websocket_uri = "wss://"+host_name+":6060/websocket"
 		}
+		console.log(websocket_uri);
    		var connect = new extPushWebSocketConnect(websocket_uri);
    		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
     	});
