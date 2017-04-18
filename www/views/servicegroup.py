@@ -374,13 +374,6 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     self.add_app_relation(service, app_service.service_key, app_service.app_version, app_service.app_alias)
                     logger.debug(u'group.share.service. now add group share service relation for service {0} ok'.format(service.service_id))
 
-                logger.info("------------测试-----------")
-                logger.info("pro_data =========>", pro_data)
-                logger.info("service_ids =========>", service_ids)
-                if 1 == 1:
-                    data = {"success": False, "code": 300, 'msg': '测试!'}
-                    return JsonResponse(data, status=300)
-
                 # 设置所有发布服务状态为未发布
                 for pro_service_id in pro_json:
                     service = service_map.get(pro_service_id)
