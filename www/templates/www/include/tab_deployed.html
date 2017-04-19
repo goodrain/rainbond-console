@@ -148,7 +148,7 @@
 					-->
 					{% endif %}
 					{% endifequal %}
-					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' or tenantName == 'showmac' %}
+					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' or tenantName == 'showmac' or tenantName == 'jamesocy' %}
 					<li class="button">
 						<div class="btn-group">
 							<button type="button" name="join_container" class="bgColor dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
@@ -440,7 +440,15 @@
    				}
    			}
     		}
-   		var connect = new extPushWebSocketConnect('{{websocket_uri}}');
+		var is_community = "{{community}}";
+		var websocket_uri = "{{websocket_uri}}";
+
+		if (is_community == "True"){
+			var host_name = window.location.hostname
+			websocket_uri = "wss://"+host_name+":6060/websocket"
+		}
+		console.log(websocket_uri);
+   		var connect = new extPushWebSocketConnect(websocket_uri);
    		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
     	});
 

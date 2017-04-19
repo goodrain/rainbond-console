@@ -45,7 +45,7 @@
         {% csrf_token %}
         <input type="hidden" name="env_ids" value="{{env_ids}}">
         {% for env in env_list %}
-        <input type="hidden" name="{{env.ID}}" value="{{env.is_change}}"></input>
+        <input type="hidden" name="{{env.ID}}" value="{% if env.is_change %}1{% else %}0{% endif %}" />
         {% endfor %}
     </form>
 </div>
@@ -58,11 +58,17 @@
 <script src='{% static "www/js/jquery.scrollTo.min.js" %}'></script>
 <script src='{% static "www/js/common-scripts.js" %}'></script>
 <script type="text/javascript">
-//    $(function () {});
+    //    $(function () {});
     function change_checked(obj){
         var env_id = $(obj).attr("data-id");
         var result = $(obj).is(':checked');
-        $("#env_form > input[name=" + env_id + "]").value(result)
+        if (result){
+            $("#env_form > input[name=" + env_id + "]").val(1);
+        }
+        else {
+            $("#env_form > input[name=" + env_id + "]").val(0);
+        }
+
     }
     function submit_button() {
         $("#env_form").submit();

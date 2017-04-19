@@ -25,7 +25,7 @@
         <div class="fm－box">
             <div class="form-group">
                 {% if state %}
-                <label class="control-label">数据表单错误</label>
+                <label class="control-label" style="color: red">数据表单错误,请查询信息是否填写完整</label>
                 {% endif %}
             </div>
             <a href="javascript:;" class="titlink" id="infor" style="display: none;">
@@ -139,8 +139,7 @@
                     <label class="col-sm-2 control-label">更新说明:</label>
                     <div class="col-sm-8">
                         <textarea class="form-control" name="release_note"
-                                  id="release_note" rows="3" maxlength="100">
-                            {{data.release_note}}</textarea>
+                                  id="release_note" rows="3" maxlength="100">{{data.release_note}}</textarea>
                     </div>
                 </div>
                 <!-- 03 -->
@@ -277,12 +276,12 @@
     function check_data(){
         var app_alias = $("#app_alias").val();
         if (app_alias == "") {
-            alert("应用名称不能为空!");
+            swal("应用名称不能为空!");
             return;
         }
         var regex = /^[a-zA-Z0-9]*$/;
         if(! regex.test(app_alias)) {
-            alert("应用名称只能是字母、数字!");
+            swal("应用名称只能是字母、数字!");
             return;
         }
 //        var category_first = $("#category_first").val();
