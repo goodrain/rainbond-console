@@ -445,7 +445,7 @@
 
 		if (is_community == "True"){
 			var host_name = window.location.hostname
-			var is_https = 'https:' == document.location.protocol ? false : true;
+			var is_https = 'https:' == document.location.protocol ? true : false;
 			if (is_https){
 				websocket_uri = "wss://"+host_name+":6060/websocket";
 			}
