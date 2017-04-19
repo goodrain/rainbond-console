@@ -64,6 +64,8 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
             app_service_group = AppServiceGroup.objects.get(service_ids=service_ids)
 
             app_service_group.step = len(array_ids)
+            # 重新保存信息
+            app_service_group.save()
             next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
             data = {"success": True, "code": 201, "next_url": next_url}
             return JsonResponse(data,status=200)
