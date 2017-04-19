@@ -445,7 +445,14 @@
 
 		if (is_community == "True"){
 			var host_name = window.location.hostname
-			websocket_uri = "wss://"+host_name+":6060/websocket"
+			var is_https = 'https:' == document.location.protocol ? false : true;
+			if (is_https){
+				websocket_uri = "wss://"+host_name+":6060/websocket";
+			}
+			else{
+				websocket_uri = "ws://"+host_name+":6060/websocket";
+			}
+
 		}
 		console.log(websocket_uri);
    		var connect = new extPushWebSocketConnect(websocket_uri);
