@@ -125,8 +125,7 @@ class AppSendUtil:
                 retry = 0
             else:
                 retry -= 1
-        if num != 0:
-            return num
+        return num
 
     def _send_group(self, app_service_group):
         try:

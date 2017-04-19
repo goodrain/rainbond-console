@@ -417,7 +417,7 @@ class PublishServiceView(APIView):
 
                                     service_data.append(service_map)
                                 param_data["data"] = service_data
-                                # 发送到云市
+                                # 发送组信息到云市
 
                                 num = apputil.send_group(param_data)
                                 if num != 0:
