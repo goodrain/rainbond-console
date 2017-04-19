@@ -274,6 +274,7 @@ class PublishServiceView(APIView):
         data = {}
         isys = False
         serviceInfo = None
+        logger.debug("invoke publish service method")
         try:
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
