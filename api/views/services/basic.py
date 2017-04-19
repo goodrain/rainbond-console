@@ -397,7 +397,8 @@ class PublishServiceView(APIView):
                             app_service_group.step = curr_step
                             app_service_group.save()
                         # 判断是否为最后一次调用,发布到最后一个应用后将组信息填写到云市
-                        if curr_step == 0:
+                        if curr_step == 0 and app_service_group.is_market:
+                            logger.info("send group publish info to app_market")
                             # 将服务组信息发送到云市
                             tenant_id = data["tenant_id"]
                             param_data = {"group_name": app_service_group.group_share_alias,
