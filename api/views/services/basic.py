@@ -402,15 +402,19 @@ class PublishServiceView(APIView):
                             # 将服务组信息发送到云市
                             tenant_id = data["tenant_id"]
                             param_data = {"group_name": app_service_group.group_share_alias,
-                                          "tenant_id": tenant_id}
+                                          "tenant_id": tenant_id,"group_version": app_service_group.group_version}
                             tmp_ids = app_service_group.service_ids
                             service_id_list = json.loads(tmp_ids)
                             if len(service_id_list) > 0:
                                 service_list = AppService.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
+                                tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
+                                service_category_map = {x.service_id: "self" if x.category == "application" else "other" for x in tenant_service_list}
                                 service_data = []
                                 for service in service_list:
                                     service_map = {"service_key": service.service_key,
-                                                   "version": service.app_version}
+                                                   "version": service.app_version,
+                                                   "owner": service_category_map.get(service.service_id)}
+
                                     service_data.append(service_map)
                                 param_data["data"] = service_data
                                 # 发送到云市
