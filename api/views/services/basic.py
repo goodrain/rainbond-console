@@ -402,7 +402,9 @@ class PublishServiceView(APIView):
                             # 将服务组信息发送到云市
                             tenant_id = data["tenant_id"]
                             param_data = {"group_name": app_service_group.group_share_alias,
-                                          "tenant_id": tenant_id,"group_version": app_service_group.group_version}
+                                          "tenant_id": tenant_id, "group_version": app_service_group.group_version,
+                                          "publish_type": app_service_group.publish_type,
+                                          "installable": app_service_group.installable}
                             tmp_ids = app_service_group.service_ids
                             service_id_list = json.loads(tmp_ids)
                             if len(service_id_list) > 0:
