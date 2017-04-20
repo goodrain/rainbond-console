@@ -69,6 +69,7 @@ class ServiceGraph(AuthedView):
                 queries += '{' + 'tenant_id={0},service_id={1}'.format(self.tenant.tenant_id, self.service.service_id) + '}'
             else:
                 # temp deal
+                '''
                 if self.service.port_type == "multi_outer" and graph_key not in ("disk","bandwidth"):
                     port = ""
                     tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
@@ -78,7 +79,9 @@ class ServiceGraph(AuthedView):
                     queries += '{' + 'tenant={0},service={1}_{2}'.format(self.tenant.tenant_name, self.service.service_alias, port) + '}'
                 else:
                     queries += '{' + 'tenant={0},service={1}'.format(self.tenant.tenant_name, self.service.service_alias) + '}'
-                    
+                '''
+                queries += '{' + 'tenant={0},service={1}'.format(self.tenant.tenant_name, self.service.service_alias) + '}'
+
             query_data = self.region_client.opentsdbQuery(self.service.service_region, start, queries)
             if query_data is None:
                 return None
@@ -110,7 +113,7 @@ class ServiceGraph(AuthedView):
                     test_value = tem[1]
                     if isinstance(test_value, int):
                         result['yAxisFormat'] = ',.0f'
-            
+
                     result['yAxisLabel'] = self.metric_map.get(graph_key, None).get('unit', '')
 
     @perm_required('view_service')
