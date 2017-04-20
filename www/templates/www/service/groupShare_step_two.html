@@ -103,7 +103,7 @@
                             <td>{{env.attr_value}}</td>
                             <td><input type="checkbox" {% if env.scope = "inner" or env.scope = "both" %}checked="checked"{% endif %} disabled="disabled"></td>
                             <td><input type="checkbox" {% if env.scope = "outer" or env.scope = "both" %}checked="checked"{% endif %} disabled="disabled"></td>
-                            <td><input type="checkbox" class="yOn"></td>
+                            <td><input type="checkbox" class="yOn" {% if service.category != "application" %}disabled="disabled"{% endif %}></td>
                         </tr>
                         {% endfor %}
                         {% endwith %}
