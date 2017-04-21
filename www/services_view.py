@@ -224,8 +224,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
         return perm_users
 
     def get_manage_app(self, http_port_str):
+        logger.debug("get_manage_app ")
         service_manager = {"deployed": False}
-        if self.service.service_key == 'mysql':
+        if self.service.service_key == 'mysql' or self.service.service_type == "mysql":
             has_managers = TenantServiceInfo.objects.filter(
                 tenant_id=self.tenant.tenant_id, service_region=self.service.service_region, service_key='phpmyadmin')
             if has_managers:
