@@ -163,6 +163,7 @@ class ServiceManage(AuthedView):
         if action == "stop":
             try:
                 event.type = "stop"
+                event.start_time = datetime.datetime.now()
                 event.save()
                 body = {}
                 body["operator"] = str(self.user.nick_name)
