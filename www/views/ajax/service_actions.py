@@ -167,7 +167,7 @@ class ServiceManage(AuthedView):
                 event.save()
                 body = {}
                 body["operator"] = str(self.user.nick_name)
-                body["event_id"] = event.id
+                body["event_id"] = event.event_id
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
                 result["status"] = "success"
