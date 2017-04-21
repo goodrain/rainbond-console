@@ -5,23 +5,24 @@ import json
 
 from rest_framework.response import Response
 from api.views.base import APIView
-from www.models import TenantServiceStatics, Tenants, TenantRegionInfo, TenantServiceInfo, TenantServiceEnv, TenantServiceEnvVar
+from www.models import TenantServiceStatics, Tenants, TenantRegionInfo, TenantServiceInfo, TenantServiceEnv, \
+    ServiceEvent
 from www.service_http import RegionServiceApi
 from www.db import BaseConnection
 
 import logging
+
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 
 
 class TenantServiceStaticsView(APIView):
-
     '''
     计费基础数据统计
     '''
     allowed_methods = ('POST',)
-
+    
     def post(self, request, format=None):
         """
         统计租户服务
@@ -51,8 +52,10 @@ class TenantServiceStaticsView(APIView):
                 start_time = time.time()
                 cnt = TenantServiceStatics.objects.filter(service_id=service_id, time_stamp=time_stamp).count()
                 if cnt < 1:
-                    ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num, node_memory=node_memory,
-                                              time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in, net_out=net_out, status=runing_status, flow=flow, region=region)
+                    ts = TenantServiceStatics(tenant_id=tenant_id, service_id=service_id, node_num=node_num,
+                                              node_memory=node_memory,
+                                              time_stamp=time_stamp, storage_disk=storage_disk, net_in=net_in,
+                                              net_out=net_out, status=runing_status, flow=flow, region=region)
                     ts.save()
                 end_time = time.time()
                 logger.debug('statistic.perf', "sql execute time: {0}".format(end_time - start_time))
@@ -64,12 +67,11 @@ class TenantServiceStaticsView(APIView):
 
 
 class TenantHibernateView(APIView):
-
     '''
     租户休眠
     '''
     allowed_methods = ('put', 'post')
-
+    
     def put(self, request, format=None):
         """
         休眠容器(pause,systemPause,unpause)
@@ -91,7 +93,7 @@ class TenantHibernateView(APIView):
         region = request.data.get('region', None)
         if region is None:
             return Response({"ok": False, "info": "need region field"}, status=400)
-
+        
         logger.debug("tenant.pause", request.data)
         try:
             tenant = Tenants.objects.get(tenant_id=tenant_id)
@@ -107,7 +109,8 @@ class TenantHibernateView(APIView):
             elif action == "systemPause":
                 if tenant_region.service_status == 0:
                     regionClient.systemPause(region, tenant_region.tenant_id)
-                    logger.info("tenant.pause", "tenant {0} systemPaused at region {1}".format(tenant.tenant_name, region))
+                    logger.info("tenant.pause",
+                                "tenant {0} systemPaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 3
                     tenant_region.save()
                 else:
@@ -120,7 +123,8 @@ class TenantHibernateView(APIView):
                     tenant_region.save()
                 elif tenant_region.service_status == 3:
                     regionClient.systemUnpause(region, tenant_region.tenant_id)
-                    logger.info("tenant.pause", "tenant {0} systemunpaused at region {1}".format(tenant.tenant_name, region))
+                    logger.info("tenant.pause",
+                                "tenant {0} systemunpaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 1
                     tenant_region.save()
                 else:
@@ -132,7 +136,7 @@ class TenantHibernateView(APIView):
         except Exception, e:
             logger.exception("tenant.pause", e)
             return Response({"ok": False, "info": e.__str__()}, status=500)
-
+    
     def post(self, request, format=None):
         """
         休眠容器(pause,unpause)
@@ -154,7 +158,7 @@ class TenantHibernateView(APIView):
         region = request.data.get('region', None)
         if region is None:
             return Response({"ok": False, "info": "need region field"}, status=400)
-
+        
         logger.debug("tenant.pause", request.data)
         try:
             tenant = Tenants.objects.get(tenant_name=tenant_name)
@@ -170,7 +174,8 @@ class TenantHibernateView(APIView):
             elif action == "systemPause":
                 if tenant_region.service_status == 0:
                     regionClient.systemPause(region, tenant_region.tenant_id)
-                    logger.info("tenant.pause", "tenant {0} systempaused at region {1}".format(tenant.tenant_name, region))
+                    logger.info("tenant.pause",
+                                "tenant {0} systempaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 3
                     tenant_region.save()
                 else:
@@ -183,7 +188,8 @@ class TenantHibernateView(APIView):
                     tenant_region.save()
                 elif tenant_region.service_status == 3:
                     regionClient.systemUnpause(region, tenant_region.tenant_id)
-                    logger.info("tenant.pause", "tenant {0} systemunpaused at region {1}".format(tenant.tenant_name, region))
+                    logger.info("tenant.pause",
+                                "tenant {0} systemunpaused at region {1}".format(tenant.tenant_name, region))
                     tenant_region.service_status = 1
                     tenant_region.save()
                 else:
@@ -192,13 +198,13 @@ class TenantHibernateView(APIView):
             logger.exception(e)
         return Response({"ok": True}, status=200)
 
-class AllTenantView(APIView):
 
+class AllTenantView(APIView):
     '''
     租户信息
     '''
     allowed_methods = ('post',)
-
+    
     def post(self, request, format=None):
         """
         获取所有租户信息
@@ -237,7 +243,7 @@ class AllTenantView(APIView):
                 dsn = BaseConnection()
                 query_sql = ""
                 if diff_day != 0:
-                    end_time = datetime.datetime.now() + datetime.timedelta(days= -1 * diff_day)
+                    end_time = datetime.datetime.now() + datetime.timedelta(days=-1 * diff_day)
                     str_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
                     query_sql = '''select ti.tenant_id,ti.tenant_name from tenant_info ti left join tenant_region tr on ti.tenant_id=tr.tenant_id where tr.is_init=1 and tr.service_status="{service_status}" and ti.pay_type="{pay_type}" and tr.region_name="{region}" and tr.update_time <= "{end_time}"
                         '''.format(service_status=service_status, pay_type=pay_type, region=region, end_time=str_time)
@@ -248,7 +254,7 @@ class AllTenantView(APIView):
                     sqlobjs = dsn.query(query_sql)
                     if sqlobjs is not None and len(sqlobjs) > 0:
                         for sqlobj in sqlobjs:
-                             data[sqlobj['tenant_id']] = sqlobj['tenant_name']
+                            data[sqlobj['tenant_id']] = sqlobj['tenant_name']
         except Exception as e:
             logger.exception(e)
         return Response(data, status=200)
@@ -259,7 +265,7 @@ class TenantView(APIView):
     租户信息
     '''
     allowed_methods = ('post',)
-
+    
     def post(self, request, format=None):
         """
         获取某个租户信息(tenant_id或者tenant_name)
@@ -303,9 +309,9 @@ class TenantView(APIView):
         except Exception as e:
             logger.exception(e)
         return Response(data, status=200)
-    
-class GitCheckCodeView(APIView):
 
+
+class GitCheckCodeView(APIView):
     def post(self, request, format=None):
         """
     代码检测
@@ -355,9 +361,10 @@ class GitCheckCodeView(APIView):
             data["status"] = "failure"
         return Response(data, status=200)
 
+
 class UpdateServiceExpireTime(APIView):
     allowed_methods = ('put',)
-
+    
     def put(self, request, format=None):
         """
 
@@ -384,9 +391,9 @@ class UpdateServiceExpireTime(APIView):
             service = TenantServiceInfo.objects.get(service_id=service_id)
             if expired_days.strip():
                 if service.expired_time:
-                    service.expired_time = service.expired_time+datetime.timedelta(days=int(expired_days))
+                    service.expired_time = service.expired_time + datetime.timedelta(days=int(expired_days))
                 else:
-                    service.expired_time = datetime.datetime.now()+datetime.timedelta(days=int(expired_days))
+                    service.expired_time = datetime.datetime.now() + datetime.timedelta(days=int(expired_days))
             service.save()
             data["status"] = "success"
         except TenantServiceInfo.DoesNotExist:
@@ -395,6 +402,54 @@ class UpdateServiceExpireTime(APIView):
             status = 404
         except Exception as e:
             logger.exception(e)
+            data["status"] = "failure"
+            status = 500
+        return Response(data, status=status)
+
+
+class ServiceEventUpdate(APIView):
+    allowed_methods = ('put',)
+    
+    def put(self, request, format=None):
+        """
+
+        更新服务操作状态
+        ---
+        parameters:
+            - name: event_id
+              description: 操作ID
+              required: true
+              type: string
+              paramType: form
+            - name: status
+              description: 操作状态
+              required: true
+              type: string
+              paramType: form
+            - name: message
+              description: 操作说明
+              required: true
+              type: string
+              paramType: form
+        """
+        data = {}
+        status = 200
+        try:
+            event_id = request.data.get("event_id", "")
+            event_status = request.data.get("status", "failure")
+            message = request.data.get("message", "")
+            event = ServiceEvent.objects.get(event_id=event_id)
+            event.status = event_status
+            event.final_status = "complete"
+            event.message = message
+            event.end_time = time.time()
+            event.save()
+            data["status"] = "success"
+        except ServiceEvent.DoesNotExist:
+            data["status"] = "failure"
+            status = 404
+        except Exception as e:
+            logger.error("api", u"更新操作结果发生错误." + e.message)
             data["status"] = "failure"
             status = 500
         return Response(data, status=status)

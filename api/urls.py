@@ -2,8 +2,9 @@ from django.conf.urls import patterns, url, include
 from rest_framework.authtoken import views
 from api.views.services import SelectedServiceView, PublishServiceView, \
     ReceiveServiceView, QueryServiceView, QueryTenantView
-from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantView, AllTenantView, GitCheckCodeView, \
-     UpdateServiceExpireTime
+from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantView, AllTenantView, \
+    GitCheckCodeView, \
+    UpdateServiceExpireTime, ServiceEventUpdate
 from api.views.tenants import move
 from api.views.rules import *
 
@@ -30,4 +31,5 @@ urlpatterns = patterns(
     url(r'^rules/(?P<service_region>[\w\-]+)$', RulesController.as_view()),
     url(r'^rules/(?P<rule_id>[\w\-]+)/instance$', InstanceManager.as_view()),
     url(r'^services/(?P<service_id>[\w\-]+)/info', ServiceInfo.as_view()),
+    url(r'^services/event', ServiceEventUpdate.as_view())
 )

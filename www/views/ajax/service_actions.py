@@ -13,7 +13,7 @@ from www.models import (ServiceInfo, AppService, TenantServiceInfo,
                         TenantRegionInfo, PermRelService, TenantServiceRelation,
                         TenantServiceInfoDelete, Users, TenantServiceEnv,
                         TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
-                        TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume)
+                        TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume, ServiceEvent)
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
@@ -24,6 +24,7 @@ from www.utils.giturlparse import parse as git_url_parse
 from www.forms.services import EnvCheckForm
 
 import logging
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
 
@@ -136,22 +137,34 @@ class ServiceManage(AuthedView):
             if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
                 result["status"] = "owed"
                 return JsonResponse(result, status=200)
-
+            
             if tenantAccountService.isExpired(self.tenant, self.service):
                 result["status"] = "expired"
                 return JsonResponse(result, status=200)
         
-        oldVerion = self.service.deploy_version
-        if oldVerion is not None and oldVerion != "":
-            if not baseService.is_user_click(self.service.service_region, self.service.service_id):
+        # oldVerion = self.service.deploy_version
+        # if oldVerion is not None and oldVerion != "":
+        #     if not baseService.is_user_click(self.service.service_region, self.service.service_id):
+        #         result["status"] = "often"
+        #         return JsonResponse(result, status=200)
+        
+        # 检查上次事件是否完成
+        last_event = ServiceEvent.objects.order_by("-start_time").filter(service_id=self.service.id).first()
+        if last_event.final_status == "":
+            if not baseService.checkEventTimeOut(last_event):
                 result["status"] = "often"
                 return JsonResponse(result, status=200)
         
-
+        # 创建操作事件
+        event = ServiceEvent(event_id=make_uuid(), service_id=self.service.id, tenant_id=self.tenant.id,
+                             user_name=self.user.nick_name)
         if action == "stop":
             try:
+                event.type = "stop"
+                event.save()
                 body = {}
                 body["operator"] = str(self.user.nick_name)
+                body["event_id"] = event.id
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
                 result["status"] = "success"
@@ -170,10 +183,12 @@ class ServiceManage(AuthedView):
                     else:
                         result["status"] = "over_money"
                     return JsonResponse(result, status=200)
-                
+                event.type = "restart"
+                event.save()
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
+                body["event_id"] = event.id
                 regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
                 result["status"] = "success"
@@ -213,11 +228,13 @@ class ServiceManage(AuthedView):
         elif action == "delete":
             try:
                 now = datetime.datetime.now()
-                service_attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id)
+                service_attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id,
+                                                                    tenant_id=self.tenant.tenant_id)
                 has_prepaid_items = False
-                if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method=="prepaid":
+                if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method == "prepaid":
                     has_prepaid_items = True
-                unpayed_bills = ServiceFeeBill.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id, pay_status="unpayed")
+                unpayed_bills = ServiceFeeBill.objects.filter(service_id=self.service.service_id,
+                                                              tenant_id=self.tenant.tenant_id, pay_status="unpayed")
                 if has_prepaid_items:
                     if now < service_attach_info.buy_end_time:
                         #  开始计费之前,如果已经付款
@@ -225,7 +242,7 @@ class ServiceManage(AuthedView):
                             result["status"] = "payed"
                             result["info"] = u"已付款应用无法删除"
                             return JsonResponse(result)
-
+                
                 published = AppService.objects.filter(service_id=self.service.service_id).count()
                 if published:
                     result["status"] = "published"
@@ -460,12 +477,13 @@ class ServiceRelation(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
-
+    
     def saveAdapterEnv(self, service):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
         if num < 1:
             attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
-                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner",
+                    "container_port": -1}
             TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
@@ -601,7 +619,7 @@ class ServiceDetail(AuthedView):
                     result["tips"] = tips
                     result["cost_money"] = cost_money
                     result["need_pay_money"] = need_pay_money
-                    result["start_time_str"]=start_time_str
+                    result["start_time_str"] = start_time_str
                     if status == "running":
                         result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
@@ -615,30 +633,33 @@ class ServiceDetail(AuthedView):
             result["service_pay_status"] = "unknown"
             result["tips"] = "服务状态未知"
         return JsonResponse(result)
-
+    
     def get_pay_status(self, service_current_status):
-
+        
         rt_status = "unknown"
         rt_tips = "应用状态未知"
         rt_money = 0.0
         need_pay_money = 0.0
         start_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+        
         status = service_current_status
         now = datetime.datetime.now()
-        service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,service_id=self.service.service_id)
+        service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                            service_id=self.service.service_id)
         buy_start_time = service_attach_info.buy_start_time
         buy_end_time = service_attach_info.buy_end_time
         memory_pay_method = service_attach_info.memory_pay_method
         disk_pay_method = service_attach_info.disk_pay_method
-
-        service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id,service_id=self.service.service_id).order_by("-ID")
+        
+        service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                             service_id=self.service.service_id).order_by("-ID")
         last_hour_cost = None
         if service_consume_list:
             last_hour_cost = service_consume_list[0]
             rt_money = last_hour_cost.pay_money
-
-        service_unpay_bill_list = ServiceFeeBill.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id,pay_status="unpayed")
+        
+        service_unpay_bill_list = ServiceFeeBill.objects.filter(service_id=self.service.service_id,
+                                                                tenant_id=self.tenant.tenant_id, pay_status="unpayed")
         buy_start_time_str = buy_start_time.strftime("%Y-%m-%d %H:%M:%S")
         diff_minutes = int((buy_start_time - now).total_seconds() / 60)
         if status == "running":
@@ -646,7 +667,7 @@ class ServiceDetail(AuthedView):
                 if memory_pay_method == "prepaid" or disk_pay_method == "prepaid":
                     if service_unpay_bill_list:
                         rt_status = "wait_for_pay"
-                        rt_tips = "请于{0}前支付{1}元".format(buy_start_time_str,service_unpay_bill_list[0].prepaid_money)
+                        rt_tips = "请于{0}前支付{1}元".format(buy_start_time_str, service_unpay_bill_list[0].prepaid_money)
                         need_pay_money = service_unpay_bill_list[0].prepaid_money
                         start_time_str = buy_start_time_str
                     else:
@@ -673,8 +694,9 @@ class ServiceDetail(AuthedView):
             else:
                 rt_status = "show_money"
                 rt_tips = "应用尚未运行"
-
+        
         return rt_status, rt_tips, rt_money, need_pay_money, start_time_str
+
 
 class ServiceNetAndDisk(AuthedView):
     @method_perf_time
@@ -1078,7 +1100,8 @@ class ServicePort(AuthedView):
                     try:
                         mysql_envs = TenantServiceEnvVar.objects.only('attr_name') \
                             .filter(service_id=deal_port.service_id,
-                                    attr_name__in=['MYSQL_USER', 'MYSQL_PASS', '{0}_USER'.format(old_port_alias), '{0}_PASS'.format(old_port_alias)])
+                                    attr_name__in=['MYSQL_USER', 'MYSQL_PASS', '{0}_USER'.format(old_port_alias),
+                                                   '{0}_PASS'.format(old_port_alias)])
                         for env in mysql_envs:
                             old_attr_name = env.attr_name.replace(old_port_alias, '')
                             if old_attr_name == env.attr_name:
