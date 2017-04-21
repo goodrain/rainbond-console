@@ -149,7 +149,7 @@ class ServiceManage(AuthedView):
         #         return JsonResponse(result, status=200)
         
         # 检查上次事件是否完成
-        last_event = ServiceEvent.objects.order_by("-start_time").filter(service_id=self.service.id).first()
+        last_event = ServiceEvent.objects.order_by("-start_time").filter(service_id=self.service.service_id).first()
         if last_event.final_status == "":
             if not baseService.checkEventTimeOut(last_event):
                 result["status"] = "often"
