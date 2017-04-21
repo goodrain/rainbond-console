@@ -404,6 +404,7 @@ class PublishServiceView(APIView):
                             param_data = {"group_name": app_service_group.group_share_alias,
                                           "tenant_id": tenant_id, "group_version": app_service_group.group_version,
                                           "publish_type": app_service_group.publish_type,
+                                          "desc":app_service_group.desc,
                                           "installable": app_service_group.installable}
                             tmp_ids = app_service_group.service_ids
                             service_id_list = json.loads(tmp_ids)
