@@ -281,6 +281,9 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         category_third = form_data.cleaned_data['category_third']
         is_outer = form_data.cleaned_data.get('is_outer', False)
         is_private = form_data.cleaned_data.get('is_private', False)
+        # 如果发布到云市,就不能为私有云帮
+        if is_outer:
+            is_private = False
         show_app = form_data.cleaned_data.get('show_app', False)
         show_assistant = form_data.cleaned_data.get('show_assistant', False)
         logger.debug("{0}:{1}:{2}".format(is_outer, show_app, show_assistant))
