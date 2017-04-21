@@ -156,7 +156,7 @@ class ServiceManage(AuthedView):
                 return JsonResponse(result, status=200)
         
         # 创建操作事件
-        event = ServiceEvent(event_id=make_uuid(), service_id=self.service.id, tenant_id=self.tenant.id,
+        event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id, tenant_id=self.tenant.tenant_id,
                              user_name=self.user.nick_name)
         if action == "stop":
             try:

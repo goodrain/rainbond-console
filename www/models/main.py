@@ -1071,4 +1071,4 @@ class ServiceEvent(BaseModel):
     type = models.CharField(max_length=20, help_text=u"操作类型")
     status = models.CharField(max_length=20, help_text=u"操作处理状态")
     final_status = models.CharField(max_length=20, default="", help_text=u"操作状态，complete or timeout or null")
-    message = models.CharField(max_length=20, help_text=u"操作说明")
+    message = models.CharField(max_length=200, help_text=u"操作说明")
