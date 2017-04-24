@@ -159,7 +159,7 @@ class ServiceManage(AuthedView):
         
         # 创建操作事件
         event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id, tenant_id=self.tenant.tenant_id,
-                             user_name=self.user.nick_name)
+                             user_name=self.user.nick_name, start_time=datetime.datetime.now())
         if action == "stop":
             try:
                 event.type = "stop"
@@ -191,7 +191,7 @@ class ServiceManage(AuthedView):
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
-                body["event_id"] = event.id
+                body["event_id"] = event.event_id
                 regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
                 result["status"] = "success"
@@ -209,7 +209,8 @@ class ServiceManage(AuthedView):
                     else:
                         result["status"] = "over_money"
                     return JsonResponse(result, status=200)
-                
+                event.type = "reboot"
+                event.save()
                 # stop service
                 body = {}
                 body["operator"] = str(self.user.nick_name)
