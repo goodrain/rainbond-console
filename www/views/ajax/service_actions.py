@@ -734,10 +734,20 @@ class ServiceLog(AuthedView):
                 if action == "operate":
                     # body = regionClient.get_userlog(self.service.service_region, service_id)
                     # eventDataList = body.get("event_data")
-                    events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
+                    events = ServiceEvent.objects.filter(service_id=service_id).order_by("-start_time")
+                    reEvents = []
+                    for i, event in events:
+                        eventRe = {}
+                        eventRe["start_time"] = events[i].start_time
+                        eventRe["end_time"] = events[i].start_time
+                        eventRe["user_name"] = events[i].user_name
+                        eventRe["message"] = events[i].message
+                        eventRe["type"] = events[i].type
+                        eventRe["status"] = events[i].status
+                        reEvents.append(eventRe)
                     result = {}
-                    result["log"] = events
-                    result["num"] = len(events)
+                    result["log"] = reEvents
+                    result["num"] = len(reEvents)
                     return JsonResponse(result)
                 elif action == "service":
                     body = {}
