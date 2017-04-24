@@ -736,14 +736,14 @@ class ServiceLog(AuthedView):
                     # eventDataList = body.get("event_data")
                     events = ServiceEvent.objects.filter(service_id=service_id).order_by("-start_time")
                     reEvents = []
-                    for i, event in list(events):
+                    for event in list(events):
                         eventRe = {}
-                        eventRe["start_time"] = events[i].start_time
-                        eventRe["end_time"] = events[i].start_time
-                        eventRe["user_name"] = events[i].user_name
-                        eventRe["message"] = events[i].message
-                        eventRe["type"] = events[i].type
-                        eventRe["status"] = events[i].status
+                        eventRe["start_time"] = event.start_time
+                        eventRe["end_time"] = event.end_time
+                        eventRe["user_name"] = event.user_name
+                        eventRe["message"] = event.message
+                        eventRe["type"] = event.type
+                        eventRe["status"] = event.status
                         reEvents.append(eventRe)
                     result = {}
                     result["log"] = reEvents
