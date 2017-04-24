@@ -423,12 +423,12 @@ class ServiceEventUpdate(APIView):
               paramType: form
             - name: status
               description: 操作状态
-              required: true
+              required: false
               type: string
               paramType: form
             - name: message
               description: 操作说明
-              required: true
+              required: false
               type: string
               paramType: form
         """
@@ -439,12 +439,13 @@ class ServiceEventUpdate(APIView):
             event_status = request.data.get("status", "failure")
             message = request.data.get("message", "")
             event = ServiceEvent.objects.get(event_id=event_id)
-            event.status = event_status
-            event.final_status = "complete"
-            event.message = message
-            event.end_time = time.time()
-            event.save()
-            data["status"] = "success"
+            if event:
+                event.status = event_status
+                event.final_status = "complete"
+                event.message = message
+                event.end_time = time.time()
+                event.save()
+                data["status"] = "success"
         except ServiceEvent.DoesNotExist:
             data["status"] = "failure"
             status = 404

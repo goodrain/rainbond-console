@@ -30,6 +30,6 @@ urlpatterns = patterns(
     url(r'^tenants/services/update_resource', UpdateServiceExpireTime.as_view()),
     url(r'^rules/(?P<service_region>[\w\-]+)$', RulesController.as_view()),
     url(r'^rules/(?P<rule_id>[\w\-]+)/instance$', InstanceManager.as_view()),
-    url(r'^services/(?P<service_id>[\w\-]+)/info', ServiceInfo.as_view()),
-    url(r'^services/event', ServiceEventUpdate.as_view())
+    url(r'^services/(?P<service_id>[\w\-]+)/info$', ServiceInfo.as_view()),
+    url(r'^services/event$', ServiceEventUpdate.as_view())
 )
