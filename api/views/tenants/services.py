@@ -443,7 +443,7 @@ class ServiceEventUpdate(APIView):
                 event.status = event_status
                 event.final_status = "complete"
                 event.message = message
-                event.end_time = time.time()
+                event.end_time = datetime.datetime.now()
                 event.save()
                 data["status"] = "success"
         except ServiceEvent.DoesNotExist:
