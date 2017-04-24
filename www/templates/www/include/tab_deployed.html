@@ -404,7 +404,7 @@
                 if (typeof(logList) != "undefined") {
                     for (var i = 0; i < logList.length; i++) {
                         var log = logList[i]
-                        var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"]
+                        var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
                         tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='display: none;line-height: 21px;'></p>"
                         tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
                         showlog = showlog + tmpLog
