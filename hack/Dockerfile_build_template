@@ -8,15 +8,16 @@ ADD sources.list /etc/apt/sources.list
 RUN apt-get update
 
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get install -y curl wget rsync python2.7 python2.7-dev libzmq3 libzmq3-dev python-zmq libmysqlclient-dev python-yaml python-crypto python-mysqldb
+RUN apt-get install -y curl wget rsync python2.7 python2.7-dev libzmq3 libzmq3-dev libmysqlclient-dev python-yaml python-crypto python-mysqldb
 
 RUN apt-get install -y libmemcached-dev python-pylibmc libjpeg-dev python-pil
 RUN curl https://bootstrap.pypa.io/get-pip.py | python -
 
 RUN pip install pyinstaller==3.2.1
 
-ENV WORK_DIR /app-build
 ENV REGION_TAG build
+ENV DJANGO_SETTINGS_MODULE goodrain_web.settings
+ENV WORK_DIR /app-build
 
 COPY source.tgz /tmp
 COPY console_app.spec $WORK_DIR/
@@ -26,6 +27,7 @@ WORKDIR $WORK_DIR
 RUN tar zxf /tmp/source.tgz
 
 RUN pip install -r requirements_release.txt
+RUN pip install pyzmq==16.0.2
 RUN python manage.py migrate
 RUN pyinstaller console_app.spec
 RUN pyinstaller console_manage.spec
