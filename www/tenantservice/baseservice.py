@@ -308,12 +308,12 @@ class BaseTenantService(object):
     def checkEventTimeOut(self, event):
         start_time = event.start_time
         if event.type == "start" or event.type == "stop" or event.type == "restart":
-            if time.time() - start_time > 30:
+            if (datetime.datetime.now() - start_time).seconds > 30:
                 event.final_status = "timeout"
                 event.save()
                 return True
         else:
-            if time.time() - start_time > 180:
+            if (datetime.datetime.now() - start_time).seconds > 180:
                 event.final_status = "timeout"
                 event.save()
                 return True
