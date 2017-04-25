@@ -903,7 +903,7 @@ class TenantSelectView(BaseView):
             if count > 0:
                 region = "xunda-bj"
 
-            logger.debug("select regin {} from {}".format(region, regions))
+            logger.debug("select region {} from {}".format(region, regions))
             # 如果用户只属于一个团队并且有数据中心的选择模式参数
             if region is not None and len(tenant_names) == 1:
                 # 系统自动选择机房
