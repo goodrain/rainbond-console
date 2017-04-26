@@ -23,7 +23,8 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 		success : function(msg) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
-				swal("操作成功")
+				swal("操作成功");
+				getEvents(tenantName,serviceAlias);
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "expired") {
@@ -54,9 +55,41 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 			$("#onekey_deploy").removeAttr("disabled")
 			swal("系统异常");
 		}
-	})
+	});
 }
+//获取evevts
+function getEvents(name,service){
+	$.ajax({
+		type : "POST",
+		url : "/ajax/" + name + '/' + service + "/events/",
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(data) {
+			console.log(data);
+		},
+		error : function() {
+			swal("系统异常");
+		}
+	});
+}
+function connectSocket(){
+	ws = new WebSocket("");
+	ws.open = function(){
+		console.log("连接打开");
+	}
+	ws.onmessage = function(){
 
+	}
+	ws.onclose = function(){
+		console.log("连接关闭");
+	}
+	ws.onerror = function(){
+		console.log("WebSocket错误");
+	}
+}
 function service_my_onOperation(service_id, service_alias, tenantName) {
 	$("#operate_"+service_id).attr('disabled', "true")
 	var taction = $("#operate_" + service_id).attr("data" + service_id)
