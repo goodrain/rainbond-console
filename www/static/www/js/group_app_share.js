@@ -25,8 +25,8 @@ $(function(){
         range.value = cachedRangeValue;
         wid.style.width = (range.value-num)/(maxnum-num)*100 + "%";
         var arr = [];
-        var value_min = $(".node_memory").attr("min");
-        var value_max = $(".node_memory").attr("max");
+        var value_min = $("#DiskNum").attr("min");
+        var value_max = $("#DiskNum").attr("max");
         var next = value_min;
         var num = 0;
         while(next<=value_max){
@@ -41,7 +41,7 @@ $(function(){
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
-                        $("#OneMemoryWid").attr("data-size",size);
+                        //$("#OneMemoryWid").attr("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
