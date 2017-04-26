@@ -53,12 +53,12 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
+        group_version = request.GET.get("group_version", None)
+        group_key = request.GET.get("group_key", None)
         try:
             context = self.get_context()
             context["createApp"] = "active"
             context["tenantName"] = self.tenantName
-            group_version = request.GET.get("group_version",None)
-            group_key = request.GET.get("group_key",None)
         except Exception as e:
             logger.exception(e)
         return self.redirect_to("/apps/{0}/group-deploy/step1".format(self.tenantName), group_version=group_version,
@@ -78,6 +78,7 @@ class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
+
         try:
             context = self.get_context()
             context["createApp"] = "active"
