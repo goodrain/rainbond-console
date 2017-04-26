@@ -9,11 +9,11 @@ from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
 from www.models.main import ServiceAttachInfo, ServiceFeeBill
-from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
+from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin, Http404
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
-                        AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep)
+                        AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep, AppServiceGroup)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
     TenantRegionService, \
@@ -53,16 +53,28 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
-        group_version = request.GET.get("group_version", None)
         group_key = request.GET.get("group_key", None)
+        group_version = request.GET.get("group_version", None)
         try:
             context = self.get_context()
+            app_groups = AppServiceGroup.objects.filter(group_share_id=group_key, group_version=group_version)
+            if len(app_groups) > 1:
+                logger.error("group for group_key:{0} and group_version:{1} is more than one ! ".format(group_key,
+                                                                                                        group_version))
+            elif len(app_groups) == 0:
+                app_groups = AppServiceGroup.objects.filter(group_share_id=group_key).order_by("-update_time")
+                if len(app_groups) == 0:
+                    return Http404
+                elif len(app_groups) == 1:
+                    group_version = app_groups[0].group_version
+            else:
+                logger("install group apps! group_key {0} group_version {1}".format(group_key,group_version))
+
             context["createApp"] = "active"
             context["tenantName"] = self.tenantName
         except Exception as e:
             logger.exception(e)
-        return self.redirect_to("/apps/{0}/group-deploy/step1".format(self.tenantName), group_version=group_version,
-                                group_key=group_key)
+        return self.redirect_to("/apps/{0}/group-deploy/step1/?group_key={1}&group_version={2}".format(self.tenantName,group_key,group_version))
 
 
 class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
@@ -79,8 +91,13 @@ class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
     @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
 
+        context = self.get_context()
         try:
-            context = self.get_context()
+            get_params = request.GET.dict
+            logger.debug('-'*78)
+            logger.debug(dir(get_params))
+            logger.debug('-'*78)
+
             context["createApp"] = "active"
             context["tenantName"] = self.tenantName
         except Exception as e:
