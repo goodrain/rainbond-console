@@ -10,7 +10,7 @@ $(function(){
         $("section.fn-app-box").eq(num).show();
     });
 
-    FnRange("DiskNum","DiskText","DiskWid",1);
+    FnRange("DiskNum","DiskText","DiskWid",128);
     FnRange("NodeNum","NodeText","NodeWid",1);
     function FnRange(inputid,textid,widid,num){
         var range= document.getElementById(inputid);
@@ -58,7 +58,6 @@ $(function(){
             //alert("你选择的值是：" + range.value + ". 我现在正在用本地存储保存此值。在现代浏览器上刷新并检测。");
             //localStorage ? (localStorage.rangeValue = range.value) : alert("数据保存到了数据库或是其他什么地方。");
             //result.innerHTML = range.value;
-            FnPrice();
         }, false);
         // 滑动时显示选择的值
         range.addEventListener("input", function() {
