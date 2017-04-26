@@ -67,7 +67,7 @@ $(function(){
                     if( range.value >= arr[i] && range.value < arr[i+1] )
                     {
                         var size = arr[i];
-                        result.setAttribute("data-size",size);
+                        //result.setAttribute("data-size",size);
                         if( size < 1024 )
                         {
                             result.innerHTML = size + "M";
