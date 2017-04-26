@@ -21,7 +21,7 @@
             <p><span>3</span><cite>应用设置</cite></p>
             <p><span>4</span><cite>高级选项</cite></p>
         </div>
-        <form id="commentForm" method="post" action="" novalidate="novalidate">
+        <form id="commentForm" method="post" action="" novalidate="novalidate">{% csrf_token %}
             <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
             <input type="hidden" id="service_code_from" name="service_code_from" value="{{cur_type}}">
             <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
