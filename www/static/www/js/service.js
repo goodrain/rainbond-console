@@ -1,3 +1,6 @@
+$(function(){
+	getLogs();
+})
 function goto_deploy(tenantName, service_alias) {
 	window.location.href = "/apps/" + tenantName + "/" + service_alias
 			+ "/detail/"
@@ -25,6 +28,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 			if (dataObj["status"] == "success") {
 				swal("操作成功");
 				getEvents(tenantName,serviceAlias);
+				postAction(tenantName,serviceAlias);
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "expired") {
@@ -57,6 +61,24 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 		}
 	});
 }
+//获取历史日志
+function getLogs(){
+	$.ajax({
+		type : "GET",
+		url : "/ajax/" + name + '/' + service + "/events/",
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(data) {
+			console.log(data);
+		},
+		error : function() {
+			swal("系统异常");
+		}
+	});
+}
 //获取evevts
 function getEvents(name,service){
 	$.ajax({
@@ -69,6 +91,7 @@ function getEvents(name,service){
 		},
 		success : function(data) {
 			console.log(data);
+			connectSocket();
 		},
 		error : function() {
 			swal("系统异常");
@@ -89,6 +112,27 @@ function connectSocket(){
 	ws.onerror = function(){
 		console.log("WebSocket错误");
 	}
+}
+//action行为
+function postAction(name,service){
+	$.ajax({
+		type : "POST",
+		url : "/ajax/" + name + '/' + service + "/manage/",
+		data :{
+			"action":"start"
+		},
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(data) {
+			console.log(data);
+		},
+		error : function() {
+			swal("系统异常");
+		}
+	});
 }
 function service_my_onOperation(service_id, service_alias, tenantName) {
 	$("#operate_"+service_id).attr('disabled', "true")
