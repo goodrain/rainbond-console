@@ -57,9 +57,12 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
             context = self.get_context()
             context["createApp"] = "active"
             context["tenantName"] = self.tenantName
+            group_version = request.GET.get("group_version",None)
+            group_key = request.GET.get("group_key",None)
         except Exception as e:
             logger.exception(e)
-        return self.redirect_to("/apps/{0}/group-deploy/step1".format(self.tenantName))
+        return self.redirect_to("/apps/{0}/group-deploy/step1".format(self.tenantName), group_version=group_version,
+                                group_key=group_key)
 
 
 class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
