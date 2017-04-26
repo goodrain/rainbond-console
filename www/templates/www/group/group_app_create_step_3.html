@@ -19,13 +19,51 @@
         <div class="app-step clearfix three">
             <p class="sed"><span>1</span><cite>组信息</cite></p>
             <p class="sed"><span>2</span><cite>创建应用</cite></p>
-            <p><span>3</span><cite>应用设置</cite></p>
+            <p class="sed"><span>3</span><cite>应用设置</cite></p>
         </div>
-        <!-- main start -->
-        <form>
-
-        </form>
-        <!-- main end -->
+        <div class="tablink">
+            <a href="javascript:;" >2048</a>
+        </div>
+        <section class="app-box fn-app-box"  style="display: block;">
+            <h4 class="column-tit">端口管理</h4>
+            <table class="tab-box">
+                <thead>
+                <tr>
+                    <th>端口</th>
+                    <th>协议</th>
+                    <th>对内服务</th>
+                    <th>对外服务</th>
+                </tr>
+                </thead>
+                <tbody class="port">
+                <tr>
+                    <td>5000</td>
+                    <td>http</td>
+                    <td>
+                        <div class="checkbox">
+                            <input type="checkbox" name="" value="" id="{{port.container_port}}inner" checked="true"/>
+                            <label class="check-bg" for="{{port.container_port}}inner"></label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="checkbox">
+                            <input class="checkDetail" type="checkbox" name="" value="" id="{{port.container_port}}outer"/>
+                            <label class="check-bg" for="{{port.container_port}}outer"></label>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <div class="serviceBlock">
+                <h4 class="column-tit">服务依赖</h4>
+                <div class="contentBlock">
+                    依赖数据库服务：数据库
+                </div>
+            </div>
+        </section>
+        <p class="text-center">
+            <button class="greenbtn" style="cursor: pointer;">下一步</button>
+        </p>
     </section>
 </section>
 {% endblock %}
