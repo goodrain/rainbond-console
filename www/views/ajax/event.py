@@ -7,8 +7,10 @@ import datetime
 from django.http import JsonResponse
 from www.utils.crypt import make_uuid
 from www.tenantservice.baseservice import BaseTenantService
+from www.service_http import RegionServiceApi
 
 baseService = BaseTenantService()
+regionClient = RegionServiceApi()
 
 
 class EventManager(AuthedView):
@@ -24,7 +26,7 @@ class EventManager(AuthedView):
                     if not baseService.checkEventTimeOut(last_event):
                         result["status"] = "often"
                         return JsonResponse(result, status=200)
-                    
+            
             action = request.POST["action"]
             event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
                                  tenant_id=self.tenant.tenant_id, type=action,
@@ -60,6 +62,19 @@ class EventManager(AuthedView):
             result = {}
             result["log"] = reEvents
             result["num"] = len(reEvents)
+            return JsonResponse(result, status=200)
+        except Exception as e:
+            result["status"] = "failure"
+            result["message"] = e.message
+            return JsonResponse(result, status=500)
+
+
+class EventLogManager(AuthedView):
+    def get(self, request, event_id, *args, **kwargs):
+        
+        result = {}
+        try:
+            result = regionClient.getEventLog(self.service.service_region, event_id)
             return JsonResponse(result, status=200)
         except Exception as e:
             result["status"] = "failure"
