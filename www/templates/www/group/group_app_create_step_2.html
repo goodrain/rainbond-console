@@ -7,7 +7,9 @@
 <link rel="stylesheet" href='{% static "www/css/newapp.css" %}' />
 <link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
 {% endblock %}
-
+{% block extrajs %}
+<script src='{% static "www/js/group_app_share.js" %}'></script>
+{% endblock %}
 
 {% block main-content%}
 
@@ -19,11 +21,35 @@
             <p class="sed"><span>2</span><cite>创建应用</cite></p>
             <p><span>3</span><cite>应用设置</cite></p>
         </div>
-        <!-- main start -->
-        <form>
-
-        </form>
-        <!-- main end -->
+        <div class="tablink">
+            <a href="javascript:;" >2048</a>
+        </div>
+        <section class="app-box fn-app-box"  style="display: block;">
+            <div class="fm-input-text clearfix">
+                <label for="create_name">应用名:</label><input type="text" id="create_name" name="create_name" value="" placeholder=""  />
+                <div class="fm-input-range clearfix fn-memory-node">
+                    <label>应用单节点内存</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="DiskWid"></cite></span>
+                        <input type="range" min="128" max="1024"  step="128" id="DiskNum" value="1"／>
+                    </p>
+                    <span><cite id="DiskText">128</cite>M</span>
+                </div>
+                <div class="fm-input-range clearfix fn-memory-node">
+                    <label>节点数</label>
+                    <p class="range-box">
+                        <span class="renge-bg"></span>
+                        <span class="range-choose"><cite id="NodeWid"></cite></span>
+                        <input type="range" min="1" max="20"  step="1" id="NodeNum" value="1"／>
+                    </p>
+                    <span><cite id="NodeText">1</cite>个</span>
+                </div>
+            </div>
+        </section>
+        <p class="text-center">
+            <button class="greenbtn" style="cursor: pointer;">下一步</button>
+        </p>
     </section>
 </section>
 {% endblock %}
