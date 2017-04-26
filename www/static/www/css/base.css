@@ -201,11 +201,6 @@ p.bottom button.cancel{background-color: #ffffff; border:1px solid #ececec; colo
 .choose-layer select{width:100px; height: 30px; line-height: 30px;}
 .choose-group-box span{cursor: pointer; color: #28cb75; border-bottom: 1px #28cb75 dashed;}
 
-.infor-fm-box{ padding: 10px 0; }
-.infor-fm-box label{width: 20%;padding-right: 10px;margin: 0;}
-.fm-input-range{max-width: 90%;}
-.fm-input-range span{width: 20%;}
-.fm-input-range .range-box{width: 60%;}
 
 @media (max-width: 960px) {
 	.infor-fm-box label{text-align: left;}

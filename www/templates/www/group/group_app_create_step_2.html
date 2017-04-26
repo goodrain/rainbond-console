@@ -25,25 +25,24 @@
             <a href="javascript:;" >2048</a>
         </div>
         <section class="app-box fn-app-box"  style="display: block;">
-            <div class="fm-input-text clearfix">
-                <label for="create_name">应用名:</label><input type="text" id="create_name" name="create_name" value="" placeholder=""  />
-                <div class="fm-input-range clearfix fn-memory-node">
+            <div class="layer-height-overflow infor-fm-box">
+                <div class="fm-input-range clearfix">
                     <label>应用单节点内存</label>
                     <p class="range-box">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="DiskWid"></cite></span>
-                        <input type="range" min="128" max="1024"  step="128" id="DiskNum" value="1"／>
+                        <input type="range" min="128" max="2048"  step="128" id="DiskNum" value="128"／>
                     </p>
                     <span><cite id="DiskText">128</cite>M</span>
                 </div>
-                <div class="fm-input-range clearfix fn-memory-node">
+                <div class="fm-input-range clearfix">
                     <label>节点数</label>
-                    <p class="range-box">
+                    <p class="range-box change_input fn-tips">
                         <span class="renge-bg"></span>
                         <span class="range-choose"><cite id="NodeWid"></cite></span>
-                        <input type="range" min="1" max="20"  step="1" id="NodeNum" value="1"／>
+                        <input type="range" min="1" max="100"  step="1" id="NodeNum" value="1"／>
                     </p>
-                    <span><cite id="NodeText">1</cite>个</span>
+                    <span><cite id="NodeText">1</cite><cite>个</cite></span>
                 </div>
             </div>
         </section>
