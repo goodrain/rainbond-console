@@ -867,7 +867,7 @@ class TenantSelectView(BaseView):
     def get(self, request, *args, **kwargs):
         if isinstance(self.user, AnonymousUser):
             return self.redirect_to('/login')
-
+        context = self.get_context()
         # 先获取用户关联的团队
         tenant_names = self.get_tenant_names()
         # 获取配置的可用数据中心列表
@@ -897,6 +897,7 @@ class TenantSelectView(BaseView):
             service_key = request.GET.get('service_key')
             version = request.GET.get("version")
             callback = request.GET.get("callback")
+            context.update({"action": "remote_install"})
 
             # 获取数据中心选择模式
             region = request.GET.get('region', None)
@@ -932,9 +933,34 @@ class TenantSelectView(BaseView):
 
                     logger.debug("install app to region {}, redirect to {}".format(select_region, next_url))
                     return response
+        if action == "remote_group_install":
+            group_key = request.GET.get('group_key')
+            group_version = request.GET.get('version')
+            callback = request.GET.get("callback")
+            # 获取数据中心选择模式
+            region = request.GET.get('region', None)
+            context.update({"action": "remote_group_install"})
+            if count > 0:
+                region = "xunda-bj"
+            logger.debug("select region {} from {}".format(region, regions))
+            # 如果用户只属于一个团队并且有数据中心的选择模式参数
+            if region is not None and len(tenant_names) == 1:
+                # 系统自动选择机房
+                select_tenant = tenant_names[0]
+                select_region = region
+                if region == 'auto':
+                    select_region = regions[random.randint(0, len(regions) - 1)][0]
+                # 如果指定机房在系统配置机房范围内
+                elif region in RegionInfo.valid_regions():
+                    select_region = region
+                next_url = '/apps/{0}/group-deploy/?group_key={1}&group_version={2}&callback={3}'.format(
+                    select_tenant, group_key, group_version, callback)
 
-        # 用户自己选择团队跟机房
-        context = self.get_context()
+                response = self.redirect_to(next_url)
+                response.set_cookie('region', select_region)
+
+                logger.debug("install group_service to region {} , redirect to {}".format(select_region, next_url))
+                return response
 
         context.update({"tenant_names": tenant_names, "tenant_region_map": json.dumps(tenant_region_map)})
 
@@ -942,7 +968,7 @@ class TenantSelectView(BaseView):
         # if count > 0:
         #     context["regions"] = xunda_region
 
-        logger.debug("install app by user self, response select_tenant.html!")
+        logger.debug("install app  or group apps by user self, response select_tenant.html!")
         return TemplateResponse(request, 'www/account/select_tenant.html', context)
 
     def post(self, request, *args, **kwargs):
@@ -951,7 +977,7 @@ class TenantSelectView(BaseView):
         action = get_paras.pop("action", None)
         tenant = post_data.get('tenant')
         region = post_data.get('region')
-
+        logger.debug("user action is {0}".format(action))
         try:
             tenant_info = Tenants.objects.get(tenant_name=tenant)
             num = TenantRegionInfo.objects.filter(tenant_id=tenant_info.tenant_id,
@@ -976,6 +1002,15 @@ class TenantSelectView(BaseView):
             version = get_paras.get("version")
             callback = get_paras.get("callback")
             next_url = '/ajax/{0}/remote/market?service_key={1}&app_version={2}&callback={3}'.format(tenant, service_key, version, callback)
+            response = self.redirect_to(next_url)
+            response.set_cookie('region', region)
+            return response
+        elif action == 'remote_group_install':
+            group_key = get_paras.get("group_key")
+            group_version = get_paras.get("group_version")
+            callback = get_paras.get("callback")
+            next_url = '/apps/{0}/group-deploy/?group_key={1}&group_version={2}&callback={3}'.format(
+                tenant, group_key, group_version, callback)
             response = self.redirect_to(next_url)
             response.set_cookie('region', region)
             return response

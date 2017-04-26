@@ -1,0 +1,34 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load staticfiles %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/base.css" %}' />
+<link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
+{% endblock %}
+
+{% block main-content%}
+
+<section class="wrapper site-min-height">
+    <section class="main-box">
+        <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
+        <h3 class="main-tit">创建组应用</h3>
+        <div class="app-step clearfix three">
+            <p class="sed"><span>1</span><cite>组信息</cite></p>
+            <p><span>2</span><cite>创建应用</cite></p>
+            <p><span>3</span><cite>应用设置</cite></p>
+        </div>
+        <form id="myForm">
+            <div class="infor-fm-box">
+                <div class="fm-input-text clearfix">
+                    <label for="create_name">应用组名称</label><input type="text" id="create_name" name="create_name" value="" placeholder="给应用组取个名字，支持中英文。"  />
+                </div>
+                <p class="fm-tips" id="create_name_notice">请输入应用组名！</p>
+                <div class="fm-btn clearfix">
+                    <a class="greenbtn" id="group_install_one" style="cursor: pointer;">下一步</a>
+                </div>
+            </div>
+        </form>
+    </section>
+</section>
+{% endblock %}

@@ -20,6 +20,7 @@ from www.views.consume import *
 from  www.views.servicemonitor import *
 from www.views.third_app import *
 from www.views.servicegroup import *
+from www.group_services_view import GroupServiceDeployView
 
 urlpatterns = patterns(
     '',
@@ -42,7 +43,9 @@ urlpatterns = patterns(
     url(r'^/service/$', login_required(ServiceMarket.as_view())),
     
     url(r'^/service-deploy/$', login_required(ServiceMarketDeploy.as_view())),
-    
+
+    url(r'^/group-deploy/$', login_required(GroupServiceDeployView.as_view())),
+
     url(r'^/team/$', TeamInfo.as_view()),
     
     url(r'^/(?P<serviceAlias>[\w\-]+)/detail/?$', login_required(TenantService.as_view())),
