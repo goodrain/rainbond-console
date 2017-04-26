@@ -40,7 +40,7 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/css/goodrainstyle.css', 'www/css/style.css', 'www/css/style-responsive.css', 'www/js/jquery.cookie.js',
             'www/js/common-scripts.js', 'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js',
-            'www/js/respond.min.js', 'www/js/app-create.js')
+            'www/js/respond.min.js')
         return media
 
     @never_cache
