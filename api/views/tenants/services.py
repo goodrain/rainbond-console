@@ -436,6 +436,10 @@ class ServiceEventUpdate(APIView):
         status = 200
         try:
             event_id = request.data.get("event_id", "")
+            if not event_id:
+                data["status"] = "failure"
+                status = 404
+                return Response(data, status=status)
             event_status = request.data.get("status", "failure")
             message = request.data.get("message", "")
             event = ServiceEvent.objects.get(event_id=event_id)
@@ -450,6 +454,7 @@ class ServiceEventUpdate(APIView):
             data["status"] = "failure"
             status = 404
         except Exception as e:
+            logger.exception(e)
             logger.error("api", u"更新操作结果发生错误." + e.message)
             data["status"] = "failure"
             status = 500

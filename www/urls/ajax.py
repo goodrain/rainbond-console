@@ -14,6 +14,7 @@ from www.views.ajax.price_detail import PriceDetailView
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
 from www.views.service import CreateServiceDepInfo
 from www.views.ajax.third_app import *
+from www.views.ajax.event import *
 
 urlpatterns = patterns(
     '',
@@ -98,5 +99,6 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/regionServiceList', ajax.RegionServiceConsumeView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/serviceCostDetail', ajax.RegionServiceDetailConsumeView.as_view()),
 
-
+    # event
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/events', EventManager.as_view()),
 )

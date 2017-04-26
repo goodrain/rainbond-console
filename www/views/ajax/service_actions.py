@@ -148,26 +148,17 @@ class ServiceManage(AuthedView):
         #         result["status"] = "often"
         #         return JsonResponse(result, status=200)
         
-        # 检查上次事件是否完成
-        events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
-        if events:
-            last_event = events[0]
-            if last_event.final_status == "":
-                if not baseService.checkEventTimeOut(last_event):
-                    result["status"] = "often"
-                    return JsonResponse(result, status=200)
-        
-        # 创建操作事件
-        event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id, tenant_id=self.tenant.tenant_id,
-                             user_name=self.user.nick_name, start_time=datetime.datetime.now())
+        event_id = request.POST["event_id"]
+        event = ServiceEvent.objects.get(event_id=event_id)
+        if not event:
+            result["status"] = "failure"
+            result["message"] = "event is not exist."
+            return JsonResponse(result)
         if action == "stop":
             try:
-                event.type = "stop"
-                event.start_time = datetime.datetime.now()
-                event.save()
                 body = {}
                 body["operator"] = str(self.user.nick_name)
-                body["event_id"] = event.event_id
+                body["event_id"] = event_id
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
                 result["status"] = "success"
@@ -186,12 +177,10 @@ class ServiceManage(AuthedView):
                     else:
                         result["status"] = "over_money"
                     return JsonResponse(result, status=200)
-                event.type = "restart"
-                event.save()
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
-                body["event_id"] = event.event_id
+                body["event_id"] = event_id
                 regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
                 result["status"] = "success"
@@ -209,11 +198,10 @@ class ServiceManage(AuthedView):
                     else:
                         result["status"] = "over_money"
                     return JsonResponse(result, status=200)
-                event.type = "reboot"
-                event.save()
                 # stop service
                 body = {}
                 body["operator"] = str(self.user.nick_name)
+                body["event_id"] = event_id
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
                 
@@ -319,7 +307,7 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', False)
         elif action == "rollback":
             try:
-                event_id = request.POST["event_id"]
+                rollback_event_id = request.POST["rollback_event_id"]
                 deploy_version = request.POST["deploy_version"]
                 if event_id != "":
                     # calculate resource
@@ -331,7 +319,7 @@ class ServiceManage(AuthedView):
                             result["status"] = "over_money"
                         return JsonResponse(result, status=200)
                     body = {}
-                    body["event_id"] = event_id
+                    body["event_id"] = rollback_event_id
                     body["operator"] = str(self.user.nick_name)
                     body["deploy_version"] = deploy_version
                     regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))

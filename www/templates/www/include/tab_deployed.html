@@ -390,7 +390,7 @@
     function getLog() {
         $.ajax({
             type: "GET",
-            url: "/ajax/{{tenantName}}/{{serviceAlias}}/log",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/events",
             data: "action=operate",
             cache: false,
             beforeSend: function (xhr, settings) {
