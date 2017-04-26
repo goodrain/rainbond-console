@@ -20,7 +20,7 @@ from www.views.consume import *
 from  www.views.servicemonitor import *
 from www.views.third_app import *
 from www.views.servicegroup import *
-from www.group_services_view import GroupServiceDeployView
+from www.group_services_view import *
 
 urlpatterns = patterns(
     '',
@@ -105,5 +105,9 @@ urlpatterns = patterns(
     url(r'/third_app/list', login_required(ThirdAppListView.as_view())),
     url(r'/(?P<app_bucket>[\w\-]+)/orders$', ThirdAppOrdersListView.as_view()),
     url(r'/(?P<app_bucket>[\w\-]+)/orders_data$', ThirdAppOrdersListDataView.as_view()),
+    # group service install
+    url(r'^/group-deploy/step1$', login_required(GroupServiceDeployStep1.as_view())),
+    url(r'^/group-deploy/step2$', login_required(GroupServiceDeployStep2.as_view())),
+    url(r'^/group-deploy/step3$', login_required(GroupServiceDeployStep3.as_view())),
 )
 

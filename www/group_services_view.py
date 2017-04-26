@@ -15,7 +15,8 @@ from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, Tenan
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
                         AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep)
 from service_http import RegionServiceApi
-from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService, \
+from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
+    TenantRegionService, \
     AppCreateService
 from www.monitorservice.monitorhook import MonitorHook
 from www.utils.crypt import make_uuid
@@ -23,7 +24,6 @@ from www.app_http import AppServiceApi
 from www.region import RegionInfo
 from django.db.models import Q, Count
 from www.utils import sn
-
 
 import logging
 import datetime
@@ -43,12 +43,11 @@ appCreateService = AppCreateService()
 
 
 class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
-
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
             'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
-            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js','www/js/jquery.cookie.js')
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js')
         return media
 
     @never_cache
@@ -60,17 +59,17 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
             context["tenantName"] = self.tenantName
         except Exception as e:
             logger.exception(e)
-        return self.redirect_to("/apps/{0}".format(self.tenantName))
-
+        return self.redirect_to("/apps/{0}/group-deploy/step1".format(self.tenantName))
 
 
 class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
+    """组应用创建第一步,填写组信息"""
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
             'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
-            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js','www/js/jquery.cookie.js')
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js')
         return media
 
     @never_cache
@@ -97,12 +96,13 @@ class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
 
 
 class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
+    """组应用创建第二步,应用内存信息"""
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
             'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
-            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js','www/js/jquery.cookie.js')
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js')
         return media
 
     @never_cache
@@ -127,13 +127,15 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
         data.update({"success": True, "code": 200})
         return JsonResponse(data, status=200)
 
+
 class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
+    """组应用创建第三步,应用相关设置"""
 
     def get_media(self):
         media = super(AuthedView, self).get_media() + self.vendor(
             'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
             'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
-            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js','www/js/jquery.cookie.js')
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js')
         return media
 
     @never_cache
