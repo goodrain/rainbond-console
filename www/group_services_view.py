@@ -52,7 +52,29 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
         return media
 
     @never_cache
-    @perm_required('tenant_access')
+    @perm_required('code_deploy')
+    def get(self, request, *args, **kwargs):
+        try:
+            context = self.get_context()
+            context["createApp"] = "active"
+            context["tenantName"] = self.tenantName
+        except Exception as e:
+            logger.exception(e)
+        return self.redirect_to("/apps/{0}".format(self.tenantName))
+
+
+
+class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js','www/js/jquery.cookie.js')
+        return media
+
+    @never_cache
+    @perm_required('code_deploy')
     def get(self, request, *args, **kwargs):
         try:
             context = self.get_context()
@@ -62,3 +84,76 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
             logger.exception(e)
         return TemplateResponse(self.request, "www/group/group_app_create_step_1.html", context)
 
+    @never_cache
+    @perm_required('code_deploy')
+    def post(self, request, *args, **kwargs):
+        data = {}
+        try:
+            pass
+        except Exception as e:
+            logger.exception(e)
+        data.update({"success": True, "code": 200})
+        return JsonResponse(data, status=200)
+
+
+class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js','www/js/jquery.cookie.js')
+        return media
+
+    @never_cache
+    @perm_required('code_deploy')
+    def get(self, request, *args, **kwargs):
+        try:
+            context = self.get_context()
+            context["createApp"] = "active"
+            context["tenantName"] = self.tenantName
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/group/group_app_create_step_2.html", context)
+
+    @never_cache
+    @perm_required('code_deploy')
+    def post(self, request, *args, **kwargs):
+        data = {}
+        try:
+            pass
+        except Exception as e:
+            logger.exception(e)
+        data.update({"success": True, "code": 200})
+        return JsonResponse(data, status=200)
+
+class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
+
+    def get_media(self):
+        media = super(AuthedView, self).get_media() + self.vendor(
+            'www/assets/jquery-easy-pie-chart/jquery.easy-pie-chart.css', 'www/css/owl.carousel.css',
+            'www/css/goodrainstyle.css', 'www/js/jquery.cookie.js', 'www/js/common-scripts.js',
+            'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js','www/js/jquery.cookie.js')
+        return media
+
+    @never_cache
+    @perm_required('code_deploy')
+    def get(self, request, *args, **kwargs):
+        try:
+            context = self.get_context()
+            context["createApp"] = "active"
+            context["tenantName"] = self.tenantName
+        except Exception as e:
+            logger.exception(e)
+        return TemplateResponse(self.request, "www/group/group_app_create_step_3.html", context)
+
+    @never_cache
+    @perm_required('code_deploy')
+    def post(self, request, *args, **kwargs):
+        data = {}
+        try:
+            pass
+        except Exception as e:
+            logger.exception(e)
+        data.update({"success": True, "code": 200})
+        return JsonResponse(data, status=200)
