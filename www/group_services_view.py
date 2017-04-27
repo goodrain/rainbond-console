@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 from decimal import Decimal
-from django.http import Http404
+from django.http import Http404,HttpResponse
 from addict import Dict
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
@@ -78,6 +78,9 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
 
             context["createApp"] = "active"
             context["tenantName"] = self.tenantName
+        except Http404 as e_404:
+            logger.exception(e_404)
+            return HttpResponse("<html><body>Group Service Not Found !</body></html>")
         except Exception as e:
             logger.exception(e)
         return self.redirect_to("/apps/{0}/group-deploy/{1}/step1/".format(self.tenantName, share_group_pk))
