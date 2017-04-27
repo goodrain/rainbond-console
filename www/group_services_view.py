@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 import json
 from decimal import Decimal
-
+from django.http import Http404
 from addict import Dict
 from django.views.decorators.cache import never_cache
 from django.template.response import TemplateResponse
@@ -9,7 +9,7 @@ from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
 from www.models.main import ServiceAttachInfo, ServiceFeeBill, ServiceGroup
-from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin, Http404
+from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
@@ -100,6 +100,7 @@ class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         try:
             # 根据key 和 version获取应用组名
+            groupId = int(groupId)
             group = AppServiceGroup.objects.get(ID=groupId)
             context["group"] = group
             context["createApp"] = "active"
