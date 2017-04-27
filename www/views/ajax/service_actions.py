@@ -52,6 +52,13 @@ class AppDeploy(AuthedView):
     def post(self, request, *args, **kwargs):
         data = {}
         
+        event_id = request.POST["event_id"]
+        event = ServiceEvent.objects.get(event_id=event_id)
+        if not event:
+            data["status"] = "failure"
+            data["message"] = "event is not exist."
+            return JsonResponse(data, status=412)
+        
         if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             data["status"] = "owed"
             return JsonResponse(data, status=200)
@@ -107,7 +114,7 @@ class AppDeploy(AuthedView):
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             body["operator"] = str(self.user.nick_name)
-            
+            body["event_id"] = event_id
             envs = {}
             buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=(
                 "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
