@@ -73,7 +73,7 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
                 else:
                     share_group_pk = app_groups[0].ID
             else:
-                logger("install group apps! group_key {0} group_version {1}".format(group_key, group_version))
+                logger.debug("install group apps! group_key {0} group_version {1}".format(group_key, group_version))
                 share_group_pk = app_groups[0].ID
 
             context["createApp"] = "active"
