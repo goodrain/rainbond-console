@@ -256,35 +256,40 @@ class ServiceGroupShareTwoView(LeftSideBarMixin, AuthedView):
         # todo 添加服务组校验
         logger.debug("service group publish: {0}-{1}".format(groupId, shareId))
         env_data = request.POST.get("env_data", None)
-        if env_data is not None:
-            env_json = json.loads(env_data)
-            app_share_list = []
-            for env_service_id in env_json:
-                env_map = env_json.get(env_service_id)
-                for env_id in env_map:
-                    is_change = env_map.get(env_id)
-                    # 判断是否存在
-                    num = AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                             service_id=env_service_id,
-                                                             tenant_env_id=env_id).count()
-                    if num == 1:
-                        AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
+        data = {}
+        try:
+            if env_data is not None:
+                env_json = json.loads(env_data)
+                app_share_list = []
+                for env_service_id in env_json:
+                    env_map = env_json.get(env_service_id)
+                    for env_id in env_map:
+                        is_change = env_map.get(env_id)
+                        # 判断是否存在
+                        num = AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                                 service_id=env_service_id,
+                                                                 tenant_env_id=env_id).count()
+                        if num == 1:
+                            AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                               service_id=env_service_id,
+                                                               tenant_env_id=env_id).update(is_change=bool(is_change))
+                        elif num > 1:
+                            AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                               service_id=env_service_id,
+                                                               tenant_env_id=env_id).delete()
+                        if num != 1:
+                            tmp_info = AppServiceShareInfo(tenant_id=self.tenant.tenant_id,
                                                            service_id=env_service_id,
-                                                           tenant_env_id=env_id).update(is_change=bool(is_change))
-                    elif num > 1:
-                        AppServiceShareInfo.objects.filter(tenant_id=self.tenant.tenant_id,
-                                                           service_id=env_service_id,
-                                                           tenant_env_id=env_id).delete()
-                    if num != 1:
-                        tmp_info = AppServiceShareInfo(tenant_id=self.tenant.tenant_id,
-                                                       service_id=env_service_id,
-                                                       tenant_env_id=env_id,
-                                                       is_change=bool(is_change))
-                        app_share_list.append(tmp_info)
-            # 批量增加
-            if len(app_share_list) > 0:
-                AppServiceShareInfo.objects.bulk_create(app_share_list)
-        data = {"success": True, "code": 200, 'msg': '更新成功!'}
+                                                           tenant_env_id=env_id,
+                                                           is_change=bool(is_change))
+                            app_share_list.append(tmp_info)
+                # 批量增加
+                if len(app_share_list) > 0:
+                    AppServiceShareInfo.objects.bulk_create(app_share_list)
+                data = {"success": True, "code": 200, 'msg': '更新成功!'}
+        except Exception as e:
+            logger.exception(e)
+            data = {"success": False, "code": 500, 'msg': '更新失败'}
         return JsonResponse(data, status=200)
 
 
