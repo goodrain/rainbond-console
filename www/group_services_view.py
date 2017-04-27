@@ -58,7 +58,7 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
         share_group_pk = None
         try:
             if group_key is None or group_version is None:
-                return Http404
+                raise Http404
             context = self.get_context()
             app_groups = AppServiceGroup.objects.filter(group_share_id=group_key, group_version=group_version).order_by(
                 "-update_time")
@@ -69,7 +69,7 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
             elif len(app_groups) == 0:
                 app_groups = AppServiceGroup.objects.filter(group_share_id=group_key).order_by("-update_time")
                 if len(app_groups) == 0:
-                    return Http404
+                    raise Http404
                 else:
                     share_group_pk = app_groups[0].ID
             else:
@@ -113,7 +113,7 @@ class GroupServiceDeployStep1(LeftSideBarMixin, AuthedView):
     def post(self, request, groupId, *args, **kwargs):
         data = {}
         # 获取应用组的group_share_id 和 version
-        group_name = request.POST.get("group_version", None)
+        group_name = request.POST.get("group_name", None)
 
         try:
             service_group = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region,group_name=group_name)

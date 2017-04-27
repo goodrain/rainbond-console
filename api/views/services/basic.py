@@ -426,6 +426,9 @@ class PublishServiceView(APIView):
                                 num = apputil.send_group(param_data)
                                 if num != 0:
                                     logger.exception("publish service group failed!")
+                        # 应用组发布成功
+                        app_service_group.is_success = True
+                        app_service_group.save()
             except Exception as e:
                 logger.exception(e)
                 logger.error("publish service group failed!")
