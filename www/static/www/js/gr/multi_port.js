@@ -276,16 +276,19 @@
         var prefix = serviceAlias.toUpperCase();
         console.log(prefix);
         add_tr.find('input.tab-alias').val(prefix + add_tr.find('input.tab-port').val());
+          var flag = true;
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
           dict[name] = value;
+            console.log(value);
           if(!isNaN(value)){
               if (code_from=="image_manual"){
                   if(value>=1 && value<=65535){
                       console.log(value);
                   }else{
                       showMessage("端口号必须在1~65535之间！");
+                      flag = false;
                       return false;
                   }
               }else{
@@ -293,6 +296,7 @@
                       console.log(value);
                   }else{
                       showMessage("端口号必须在1025~65535之间！");
+                        flag = false;
                       return false;
                   }
               }
@@ -300,6 +304,10 @@
           }
           //dict[name] = value;
         });
+
+          if(!flag){
+              return false;
+          }
 
         add_tr.find('select').each(function() {
           name = $(this).attr("name");
