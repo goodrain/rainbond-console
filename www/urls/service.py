@@ -106,8 +106,8 @@ urlpatterns = patterns(
     url(r'/(?P<app_bucket>[\w\-]+)/orders$', ThirdAppOrdersListView.as_view()),
     url(r'/(?P<app_bucket>[\w\-]+)/orders_data$', ThirdAppOrdersListDataView.as_view()),
     # group service install
-    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step1$', login_required(GroupServiceDeployStep1.as_view())),
-    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step2$', login_required(GroupServiceDeployStep2.as_view())),
-    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step3$', login_required(GroupServiceDeployStep3.as_view())),
+    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step1/$', login_required(GroupServiceDeployStep1.as_view())),
+    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step2/$', login_required(GroupServiceDeployStep2.as_view())),
+    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step3/$', login_required(GroupServiceDeployStep3.as_view())),
 )
 
