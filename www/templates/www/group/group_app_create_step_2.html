@@ -19,36 +19,33 @@
             <p class="sed"><span>2</span><cite>创建应用</cite></p>
             <p><span>3</span><cite>应用设置</cite></p>
         </div>
+        <input type="hidden" id="service_group_id" value={{group_id}}>
+        <input type="hidden" id="shared_group_id" value={{shared_group_id}}>
         <div class="tablink">
-            <a href="javascript:;" >2048</a>
+            {% for service in service_list %}
+            <a href="javascript:;" >{{service.service_name}}</a>
+            {% endfor %}
         </div>
+
+        {% for service in service_list %}
         <section class="app-box fn-app-box"  style="display: block;">
             <div class="infor-fm-box fm-input-text clearfix">
-                <label for="create_name">应用名</label><input type="text" id="create_name" name="create_name" value="" placeholder=""  />
+                <label for="service_name">应用名</label><input type="text" id="service_name" name="service_name" value={{service.service_name}} placeholder=""  />
             </div>
             <div class="layer-height-overflow infor-fm-box">
                 <div class="fm-input-range clearfix">
-                    <label>应用单节点内存</label>
-                    <p class="range-box">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="DiskWid"></cite></span>
-                        <input type="range" min="128" max="2048"  step="128" id="DiskNum" value="128"／>
-                    </p>
-                    <span><cite id="DiskText">128</cite>M</span>
-                </div>
-                <div class="fm-input-range clearfix">
-                    <label>节点数</label>
-                    <p class="range-box change_input fn-tips">
-                        <span class="renge-bg"></span>
-                        <span class="range-choose"><cite id="NodeWid"></cite></span>
-                        <input type="range" min="1" max="100"  step="1" id="NodeNum" value="1"／>
-                    </p>
-                    <span><cite id="NodeText">1</cite><cite>个</cite></span>
+                    <label>应用最低内存</label>
+                    <span><cite id="DiskText">{{service.min_memory}}</cite>M</span>
                 </div>
             </div>
         </section>
+        {% endfor %}
         <p class="text-center">
-            <button class="greenbtn" style="cursor: pointer;">下一步</button>
+            {% if success %}
+            <button class="greenbtn" id="group_install_two" style="cursor: pointer;">下一步</button>
+            {% else %}
+            <label>该组应用包含的应用有未找到的应用,请联系管理员</label>
+            {% endif%}
         </p>
     </section>
 </section>

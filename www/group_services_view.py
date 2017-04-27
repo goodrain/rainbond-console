@@ -150,7 +150,12 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
     def get(self, request, groupId, *args, **kwargs):
         context = self.get_context()
         try:
-            # 查询分享的组信息
+            # 新创建的组ID
+            group_id = request.GET.get("group_id")
+            service_group = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region, pk=group_id)
+            if not service_group:
+                raise Http404
+            context["group_id"] = group_id
             shared_group = AppServiceGroup.objects.get(ID=groupId)
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
@@ -159,10 +164,20 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             published_service_list = []
             for app_service in app_service_list:
                 services = ServiceInfo.objects.filter(service_key=app_service.service_key,version=app_service.app_version)
+                services = list(services)
+                # 没有服务模板,需要下载模板
+                if len(services) == 0:
+                    code, base_info, dep_map, error_msg = baseService.download_service_info(app_service.service_key, app_service.app_version)
+                    if code == 500:
+                        logger.error(error_msg)
+                    else:
+                        services.append(base_info)
                 if len(services) > 0:
                     published_service_list.append(services[0])
                 else:
-                    logger.error("service_key {0} version {1} is not found in table service".format(app_service.service_key,app_service.app_version))
+                    logger.error(
+                        "service_key {0} version {1} is not found in table service or can be download from market".format(
+                            app_service.service_key, app_service.app_version))
             # 发布的应用有不全的信息
             if len(published_service_list) != len(service_id_list):
                 logger.error("publised service is not found in table service")
@@ -172,6 +187,9 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             context["service_list"] = published_service_list
             context["createApp"] = "active"
             context["tenantName"] = self.tenantName
+            context["success"] = True
+            context["shared_group_id"] = groupId
+            context["group_id"] = group_id
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/group/group_app_create_step_2.html", context)
