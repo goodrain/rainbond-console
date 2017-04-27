@@ -7,9 +7,6 @@
 <link rel="stylesheet" href='{% static "www/css/newapp.css" %}' />
 <link rel="stylesheet" href='{% static "www/css/newappstep.css" %}' />
 {% endblock %}
-{% block extrajs %}
-<script src='{% static "www/js/compose-step.js" %}'></script>
-{% endblock %}
 
 {% block main-content%}
 
@@ -66,4 +63,7 @@
         </p>
     </section>
 </section>
+{% endblock %}
+{% block extrajs %}
+<script src='{% static "www/js/groupinstall/group-step-three.js" %}'></script>
 {% endblock %}
