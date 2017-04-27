@@ -33,6 +33,7 @@ class EventManager(AuthedView):
                                  user_name=self.user.nick_name, start_time=datetime.datetime.now())
             event.save()
             result["status"] = "success"
+            result["event"] = {}
             result["event"]["event_id"] = event.event_id
             result["event"]["user_name"] = event.user_name
             result["event"]["event_type"] = event.type
@@ -41,7 +42,7 @@ class EventManager(AuthedView):
         except Exception as e:
             result["status"] = "failure"
             result["message"] = e.message
-            return JsonResponse(result, status=200)
+            return JsonResponse(result, status=500)
     
     def get(self, request, *args, **kwargs):
         

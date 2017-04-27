@@ -1,5 +1,5 @@
-$(function(){
-	getLogs();
+$(function () {
+    getLogs();
 })
 function goto_deploy(tenantName, service_alias) {
     window.location.href = "/apps/" + tenantName + "/" + service_alias
@@ -77,13 +77,21 @@ function createEvents(name, service, action) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
         },
         success: function (data) {
-            event = data["event"]
-            currentEventID = event["event_id"]
-            var tmpLog = event["event_start_time"] + " @" + event["user_name"] + event["event_type"]
-            tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='display: none;line-height: 21px;'></p>"
-            tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
-            $("#keylog:first-child").before(tmpLog)
-            ok = true
+            if (data["status"] == "often") {
+                swal("上次操作进行中，请稍后！");
+                return
+            } else if (data["status"] == "success") {
+                event = data["event"]
+                currentEventID = event["event_id"]
+                var tmpLog = event["event_start_time"] + " @" + event["user_name"] + event["event_type"]
+                tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='display: none;line-height: 21px;'></p>"
+                tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
+                $("#keylog:first-child").before(tmpLog)
+                ok = true
+            } else {
+                swal("系统异常！");
+            }
+
         },
         error: function () {
             swal("系统异常");
@@ -111,77 +119,59 @@ function connectSocket(event_id) {
     ws.onerror = function (evt) {
         console.log("WebSocket错误");
     }
-	$("#onekey_deploy").attr('disabled', "true")
-	_url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
-	if (categroy == "application") {
-		_url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
-	} else {
-		swal("暂时不支持")
-		return;
-	}
-	$.ajax({
-		type : "POST",
-		url : _url,
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(msg) {
-			var dataObj = msg;
-			if (dataObj["status"] == "success") {
-				swal("操作成功");
-				getEvents(tenantName,serviceAlias);
-				postAction(tenantName,serviceAlias);
-			} else if (dataObj["status"] == "owed") {
-				swal("余额不足请及时充值")
-			} else if (dataObj["status"] == "expired") {
-				swal("试用已到期")
-			} else if (dataObj["status"] == "language") {
-				swal("应用语言监测未通过")
-				forurl = "/apps/" + tenantName + "/" + serviceAlias
-						+ "/detail/"
-				window.open(forurl, target = "_parent")
-			} else if (dataObj["status"] == "often") {
-				swal("部署正在进行中，请稍后")
-			} else if (dataObj["status"] == "over_memory") {
-				swal("资源已达上限，不能升级")
-			} else if (dataObj["status"] == "over_money") {
-				swal("余额不足，不能升级")
-			} else {
-				swal("操作失败")
-				$("#onekey_deploy").removeAttr("disabled")
-			}
-			if (isreload == 'yes') {
-				forurl = "/apps/" + tenantName + "/" + serviceAlias
-						+ "/detail/"
-				window.open(forurl, target = "_parent")
-			}
-			$("#onekey_deploy").removeAttr("disabled")
-		},
-		error : function() {
-			$("#onekey_deploy").removeAttr("disabled")
-			swal("系统异常");
-		}
-	});
-}
-//获取历史日志
-function getLogs(){
-	$.ajax({
-		type : "GET",
-		url : "/ajax/" + name + '/' + service + "/events/",
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(data) {
-			console.log(data);
-		},
-		error : function() {
-			swal("系统异常");
-		}
-	});
+    $("#onekey_deploy").attr('disabled', "true")
+    _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
+    if (categroy == "application") {
+        _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
+    } else {
+        swal("暂时不支持")
+        return;
+    }
+    $.ajax({
+        type: "POST",
+        url: _url,
+        cache: false,
+        beforeSend: function (xhr, settings) {
+            var csrftoken = $.cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success: function (msg) {
+            var dataObj = msg;
+            if (dataObj["status"] == "success") {
+                swal("操作成功");
+                getEvents(tenantName, serviceAlias);
+                postAction(tenantName, serviceAlias);
+            } else if (dataObj["status"] == "owed") {
+                swal("余额不足请及时充值")
+            } else if (dataObj["status"] == "expired") {
+                swal("试用已到期")
+            } else if (dataObj["status"] == "language") {
+                swal("应用语言监测未通过")
+                forurl = "/apps/" + tenantName + "/" + serviceAlias
+                    + "/detail/"
+                window.open(forurl, target = "_parent")
+            } else if (dataObj["status"] == "often") {
+                swal("部署正在进行中，请稍后")
+            } else if (dataObj["status"] == "over_memory") {
+                swal("资源已达上限，不能升级")
+            } else if (dataObj["status"] == "over_money") {
+                swal("余额不足，不能升级")
+            } else {
+                swal("操作失败")
+                $("#onekey_deploy").removeAttr("disabled")
+            }
+            if (isreload == 'yes') {
+                forurl = "/apps/" + tenantName + "/" + serviceAlias
+                    + "/detail/"
+                window.open(forurl, target = "_parent")
+            }
+            $("#onekey_deploy").removeAttr("disabled")
+        },
+        error: function () {
+            $("#onekey_deploy").removeAttr("disabled")
+            swal("系统异常");
+        }
+    });
 }
 
 function closeSocket() {
@@ -192,25 +182,25 @@ function closeSocket() {
     return false;
 }
 //action行为
-function postAction(name,service){
-	$.ajax({
-		type : "POST",
-		url : "/ajax/" + name + '/' + service + "/manage/",
-		data :{
-			"action":"start"
-		},
-		cache : false,
-		beforeSend : function(xhr, settings) {
-			var csrftoken = $.cookie('csrftoken');
-			xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		},
-		success : function(data) {
-			console.log(data);
-		},
-		error : function() {
-			swal("系统异常");
-		}
-	});
+function postAction(name, service) {
+    $.ajax({
+        type: "POST",
+        url: "/ajax/" + name + '/' + service + "/manage/",
+        data: {
+            "action": "start"
+        },
+        cache: false,
+        beforeSend: function (xhr, settings) {
+            var csrftoken = $.cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success: function (data) {
+            console.log(data);
+        },
+        error: function () {
+            swal("系统异常");
+        }
+    });
 }
 function service_my_onOperation(service_id, service_alias, tenantName) {
     $("#operate_" + service_id).attr('disabled', "true")
