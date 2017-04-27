@@ -62,7 +62,8 @@
                         {% if fr == "private" %}
                         <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span {% if service.status = "private" %}class="tuanicon" {% else %}class="gongicon"{% endif %}></span><span>{{service.app_alias}}</span>&nbsp;&nbsp;<span>{{service.app_version}}</span></a></p>
                         {% else %}
-                        <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.app_version}}')"><span>{{service.service_name}}</span>&nbsp;&nbsp;<span>{{service.version}}</span></a></p>
+                        <!--特别注意 !!!!! fr 不为private时 对应的service应该为 version 而不是 app_version 否则version会找不到 -->
+                        <p><a href="javascript:;" onclick="service_create('{{tenantName}}','{{service.service_key}}', '{{service.version}}')"><span>{{service.service_name}}</span>&nbsp;&nbsp;<span>{{service.version}}</span></a></p>
                         {% endif %}
                         {% endif %}
                         {% endfor %}
