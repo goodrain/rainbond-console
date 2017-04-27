@@ -5,7 +5,8 @@ function goto_deploy(tenantName, service_alias) {
 
 function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 
-    event_id = createEvents(tenantName, service_alias, taction)
+    event_id = createEvents(tenantName, serviceAlias, "deploy")
+
     if (event_id == "") {
         swal("创建操作错误");
         return false
@@ -33,7 +34,6 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
             var dataObj = msg;
             if (dataObj["status"] == "success") {
                 swal("操作成功");
-                getEvents(tenantName, serviceAlias);
             } else if (dataObj["status"] == "owed") {
                 swal("余额不足请及时充值")
             } else if (dataObj["status"] == "expired") {
@@ -107,6 +107,7 @@ function createEvents(name, service, action) {
     }
     return ""
 }
+
 var ws = null
 function connectSocket(event_id) {
     ws = new WebSocket("ws://test.goodrain.com:6364/event_log");
@@ -114,7 +115,8 @@ function connectSocket(event_id) {
         ws.send("event_id=" + event_id);
     }
     ws.onmessage = function (evt) {
-        tmpLog = "<label style='line-height: 21px;'>" + evt.data + "</label>"
+        var m = jQuery.parseJSON(evt.data)
+        tmpLog = "<label style='line-height: 21px;'>" + m.time + m.message + "</label>"
         tmpLog = "<div>" + tmpLog + "</div>"
         $("#keylog").children("div:first-child").before(tmpLog)
     }
@@ -441,6 +443,7 @@ function extends_upgrade(tenantName, service_alias) {
 
 // 服务删除
 function delete_service(tenantName, service_alias) {
+
     var code_from = $("#cur_delete_service").attr("data-code");
     var notify_text = "确定删除当前服务吗？";
     if (code_from == "gitlab_new") {
@@ -457,10 +460,15 @@ function delete_service(tenantName, service_alias) {
         closeOnCancel: false
     }, function (isConfirm) {
         if (isConfirm) {
+            event_id = createEvents(tenantName, service_alias, "delete")
+            if (event_id == "") {
+                swal("创建删除操作错误");
+                return false
+            }
             $.ajax({
                 type: "POST",
                 url: "/ajax/" + tenantName + "/" + service_alias + "/manage/",
-                data: "action=delete",
+                data: "action=delete&event_id=" + event_id,
                 cache: false,
                 beforeSend: function (xhr, settings) {
                     var csrftoken = $.cookie('csrftoken');

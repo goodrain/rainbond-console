@@ -51,7 +51,10 @@ class AppDeploy(AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         data = {}
-        
+        if 'event_id' not in request.POST:
+            data["status"] = "failure"
+            data["message"] = "event is not exist."
+            return JsonResponse(data, status=412)
         event_id = request.POST["event_id"]
         event = ServiceEvent.objects.get(event_id=event_id)
         if not event:
@@ -154,7 +157,10 @@ class ServiceManage(AuthedView):
         #     if not baseService.is_user_click(self.service.service_region, self.service.service_id):
         #         result["status"] = "often"
         #         return JsonResponse(result, status=200)
-        
+        if 'event_id' not in request.POST:
+            result["status"] = "failure"
+            result["message"] = "event is not exist."
+            return JsonResponse(result, status=412)
         event_id = request.POST["event_id"]
         event = ServiceEvent.objects.get(event_id=event_id)
         if not event:
