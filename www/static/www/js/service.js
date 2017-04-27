@@ -1,12 +1,16 @@
-$(function () {
-    getLogs();
-})
 function goto_deploy(tenantName, service_alias) {
     window.location.href = "/apps/" + tenantName + "/" + service_alias
         + "/detail/"
 }
 
 function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
+
+    event_id = createEvents(tenantName, service_alias, taction)
+    if (event_id == "") {
+        swal("创建操作错误");
+        return false
+    }
+    connectSocket(event_id)
 
     $("#onekey_deploy").attr('disabled', "true")
     _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
@@ -20,6 +24,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
         type: "POST",
         url: _url,
         cache: false,
+        data: "event_id=" + event_id,
         beforeSend: function (xhr, settings) {
             var csrftoken = $.cookie('csrftoken');
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
@@ -84,9 +89,9 @@ function createEvents(name, service, action) {
                 event = data["event"]
                 currentEventID = event["event_id"]
                 var tmpLog = event["event_start_time"] + " @" + event["user_name"] + event["event_type"]
-                tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='display: none;line-height: 21px;'></p>"
-                tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
-                $("#keylog:first-child").before(tmpLog)
+                tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + event["event_id"] + "' style='display: none;line-height: 21px;'></p>"
+                tmpLog = "<div id='event_" + event["event_id"] + "'>" + tmpLog + "</div>"
+                $("#keylog").children("div:first-child").before(tmpLog)
                 ok = true
             } else {
                 swal("系统异常！");
@@ -105,13 +110,13 @@ function createEvents(name, service, action) {
 var ws = null
 function connectSocket(event_id) {
     ws = new WebSocket("ws://test.goodrain.com:6364/event_log");
-    ws.open = function (evt) {
+    ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
     }
     ws.onmessage = function (evt) {
         tmpLog = "<label style='line-height: 21px;'>" + evt.data + "</label>"
         tmpLog = "<div>" + tmpLog + "</div>"
-        $("#keylog:first-child").before(tmpLog)
+        $("#keylog").children("div:first-child").before(tmpLog)
     }
     ws.onclose = function (evt) {
         console.log("连接关闭");
@@ -119,59 +124,6 @@ function connectSocket(event_id) {
     ws.onerror = function (evt) {
         console.log("WebSocket错误");
     }
-    $("#onekey_deploy").attr('disabled', "true")
-    _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
-    if (categroy == "application") {
-        _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
-    } else {
-        swal("暂时不支持")
-        return;
-    }
-    $.ajax({
-        type: "POST",
-        url: _url,
-        cache: false,
-        beforeSend: function (xhr, settings) {
-            var csrftoken = $.cookie('csrftoken');
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        },
-        success: function (msg) {
-            var dataObj = msg;
-            if (dataObj["status"] == "success") {
-                swal("操作成功");
-                getEvents(tenantName, serviceAlias);
-                postAction(tenantName, serviceAlias);
-            } else if (dataObj["status"] == "owed") {
-                swal("余额不足请及时充值")
-            } else if (dataObj["status"] == "expired") {
-                swal("试用已到期")
-            } else if (dataObj["status"] == "language") {
-                swal("应用语言监测未通过")
-                forurl = "/apps/" + tenantName + "/" + serviceAlias
-                    + "/detail/"
-                window.open(forurl, target = "_parent")
-            } else if (dataObj["status"] == "often") {
-                swal("部署正在进行中，请稍后")
-            } else if (dataObj["status"] == "over_memory") {
-                swal("资源已达上限，不能升级")
-            } else if (dataObj["status"] == "over_money") {
-                swal("余额不足，不能升级")
-            } else {
-                swal("操作失败")
-                $("#onekey_deploy").removeAttr("disabled")
-            }
-            if (isreload == 'yes') {
-                forurl = "/apps/" + tenantName + "/" + serviceAlias
-                    + "/detail/"
-                window.open(forurl, target = "_parent")
-            }
-            $("#onekey_deploy").removeAttr("disabled")
-        },
-        error: function () {
-            $("#onekey_deploy").removeAttr("disabled")
-            swal("系统异常");
-        }
-    });
 }
 
 function closeSocket() {
@@ -181,27 +133,7 @@ function closeSocket() {
     ws.close();
     return false;
 }
-//action行为
-function postAction(name, service) {
-    $.ajax({
-        type: "POST",
-        url: "/ajax/" + name + '/' + service + "/manage/",
-        data: {
-            "action": "start"
-        },
-        cache: false,
-        beforeSend: function (xhr, settings) {
-            var csrftoken = $.cookie('csrftoken');
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        },
-        success: function (data) {
-            console.log(data);
-        },
-        error: function () {
-            swal("系统异常");
-        }
-    });
-}
+
 function service_my_onOperation(service_id, service_alias, tenantName) {
     $("#operate_" + service_id).attr('disabled', "true")
     var taction = $("#operate_" + service_id).attr("data" + service_id)
