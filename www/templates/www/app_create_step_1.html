@@ -21,7 +21,7 @@
             <p><span>3</span><cite>应用设置</cite></p>
             <p><span>4</span><cite>高级选项</cite></p>
         </div>
-        <form id="commentForm" method="post" action="" novalidate="novalidate">
+        <form id="commentForm" method="post" action="" novalidate="novalidate">{% csrf_token %}
             <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
             <input type="hidden" id="service_code_from" name="service_code_from" value="{{cur_type}}">
             <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
@@ -318,7 +318,7 @@
             </div>
             <!-- 费用估算 end -->
 			<div class="fm-btn clearfix {% if is_public_clound %}fn-tips{% endif %}" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
-                    <button class="greenbtn btn" id="BtnFirst" >免费创建</button>
+                    <button class="greenbtn btn" id="BtnFirst" type="button">免费创建</button>
             </div>			
         </form>
 	</section>
