@@ -201,12 +201,17 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
         try:
             service_group_id = request.POST.get("service_group_id", None)
             services_json = request.POST.get("services")
-            logger.debug("=======>", services_json)
             services = json.loads(services_json)
+            for service in services:
+                logger.debug("=======>",service.group_key)
+                logger.debug("=======>",service.service_version)
+                logger.debug("=======>",service.service_name)
+
 
             data.update({"success": True, "code": 200})
 
         except Exception as e:
+            data.update({"success": False, "code": 500})
             logger.exception(e)
 
         return JsonResponse(data, status=200)
