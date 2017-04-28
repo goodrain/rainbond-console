@@ -166,7 +166,7 @@ class ServiceManage(AuthedView):
         if not event:
             result["status"] = "failure"
             result["message"] = "event is not exist."
-            return JsonResponse(result)
+            return JsonResponse(result, status=412)
         if action == "stop":
             try:
                 body = {}
@@ -349,6 +349,16 @@ class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
+        if 'event_id' not in request.POST:
+            result["status"] = "failure"
+            result["message"] = "event is not exist."
+            return JsonResponse(result, status=412)
+        event_id = request.POST["event_id"]
+        event = ServiceEvent.objects.get(event_id=event_id)
+        if not event:
+            result["status"] = "failure"
+            result["message"] = "event is not exist."
+            return JsonResponse(result, status=412)
         
         if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             result["status"] = "owed"
@@ -421,6 +431,7 @@ class ServiceUpgrade(AuthedView):
                     body["node_num"] = new_node_num
                     body["deploy_version"] = self.service.deploy_version
                     body["operator"] = str(self.user.nick_name)
+                    body["event_id"] = event_id
                     regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id,
                                                    json.dumps(body))
                     
@@ -433,6 +444,7 @@ class ServiceUpgrade(AuthedView):
                 if self.service.category == "application":
                     body = {}
                     body["extend_method"] = extend_method
+                    body["event_id"] = event_id
                     regionClient.extendMethodUpgrade(self.service.service_region, self.service.service_id,
                                                      json.dumps(body))
                     self.service.extend_method = extend_method

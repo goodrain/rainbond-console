@@ -331,13 +331,18 @@ function domainSubmit(action, service_id, tenantName, service_alias, port_name, 
 
 // 服务垂直升级
 function service_upgrade(tenantName, service_alias) {
+    event_id = createEvents(tenantName, service_alias, "VerticalUpgrade")
+    if (event_id == "") {
+        swal("创建垂直升级操作错误");
+        return false
+    }
     var service_min = $("#serviceMemorys").val();
     memory = service_min
     cpu = 20 * (service_min / 128)
     $.ajax({
         type: "post",
         url: "/ajax/" + tenantName + "/" + service_alias + "/upgrade",
-        data: "action=vertical&memory=" + memory + "&cpu=" + cpu,
+        data: "action=vertical&memory=" + memory + "&cpu=" + cpu + "&event_id=" + event_id,
         cache: false,
         beforeSend: function (xhr, settings) {
             var csrftoken = $.cookie('csrftoken');
@@ -369,12 +374,17 @@ function service_upgrade(tenantName, service_alias) {
 
 // 服务水平升级
 function app_upgrade(tenantName, service_alias) {
+    event_id = createEvents(tenantName, service_alias, "HorizontalUpgrade")
+    if (event_id == "") {
+        swal("创建水平升级操作错误");
+        return false
+    }
     var service_min_node = $("#serviceNods").val();
     if (service_min_node >= 0) {
         $.ajax({
             type: "post",
             url: "/ajax/" + tenantName + "/" + service_alias + "/upgrade/",
-            data: "action=horizontal&node_num=" + service_min_node,
+            data: "action=horizontal&node_num=" + service_min_node + "&event_id=" + event_id,
             cache: false,
             beforeSend: function (xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
