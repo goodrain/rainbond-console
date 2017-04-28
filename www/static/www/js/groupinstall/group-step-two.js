@@ -25,9 +25,10 @@ $(function(){
             }
             services.push(data_json);
         });
+        var services_str = JSON.stringify(services);
         var data = {
             "service_group_id":service_group_id,
-            "services":services
+            "services":services_str
         }
         // data = JSON.stringify(data);
         console.log(data);
