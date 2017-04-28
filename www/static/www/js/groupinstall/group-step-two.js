@@ -29,7 +29,7 @@ $(function(){
             "service_group_id":service_group_id,
             "services":services
         }
-        console.log(data);
+        data = JSON.stringify(data);
         //$.ajax({
         //    type : "post",
         //    url : "/apps/" + tenantName + "/group-deploy/" + share_group_id+"/step2/",
