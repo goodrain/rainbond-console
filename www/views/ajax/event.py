@@ -59,6 +59,7 @@ class EventManager(AuthedView):
                 eventRe["type"] = event.type
                 eventRe["status"] = event.status
                 eventRe["final_status"] = event.final_status
+                eventRe["event_id"] = event.event_id
                 reEvents.append(eventRe)
             result = {}
             result["log"] = reEvents

@@ -405,7 +405,7 @@
                     for (var i = 0; i < logList.length; i++) {
                         var log = logList[i]
                         var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
-                        tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='line-height: 21px;' onclick='do_logshow('" + log["event_id"] + "')'>显示日志</p>"
+                        tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='line-height: 21px;' onclick=\"do_logshow('" + log["event_id"] + "')\">显示日志</p>"
                         tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
                         showlog = showlog + tmpLog
                     }
