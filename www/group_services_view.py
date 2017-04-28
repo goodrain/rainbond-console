@@ -196,13 +196,17 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
 
     @never_cache
     @perm_required('code_deploy')
-    def post(self, request, *args, **kwargs):
+    def post(self, request,groupId, *args, **kwargs):
         data = {}
         try:
-            pass
+            service_group_id = request.POST.get("service_group_id", None)
+            services = request.POST.get("service")
+            logger.info("=========> post generate services ",services)
+            data.update({"success": True, "code": 200})
+
         except Exception as e:
             logger.exception(e)
-        data.update({"success": True, "code": 200})
+
         return JsonResponse(data, status=200)
 
 
