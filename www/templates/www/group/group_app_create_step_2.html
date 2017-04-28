@@ -21,6 +21,7 @@
         </div>
         <input type="hidden" id="service_group_id" value={{group_id}}>
         <input type="hidden" id="shared_group_id" value={{shared_group_id}}>
+        <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
         <div class="tablink">
             {% for service in service_list %}
             <a href="javascript:;" >{{service.service_name}}</a>

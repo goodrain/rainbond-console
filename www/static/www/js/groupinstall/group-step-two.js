@@ -11,7 +11,7 @@ $(function(){
     $("#group_install_two").on("click", function () {
         var shared_group_id = $("#shared_group_id").val();
         var service_group_id = $("#service_group_id").val();
-
+        var tenantName = $("#tenantNameValue").val();
         var app = $(".app-box");
         var services = [];
         app.each(function(){
@@ -29,7 +29,7 @@ $(function(){
             "service_group_id":service_group_id,
             "services":services
         }
-        data = JSON.stringify(data);
+        // data = JSON.stringify(data);
         console.log(data);
         $.ajax({
            type : "post",

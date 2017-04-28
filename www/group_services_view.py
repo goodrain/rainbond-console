@@ -202,7 +202,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             service_group_id = request.POST.get("service_group_id", None)
             services_json = request.POST.get("service")
             services = json.loads(services_json)
-            logger.debug("=======>",services)
+            logger.debug("=======>", services)
 
             data.update({"success": True, "code": 200})
 
