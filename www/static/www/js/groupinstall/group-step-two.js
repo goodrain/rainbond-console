@@ -1,10 +1,9 @@
 $(function(){
-    $("#tab a").eq(0).addClass("sed");
+    $(".tablink a").eq(0).addClass("sed");
     $("section.app-box").eq(0).show();
-    $("#tab a").click(function () {
-        $("#tab a").removeClass("sed");
-        $("#tab a").eq($(this).index()).addClass("sed");
-        console.log($(this).index());
+    $(".tablink a").click(function () {
+        $(".tablink a").removeClass("sed");
+        $(".tablink a").eq($(this).index()).addClass("sed");
         $("section.app-box").hide();
         $("section.app-box").eq($(this).index()).show();
     });
