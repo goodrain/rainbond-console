@@ -57,7 +57,7 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
         group_version = request.GET.get("group_version", None)
         share_group_pk = None
         try:
-            if group_key is None or group_version is None:
+            if group_key is None:
                 raise Http404
             context = self.get_context()
             app_groups = AppServiceGroup.objects.filter(group_share_id=group_key, group_version=group_version).order_by(
