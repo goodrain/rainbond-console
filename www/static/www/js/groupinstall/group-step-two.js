@@ -9,7 +9,7 @@ $(function(){
     });
     //点击下一步操作
     $("#group_install_two").on("click", function () {
-        var shared_group_id = $("#shared_group_id").val();
+        var share_group_id = $("#shared_group_id").val();
         var service_group_id = $("#service_group_id").val();
         var tenantName = $("#tenantNameValue").val();
         var app = $(".app-box");
