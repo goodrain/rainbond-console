@@ -618,7 +618,7 @@ class ServiceDetail(AuthedView):
                     result["tips"] = "应用尚未运行"
                 else:
                     body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
-                    status = body[self.service.service_id]
+                    status = body["status"]
                     service_pay_status, tips, cost_money, need_pay_money, start_time_str = self.get_pay_status(status)
                     result["service_pay_status"] = service_pay_status
                     result["tips"] = tips
