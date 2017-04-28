@@ -14,10 +14,14 @@ $(function(){
         var tenantName = $("#tenantNameValue").val();
         var app = $(".app-box");
         var services = [];
+        var flag = true;
         app.each(function(){
             var key = $(this).attr("data-key");
             var version = $(this).attr("data-version")
             var name = $(this).find(".service_name").val();
+            if ($.trim(name) == ""){
+                flag = false;
+            }
             var data_json = {
                 "service_key":key,
                 "service_version":version,
@@ -25,6 +29,11 @@ $(function(){
             }
             services.push(data_json);
         });
+
+        if (!flag){
+            swal("您有尚未填写的参数");
+            return false;
+        }
         var services_str = JSON.stringify(services);
         var data = {
             "service_group_id":service_group_id,

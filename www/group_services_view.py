@@ -145,6 +145,48 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             'www/js/jquery.dcjqaccordion.2.7.js', 'www/js/jquery.scrollTo.min.js', 'www/js/jquery.cookie.js')
         return media
 
+    def preprocess(self, services):
+        need_create_service = []
+        is_pass = True
+        data = {}
+        for s in services:
+            service_key = s.service_key
+            service_version = s.service_version
+            service_name = s.service_name
+            if not service_name:
+                data["status"] = "failure"
+                is_pass = False
+                return need_create_service,is_pass,data
+            service_model_list = ServiceInfo.objects.filter(service_key=service_key, version=service_version)
+            if not service_model_list:
+                data["status"] = "notexist"
+                is_pass = False
+                return need_create_service,is_pass,data
+            service = service_model_list[0]
+
+            # calculate resource
+            tempService = TenantServiceInfo()
+            tempService.min_memory = service.min_memory
+            tempService.service_region = self.response_region
+            tempService.min_node = service.min_node
+            diffMemory = service.min_memory * service.min_node
+            rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, tempService, diffMemory, False)
+            if not flag:
+                if rt_type == "memory":
+                    data["status"] = "over_memory"
+                    data["tenant_type"] = self.tenant.pay_type
+                else:
+                    data["status"] = "over_money"
+                is_pass = False
+                return need_create_service,is_pass,data
+
+            ccpu = int(service.in_memory / 128) * 20
+            service.min_cpu = ccpu
+            service.cname = service_name
+            need_create_service.append(service)
+            data["status"] = "success"
+        return need_create_service, is_pass, data
+
     @never_cache
     @perm_required('code_deploy')
     def get(self, request, groupId, *args, **kwargs):
@@ -198,17 +240,45 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
     @perm_required('code_deploy')
     def post(self, request,groupId, *args, **kwargs):
         data = {}
+        tenant_id = self.tenant.tenant_id
         try:
             service_group_id = request.POST.get("service_group_id", None)
             services_json = request.POST.get("services")
             services = json.loads(services_json)
-            for service in services:
-                logger.debug("=======>",service.group_key)
-                logger.debug("=======>",service.service_version)
-                logger.debug("=======>",service.service_name)
-
-
-            data.update({"success": True, "code": 200})
+            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id, self.user)
+            if not success:
+                data["status"] = "failure"
+                return JsonResponse(data, status=200)
+            need_create_service, is_pass, result = self.preprocess(services)
+            if not is_pass:
+                return JsonResponse(result, status=200)
+            is_success = True
+            for ncs in need_create_service:
+                service_id = make_uuid(tenant_id)
+                service_alias = "gr" + service_id[-6:]
+                service_cname = ncs.service_cname
+                try:
+                    newTenantService = baseService.create_service(service_id, tenant_id, service_alias, service_cname, ncs,
+                                                                  self.user.pk, region=self.response_region)
+                    if service_group_id:
+                        group_id = int(service_group_id)
+                        if group_id > 0:
+                            ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
+                                                                tenant_id=self.tenant.tenant_id,
+                                                                region_name=self.response_region)
+                    monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
+                except Exception as ex:
+                    TenantServiceInfo.objects.filter(service_id=service_id).delete()
+                    TenantServiceAuth.objects.filter(service_id=service_id).delete()
+                    TenantServiceRelation.objects.filter(service_id=service_id).delete()
+                    ServiceGroupRelation.objects.filter(service_id=service_id).delete()
+                    logger.exception(ex)
+                    is_success = False
+            if is_success:
+                next_url = "/apps/{0}/group-deploy/{1}/step3/?group_id={2}".format(self.tenantName, groupId, service_group_id)
+                data.update({"success": True, "status": "success", "next_url": next_url})
+            else:
+                data.update({"success": False, "status": "failure"})
 
         except Exception as e:
             data.update({"success": False, "code": 500})

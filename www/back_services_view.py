@@ -492,8 +492,8 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             TenantServiceInfo.objects.filter(service_id=service_id).delete()
             TenantServiceAuth.objects.filter(service_id=service_id).delete()
             TenantServiceRelation.objects.filter(service_id=service_id).delete()
-            ServiceGroupRelation.objects.filter(service_id=service_id)
-            ServiceAttachInfo.objects.filter(service_id=service_id)
+            ServiceGroupRelation.objects.filter(service_id=service_id).delete()
+            ServiceAttachInfo.objects.filter(service_id=service_id).delete()
             # monitorhook.serviceMonitor(self.user.nick_name, tempTenantService, 'create_service_error', False)
             result["status"] = "failure"
         return JsonResponse(result, status=200)
