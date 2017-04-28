@@ -76,7 +76,8 @@ class EventLogManager(AuthedView):
         
         result = {}
         try:
-            result = regionClient.getEventLog(self.service.service_region, event_id)
+            level = request.GET.get("level", "info")
+            result = regionClient.getEventLog(self.service.service_region, event_id, level=level)
             return JsonResponse(result, status=200)
         except Exception as e:
             result["status"] = "failure"

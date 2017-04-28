@@ -435,7 +435,7 @@
 
         $.ajax({
             type: "GET",
-            url: "/ajax/{{tenantName}}/{{serviceAlias}}/event/" + event_id + "/log",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/event/" + event_id + "/log?level=debug",
             cache: false,
             beforeSend: function (xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
@@ -443,28 +443,14 @@
             },
             success: function (msg) {
                 var dataObj = msg;
-                var log = dataObj["log"];
-                //
-                var newLog = log.split('</br>');
-                var len = 1000;
-                var logLen = newLog.length;
-                var str = "";
-                if (logLen > len) {
-                    for (var i = logLen - len; i < logLen - 1; i++) {
-                        str = newLog[i] + "</br>" + str;
-                    }
-                }
-                else {
-                    str = newLog[logLen - 2];
-                    for (var i = logLen - 3; i >= 0; i--) {
-                        str = str + "</br>" + newLog[i];
-                    }
+                var newLog = dataObj["data"]
+                for (i = 0; i < newLog.length; i++) {
+                    log = newLog[i]["time"] + ":" + newLog[i]["message"]
+                    $("#compile_" + event_id + "").append(log+"</br>");
                 }
                 var address = location.href.split("?");
                 var more = '</br><a href="' + address[0] + '?fr=log' + '" style="text-decoration: underline">更多日志</a>';
-                str = str + more;
-                $("#compile_" + event_id + "").html(str);
-                $("#showlog_" + event_id + "").html("隐藏构建日志");
+                $("#compile_" + event_id + "").append(more);
                 //
             },
             error: function () {

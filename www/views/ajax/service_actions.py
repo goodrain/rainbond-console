@@ -403,6 +403,7 @@ class ServiceUpgrade(AuthedView):
                         body["deploy_version"] = self.service.deploy_version
                         body["container_cpu"] = upgrade_container_cpu
                         body["operator"] = str(self.user.nick_name)
+                        body["event_id"] = event_id
                         regionClient.verticalUpgrade(self.service.service_region, self.service.service_id,
                                                      json.dumps(body))
                         

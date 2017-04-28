@@ -313,7 +313,7 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return body
     
-    def getEventLog(self, region, event_id):
-        url = self.region_map[region]['url'] + "/v1/event/" + event_id + "/log"
+    def getEventLog(self, region, event_id, level):
+        url = self.region_map[region]['url'] + "/v1/event/" + event_id + "/log?level=" + level
         res, body = self._get(url, self.default_headers, region=region)
         return body
