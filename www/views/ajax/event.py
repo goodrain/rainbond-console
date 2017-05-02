@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-
+import logging
 from www.views import AuthedView
 from www.decorator import perm_required
 from www.models import ServiceEvent
@@ -11,6 +11,7 @@ from www.service_http import RegionServiceApi
 
 baseService = BaseTenantService()
 regionClient = RegionServiceApi()
+logger = logging.getLogger('default')
 
 
 class EventManager(AuthedView):
@@ -40,6 +41,7 @@ class EventManager(AuthedView):
             result["event"]["event_start_time"] = event.start_time
             return JsonResponse(result, status=200)
         except Exception as e:
+            
             result["status"] = "failure"
             result["message"] = e.message
             return JsonResponse(result, status=500)
@@ -66,8 +68,9 @@ class EventManager(AuthedView):
             result["num"] = len(reEvents)
             return JsonResponse(result, status=200)
         except Exception as e:
+            logging.exception(e)
             result["status"] = "failure"
-            result["message"] = e.message
+            result["message"] = repr(e)
             return JsonResponse(result, status=500)
 
 
