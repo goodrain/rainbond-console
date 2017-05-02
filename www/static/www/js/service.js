@@ -8,7 +8,6 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
     event_id = createEvents(tenantName, serviceAlias, "deploy")
 
     if (event_id == "") {
-        swal("创建操作错误");
         return false
     }
     connectSocket(event_id)
@@ -84,7 +83,7 @@ function createEvents(name, service, action) {
         success: function (data) {
             if (data["status"] == "often") {
                 swal("上次操作进行中，请稍后！");
-                return
+                return ""
             } else if (data["status"] == "success") {
                 event = data["event"]
                 currentEventID = event["event_id"]
