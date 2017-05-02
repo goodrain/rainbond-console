@@ -200,15 +200,19 @@ class BaseTenantService(object):
         logger.debug(
             newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
         
-        # 创建操作
-        event = ServiceEvent(event_id=make_uuid(), service_id=newTenantService.service_id,
-                             tenant_id=newTenantService.tenant_id, type="create",
-                             user_name=nick_name, start_time=datetime.datetime.now())
-        event.save()
-        data["event_id"] = event.event_id
-        regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
-        logger.debug(
-            newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+        try:
+            # 创建操作
+            event = ServiceEvent(event_id=make_uuid(), service_id=newTenantService.service_id,
+                                 tenant_id=newTenantService.tenant_id, type="create",
+                                 user_name=nick_name, start_time=datetime.datetime.now())
+            event.save()
+            
+            data["event_id"] = event.event_id
+            regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
+        except Exception as e:
+            logging.exception(e)
+            event.delete()
+            raise e
     
     def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         dependS = TenantServiceInfo.objects.get(service_id=dep_service_id)

@@ -404,6 +404,9 @@
                 if (typeof(logList) != "undefined") {
                     for (var i = 0; i < logList.length; i++) {
                         var log = logList[i]
+                        if (i == 0 && (log["final_status"] == "")) {
+                            connectSocket(log["event_id"])
+                        }
                         var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
                         tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='line-height: 21px;' onclick=\"do_logshow('" + log["event_id"] + "')\">显示日志</p>"
                         tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
@@ -446,7 +449,7 @@
                 var newLog = dataObj["data"]
                 for (i = 0; i < newLog.length; i++) {
                     log = newLog[i]["time"] + ":" + newLog[i]["message"]
-                    $("#compile_" + event_id + "").append(log+"</br>");
+                    $("#compile_" + event_id + "").append(log + "</br>");
                 }
                 var address = location.href.split("?");
                 var more = '</br><a href="' + address[0] + '?fr=log' + '" style="text-decoration: underline">更多日志</a>';

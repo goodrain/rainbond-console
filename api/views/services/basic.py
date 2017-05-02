@@ -15,6 +15,7 @@ from django.conf import settings
 from www.region import RegionInfo
 
 import logging
+
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
@@ -26,8 +27,8 @@ class SelectedServiceView(APIView):
     '''
     对单个服务的动作
     '''
-    allowed_methods = ('PUT','POST',)
-
+    allowed_methods = ('PUT', 'POST',)
+    
     def get(self, request, serviceId, format=None):
         """
         查看服务属性
@@ -37,7 +38,7 @@ class SelectedServiceView(APIView):
             return Response({"ok": True}, status=200)
         except TenantServiceInfo.DoesNotExist, e:
             return Response({"ok": False, "reason": e.__str__()}, status=404)
-
+    
     def post(self, request, serviceId, format=None):
         """
         更新服务属性
@@ -51,6 +52,7 @@ class SelectedServiceView(APIView):
         """
         logger.debug("api.service", request.data)
         image = request.data.get("image", None)
+        event_id = request.data.get("event_id", "")
         if serviceId is None or image is None:
             return Response({"success": False, "msg": "param is error!"}, status=500)
         service_num = TenantServiceInfo.objects.filter(service_id=serviceId).count()
@@ -79,7 +81,8 @@ class SelectedServiceView(APIView):
             user = Users.objects.get(pk=user_id)
             body = {
                 "deploy_version": service.deploy_version,
-                "operator": user.nick_name
+                "operator": user.nick_name,
+                "event_id": event_id,
             }
             regionClient.start(service.service_region, service.service_id, json.dumps(body))
             monitorhook.serviceMonitor(user.nick_name, service, 'app_start', True)
@@ -87,7 +90,7 @@ class SelectedServiceView(APIView):
             logger.exception("api.service", e)
             logger.error("api.service", "start service error!")
         return Response({"success": True, "msg": "success!"}, status=200)
-
+    
     def put(self, request, serviceId, format=None):
         """
         更新服务属性,只针对docker image
@@ -106,7 +109,7 @@ class SelectedServiceView(APIView):
             volume_list = data.pop("volume_list", None)
             logger.debug(port_list)
             logger.debug(volume_list)
-
+            
             TenantServiceInfo.objects.filter(service_id=serviceId).update(**data)
             service = TenantServiceInfo.objects.get(service_id=serviceId)
             regionClient.update_service(service.service_region, serviceId, data)
@@ -171,7 +174,7 @@ class SelectedServiceView(APIView):
                         regionClient.createServiceVolume(service.service_region,
                                                          service.service_id,
                                                          json.dumps(json_data))
-
+            
             return Response({"ok": True}, status=201)
         except TenantServiceInfo.DoesNotExist as e:
             logger.error(e)
@@ -180,7 +183,7 @@ class SelectedServiceView(APIView):
 
 class PublishServiceView(APIView):
     allowed_methods = ('post',)
-
+    
     def init_data(self, app, slug, image):
         data = {}
         data["service_key"] = app.service_key
@@ -228,7 +231,7 @@ class PublishServiceView(APIView):
         # 租户信息
         data["tenant_id"] = app.tenant_id
         return data
-
+    
     def post(self, request, format=None):
         """
         获取某个租户信息(tenant_id或者tenant_name)
@@ -345,7 +348,7 @@ class PublishServiceView(APIView):
             isys = app.dest_ys
         except Exception as e:
             logger.exception(e)
-
+        
         # 发布到云市,调用http接口发送数据
         if isok and isys and settings.MODULES["Publish_YunShi"]:
             data = self.init_data(app, slug, image)
@@ -371,23 +374,26 @@ class PublishServiceView(APIView):
                 image_url = str(app.logo)
                 logger.debug('send service logo:{}'.format(image_url))
                 apputil.send_image('app_logo', image_url)
-            # 发送请求到所有的数据中心进行数据同步
-            # self.downloadImage(serviceInfo)
-
+                # 发送请求到所有的数据中心进行数据同步
+                # self.downloadImage(serviceInfo)
+        
         return Response({"ok": True}, status=200)
-
+    
     def downloadImage(self, base_info):
         if base_info is None:
             return
         try:
             download_task = {}
             if base_info.is_slug():
-                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key, "app_version": base_info.version, "namespace": base_info.namespace, "dep_sids": json.dumps([])}
+                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key,
+                                 "app_version": base_info.version, "namespace": base_info.namespace,
+                                 "dep_sids": json.dumps([])}
                 for region in RegionInfo.valid_regions():
                     logger.info(region)
                     regionClient.send_task(region, 'app_slug', json.dumps(download_task))
             else:
-                download_task = {"action": "download_and_deploy", "image": base_info.image, "namespace": base_info.namespace, "dep_sids": json.dumps([])}
+                download_task = {"action": "download_and_deploy", "image": base_info.image,
+                                 "namespace": base_info.namespace, "dep_sids": json.dumps([])}
                 for region in RegionInfo.valid_regions():
                     regionClient.send_task(region, 'app_image', json.dumps(download_task))
         except Exception as e:
@@ -397,7 +403,7 @@ class PublishServiceView(APIView):
 class ReceiveServiceView(APIView):
     """ receive service info from cloud market to cloud assistant"""
     allowed_methods = ('post',)
-
+    
     def post(self, request, format=None):
         """
         获取从云市发送的服务信息
@@ -488,7 +494,7 @@ class ReceiveServiceView(APIView):
                 env_list = json_data.get('env_list', None)
                 port_list = json_data.get('port_list', None)
                 extend_list = json_data.get('extend_list', None)
-
+                
                 # 存在对应的service_key, app_version,清理对应的旧数据
                 AppServiceEnv.objects.filter(service_key=service_key,
                                              app_version=app_version).delete()
@@ -573,14 +579,14 @@ class ReceiveServiceView(APIView):
                 logger.debug('---add app service relation---ok---')
         except Exception as e:
             logger.exception(e)
-
+        
         return Response({"ok": True}, status=200)
 
 
 class QueryServiceView(APIView):
     """ receive service info from cloud market to cloud assistant"""
     allowed_methods = ('post',)
-
+    
     def post(self, request, format=None):
         """
         从云市查询服务信息
@@ -604,14 +610,14 @@ class QueryServiceView(APIView):
         """
         try:
             print request.data
-
+            
             service_key = request.POST.get('service_key')
             app_version = request.POST.get('app_version')
-
+            
             utils = AppSendUtil(service_key, app_version)
             json_data = utils.query_service(service_key, app_version)
             logger.debug('---receive data---{}'.format(json_data))
-
+            
             service_data = json_data.get('service', None)
             if not service_data:
                 logger.error('there is no service data! pls check request')
@@ -734,7 +740,7 @@ class QueryServiceView(APIView):
 class QueryTenantView(APIView):
     """根据用户email查询用户所有的租户信息"""
     allowed_methods = ('post',)
-
+    
     def post(self, request, format=None):
         """
         根据用户的email获取当前用户的所有租户信息
@@ -753,7 +759,7 @@ class QueryTenantView(APIView):
             user_info = Users.objects.get(user_id=user_id)
             nick_name = user_info.nick_name
             data = {"nick_name": nick_name}
-
+            
             # 获取所有的租户信息
             prt_list = PermRelTenant.objects.filter(user_id=user_id)
             tenant_id_list = [x.tenant_id for x in prt_list]
@@ -768,5 +774,3 @@ class QueryTenantView(APIView):
         except Users.DoesNotExist:
             logger.error("---no user info for:{}".format(user_id))
         return Response(status=500)
-
-
