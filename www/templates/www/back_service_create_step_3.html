@@ -11,68 +11,41 @@
 
 {% block main-content %}
 
-    <section class="wrapper site-min-height">
-        <section class="main-box">
-            <h3 class="main-tit">创建{{ service.service_name }}</h3>
-            <div class="app-step two clearfix">
-                <p class="sed"><span>1</span><cite>创建应用</cite></p>
-                <p class="sed"><span>2</span><cite>应用设置</cite></p>
-            </div>
-            <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action=""
-                  novalidate="novalidate">
-                {% csrf_token %}
-                <input type="hidden" id="tenantName" name="tenantName" value="{{ tenantName }}"/>
-                <input type="hidden" id="service_key" name="service_key" value="{{ service_key }}"/>
-                <input type="hidden" id="app_version" name="app_version" value="{{ app_version }}"/>
-                <input type="hidden" id="service_alias" name="service_alias" value="{{ service_alias }}"/>
-                <!-- -->
-                <input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price"
-                       value="{{ pre_paid_memory_price }}">
-                <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price"
-                       value="{{ post_paid_memory_price }}">
-                <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price"
-                       value="{{ pre_paid_disk_price }}">
-                <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price"
-                       value="{{ post_paid_disk_price }}">
-                <input type="hidden" id="post_paid_net_price" name="post_paid_net_price"
-                       value="{{ post_paid_net_price }}">
-                <!-- -->
-                <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{ is_tenant_free }}">
-                <!-- -->
-                {% if outer_port|length > 0 %}
-                    <h4 class="column-tit">端口管理</h4>
-                    <table class="tab-box">
-                        <thead>
-                        <tr>
-                            <th>端口</th>
-                            <th>对外服务</th>
-                            <th>外部服务</th>
-                            <th>访问方式</th>
-                        </tr>
-                        </thead>
-                        <tbody class="port">
+<section class="wrapper site-min-height">
+    <section class="main-box">
+        <h3 class="main-tit">创建{{service.service_name}}</h3>
+        <div class="app-step two clearfix">
+            <p class="sed"><span>1</span><cite>创建应用</cite></p>
+            <p class="sed"><span>2</span><cite>应用设置</cite></p>
+        </div>
+        <form class="cmxform form-horizontal tasi-form" id="commentForm" method="post" action="" novalidate="novalidate">
+            {% csrf_token %}
+            <input type="hidden" id="tenantName" name="tenantName" value="{{tenantName}}" />
+            <input type="hidden" id="service_key" name="service_key" value="{{service_key}}" />
+            <input type="hidden" id="app_version" name="app_version" value="{{app_version}}" />
+            <input type="hidden" id="service_alias" name="service_alias" value="{{service_alias}}" />
+            <!-- -->
+            <input type="hidden" id="pre_paid_memory_price" name="pre_paid_memory_price" value="{{pre_paid_memory_price}}">
+            <input type="hidden" id="post_paid_memory_price" name="post_paid_memory_price" value="{{post_paid_memory_price}}">
+            <input type="hidden" id="pre_paid_disk_price" name="pre_paid_disk_price" value="{{pre_paid_disk_price}}">
+            <input type="hidden" id="post_paid_disk_price" name="post_paid_disk_price" value="{{post_paid_disk_price}}">
+            <input type="hidden" id="post_paid_net_price" name="post_paid_net_price" value="{{post_paid_net_price}}">
+            <!-- -->
+            <input type="hidden" id="is_tenant_free" name="is_tenant_free" value="{{is_tenant_free}}">
+            <!-- -->
+            {% if outer_port|length > 0 %}
+            <h4 class="column-tit">端口管理</h4>
+            <table class="tab-box">
+                <thead>
+                    <tr>
+                        <th>端口</th>
+                        <th>对外服务</th>
+                        <th>外部访问</th>
+                        <th>访问方式</th>
+                    </tr>
+                </thead>
+                <tbody class="port">
 
-                        {% for port in outer_port %}
-                            <tr>
-                                <td><span class="fn-tips" data-tips="当前应用提供服务的端口号。">{{ port.container_port }}</span>
-                                </td>
-                                <td>
-                                    <div class="checkbox fn-tips" data-tips="当前应用是否允许其他应用访问。">
-                                        <input type="checkbox" name="" value="" id="5000inner"
-                                               {% if port.is_inner_service %}checked="true"{% endif %} disabled="true"/>
-                                        <label class="check-bg" for="5000inner"></label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="checkbox fn-tips" data-tips="当前应用是否允许用户通过网络访问。">
-                                        <input type="checkbox" name="" value="" id="5000outer"
-                                               {% if port.is_outer_service %}checked="true"{% endif %} disabled="true"/>
-                                        <label class="check-bg" for="5000outer"></label>
-                                    </div>
-                                </td>
-                                <td><span class="fn-tips" data-tips="用户访问协议。">{{ port.protocol }}</span></td>
-                            </tr>
-                        {% endfor %}
 
                         </tbody>
                     </table>
@@ -120,6 +93,20 @@
                                     <td name="attr_value">{{ env.attr_value }}</td>
                                 {% else %}
                                     <td><input name="attr_value" placeholder="举例: {{ env.attr_value }}"></td>
+
+            {% if dependecy_services %}
+            <h4 class="column-tit">服务依赖</h4>
+            <div class="infor-fm-box">
+                <div class="fm-select clearfix">
+                        {% for key, deployed_services in dependecy_services.items %}
+                        <label for="inputSuccess">依赖{{dependecy_info|mkey:key}}-{{dependecy_version|mkey:key}}</label>
+                            <select name="dependency_service" class="dependency_service">
+                                {% if deployed_services %}
+                                {% for d_service in deployed_services %}
+                                <option value="{{d_service.service_alias}}:{{key}}:{{d_service.version}}" {% if forloop.first %} selected="selected" {% endif %}>{{d_service.service_cname}}</option>
+                                {% endfor %}
+                                {% else %}
+                                <option value="__no_dep_service__:{{key}}:{{dependecy_version|mkey:key}}" selected="selected">暂无{{dependecy_info|mkey:key}}</option>
                                 {% endif %}
                             </tr>
                         {% endfor %}

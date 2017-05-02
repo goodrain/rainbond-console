@@ -71,6 +71,7 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step2$', ShareServiceStep2View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step3$', ShareServiceStep3View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step4$', ShareServiceStep4View.as_view()),
+    url(r'^/(?P<serviceAlias>[\w\-]+)/share/step5$', ShareServiceStep5View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/package$', ShareServicePackageView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
     # consume details

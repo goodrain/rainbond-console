@@ -1032,6 +1032,13 @@ class ServicePort(AuthedView):
     def check_port(self, port):
         if not re.match(r'^\d{2,5}$', str(port)):
             return False, u"格式不符合要求^\d{2,5}"
+
+        if self.service.code_from == "image_manual":
+            if port > 65535 or port < 1:
+                return False, u"端口号必须在1~65535之间！"
+        else:
+            if port > 65535 or port < 1025:
+                return False, u"端口号必须在1025~65535之间！"
         
         if TenantServicesPort.objects.filter(service_id=self.service.service_id, container_port=port).exists():
             return False, u"端口冲突"
@@ -1247,10 +1254,12 @@ class ServiceEnv(AuthedView):
                     "tenant_id": self.service.tenant_id, "service_id": self.service.service_id, "name": name,
                     "attr_name": attr_name, "attr_value": attr_value, "is_change": True, "scope": scope
                 }
-                TenantServiceEnvVar.objects.create(**attr)
+                env = TenantServiceEnvVar.objects.create(**attr)
                 data = {"action": "add", "attrs": attr}
                 regionClient.createServiceEnv(self.service.service_region, self.service.service_id, json.dumps(data))
-                return JsonResponse({"success": True, "info": u"创建成功"})
+                return JsonResponse(
+                    {"success": True, "info": u"创建成功", "pk": env.pk, "attr_name": attr_name, "attr_value": attr_value,
+                     "name": name})
         elif action == 'del_attr':
             attr_name = request.POST.get("attr_name")
             TenantServiceEnvVar.objects.filter(service_id=self.service.service_id, attr_name=attr_name).delete()

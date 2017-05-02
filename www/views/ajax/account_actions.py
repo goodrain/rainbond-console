@@ -231,6 +231,7 @@ class RegionServiceConsumeView(AuthedView):
                                                                  time__range=(start_time_str, end_time_str))
             time_list = service_consume_list.values_list("time", flat=True).distinct()
             result_map = {}
+            total_money = Decimal(0.00)
             for time_val in time_list[1:25]:
                 current_hour_total_money = Decimal(0.00)
                 for service_consume in service_consume_list:
@@ -238,10 +239,12 @@ class RegionServiceConsumeView(AuthedView):
                         if TenantServiceInfo.objects.filter(service_id=service_consume.service_id).exists():
                             current_hour_total_money += service_consume.pay_money
                 result_map[time_val] = current_hour_total_money
+                total_money += current_hour_total_money
 
             result = sorted(result_map.iteritems(),reverse=True)
             context["length"] = len(result)
             context["result_map"] = result
+            context["total_money"] = total_money
 
         except Exception as e:
             logger.error(e)

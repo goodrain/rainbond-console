@@ -50,19 +50,6 @@
                 </div>
             </li>
 
-            {% if not community %}
-                <li class="fn-tips layer_pay" data-tips="应用状态未知">
-                    <div>
-                        <p style="text-align: left">上一小时费用</p>
-                        <p class="pImg">
-                            <img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
-                        </p>
-                        <p id="last_hour_fee" name="last_hour_fee">0元</p>
-                        <!--<p>未知</p>-->
-                    </div>
-                </li>
-            {% endif %}
-        </ul>
         <div class="alternative clearfix">
             <div class="alterLeft">
                 <ul class="clearfix">
@@ -119,6 +106,67 @@
                                     <!--<option value="{{ port.container_port }}">{{ port.container_port }}</option>-->
                                     <!--{% endif %}-->
                                 <!--{% endfor %}-->
+			{% if not community %}
+			<li class="fn-tips layer_pay" data-tips="应用状态未知">
+				<div>
+					<p style="text-align: left">上一小时费用</p>
+					<p class="pImg">
+						<img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
+					</p>
+					<p id="last_hour_fee" name="last_hour_fee">0元</p>
+					<!--<p>未知</p>-->
+				</div>
+			</li>
+			{% endif %}
+		</ul>
+		<div class="alternative clearfix">
+			<div class="alterLeft">
+				<ul class="clearfix">
+					<input type="hidden" id="port_length" value="{{http_outer_service_ports|length}}">
+					{% if hasHttpServices %}
+						<li class="button">
+							<div class="btn-group">
+								<!--<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">-->
+								<!--访问 <span class="caret"></span>-->
+								<!--</button>-->
+								<!--<ul class="dropdown-menu" role="menu">-->
+								<!--<li><a href="#">链接1</a></li>-->
+								<!--<li><a href="#">链接2</a></li>-->
+								<!--<li><a href="#">链接3</a></li>-->
+								<!--<li><a href="#">链接4</a></li>-->
+								<!--</ul>-->
+								{% if visit_port_type == "multi_outer" %}
+									{% if http_outer_service_ports|length == 1 %}
+										{% for port in http_outer_service_ports %}
+										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick='visit("{{ port.container_port }}")'>访问</button>
+										{% endfor %}
+									{% else %}
+										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown">访问<span class="caret"></span></button>
+										<ul class="dropdown-menu" role="menu">
+										{% for port in http_outer_service_ports %}
+											<li><a href="javascript:void(0)" onclick='visit("{{ port.container_port }}")'>{{ port.container_port }}端口</a></li>
+										{% endfor %}
+									{% endif %}
+								{% else %}
+								<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick="visit()">访问</button>
+								{% endif %}
+							</div>
+						</li>
+						<!--{% if visit_port_type == "multi_outer" %}-->
+							<!--{% if http_outer_service_ports|length == 1 %}-->
+								<!--<li class="button">-->
+								<!--<select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">-->
+							<!--{% else %}-->
+								<!--<select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">-->
+							<!--{% endif %}-->
+							<!--{% for port in http_outer_service_ports %}-->
+								<!--{% if port.container_port == serviceDomain.container_port %}-->
+								<!--<option value="{{ port.container_port }}"-->
+									<!--selected="selected">{{ port.container_port }}</option>-->
+								<!--{% else %}-->
+								<!--<option value="{{ port.container_port }}">{{ port.container_port }}</option>-->
+								<!--{% endif %}-->
+							<!--{% endfor %}-->
 
                             <!--</select>-->
                             <!--{%endif%}-->
@@ -164,6 +212,7 @@
 						<button type="button" class="bgColor" id="service_publish" onclick="window.open('/apps/{{tenantName}}/{{serviceAlias}}/publish');">发布</button>
 					</li>
 					-->
+
                         {% endif %}
                     {% endifequal %}
                     {% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' or tenantName == 'showmac' %}
@@ -176,6 +225,16 @@
                                     <!--<li><a href="#">节点1</a></li>-->
                                 </ul>
                             </div>
+					{% endif %}
+					{% endifequal %}
+					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' or tenantName == 'showmac' or tenantName == 'jamesocy' %}
+					<li class="button">
+						<div class="btn-group">
+							<button type="button" name="join_container" class="bgColor dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
+							<ul class="dropdown-menu" role="menu" style="left: -30px;" id="cur_container_content">
+								<!--<li><a href="#">节点1</a></li>-->
+							</ul>
+						</div>
 
                         </li>
                     {% endif %}
@@ -212,19 +271,18 @@
 
                     {% endifequal %}
 
-                </ul>
-            </div>
-        </div>
-    </div>
-    <section class="panel">
-        <div class="">
-            <div class="text-left  logtxtbox">
-                <input type="hidden" name="service_name" id="service_name"
-                       value="{{ tenantServiceInfo.service_alias }}"/>
-                <p id="keylog"></p>
-            </div>
-        </div>
-    </section>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<section class="panel">
+		<div class="">
+				<div class="text-left  logtxtbox">
+						<input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
+						<p id="keylog"></p>
+				</div>
+		</div>
+	</section>
 
 </div>
 <!-- deployed end-->
@@ -434,8 +492,14 @@
         setInterval("checkStatus()", 6000)
     });
 
-    function do_logshow(event_id) {
+	function liAutoAdapt(){
+		var li_length = $("#status_areas li").length;
+		if(li_length ==4){
+			$("#status_areas li").width("25%");
+		}
+	}
 
+function do_logshow(event_id) {
         $.ajax({
             type: "GET",
             url: "/ajax/{{tenantName}}/{{serviceAlias}}/event/" + event_id + "/log?level=debug",
@@ -744,4 +808,3 @@
         });
     })
 </script>
-

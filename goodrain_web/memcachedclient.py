@@ -7,6 +7,7 @@ logger = logging.getLogger('default')
 
 
 class MemcachedCli(object):
+
     def __init__(self):
         try:
             if os.environ.get('MEMCACHED_HOST') and os.environ.get('MEMCACHED_PORT'):
@@ -22,7 +23,7 @@ class MemcachedCli(object):
         except Exception:
             pass
         return None
-    
+
     def setKey(self, key, value):
         try:
             if self.mc:

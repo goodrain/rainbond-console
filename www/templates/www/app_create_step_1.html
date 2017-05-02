@@ -21,7 +21,7 @@
             <p><span>3</span><cite>应用设置</cite></p>
             <p><span>4</span><cite>高级选项</cite></p>
         </div>
-        <form id="commentForm" method="post" action="" novalidate="novalidate">
+        <form id="commentForm" method="post" action="" novalidate="novalidate">{% csrf_token %}
             <input type="hidden" id="currentTeantName" name="currentTeantName" value="{{tenantName}}" />
             <input type="hidden" id="service_code_from" name="service_code_from" value="{{cur_type}}">
             <input type="hidden" id="service_code_clone_url" name="service_code_clone_url" value="">
@@ -58,7 +58,7 @@
                 <div class="fm-input-text clearfix">
                     <label>代码源</label><input type="text" name="" value="" placeholder="请输入一个公开项目的 Git 地址。"  id="service_code_url" />
                 </div>
-                <p class="fm-tips" id="service_code_url_tips">代码仓库地址不能为空！</p>
+                <p class="fm-tips" id="service_code_url_tips">代码仓库地址不能为空！或者试一试我们提供的<a href="/apps/{{tenantName}}/app-create/?type=gitlab_demo">示例Demo</a>。</p>
                 <div class="fm-input-text clearfix">
                     <label>代码版本</label><input type="text" name="" value="master" placeholder="" class="fn-code-branch" />
                 </div>
@@ -69,7 +69,8 @@
                 {% if cur_type == "gitlab_self" %}
                 <span style="display: none"; data-action="gitlab_self" class="fn-way"></span>
                 <div class="fm-input-text clearfix">
-                    <label>自建Git</label><input type="text" name="" value="" placeholder="请输入自建 Git 的代码仓库地址。" id="my_git_url" class="fn-tips" data-tips="请将下方授权key添加到自建 Git 用户的 ssh 列表中，授权平台可以获取您的代码，如已添加，请略过。" />
+                    <label>私有Git</label><input type="text" name="" value="" placeholder="请输入自建 Git 的代码仓库地址。" id="my_git_url" class="fn-tips" data-tips="请将下方授权key添加到自建 Git 用户的 ssh 列表中，授权平台可以获取您的代码，如已添加，请略过。" />
+                    &nbsp;<a href="http://doc.goodrain.com/usage/303490" target="_blank">如何获得仓库地址?</a>
                 </div>
                 <p class="fm-tips" id="my_git_url_tips" class="fn-code-branch">代码仓库地址不能为空！</p>
                 <div class="fm-input-text clearfix">
@@ -317,7 +318,7 @@
             </div>
             <!-- 费用估算 end -->
 			<div class="fm-btn clearfix {% if is_public_clound %}fn-tips{% endif %}" style="margin-top: 30px;" data-tips="当前应用成功创建后，{% if is_tenant_free %}7天{% else %}1小时{% endif %}内可免费调试，开始计费后请保持账户有一定余额。">
-                    <button class="greenbtn btn" id="BtnFirst" >免费创建</button>
+                    <button class="greenbtn btn" id="BtnFirst" type="button">免费创建</button>
             </div>			
         </form>
 	</section>

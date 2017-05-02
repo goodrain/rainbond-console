@@ -224,8 +224,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
         return perm_users
 
     def get_manage_app(self, http_port_str):
+        logger.debug("get_manage_app ")
         service_manager = {"deployed": False}
-        if self.service.service_key == 'mysql':
+        if self.service.service_key == 'mysql' or self.service.service_type == "mysql":
             has_managers = TenantServiceInfo.objects.filter(
                 tenant_id=self.tenant.tenant_id, service_region=self.service.service_region, service_key='phpmyadmin')
             if has_managers:
@@ -380,7 +381,11 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 context["hasHttpServices"] = True
                 service_domain = True
 
+            is_public_cloud = sn.instance.cloud_assistant == "goodrain" and (not sn.instance.is_private())
             http_port_str = settings.WILD_PORTS[self.response_region]
+            if not is_public_cloud:
+                # 如果不为公有云
+                http_port_str = settings.WILD_PORTS["cloudbang"]
             context['http_port_str'] = ":" + http_port_str
 
             service_attach_info = None
@@ -515,9 +520,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 else:
                     #context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
                     if self.service.port_type=="multi_outer":
-                        tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
-                        for tsp in tsps:
-                            context['ws_topic'] = '{0}.{1}_{2}.statistic'.format(self.tenant.tenant_name, self.service.service_alias, str(tsp.container_port))
+                        context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
+                        # tsps = TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True)
+                        # for tsp in tsps:
+                        #     context['ws_topic'] = '{0}.{1}_{2}.statistic'.format(self.tenant.tenant_name, self.service.service_alias, str(tsp.container_port))
                     else:
                         context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
                 service_port_list = TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id,
@@ -774,11 +780,14 @@ class ServiceDockerContainer(AuthedView):
                 context["host_id"] = t_docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
                 pro = settings.DOCKER_WSS_URL.get("type", "ws")
+                context["host_name"] = settings.DOCKER_WSS_URL[self.service.service_region]
                 if pro == "ws":
-                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
+                    context["wss"] = pro + "://" + "{{DOCKER_WSS_URL}}" + "/ws?nodename=" + t_docker_h_id
                 else:
-                    context["wss"] = pro + "://" + settings.DOCKER_WSS_URL[self.service.service_region] + "/ws?nodename=" + t_docker_h_id
-
+                    context["wss"] = pro + "://" + "{{DOCKER_WSS_URL}}" + "/ws?nodename=" + t_docker_h_id
+                context["community"] = False
+                if sn.instance.is_private():
+                    context["community"] = True
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')

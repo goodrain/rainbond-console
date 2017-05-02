@@ -140,7 +140,8 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
             env_data = []
             tmp_id_list = env_ids.split(",")
             for tmp_id in tmp_id_list:
-                is_change = post_data.get(tmp_id, False)
+                is_change = post_data.get(tmp_id, "0")
+                is_change = (is_change == "1")
                 app_env = AppServiceShareInfo(tenant_id=self.service.tenant_id,
                                               service_id=self.service.service_id,
                                               tenant_env_id=int(tmp_id),
@@ -234,7 +235,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         # 获取form表单
         form_data = ShareServiceForm(request.POST, request.FILES)
         if not form_data.is_valid():
-            self.redirect_to('/apps/{0}/{1}/share/step3?state={2}'.format(self.tenantName, self.serviceAlias, 1))
+            return self.redirect_to('/apps/{0}/{1}/share/step3?state={2}'.format(self.tenantName, self.serviceAlias, 1))
         # 服务基础信息
         service_key = form_data.cleaned_data['service_key']
         app_version = form_data.cleaned_data['app_version']
@@ -462,16 +463,16 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
 class ShareServiceForm(forms.Form):
     """ 服务发布详情页form """
     app_alias = forms.CharField(help_text=u"应用名称")
-    info = forms.CharField(help_text=u"一句话介绍")
-    desc = forms.CharField(help_text=u"应用简介")
+    info = forms.CharField(required=False, help_text=u"一句话介绍")
+    desc = forms.CharField(required=False, help_text=u"应用简介")
     category_first = forms.CharField(required=False, help_text=u"分类1")
     category_second = forms.CharField(required=False, help_text=u"分类2")
     category_third = forms.CharField(required=False, help_text=u"分类3")
 
-    url_site = forms.CharField(help_text=u"网站url")
-    url_source = forms.CharField(help_text=u"源码url")
-    url_demo = forms.CharField(help_text=u"样例代码url")
-    url_feedback = forms.CharField(help_text=u"反馈url")
+    url_site = forms.CharField(required=False, help_text=u"网站url")
+    url_source = forms.CharField(required=False, help_text=u"源码url")
+    url_demo = forms.CharField(required=False, help_text=u"样例代码url")
+    url_feedback = forms.CharField(required=False, help_text=u"反馈url")
 
     service_key = forms.CharField(help_text=u"服务发布key")
     app_version = forms.CharField(help_text=u"版本")
@@ -607,7 +608,9 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             self.upload_slug(app)
         elif app.is_image():
             self.upload_image(app)
-        return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+        if not app.is_outer:
+            return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+        return self.redirect_to('/apps/{0}/{1}/share/step5'.format(self.tenantName, self.serviceAlias))
 
     def _create_publish_event(self, info):
         template = {
@@ -671,6 +674,22 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             logger.error("service.publish",
                          "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
             logger.exception("service.publish", e)
+
+
+class ShareServiceStep5View(LeftSideBarMixin, AuthedView):
+    """用户选择编辑或返回界面"""
+    def get_context(self):
+        context = super(ShareServiceStep5View, self).get_context()
+        return context
+
+    def get(self, request, *args, **kwargs):
+        # 跳转到服务关系发布页面
+        context = self.get_context()
+        context["myAppStatus"] = "active"
+        context["tenantName"] = self.tenant.tenant_name
+        context["serviceAlias"] = self.service.service_alias
+        context["tenantServiceInfo"] = self.service
+        return TemplateResponse(request, 'www/service/share_step_5.html', context)
 
 
 class ShareServicePackageView(BaseView):

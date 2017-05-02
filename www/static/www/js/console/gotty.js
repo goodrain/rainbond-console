@@ -4,9 +4,16 @@
     var c_id=document.getElementById("c_id").value;
     var md5=document.getElementById("md5").value;
     var h_id=document.getElementById("h_id").value;
-    var url = document.getElementById("wss").value;
+    var tmp_url = document.getElementById("wss").value;
+    var is_community = document.getElementById("is_community").value;
+    var host_name = document.getElementById("host_name").value;
     var autoReconnect = -1;
     var openWs = function() {
+        if(is_community == "True"){
+            host_name = window.location.hostname+":8188";
+        }
+        var url = tmp_url.replace("{{DOCKER_WSS_URL}}",host_name)
+        console.log(url)
         var ws = new WebSocket(url);
         var term;
         var pingTimer;

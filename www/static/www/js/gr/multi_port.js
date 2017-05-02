@@ -164,6 +164,7 @@
       $('.attr-cancel').click(attr_cancel);
 
       $('.attr-delete').click(attr_delete);
+      // $('.attr-delete').on("click",attr_delete);
 
       $('.attr-save').click(attr_save);
 
@@ -199,7 +200,23 @@
         url = '/ajax/' + tenantName + '/' + serviceAlias + '/custom-env';
         $.post(url, dict, function(res) {
           if (res.success) {
-            add_tr.find('.btn-toolbar').remove();
+            // add_tr.find('.btn-toolbar').remove();
+              var pk = res.pk;
+              var attr_name = res.attr_name;
+              var attr_value = res.attr_value;
+              var name = res.name;
+              var msg = '<tr>';
+              msg = msg + '<input type="hidden" name="attr_id" value='+pk+'>';
+              msg = msg + '<td class="attr_name_field">'+attr_name+'</td>';
+              msg = msg + '<td>'+attr_value+'</td>';
+              msg = msg + '<td>'+name+'</td>';
+              msg = msg + '<td><button type="button" class="attr-delete btn redbtn btn-xs" >删除</button></td>';
+              msg = msg+ '<tr>';
+              $("#envVartable tr:last").remove();
+              $("#envVartable tr:last").after(msg);
+              $('.attr-delete').unbind('click').bind('click', attr_delete);
+
+            // window.location.href = window.location.href;
           } else {
             showMessage(res.info);
           }
@@ -259,30 +276,38 @@
         var prefix = serviceAlias.toUpperCase();
         console.log(prefix);
         add_tr.find('input.tab-alias').val(prefix + add_tr.find('input.tab-port').val());
+          var flag = true;
         add_tr.find('input').each(function() {
           name = $(this).attr("name");
           value = $(this).val();
           dict[name] = value;
+            console.log(value);
           if(!isNaN(value)){
               if (code_from=="image_manual"){
                   if(value>=1 && value<=65535){
                       console.log(value);
                   }else{
                       showMessage("端口号必须在1~65535之间！");
-                      return flase;
+                      flag = false;
+                      return false;
                   }
               }else{
                   if(value>=1025 && value<=65535){
                       console.log(value);
                   }else{
                       showMessage("端口号必须在1025~65535之间！");
-                      return flase;
+                        flag = false;
+                      return false;
                   }
               }
 
           }
           //dict[name] = value;
         });
+
+          if(!flag){
+              return false;
+          }
 
         add_tr.find('select').each(function() {
           name = $(this).attr("name");
