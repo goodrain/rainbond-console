@@ -19,8 +19,11 @@
             <p class="sed"><span>3</span><cite>应用设置</cite></p>
         </div>
         <div class="tablink">
-            <a href="javascript:;" >2048</a>
+            {% for service in service_list %}
+            <a href="javascript:;" >{{service.service_name}}</a>
+            {% endfor %}
         </div>
+        {% for service in service_list %}
         <section class="app-box fn-app-box"  style="display: block;">
             <h4 class="column-tit">端口管理</h4>
             <table class="tab-box">
@@ -33,31 +36,51 @@
                 </tr>
                 </thead>
                 <tbody class="port">
+                {% with service_port_list=app_port_map|mkey:service.service_key %}
+                {% for service_port in service_port_list %}
                 <tr>
-                    <td>5000</td>
-                    <td>http</td>
+                    <td>{{service_port.container_port}}</td>
+                    <td>{{service_port.protocol}}</td>
                     <td>
                         <div class="checkbox">
-                            <input type="checkbox" name="" value="" id="{{port.container_port}}inner" checked="true" disabled="disabled"/>
-                            <label class="check-bg" for="{{port.container_port}}inner"></label>
+                            <input type="checkbox" name="" value="" id="{{service_port.container_port}}inner" checked="true" disabled="disabled"/>
+                            <label class="check-bg" for="{{service_port.container_port}}inner"></label>
                         </div>
                     </td>
                     <td>
                         <div class="checkbox">
-                            <input class="checkDetail" type="checkbox" name="" value="" id="{{port.container_port}}outer" disabled="disabled"/>
-                            <label class="check-bg" for="{{port.container_port}}outer"></label>
+                            <input class="checkDetail" type="checkbox" name="" value="" id="{{service_port.container_port}}outer" disabled="disabled"/>
+                            <label class="check-bg" for="{{service_port.container_port}}outer"></label>
                         </div>
                     </td>
                 </tr>
+                {% endfor %}
+                {% endwith %}
                 </tbody>
             </table>
             <div class="serviceBlock">
                 <h4 class="column-tit">服务依赖</h4>
-                <div class="contentBlock">
-                    依赖数据库服务：数据库
-                </div>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>应用名称</th>
+                        <th>应用类型</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% with dep_service_list=app_relation_map|mkey:service.service_key %}
+                    {% for dep_service in dep_service_list %}
+                    <tr>
+                        <td>{{dep_service.dep_app_alias}}</td>
+                        <td>{{dep_service.dep_app_version}}</td>
+                    </tr>
+                    {% endfor %}
+                    {% endwith %}
+                    </tbody>
+                </table>
             </div>
         </section>
+        {% endfor %}
         <p class="text-center">
             <button class="greenbtn" style="cursor: pointer;">下一步</button>
         </p>

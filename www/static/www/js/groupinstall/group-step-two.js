@@ -39,7 +39,7 @@ $(function(){
             "service_group_id":service_group_id,
             "services":services_str
         }
-        // data = JSON.stringify(data);
+        $("#group_install_two").attr('disabled');
         console.log(data);
         $.ajax({
            type : "post",
@@ -52,17 +52,32 @@ $(function(){
            },
            success : function(msg) {
                var dataObj = msg;
-               if (dataObj["success"]) {
+               if (dataObj["status"] == "notexist"){
+                   swal("所选的服务类型不存在");
+               } else if (dataObj["status"] == "owed"){
+                   swal("余额不足请及时充值")
+               } else if (dataObj["status"] == "expired"){
+                   swal("试用已到期")
+               } else if (dataObj["status"] == "over_memory") {
+                   if (dataObj["tenant_type"] == "free"){
+                       swal("资源已达上限,免费用户最多使用1G内存");
+                   }else
+                       swal("资源已达上限，不能创建");
+               } else if (dataObj["status"] == "over_money") {
+                   swal("余额不足，不能创建");
+               } else if (dataObj["status"] == "empty") {
+                   swal("服务名称不能为空");
+               } else if (dataObj["success"]) {
                    swal("创建成功");
-                   // window.location.href=dataObj["next_url"]
+                   window.location.href=dataObj["next_url"]
                } else {
-                   swal("创建失败");
-                   $("#group_install_one").removeAttr('disabled');
+                   swal("系统异常");
+                   $("#group_install_two").removeAttr('disabled');
                }
            },
            error : function() {
                swal("系统异常,请重试");
-               $("#group_install_one").removeAttr('disabled');
+               $("#group_install_two").removeAttr('disabled');
            }
         })
         

@@ -1056,3 +1056,14 @@ class ServiceConsume(BaseModel):
     time = models.DateTimeField(help_text=u"创建时间")
     real_memory_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"内存按需金额")
     real_disk_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"磁盘按需金额")
+
+
+class GroupCreateTemp(BaseModel):
+    class Meta:
+        db_table = 'group_create_temp'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
+    share_group_id = models.IntegerField(help_text=u"服务组发布id")
+    service_group_id = models.IntegerField(help_text=u"服务所属组")
+    service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
