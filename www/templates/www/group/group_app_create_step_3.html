@@ -14,7 +14,9 @@
 {% block main-content%}
 
 <section class="wrapper site-min-height">
-    <input type="hidden" value={{group_id}}>
+    <input type="hidden" id="service_group_id" value={{group_id}}>
+    <input type="hidden" id="shared_group_id" value={{shared_group_id}}>
+    <input type="hidden" id="tenantNameValue" value="{{tenantName}}">
     <section class="main-box">
         <h3 class="main-tit">创建组应用</h3>
         <div class="app-step clearfix three">
@@ -24,7 +26,7 @@
         </div>
         <div class="tablink">
             {% for service in service_list %}
-            <a href="javascript:;">{{service_cname_map|mkey:serivce.service_key}}</a>
+            <a href="javascript:;">{{service_cname_map|mkey:service.service_key}}</a>
             {% endfor %}
         </div>
         {% for service in service_list %}
@@ -43,7 +45,7 @@
                 {% with service_port_list=app_port_map|mkey:service.service_key %}
                 {% for service_port in service_port_list %}
                 <tr>
-                    <td>{{service_port.port_alias}}{{service_port.container_port}}</td>
+                    <td>{{service_port.container_port}}</td>
                     <td>{{service_port.protocol}}</td>
                     <td>
                         <div class="checkbox">
@@ -86,7 +88,7 @@
         </section>
         {% endfor %}
         <p class="text-center">
-            <button class="greenbtn" style="cursor: pointer;">下一步</button>
+            <button class="greenbtn" id="group_install_three" style="cursor: pointer;">下一步</button>
         </p>
     </section>
 </section>

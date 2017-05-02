@@ -252,14 +252,16 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
             need_create_service, is_pass, result = self.preprocess(services)
+            logger.debug("=======> need_create_service ",need_create_service)
             if not is_pass:
                 return JsonResponse(result, status=200)
             is_success = True
+
+            GroupCreateTemp.objects.filter(share_group_id=groupId).delete()
             for ncs in need_create_service:
                 service_id = make_uuid(tenant_id)
                 service_cname = ncs.service_cname
                 try:
-                    GroupCreateTemp.objects.filter(share_group_id=groupId).delete()
                     temp_data = {}
                     temp_data["tenant_id"] = tenant_id
                     temp_data["service_id"] = service_id
@@ -389,6 +391,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             if len(temp_list) == 0:
                 return self.redirect_to("/apps/{0}/group-deploy/{1}/step1/".format(self.tenantName, groupId))
             service_cname_map = {tmp.service_key:tmp.service_cname for tmp in temp_list}
+            logger.debug("====> service_cname_map",service_cname_map)
             context["service_cname_map"] = service_cname_map
 
             shared_group = AppServiceGroup.objects.get(ID=groupId)
@@ -419,6 +422,8 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             context["app_volumn_map"] = app_volumn_map
             context["service_list"] = app_service_list
             context["group_id"] = group_id
+            context["shared_group_id"] = groupId
+            context["tenantName"] = self.tenantName
 
         except Http404 as e_404:
             logger.exception(e_404)
@@ -434,15 +439,16 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
         context = self.get_context()
         data = {}
         try:
-            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id, self.user)
+            success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id,
+                                                          self.user)
             if not success:
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
 
-            service_group_id = request.POST.get["group_id",None]
+            service_group_id = request.POST.get("group_id", None)
             if not service_group_id:
                 data.update({"success": False, "status": "failure", "info": u"服务异常"})
-                return JsonResponse(data,status=500)
+                return JsonResponse(data, status=500)
 
             shared_group = AppServiceGroup.objects.get(ID=groupId)
             # 查询分享组中的服务ID
@@ -495,7 +501,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
             # 创建成功,删除临时数据
             GroupCreateTemp.objects.filter(share_group_id=groupId).delete()
-            next_url = ""
+            next_url = "/apps/{0}/myservice/?group_id={1}".format(self.tenantName, service_group_id)
             data.update({"success": True, "code": 200,"next_url": next_url})
 
         except Exception as e:
