@@ -326,11 +326,13 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
+            logger.debug("service_id_list ======>",service_id_list)
             app_service_list = AppService.objects.filter(service_id__in=service_id_list)
             app_port_map = {}
             app_relation_map = {}
             app_env_map = {}
             app_volumn_map = {}
+            logger.debug("app_service_list ======>", app_service_list)
             for app in app_service_list:
                 # 端口
                 port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.app_version)
@@ -342,13 +344,13 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 volumn_list = AppServiceVolume.objects.filter(service_key=app.service_key, app_version=app.app_version)
                 app_volumn_map[app.service_key] = list(volumn_list)
                 # 依赖关系
-                dep_list = AppServiceRelation.objects.filter(service_key=app.service_key, app_servion=app.app_version)
+                dep_list = AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version)
                 app_relation_map[app.service_key] = list(dep_list)
             context["app_port_map"] = app_port_map
             context["app_relation_map"] = app_relation_map
             context["app_env_map"] = app_env_map
             context["app_volumn_map"] = app_volumn_map
-            context["service_list"] = service_id_list
+            context["service_list"] = app_service_list
 
         except Http404 as e_404:
             logger.exception(e_404)

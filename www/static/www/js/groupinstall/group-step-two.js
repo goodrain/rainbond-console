@@ -68,7 +68,7 @@ $(function(){
                } else if (dataObj["status"] == "empty") {
                    swal("服务名称不能为空");
                } else if (dataObj["success"]) {
-                   swal("创建成功");
+                   // swal("创建成功");
                    window.location.href=dataObj["next_url"]
                } else {
                    swal("系统异常");

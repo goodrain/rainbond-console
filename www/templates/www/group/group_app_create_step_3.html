@@ -1,5 +1,8 @@
 {% extends 'www/raster.html' %}
 {% load i18n %}
+{% load crispy_forms_tags %}
+{% load goodrain_extras %}
+
 {% load staticfiles %}
 {% block extracss %}
 {{ block.super }}
@@ -20,11 +23,11 @@
         </div>
         <div class="tablink">
             {% for service in service_list %}
-            <a href="javascript:;" >{{service.service_name}}</a>
+            <a href="javascript:;" >{{service.app_alias}}</a>
             {% endfor %}
         </div>
         {% for service in service_list %}
-        <section class="app-box fn-app-box"  style="display: block;">
+        <section class="app-box fn-app-box"  style="display: block;" data-key="{{service.service_key}}" data-version="{{service.version}}" data-id="{{service.ID}}">
             <h4 class="column-tit">端口管理</h4>
             <table class="tab-box">
                 <thead>
@@ -60,7 +63,7 @@
             </table>
             <div class="serviceBlock">
                 <h4 class="column-tit">服务依赖</h4>
-                <table>
+                <table class="tab-box">
                     <thead>
                     <tr>
                         <th>应用名称</th>
