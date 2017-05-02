@@ -1072,4 +1072,4 @@ class ServiceEvent(BaseModel):
     status = models.CharField(max_length=20, help_text=u"操作处理状态")
     final_status = models.CharField(max_length=20, default="", help_text=u"操作状态，complete or timeout or null")
     message = models.CharField(max_length=200, help_text=u"操作说明")
-    deploy_version = models.CharField(max_length=20, null=True, blank=True, help_text=u"部署版本")
+    deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
