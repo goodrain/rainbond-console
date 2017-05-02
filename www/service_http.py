@@ -317,3 +317,9 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/event/" + event_id + "/log?level=" + level
         res, body = self._get(url, self.default_headers, region=region)
         return body
+    
+    def deleteEventLog(self, region, event_ids):
+        url = self.region_map[region]['url'] + "/v1/events/log"
+        res, body = self._delete(url, self.default_headers, body=event_ids,
+                                 region=region)
+        return body

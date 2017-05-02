@@ -152,11 +152,6 @@ class ServiceManage(AuthedView):
                 result["status"] = "expired"
                 return JsonResponse(result, status=200)
         
-        # oldVerion = self.service.deploy_version
-        # if oldVerion is not None and oldVerion != "":
-        #     if not baseService.is_user_click(self.service.service_region, self.service.service_id):
-        #         result["status"] = "often"
-        #         return JsonResponse(result, status=200)
         if 'event_id' not in request.POST:
             result["status"] = "failure"
             result["message"] = "event is not exist."
@@ -167,6 +162,7 @@ class ServiceManage(AuthedView):
             result["status"] = "failure"
             result["message"] = "event is not exist."
             return JsonResponse(result, status=412)
+        event.deploy_version = self.service.deploy_version
         if action == "stop":
             try:
                 body = {}
@@ -312,6 +308,16 @@ class ServiceManage(AuthedView):
                                                     tenant_id=self.tenant.tenant_id).delete()
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).delete()
                 ServiceCreateStep.objects.filter(service_id=self.service.service_id).delete()
+                
+                events = ServiceEvent.objects.filter(service_id=self.service.service_id)
+                deleteEventID = []
+                if events:
+                    for event in events:
+                        deleteEventID.append(event.event_id)
+                if len(deleteEventID) > 0:
+                    regionClient.deleteEventLog(self.service.service_region, json.dumps({"event_ids": deleteEventID}))
+                ServiceEvent.objects.filter(service_id=self.service.service_id).delete()
+                
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
@@ -367,12 +373,6 @@ class ServiceUpgrade(AuthedView):
         if tenantAccountService.isExpired(self.tenant, self.service):
             result["status"] = "expired"
             return JsonResponse(result, status=200)
-        
-        oldVerion = self.service.deploy_version
-        if oldVerion is not None and oldVerion != "":
-            if not baseService.is_user_click(self.service.service_region, self.service.service_id):
-                result["status"] = "often"
-                return JsonResponse(result, status=200)
         
         action = request.POST["action"]
         try:
