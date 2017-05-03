@@ -91,6 +91,21 @@
                                 {% endif %}
                             </div>
                         </li>
+                        <!--{% if visit_port_type == "multi_outer" %}-->
+                            <!--{% if http_outer_service_ports|length == 1 %}-->
+                                <!--<li class="button">-->
+                                <!--<select class="form-control-inline" id="multi_ports" data="ttt" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px; display: none ;">-->
+                                <!--{% else %}-->
+                                <!--<select class="form-control-inline" id="multi_ports" name="multi_port_bind"  style="width:100px; height: 30px; line-height: 30px; font-size: 20px;">-->
+                                <!--{% endif %}-->
+                            <!--{% for port in http_outer_service_ports %}-->
+                                <!--{% if port.container_port == serviceDomain.container_port %}-->
+                                    <!--<option value="{{ port.container_port }}"-->
+                                    <!--selected="selected">{{ port.container_port }}</option>-->
+                                    <!--{% else %}-->
+                                    <!--<option value="{{ port.container_port }}">{{ port.container_port }}</option>-->
+                                    <!--{% endif %}-->
+                                <!--{% endfor %}-->
 			{% if not community %}
 			<li class="fn-tips layer_pay" data-tips="应用状态未知">
 				<div>
@@ -103,7 +118,6 @@
 				</div>
 			</li>
 			{% endif %}
-                    {% endif %}
 		</ul>
 		<div class="alternative clearfix">
 			<div class="alterLeft">
@@ -212,6 +226,7 @@
                                 </ul>
                             </div>
 					{% endif %}
+					{% endifequal %}
 					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' or tenantName == 'showmac' or tenantName == 'jamesocy' %}
 					<li class="button">
 						<div class="btn-group">
