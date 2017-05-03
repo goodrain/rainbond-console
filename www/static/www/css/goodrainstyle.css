@@ -143,7 +143,9 @@ margin-right: -15px;}
 
 #keylog .timeline li .panel{
     margin:0px;
-    display:inline-block;}
+    display:inline-block;
+    width: 90%;
+}
 
 #keylog .timeline li .panel-body:after{
     clear:none;}
@@ -176,6 +178,8 @@ margin-right: -15px;}
 #keylog .bg-success{background-color: #28cb75;}
 #keylog .bg-danger{background-color: #da4f49;}
 #keylog .panel{border: 1px solid #ccc;}
+#keylog .panel p:nth-of-type(1){float: left;width: 70%;}
+#keylog .panel div:nth-of-type(1){float: left;width: 30%;}
 
 @media (max-width: 768px) {
 

@@ -214,7 +214,10 @@
                             <div class="panel panel-primary">
                                 <!--<div class="panel-heading">Events</div>-->
                                 <div class="panel-body">
-                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam laoreet tellus ut tincidunt euismod. Nam fermentum, massa sit amet pulvinar laoreet, sem mi viverra turpis, ac porta felis nisl eu odio.
+                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam laoreet tellus ut tincidunt euismod. Nam fermentum, massa sit amet pulvinar laoreet, sem mi viverra turpis, ac porta felis nisl eu odio.</p>
+                                    <div>
+                                        <p>grtest</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -439,7 +442,7 @@
 //                        tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
 //                        showlog = showlog + tmpLog
                         var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i>';
-                        str_log += '<div class="tl-content"><div class="panel panel-primary"><div class="panel-body">'+log["type"]+log["message"]+log["status"]+'</div></div></div></li>'
+                        str_log += '<div class="tl-content"><div class="panel panel-primary"><div class="panel-body">'+type_json[log["type"]]+status_json[log["status"]]+'</div></div></div></li>'
                         console.log(type_json[log["type"]]+';'+status_json[log["status"]]);
                         $(str_log).appendTo($("#keylog ul"));
                     }
