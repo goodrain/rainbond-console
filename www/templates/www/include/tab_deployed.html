@@ -49,7 +49,18 @@
                     <!--<p>未知</p>-->
                 </div>
             </li>
-
+            {% if not community %}
+            <li class="fn-tips layer_pay" data-tips="应用状态未知">
+                <div>
+                    <p style="text-align: left">上一小时费用</p>
+                    <p class="pImg">
+                        <img src="{% static "www/img/appOutline/appOutline5.png" %}"/>
+                    </p>
+                    <p id="last_hour_fee" name="last_hour_fee">0元</p>
+                    <!--<p>未知</p>-->
+                </div>
+            </li>
+            {% endif %}
         <div class="alternative clearfix">
 		<div class="alternative clearfix">
 			<div class="alterLeft">
