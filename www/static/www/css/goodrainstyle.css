@@ -123,3 +123,78 @@ margin-right: -15px;}
 @media (min-width:450px) {
     .form-public-app .login-wrap{width: 100%; float: none;}
  }
+
+
+#keylog .timeline{
+    position:relative;}
+
+#keylog .timeline:before{
+    content:"";
+    position:absolute;
+    height:100%;
+    width:3px;
+    left:210px;
+    background-color:#CCC;}
+
+#keylog .timeline li{
+    position:relative;
+    margin-top:30px;
+    margin-bottom:30px;}
+
+#keylog .timeline li .panel{
+    margin:0px;
+    display:inline-block;}
+
+#keylog .timeline li .panel-body:after{
+    clear:none;}
+
+#keylog .timeline .tl-time{
+    display:inline-block;
+    width:150px;
+    text-align:right;
+    float:left;}
+
+#keylog .timeline .tl-time h3{
+    margin-top:0px;}
+
+#keylog .timeline .tl-content{
+    margin-left:270px;}
+
+
+
+#keylog .timeline .tl-icon{
+    position:absolute;
+    font-size:28px;
+    padding:12px;
+    margin-left:33px;
+    border:3px solid #ccc;
+    border-radius:50px;
+    color:#fff;
+    box-shadow:inset 0px 0px 0px 2px #fff;}
+
+
+
+@media (max-width: 768px) {
+
+    #keylog .timeline:before{
+        left:27px;
+    }
+
+    #keylog .timeline .tl-icon{
+        left:0px;
+        top:0px;
+        margin:0px;}
+
+    #keylog .timeline .tl-content{
+        margin-left:70px;}
+
+    #keylog .timeline .tl-time{
+        display:block;
+        float:none;
+        width:auto;}
+
+    #keylog .timeline li .panel{
+        display:block;}
+
+
+}
