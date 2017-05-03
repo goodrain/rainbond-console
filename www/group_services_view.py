@@ -332,12 +332,13 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
         result = []
         key_app_map = {}
         for app in publish_service_list:
-            dep_services = AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.app_version)
+            dep_services = AppServiceRelation.objects.filter(service_key=app.service_key, app_version=app.version)
             if dep_services:
                 key_app_map[app.service_key] = [ds.dep_service_key for ds in dep_services]
             else:
                 key_app_map[app.service_key] = []
-        service_keys = self.topological_sort(service_map)
+        logger.debug("=====> service_map ",service_map)
+        service_keys = self.topological_sort(key_app_map)
 
         for key in service_keys:
             result.append(service_map.get(key))
@@ -438,6 +439,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
         tenant_id = self.tenant.tenant_id
         context = self.get_context()
         data = {}
+        current_service_ids=[]
         try:
             success = tenantRegionService.init_for_region(self.response_region, self.tenantName, self.tenant.tenant_id,
                                                           self.user)
@@ -470,6 +472,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             for service_info in sorted_service:
                 gct = GroupCreateTemp.objects.get(service_key=service_info.service_key)
                 service_id = gct.service_id
+                current_service_ids.append(service_id)
                 service_alias = "gr" + service_id[-6:]
                 # console层创建服务和组关系
                 newTenantService = baseService.create_service(service_id, self.tenant.tenant_id, service_alias,
@@ -497,16 +500,18 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 for tsr in tsrs:
                     dep_sids.append(tsr.dep_service_id)
 
-                baseService.create_region_service(self.service, self.tenantName, self.response_region, self.user.nick_name, dep_sids=json.dumps(dep_sids))
-                monitorhook.serviceMonitor(self.user.nick_name, self.service, 'init_region_service', True)
+                baseService.create_region_service(newTenantService, self.tenantName, self.response_region, self.user.nick_name, dep_sids=json.dumps(dep_sids))
+                monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
             # 创建成功,删除临时数据
             GroupCreateTemp.objects.filter(share_group_id=groupId).delete()
-            next_url = "/apps/{0}/myservice/?group_id={1}".format(self.tenantName, service_group_id)
+            next_url = "/apps/{0}/myservice/?gid={1}".format(self.tenantName, service_group_id)
             data.update({"success": True, "code": 200,"next_url": next_url})
 
         except Exception as e:
             logger.exception(e)
+            TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_id__in=current_service_ids).delete()
             data.update({"success": False, "code": 500})
+
         return JsonResponse(data, status=200)
 
     def copy_ports(self, source_service, current_service):
