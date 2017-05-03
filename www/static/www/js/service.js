@@ -136,7 +136,7 @@ function connectSocket(event_id) {
         tmpLog = "<div>" + tmpLog + "</div>"
         //$("#keylog").children("div:first-child").before(tmpLog)
 
-        $(tmpLog).prependTo($("#keylog .panel-body").eq(0).find('p'));
+        $(tmpLog).prependTo($("#keylog .log").eq(0).find('p'));
     }
     ws.onclose = function (evt) {
         console.log("连接关闭");
