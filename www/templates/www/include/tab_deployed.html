@@ -204,21 +204,21 @@
             <input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
             <div id="keylog">
                 <ul class="timeline list-unstyled">
-                    <!--<li>-->
-                        <!--<time class="tl-time">-->
-                            <!--<h4>23:15</h4>-->
-                            <!--<p>05th September 2013</p>-->
-                        <!--</time>-->
-                        <!--<i class="fa bg-success tl-icon"></i>-->
-                        <!--<div class="tl-content">-->
-                            <!--<div class="panel panel-primary">-->
-                                <!--&lt;!&ndash;<div class="panel-heading">Events</div>&ndash;&gt;-->
-                                <!--<div class="panel-body">-->
-                                    <!--Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam laoreet tellus ut tincidunt euismod. Nam fermentum, massa sit amet pulvinar laoreet, sem mi viverra turpis, ac porta felis nisl eu odio.-->
-                                <!--</div>-->
-                            <!--</div>-->
-                        <!--</div>-->
-                    <!--</li>-->
+                    <li>
+                        <time class="tl-time">
+                            <h4>23:15</h4>
+                            <p>05th September 2013</p>
+                        </time>
+                        <i class="fa bg-success tl-icon"></i>
+                        <div class="tl-content">
+                            <div class="panel panel-primary">
+                                <!--<div class="panel-heading">Events</div>-->
+                                <div class="panel-body">
+                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam laoreet tellus ut tincidunt euismod. Nam fermentum, massa sit amet pulvinar laoreet, sem mi viverra turpis, ac porta felis nisl eu odio.
+                                </div>
+                            </div>
+                        </div>
+                    </li>
                     <!--<li>-->
                         <!--<time class="tl-time">-->
                             <!--<h4>23:15</h4>-->
@@ -414,19 +414,34 @@
                 var showlog = ""
                 var logList = dataObj["log"]
                 if (typeof(logList) != "undefined") {
+                    var type_json = {
+                        "deploy" : "部署",
+                        "restart" : "重启",
+                        "delete" : "停止创建",
+                        "HorizontalUpgrade" : "水平升级",
+                        "VerticalUpgrade" : "垂直升级"
+                    }
+                    var status_json = {
+                        "success" : "成功",
+                        "failuer" : "失败",
+                        "timeout" : "超时"
+                    }
                     for (var i = 0; i < logList.length; i++) {
                         var log = logList[i]
                         if (i == 0 && (log["final_status"] == "")) {
                             connectSocket(log["event_id"])
                         }
+                        var arr = log["start_time"].split("T");
+                        var date = arr[0];
+                        var time = arr[1];
 //                        var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
 //                        tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='line-height: 21px;' onclick=\"do_logshow('" + log["event_id"] + "')\">显示日志</p>"
 //                        tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
 //                        showlog = showlog + tmpLog
-                        var str_log = '<li><time class="tl-time"><h4>'+log["user_name"]+'</h4><p>'+log["start_time"]+'</p></time><i class="fa bg-success tl-icon"></i>';
-                        str_log += '<div class="tl-content"><div class="panel panel-primary"><div class="panel-body">'+log["message"]+log["status"]+'</div></div></div></li>'
-                        console.log(log["type"]+';'+log["message"]+';'+log["status"]);
-                        $(str_log).prependTo($("#keylog ul"));
+                        var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i>';
+                        str_log += '<div class="tl-content"><div class="panel panel-primary"><div class="panel-body">'+log["type"]+log["message"]+log["status"]+'</div></div></div></li>'
+                        console.log(type_json[log["type"]]+';'+status_json[log["status"]]);
+                        $(str_log).appendTo($("#keylog ul"));
                     }
 //                    $("#keylog").html(showlog)
 
