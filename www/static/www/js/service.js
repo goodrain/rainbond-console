@@ -129,11 +129,11 @@ function connectSocket(event_id) {
     ws = new WebSocket("ws://test.goodrain.com:6364/event_log");
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
+
     }
     ws.onmessage = function (evt) {
         var m = jQuery.parseJSON(evt.data)
-        tmpLog = "<label style='line-height: 21px;'>" + m.time + m.message + "</label>"
-        tmpLog = "<div>" + tmpLog + "</div>"
+        tmpLog = "<p>" + m.time + m.message + "</p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
 
         $(tmpLog).prependTo($("#keylog .log").eq(0));
