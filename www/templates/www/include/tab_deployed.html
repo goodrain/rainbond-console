@@ -425,6 +425,7 @@
 //                        showlog = showlog + tmpLog
                         var str_log = '<li><time class="tl-time"><h4>'+log["user_name"]+'</h4><p>'+log["start_time"]+'</p></time><i class="fa bg-success tl-icon"></i>';
                         str_log += '<div class="tl-content"><div class="panel panel-primary"><div class="panel-body">'+log["message"]+log["status"]+'</div></div></div></li>'
+                        console.log(log["type"]+';'+log["message"]+';'+log["status"]);
                         $(str_log).prependTo($("#keylog ul"));
                     }
 //                    $("#keylog").html(showlog)
