@@ -85,13 +85,30 @@ function createEvents(name, service, action) {
                 swal("上次操作进行中，请稍后！");
                 return ""
             } else if (data["status"] == "success") {
+                console.log(data);
+
                 event = data["event"]
                 currentEventID = event["event_id"]
-                var tmpLog = event["event_start_time"] + " @" + event["user_name"] + event["event_type"]
-                tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + event["event_id"] + "' style='display: none;line-height: 21px;'></p>"
-                tmpLog = "<div id='event_" + event["event_id"] + "'>" + tmpLog + "</div>"
-                $("#keylog").children("div:first-child").before(tmpLog)
+                //var tmpLog = event["event_start_time"] + " @" + event["user_name"] + event["event_type"]
+                //tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + event["event_id"] + "' style='display: none;line-height: 21px;'></p>"
+                //tmpLog = "<div id='event_" + event["event_id"] + "'>" + tmpLog + "</div>"
+                //$("#keylog").children("div:first-child").before(tmpLog)
                 ok = true
+
+                var arr = event["event_start_time"].split("T");
+                var date = arr[0];
+                var time = arr[1];
+                var type_json = {
+                    "deploy" : "部署",
+                    "restart" : "重启",
+                    "delete" : "停止创建",
+                    "HorizontalUpgrade" : "水平升级",
+                    "VerticalUpgrade" : "垂直升级"
+                }
+
+                var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i>';
+                str_log += '<div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log"><p>'+type_json[event["event_type"]]+'中</p></div><div class="user"><p>@'+event["user_name"]+'</p></div></div></div></div></li>'
+                $(str_log).appendTo($("#keylog ul"));
             } else {
                 swal("系统异常！");
             }
@@ -115,9 +132,11 @@ function connectSocket(event_id) {
     }
     ws.onmessage = function (evt) {
         var m = jQuery.parseJSON(evt.data)
-        tmpLog = "<label style='line-height: 21px;'>" + m.time + m.message + "</label>"
-        tmpLog = "<div>" + tmpLog + "</div>"
-        $("#keylog").children("div:first-child").before(tmpLog)
+        tmpLog = "<p>" + m.message + tmpLog + "</p>"
+        //tmpLog = "<div>" + tmpLog + "</div>"
+        //$("#keylog").children("div:first-child").before(tmpLog)
+
+        $(tmpLog).prependTo($("#keylog .panel-body").eq(0).find('p'));
     }
     ws.onclose = function (evt) {
         console.log("连接关闭");
