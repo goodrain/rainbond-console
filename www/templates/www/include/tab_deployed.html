@@ -512,8 +512,9 @@ function do_logshow(event_id) {
             },
             success: function (msg) {
                 var dataObj = msg;
-                var newLog = dataObj["data"]
-                for (i = 0; i < newLog.length/100; i++) {
+                var newLog = dataObj["data"];
+                var time = newLog[i]["time"].split('.')[0];
+                for (i = 0; i < newLog.length; i++) {
                     log = "<p>"+newLog[i]["time"] + ":" + newLog[i]["message"]+"</p>";
                     $(".log_" + event_id + "").prepend(log);
                 }
