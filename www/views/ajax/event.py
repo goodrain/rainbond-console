@@ -54,7 +54,11 @@ class EventManager(AuthedView):
         
         result = {}
         try:
-            events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
+            page_size = request.GET.get("page_size", 6)
+            page = request.GET.get("page", 1)
+            start = (page - 1) * page_size
+            end = start + page_size
+            events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")[start:end]
             reEvents = []
             old_deploy_version = ""
             for event in list(events):
