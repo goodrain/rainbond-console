@@ -437,16 +437,17 @@
                         var time = arr[1];
                         var status;
                         var color;
-                        console.log(log["final_status"]+"zzz");
                         if( log["final_status"] == "complate" )
                         {
                             status = status_json[log["status"]];
                             color = bg_color[log["status"]];
-                            console.log(color);
+                        }
+                        else if( log["final_status"] == "timeout" ){
+                            status = final_status_json[log["final_status"]];
+                            color = 'bg-danger';
                         }
                         else{
                             status = final_status_json[log["final_status"]];
-                            color = '';
                         }
 //                        var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
 //                        tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='line-height: 21px;' onclick=\"do_logshow('" + log["event_id"] + "')\">显示日志</p>"
@@ -454,7 +455,6 @@
 //                        showlog = showlog + tmpLog
                         var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading">'+type_json[log["type"]]+status+'</div><div class="panel-body">';
                         str_log += '<div class="log log_'+log["event_id"]+'"></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'">查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
-                        console.log(log["status"]);
                         $(str_log).appendTo($("#keylog ul"));
                         ajax_getLog();
                     }
