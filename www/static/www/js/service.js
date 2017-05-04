@@ -135,7 +135,8 @@ function connectSocket(event_id) {
     }
     ws.onmessage = function (evt) {
         var m = jQuery.parseJSON(evt.data)
-        tmpLog = "<p>" + m.time + m.message + "</p>";
+        var arr = m.time.split('.');
+        tmpLog = "<p>" + arr[0] + m.message + "</p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
 
         $(tmpLog).prependTo($("#keylog .log").eq(0));
