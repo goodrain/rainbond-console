@@ -106,7 +106,7 @@ function createEvents(name, service, action) {
                     "VerticalUpgrade" : "垂直升级"
                 }
 
-                var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading">'+type_json[event["event_type"]]+'中</div><div class="panel-body"><div class="log">';
+                var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading">'+type_json[event["event_type"]]+'中</div><div class="panel-body"><div class="log">';
                 str_log += '</div><div class="user"><p>@'+event["user_name"]+'</p><p class="hide_log" style="display: block;">展开</p></div></div></div></div></li>'
                 $(str_log).prependTo($("#keylog ul"));
                 ajax_getLog();
