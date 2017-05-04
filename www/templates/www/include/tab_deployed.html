@@ -495,31 +495,29 @@
                     $("#status_areas li").width("25%");
             }
     }
-    function callback_version(){
-        var tenantName = $("#tenantName").val();
-//        $(".callback_version").off('click');
-        $(".callback_version").click(function(){
-            console.log(11);
-            swal({
-                title: "确定恢复当前版本吗？",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#DD6B55",
-                confirmButtonText: "确定",
-                cancelButtonText: "取消",
-                closeOnConfirm: false,
-                closeOnCancel: false
-            }, function (isConfirm) {
-                if (isConfirm) {
-                    var event_id = createEvents(tenantName, "{{tenantServiceInfo.service_alias}}", "callback");
-                    do_rollback(event_id,$(this).attr("data-version"));
-                } else {
-                    swal.close();
-                }
-            });
-
-        });
-    }
+//    function callback_version(){
+//        var tenantName = $("#tenantName").val();
+//        $(".callback_version").click(function(){
+//            swal({
+//                title: "确定恢复当前版本吗？",
+//                type: "warning",
+//                showCancelButton: true,
+//                confirmButtonColor: "#DD6B55",
+//                confirmButtonText: "确定",
+//                cancelButtonText: "取消",
+//                closeOnConfirm: false,
+//                closeOnCancel: false
+//            }, function (isConfirm) {
+//                if (isConfirm) {
+//                    var event_id = createEvents(tenantName, "{{tenantServiceInfo.service_alias}}", "callback");
+//                    do_rollback(event_id,$(this).attr("data-version"));
+//                } else {
+//                    swal.close();
+//                }
+//            });
+//
+//        });
+//    }
     function ajax_getLog(){
         $(".ajax_log").off('click');
         $(".ajax_log").click(function(){
