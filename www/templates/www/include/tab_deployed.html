@@ -431,7 +431,7 @@
 //                        showlog = showlog + tmpLog
                         var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-body">';
                         str_log += '<div class="log log_'+log["event_id"]+'"><p>'+type_json[log["type"]]+status_json[log["status"]]+'</p></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'">查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
-                        console.log(type_json[log["type"]]+';'+status_json[log["status"]]);
+                        console.log(log["status"]);
                         $(str_log).appendTo($("#keylog ul"));
                         ajax_getLog();
                     }
