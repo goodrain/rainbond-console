@@ -114,11 +114,12 @@ function createEvents(name, service, action) {
                 {
                     str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log" style="padding-top: 20px;"><p>当前版本('+event["old_deploy_version"]+')</p></div>';
                     str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+event["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
-                    callback_version();
+
                 }
 
                 $(str_log).prependTo($("#keylog ul"));
                 ajax_getLog();
+                callback_version();
             } else {
                 swal("系统异常！");
             }
