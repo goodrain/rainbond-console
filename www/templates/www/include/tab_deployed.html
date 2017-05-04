@@ -417,6 +417,11 @@
                         "failuer" : "失败",
                         "timeout" : "超时"
                     }
+                    var final_status_json = {
+                        "complate" : "完成",
+                        "timeout" : "超时",
+                        "null" : "进行中"
+                    }
                     for (var i = 0; i < logList.length; i++) {
                         var log = logList[i]
                         if (i == 0 && (log["final_status"] == "")) {
@@ -425,12 +430,20 @@
                         var arr = log["start_time"].split("T");
                         var date = arr[0];
                         var time = arr[1];
+                        var status;
+                        if( log["final_status"] == "complate" )
+                        {
+                            status = status_json[log["status"]];
+                        }
+                        else{
+                            status = final_status_json[log["final_status"]];
+                        }
 //                        var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
 //                        tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='line-height: 21px;' onclick=\"do_logshow('" + log["event_id"] + "')\">显示日志</p>"
 //                        tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
 //                        showlog = showlog + tmpLog
                         var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-body">';
-                        str_log += '<div class="log log_'+log["event_id"]+'"><p>'+type_json[log["type"]]+status_json[log["status"]]+'</p></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'">查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
+                        str_log += '<div class="log log_'+log["event_id"]+'"><p>'+type_json[log["type"]]+status+'</p></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'">查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
                         console.log(log["status"]);
                         $(str_log).appendTo($("#keylog ul"));
                         ajax_getLog();
