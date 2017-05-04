@@ -143,7 +143,8 @@ function connectSocket(event_id,action) {
         "restart" : "重启",
         "delete" : "停止创建",
         "HorizontalUpgrade" : "水平升级",
-        "VerticalUpgrade" : "垂直升级"
+        "VerticalUpgrade" : "垂直升级",
+        "callback" : "回滚"
     }
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
