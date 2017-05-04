@@ -379,7 +379,7 @@ class PublishServiceView(APIView):
                 logger.debug('send service logo:{}'.format(image_url))
                 apputil.send_image('app_logo', image_url)
             # 发送请求到所有的数据中心进行数据同步
-            self.downloadImage(serviceInfo)
+            # self.downloadImage(serviceInfo)
 
             # 判断是否服务组发布,发布是否成功
             share_id = request.data.get('share_id', None)
