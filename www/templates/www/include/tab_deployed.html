@@ -476,7 +476,7 @@ function do_logshow(event_id) {
             success: function (msg) {
                 var dataObj = msg;
                 var newLog = dataObj["data"]
-                for (i = 0; i < newLog.length; i++) {
+                for (i = 0; i < newLog.length/10; i++) {
                     log = "<p>"+newLog[i]["time"] + ":" + newLog[i]["message"]+"</p>";
                     $(".log_" + event_id + "").append(log);
                     $(".log_" + event_id + "").addClass('log_height');
