@@ -177,7 +177,7 @@ margin-right: -15px;}
     box-shadow:inset 0px 0px 0px 2px #fff;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;}
 #keylog .timeline li:first-child .log{height: 50px;overflow: hidden;}
-#keylog .panel-body div.log_height{height: 300px;overflow-y: scroll;!important;}
+#keylog .panel-body div.log_height{height: 300px !important;overflow-y: scroll !important;}
 #keylog .panel-body:before{width: 0px;
     height: 0px;
     color: white;
@@ -195,7 +195,7 @@ margin-right: -15px;}
 #keylog .panel div.log{float: left;width: 80%;}
 #keylog .panel div.log p{line-height: 25px;}
 #keylog .panel div.user{float: left;width: 20%;text-align: right;}
-
+#keylog .user p:nth-child(2){cursor: pointer;}
 @media (max-width: 768px) {
 
     #keylog .timeline:before{
