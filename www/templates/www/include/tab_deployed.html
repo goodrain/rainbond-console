@@ -510,6 +510,7 @@
                 closeOnCancel: false
             }, function (isConfirm) {
                 if (isConfirm) {
+                    console.log(serviceAlias);
                     var event_id = createEvents(tenantName, serviceAlias, "callback");
                     do_rollback(event_id,$(this).attr("data-version"));
                 } else {

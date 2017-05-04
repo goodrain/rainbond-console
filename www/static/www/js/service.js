@@ -163,8 +163,10 @@ function connectSocket(event_id,action) {
             if( m.status == "success" )
             {
                 var str = type_json[action]+"成功";
+                $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-success");
             }
             else{
+                $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-danger");
                 var str = type_json[action]+"失败";
             }
             $("#keylog .panel").eq(0).find(".panel-heading").html(str);
