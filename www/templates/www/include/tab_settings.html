@@ -243,7 +243,7 @@
                                     {% for domain_name in serviceDomainDict|mkey:port.container_port %}
                                         <p>
                                             <span>{{ domain_name }}</span>
-                                            <button type="button" class="port-cancel btn redbtn btn-xs"
+                                            <button type="button" style="display: inline-block; background: #fff; border: 0 none; color: red;"
                                                     onclick="domainSubmit('close','{{ tenantServiceInfo.service_id }}','{{ tenantName }}','{{ tenantServiceInfo.service_alias }}','{{ port.container_port }}','{{ domain_name }}')">
                                                 解绑
                                             </button>
