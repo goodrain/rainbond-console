@@ -430,7 +430,7 @@
 //                        tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
 //                        showlog = showlog + tmpLog
                         var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-body">';
-                        str_log += '<div class="log log_'+log["event_id"]+'"><p>'+type_json[log["type"]]+status_json[log["status"]]+'</p></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'")>查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
+                        str_log += '<div class="log log_'+log["event_id"]+'"><p>'+type_json[log["type"]]+status_json[log["status"]]+'</p></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'">查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
                         console.log(type_json[log["type"]]+';'+status_json[log["status"]]);
                         $(str_log).appendTo($("#keylog ul"));
                         ajax_getLog();
@@ -470,6 +470,7 @@ function ajax_getLog(){
         do_logshow(event_id);
         $(this).hide();
         $(this).parent().find('.hide_log').show();
+        $(".log_" + event_id + "").addClass('log_height');
     });
     $(".hide_log").click(function(){
         var onOff = $(this).parents('.panel-body').find('.log').hasClass('log_height');
@@ -500,7 +501,6 @@ function do_logshow(event_id) {
                 for (i = 0; i < newLog.length/100; i++) {
                     log = "<p>"+newLog[i]["time"] + ":" + newLog[i]["message"]+"</p>";
                     $(".log_" + event_id + "").prepend(log);
-                    $(".log_" + event_id + "").addClass('log_height');
                 }
                 var address = location.href.split("?");
                 var more = '<a href="' + address[0] + '?fr=log' + '" style="text-decoration: underline">更多日志</a>';
