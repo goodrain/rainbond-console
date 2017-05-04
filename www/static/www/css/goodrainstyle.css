@@ -176,7 +176,7 @@ margin-right: -15px;}
     color:#fff;
     box-shadow:inset 0px 0px 0px 2px #fff;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;}
-#keylog .panel-body:first-child .log{height: 50px;}
+#keylog .timeline li:first-child .log{height: 50px;}
 #keylog .panel-body div.log_height{height: 300px;overflow-y: scroll;}
 #keylog .panel-body:before{width: 0px;
     height: 0px;
