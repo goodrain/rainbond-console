@@ -412,17 +412,16 @@
                     }
                     var status_json = {
                         "success" : "成功",
-                        "failuer" : "失败",
+                        "failure" : "失败",
                         "timeout" : "超时"
                     }
                     var final_status_json = {
                         "complate" : "完成",
-                        "timeout" : "超时",
-                        "null" : "进行中"
+                        "timeout" : "超时"
                     }
                     var bg_color = {
                         "success" : "bg-success",
-                        "failuer" : "bg-danger",
+                        "failure" : "bg-danger",
                         "timeout" : "bg-danger"
                     }
                     for (var i = 0; i < logList.length; i++) {
@@ -445,7 +444,7 @@
                             color = 'bg-danger';
                         }
                         else{
-                            status = final_status_json[log["final_status"]];
+                            status = "进行中";
                             color = 'bg-grey';
                         }
 //                        var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
