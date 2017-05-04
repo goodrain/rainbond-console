@@ -7,6 +7,8 @@
     <input type="hidden" value="{{ tenantServiceInfo.service_id }}" id="service_id">
     <input type="hidden" value="{{ tenantServiceInfo.tenant_id }}" id="tenant_id">
 
+    <input type="hidden" value="{{tenantServiceInfo.service_alias}}" id="tenantServiceInfo.service_alias">
+
     <div class="appOutline">
         <ul class="outlineTop clearfix" id="status_areas">
             <li>
@@ -454,6 +456,12 @@
 //                        showlog = showlog + tmpLog
                         var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading">'+type_json[log["type"]]+status+'</div><div class="panel-body">';
                         str_log += '<div class="log log_'+log["event_id"]+'"></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'">查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
+                        if( log["type"] == "deploy" )
+                        {
+                            str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log"><p>当前版本('+log["old_deploy_version"]+')</p>';
+                            str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></div></li>'
+                            callback_version();
+                        }
                         $(str_log).appendTo($("#keylog ul"));
                         ajax_getLog();
                     }
@@ -486,30 +494,55 @@
 			$("#status_areas li").width("25%");
 		}
 	}
-function ajax_getLog(){
-    $(".ajax_log").off('click');
-    $(".ajax_log").click(function(){
-        var event_id = $(this).attr("data-log");
-        do_logshow(event_id);
-        $(this).hide();
-        $(this).parent().find('.hide_log').show();
-        $(".log_" + event_id + "").addClass('log_height');
-    });
-    $(".hide_log").off('click');
-    $(".hide_log").click(function(){
-        var onOff = $(this).parents('.panel-body').find('.log').hasClass('log_height');
-        if(onOff)
-        {
-            $(this).parents('.panel-body').find('.log').removeClass('log_height');
-            $(this).html("展开");
-        }
-        else{
-            $(this).parents('.panel-body').find('.log').addClass('log_height');
-            $(this).html("收起");
-        }
-    });
-}
-function do_logshow(event_id) {
+    function callback_version(){
+        var tenantName = $("#tenantName").val();
+        var serviceAlias = $("#tenantServiceInfo.service_alias").val();
+        $(".callback_version").off('click');
+        $(".callback_version").click(function(){
+            swal({
+                title: "确定恢复当前版本吗？",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#DD6B55",
+                confirmButtonText: "确定",
+                cancelButtonText: "取消",
+                closeOnConfirm: false,
+                closeOnCancel: false
+            }, function (isConfirm) {
+                if (isConfirm) {
+                    var event_id = createEvents(tenantName, serviceAlias, "callback");
+                    do_rollback(event_id,$(this).attr("data-version"));
+                } else {
+                    swal.close();
+                }
+            });
+
+        });
+    }
+    function ajax_getLog(){
+        $(".ajax_log").off('click');
+        $(".ajax_log").click(function(){
+            var event_id = $(this).attr("data-log");
+            do_logshow(event_id);
+            $(this).hide();
+            $(this).parent().find('.hide_log').show();
+            $(".log_" + event_id + "").addClass('log_height');
+        });
+        $(".hide_log").off('click');
+        $(".hide_log").click(function(){
+            var onOff = $(this).parents('.panel-body').find('.log').hasClass('log_height');
+            if(onOff)
+            {
+                $(this).parents('.panel-body').find('.log').removeClass('log_height');
+                $(this).html("展开");
+            }
+            else{
+                $(this).parents('.panel-body').find('.log').addClass('log_height');
+                $(this).html("收起");
+            }
+        });
+    }
+    function do_logshow(event_id) {
         $.ajax({
             type: "GET",
             url: "/ajax/{{tenantName}}/{{serviceAlias}}/event/" + event_id + "/log?level=debug",
@@ -540,53 +573,86 @@ function do_logshow(event_id) {
     }
 
     function do_rollback(event_id, deploy_version) {
-        swal({
-            title: "确定恢复当前版本吗？",
-            type: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#DD6B55",
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
-            closeOnConfirm: false,
-            closeOnCancel: false
-        }, function (isConfirm) {
-            if (isConfirm) {
-                $.ajax({
-                    type: "POST",
-                    url: "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/manage",
-                    data: "event_id=" + event_id + "&action=rollback&deploy_version=" + deploy_version,
-                    cache: false,
-                    beforeSend: function (xhr, settings) {
-                        var csrftoken = $.cookie('csrftoken');
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                    },
-                    success: function (msg) {
-                        var dataObj = msg
-                        if (dataObj["status"] == "success") {
-                            swal("操作成功")
-                        } else if (dataObj["status"] == "often") {
-                            swal("操作正在进行中，请稍后")
-                        } else if (dataObj["status"] == "owed") {
-                            swal("余额不足请及时充值")
-                        } else if (dataObj["status"] == "expired") {
-                            swal("试用已到期")
-                        } else if (dataObj["status"] == "over_memory") {
-                            swal("资源已达上限，不能升级")
-                        } else if (dataObj["status"] == "over_money") {
-                            swal("余额不足，不能升级")
-                        } else {
-                            swal("操作失败")
-                        }
-                    },
-                    error: function () {
-                        swal("系统异常");
-                        $("#operate_" + service_id).removeAttr("disabled")
-                    }
-                });
-            } else {
-                swal.close();
+        $.ajax({
+            type: "POST",
+            url: "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/manage",
+            data: "event_id=" + event_id + "&action=rollback&deploy_version=" + deploy_version,
+            cache: false,
+            beforeSend: function (xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (msg) {
+                var dataObj = msg
+                if (dataObj["status"] == "success") {
+                    swal("操作成功")
+                } else if (dataObj["status"] == "often") {
+                    swal("操作正在进行中，请稍后")
+                } else if (dataObj["status"] == "owed") {
+                    swal("余额不足请及时充值")
+                } else if (dataObj["status"] == "expired") {
+                    swal("试用已到期")
+                } else if (dataObj["status"] == "over_memory") {
+                    swal("资源已达上限，不能升级")
+                } else if (dataObj["status"] == "over_money") {
+                    swal("余额不足，不能升级")
+                } else {
+                    swal("操作失败")
+                }
+            },
+            error: function () {
+                swal("系统异常");
+                $("#operate_" + service_id).removeAttr("disabled")
             }
         });
+
+//        swal({
+//            title: "确定恢复当前版本吗？",
+//            type: "warning",
+//            showCancelButton: true,
+//            confirmButtonColor: "#DD6B55",
+//            confirmButtonText: "确定",
+//            cancelButtonText: "取消",
+//            closeOnConfirm: false,
+//            closeOnCancel: false
+//        }, function (isConfirm) {
+//            if (isConfirm) {
+//                $.ajax({
+//                    type: "POST",
+//                    url: "/ajax/{{tenantName}}/{{tenantServiceInfo.service_alias}}/manage",
+//                    data: "event_id=" + event_id + "&action=rollback&deploy_version=" + deploy_version,
+//                    cache: false,
+//                    beforeSend: function (xhr, settings) {
+//                        var csrftoken = $.cookie('csrftoken');
+//                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+//                    },
+//                    success: function (msg) {
+//                        var dataObj = msg
+//                        if (dataObj["status"] == "success") {
+//                            swal("操作成功")
+//                        } else if (dataObj["status"] == "often") {
+//                            swal("操作正在进行中，请稍后")
+//                        } else if (dataObj["status"] == "owed") {
+//                            swal("余额不足请及时充值")
+//                        } else if (dataObj["status"] == "expired") {
+//                            swal("试用已到期")
+//                        } else if (dataObj["status"] == "over_memory") {
+//                            swal("资源已达上限，不能升级")
+//                        } else if (dataObj["status"] == "over_money") {
+//                            swal("余额不足，不能升级")
+//                        } else {
+//                            swal("操作失败")
+//                        }
+//                    },
+//                    error: function () {
+//                        swal("系统异常");
+//                        $("#operate_" + service_id).removeAttr("disabled")
+//                    }
+//                });
+//            } else {
+//                swal.close();
+//            }
+//        });
     }
 
     function join_container() {
