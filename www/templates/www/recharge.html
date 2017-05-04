@@ -151,6 +151,8 @@
 			swal("请填写所要充值的金额");
 		}else if(isNaN($("#recharge_money").val())){
 			swal("充值金额非数值类型，请核对后再输入");
+		}else if(Number($("#recharge_money").val()) == "0"){
+			swal("充值金额不能为0");
 		}else{
 			$("#rechargeForm").submit();
 		}
