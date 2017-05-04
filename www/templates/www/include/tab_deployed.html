@@ -496,9 +496,7 @@
     }
     function callback_version(){
         var tenantName = $("#tenantName").val();
-        var serviceAlias = $("#tenantServiceInfo.service_alias").val();
-        console.log("{{tenantServiceInfo.service_alias}}");
-        $(".callback_version").off('click');
+//        $(".callback_version").off('click');
         $(".callback_version").click(function(){
             console.log(11);
             swal({
@@ -512,7 +510,6 @@
                 closeOnCancel: false
             }, function (isConfirm) {
                 if (isConfirm) {
-                    console.log(serviceAlias);
                     var event_id = createEvents(tenantName, "{{tenantServiceInfo.service_alias}}", "callback");
                     do_rollback(event_id,$(this).attr("data-version"));
                 } else {
