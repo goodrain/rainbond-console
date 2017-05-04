@@ -196,6 +196,7 @@ margin-right: -15px;}
 #keylog .panel div.log p{line-height: 25px;}
 #keylog .panel div.user{float: left;width: 20%;text-align: right;}
 #keylog .user p:nth-child(2){cursor: pointer;}
+#keylog .user .hide_log{cursor: pointer;display: none;}
 @media (max-width: 768px) {
 
     #keylog .timeline:before{

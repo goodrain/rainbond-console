@@ -430,9 +430,10 @@
 //                        tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
 //                        showlog = showlog + tmpLog
                         var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-body">';
-                        str_log += '<div class="log log_'+log["event_id"]+'"><p>'+type_json[log["type"]]+status_json[log["status"]]+'</p></div><div class="user"><p>@'+log["user_name"]+'</p><p onclick='+'do_logshow("'+log["event_id"]+'")>查看日志</p></div></div></div></div></li>'
+                        str_log += '<div class="log log_'+log["event_id"]+'"><p>'+type_json[log["type"]]+status_json[log["status"]]+'</p></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'")>查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
                         console.log(type_json[log["type"]]+';'+status_json[log["status"]]);
                         $(str_log).appendTo($("#keylog ul"));
+                        ajax_getLog();
                     }
 //                    $("#keylog").html(showlog)
 
@@ -463,7 +464,26 @@
 			$("#status_areas li").width("25%");
 		}
 	}
-
+function ajax_getLog(){
+    $(".ajax_log").click(function(){
+        var event_id = $(this).attr("data-log");
+        do_logshow(event_id);
+        $(this).hide();
+        $(this).parent().find('.hide_log').show();
+    });
+    $(".hide_log").click(function(){
+        var onOff = $(this).parents('.panel-body').find('.log').hasClass('log_height');
+        if(onOff)
+        {
+            $(this).parents('.panel-body').find('.log').removeClass('log_height');
+            $(this).html("展开");
+        }
+        else{
+            $(this).parents('.panel-body').find('.log').addClass('log_height');
+            $(this).html("收起");
+        }
+    });
+}
 function do_logshow(event_id) {
         $.ajax({
             type: "GET",
@@ -476,9 +496,9 @@ function do_logshow(event_id) {
             success: function (msg) {
                 var dataObj = msg;
                 var newLog = dataObj["data"]
-                for (i = 0; i < newLog.length/10; i++) {
+                for (i = 0; i < newLog.length/100; i++) {
                     log = "<p>"+newLog[i]["time"] + ":" + newLog[i]["message"]+"</p>";
-                    $(".log_" + event_id + "").append(log);
+                    $(".log_" + event_id + "").prepend(log);
                     $(".log_" + event_id + "").addClass('log_height');
                 }
                 var address = location.href.split("?");
