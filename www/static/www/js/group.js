@@ -427,11 +427,10 @@ $(function(){
             success : function(data) {
                
                 var oData = eval(data);
-                console.log(data);
-                
+                //console.log(data);
                 //console.log(oData.json_svg);
                 //console.log(oData.json_data);
-                //FnSvg(oData.json_svg,oData.json_data);
+               
                 if(oData.status == 200){
                     //console.log(oData.json_svg);
                     //console.log(oData.json_data);
@@ -482,7 +481,14 @@ function FnSvg(json_svg,json_data){
    //console.log(key_svg); 
    //console.log(val_svg);
    //console.log(val_svg_arr);
-
+   var val_main = val_svg;
+   var val_main_single = [];
+   //console.log(val_main);
+   for(i=0;i<val_main.length;i++){
+        if(val_main_single.indexOf(val_main[i])<0){
+            val_main_single.push(val_main[i])
+        }
+    }
    //
    if(key_svg.length == 0){
         console.log("没有依赖关系");
@@ -516,6 +522,8 @@ function FnSvg(json_svg,json_data){
         }
     }    
     //console.log(val_svg_single);
+        
+
 
     for(var i=0;i<val_svg_single.length;i++){
         if(key_svg.indexOf(val_svg_single[i]) == -1){
@@ -541,6 +549,26 @@ function FnSvg(json_svg,json_data){
         }
     }   
     
+    //console.log(my_svg);
+    //console.log(AppTop);
+    //console.log(AppMid);
+    console.log(val_main_single);
+    //console.log(AppBot);
+    console.log(AppBot_B);
+    var main_bot = [];
+    for(var m=0; m<val_main_single.length; m++){
+        for(var n=0; n<AppBot_B.length;n++){    
+            if(val_main_single[m] == AppBot_B[n]){
+                main_bot.push(val_main_single[m]);
+            }
+        }
+    }
+    console.log("/////////");
+    console.log(main_bot);
+    for(var k=0;k<main_bot.length;k++){
+        AppBot_B.remove(main_bot[k]);
+    }
+    console.log(AppBot_B);
     //绘图
     var svgNS = 'http://www.w3.org/2000/svg';
     var svgLink="http://www.w3.org/1999/xlink";
@@ -555,7 +583,7 @@ function FnSvg(json_svg,json_data){
         }
         return oTag;
     }
-    var oSvg = createTag('svg',{'xmlns':svgNS,'xmlns:xlink':svgLink,'width':'100%','height':'600'});
+    var oSvg = createTag('svg',{'xmlns':svgNS,'xmlns:xlink':svgLink,'width':'100%','height':'800'});
     var oDefs = createTag('defs',{});
     var oMarker = createTag('marker',{'id':'markerArrow','markerWidth':'13','markerHeight':'13','refX':'35','refY':'6','orient':'auto'});
     var oPath = createTag('path',{'d':'M2,2 L2,11 L10,6 L2,2 z','fill':'#ccc'});
@@ -596,15 +624,15 @@ function FnSvg(json_svg,json_data){
             var mid_width = divWidth/AppMid.length;
             var mid_w = mid_width - 20;
             //FnSvgIcon(mid_width,170,i,AppMid[i],mid_w);
-            axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
+            axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),150];
         }
     }
-    if(AppBot_B.length != 0){
-        for(var i=0; i<AppBot_B.length;i++){
-            var bot_width = divWidth/AppBot_B.length;
+    if(main_bot.length != 0){
+        for(var i=0; i<main_bot.length;i++){
+            var bot_width = divWidth/main_bot.length;
             var bot_w = bot_width - 20;
             //FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w);
-            axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
+            axisXY[main_bot[i]] = [(bot_width*i+bot_width/2),250];
         }
     }
     //
@@ -642,16 +670,31 @@ function FnSvg(json_svg,json_data){
         for(var i=0; i<AppMid.length;i++){
             var mid_width = divWidth/AppMid.length;
             var mid_w = mid_width - 20;
-            FnSvgIcon(mid_width,170,i,AppMid[i],mid_w);
+            FnSvgIcon(mid_width,130,i,AppMid[i],mid_w);
             //axisXY[AppMid[i]] = [(mid_width*i+mid_width/2),200];
+        }
+    }
+    if(main_bot.length != 0){
+        for(var i=0; i<main_bot.length;i++){
+            var bot_width = divWidth/main_bot.length;
+            var bot_w = bot_width - 20;
+            FnSvgIcon(bot_width,230,i,main_bot[i],bot_w);
+            //axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
         }
     }
     if(AppBot_B.length != 0){
         for(var i=0; i<AppBot_B.length;i++){
-            var bot_width = divWidth/AppBot_B.length;
+            var bot_width = divWidth/8;
             var bot_w = bot_width - 20;
-            FnSvgIcon(bot_width,320,i,AppBot_B[i],bot_w);
-            //axisXY[AppBot_B[i]] = [(bot_width*i+bot_width/2),350];
+            var indexnum = i%8;
+            var oldh = 0;
+            if(AppTop.length == 0 && main_bot.length == 0){
+                oldh = 30
+            }else{
+                oldh = 330
+            }
+            var indexh = parseInt(i/8)*100+oldh;
+            FnSvgIcon(bot_width,oldh,indexnum,AppBot_B[i],bot_w);
         }
     }
     //
