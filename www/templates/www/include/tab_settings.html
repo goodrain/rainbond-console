@@ -349,7 +349,7 @@
             <div class="krfs clearfix">
                 {% ifequal tenantServiceInfo.category "application" %}
                     <div class="tit">扩容方式</div>
-                    <div class="">
+                    <div class="" style="width: 20%;">
                         <select name="extend_method" id="extend_method" class="form-control m-bot15">
                             {% for key,extend in extends_choices.iteritems %}
                                 {% if key == tenantServiceInfo.extend_method %}
