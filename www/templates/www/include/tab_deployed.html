@@ -488,18 +488,19 @@
         setInterval("checkStatus()", 6000)
     });
 
-	function liAutoAdapt(){
-		var li_length = $("#status_areas li").length;
-		if(li_length ==4){
-			$("#status_areas li").width("25%");
-		}
-	}
+    function liAutoAdapt(){
+            var li_length = $("#status_areas li").length;
+            if(li_length ==4){
+                    $("#status_areas li").width("25%");
+            }
+    }
     function callback_version(){
         var tenantName = $("#tenantName").val();
         var serviceAlias = $("#tenantServiceInfo.service_alias").val();
-        console.log(serviceAlias);
+        console.log({{tenantServiceInfo.service_alias}});
         $(".callback_version").off('click');
         $(".callback_version").click(function(){
+            console.log(11);
             swal({
                 title: "确定恢复当前版本吗？",
                 type: "warning",
@@ -512,7 +513,7 @@
             }, function (isConfirm) {
                 if (isConfirm) {
                     console.log(serviceAlias);
-                    var event_id = createEvents(tenantName, serviceAlias, "callback");
+                    var event_id = createEvents(tenantName, {{tenantServiceInfo.service_alias}}, "callback");
                     do_rollback(event_id,$(this).attr("data-version"));
                 } else {
                     swal.close();
