@@ -149,7 +149,7 @@
 	function verifyData(){
 		if($("#recharge_money").val() == ""){
 			swal("请填写所要充值的金额");
-		}else if($("#recharge_money").val() <= 0){
+		}else if(isNaN($("#recharge_money").val())){
 			swal("充值金额非数值类型，请核对后再输入");
 		}else{
 			$("#rechargeForm").submit();
