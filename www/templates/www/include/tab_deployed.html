@@ -437,6 +437,7 @@
                         var time = arr[1];
                         var status;
                         var color;
+                        console.log(log["final_status"]+"zzz");
                         if( log["final_status"] == "complate" )
                         {
                             status = status_json[log["status"]];
@@ -498,7 +499,6 @@ function ajax_getLog(){
     $(".hide_log").off('click');
     $(".hide_log").click(function(){
         var onOff = $(this).parents('.panel-body').find('.log').hasClass('log_height');
-        console.log(onOff);
         if(onOff)
         {
             $(this).parents('.panel-body').find('.log').removeClass('log_height');
