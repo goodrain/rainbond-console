@@ -240,12 +240,11 @@
 					if(obj["status"]=="running"){
 						$("#service_status_value").val("stop")
 						$("#font"+service_id).html("关闭");
-						$("#service_status_operate").show().css({"backgroudColor":"#f63a47"});
+						$("#service_status_operate").show().css({"backgroundColor":"#f63a47"});
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#service_status").html("运行中")
 						$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline0.png")
-						$("#service_status_operate").show()
 						$("#service_visitor").show()
 						if(port_length != "1"){
 							$("#multi_ports").show();
@@ -254,28 +253,26 @@
 					}else if(obj["status"]=="starting"){
 						$("#service_status_value").val("stop")
 						$("#font"+service_id).html("关闭")
-						$("#service_status_operate").show().css({"backgroudColor":"#f63a47"});
+						$("#service_status_operate").show().css({"backgroundColor":"#f63a47"});
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#service_status").html("启动中")
-						$("#service_status_operate").show()
 						$("#service_status").attr("class","text-center")
 						$("#service_visitor").hide()
 						$("#multi_ports").hide()
 					}else if(obj["status"]=="unusual"){
 						$("#service_status_value").val("")
-						$("#font"+service_id).html("启动").css({"backgroudColor":"#28cb75"});
-						$("#service_status_operate").show()
+						$("#font"+service_id).html("启动")
+						$("#service_status_operate").show().css({"backgroundColor":"#28cb75"});
 						$("#onekey_deploy").show();
 						$("#service_status").html("运行异常")
-						$("#service_status_operate").show()
 						$("#service_visitor").hide();
 						$("#multi_ports").hide()
 						$("#service_status").attr("class","text-center")
 					}else if(obj["status"]=="closed" || obj["status"]=="Owed" || obj["status"]=="expired"){
 						$("#service_status_value").val("restart")
 						$("#font"+service_id).html("启动")
-						$("#service_status_operate").show().css({"backgroudColor":"#28cb75"});
+						$("#service_status_operate").show().css({"backgroundColor":"#28cb75"});
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#multi_ports").hide()
@@ -289,7 +286,6 @@
 							$("#service_status").attr("class","text-center")
 							$("#multi_ports").hide()
 						}
-						$("#service_status_operate").show()
 						$("#service_visitor").hide();
 						$("#multi_ports").hide()
 					}else if(obj["status"]=="undeploy"){
@@ -299,7 +295,6 @@
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#service_status").html("未部署")
-						$("#service_status_operate").hide();
 						$("#service_visitor").hide();
 						$("#service_status").attr("class","text-center")
 						$("#multi_ports").hide()
@@ -309,7 +304,6 @@
 						$("#service_status_operate").hide()
 						$("#onekey_deploy").hide();
 						$("#service_status").html("未知")
-						$("#service_status_operate").hide()
 						$("#service_visitor").hide();
 						$("#service_status").attr("class","text-center")
 						$("#multi_ports").hide()
