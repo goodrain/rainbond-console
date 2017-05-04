@@ -204,27 +204,27 @@
             <input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
             <div id="keylog">
                 <ul class="timeline list-unstyled">
-                    <li>
-                        <time class="tl-time">
-                            <h4>23:15</h4>
-                            <p>September 2013</p>
-                        </time>
-                        <i class="fa bg-success tl-icon"></i>
-                        <div class="tl-content">
-                            <div class="panel panel-primary">
-                                <!--<div class="panel-heading">Events</div>-->
-                                <div class="panel-body">
-                                    <div class="log">
-                                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam laoreet tellus ut tincidunt euismod. Nam fermentum, massa sit amet pulvinar laoreet, sem mi viverra turpis, ac porta felis nisl eu odio.</p>
-                                    </div>
-                                    <div class="user">
-                                        <p>grtest</p>
-                                        <p onclick=do_logshow('log["event_id"]')>查看日志</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </li>
+                    <!--<li>-->
+                        <!--<time class="tl-time">-->
+                            <!--<h4>23:15</h4>-->
+                            <!--<p>September 2013</p>-->
+                        <!--</time>-->
+                        <!--<i class="fa bg-success tl-icon"></i>-->
+                        <!--<div class="tl-content">-->
+                            <!--<div class="panel panel-primary">-->
+                                <!--&lt;!&ndash;<div class="panel-heading">Events</div>&ndash;&gt;-->
+                                <!--<div class="panel-body">-->
+                                    <!--<div class="log">-->
+                                        <!--<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam laoreet tellus ut tincidunt euismod. Nam fermentum, massa sit amet pulvinar laoreet, sem mi viverra turpis, ac porta felis nisl eu odio.</p>-->
+                                    <!--</div>-->
+                                    <!--<div class="user">-->
+                                        <!--<p>grtest</p>-->
+                                        <!--<p onclick=do_logshow('log["event_id"]')>查看日志</p>-->
+                                    <!--</div>-->
+                                <!--</div>-->
+                            <!--</div>-->
+                        <!--</div>-->
+                    <!--</li>-->
                 </ul>
             </div>
 	</section>
@@ -479,6 +479,7 @@ function do_logshow(event_id) {
                 for (i = 0; i < newLog.length; i++) {
                     log = "<p>"+newLog[i]["time"] + ":" + newLog[i]["message"]+"</p>";
                     $(".log_" + event_id + "").append(log);
+                    $(".log_" + event_id + "").addClass('log_height');
                 }
                 var address = location.href.split("?");
                 var more = '<a href="' + address[0] + '?fr=log' + '" style="text-decoration: underline">更多日志</a>';
