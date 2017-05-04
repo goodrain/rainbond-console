@@ -10,7 +10,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
     if (event_id == "") {
         return false
     }
-    connectSocket(event_id)
+    connectSocket(event_id,"deploy");
 
     $("#onekey_deploy").attr('disabled', "true")
     _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
@@ -108,6 +108,14 @@ function createEvents(name, service, action) {
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading">'+type_json[event["event_type"]]+'中</div><div class="panel-body"><div class="log">';
                 str_log += '</div><div class="user"><p>@'+event["user_name"]+'</p><p class="hide_log" style="display: block;">展开</p></div></div></div></div></li>'
+
+                if( event["event_type"] == "deploy" )
+                {
+                    str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log" style="padding-top: 20px;"><p>当前版本('+event["old_deploy_version"]+')</p></div>';
+                    str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+event["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
+                    callback_version();
+                }
+
                 $(str_log).prependTo($("#keylog ul"));
                 ajax_getLog();
             } else {
@@ -127,8 +135,15 @@ function createEvents(name, service, action) {
 
 
 var ws = null
-function connectSocket(event_id) {
+function connectSocket(event_id,action) {
     ws = new WebSocket("ws://test.goodrain.com:6364/event_log");
+    var type_json = {
+        "deploy" : "部署",
+        "restart" : "重启",
+        "delete" : "停止创建",
+        "HorizontalUpgrade" : "水平升级",
+        "VerticalUpgrade" : "垂直升级"
+    }
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
 
@@ -142,6 +157,18 @@ function connectSocket(event_id) {
         //$("#keylog").children("div:first-child").before(tmpLog)
 
         $(tmpLog).prependTo($("#keylog .log").eq(0));
+        if( m.step == "callback" || m.step == "last" )
+        {
+            ws.close();
+            if( m.status == "success" )
+            {
+                var str = type_json[action]+"成功";
+            }
+            else{
+                var str = type_json[action]+"失败";
+            }
+            $("#keylog .panel").eq(0).find(".panel-heading").html(str);
+        }
     }
     ws.onclose = function (evt) {
         console.log("连接关闭");
@@ -214,7 +241,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
         swal("创建操作错误");
         return false
     }
-    connectSocket(event_id)
+    connectSocket(event_id,"restart");
 
     $("#service_status_operate").attr('disabled', "true")
     $.ajax({
