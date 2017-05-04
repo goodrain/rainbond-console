@@ -689,12 +689,13 @@ function FnSvg(json_svg,json_data){
             var indexnum = i%8;
             var oldh = 0;
             if(AppTop.length == 0 && main_bot.length == 0){
-                oldh = 30
+                oldh = 30 
             }else{
                 oldh = 330
             }
+
             var indexh = parseInt(i/8)*100+oldh;
-            FnSvgIcon(bot_width,oldh,indexnum,AppBot_B[i],bot_w);
+            FnSvgIcon(bot_width,indexh,indexnum,AppBot_B[i],bot_w);
         }
     }
     //
