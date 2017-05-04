@@ -33,7 +33,7 @@ class EventManager(AuthedView):
             action = request.POST["action"]
             event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
                                  tenant_id=self.tenant.tenant_id, type=action,
-                                 deploy_version=self.service.deploy_version,
+                                 deploy_version=self.service.deploy_version, old_deploy_version=old_deploy_version,
                                  user_name=self.user.nick_name, start_time=datetime.datetime.now())
             event.save()
             result["status"] = "success"
@@ -72,8 +72,7 @@ class EventManager(AuthedView):
                 eventRe["final_status"] = event.final_status
                 eventRe["event_id"] = event.event_id
                 eventRe["deploy_version"] = event.deploy_version
-                eventRe["old_deploy_version"] = old_deploy_version
-                old_deploy_version = event.deploy_version
+                eventRe["old_deploy_version"] = event.old_deploy_version
                 reEvents.append(eventRe)
             result = {}
             result["log"] = reEvents
