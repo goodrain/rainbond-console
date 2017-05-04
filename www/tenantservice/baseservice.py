@@ -204,6 +204,7 @@ class BaseTenantService(object):
             # 创建操作
             event = ServiceEvent(event_id=make_uuid(), service_id=newTenantService.service_id,
                                  tenant_id=newTenantService.tenant_id, type="create",
+                                 deploy_version=newTenantService.deploy_version if do_deploy else None,
                                  user_name=nick_name, start_time=datetime.datetime.now())
             event.save()
             

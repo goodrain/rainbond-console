@@ -57,6 +57,7 @@ class AppDeploy(AuthedView):
             return JsonResponse(data, status=412)
         event_id = request.POST["event_id"]
         event = ServiceEvent.objects.get(event_id=event_id)
+        
         if not event:
             data["status"] = "failure"
             data["message"] = "event is not exist."
@@ -76,11 +77,12 @@ class AppDeploy(AuthedView):
         
         tenant_id = self.tenant.tenant_id
         service_id = self.service.service_id
-        oldVerion = self.service.deploy_version
-        if oldVerion is not None and oldVerion != "":
-            if not baseService.is_user_click(self.service.service_region, service_id):
-                data["status"] = "often"
-                return JsonResponse(data, status=200)
+        
+        # oldVerion = self.service.deploy_version
+        # if oldVerion is not None and oldVerion != "":
+        #     if not baseService.is_user_click(self.service.service_region, service_id):
+        #         data["status"] = "often"
+        #         return JsonResponse(data, status=200)
         
         # calculate resource
         rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, 0, True)
@@ -107,6 +109,10 @@ class AppDeploy(AuthedView):
             
             self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             self.service.save()
+            
+            #保存最新 deploy_version
+            event.deploy_version = self.service.deploy_version
+            event.save()
             
             clone_url = self.service.git_url
             if self.service.code_from == "github":
@@ -326,7 +332,6 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', False)
         elif action == "rollback":
             try:
-                rollback_event_id = request.POST["rollback_event_id"]
                 deploy_version = request.POST["deploy_version"]
                 if event_id != "":
                     # calculate resource
@@ -338,7 +343,7 @@ class ServiceManage(AuthedView):
                             result["status"] = "over_money"
                         return JsonResponse(result, status=200)
                     body = {}
-                    body["event_id"] = rollback_event_id
+                    body["event_id"] = event_id
                     body["operator"] = str(self.user.nick_name)
                     body["deploy_version"] = deploy_version
                     regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))

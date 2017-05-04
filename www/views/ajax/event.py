@@ -2,7 +2,7 @@
 import logging
 from www.views import AuthedView
 from www.decorator import perm_required
-from www.models import ServiceEvent
+from www.models import ServiceEvent, TenantServiceInfo
 import datetime
 from django.http import JsonResponse
 from www.utils.crypt import make_uuid
@@ -19,6 +19,7 @@ class EventManager(AuthedView):
     def post(self, request, *args, **kwargs):
         result = {}
         try:
+            old_deploy_version = ""
             # 检查上次事件是否完成
             events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
             if events:
@@ -27,10 +28,12 @@ class EventManager(AuthedView):
                     if not baseService.checkEventTimeOut(last_event):
                         result["status"] = "often"
                         return JsonResponse(result, status=200)
+                old_deploy_version = last_event.deploy_version
             
             action = request.POST["action"]
             event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
                                  tenant_id=self.tenant.tenant_id, type=action,
+                                 deploy_version=self.service.deploy_version,
                                  user_name=self.user.nick_name, start_time=datetime.datetime.now())
             event.save()
             result["status"] = "success"
@@ -39,6 +42,7 @@ class EventManager(AuthedView):
             result["event"]["user_name"] = event.user_name
             result["event"]["event_type"] = event.type
             result["event"]["event_start_time"] = event.start_time
+            result["event"]["old_deploy_version"] = old_deploy_version
             return JsonResponse(result, status=200)
         except Exception as e:
             
@@ -52,6 +56,7 @@ class EventManager(AuthedView):
         try:
             events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
             reEvents = []
+            old_deploy_version = ""
             for event in list(events):
                 eventRe = {}
                 eventRe["start_time"] = event.start_time
@@ -62,6 +67,9 @@ class EventManager(AuthedView):
                 eventRe["status"] = event.status
                 eventRe["final_status"] = event.final_status
                 eventRe["event_id"] = event.event_id
+                eventRe["deploy_version"] = event.deploy_version
+                eventRe["old_deploy_version"] = old_deploy_version
+                old_deploy_version = event.deploy_version
                 reEvents.append(eventRe)
             result = {}
             result["log"] = reEvents

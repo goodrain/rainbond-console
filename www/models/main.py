@@ -1069,7 +1069,7 @@ class ServiceEvent(BaseModel):
     start_time = models.DateTimeField(help_text=u"操作开始时间")
     end_time = models.DateTimeField(help_text=u"操作结束时间")
     type = models.CharField(max_length=20, help_text=u"操作类型")
-    status = models.CharField(max_length=20, help_text=u"操作处理状态")
+    status = models.CharField(max_length=20, help_text=u"操作处理状态 success failure")
     final_status = models.CharField(max_length=20, default="", help_text=u"操作状态，complete or timeout or null")
     message = models.CharField(max_length=200, help_text=u"操作说明")
     deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
