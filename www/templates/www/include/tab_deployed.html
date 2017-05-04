@@ -497,6 +497,7 @@
     function callback_version(){
         var tenantName = $("#tenantName").val();
         var serviceAlias = $("#tenantServiceInfo.service_alias").val();
+        console.log(serviceAlias);
         $(".callback_version").off('click');
         $(".callback_version").click(function(){
             swal({
