@@ -106,9 +106,10 @@ function createEvents(name, service, action) {
                     "VerticalUpgrade" : "垂直升级"
                 }
 
-                var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i>';
-                str_log += '<div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log"><p>'+type_json[event["event_type"]]+'中</p></div><div class="user"><p>@'+event["user_name"]+'</p></div></div></div></div></li>'
+                var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-success tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log">';
+                str_log += '<p>'+type_json[event["event_type"]]+'中</p></div><div class="user"><p>@'+event["user_name"]+'</p><p class="heighter">展开</p></div></div></div></div></li>'
                 $(str_log).appendTo($("#keylog ul"));
+                log_height();
             } else {
                 swal("系统异常！");
             }
@@ -122,6 +123,12 @@ function createEvents(name, service, action) {
         return currentEventID
     }
     return ""
+}
+
+function log_height(){
+    $(".heighter").click(function(){
+        $(this).parents('li').find('.log').addClass('log_height');
+    });
 }
 
 var ws = null
