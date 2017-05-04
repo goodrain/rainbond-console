@@ -97,7 +97,7 @@ function createEvents(name, service, action) {
 
                 var arr = event["event_start_time"].split("T");
                 var date = arr[0];
-                var time = arr[1];
+                var time = arr[1].split('.')[0];
                 var type_json = {
                     "deploy" : "部署",
                     "restart" : "重启",
