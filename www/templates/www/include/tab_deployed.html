@@ -473,6 +473,7 @@ function ajax_getLog(){
     });
     $(".hide_log").click(function(){
         var onOff = $(this).parents('.panel-body').find('.log').hasClass('log_height');
+        console.log(onOff);
         if(onOff)
         {
             $(this).parents('.panel-body').find('.log').removeClass('log_height');
