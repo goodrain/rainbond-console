@@ -458,8 +458,8 @@
                         str_log += '<div class="log log_'+log["event_id"]+'"></div><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"]+'">查看日志</p><p class="hide_log">收起</p></div></div></div></div></li>'
                         if( log["type"] == "deploy" )
                         {
-                            str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log"><p>当前版本('+log["old_deploy_version"]+')</p>';
-                            str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></div></li>'
+                            str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log" style="padding-top: 20px;"><p>当前版本('+log["old_deploy_version"]+')</p></div>';
+                            str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
                             callback_version();
                         }
                         $(str_log).appendTo($("#keylog ul"));
