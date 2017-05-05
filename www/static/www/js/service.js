@@ -108,7 +108,7 @@ function createEvents(name, service, action) {
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中</span><div class="user"><p>@'+event["user_name"];
-                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: block;">查看日志</p></div></div><div class="panel-body"><div class="log log_'+event["event_id"]+'"></div></div></div></div></li>'
+                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: block;">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log log_'+event["event_id"]+'"></div></div></div></div></li>'
 
                 if( event["event_type"] == "deploy" )
                 {
@@ -191,7 +191,7 @@ function connectSocket(event_id,action) {
         "deploy" : "部署",
         "restart" : "启动",
         "delete" : "删除",
-        "stop" : "停止",
+        "stop" : "关闭",
         "HorizontalUpgrade" : "水平升级",
         "VerticalUpgrade" : "垂直升级",
         "callback" : "回滚",
@@ -217,6 +217,7 @@ function connectSocket(event_id,action) {
         if( m.step == "callback" || m.step == "last" )
         {
             ws.close();
+            console.log(action);
             if( m.status == "success" )
             {
                 var str = type_json[action]+"成功";
@@ -224,7 +225,7 @@ function connectSocket(event_id,action) {
             }
             else{
                 $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-danger");
-                var str = type_json[action]+"失败";
+                var str = type_json[action]+"失败("+ m.message+")";
             }
             $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
         }
@@ -300,7 +301,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
         swal("创建操作错误");
         return false
     }
-    connectSocket(event_id,"restart");
+    connectSocket(event_id,taction);
 
     $("#service_status_operate").attr('disabled', "true")
     $.ajax({
