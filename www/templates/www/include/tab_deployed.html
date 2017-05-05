@@ -432,7 +432,7 @@
                     for (var i = 0; i < logList.length; i++) {
                         var log = logList[i]
                         if (i == 0 && (log["final_status"] == "")) {
-                            connectSocket(log["event_id"])
+                            connectSocket(log["event_id"],log["type"]);
                         }
                         var arr = log["start_time"].split("T");
                         var date = arr[0];
