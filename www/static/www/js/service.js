@@ -149,12 +149,12 @@ function ajax_getLog(){
         if(onOff)
         {
             $(this).parents('.panel').find('.log').removeClass('log_height');
+            $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"20px"});
+            $(this).parents('.panel').find('.log').css({"height":"0px"});
             $(this).html("查看日志");
         }
         else{
             $(this).parents('.panel').find('.log').addClass('log_height');
-            $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"20px"});
-            $(this).parents('.panel').find('.log').css({"height":"0px"});
             $(this).html("收起");
         }
     });
