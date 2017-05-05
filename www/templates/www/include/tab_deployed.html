@@ -411,7 +411,8 @@
                         "stop" : "停止",
                         "delete" : "停止创建",
                         "HorizontalUpgrade" : "水平升级",
-                        "VerticalUpgrade" : "垂直升级"
+                        "VerticalUpgrade" : "垂直升级",
+                        "callback" : "回滚"
                     }
                     var status_json = {
                         "success" : "成功",
@@ -488,17 +489,17 @@
         setInterval("checkStatus()", 6000)
     });
 
-	function liAutoAdapt(){
-		var li_length = $("#status_areas li").length;
-		if(li_length ==4){
-			$("#status_areas li").width("25%");
-		}
-	}
+    function liAutoAdapt(){
+            var li_length = $("#status_areas li").length;
+            if(li_length ==4){
+                    $("#status_areas li").width("25%");
+            }
+    }
     function callback_version(){
         var tenantName = $("#tenantName").val();
-        var serviceAlias = $("#tenantServiceInfo.service_alias").val();
         $(".callback_version").off('click');
         $(".callback_version").click(function(){
+            var that = $(this);
             swal({
                 title: "确定恢复当前版本吗？",
                 type: "warning",
@@ -510,8 +511,8 @@
                 closeOnCancel: false
             }, function (isConfirm) {
                 if (isConfirm) {
-                    var event_id = createEvents(tenantName, serviceAlias, "callback");
-                    do_rollback(event_id,$(this).attr("data-version"));
+                    var event_id = createEvents(tenantName, "{{tenantServiceInfo.service_alias}}", "callback");
+                    do_rollback(event_id,that.attr("data-version"));
                 } else {
                     swal.close();
                 }

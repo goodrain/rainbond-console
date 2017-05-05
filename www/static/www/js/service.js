@@ -103,7 +103,8 @@ function createEvents(name, service, action) {
                     "restart" : "重启",
                     "delete" : "停止创建",
                     "HorizontalUpgrade" : "水平升级",
-                    "VerticalUpgrade" : "垂直升级"
+                    "VerticalUpgrade" : "垂直升级",
+                    "callback" : "回滚"
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading">'+type_json[event["event_type"]]+'中</div><div class="panel-body"><div class="log">';
@@ -113,11 +114,12 @@ function createEvents(name, service, action) {
                 {
                     str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log" style="padding-top: 20px;"><p>当前版本('+event["old_deploy_version"]+')</p></div>';
                     str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+event["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
-                    callback_version();
+
                 }
 
                 $(str_log).prependTo($("#keylog ul"));
                 ajax_getLog();
+                callback_version();
             } else {
                 swal("系统异常！");
             }
@@ -133,7 +135,6 @@ function createEvents(name, service, action) {
     return ""
 }
 
-
 var ws = null
 function connectSocket(event_id,action) {
     ws = new WebSocket("ws://test.goodrain.com:6364/event_log");
@@ -142,7 +143,8 @@ function connectSocket(event_id,action) {
         "restart" : "重启",
         "delete" : "停止创建",
         "HorizontalUpgrade" : "水平升级",
-        "VerticalUpgrade" : "垂直升级"
+        "VerticalUpgrade" : "垂直升级",
+        "callback" : "回滚"
     }
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
@@ -163,8 +165,10 @@ function connectSocket(event_id,action) {
             if( m.status == "success" )
             {
                 var str = type_json[action]+"成功";
+                $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-success");
             }
             else{
+                $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-danger");
                 var str = type_json[action]+"失败";
             }
             $("#keylog .panel").eq(0).find(".panel-heading").html(str);
