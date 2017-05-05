@@ -145,14 +145,14 @@ function ajax_getLog(){
     });
     $(".hide_log").off('click');
     $(".hide_log").click(function(){
-        var onOff = $(this).parents('.panel-body').find('.log').hasClass('log_height');
+        var onOff = $(this).parents('.panel').find('.log').hasClass('log_height');
         if(onOff)
         {
-            $(this).parents('.panel-body').find('.log').removeClass('log_height');
+            $(this).parents('.panel').find('.log').removeClass('log_height');
             $(this).html("查看日志");
         }
         else{
-            $(this).parents('.panel-body').find('.log').addClass('log_height');
+            $(this).parents('.panel').find('.log').addClass('log_height');
             $(this).html("收起");
         }
     });
