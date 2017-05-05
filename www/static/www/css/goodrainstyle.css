@@ -179,7 +179,7 @@ margin-right: -15px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
 #keylog .log{height: 0px;overflow: hidden;}
 #keylog .panel-body div.log_height{height: 300px !important;overflow-y: scroll !important;}
-#keylog .panel-heading:before{width: 0px;
+#keylog .panel-body:before{width: 0px;
     height: 0px;
     color: white;
     text-align: center;
