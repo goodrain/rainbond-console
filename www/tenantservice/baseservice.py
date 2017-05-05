@@ -320,13 +320,13 @@ class BaseTenantService(object):
     # 检查事件是否超时，应用起停操作30s超时，其他操作3m超时
     def checkEventTimeOut(self, event):
         start_time = event.start_time
-        if event.type == "start" or event.type == "stop" or event.type == "restart":
-            if (datetime.datetime.now() - start_time).seconds > 30:
+        if event.type == "deploy" or event.type == "create":
+            if (datetime.datetime.now() - start_time).seconds > 180:
                 event.final_status = "timeout"
                 event.save()
                 return True
         else:
-            if (datetime.datetime.now() - start_time).seconds > 180:
+            if (datetime.datetime.now() - start_time).seconds > 30:
                 event.final_status = "timeout"
                 event.save()
                 return True
