@@ -158,6 +158,33 @@ function ajax_getLog(){
         }
     });
 }
+function callback_version(){
+    var tenantName = $("#tenantName").val();
+    var service_alias = $("#service_alias").val();
+    console.log(service_alias);
+    $(".callback_version").off('click');
+    $(".callback_version").click(function(){
+        var that = $(this);
+        swal({
+            title: "确定恢复当前版本吗？",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#DD6B55",
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            closeOnConfirm: false,
+            closeOnCancel: false
+        }, function (isConfirm) {
+            if (isConfirm) {
+                var event_id = createEvents(tenantName, service_alias , "callback");
+                do_rollback(event_id,that.attr("data-version"));
+            } else {
+                swal.close();
+            }
+        });
+
+    });
+}
 var ws = null
 function connectSocket(event_id,action) {
     ws = new WebSocket("ws://test.goodrain.com:6364/event_log");
