@@ -191,7 +191,7 @@ function connectSocket(event_id,action) {
         "deploy" : "部署",
         "restart" : "启动",
         "delete" : "删除",
-        "stop" : "停止",
+        "stop" : "关闭",
         "HorizontalUpgrade" : "水平升级",
         "VerticalUpgrade" : "垂直升级",
         "callback" : "回滚",
@@ -217,6 +217,7 @@ function connectSocket(event_id,action) {
         if( m.step == "callback" || m.step == "last" )
         {
             ws.close();
+            console.log(action);
             if( m.status == "success" )
             {
                 var str = type_json[action]+"成功";
