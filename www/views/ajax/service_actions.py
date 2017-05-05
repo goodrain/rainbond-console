@@ -322,6 +322,7 @@ class ServiceManage(AuthedView):
                         deleteEventID.append(event.event_id)
                 if len(deleteEventID) > 0:
                     regionClient.deleteEventLog(self.service.service_region, json.dumps({"event_ids": deleteEventID}))
+                
                 ServiceEvent.objects.filter(service_id=self.service.service_id).delete()
                 
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
@@ -349,6 +350,8 @@ class ServiceManage(AuthedView):
                     regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', True)
                 result["status"] = "success"
+                event.deploy_version = deploy_version
+                event.save()
             except Exception, e:
                 logger.exception(e)
                 result["status"] = "failure"

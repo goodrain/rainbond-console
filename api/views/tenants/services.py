@@ -448,8 +448,11 @@ class ServiceEventUpdate(APIView):
                 event.final_status = "complete"
                 event.message = message
                 event.end_time = datetime.datetime.now()
+                if event.status == "failure" and event.type == "callback":
+                    event.deploy_version = event.old_deploy_version
                 event.save()
                 data["status"] = "success"
+        
         except ServiceEvent.DoesNotExist:
             data["status"] = "failure"
             status = 404
