@@ -110,7 +110,7 @@ class AppDeploy(AuthedView):
             self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             self.service.save()
             
-            #保存最新 deploy_version
+            # 保存最新 deploy_version
             event.deploy_version = self.service.deploy_version
             event.save()
             
@@ -248,11 +248,13 @@ class ServiceManage(AuthedView):
                         if not unpayed_bills:
                             result["status"] = "payed"
                             result["info"] = u"已付款应用无法删除"
+                            self.update_event(event, "已付款应用无法删除", "failure")
                             return JsonResponse(result)
                 
                 published = AppService.objects.filter(service_id=self.service.service_id).count()
                 if published:
                     result["status"] = "published"
+                    self.update_event(event, "关联了已发布服务, 不可删除", "failure")
                     result["info"] = u"关联了已发布服务, 不可删除"
                     return JsonResponse(result)
                 
@@ -271,6 +273,7 @@ class ServiceManage(AuthedView):
                             depalias = depalias + alias["service_cname"]
                         result["dep_service"] = depalias
                         result["status"] = "evn_dependency"
+                        self.update_event(event, "被依赖, 不可删除", "failure")
                         return JsonResponse(result)
                 
                 dependSids = TenantServiceMountRelation.objects.filter(dep_service_id=self.service.service_id).values(
@@ -288,6 +291,7 @@ class ServiceManage(AuthedView):
                             depalias = depalias + alias["service_alias"]
                         result["dep_service"] = depalias
                         result["status"] = "mnt_dependency"
+                        self.update_event(event, "被依赖, 不可删除", "failure")
                         return JsonResponse(result)
                 
                 data = self.service.toJSON()
@@ -321,7 +325,8 @@ class ServiceManage(AuthedView):
                     for event in events:
                         deleteEventID.append(event.event_id)
                 if len(deleteEventID) > 0:
-                    regionClient.deleteEventLog(self.service.service_region, json.dumps({"event_ids": deleteEventID}))
+                    regionClient.deleteEventLog(self.service.service_region,
+                                                json.dumps({"event_ids": deleteEventID}))
                 
                 ServiceEvent.objects.filter(service_id=self.service.service_id).delete()
                 
@@ -357,6 +362,15 @@ class ServiceManage(AuthedView):
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)
         return JsonResponse(result)
+    
+    def update_event(self, event, message, status):
+        event.status = status
+        event.final_status = "complete"
+        event.message = message
+        event.end_time = datetime.datetime.now()
+        if event.status == "failure" and event.type == "callback":
+            event.deploy_version = event.old_deploy_version
+        event.save()
 
 
 class ServiceUpgrade(AuthedView):
@@ -1040,7 +1054,7 @@ class ServicePort(AuthedView):
     def check_port(self, port):
         if not re.match(r'^\d{2,5}$', str(port)):
             return False, u"格式不符合要求^\d{2,5}"
-
+        
         if self.service.code_from == "image_manual":
             if port > 65535 or port < 1:
                 return False, u"端口号必须在1~65535之间！"
