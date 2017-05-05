@@ -98,8 +98,9 @@ function createEvents(name, service, action) {
                 var time = arr[1].split('.')[0];
                 var type_json = {
                     "deploy" : "部署",
-                    "restart" : "重启",
-                    "delete" : "停止创建",
+                    "restart" : "启动",
+                    "delete" : "删除",
+                    "stop" : "关闭",
                     "HorizontalUpgrade" : "水平升级",
                     "VerticalUpgrade" : "垂直升级",
                     "callback" : "回滚",
@@ -174,6 +175,7 @@ function callback_version(){
         }, function (isConfirm) {
             if (isConfirm) {
                 var event_id = createEvents(tenantName, service_alias , "callback");
+                connectSocket(event_id,"callback");
                 do_rollback(event_id,that.attr("data-version"));
             } else {
                 swal.close();
@@ -187,8 +189,9 @@ function connectSocket(event_id,action) {
     ws = new WebSocket("ws://test.goodrain.com:6364/event_log");
     var type_json = {
         "deploy" : "部署",
-        "restart" : "重启",
-        "delete" : "停止创建",
+        "restart" : "启动",
+        "delete" : "删除",
+        "stop" : "停止",
         "HorizontalUpgrade" : "水平升级",
         "VerticalUpgrade" : "垂直升级",
         "callback" : "回滚",
