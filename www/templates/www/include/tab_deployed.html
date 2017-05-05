@@ -459,10 +459,6 @@
                             status = "进行中";
                             color = 'bg-grey';
                         }
-//                        var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
-//                        tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='line-height: 21px;' onclick=\"do_logshow('" + log["event_id"] + "')\">显示日志</p>"
-//                        tmpLog = "<div id='event_" + log["event_id"] + "'>" + tmpLog + "</div>"
-//                        showlog = showlog + tmpLog
                         if( log["status"] == "failure" )
                         {
                             var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+log["message"]+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
@@ -480,8 +476,6 @@
                         ajax_getLog();
                         callback_version();
                     }
-//                    $("#keylog").html(showlog)
-
                 }
             },
             error: function () {
@@ -630,7 +624,6 @@
 
     function visit(port) {
 //		var port = $("#multi_ports").val();
-
         var url;
         if (port == "" || port == null) {
             url = "http://{{serviceAlias}}" + ".{{tenantName}}{{wild_domain}}{{http_port_str}}"
@@ -736,7 +729,6 @@
                 $(".tips-box").find("cite").addClass("top");
                 //
             }
-
         });
         $(".fn-tips").mouseout(function () {
             $(".tips-box").remove();
