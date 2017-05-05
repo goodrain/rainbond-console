@@ -587,7 +587,7 @@
             success: function (msg) {
                 var dataObj = msg
                 if (dataObj["status"] == "success") {
-
+                    swal.close();
                 } else if (dataObj["status"] == "often") {
                     swal("操作正在进行中，请稍后")
                 } else if (dataObj["status"] == "owed") {
