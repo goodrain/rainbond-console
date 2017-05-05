@@ -85,8 +85,6 @@ function createEvents(name, service, action) {
                 swal("上次操作进行中，请稍后！");
                 return ""
             } else if (data["status"] == "success") {
-                console.log(data);
-
                 event = data["event"]
                 currentEventID = event["event_id"]
                 //var tmpLog = event["event_start_time"] + " @" + event["user_name"] + event["event_type"]
@@ -161,7 +159,6 @@ function ajax_getLog(){
 function callback_version(){
     var tenantName = $("#tenantName").val();
     var service_alias = $("#service_alias").val();
-    console.log(service_alias);
     $(".callback_version").off('click');
     $(".callback_version").click(function(){
         var that = $(this);
@@ -203,6 +200,7 @@ function connectSocket(event_id,action) {
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
+        console.log(evt.data);
         var m = JSON.parse(evt.data)
         var arr = m.time.split('.')[0];
         var time1 = arr.split('T')[0];
@@ -216,7 +214,6 @@ function connectSocket(event_id,action) {
             ws.close();
             if( m.status == "success" )
             {
-                console.log(action);
                 var str = type_json[action]+"成功";
                 $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-success");
             }
