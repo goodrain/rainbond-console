@@ -104,7 +104,8 @@ function createEvents(name, service, action) {
                     "delete" : "停止创建",
                     "HorizontalUpgrade" : "水平升级",
                     "VerticalUpgrade" : "垂直升级",
-                    "callback" : "回滚"
+                    "callback" : "回滚",
+                    "create" : "创建"
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading">'+type_json[event["event_type"]]+'中</div><div class="panel-body"><div class="log">';
@@ -144,7 +145,8 @@ function connectSocket(event_id,action) {
         "delete" : "停止创建",
         "HorizontalUpgrade" : "水平升级",
         "VerticalUpgrade" : "垂直升级",
-        "callback" : "回滚"
+        "callback" : "回滚",
+        "create" : "创建"
     }
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
