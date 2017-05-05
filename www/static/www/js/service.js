@@ -202,6 +202,7 @@ function connectSocket(event_id,action) {
 
     }
     ws.onmessage = function (evt) {
+        console.log(evt);
         var m = jQuery.parseJSON(evt.data)
         var arr = m.time.split('.')[0];
         var time1 = arr.split('T')[0];
