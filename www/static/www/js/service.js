@@ -150,7 +150,7 @@ function ajax_getLog(){
         if(onOff)
         {
             $(this).parents('.panel-body').find('.log').removeClass('log_height');
-            $(this).html("展开");
+            $(this).html("查看日志");
         }
         else{
             $(this).parents('.panel-body').find('.log').addClass('log_height');
