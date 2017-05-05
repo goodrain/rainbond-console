@@ -431,11 +431,6 @@
                         "failure" : "bg-danger",
                         "timeout" : "bg-danger"
                     }
-                    var message_json = {
-                        "success" : "",
-                        "timeout" : "",
-                        "failure" : log["message"]
-                    }
                     for (var i = 0; i < logList.length; i++) {
                         var log = logList[i]
                         if (i == 0 && (log["final_status"] == "")) {
@@ -458,6 +453,11 @@
                         else{
                             status = "进行中";
                             color = 'bg-grey';
+                        }
+                        var message_json = {
+                            "success" : "",
+                            "timeout" : "",
+                            "failure" : log["message"]
                         }
 //                        var tmpLog = log["start_time"] + " @" + log["user_name"] + log["type"] + " " + log["message"] + " " + log["status"]
 //                        tmpLog = "<label style='line-height: 21px;'>" + tmpLog + "</label><p id='compile_" + log["event_id"] + "' style='line-height: 21px;' onclick=\"do_logshow('" + log["event_id"] + "')\">显示日志</p>"
