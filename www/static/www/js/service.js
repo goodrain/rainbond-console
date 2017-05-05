@@ -199,11 +199,13 @@ function connectSocket(event_id,action) {
     }
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
-
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
-        console.log(evt.data);
+        if( evt.data == "ok" )
+        {
+            return;
+        }
         var m = JSON.parse(evt.data)
         var arr = m.time.split('.')[0];
         var time1 = arr.split('T')[0];
