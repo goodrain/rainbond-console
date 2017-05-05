@@ -6,7 +6,7 @@
     <input type="hidden" value="{{ serviceAlias }}" id="serviceAlias">
     <input type="hidden" value="{{ tenantServiceInfo.service_id }}" id="service_id">
     <input type="hidden" value="{{ tenantServiceInfo.tenant_id }}" id="tenant_id">
-
+    <input type="hidden" value="{{ event_websocket_uri }}" id="event_websocket_uri">
     <input type="hidden" value="{{tenantServiceInfo.service_alias}}" id="service_alias">
 
     <div class="appOutline">
@@ -228,6 +228,9 @@
                         <!--</div>-->
                     <!--</li>-->
                 </ul>
+                <p>
+                    <span data-num="2" class="load_more">加载更多</span>
+                </p>
             </div>
 	</section>
 
