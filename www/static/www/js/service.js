@@ -202,8 +202,8 @@ function connectSocket(event_id,action) {
 
     }
     ws.onmessage = function (evt) {
-        console.log(evt);
-        var m = jQuery.parseJSON(evt.data)
+        //var m = jQuery.parseJSON(evt.data)
+        var m = JSON.parse(evt.data)
         var arr = m.time.split('.')[0];
         var time1 = arr.split('T')[0];
         var time2 = arr.split('T')[1].split('Z')[0];
@@ -216,6 +216,7 @@ function connectSocket(event_id,action) {
             ws.close();
             if( m.status == "success" )
             {
+                console.log(action);
                 var str = type_json[action]+"成功";
                 $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-success");
             }
