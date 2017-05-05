@@ -174,10 +174,11 @@ margin-right: -15px;}
     border-radius:50px;
     color:#fff;
     box-shadow:inset 0px 0px 0px 2px #fff;}
-.panel-primary>.panel-heading{color: #303030;background-color: #fff;border:none;margin: 0;padding-top: 10px;padding-left: 10px;padding-bottom: 20px;width: 100%;}
+.panel-primary>.panel-heading{color: #303030;background-color: #fff;border:none;margin: 0;padding-top: 10px;padding-left: 10px;padding-bottom: 5px;width: 100%;}
 .panel-heading .user{float: right;}
+.panel-heading .user button{margin-top: 10px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
-#keylog .log{height: 0px;overflow: hidden;}
+#keylog .log{height: 20px;overflow: hidden;}
 #keylog .panel-body div.log_height{height: 300px !important;overflow-y: scroll !important;}
 #keylog .panel-body:before{width: 0px;
     height: 0px;
@@ -196,7 +197,7 @@ margin-right: -15px;}
 #keylog .bg-grey{background-color: #eedddc;}
 #keylog .panel div.log{padding-left: 10px;}
 #keylog .panel div.log p{line-height: 20px;}
-#keylog .panel div.user{float: right;text-align: right;padding-right: 10px;font-size: 14px;}
+#keylog .panel div.user{float: right;text-align: right;padding-right: 10px;font-size: 14px;margin-top: -10px;}
 #keylog .user p:nth-child(2){cursor: pointer;}
 #keylog .user .hide_log{cursor: pointer;display: none;}
 #keylog .load_more img{display: inline-block;width: 40px;height: 40px;cursor: pointer;}

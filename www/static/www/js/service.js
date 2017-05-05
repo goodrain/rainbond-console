@@ -153,6 +153,8 @@ function ajax_getLog(){
         }
         else{
             $(this).parents('.panel').find('.log').addClass('log_height');
+            $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"20px"});
+            $(this).parents('.panel').find('.log').css({"height":"0px"});
             $(this).html("收起");
         }
     });
@@ -228,6 +230,8 @@ function connectSocket(event_id,action) {
                 $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-danger");
                 var str = type_json[action]+"失败("+ m.message+")";
             }
+            $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"20px"});
+            $("#keylog li").eq(0).find('.log').css({"height":"0px"});
             $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
         }
     }
