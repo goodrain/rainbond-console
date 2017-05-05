@@ -567,9 +567,11 @@ function log_page(){
     $(".load_more").click(function(){
         var that = $(this);
         var num = $(this).attr("data-num");
+        var tenantName = $("#tenantName").val();
+        var serviceAlias = $("#serviceAlias").val();
         $.ajax({
             type: "GET",
-            url: "/ajax/{{tenantName}}/{{serviceAlias}}/events?page="+num,
+            url: "/ajax/"+tenantName+"/"+serviceAlias+"/events?page="+num,
             data: "action=operate",
             cache: false,
             beforeSend: function (xhr, settings) {
