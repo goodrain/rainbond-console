@@ -135,7 +135,29 @@ function createEvents(name, service, action) {
     }
     return ""
 }
-
+function ajax_getLog(){
+    $(".ajax_log").off('click');
+    $(".ajax_log").click(function(){
+        var event_id = $(this).attr("data-log");
+        do_logshow(event_id);
+        $(this).hide();
+        $(this).parent().find('.hide_log').show();
+        $(".log_" + event_id + "").addClass('log_height');
+    });
+    $(".hide_log").off('click');
+    $(".hide_log").click(function(){
+        var onOff = $(this).parents('.panel-body').find('.log').hasClass('log_height');
+        if(onOff)
+        {
+            $(this).parents('.panel-body').find('.log').removeClass('log_height');
+            $(this).html("展开");
+        }
+        else{
+            $(this).parents('.panel-body').find('.log').addClass('log_height');
+            $(this).html("收起");
+        }
+    });
+}
 var ws = null
 function connectSocket(event_id,action) {
     ws = new WebSocket("ws://test.goodrain.com:6364/event_log");
