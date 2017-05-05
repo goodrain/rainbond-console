@@ -346,6 +346,7 @@ var serviceAlias = $('#mytags').attr('service');
 
 $(document).ready(
     function () {
+        log_page();
         if ($('#git_branch').length) {
             $.ajax({
                 type: "get",
