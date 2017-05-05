@@ -176,7 +176,7 @@ margin-right: -15px;}
     box-shadow:inset 0px 0px 0px 2px #fff;}
 .panel-primary>.panel-heading{color: #303030;background-color: #fff;border:none;margin: 0;padding-top: 10px;padding-left: 10px;padding-bottom: 20px;width: 100%;}
 .panel-heading .user{float: right;}
-#keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;border-radius:10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;}
+#keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
 #keylog .log{height: 0px;overflow: hidden;}
 #keylog .panel-body div.log_height{height: 300px !important;overflow-y: scroll !important;}
 #keylog .panel-body:before{width: 0px;

@@ -108,7 +108,7 @@ function createEvents(name, service, action) {
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中</span><div class="user"><p>@'+event["user_name"];
-                str_log += '</p><p class="hide_log" style="display: block;">查看日志</p></div></div><div class="panel-body"><div class="log"></div></div></div></div></li>'
+                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: block;">查看日志</p></div></div><div class="panel-body"><div class="log log_'+event["event_id"]+'"></div></div></div></div></li>'
 
                 if( event["event_type"] == "deploy" )
                 {
