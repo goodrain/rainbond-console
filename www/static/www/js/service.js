@@ -301,7 +301,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
         swal("创建操作错误");
         return false
     }
-    connectSocket(event_id,"restart");
+    connectSocket(event_id,taction);
 
     $("#service_status_operate").attr('disabled', "true")
     $.ajax({
