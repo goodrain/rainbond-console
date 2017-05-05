@@ -572,7 +572,7 @@ function log_page(){
         $.ajax({
             type: "GET",
             url: "/ajax/"+tenantName+"/"+serviceAlias+"/events?page="+num,
-            data: "action=operate",
+            data: "",
             cache: false,
             beforeSend: function (xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
