@@ -112,7 +112,7 @@ function createEvents(name, service, action) {
 
                 if( event["event_type"] == "deploy" )
                 {
-                    str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-body"><div class="log" style="padding-top: 20px;"><p>当前版本('+event["old_deploy_version"]+')</p></div>';
+                    str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+event["old_deploy_version"]+')</span>';
                     str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+event["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
 
                 }
@@ -226,7 +226,7 @@ function connectSocket(event_id,action) {
                 $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-danger");
                 var str = type_json[action]+"失败";
             }
-            $("#keylog .panel").eq(0).find(".panel-heading").html(str);
+            $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
         }
     }
     ws.onclose = function (evt) {
