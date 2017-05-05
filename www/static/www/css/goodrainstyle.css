@@ -176,7 +176,7 @@ margin-right: -15px;}
     box-shadow:inset 0px 0px 0px 2px #fff;}
 .panel-primary>.panel-heading{color: #303030;background-color: #fff;border:none;margin: 0;padding-top: 10px;padding-left: 10px;padding-bottom: 5px;width: 100%;}
 .panel-heading .user{float: right;}
-.panel-heading .user button{margin-top: 4px;background-color: #fff;border: none;color: #28cb75;}
+.panel-heading .user button{margin-top: 4px;background-color: #fff;border: none;color: #28cb75;padding: 6px 0px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
 #keylog .log{height: 20px;overflow: hidden;}
 #keylog .panel-body div.log_height{height: 300px !important;overflow-y: scroll !important;}
