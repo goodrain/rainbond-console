@@ -124,7 +124,7 @@ margin-right: -15px;}
     .form-public-app .login-wrap{width: 100%; float: none;}
  }
 
-#keylog{background-color: #edeeed;border-radius:10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;padding-top: 20px;}
+#keylog{background-color: #edeeed;border-radius:10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;padding: 20px 0px;}
 #keylog .timeline{position:relative;}
 
 #keylog .timeline:before{
