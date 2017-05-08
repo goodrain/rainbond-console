@@ -38,7 +38,7 @@
                             <div class="form-group">
                                 <label class="col-sm-2">应用名称:</label>
                                 <div class="col-sm-8">
-                                    <input type="text" class="form-control app_name" placeholder="请输入发布应用名称" {% if service.category == "app_publish" %}readonly="readonly"{% endif %} maxlength="50" value="{% if service.category == "app_publish" %}{{published_service.app_alias}}{% else %}{{app_service.app_alias}}{% endif %}"/>
+                                    <input type="text" class="form-control app_name" placeholder="请输入发布应用名称" {% if service.category == "app_publish" and published_service.app_alias %}readonly="readonly"{% endif %} maxlength="50" value="{% if service.category == "app_publish" %}{{published_service.app_alias}}{% else %}{{app_service.app_alias}}{% endif %}"/>
                                 </div>
                             </div>
                         </div>
@@ -48,13 +48,13 @@
                             <div class="form-group">
                                 <label class="col-sm-2 control-label">版本号:</label>
                                 <div class="col-sm-8">
-                                    <input type="text" class="form-control app_version" name="app_version" placeholder="" {% if service.category == "app_publish" %}readonly="readonly"{% endif %} value="{% if service.category == "app_publish" %}{{published_service.app_version}}{% else %}{{app_service.app_version}}{% endif %}">
+                                    <input type="text" class="form-control app_version" name="app_version" placeholder="" {% if service.category == "app_publish" and published_service.app_version %}readonly="readonly"{% endif %} value="{% if service.category == "app_publish" %}{{published_service.app_version}}{% else %}{{app_service.app_version}}{% endif %}">
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label class="col-sm-2 control-label">更新说明:</label>
                                 <div class="col-sm-8">
-                                    <textarea class="form-control app_content" name="release_note" rows="3" maxlength="1024" {% if service.category == "app_publish" %}readonly="readonly"{% endif %}>{% if service.category == "app_publish" %}{{published_service.app_version}}{% else %}{{app_service.info}}{% endif %}</textarea>
+                                    <textarea class="form-control app_content" name="release_note" rows="3" maxlength="1024" {% if service.category == "app_publish" and published_service.info %}readonly="readonly"{% endif %}>{% if service.category == "app_publish" %}{{published_service.info}}{% else %}{{app_service.info}}{% endif %}</textarea>
                                 </div>
                             </div>
 
