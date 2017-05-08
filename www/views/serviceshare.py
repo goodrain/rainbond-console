@@ -626,13 +626,19 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         return self.redirect_to('/apps/{0}/{1}/share/step5'.format(self.tenantName, self.serviceAlias))
     
     def _create_publish_event(self, info):
-        event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
-                             tenant_id=self.tenant.tenant_id, type="share-" + info,
-                             deploy_version=self.service.deploy_version, old_deploy_version=self.service.deploy_version,
-                             user_name=self.user.nick_name, start_time=datetime.datetime.now())
-        event.save()
-        self.event = event
-        return event.event_id
+        
+        try:
+            event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
+                                 tenant_id=self.tenant.tenant_id, type="share-{0}".format(info),
+                                 deploy_version=self.service.deploy_version,
+                                 old_deploy_version=self.service.deploy_version,
+                                 user_name=self.user.nick_name, start_time=datetime.datetime.now())
+            event.save()
+            self.event = event
+            return event.event_id
+        except Exception as e:
+            self.event = None
+            raise e
     
     def upload_slug(self, app):
         """ 上传slug包 """
