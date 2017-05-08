@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from www.utils.crypt import make_uuid
 from www.tenantservice.baseservice import BaseTenantService
 from www.service_http import RegionServiceApi
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 baseService = BaseTenantService()
 regionClient = RegionServiceApi()
@@ -56,12 +57,19 @@ class EventManager(AuthedView):
         try:
             page_size = request.GET.get("page_size", 6)
             page = request.GET.get("page", 1)
-            start = (page - 1) * page_size
-            end = start + page_size
-            events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")[start:end]
+            
+            events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
+            paginator = Paginator(events, page_size)
+            try:
+                events = paginator.page(page)
+            except PageNotAnInteger:
+                # If page is not an integer, deliver first page.
+                events = paginator.page(1)
+            except EmptyPage:
+                # If page is out of range (e.g. 9999), deliver last page of results.
+                events = paginator.page(paginator.num_pages)
             reEvents = []
-            old_deploy_version = ""
-            for event in list(events):
+            for event in events.object_list:
                 eventRe = {}
                 eventRe["start_time"] = event.start_time
                 eventRe["end_time"] = event.end_time
@@ -76,7 +84,8 @@ class EventManager(AuthedView):
                 reEvents.append(eventRe)
             result = {}
             result["log"] = reEvents
-            result["num"] = len(reEvents)
+            result["has_next"] = events.has_next()
+            result["has_previous"] = events.has_previous()
             return JsonResponse(result, status=200)
         except Exception as e:
             logging.exception(e)
