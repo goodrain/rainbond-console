@@ -56,12 +56,12 @@ class EventManager(AuthedView):
         result = {}
         try:
             page_size = request.GET.get("page_size", 6)
-            page = request.GET.get("page", 1)
             start_index = request.GET.get("start_index", 0)
+            start_index = int(start_index)
             events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
             count = events.count()
             result = {}
-            if start_index + 1 > count:
+            if int(start_index + 1) > count:
                 result["has_next"] = False
                 result["log"] = {}
                 return JsonResponse(result, status=200)
