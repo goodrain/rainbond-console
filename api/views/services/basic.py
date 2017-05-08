@@ -411,7 +411,7 @@ class PublishServiceView(APIView):
                             service_id_list = json.loads(tmp_ids)
                             if len(service_id_list) > 0:
                                 # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
-                                service_list = AppService.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id).order_by("-ID").distinct("service_id")
+                                service_list = self.get_newest_published_service(service_id_list, tenant_id)
                                 tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
                                 service_category_map = {x.service_id: "self" if x.category == "application" else "other" for x in tenant_service_list}
                                 service_data = []
@@ -435,6 +435,14 @@ class PublishServiceView(APIView):
                 logger.error("publish service group failed!")
 
         return Response({"ok": True}, status=200)
+
+    def get_newest_published_service(self, service_id_list, tenant_id):
+        result = []
+        for service_id in service_id_list:
+            apps = AppService.objects.filter(service_id=service_id, tenant_id=tenant_id).order_by("-ID")
+            if apps:
+                result.append(apps[0])
+        return result
 
     def downloadImage(self, base_info):
         if base_info is None:

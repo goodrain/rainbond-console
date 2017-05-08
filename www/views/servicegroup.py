@@ -317,9 +317,16 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             for app in service_list:
                 # 非自研应用取出应用已发布的信息
                 if app.category == "app_publish":
-                    has_pubilshed = ServiceInfo.objects.filter(service_key=app.service_key,app_version=app.version)
+                    has_pubilshed = AppService.objects.filter(service_key=app.service_key,app_version=app.version)
                     if has_pubilshed:
                         has_published_map[app.service_id] = has_pubilshed[0]
+                    else:
+                        published_service = ServiceInfo.objects.filter(service_key=app.service_key,version=app.version)
+                        if published_service:
+                            ps = published_service[0]
+                            ps.app_version = ps.version
+                            ps.app_alias = ps.service_name
+                            has_published_map[app.service_id] = ps
             context.update({"service_list": service_list,
                             "app_service_map": app_service_map})
 
@@ -329,6 +336,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             context.update({"has_published_map":has_published_map})
         except Exception as e:
             logger.error("service group not exist")
+            logger.error(e)
             raise Http404
         return TemplateResponse(request,
                                 'www/service/groupShare_step_three.html',
