@@ -583,7 +583,7 @@ function log_page(){
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success: function (msg) {
-                that.attr("data-num",num++);
+                that.attr("data-num",num+1);
                 var dataObj = msg;
                 var showlog = ""
                 var logList = dataObj["log"];
