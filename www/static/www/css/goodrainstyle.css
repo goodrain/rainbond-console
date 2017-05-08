@@ -200,6 +200,7 @@ margin-right: -15px;}
 #keylog .panel div.user{float: right;text-align: right;padding-right: 10px;font-size: 14px;margin-top: -10px;}
 #keylog .user p:nth-child(2){cursor: pointer;}
 #keylog .user .hide_log{cursor: pointer;display: none;}
+#keylog .load_more{display: none;}
 #keylog .load_more img{display: inline-block;width: 40px;height: 40px;cursor: pointer;}
 @media (max-width: 768px) {
 

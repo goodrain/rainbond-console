@@ -586,7 +586,15 @@ function log_page(){
                 that.attr("data-num",num++);
                 var dataObj = msg;
                 var showlog = ""
-                var logList = dataObj["log"]
+                var logList = dataObj["log"];
+                var next_onOff = dataObj["has_next"];
+                if( next_onOff )
+                {
+                    $(".load_more").show();
+                }
+                else{
+                    $(".load_more").hide();
+                }
                 if (typeof(logList) != "undefined") {
                     var type_json = {
                         "deploy" : "部署",
