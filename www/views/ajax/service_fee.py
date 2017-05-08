@@ -130,7 +130,10 @@ class MemoryPayMethodView(AuthedView):
                                         "prepaid_money": need_money, "pay_status": "payed", "cost_type": "change_memory",
                                         "node_memory": self.service.min_memory, "node_num": self.service.min_node,
                                         "disk": 0, "buy_period": pay_period}
-                    ServiceFeeBill.objects.create(**service_fee_bill)
+                    sfb = ServiceFeeBill.objects.create(**service_fee_bill)
+                    sfb.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    sfb.pay_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    sfb.save()
                     service_attach_info.memory_pay_method = "prepaid"
                     if not is_period_hour:
                         if service_attach_info.pre_paid_period <= 0:
@@ -255,7 +258,10 @@ class DiskPayMethodView(AuthedView):
                                         "prepaid_money": need_pay_money, "pay_status": "payed", "cost_type": "change_disk",
                                         "node_memory": self.service.min_memory, "node_num": self.service.min_node,
                                         "disk": buy_disk*1024, "buy_period": pay_period}
-                    ServiceFeeBill.objects.create(**service_fee_bill)
+                    sfb = ServiceFeeBill.objects.create(**service_fee_bill)
+                    sfb.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    sfb.pay_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    sfb.save()
                     service_attach_info.disk_pay_method = "prepaid"
                     service_attach_info.disk = buy_disk*1024
                     if not is_period_hour:
@@ -403,7 +409,10 @@ class ExtendServiceView(AuthedView):
                                     "prepaid_money": need_pay_money, "pay_status": "payed", "cost_type": "extend",
                                     "node_memory": int(node_memory), "node_num": int(node_num),
                                     "disk": 0, "buy_period": 0}
-                ServiceFeeBill.objects.create(**service_fee_bill)
+                sfb = ServiceFeeBill.objects.create(**service_fee_bill)
+                sfb.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                sfb.pay_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                sfb.save()
                 if need_pay_money > 0:
                     self.tenant.balance = balance - Decimal(need_pay_money)
                     self.tenant.save()
@@ -493,7 +502,10 @@ class PrePaidPostponeView(AuthedView):
                                 "prepaid_money": need_money, "pay_status": "payed", "cost_type": "renew",
                                 "node_memory": service_attach_info.min_memory, "node_num": service_attach_info.min_node,
                                 "disk": service_attach_info.disk, "buy_period": extend_time * 30 * 24}
-            ServiceFeeBill.objects.create(**service_fee_bill)
+            sfb = ServiceFeeBill.objects.create(**service_fee_bill)
+            sfb.create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            sfb.pay_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            sfb.save()
             now = datetime.datetime.now()
             if service_attach_info.buy_end_time < now:
                 service_attach_info.buy_start_time = now

@@ -451,13 +451,15 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             sai.buy_end_time = endTime
             sai.create_time = create_time
             sai.pre_paid_money = appCreateService.get_estimate_service_fee(sai, self.response_region)
+            sai.region = self.response_region
             sai.save()
             # 创建预付费订单
             if sai.pre_paid_money > 0:
                 ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
                                               prepaid_money=sai.pre_paid_money, pay_status="unpayed",
                                               cost_type="first_create", node_memory=min_memory, node_num=min_node,
-                                              disk=disk, buy_period=pre_paid_period * 24 * 30)
+                                              disk=disk, buy_period=pre_paid_period * 24 * 30, create_time=create_time,
+                                              pay_time=create_time)
 
             if min_memory != "":
                 cm = int(min_memory)
