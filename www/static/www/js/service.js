@@ -200,6 +200,8 @@ function connectSocket(event_id,action) {
         "callback" : "回滚",
         "create" : "创建"
     }
+    var num = $(".load_more").attr("data-num");
+    $(".load_more").attr("data-num",parseInt(num)+1);
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
     }
@@ -571,101 +573,102 @@ function log_page(){
     $(".load_more").click(function(){
         var that = $(this);
         var num = $(this).attr("data-num");
+        console.log(num);
         var tenantName = $("#tenantName").val();
         var serviceAlias = $("#serviceAlias").val();
-        $.ajax({
-            type: "GET",
-            url: "/ajax/"+tenantName+"/"+serviceAlias+"/events?page="+num,
-            data: "",
-            cache: false,
-            beforeSend: function (xhr, settings) {
-                var csrftoken = $.cookie('csrftoken');
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function (msg) {
-                that.attr("data-num",parseInt(num)+1);
-                var dataObj = msg;
-                var showlog = ""
-                var logList = dataObj["log"];
-                var next_onOff = dataObj["has_next"];
-                if( next_onOff )
-                {
-                    $(".load_more").show();
-                }
-                else{
-                    $(".load_more").hide();
-                }
-                if (typeof(logList) != "undefined") {
-                    var type_json = {
-                        "deploy" : "部署",
-                        "restart" : "启动",
-                        "stop" : "关闭",
-                        "delete" : "删除",
-                        "HorizontalUpgrade" : "水平升级",
-                        "VerticalUpgrade" : "垂直升级",
-                        "callback" : "回滚",
-                        "create" : "创建"
-                    }
-                    var status_json = {
-                        "success" : "成功",
-                        "failure" : "失败",
-                        "timeout" : "超时"
-                    }
-                    var final_status_json = {
-                        "complate" : "完成",
-                        "timeout" : "超时"
-                    }
-                    var bg_color = {
-                        "success" : "bg-success",
-                        "failure" : "bg-danger",
-                        "timeout" : "bg-danger"
-                    }
-                    for (var i = 0; i < logList.length; i++) {
-                        var log = logList[i]
-                        if (i == 0 && (log["final_status"] == "")) {
-                            connectSocket(log["event_id"],log["type"]);
-                        }
-                        var arr = log["start_time"].split("T");
-                        var date = arr[0];
-                        var time = arr[1];
-                        var status;
-                        var color;
-                        if( log["final_status"] == "complete" )
-                        {
-                            status = status_json[log["status"]];
-                            color = bg_color[log["status"]];
-                        }
-                        else if( log["final_status"] == "timeout" ){
-                            status = final_status_json[log["final_status"]];
-                            color = 'bg-danger';
-                        }
-                        else{
-                            status = "进行中";
-                            color = 'bg-grey';
-                        }
-                        if( log["status"] == "failure" )
-                        {
-                            var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
-                        }
-                        else{
-                            var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
-                        }
-                        str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log log_'+log["event_id"]+'"></div></div></div></div></li>'
-                        if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
-                        {
-                            str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+log["old_deploy_version"]+')</span>';
-                            str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
-                        }
-                        $(str_log).appendTo($("#keylog ul"));
-                        ajax_getLog();
-                        callback_version();
-                    }
-                }
-            },
-            error: function () {
-                //swal("系统异常");
-            }
-        })
+        //$.ajax({
+        //    type: "GET",
+        //    url: "/ajax/"+tenantName+"/"+serviceAlias+"/events?start_index="+num,
+        //    data: "",
+        //    cache: false,
+        //    beforeSend: function (xhr, settings) {
+        //        var csrftoken = $.cookie('csrftoken');
+        //        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        //    },
+        //    success: function (msg) {
+        //        that.attr("data-num",parseInt(num)+1);
+        //        var dataObj = msg;
+        //        var showlog = ""
+        //        var logList = dataObj["log"];
+        //        var next_onOff = dataObj["has_next"];
+        //        if( next_onOff )
+        //        {
+        //            $(".load_more").show();
+        //        }
+        //        else{
+        //            $(".load_more").hide();
+        //        }
+        //        if (typeof(logList) != "undefined") {
+        //            var type_json = {
+        //                "deploy" : "部署",
+        //                "restart" : "启动",
+        //                "stop" : "关闭",
+        //                "delete" : "删除",
+        //                "HorizontalUpgrade" : "水平升级",
+        //                "VerticalUpgrade" : "垂直升级",
+        //                "callback" : "回滚",
+        //                "create" : "创建"
+        //            }
+        //            var status_json = {
+        //                "success" : "成功",
+        //                "failure" : "失败",
+        //                "timeout" : "超时"
+        //            }
+        //            var final_status_json = {
+        //                "complate" : "完成",
+        //                "timeout" : "超时"
+        //            }
+        //            var bg_color = {
+        //                "success" : "bg-success",
+        //                "failure" : "bg-danger",
+        //                "timeout" : "bg-danger"
+        //            }
+        //            for (var i = 0; i < logList.length; i++) {
+        //                var log = logList[i]
+        //                if (i == 0 && (log["final_status"] == "")) {
+        //                    connectSocket(log["event_id"],log["type"]);
+        //                }
+        //                var arr = log["start_time"].split("T");
+        //                var date = arr[0];
+        //                var time = arr[1];
+        //                var status;
+        //                var color;
+        //                if( log["final_status"] == "complete" )
+        //                {
+        //                    status = status_json[log["status"]];
+        //                    color = bg_color[log["status"]];
+        //                }
+        //                else if( log["final_status"] == "timeout" ){
+        //                    status = final_status_json[log["final_status"]];
+        //                    color = 'bg-danger';
+        //                }
+        //                else{
+        //                    status = "进行中";
+        //                    color = 'bg-grey';
+        //                }
+        //                if( log["status"] == "failure" )
+        //                {
+        //                    var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
+        //                }
+        //                else{
+        //                    var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
+        //                }
+        //                str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log log_'+log["event_id"]+'"></div></div></div></div></li>'
+        //                if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
+        //                {
+        //                    str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+log["old_deploy_version"]+')</span>';
+        //                    str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
+        //                }
+        //                $(str_log).appendTo($("#keylog ul"));
+        //                ajax_getLog();
+        //                callback_version();
+        //            }
+        //        }
+        //    },
+        //    error: function () {
+        //        //swal("系统异常");
+        //    }
+        //})
     });
 }
 

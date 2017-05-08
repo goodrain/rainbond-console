@@ -229,7 +229,7 @@
                     <!--</li>-->
                 </ul>
                 <p style="text-align: center;">
-                    <span data-num="2" class="load_more">
+                    <span data-num="0" class="load_more">
                         <img src="{% static "www/img/load_more_log.png" %}">
                     </span>
                 </p>
@@ -415,6 +415,7 @@
                 if( next_onOff )
                 {
                     $(".load_more").show();
+                    $(".load_more").attr("data-num",5);
                 }
                 if (typeof(logList) != "undefined") {
                     var type_json = {
