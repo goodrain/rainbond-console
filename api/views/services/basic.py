@@ -410,7 +410,8 @@ class PublishServiceView(APIView):
                             tmp_ids = app_service_group.service_ids
                             service_id_list = json.loads(tmp_ids)
                             if len(service_id_list) > 0:
-                                service_list = AppService.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
+                                # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
+                                service_list = AppService.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id).order_by("-ID").distinct("service_id")
                                 tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
                                 service_category_map = {x.service_id: "self" if x.category == "application" else "other" for x in tenant_service_list}
                                 service_data = []

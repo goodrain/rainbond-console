@@ -8,7 +8,7 @@ from django.http.response import HttpResponse, JsonResponse, Http404
 
 from www.views import AuthedView, LeftSideBarMixin
 from www.decorator import perm_required
-from www.models import TenantServicesPort, TenantServiceEnvVar
+from www.models import TenantServicesPort, TenantServiceEnvVar, ServiceInfo
 from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 # from www.servicetype import ServiceType
@@ -317,7 +317,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             for app in service_list:
                 # 非自研应用取出应用已发布的信息
                 if app.category == "app_publish":
-                    has_pubilshed = AppService.objects.filter(service_key=app.service_key,app_version=app.version)
+                    has_pubilshed = ServiceInfo.objects.filter(service_key=app.service_key,app_version=app.version)
                     if has_pubilshed:
                         has_published_map[app.service_id] = has_pubilshed[0]
             context.update({"service_list": service_list,
