@@ -68,6 +68,7 @@ class EventManager(AuthedView):
                 result["has_next"] = False
                 events = events[start_index:]
             else:
+                result["has_next"] = True
                 events = events[start_index:start_index + page_size]
             reEvents = []
             for event in list(events):
