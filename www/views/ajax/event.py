@@ -60,6 +60,7 @@ class EventManager(AuthedView):
             start_index = request.GET.get("start_index", 0)
             events = ServiceEvent.objects.filter(service_id=self.service.service_id).order_by("-start_time")
             count = events.count()
+            result = {}
             if start_index + 1 > count:
                 result["has_next"] = False
                 result["log"] = {}
@@ -84,7 +85,6 @@ class EventManager(AuthedView):
                 eventRe["deploy_version"] = event.deploy_version
                 eventRe["old_deploy_version"] = event.old_deploy_version
                 reEvents.append(eventRe)
-            result = {}
             result["log"] = reEvents
             return JsonResponse(result, status=200)
         except Exception as e:
