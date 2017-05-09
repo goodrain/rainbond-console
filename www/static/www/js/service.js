@@ -279,6 +279,7 @@ function connectSocket(event_id,action) {
         tmpLog = "<p>" + time1 + " " + time2 + m.message + "</p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
         $("#keylog .panel-heading").eq(0).css({"padding-bottom":"5px"});
+        $("#keylog .log").eq(0).css({"height":"20px"});
         $(tmpLog).prependTo($("#keylog .log").eq(0));
         if( m.step == "callback" || m.step == "last" )
         {
