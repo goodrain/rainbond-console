@@ -616,14 +616,18 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         except Exception as e:
             logger.exception(e)
             raise http.Http404
-        # region发送请求
-        if app.is_slug():
-            self.upload_slug(app)
-        elif app.is_image():
-            self.upload_image(app)
-        if not app.is_outer:
-            return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
-        return self.redirect_to('/apps/{0}/{1}/share/step5'.format(self.tenantName, self.serviceAlias))
+        try:
+            # region发送请求
+            if app.is_slug():
+                self.upload_slug(app)
+            elif app.is_image():
+                self.upload_image(app)
+            if not app.is_outer:
+                return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+            return self.redirect_to('/apps/{0}/{1}/share/step5'.format(self.tenantName, self.serviceAlias))
+        except Exception as e:
+            logger.exception(e)
+            raise http.HttpResponseServerError
     
     def _create_publish_event(self, info):
         
