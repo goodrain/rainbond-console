@@ -661,7 +661,6 @@ function log_page(){
     $(".load_more").click(function(){
         var that = $(this);
         var num = $(this).attr("data-num");
-        console.log(num);
         var tenantName = $("#tenantName").val();
         var serviceAlias = $("#serviceAlias").val();
         $.ajax({
@@ -723,6 +722,7 @@ function log_page(){
                         var time = arr[1];
                         var status;
                         var color;
+                        console.log(date,isToday(date));
                         if( log["final_status"] == "complete" )
                         {
                             status = status_json[log["status"]];
@@ -1200,7 +1200,6 @@ function payed_upgrade(tenantName, url) {
 function isToday(str){
     var d = new Date(str);
     var todaysDate = new Date();
-    console.log(todaysDate.setHours(0,0,0,0));
     if(d.setHours(0,0,0,0) == todaysDate.setHours(0,0,0,0)){
         return true;
     } else {
