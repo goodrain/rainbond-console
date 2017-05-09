@@ -677,6 +677,7 @@ function log_page(){
                 var showlog = ""
                 var logList = dataObj["log"];
                 var next_onOff = dataObj["has_next"];
+                that.attr("data-num",parseInt(num)+logList.length);
                 if( next_onOff )
                 {
                     $(".load_more").show();
@@ -712,7 +713,6 @@ function log_page(){
                         "timeout" : "bg-danger"
                     }
                     for (var i = 0; i < logList.length; i++) {
-                        that.attr("data-num",parseInt(num)+1);
                         var log = logList[i]
                         if (i == 0 && (log["final_status"] == "")) {
                             connectSocket(log["event_id"],log["type"]);
