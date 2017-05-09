@@ -291,6 +291,14 @@ function connectSocket(event_id,action) {
                 $("#keylog li").eq(0).find(".fa").removeClass("bg-grey").addClass("bg-danger");
                 var str = type_json[action]+"失败("+ m.message+")";
             }
+            if( action == "restart" )
+            {
+                $("#service_status_operate").css({"background-color":"#f63a47"});
+            }
+            else if( action == "stop" )
+            {
+                $("#service_status_operate").css({"background-color":"#28cb75"});
+            }
             $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"20px"});
             $("#keylog li").eq(0).find('.log').css({"height":"0px"});
             $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
