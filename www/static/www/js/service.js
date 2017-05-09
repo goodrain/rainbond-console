@@ -204,6 +204,7 @@ function connectSocket(event_id,action) {
     $(".load_more").attr("data-num",parseInt(num)+1);
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
+        console.log("连接");
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
