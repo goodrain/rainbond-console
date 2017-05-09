@@ -265,7 +265,6 @@ function connectSocket(event_id,action) {
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
-        console.log(evt);
         if( evt.data == "ok" )
         {
             return;
@@ -425,15 +424,17 @@ var serviceAlias = $('#mytags').attr('service');
 $(document).ready(
     function () {
         log_page();
-        var status = $("#service_status_operate").find("font").html();
-        console.log(status);
-        if( status == "关闭" )
-        {
-            $("#service_status_operate").css({"background-color":"#f63a47"});
-        }
-        else{
-            $("#service_status_operate").css({"background-color":"#28cb75"});
-        }
+        setTimeout(function(){
+            var status = $("#service_status_operate").find("font").html();
+            console.log(status);
+            if( status == "关闭" )
+            {
+                $("#service_status_operate").css({"background-color":"#f63a47"});
+            }
+            else{
+                $("#service_status_operate").css({"background-color":"#28cb75"});
+            }
+        },3000);
         if ($('#git_branch').length) {
             $.ajax({
                 type: "get",
