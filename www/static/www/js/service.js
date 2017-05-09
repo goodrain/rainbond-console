@@ -1192,7 +1192,7 @@ function isToday(str){
     var d = new Date(str);
     var todaysDate = new Date();
     console.log(todaysDate.setHours(0,0,0,0));
-    if(d == todaysDate.setHours(0,0,0,0)){
+    if(d.setHours(0,0,0,0) == todaysDate.setHours(0,0,0,0)){
         return true;
     } else {
         return false;
