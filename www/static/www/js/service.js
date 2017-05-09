@@ -208,13 +208,13 @@ function ajax_getLog(){
         var onOff = $(this).parents('.panel').find('.log').hasClass('log_height');
         if(onOff)
         {
-            $(this).parents('.panel').find('.log').removeClass('log_height');
+            $(this).parents('li').find('.log').removeClass('log_height');
             $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"20px"});
             $(this).parents('.panel').find('.log').css({"height":"0px"});
             $(this).html("查看日志");
         }
         else{
-            $(this).parents('.panel').find('.log').addClass('log_height');
+            $(this).parents('li').find('.log').addClass('log_height');
             $(this).html("收起");
         }
     });
@@ -1190,6 +1190,7 @@ function payed_upgrade(tenantName, url) {
 }
 function isToday(str){
     var d = new Date(str);
+    console.log(new Date());
     if(d == new Date()){
         return true;
     } else {
