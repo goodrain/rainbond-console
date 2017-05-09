@@ -204,6 +204,7 @@
             <input type="hidden" name="service_name" id="service_name" value="{{tenantServiceInfo.service_alias}}"/>
             <div id="keylog">
                 <ul class="timeline list-unstyled">
+                    <span class="today_log">今天</span>
                     <!--<li>-->
                         <!--<time class="tl-time">-->
                             <!--<h4>23:15</h4>-->
@@ -473,7 +474,7 @@
                         }
                         if( isToday(date) )
                         {
-                            var str_log = '<li><time class="tl-time"><h4>今天</h4><p>'+time+'</p></time>';
+                            var str_log = '<li><time class="tl-time"><h4>'+time+'</h4></time>';
                         }
                         else{
                             var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time>';
@@ -538,7 +539,7 @@
                     var time = newLog[i]["time"].split('.')[0];
                     var time1 = time.split('T')[0];
                     var time2 = time.split('T')[1].split('Z')[0];
-                    log = "<p>"+time2+" :"+newLog[i]["message"]+"</p>";
+                    log = "<p>"+time2+" "+newLog[i]["message"]+"</p>";
                     $(".log_" + event_id + "").prepend(log);
                 }
 //                var address = location.href.split("?");

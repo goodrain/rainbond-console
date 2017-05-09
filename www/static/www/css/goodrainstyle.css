@@ -126,7 +126,7 @@ margin-right: -15px;}
 
 #keylog{background-color: #edeeed;border-radius:10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;padding: 20px 0px;}
 #keylog .timeline{position:relative;}
-
+#keylog .timeline .today_log{font-size: 20px;position: absolute;top: 0px;left: 100px;color: #999;}
 #keylog .timeline:before{
     content:"";
     position:absolute;
@@ -135,39 +135,20 @@ margin-right: -15px;}
     left:210px;
     background-color:#CCC;}
 
-#keylog .timeline li{
-    position:relative;
-    margin-top:30px;
-    margin-bottom:30px;}
+#keylog .timeline li{position:relative;margin-top:30px;margin-bottom:30px;}
 
-#keylog .timeline li .panel{
-    margin:0px;
-    display:inline-block;
-    width: 90%;
-}
+#keylog .timeline li .panel{margin:0px;display:inline-block;width: 90%;}
 
-#keylog .timeline li .panel-body:after{
-    clear:none;}
-
-#keylog .timeline .tl-time{
-    display:inline-block;
-    width:150px;
-    text-align:right;
-    float:left;}
-
-#keylog .timeline .tl-time h3{
-    margin-top:0px;}
-
-#keylog .timeline .tl-content{
-    margin-left:250px;}
-
-
-
+#keylog .timeline li .panel-body:after{clear:none;}
+#keylog .timeline .tl-time{display:inline-block;width:150px;text-align:right;float:left;}
+#keylog .timeline .tl-time h4{font-size: 20px;margin-top:0px;}
+#keylog .timeline .tl-time p{font-size: 16px;}
+#keylog .timeline .tl-content{margin-left:250px;}
 #keylog .timeline .tl-icon{
     position:absolute;
     font-size:28px;
     margin-left:51px;
-    margin-top: 15px;
+    margin-top: 5px;
     width: 20px;
     height: 20px;
     border:3px solid #ccc;
@@ -190,7 +171,7 @@ margin-right: -15px;}
     display: block;
     position: absolute;
     left: -15px;
-    top: 10px;
+    top: 0px;
 }
 #keylog .bg-success{background-color: #28cb75;}
 #keylog .bg-danger{background-color: #da4f49;}
