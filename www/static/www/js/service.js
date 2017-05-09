@@ -209,7 +209,7 @@ function ajax_getLog(){
         if(onOff)
         {
             $(this).parents('li').find('.log').removeClass('log_height');
-            $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"20px"});
+            $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"10px"});
             $(this).parents('.panel').find('.log').css({"height":"0px"});
             $(this).html("查看日志");
         }
@@ -303,13 +303,13 @@ function connectSocket(event_id,action) {
             {
                 $("#service_status_operate").css({"background-color":"#28cb75"});
             }
-            $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"20px"});
+            $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"10px"});
             $("#keylog li").eq(0).find('.log').css({"height":"0px"});
             $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
         }
     }
     ws.onclose = function (evt) {
-        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"20px"});
+        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"10px"});
         console.log("连接关闭");
         ajax_getLog();
     }
