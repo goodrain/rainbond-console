@@ -425,6 +425,14 @@ var serviceAlias = $('#mytags').attr('service');
 $(document).ready(
     function () {
         log_page();
+        var status = $("#service_status_operate").find("font").html();
+        if( status == "关闭" )
+        {
+            $("#service_status_operate").css({"background-color":"#f63a47"});
+        }
+        else{
+            $("#service_status_operate").css({"background-color":"#28cb75"});
+        }
         if ($('#git_branch').length) {
             $.ajax({
                 type: "get",
