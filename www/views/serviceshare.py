@@ -671,6 +671,7 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
                 self.event.status = "failure"
                 self.event.save()
             logger.exception(e)
+            raise e
     
     def upload_image(self, app):
         """ 上传image镜像 """
@@ -696,6 +697,7 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
                 self.event.status = "failure"
                 self.event.save()
             logger.exception(e)
+            raise e
 
 
 class ShareServiceStep5View(LeftSideBarMixin, AuthedView):
