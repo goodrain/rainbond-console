@@ -5636,6 +5636,8 @@ a.guest-on i {
 
 /* mach domain */
 .domain-box{}
+.domain-box p{padding-bottom: 5px;}
+.domain-box p span{width: 80%; display: inline-block;}
 .showlink-box{width: 100%; height: 100%; position: relative;}
 .newtab tr td .domain-box span{display:inline-block;}
 .domain-layer{ position: absolute;background: #fff; border:1px #ddd solid; padding:10px; left:0px; bottom:0px; display: none; min-width: 230px;}
@@ -5675,7 +5677,7 @@ a.guest-on i {
 .content-box{background: #fff;  -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px; margin:0;}
 .tit-two span{color: #838383; font-size: 14px; padding-left: 20px;}
 
-.content-tab{background: #fff; margin:0 0 30px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;}
+.content-tab{background: #fff; margin:0 0 30px; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; padding:30px;text-align: center;}
 .content-tab table{width: 100%;}
 .content-tab table thead th{background: #f7f7f7; height: 40px; color: #303030; padding-left: 10px; font-weight: 100; font-size: 16px; text-align: left; border:0 none;}
 .content-tab table tbody td{height: 60px; color: #838383; font-size: 14px; padding:0 10px; text-align: left; vertical-align: middle; font-weight: 0; word-wrap:break-word; word-break:break-all;}
@@ -5758,7 +5760,7 @@ i{font-style: normal; }
 
 .krfs{}
 .krfs div{float: left; line-height: 30px;}
-.krfs div:nth-child(3n){ width: 15%;  padding-left: 10px;}
+.krfs div:nth-child(3n){ width: 10%;  padding-left: 10px;}
 .krfs div:nth-child(3n+1){width: 70px;}
 .krfs div:nth-child(3n+2){width: 10%;}
 

@@ -83,10 +83,10 @@
 										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown" id="service_visitor" onclick='visit("{{ port.container_port }}")'>访问</button>
 										{% endfor %}
 									{% else %}
-										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown">访问</button>
+										<button type="button" class="bgColor dropdown-toggle" data-toggle="dropdown">访问<span class="caret"></span></button>
 										<ul class="dropdown-menu" role="menu">
 										{% for port in http_outer_service_ports %}
-											<li><a href="javascript:void(0)" onclick='visit("{{ port.container_port }}")'>{{ port.container_port }}</a></li>
+											<li><a href="javascript:void(0)" onclick='visit("{{ port.container_port }}")'>{{ port.container_port }}端口</a></li>
 										{% endfor %}
 									{% endif %}
 								{% else %}
@@ -148,7 +148,7 @@
 					-->
 					{% endif %}
 					{% endifequal %}
-					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' %}
+					{% if user.is_sys_admin or docker_console or tenantName == 'gooood' or tenantName == 'gooood0' or tenantName == 'baoxianjie' or tenantName == 'showmac' or tenantName == 'jamesocy' %}
 					<li class="button">
 						<div class="btn-group">
 							<button type="button" name="join_container" class="bgColor dropdown-toggle" data-toggle="dropdown"  id="join_container" onclick="join_container();"/> 管理容器 <span class="caret"></span></button>
@@ -163,7 +163,7 @@
 					{% if 'manage_service' in user.actions %}
 					<li class="button">
 						<input type="hidden" id="service_status_value" name="service_status_value" value="" />
-						<button type="button" class="bgColor" style="background-color: #f63a47" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
+						<button type="button" class="bgColorred" id="service_status_operate" onclick="service_onOperation('{{tenantServiceInfo.service_id}}','{{tenantServiceInfo.service_alias}}','{{tenantName}}');" ><font id="font{{tenantServiceInfo.service_id}}">关闭</font></button>
 					</li>
 					{% endif %}
 
@@ -198,7 +198,7 @@
 				</div>
 		</div>
 	</section>
-		
+
 </div>
 <!-- deployed end-->
 <div class="layer-body-bg">
@@ -239,13 +239,12 @@
 				if(obj["status"]!="failure"){
 					if(obj["status"]=="running"){
 						$("#service_status_value").val("stop")
-						$("#font"+service_id).html("关闭")
-						$("#service_status_operate").show()
+						$("#font"+service_id).html("关闭");
+						$("#service_status_operate").show().css({"backgroundColor":"#f63a47"});
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#service_status").html("运行中")
 						$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline0.png")
-						$("#service_status_operate").show()
 						$("#service_visitor").show()
 						if(port_length != "1"){
 							$("#multi_ports").show();
@@ -254,28 +253,26 @@
 					}else if(obj["status"]=="starting"){
 						$("#service_status_value").val("stop")
 						$("#font"+service_id).html("关闭")
-						$("#service_status_operate").show()
+						$("#service_status_operate").show().css({"backgroundColor":"#f63a47"});
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#service_status").html("启动中")
-						$("#service_status_operate").show()
 						$("#service_status").attr("class","text-center")
 						$("#service_visitor").hide()
 						$("#multi_ports").hide()
 					}else if(obj["status"]=="unusual"){
 						$("#service_status_value").val("")
 						$("#font"+service_id).html("启动")
-						$("#service_status_operate").show()
+						$("#service_status_operate").show().css({"backgroundColor":"#28cb75"});
 						$("#onekey_deploy").show();
 						$("#service_status").html("运行异常")
-						$("#service_status_operate").show()
 						$("#service_visitor").hide();
 						$("#multi_ports").hide()
 						$("#service_status").attr("class","text-center")
 					}else if(obj["status"]=="closed" || obj["status"]=="Owed" || obj["status"]=="expired"){
 						$("#service_status_value").val("restart")
 						$("#font"+service_id).html("启动")
-						$("#service_status_operate").show()
+						$("#service_status_operate").show().css({"backgroundColor":"#28cb75"});
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#multi_ports").hide()
@@ -289,7 +286,6 @@
 							$("#service_status").attr("class","text-center")
 							$("#multi_ports").hide()
 						}
-						$("#service_status_operate").show()
 						$("#service_visitor").hide();
 						$("#multi_ports").hide()
 					}else if(obj["status"]=="undeploy"){
@@ -299,7 +295,6 @@
 						$("#onekey_deploy").show()
 						$("#onekey_deploy").removeAttr("disabled")
 						$("#service_status").html("未部署")
-						$("#service_status_operate").hide();
 						$("#service_visitor").hide();
 						$("#service_status").attr("class","text-center")
 						$("#multi_ports").hide()
@@ -309,7 +304,6 @@
 						$("#service_status_operate").hide()
 						$("#onekey_deploy").hide();
 						$("#service_status").html("未知")
-						$("#service_status_operate").hide()
 						$("#service_visitor").hide();
 						$("#service_status").attr("class","text-center")
 						$("#multi_ports").hide()
@@ -440,7 +434,22 @@
    				}
    			}
     		}
-   		var connect = new extPushWebSocketConnect('{{websocket_uri}}');
+		var is_community = "{{community}}";
+		var websocket_uri = "{{websocket_uri}}";
+
+		if (is_community == "True"){
+			var host_name = window.location.hostname
+			var is_https = 'https:' == document.location.protocol ? true : false;
+			if (is_https){
+				websocket_uri = "wss://"+host_name+":6060/websocket";
+			}
+			else{
+				websocket_uri = "ws://"+host_name+":6060/websocket";
+			}
+
+		}
+		console.log(websocket_uri);
+   		var connect = new extPushWebSocketConnect(websocket_uri);
    		connect.init(new extPushWebSocketClient(),service_id, "submsg", "submsg","123456789","987654321");
     	});
 
@@ -783,4 +792,3 @@
 		});
 	})
 </script>
-

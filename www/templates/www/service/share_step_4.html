@@ -11,7 +11,7 @@
 {% block main-content %}
 <section class="wrapper site-min-height">
     <p><span style="font-size: 22px; font-weight: 200; line-height: 30px; color: #28cb75; padding-top: 15px;" id="appname">{{tenantServiceInfo.service_cname}}</span></p>
-     <header class="panel-heading ">
+     <header class="panel-heading "style="display: none">
             <ul class="nav nav-tabs" id="nav-tabs">
                 <li {% if fr = "deployed" %} class="active" {% endif %}>
                     <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=deployed">概览</a>
@@ -61,7 +61,6 @@
     
     <h2 class="main-tit ">设置应用套餐</h2>
     <div class="content-tab">
-        
         <form class="form-horizontal" action="" method="post" id="package_form">
             {% csrf_token %}
             <input type="hidden" id="tenant_name" name="tenant_name" value="{{tenant_name}}"/>

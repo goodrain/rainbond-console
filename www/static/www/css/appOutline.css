@@ -69,6 +69,19 @@ button{
     -moz-border-radius: 6px;
     line-height: 36px;
 }
+.alternative ul button.bgColorred{
+    text-align: center;
+    vertical-align: middle;
+    background-color: #f63a47;
+    color: #ffffff;
+    padding:0 30px;
+    font-size: 14px;
+    font-weight: 100;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    line-height: 36px;
+}
 .alternative ul a.bgColor{
     display: block;
 }

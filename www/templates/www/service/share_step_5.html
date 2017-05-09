@@ -1,0 +1,35 @@
+{% extends 'www/raster.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load goodrain_extras %}
+{% block extracss %}
+{{ block.super }}
+<link rel="stylesheet" href='{% static "www/css/setbox.css" %}' />
+{% endblock %}
+
+{% block main-content %}
+<section class="wrapper site-min-height">
+    <p><span style="font-size: 22px; font-weight: 200; line-height: 30px; color: #28cb75; padding-top: 15px;" id="appname">{{tenantServiceInfo.service_cname}}</span></p>
+    <!-- -->
+    
+    <h2 class="main-tit ">编辑发布应用</h2>
+    <div class="content-tab">
+        <p style="font-size: 18px;">您的应用已分享成功，管理员正在审核。请耐心等待</p>
+        <p>
+            您可以选择<a href="/apps/{{tenantName}}/{{serviceAlias}}/detail">返回</a>应用概览页或到云市继续<a href="http://app.goodrain.com/console/{{tenantName}}/publish/">编辑</a>已发布应用信息
+        </p>
+    </div>
+    
+</section>
+{% endblock %}
+
+
+{% block extrajs %}
+<script type="text/javascript" src='{% static "www/js/jquery.cookie.js" %}'></script>
+<script type="text/javascript">
+    $(function () {
+
+    });
+</script>
+{% endblock %}
