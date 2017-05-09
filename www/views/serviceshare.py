@@ -627,7 +627,7 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             return self.redirect_to('/apps/{0}/{1}/share/step5'.format(self.tenantName, self.serviceAlias))
         except Exception as e:
             logger.exception(e)
-            raise http.HttpResponseServerError
+            return HttpResponse(status=500, content=e.__str__())
     
     def _create_publish_event(self, info):
         
