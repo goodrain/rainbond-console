@@ -426,6 +426,7 @@ $(document).ready(
     function () {
         log_page();
         var status = $("#service_status_operate").find("font").html();
+        console.log(status);
         if( status == "关闭" )
         {
             $("#service_status_operate").css({"background-color":"#f63a47"});
