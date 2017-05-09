@@ -736,12 +736,20 @@ function log_page(){
                             status = "进行中";
                             color = 'bg-grey';
                         }
-                        if( log["status"] == "failure" )
+                        if( isToday(date) )
                         {
-                            var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
+                            var str_log = '<li><time class="tl-time"><h4>'+time+'</h4></time>';
+                            $(".today_log").show();
                         }
                         else{
-                            var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
+                            var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time>';
+                        }
+                        if( log["status"] == "failure" )
+                        {
+                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
+                        }
+                        else{
+                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
                         }
                         str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log log_'+log["event_id"]+'"></div></div></div></div></li>'
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
