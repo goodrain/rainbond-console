@@ -126,7 +126,7 @@ margin-right: -15px;}
 
 #keylog{background-color: #edeeed;border-radius:10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;padding: 20px 0px;}
 #keylog .timeline{position:relative;}
-#keylog .timeline .today_log{font-size: 20px;position: absolute;top: 0px;left: 100px;color: #999;}
+#keylog .timeline .today_log{font-size: 20px;position: absolute;top: 0px;left: 100px;color: #999;display: none;}
 #keylog .timeline:before{
     content:"";
     position:absolute;
