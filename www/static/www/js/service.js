@@ -161,7 +161,9 @@ function createEvents(name, service, action) {
                     "HorizontalUpgrade" : "水平升级",
                     "VerticalUpgrade" : "垂直升级",
                     "callback" : "回滚",
-                    "create" : "创建"
+                    "create" : "创建",
+                    "share-ys" : "分享到云市",
+                    "share-yb" : "分享到云帮"
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4><p>'+date+'</p></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中</span><div class="user"><p>@'+event["user_name"];
@@ -255,17 +257,17 @@ function connectSocket(event_id,action) {
         "HorizontalUpgrade" : "水平升级",
         "VerticalUpgrade" : "垂直升级",
         "callback" : "回滚",
-        "create" : "创建"
+        "create" : "创建",
+        "share-ys" : "分享到云市",
+        "share-yb" : "分享到云帮"
     }
     var num = $(".load_more").attr("data-num");
     $(".load_more").attr("data-num",parseInt(num)+1);
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
-        console.log("连接");
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
-        console.log(evt);
         if( evt.data == "ok" )
         {
             return;
@@ -425,14 +427,16 @@ var serviceAlias = $('#mytags').attr('service');
 $(document).ready(
     function () {
         log_page();
-        var status = $("#service_status_operate").find("font").html();
-        if( status == "关闭" )
-        {
-            $("#service_status_operate").css({"background-color":"#f63a47"});
-        }
-        else{
-            $("#service_status_operate").css({"background-color":"#28cb75"});
-        }
+        setTimeout(function(){
+            var status = $("#service_status_operate").find("font").html();
+            if( status == "关闭" )
+            {
+                $("#service_status_operate").css({"background-color":"#f63a47"});
+            }
+            else{
+                $("#service_status_operate").css({"background-color":"#28cb75"});
+            }
+        },2000);
         if ($('#git_branch').length) {
             $.ajax({
                 type: "get",
@@ -686,7 +690,9 @@ function log_page(){
                         "HorizontalUpgrade" : "水平升级",
                         "VerticalUpgrade" : "垂直升级",
                         "callback" : "回滚",
-                        "create" : "创建"
+                        "create" : "创建",
+                        "share-ys" : "分享到云市",
+                        "share-yb" : "分享到云帮"
                     }
                     var status_json = {
                         "success" : "成功",
