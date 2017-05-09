@@ -443,6 +443,7 @@
                         "timeout" : "bg-danger"
                     }
                     for (var i = 0; i < logList.length; i++) {
+                        var num = $(".load_more").attr("data-num");
                         $(".load_more").attr("data-num",parseInt(num)+1);
                         var log = logList[i]
                         if (i == 0 && (log["final_status"] == "")) {
