@@ -300,3 +300,15 @@ class AppServiceGroup(BaseModel):
     installable = models.BooleanField(default=True, blank=True, help_text=u"发布到云市后是否允许安装")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     update_time = models.DateTimeField(auto_now_add=True, help_text=u"更新时间")
+
+
+class PublishedGroupServiceRelation(BaseModel):
+    """分享的服务组和服务的关系"""
+
+    class Meta:
+        db_table = "publish_group_service_relation"
+
+    group_pk = models.IntegerField(max_length=10)
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
+    version = models.CharField(max_length=20, help_text=u"当前最新版本")
