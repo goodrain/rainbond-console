@@ -12,7 +12,6 @@ from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 from www.servicetype import ServiceType
 from www.utils import sn
-import datetime
 from www.models import *
 
 import logging
@@ -632,6 +631,7 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
     def _create_publish_event(self, info):
         
         try:
+            import datetime
             event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
                                  tenant_id=self.tenant.tenant_id, type="share-{0}".format(info),
                                  deploy_version=self.service.deploy_version,
