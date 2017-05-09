@@ -5771,8 +5771,8 @@ i{font-style: normal; }
 .roundloading{
     -webkit-animation-fill-mode: both;
     animation-fill-mode: both;
-     -webkit-animation: rotate 0.75s 0s linear infinite;
-          animation: rotate 0.75s 0s linear infinite;
+     -webkit-animation: rotate 1.5s 0s linear infinite;
+          animation: rotate 1.5s 0s linear infinite;
 }
 
 @-webkit-keyframes rotate {
