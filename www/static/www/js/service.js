@@ -24,7 +24,6 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 			var dataObj = msg;
 			if (dataObj["status"] == "success") {
 				swal("操作成功")
-				$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline7.png").addClass("roundloading");
 			} else if (dataObj["status"] == "owed") {
 				swal("余额不足请及时充值")
 			} else if (dataObj["status"] == "expired") {
@@ -36,7 +35,6 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 				window.open(forurl, target = "_parent")
 			} else if (dataObj["status"] == "often") {
 				swal("部署正在进行中，请稍后")
-				$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline7.png").addClass("roundloading");
 			} else if (dataObj["status"] == "over_memory") {
 				swal("资源已达上限，不能升级")
 			} else if (dataObj["status"] == "over_money") {
