@@ -260,10 +260,15 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
         swal("系统异常");
         window.location.href = window.location.href;
     }
+    event_id = createEvents(tenantName, service_alias, taction)
+    if (event_id == "") {
+        swal("创建操作错误");
+        return false;
+    }
     $.ajax({
         type: "POST",
         url: "/ajax/" + tenantName + "/" + service_alias + "/manage",
-        data: "service_id=" + service_id + "&action=" + taction,
+        data: "service_id=" + service_id + "&action=" + taction + "&event_id=" + event_id,
         cache: false,
         beforeSend: function (xhr, settings) {
             var csrftoken = $.cookie('csrftoken');
@@ -272,7 +277,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
         success: function (msg) {
             var dataObj = msg
             if (dataObj["status"] == "success") {
-                swal("操作成功")
+                swal.close();
             } else if (dataObj["status"] == "often") {
                 swal("操作正在进行中，请稍后")
             } else if (dataObj["status"] == "owed") {
@@ -306,7 +311,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
     event_id = createEvents(tenantName, service_alias, taction)
     if (event_id == "") {
         swal("创建操作错误");
-        return false
+        return false;
     }
     connectSocket(event_id,taction);
 
@@ -323,7 +328,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
         success: function (msg) {
             var dataObj = msg
             if (dataObj["status"] == "success") {
-                swal("操作成功")
+                swal.close();
             } else if (dataObj["status"] == "often") {
                 swal("操作正在进行中，请稍后")
             } else if (dataObj["status"] == "owed") {
@@ -426,7 +431,7 @@ function domainSubmit(action, service_id, tenantName, service_alias, port_name, 
         success: function (msg) {
             var dataObj = msg
             if (dataObj["status"] == "success") {
-                swal("操作成功")
+                swal.close();
                 if (window.location.href.indexOf("fr=") < 0) {
                     window.location.href = window.location.href
                         + "?fr=settings";
@@ -714,7 +719,7 @@ function delete_service(tenantName, service_alias) {
                 success: function (msg) {
                     var dataObj = msg;
                     if (dataObj["status"] == "success") {
-                        swal("操作成功");
+                        swal.close();
                         window.location.href = "/apps/" + tenantName
                     } else if (dataObj["status"] == "often") {
                         swal("上次操作正在进行中，稍后再试")
@@ -768,7 +773,7 @@ function buid_relation(action, curServiceName, depServiceName, tenantName) {
         success: function (msg) {
             var dataObj = msg
             if (dataObj["status"] == "success") {
-                swal("操作成功")
+                swal.close();
                 if (window.location.href.indexOf("fr=") < 0) {
                     window.location.href = window.location.href
                         + "?fr=relations";
@@ -913,7 +918,7 @@ function buid_mnt(action, curServiceName, depServiceName, tenantName) {
         success: function (msg) {
             var dataObj = msg
             if (dataObj["status"] == "success") {
-                swal("操作成功")
+                swal("操作成功");
                 if (window.location.href.indexOf("fr=") < 0) {
                     window.location.href = window.location.href
                         + "?fr=relations";
