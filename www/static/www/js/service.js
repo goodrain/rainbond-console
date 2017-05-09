@@ -89,7 +89,7 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
         success: function (msg) {
             var dataObj = msg;
             if (dataObj["status"] == "success") {
-                swal("操作成功");
+                swal.close();
             } else if (dataObj["status"] == "owed") {
                 swal("余额不足请及时充值")
             } else if (dataObj["status"] == "expired") {
@@ -336,7 +336,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
         success: function (msg) {
             var dataObj = msg
             if (dataObj["status"] == "success") {
-                swal.close();
+                swal("操作成功");
             } else if (dataObj["status"] == "often") {
                 swal("操作正在进行中，请稍后")
             } else if (dataObj["status"] == "owed") {
