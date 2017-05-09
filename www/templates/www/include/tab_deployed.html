@@ -529,12 +529,12 @@
                     var time = newLog[i]["time"].split('.')[0];
                     var time1 = time.split('T')[0];
                     var time2 = time.split('T')[1].split('Z')[0];
-                    log = "<p>"+time1+" "+time2+ ":" + newLog[i]["message"]+"</p>";
+                    log = "<p>"+" "+time2+ ":" + newLog[i]["message"]+"</p>";
                     $(".log_" + event_id + "").prepend(log);
                 }
-                var address = location.href.split("?");
-                var more = '<a href="' + address[0] + '?fr=log' + '" style="text-decoration: underline">更多日志</a>';
-                $(".log_" + event_id + "").append(more);
+//                var address = location.href.split("?");
+//                var more = '<a href="' + address[0] + '?fr=log' + '" style="text-decoration: underline">更多日志</a>';
+//                $(".log_" + event_id + "").append(more);
                 //
             },
             error: function () {

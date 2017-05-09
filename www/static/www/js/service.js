@@ -278,7 +278,7 @@ function connectSocket(event_id,action) {
         var time2 = arr.split('T')[1].split('Z')[0];
         tmpLog = "<p>" + time1 + " " + time2 + m.message + "</p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
-
+        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"5px"});
         $(tmpLog).prependTo($("#keylog .log").eq(0));
         if( m.step == "callback" || m.step == "last" )
         {
@@ -307,6 +307,7 @@ function connectSocket(event_id,action) {
         }
     }
     ws.onclose = function (evt) {
+        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"20px"});
         console.log("连接关闭");
     }
     ws.onerror = function (evt) {
