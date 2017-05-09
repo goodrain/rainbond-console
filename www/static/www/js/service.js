@@ -208,7 +208,7 @@ function connectSocket(event_id,action) {
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
-        console.log(evt,data);
+        console.log(evt);
         if( evt.data == "ok" )
         {
             return;
