@@ -200,7 +200,8 @@ function ajax_getLog(){
         do_logshow(event_id);
         $(this).hide();
         $(this).parent().find('.hide_log').show();
-        $(".log_" + event_id + "").addClass('log_height');
+        //$(".log_" + event_id + "").addClass('log_height');
+        $(this).parents('li').find('.log').addClass('log_height');
     });
     $(".hide_log").off('click');
     $(".hide_log").click(function(){
@@ -276,7 +277,7 @@ function connectSocket(event_id,action) {
         var arr = m.time.split('.')[0];
         var time1 = arr.split('T')[0];
         var time2 = arr.split('T')[1].split('Z')[0];
-        tmpLog = "<p>" + time1 + " " + time2 + m.message + "</p>";
+        tmpLog = "<p>" + time2 + m.message + "</p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
         $("#keylog .panel-heading").eq(0).css({"padding-bottom":"5px"});
         $("#keylog .log").eq(0).css({"height":"20px"});
@@ -1187,6 +1188,13 @@ function payed_upgrade(tenantName, url) {
         }
     });
 }
-
+function isToday(str){
+    var d = new Date(str);
+    if(d == new Date()){
+        return true;
+    } else {
+        return false;
+    }
+}
 
 
