@@ -415,7 +415,7 @@
                 if( next_onOff )
                 {
                     $(".load_more").show();
-                    $(".load_more").attr("data-num",5);
+//                    $(".load_more").attr("data-num",6);
                 }
                 if (typeof(logList) != "undefined") {
                     var type_json = {
@@ -443,6 +443,7 @@
                         "timeout" : "bg-danger"
                     }
                     for (var i = 0; i < logList.length; i++) {
+                        $(".load_more").attr("data-num",parseInt(num)+1);
                         var log = logList[i]
                         if (i == 0 && (log["final_status"] == "")) {
                             connectSocket(log["event_id"],log["type"]);
