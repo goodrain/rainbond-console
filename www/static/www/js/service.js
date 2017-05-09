@@ -261,7 +261,6 @@ function connectSocket(event_id,action) {
     $(".load_more").attr("data-num",parseInt(num)+1);
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
-        console.log("连接");
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
@@ -426,7 +425,6 @@ $(document).ready(
         log_page();
         setTimeout(function(){
             var status = $("#service_status_operate").find("font").html();
-            console.log(status);
             if( status == "关闭" )
             {
                 $("#service_status_operate").css({"background-color":"#f63a47"});
@@ -434,7 +432,7 @@ $(document).ready(
             else{
                 $("#service_status_operate").css({"background-color":"#28cb75"});
             }
-        },3000);
+        },2000);
         if ($('#git_branch').length) {
             $.ajax({
                 type: "get",
