@@ -5768,35 +5768,34 @@ i{font-style: normal; }
 .rolebox select.form-control,.rolebox input{width: 10%; float: left; height: 30px; line-height: 30px;}
 .rolebox span{line-height: 30px; padding-right: 5px; float: left;}
 
-.roundloading{-webkit-animation:change 2s linear infinite; -moz-animation:change 2s linear infinite; animation:change 2s linear infinite;}
-@-webkit-keyframes change
-{
-　　0%{-webkit-transform:rotate(0deg);}
-
-　　50%{-webkit-transform:rotate(180deg);}
-
-　　100%{-webkit-transform:rotate(360deg);}
+.roundloading{
+    -webkit-animation-fill-mode: both;
+    animation-fill-mode: both;
+     -webkit-animation: rotate 0.75s 0s linear infinite;
+          animation: rotate 0.75s 0s linear infinite;
 }
 
-@keyframes change
-{
-　　0%{-webkit-transform:rotate(0deg);}
+@-webkit-keyframes rotate {
+  0% {
+    -webkit-transform: rotate(0deg);
+            transform: rotate(0deg); }
+  50% {
+    -webkit-transform: rotate(180deg);
+            transform: rotate(180deg); }
+  100% {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg); } }
 
-　　50%{-webkit-transform:rotate(180deg);}
-
-　　100%{-webkit-transform:rotate(360deg);}
-}
-
-@-moz-keyframes change
-{
-　　0%{-webkit-transform:rotate(0deg);}
-
-　　50%{-webkit-transform:rotate(180deg);}
-
-　　100%{-webkit-transform:rotate(360deg);}
-}
-
-
+@keyframes rotate {
+  0% {
+    -webkit-transform: rotate(0deg);
+            transform: rotate(0deg); }
+  50% {
+    -webkit-transform: rotate(180deg);
+            transform: rotate(180deg); }
+  100% {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg); } }
 
 
 
