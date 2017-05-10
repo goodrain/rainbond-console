@@ -284,6 +284,7 @@ function connectSocket(event_id,action) {
         $("#keylog .log").eq(0).css({"height":"30px"});
         $("#keylog .ajax_log").eq(0).hide();
         $("#keylog .hide_log").eq(0).show();
+        $("#keylog .log_type").eq(0).hide();
         $(tmpLog).prependTo($("#keylog .log_content").eq(0));
         if( m.step == "callback" || m.step == "last" )
         {
