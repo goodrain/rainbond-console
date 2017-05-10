@@ -430,11 +430,7 @@
                     for (var i = 0; i < logList.length; i++) {
                         var num = $(".load_more").attr("data-num");
                         $(".load_more").attr("data-num",parseInt(num)+1);
-                        var log = logList[i]
-                        if (i == 0 && (log["final_status"] == "")) {
-                            $("#keylog .log_type").eq(0).hide();
-                            connectSocket(log["event_id"],log["type"]);
-                        }
+                        var log = logList[i];
                         var arr = log["start_time"].split("T");
                         var date = arr[0];
                         var time = arr[1];
@@ -480,6 +476,11 @@
                             str_log += '<div class="user"><button class="btn callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
                         }
                         $(str_log).appendTo($("#keylog ul"));
+                        if (i == 0 && (log["final_status"] == "")) {
+                            $("#keylog .log_type").eq(0).hide();
+                            $("#keylog .hide_log").eq(0).html("查看日志");
+                            connectSocket(log["event_id"],log["type"]);
+                        }
                         ajax_getLog();
                         callback_version();
                     }
