@@ -973,6 +973,7 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 		                }
 		            },
 		            error : function() {
+		            	$("#servenLayer").remove();
 		                swal("系统异常");
 		            }
 		        });
