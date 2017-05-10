@@ -198,6 +198,7 @@ function ajax_getLog(){
         $(this).parent().find('.hide_log').show();
         //$(".log_" + event_id + "").addClass('log_height');
         $(this).parents('li').find('.log').addClass('log_height');
+        $(this).parents('li').find('.log_content').addClass('log_height2');
     });
     $(".hide_log").off('click');
     $(".hide_log").click(function(){
@@ -207,7 +208,7 @@ function ajax_getLog(){
             $(this).parents('li').find('.log').removeClass('log_height');
             $(this).parents('li').find('.ajax_log').show();
             $(this).hide();
-            $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"10px"});
+            $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"0px"});
             $(this).parents('.panel').find('.log').css({"height":"0px"});
         }
         else{
@@ -304,13 +305,13 @@ function connectSocket(event_id,action) {
             {
                 $("#service_status_operate").css({"background-color":"#28cb75"});
             }
-            $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"10px"});
+            $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"0px"});
             $("#keylog li").eq(0).find('.log').css({"height":"0px"});
             $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
         }
     }
     ws.onclose = function (evt) {
-        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"10px"});
+        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"0px"});
         console.log("连接关闭");
         ajax_getLog();
     }
