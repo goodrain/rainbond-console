@@ -966,10 +966,10 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 		            },
 		            success : function(data) {
 		                $("#servenLayer").remove();
-		                if(data.status == "failure"){
-		                	swal("设置失败！");
-		                }else{
+		                if(data.status == "success"){
 		                	swal("设置成功！");
+		                }else{
+		                    swal("设置失败！");
 		                }
 		            },
 		            error : function() {
