@@ -5798,6 +5798,34 @@ i{font-style: normal; }
             transform: rotate(360deg); } }
 
 
+.servenlayer{position: absolute; top: 20%; left: 50%; width:320px; margin: 0 0 0 -160px; z-index: 1050; background: #fff; padding:10px;}
+.onoffbox{margin-bottom: 10px;}
+.onoffbox span{color: #333; font-size: 16px; float: left; width: 60px; line-height: 30px;}
+
+input.checkhide{float: left;}
+label.checkshow{width:56px; height: 28px; background: url('../images/checkbg.png') no-repeat;   display: block; float: left; margin:2px 5px 0 0;}
+input.checkhide:checked+label.checkshow{width:56px; height: 28px;  background: url('../images/checked.png') no-repeat;  display: block; float: left; margin:2px 5px 0 0;}
+
+#headpbox{max-height:120px; overflow-y: auto; }
+
+.headarrbox{background: #f5f5f5; padding:10px; margin-bottom: 20px;}
+.domainbox {margin-bottom: 10px;}
+.domainbox span{width:56px; display: block; float: left; color: #333; line-height: 30px;}
+.domainbox input{width: 65%;border: 1px #ddd solid; height: 30px; line-height: 30px; border-radius: 0;}
+.headertit{line-height: 30px; margin-bottom: 10px; color: #333;}
+.headertit span{width:56px; display: block; float: left;}
+.headertit cite{width: 30%; display: inline-block; margin:0 5px 0 0; float: left; text-align: center;}
+.headertit  a{width: 26px; height: 26px;  background: #fff; color: #28cb75; border: 1px #28cb75 solid; border-radius: 13px; float: left; text-align: center; line-height:26px; font-size: 24px; margin-top: 2px;}
+.headerp{ padding-bottom: 10px;}
+.headerp span{width:56px; display: block; float: left; color: #333; line-height: 30px;}
+.headerp input{width: 30%; display: inline-block; margin:0 5px 0 0; float: left; border: 1px #ddd solid; height: 30px; line-height: 30px; border-radius: 0;}
+.servenbtn{text-align: center; padding-top: 10px;}
+
+.fusingbox span{color: #333; font-size: 16px; float: left; width: 60px; line-height: 30px;}
+.fusingbox select{height: 30px; line-height: 30px;}
+.servenbtn a{display: inline-block; margin:10px;}
+.graybtn{height: 30px; line-height: 30px; color: #666; padding: 0 30px;  margin: 0 10px 0 0; display: inline-block; background: #ccc; font-size: 14px; -moz-border-radius: 6px; -webkit-border-radius: 6px; border-radius: 6px; border: 0;}
+.graybtn:hover{color: #333;}
 
 
 
