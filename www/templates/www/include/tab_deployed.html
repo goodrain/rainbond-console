@@ -606,10 +606,10 @@
                     $("#status_areas li").width("25%");
             }
     }
-    function do_logshow(event_id) {
+    function do_logshow(event_id,log_type) {
         $.ajax({
             type: "GET",
-            url: "/ajax/{{tenantName}}/{{serviceAlias}}/event/" + event_id + "/log?level=debug",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/event/" + event_id + "/log?level="+log_type,
             cache: false,
             beforeSend: function (xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
