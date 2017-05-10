@@ -165,7 +165,7 @@ margin-right: -15px;}
 #keylog .log .log_type label{margin: 0px 20px;padding: 5px 10px;border: 1px solid #ececec;cursor: pointer;}
 #keylog .log .log_type label.active{border: 1px solid #28cb75;}
 #keylog .panel-body div.log_height{height: 300px !important;overflow-y: scroll !important;}
-#keylog .panel-body div.log_height{height: 260px !important;overflow-y: scroll !important;}
+#keylog .panel-body div.log_height2{height: 260px !important;overflow-y: scroll !important;}
 #keylog .panel-body:before{
     width: 0px;
     height: 0px;
