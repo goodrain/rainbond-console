@@ -220,6 +220,7 @@ function ajax_getLog(){
     });
     $(".log_type label").off('click');
     $(".log_type label").click(function(){
+        $(this).addClass('active').siblings('label').removeClass('active');
         var event_id = $(this).parents('li').find('.ajax_log').attr("data-log");
         do_logshow(event_id,$(this).html());
     });
