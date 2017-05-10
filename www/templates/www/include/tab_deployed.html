@@ -178,6 +178,7 @@
                             </li>
                             {% endif %}
 
+
                             <!--<li class="button">-->
                             <!--<button class="bgColor">重启</button>-->
                             <!--</li>-->
@@ -257,6 +258,7 @@
     </div>
 </div>
 <script>
+
     var service_id = '{{tenantServiceInfo.service_id}}'
     String.prototype.trim = function () {
         return this.replace(/(^\s*)|(\s*$)/g, "");
@@ -362,6 +364,111 @@
     /**
      * 处理应用上一小时费用状态
      * @param msg
+
+	var service_id='{{tenantServiceInfo.service_id}}'
+	String.prototype.trim = function() {
+	    return this.replace(/(^\s*)|(\s*$)/g, "");
+	}
+	function checkStatus(){
+		var port_length = $("#port_length").val()
+		$.ajax({
+			type: "GET",
+			url: "/ajax/{{tenantName}}/{{serviceAlias}}/detail/",
+			cache: false,
+			beforeSend: function(xhr, settings){
+				var csrftoken = $.cookie('csrftoken');
+				xhr.setRequestHeader("X-CSRFToken", csrftoken);
+			},
+			success: function(msg) {
+				var obj=msg;
+				if(obj["status"]!="failure"){
+					if(obj["status"]=="running"){
+						$("#service_status_value").val("stop")
+						$("#font"+service_id).html("关闭");
+						$("#service_status_operate").show().css({"backgroundColor":"#f63a47"});
+						$("#onekey_deploy").show()
+						$("#onekey_deploy").removeAttr("disabled")
+						$("#service_status").html("运行中")
+						$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline0.png").addClass("roundloading");
+						$("#service_visitor").show()
+						if(port_length != "1"){
+							$("#multi_ports").show();
+						}
+						$("#service_status").attr("class","text-center")
+					}else if(obj["status"]=="starting"){
+						$("#service_status_value").val("stop")
+						$("#font"+service_id).html("关闭")
+						$("#service_status_operate").show().css({"backgroundColor":"#f63a47"});
+						$("#onekey_deploy").show()
+						$("#onekey_deploy").removeAttr("disabled")
+						$("#service_status").html("启动中")
+						$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline7.png").addClass("roundloading");
+						$("#service_status").attr("class","text-center")
+						$("#service_visitor").hide()
+						$("#multi_ports").hide()
+					}else if(obj["status"]=="unusual"){
+						$("#service_status_value").val("")
+						$("#font"+service_id).html("启动")
+						$("#service_status_operate").show().css({"backgroundColor":"#28cb75"});
+						$("#onekey_deploy").show();
+						$("#service_status").html("运行异常")
+						$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline1.png").removeClass("roundloading");
+						$("#service_visitor").hide();
+						$("#multi_ports").hide()
+						$("#service_status").attr("class","text-center")
+					}else if(obj["status"]=="closed" || obj["status"]=="Owed" || obj["status"]=="expired"){
+						$("#service_status_value").val("restart")
+						$("#font"+service_id).html("启动")
+						$("#service_status_operate").show().css({"backgroundColor":"#28cb75"});
+						$("#onekey_deploy").show()
+						$("#onekey_deploy").removeAttr("disabled")
+						$("#multi_ports").hide()
+						if(obj["status"]=="closed"){
+							$("#service_status").html("已关闭")
+							$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline1.png").removeClass("roundloading");
+							$("#service_status").attr("class","text-center")
+							$("#multi_ports").hide()
+						}else{
+							$("#service_status").html("余额不足已关闭")
+							$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline1.png").removeClass("roundloading");
+							$("#service_status").attr("class","text-center")
+							$("#multi_ports").hide()
+						}
+						$("#service_visitor").hide();
+						$("#multi_ports").hide()
+					}else if(obj["status"]=="undeploy"){
+						$("#service_status_value").val("")
+						$("#font"+service_id).html("未部署")
+						$("#service_status_operate").hide();
+						$("#onekey_deploy").show()
+						$("#onekey_deploy").removeAttr("disabled")
+						$("#service_status").html("未部署")
+						$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline1.png").removeClass("roundloading");
+						$("#service_visitor").hide();
+						$("#service_status").attr("class","text-center")
+						$("#multi_ports").hide()
+					}else{
+						$("#service_status_value").val("")
+						$("#font"+service_id).html("未知")
+						$("#service_status_operate").hide()
+						$("#onekey_deploy").hide();
+						$("#service_status").html("未知")
+						$("#service_status-img").attr("src","/static/www/img/appOutline/appOutline1.png").removeClass("roundloading");
+						$("#service_visitor").hide();
+						$("#service_status").attr("class","text-center")
+						$("#multi_ports").hide()
+					}
+				}
+				processServicePayStatus(obj)
+			},
+			error: function(){
+				//swal("系统异常");
+			}
+		})
+	}
+	/**
+	 * 处理应用上一小时费用状态
+	 * @param msg
      */
     function processServicePayStatus(msg) {
         var pay_status = msg["service_pay_status"];

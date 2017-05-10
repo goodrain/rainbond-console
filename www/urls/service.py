@@ -19,6 +19,8 @@ from www.views.serviceshare import *
 from www.views.consume import *
 from  www.views.servicemonitor import *
 from www.views.third_app import *
+from www.views.servicegroup import *
+from www.group_services_view import *
 
 urlpatterns = patterns(
     '',
@@ -41,7 +43,9 @@ urlpatterns = patterns(
     url(r'^/service/$', login_required(ServiceMarket.as_view())),
     
     url(r'^/service-deploy/$', login_required(ServiceMarketDeploy.as_view())),
-    
+
+    url(r'^/group-deploy/$', login_required(GroupServiceDeployView.as_view())),
+
     url(r'^/team/$', TeamInfo.as_view()),
     
     url(r'^/(?P<serviceAlias>[\w\-]+)/detail/?$', login_required(TenantService.as_view())),
@@ -74,6 +78,13 @@ urlpatterns = patterns(
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/step5$', ShareServiceStep5View.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/package$', ShareServicePackageView.as_view()),
     url(r'^/(?P<serviceAlias>[\w\-]+)/share/images$', ShareServiceImageView.as_view()),
+
+    # new service group share
+    url(r'^/(?P<groupId>[\w\-]+)/preview/$', ServiceGroupSharePreview.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/first/$', ServiceGroupShareOneView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/second/$', ServiceGroupShareTwoView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/third/$', ServiceGroupShareThreeView.as_view()),
+
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),
     
@@ -95,5 +106,9 @@ urlpatterns = patterns(
     url(r'/third_app/list', login_required(ThirdAppListView.as_view())),
     url(r'/(?P<app_bucket>[\w\-]+)/orders$', ThirdAppOrdersListView.as_view()),
     url(r'/(?P<app_bucket>[\w\-]+)/orders_data$', ThirdAppOrdersListDataView.as_view()),
+    # group service install
+    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step1/$', login_required(GroupServiceDeployStep1.as_view())),
+    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step2/$', login_required(GroupServiceDeployStep2.as_view())),
+    url(r'^/group-deploy/(?P<groupId>[\w\-]+)/step3/$', login_required(GroupServiceDeployStep3.as_view())),
 )
 

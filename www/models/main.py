@@ -465,6 +465,10 @@ class TenantServiceInfo(BaseModel):
         else:
             return self.git_url
 
+    def is_slug(self):
+        # return bool(self.image.startswith('goodrain.me/runner'))
+        return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
+
 
 class TenantServiceInfoDelete(BaseModel):
     class Meta:
@@ -1075,3 +1079,14 @@ class ServiceEvent(BaseModel):
     deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
     old_deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
     code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
+
+class GroupCreateTemp(BaseModel):
+    class Meta:
+        db_table = 'group_create_temp'
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
+    share_group_id = models.IntegerField(help_text=u"服务组发布id")
+    service_group_id = models.IntegerField(help_text=u"服务所属组")
+    service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
+

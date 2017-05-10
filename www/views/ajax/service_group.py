@@ -75,6 +75,7 @@ class DeleteGroupView(LeftSideBarMixin, AuthedView):
 class UpdateServiceGroupView(LeftSideBarMixin, AuthedView):
     """修改服务所在的组"""
 
+    @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         group_id = request.POST.get("group_id", "")
         service_id = request.POST.get("service_id", "")
@@ -96,6 +97,7 @@ class UpdateServiceGroupView(LeftSideBarMixin, AuthedView):
 class BatchActionView(LeftSideBarMixin, AuthedView):
     """批量操作(批量启动,批量停止,批量部署)"""
 
+    @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action", None)
         service_ids = request.POST.get("service_ids", None)
