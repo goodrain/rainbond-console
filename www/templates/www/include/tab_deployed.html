@@ -472,7 +472,7 @@
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
                         {
                             var version = log["old_deploy_version"];
-                            if( log["old_code_version"] != "" )
+                            if( log["old_code_version"] )
                             {
                                 version = log["old_code_version"];
                             }
