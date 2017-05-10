@@ -424,7 +424,7 @@
                     }
                     if( logList.length == 0 )
                     {
-                        var str = '<p style="text-align: center;">平台升级历史日志暂时无法提供<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
+                        var str = '<p style="text-align: center;font-size: 18px;">平台升级历史日志暂时无法提供<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
                         $(str).appendTo($("#keylog ul"));
                     }
                     for (var i = 0; i < logList.length; i++) {
@@ -468,7 +468,7 @@
                         else{
                             str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+' @'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log" data-log="'+log["event_id"];
                         }
-                        str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type"><label class="active">info</label><label>debug</label><label>error</label></p><div class="log_content log_'+log["event_id"]+'"></div></div></div></div></div></li>'
+                        str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type"><label class="active" data-log="info">Info日志</label><label data-log="debug">Debug日志</label><label data-log="error">Error日志</label></p><div class="log_content log_'+log["event_id"]+'"></div></div></div></div></div></li>'
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
                         {
                             var version = log["old_deploy_version"];
@@ -525,7 +525,7 @@
                 var newLog = dataObj["data"];
                 if( newLog.length == 0 )
                 {
-                    var str = '<p style="text-align: center;margin-top: 100px;">暂无日志<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
+                    var str = '<p style="text-align: center;margin-top: 100px;font-size: 18px;">暂无日志<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
                     $(".log_" + event_id + "").prepend(str);
                 }
                 for (i = 0; i < newLog.length; i++) {
