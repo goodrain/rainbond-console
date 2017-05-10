@@ -243,7 +243,7 @@
                                     {% for domain_name in serviceDomainDict|mkey:port.container_port %}
                                         <p>
                                             <span>{{ domain_name }}</span>
-                                            <button type="button" class="port-cancel btn redbtn btn-xs"
+                                            <button type="button" style="display: inline-block; background: #fff; border: 0 none; color: red;"
                                                     onclick="domainSubmit('close','{{ tenantServiceInfo.service_id }}','{{ tenantName }}','{{ tenantServiceInfo.service_alias }}','{{ port.container_port }}','{{ domain_name }}')">
                                                 解绑
                                             </button>
@@ -349,7 +349,7 @@
             <div class="krfs clearfix">
                 {% ifequal tenantServiceInfo.category "application" %}
                     <div class="tit">扩容方式</div>
-                    <div class="">
+                    <div class="" style="width: 20%;">
                         <select name="extend_method" id="extend_method" class="form-control m-bot15">
                             {% for key,extend in extends_choices.iteritems %}
                                 {% if key == tenantServiceInfo.extend_method %}

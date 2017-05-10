@@ -3,6 +3,7 @@ from django.http import JsonResponse
 
 from www.views import AuthedView
 from www.models import ServiceRule, TenantServicesPort
+from www.decorator import perm_required
 
 import logging
 
@@ -10,6 +11,7 @@ logger = logging.getLogger('default')
 
 
 class ServiceRuleManage(AuthedView):
+    @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         """
         增加规则
@@ -83,6 +85,7 @@ class ServiceRuleManage(AuthedView):
 
 
 class ServiceRuleUpdate(AuthedView):
+    @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         
         """
@@ -130,6 +133,7 @@ class ServiceRuleUpdate(AuthedView):
 
 
 class ServiceRuleUpdateStatus(AuthedView):
+    @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         
         """
@@ -158,6 +162,7 @@ class ServiceRuleUpdateStatus(AuthedView):
 
 
 class ServiceRuleDelete(AuthedView):
+    @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         
         """
