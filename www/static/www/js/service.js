@@ -209,13 +209,15 @@ function ajax_getLog(){
         if(onOff)
         {
             $(this).parents('li').find('.log').removeClass('log_height');
+            $(this).parents('li').find('.ajax_log').show();
+            $(this).hide();
             $(this).parents('.panel').find('.panel-heading').css({"padding-bottom":"10px"});
             $(this).parents('.panel').find('.log').css({"height":"0px"});
-            $(this).html("查看日志");
         }
         else{
             $(this).parents('li').find('.log').addClass('log_height');
-            $(this).html("收起");
+            $(this).parents('li').find('.ajax_log').hide();
+            $(this).show();
         }
     });
 }
