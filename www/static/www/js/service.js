@@ -193,6 +193,7 @@ function ajax_getLog(){
     $(".ajax_log").off('click');
     $(".ajax_log").click(function(){
         var event_id = $(this).attr("data-log");
+        $(".log_"+event_id).html('');
         do_logshow(event_id);
         $(this).hide();
         $(this).parent().find('.hide_log').show();
@@ -280,7 +281,7 @@ function connectSocket(event_id,action) {
         tmpLog = "<p>" + time2+" "+ m.message + "</p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
         $("#keylog .panel-heading").eq(0).css({"padding-bottom":"5px"});
-        $("#keylog .log").eq(0).css({"height":"20px"});
+        $("#keylog .log").eq(0).css({"height":"30px"});
         $(tmpLog).prependTo($("#keylog .log_content").eq(0));
         if( m.step == "callback" || m.step == "last" )
         {

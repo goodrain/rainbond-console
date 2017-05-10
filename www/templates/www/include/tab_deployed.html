@@ -523,7 +523,7 @@
     function do_logshow(event_id) {
         $.ajax({
             type: "GET",
-            url: "/ajax/{{tenantName}}/{{serviceAlias}}/event/" + event_id + "/log?level=info",
+            url: "/ajax/{{tenantName}}/{{serviceAlias}}/event/" + event_id + "/log?level=debug",
             cache: false,
             beforeSend: function (xhr, settings) {
                 var csrftoken = $.cookie('csrftoken');
