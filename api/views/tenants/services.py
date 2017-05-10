@@ -462,3 +462,48 @@ class ServiceEventUpdate(APIView):
             data["status"] = "failure"
             status = 500
         return Response(data, status=status)
+
+
+class ServiceEventCodeVersionUpdate(APIView):
+    allowed_methods = ('put',)
+    
+    def put(self, request, format=None):
+        """
+
+        更新服务操作状态
+        ---
+        parameters:
+            - name: event_id
+              description: 操作ID
+              required: true
+              type: string
+              paramType: form
+            - name: code_version
+              description: 代码版本
+              required: false
+              type: string
+              paramType: form
+        """
+        data = {}
+        status = 200
+        try:
+            event_id = request.data.get("event_id", "")
+            if not event_id:
+                data["status"] = "failure"
+                status = 404
+                return Response(data, status=status)
+            code_version = request.data.get("code_version", "")
+            event = ServiceEvent.objects.get(event_id=event_id)
+            if event:
+                event.code_version = code_version
+                event.save()
+                data["status"] = "success"
+        except ServiceEvent.DoesNotExist:
+            data["status"] = "failure"
+            status = 404
+        except Exception as e:
+            logger.exception(e)
+            logger.error("api", u"更新操作结果发生错误." + e.message)
+            data["status"] = "failure"
+            status = 500
+        return Response(data, status=status)

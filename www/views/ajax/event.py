@@ -30,13 +30,20 @@ class EventManager(AuthedView):
                         result["status"] = "often"
                         return JsonResponse(result, status=200)
                 old_deploy_version = last_event.deploy_version
-            
             action = request.POST["action"]
             event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
                                  tenant_id=self.tenant.tenant_id, type=action,
                                  deploy_version=self.service.deploy_version, old_deploy_version=old_deploy_version,
                                  user_name=self.user.nick_name, start_time=datetime.datetime.now())
             event.save()
+            old_code_version = ""
+            if action == "deploy":
+                last_all_deploy_event = ServiceEvent.objects.filter(service_id=self.service.service_id,
+                                                                    type="deploy").order_by("-start_time")
+                if last_all_deploy_event.count() > 0:
+                    last_deploy_event = last_all_deploy_event[0:1]
+                    old_code_version = last_deploy_event.code_version
+            
             result["status"] = "success"
             result["event"] = {}
             result["event"]["event_id"] = event.event_id
@@ -44,6 +51,7 @@ class EventManager(AuthedView):
             result["event"]["event_type"] = event.type
             result["event"]["event_start_time"] = event.start_time
             result["event"]["old_deploy_version"] = old_deploy_version
+            result["event"]["old_code_version"] = old_code_version
             return JsonResponse(result, status=200)
         except Exception as e:
             

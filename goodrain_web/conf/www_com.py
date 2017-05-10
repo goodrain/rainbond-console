@@ -103,9 +103,9 @@ WEBSOCKET_URL = {
 }
 
 EVENT_WEBSOCKET_URL = {
-    'ali-sh': 'wss://event-ali-sh.goodrain.com:6364/event_log',
-    'xunda-bj': 'wss://event-xunda-bj.goodrain.com:6364/event_log',
-    'aws-jp-1': 'wss://event-aws-jp-1.goodrain.com:6364/event_log',
+    'ali-sh': 'wss://event-ali-sh.goodrain.com:6363/event_log',
+    'xunda-bj': 'wss://event-xunda-bj.goodrain.com:6363/event_log',
+    'aws-jp-1': 'wss://event-aws-jp-1.goodrain.com:6363/event_log',
     "test-ali": "ws://test.goodrain.com:6364/event_log"
 }
 

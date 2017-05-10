@@ -4,7 +4,7 @@ from api.views.services import SelectedServiceView, PublishServiceView, \
     ReceiveServiceView, QueryServiceView, QueryTenantView
 from api.views.tenants.services import TenantServiceStaticsView, TenantHibernateView, TenantView, AllTenantView, \
     GitCheckCodeView, \
-    UpdateServiceExpireTime, ServiceEventUpdate
+    UpdateServiceExpireTime, ServiceEventUpdate,ServiceEventCodeVersionUpdate
 from api.views.tenants import move
 from api.views.rules import *
 
@@ -31,5 +31,6 @@ urlpatterns = patterns(
     url(r'^rules/(?P<service_region>[\w\-]+)$', RulesController.as_view()),
     url(r'^rules/(?P<rule_id>[\w\-]+)/instance$', InstanceManager.as_view()),
     url(r'^services/(?P<service_id>[\w\-]+)/info$', ServiceInfo.as_view()),
-    url(r'^event/update$', ServiceEventUpdate.as_view())
+    url(r'^event/update$', ServiceEventUpdate.as_view()),
+    url(r'^event/update-code$', ServiceEventCodeVersionUpdate.as_view()),
 )

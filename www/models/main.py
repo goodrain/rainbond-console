@@ -1074,3 +1074,4 @@ class ServiceEvent(BaseModel):
     message = models.CharField(max_length=200, help_text=u"操作说明")
     deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
     old_deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
+    code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
