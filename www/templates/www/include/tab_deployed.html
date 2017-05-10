@@ -449,6 +449,7 @@
                         var log = logList[i]
                         if (i == 0 && (log["final_status"] == "")) {
                             connectSocket(log["event_id"],log["type"]);
+                            $("#keylog li").eq(0).find('.log_type').hide();
                         }
                         var arr = log["start_time"].split("T");
                         var date = arr[0];
