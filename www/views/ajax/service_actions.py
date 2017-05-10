@@ -573,7 +573,7 @@ class L7ServiceSet(AuthedView):
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
         result = {
-            'cricuit':1025
+            'cricuit':1024
         }
         self.dep_service_id = request.GET.get("dep_service_id", None)
         try:
