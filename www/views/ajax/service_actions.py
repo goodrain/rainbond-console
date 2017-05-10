@@ -584,7 +584,7 @@ class L7ServiceSet(AuthedView):
             logger.debug(tsrlist)
             logger.debug("get_l7_info %s" % type(tsrlist))
             if tsrlist:
-                result = tsrlist[0].get('l7_json')
+                result = tsrlist.get('l7_json')
             logger.debug("level7 query is %s" % result)
         except Exception, e:
             logger.exception(e)
