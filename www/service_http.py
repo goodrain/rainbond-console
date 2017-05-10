@@ -158,6 +158,11 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._put(url, self.default_headers, body, region=region)
         return body
 
+    def createL7Conf(self, region, service_id, body):
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle" + service_id + "/l7_conf"
+        res, body = self._post(url, self.default_headers, body, region=region)
+        return body
+
     def createServiceEnv(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/env-var/"
         logger.debug("api.region", "function: {0}, {1}".format('createServiceEnv', url))

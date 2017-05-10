@@ -778,6 +778,16 @@ class TenantRegionPayModel(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
+class TenantServiceL7Info(BaseModel):
+    class Meta:
+        db_table = 'tenant_l7_info'
+
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务id")
+    dep_service_id = models.CharField(max_length=32, help_text=u"依赖服务id")
+    l7_json = models.CharField(max_length=255, help_text=u"高级应用特性信息")
+
+
 class TenantServiceEnvVar(BaseModel):
     class Meta:
         db_table = 'tenant_service_env_var'
