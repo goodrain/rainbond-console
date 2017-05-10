@@ -205,28 +205,28 @@
             <div id="keylog">
                 <ul class="timeline list-unstyled">
                     <span class="today_log">今天</span>
-                    <li>
-                        <time class="tl-time">
-                            <h4>23:15</h4>
-                        </time>
-                        <i class="fa bg-success tl-icon"></i>
-                        <div class="tl-content">
-                            <div class="panel panel-primary">
-                                <div class="panel-heading">
-                                    <span>Events</span>
-                                    <div class="user">
-                                        <p>grtest</p>
-                                        <p onclick=do_logshow('log["event_id"]')>查看日志</p>
-                                    </div>
-                                </div>
-                                <div class="panel-body">
-                                    <div class="log">
-                                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam laoreet tellus ut tincidunt euismod. Nam fermentum, massa sit amet pulvinar laoreet, sem mi viverra turpis, ac porta felis nisl eu odio.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </li>
+                    <!--<li>-->
+                        <!--<time class="tl-time">-->
+                            <!--<h4>23:15</h4>-->
+                        <!--</time>-->
+                        <!--<i class="fa bg-success tl-icon"></i>-->
+                        <!--<div class="tl-content">-->
+                            <!--<div class="panel panel-primary">-->
+                                <!--<div class="panel-heading">-->
+                                    <!--<span>Events</span>-->
+                                    <!--<div class="user">-->
+                                        <!--<p>grtest</p>-->
+                                        <!--<p onclick=do_logshow('log["event_id"]')>查看日志</p>-->
+                                    <!--</div>-->
+                                <!--</div>-->
+                                <!--<div class="panel-body">-->
+                                    <!--<div class="log">-->
+                                        <!--<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam laoreet tellus ut tincidunt euismod. Nam fermentum, massa sit amet pulvinar laoreet, sem mi viverra turpis, ac porta felis nisl eu odio.</p>-->
+                                    <!--</div>-->
+                                <!--</div>-->
+                            <!--</div>-->
+                        <!--</div>-->
+                    <!--</li>-->
                 </ul>
                 <p style="text-align: center;">
                     <span data-num="0" class="load_more">
@@ -415,7 +415,6 @@
                 if( next_onOff )
                 {
                     $(".load_more").show();
-//                    $(".load_more").attr("data-num",6);
                 }
                 if (typeof(logList) != "undefined") {
                     var type_json = {
@@ -479,12 +478,12 @@
                         }
                         if( log["status"] == "failure" )
                         {
-                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')'+'@'+log["user_name"]+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
+                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')'+' @'+log["user_name"]+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
                         }
                         else{
-                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'@'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log" data-log="'+log["event_id"];
+                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+' @'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log" data-log="'+log["event_id"];
                         }
-                        str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log log_'+log["event_id"]+'"></div></div></div></div></li>'
+                        str_log += '">查看日志</p><p class="hide_log">收起</p></div><div class="log_type"><select><option vlaue="info">info</option><option vlaue="debug">debug</option><option value="error">error</option></select></div></div><div class="panel-body"><div class="log log_'+log["event_id"]+'"></div></div></div></div></li>'
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
                         {
                             str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+log["old_deploy_version"]+')</span>';

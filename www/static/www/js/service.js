@@ -167,7 +167,7 @@ function createEvents(name, service, action) {
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中@'+event["user_name"]+'</span><div class="user"><p>';
-                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: block;">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log log_'+event["event_id"]+'"></div></div></div></div></li>'
+                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: none;">查看日志</p><p class="hide_log" style="display: block;">查看日志</p></div><div class="log_type" style="display: none;"><select><option vlaue="info">info</option><option vlaue="debug">debug</option><option value="error">error</option></select></div></div><div class="panel-body"><div class="log log_'+event["event_id"]+'"></div></div></div></div></li>'
 
                 if( event["event_type"] == "deploy" )
                 {
@@ -286,6 +286,9 @@ function connectSocket(event_id,action) {
         if( m.step == "callback" || m.step == "last" )
         {
             ws.close();
+            $("#keylog li").eq(0).find('.ajax_log').show();
+            $("#keylog li").eq(0).find('.log_type').show();
+            $("#keylog li").eq(0).find('.hide_log').hide();
             if( m.status == "success" )
             {
                 var str = type_json[action]+"成功";
@@ -746,12 +749,12 @@ function log_page(){
                         }
                         if( log["status"] == "failure" )
                         {
-                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')@'+log["user_name"]+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
+                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+') @'+log["user_name"]+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
                         }
                         else{
-                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'@'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log" data-log="'+log["event_id"];
+                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+' @'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log" data-log="'+log["event_id"];
                         }
-                        str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log log_'+log["event_id"]+'"></div></div></div></div></li>'
+                        str_log += '">查看日志</p><p class="hide_log">收起</p></div><div class="log_type"><select><option vlaue="info">info</option><option vlaue="debug">debug</option><option value="error">error</option></select></div></div><div class="panel-body"><div class="log log_'+log["event_id"]+'"></div></div></div></div></li>'
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
                         {
                             str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+log["old_deploy_version"]+')</span>';
