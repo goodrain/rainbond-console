@@ -159,6 +159,7 @@ margin-right: -15px;}
 .panel-heading .user{float: right;}
 .panel-heading .user button{margin-top: 4px;background-color: #fff;border: none;color: #28cb75;padding: 0px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
+#keylog .span_src{display: inline-block;width: 30px;height: 30px;}
 #keylog .log{height: 10px;overflow: hidden;position: relative;}
 #keylog .log .log_type{padding: 5px 0px;}
 #keylog .log .log_content{}

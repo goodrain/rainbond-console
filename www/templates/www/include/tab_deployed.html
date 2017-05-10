@@ -206,6 +206,7 @@
             <div id="keylog">
                 <ul class="timeline list-unstyled">
                     <span class="today_log">今天</span>
+                    <p>平台升级历史日志暂时无法提供<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>
                 </ul>
                 <p style="text-align: center;">
                     <span data-num="0" class="load_more">
@@ -422,6 +423,11 @@
                         "failure" : "bg-danger",
                         "timeout" : "bg-danger"
                     }
+                    if( logList.length == 0 )
+                    {
+                        var str = '<p>平台升级历史日志暂时无法提供<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
+                        $(str).appendTo($("#keylog ul"));
+                    }
                     for (var i = 0; i < logList.length; i++) {
                         var num = $(".load_more").attr("data-num");
                         $(".load_more").attr("data-num",parseInt(num)+1);
@@ -513,6 +519,11 @@
                 $(".log_" + event_id + "").html('');
                 var dataObj = msg;
                 var newLog = dataObj["data"];
+                if( newLog.length == 0 )
+                {
+                    var str = '<p>暂无日志<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
+                    $(".log_" + event_id + "").prepend(str);
+                }
                 for (i = 0; i < newLog.length; i++) {
                     var time = newLog[i]["time"].split('.')[0];
                     var time1 = time.split('T')[0];
