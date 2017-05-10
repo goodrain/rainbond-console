@@ -160,7 +160,7 @@ margin-right: -15px;}
 .panel-heading .user button{margin-top: 4px;background-color: #fff;border: none;color: #28cb75;padding: 0px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
 #keylog .log{height: 10px;overflow: hidden;position: relative;}
-#keylog .log .log_type{}
+#keylog .log .log_type{padding: 5px 0px;}
 #keylog .log .log_content{}
 #keylog .log .log_type label{margin: 0px 20px;padding: 5px 10px;border: 1px solid #ececec;cursor: pointer;}
 #keylog .log .log_type label.active{border: 1px solid #28cb75;}

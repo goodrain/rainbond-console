@@ -530,6 +530,7 @@
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success: function (msg) {
+                $(".log_" + event_id + "").html('');
                 var dataObj = msg;
                 var newLog = dataObj["data"];
                 for (i = 0; i < newLog.length; i++) {
