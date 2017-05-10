@@ -159,7 +159,7 @@ class RegionServiceApi(BaseHttpClient):
         return body
 
     def createL7Conf(self, region, service_id, body):
-        url = self.region_map[region]['url'] + "/v1/services/lifecycle" + service_id + "/l7_conf"
+        url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/l7_conf"
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
 
