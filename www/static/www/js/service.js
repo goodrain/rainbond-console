@@ -282,6 +282,7 @@ function connectSocket(event_id,action) {
         $("#keylog .ajax_log").eq(0).hide();
         $("#keylog .hide_log").eq(0).show();
         $("#keylog .log_type").eq(0).hide();
+        console.log(evt.data);
         if( evt.data == "ok" )
         {
             return;
