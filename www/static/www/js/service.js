@@ -218,6 +218,7 @@ function ajax_getLog(){
             $(this).show();
         }
     });
+    $(".log_type label").off('click');
     $(".log_type label").click(function(){
         var event_id = $(this).parents('li').find('.ajax_log').attr("data-log");
         do_logshow(event_id,$(this).html());
