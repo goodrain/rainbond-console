@@ -163,7 +163,7 @@ function createEvents(name, service, action) {
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中@'+event["user_name"]+'</span><div class="user"><p>';
-                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: none;">查看日志</p><p class="hide_log" style="display: block;">查看日志</p></div></div><div class="panel-body"><div class="log"><p class="log_type" style="display: none;"><label class="active">info</label><label>debug</label><label>error</label></p><div class="log_content log_'+event["event_id"]+'"></div></div></div></div></div></li>'
+                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: none;">查看日志</p><p class="hide_log" style="display: block;">查看日志</p></div></div><div class="panel-body"><div class="log"><p class="log_type" style="display: none;"><label class="active">info</label><label>debug</label><label>error</label></p><div class="log_content log_height2 log_'+event["event_id"]+'"></div></div></div></div></div></li>'
 
                 if( event["event_type"] == "deploy" )
                 {
@@ -218,7 +218,9 @@ function ajax_getLog(){
             $(this).show();
         }
     });
+    $(".log_type label").off('click');
     $(".log_type label").click(function(){
+        $(this).addClass('active').siblings('label').removeClass('active');
         var event_id = $(this).parents('li').find('.ajax_log').attr("data-log");
         do_logshow(event_id,$(this).html());
     });
@@ -274,6 +276,11 @@ function connectSocket(event_id,action) {
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
         console.log(evt.data);
+        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"5px"});
+        $("#keylog .log").eq(0).css({"height":"30px"});
+        $("#keylog .ajax_log").eq(0).hide();
+        $("#keylog .hide_log").eq(0).show();
+        $("#keylog .log_type").eq(0).hide();
         if( evt.data == "ok" )
         {
             return;
@@ -284,11 +291,6 @@ function connectSocket(event_id,action) {
         var time2 = arr.split('T')[1].split('Z')[0];
         tmpLog = "<p>" + time2+" "+ m.message + "</p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
-        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"5px"});
-        $("#keylog .log").eq(0).css({"height":"30px"});
-        $("#keylog .ajax_log").eq(0).hide();
-        $("#keylog .hide_log").eq(0).show();
-        $("#keylog .log_type").eq(0).hide();
         $(tmpLog).prependTo($("#keylog .log_content").eq(0));
         if( m.step == "callback" || m.step == "last" )
         {
