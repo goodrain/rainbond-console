@@ -422,6 +422,11 @@
                         "failure" : "bg-danger",
                         "timeout" : "bg-danger"
                     }
+                    if( logList.length == 0 )
+                    {
+                        var str = '<p style="text-align: center;">平台升级历史日志暂时无法提供<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
+                        $(str).appendTo($("#keylog ul"));
+                    }
                     for (var i = 0; i < logList.length; i++) {
                         var num = $(".load_more").attr("data-num");
                         $(".load_more").attr("data-num",parseInt(num)+1);
@@ -466,7 +471,12 @@
                         str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type"><label class="active">info</label><label>debug</label><label>error</label></p><div class="log_content log_'+log["event_id"]+'"></div></div></div></div></div></li>'
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
                         {
-                            str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+log["old_deploy_version"]+')</span>';
+                            var version = log["old_deploy_version"];
+                            if( log["old_code_version"] )
+                            {
+                                version = log["old_code_version"];
+                            }
+                            str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+version+')</span>';
                             str_log += '<div class="user"><button class="btn callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
                         }
                         $(str_log).appendTo($("#keylog ul"));
@@ -513,11 +523,17 @@
                 $(".log_" + event_id + "").html('');
                 var dataObj = msg;
                 var newLog = dataObj["data"];
+                if( newLog.length == 0 )
+                {
+                    var str = '<p style="text-align: center;margin-top: 100px;">暂无日志<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
+                    $(".log_" + event_id + "").prepend(str);
+                }
                 for (i = 0; i < newLog.length; i++) {
                     var time = newLog[i]["time"].split('.')[0];
                     var time1 = time.split('T')[0];
                     var time2 = time.split('T')[1].split('Z')[0];
-                    log = "<p>"+time2+" "+newLog[i]["message"]+"</p>";
+                    var time3 = time2.split('+')[0];
+                    log = "<p>"+time3+" "+newLog[i]["message"]+"</p>";
                     $(".log_" + event_id + "").prepend(log);
                 }
 //                var address = location.href.split("?");

@@ -194,6 +194,8 @@ function ajax_getLog(){
     $(".ajax_log").click(function(){
         var event_id = $(this).attr("data-log");
         $(".log_"+event_id).html('');
+        $(this).parents('li').find('.log_type label').removeClass('active');
+        $(this).parents('li').find('.log_type label').eq(0).addClass('active');
         do_logshow(event_id,'info');
         $(this).hide();
         $(this).parent().find('.hide_log').show();
@@ -734,7 +736,6 @@ function log_page(){
                         var time = arr[1];
                         var status;
                         var color;
-                        console.log(date,isToday(date));
                         if( log["final_status"] == "complete" )
                         {
                             status = status_json[log["status"]];
@@ -758,17 +759,18 @@ function log_page(){
                         }
                         if( log["status"] == "failure" )
                         {
-                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+') @'+log["user_name"]+'</span><div class="user"><p>@'+log["user_name"]+'</p><p class="ajax_log" data-log="'+log["event_id"];
+                            str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+'('+log["message"]+')'+' @'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log" data-log="'+log["event_id"];
                         }
                         else{
                             str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+' @'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log" data-log="'+log["event_id"];
                         }
-                        str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log log_'+log["event_id"]+'"></div></div></div></div></li>'
+                        str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type"><label class="active">info</label><label>debug</label><label>error</label></p><div class="log_content log_'+log["event_id"]+'"></div></div></div></div></div></li>'
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
                         {
                             str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+log["old_deploy_version"]+')</span>';
-                            str_log += '<div class="user"><button class="btn btn-success callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
+                            str_log += '<div class="user"><button class="btn callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
                         }
+
                         $(str_log).appendTo($("#keylog ul"));
                         ajax_getLog();
                         callback_version();
