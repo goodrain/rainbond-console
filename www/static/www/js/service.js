@@ -814,20 +814,9 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 				oStrH += '<p class="onoffbox clearfix"><span>统计</span><input type="checkbox" name="statisticsbox"  id="statisticsbox"  class="checkhide" checked="true"/><label class="checkshow" for="statisticsbox"></label></p>';
 			}
 			*/
-			if(cricuit == "1025"){
-				oStrH += '<p class="onoffbox clearfix"><span>熔断</span><input type="checkbox" name="cricuitonoff"  id="cricuitonoff"  class="checkhide" /><label class="checkshow" for="cricuitonoff"></label></p>';
-				oStrH += '<p class="fusingbox clearfix" style="display:none;"  id="fusingbox"><span>&nbsp;</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select></p>';
-			}else{
-				oStrH += '<p class="onoffbox clearfix"><span>熔断</span><input type="checkbox" name="cricuitonoff"  id="cricuitonoff"  class="checkhide" checked="true"/><label class="checkshow" for="cricuitonoff"></label></p>';
-				oStrH += '<p class="fusingbox clearfix" id="fusingbox"><span>&nbsp;</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select></p>';
-				$("#fusing option").each(function(){
-					var othis = $(this);
-					var thisval = $(this).attr("value");
-					if(thisval == cricuit){
-						$(othis).attr("selected",true);
-					}
-				});
-			}
+			
+			oStrH += '<p class="onoffbox clearfix"><span>熔断</span><input type="checkbox" name="cricuitonoff"  id="cricuitonoff"  class="checkhide" checked="true"/><label class="checkshow" for="cricuitonoff"></label></p>';
+			oStrH += '<p class="fusingbox clearfix" id="fusingbox"><span>&nbsp;</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select></p>';
 			oStrH += '<div class="clearfix  servenbtn"><button  type="button" class="greenbtn" id="hrelsure" data-tenantName="'+ tenantName +'" data-servicealias = "' + curServiceName +'" data-valuealias ="' + depServiceName + '">确定</button><button  type="button" id="hreldel" class="redbtn">取消</button></div>';
 			oStrH += '</div></div>'
 			$(oStrH).appendTo("body");
@@ -838,6 +827,13 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 				$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
 			}
 			*/
+			$("#fusing option").each(function(){
+				var othis = $(this);
+				var thisval = $(this).attr("value");
+				if(thisval == cricuit){
+					$(othis).attr("selected",true);
+				}
+			});
 			//  展示 弹出层 end
 			//取消弹出层 start 
 			$("#hreldel").click(function(){
