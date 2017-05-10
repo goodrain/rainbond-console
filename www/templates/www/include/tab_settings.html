@@ -634,6 +634,65 @@
                 $("a[name='custom_domain_select']").html(target_str);
             }
         });
+        // 高级依赖
+        ///ajax  加载判断  start 
+        $.ajax({
+            type : "POST",
+            url : "/ajax/{{tenantName}}/{{serviceAlias}}/is_midrain", 
+            data : {
+                   "action":"check"     
+            },
+            cache : false,
+            async : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(data) {
+                console.log(data);
+                if(data.is_mid == "yes"){
+                    $("#hightraly").attr("checked","true");
+                }else{
+                    $("#hightraly").removeAttr("checked");
+                }
+            },
+            error : function() {
+                swal("系统异常");
+            }
+        });
+        ///ajax 加载判断 end 
+        // 修改
+        $("#hightraly").change(function(){
+            var hightonoff = $("#hightraly").prop("checked");
+            var highonoff = "";
+            if(hightonoff == true){
+                highonoff  = "add";
+            }else{
+                highonoff  = "del";
+            }
+            ///ajax 
+            $.ajax({
+                type : "POST",
+                url : "/ajax/{{tenantName}}/{{serviceAlias}}/is_midrain", 
+                data : {
+                       "action":highonoff   
+                },
+                cache : false,
+                async : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(data) {
+                   swal("系统异常");
+                },
+                error : function() {
+                    swal("系统异常");
+                }
+            });
+            ///ajax  
+        });
+        // 高级依赖
     });
 
     function clear_volume() {
