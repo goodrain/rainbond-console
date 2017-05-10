@@ -1079,6 +1079,7 @@ class ServiceEvent(BaseModel):
     deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
     old_deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
     code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
+    old_code_version = models.CharField(max_length=200, help_text=u"历史部署代码版本")
 
 class GroupCreateTemp(BaseModel):
     class Meta:

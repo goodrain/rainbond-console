@@ -43,7 +43,8 @@ class EventManager(AuthedView):
                 if last_all_deploy_event:
                     last_deploy_event = last_all_deploy_event[0]
                     old_code_version = last_deploy_event.code_version
-            
+                    event.old_code_version = old_code_version
+                    event.save()
             result["status"] = "success"
             result["event"] = {}
             result["event"]["event_id"] = event.event_id
@@ -93,6 +94,7 @@ class EventManager(AuthedView):
                 eventRe["event_id"] = event.event_id
                 eventRe["deploy_version"] = event.deploy_version
                 eventRe["old_deploy_version"] = event.old_deploy_version
+                eventRe["old_code_version"] = event.old_code_version
                 reEvents.append(eventRe)
             result["log"] = reEvents
             return JsonResponse(result, status=200)
