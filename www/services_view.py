@@ -381,7 +381,6 @@ class TenantService(LeftSideBarMixin, AuthedView):
             if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
                 context["hasHttpServices"] = True
                 service_domain = True
-
             is_public_cloud = sn.instance.cloud_assistant == "goodrain" and (not sn.instance.is_private())
             http_port_str = settings.WILD_PORTS[self.response_region]
             if not is_public_cloud:

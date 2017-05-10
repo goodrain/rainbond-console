@@ -5,7 +5,7 @@ from api.views.base import APIView
 from www.models import TenantServiceInfo, AppService, ServiceInfo, \
     AppServiceRelation, AppServicePort, AppServiceEnv, ServiceExtendMethod, \
     Tenants, Users, PermRelTenant, TenantServiceVolume, TenantServicesPort, \
-    AppServiceExtend
+    AppServiceExtend, AppServiceGroup
 from www.service_http import RegionServiceApi
 from www.monitorservice.monitorhook import MonitorHook
 from www.tenantservice.baseservice import BaseTenantService
@@ -264,10 +264,17 @@ class PublishServiceView(APIView):
               required: false
               type: boolean
               paramType: form
+            - name: share_id
+              description: share_id
+              required: false
+              type: string
+              paramType: form
 
         """
         data = {}
         isys = False
+        serviceInfo = None
+        logger.debug("invoke publish service method")
         try:
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
@@ -290,7 +297,6 @@ class PublishServiceView(APIView):
                 slug = "/" + slug
             if isok:
                 update_version = 1
-                serviceInfo = None
                 try:
                     serviceInfo = ServiceInfo.objects.get(service_key=service_key, version=app_version)
                     update_version = serviceInfo.update_version + 1
@@ -345,6 +351,7 @@ class PublishServiceView(APIView):
             isys = app.dest_ys
         except Exception as e:
             logger.exception(e)
+            return Response({"ok": False}, status=500)
 
         # 发布到云市,调用http接口发送数据
         if isok and isys and settings.MODULES["Publish_YunShi"]:
@@ -374,7 +381,68 @@ class PublishServiceView(APIView):
             # 发送请求到所有的数据中心进行数据同步
             # self.downloadImage(serviceInfo)
 
+            # 判断是否服务组发布,发布是否成功
+            share_id = request.data.get('share_id', None)
+            try:
+                if share_id is not None:
+                    app_service_group = None
+                    try:
+                        app_service_group = AppServiceGroup.objects.get(group_share_id=share_id)
+                    except AppServiceGroup.DoesNotExist as e:
+                        logger.exception(e)
+                    if app_service_group is not None:
+                        curr_step = app_service_group.step
+                        if curr_step > 0:
+                            curr_step -= 1
+                            app_service_group.step = curr_step
+                            app_service_group.save()
+                        # 判断是否为最后一次调用,发布到最后一个应用后将组信息填写到云市
+                        if curr_step == 0 and app_service_group.is_market:
+                            logger.info("send group publish info to app_market")
+                            # 将服务组信息发送到云市
+                            tenant_id = data["tenant_id"]
+                            param_data = {"group_name": app_service_group.group_share_alias,
+                                          "group_key": app_service_group.group_share_id,
+                                          "tenant_id": tenant_id, "group_version": app_service_group.group_version,
+                                          "publish_type": app_service_group.publish_type,
+                                          "desc":app_service_group.desc,
+                                          "installable": app_service_group.installable}
+                            tmp_ids = app_service_group.service_ids
+                            service_id_list = json.loads(tmp_ids)
+                            if len(service_id_list) > 0:
+                                # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
+                                service_list = self.get_newest_published_service(service_id_list, tenant_id)
+                                tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
+                                service_category_map = {x.service_id: "self" if x.category == "application" else "other" for x in tenant_service_list}
+                                service_data = []
+                                for service in service_list:
+                                    service_map = {"service_key": service.service_key,
+                                                   "version": service.app_version,
+                                                   "owner": service_category_map.get(service.service_id)}
+
+                                    service_data.append(service_map)
+                                param_data["data"] = service_data
+                                # 发送组信息到云市
+
+                                num = apputil.send_group(param_data)
+                                if num != 0:
+                                    logger.exception("publish service group failed!")
+                        # 应用组发布成功
+                        app_service_group.is_success = True
+                        app_service_group.save()
+            except Exception as e:
+                logger.exception(e)
+                logger.error("publish service group failed!")
+
         return Response({"ok": True}, status=200)
+
+    def get_newest_published_service(self, service_id_list, tenant_id):
+        result = []
+        for service_id in service_id_list:
+            apps = AppService.objects.filter(service_id=service_id, tenant_id=tenant_id).order_by("-ID")
+            if apps:
+                result.append(apps[0])
+        return result
 
     def downloadImage(self, base_info):
         if base_info is None:

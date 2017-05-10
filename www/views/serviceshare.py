@@ -61,13 +61,13 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         if len(dep_service_list) > 0:
             for dep_service in list(dep_service_list):
                 if dep_service["service_key"] == "application":
-                    context["dep_service_name"] = dep_service["service_alias"]
+                    context["dep_service_name"] = dep_service["service_cname"]
                     context["dep_status"] = False
                     break
                 count = AppService.objects.filter(service_key=dep_service["service_key"], app_version=dep_service["version"]).count()
                 if count == 0:
                     context["dep_status"] = False
-                    context["dep_service_name"] = dep_service["service_alias"]
+                    context["dep_service_name"] = dep_service["service_cname"]
                     break
 
         # 内存、节点
@@ -168,6 +168,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
             "app_alias": self.service.service_alias,
+            "app_cname": self.service.service_cname,
             "desc": self.service.desc,
             # "info": "",
             # "logo": "",
@@ -280,6 +281,9 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         category_third = form_data.cleaned_data['category_third']
         is_outer = form_data.cleaned_data.get('is_outer', False)
         is_private = form_data.cleaned_data.get('is_private', False)
+        # 如果发布到云市,就不能为私有云帮
+        if is_outer:
+            is_private = False
         show_app = form_data.cleaned_data.get('show_app', False)
         show_assistant = form_data.cleaned_data.get('show_assistant', False)
         logger.debug("{0}:{1}:{2}".format(is_outer, show_app, show_assistant))
