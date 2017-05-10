@@ -582,7 +582,7 @@ class L7ServiceSet(AuthedView):
 
             tsrlist = TenantServiceL7Info.objects.filter(service_id=self.service.service_id, dep_service_id=self.dep_service_id)
             if tsrlist:
-                #result = tsrlist[0].l7_json
+                result = eval(tsrlist[0].l7_json)
                 logger.debug("level7query is %s" % result)
         except Exception, e:
             logger.exception(e)
