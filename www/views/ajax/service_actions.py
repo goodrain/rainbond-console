@@ -558,7 +558,7 @@ class L7ServiceSet(AuthedView):
             "l7_json": self.l7_json
         }
 
-        num = TenantServiceL7Info.objects.filter(serivce_id=service.service_id, dep_service_id=self.dep_service_id).count()
+        num = TenantServiceL7Info.objects.filter(service_id=service.service_id, dep_service_id=self.dep_service_id).count()
         if num < 1:
             TenantServiceL7Info.objects.create(**attr_l7)
             data = {"action": "add", "attrs": attr_l7}
