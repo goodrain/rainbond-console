@@ -276,6 +276,11 @@ function connectSocket(event_id,action) {
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
         console.log(evt.data);
+        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"5px"});
+        $("#keylog .log").eq(0).css({"height":"30px"});
+        $("#keylog .ajax_log").eq(0).hide();
+        $("#keylog .hide_log").eq(0).show();
+        $("#keylog .log_type").eq(0).hide();
         if( evt.data == "ok" )
         {
             return;
@@ -286,11 +291,6 @@ function connectSocket(event_id,action) {
         var time2 = arr.split('T')[1].split('Z')[0];
         tmpLog = "<p>" + time2+" "+ m.message + "</p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
-        $("#keylog .panel-heading").eq(0).css({"padding-bottom":"5px"});
-        $("#keylog .log").eq(0).css({"height":"30px"});
-        $("#keylog .ajax_log").eq(0).hide();
-        $("#keylog .hide_log").eq(0).show();
-        $("#keylog .log_type").eq(0).hide();
         $(tmpLog).prependTo($("#keylog .log_content").eq(0));
         if( m.step == "callback" || m.step == "last" )
         {
