@@ -686,7 +686,9 @@
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success : function(data) {
-                   swal("系统异常");
+                    if(data.status == "success"){
+                        swal("设置成功。");
+                    }
                 },
                 error : function() {
                     swal("系统异常");
