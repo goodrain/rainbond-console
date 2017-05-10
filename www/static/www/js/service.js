@@ -194,7 +194,7 @@ function ajax_getLog(){
     $(".ajax_log").click(function(){
         var event_id = $(this).attr("data-log");
         $(".log_"+event_id).html('');
-        do_logshow(event_id);
+        do_logshow(event_id,'info');
         $(this).hide();
         $(this).parent().find('.hide_log').show();
         //$(".log_" + event_id + "").addClass('log_height');
@@ -217,6 +217,10 @@ function ajax_getLog(){
             $(this).parents('li').find('.ajax_log').hide();
             $(this).show();
         }
+    });
+    $(".log_type label").click(function(){
+        var event_id = $(this).parents('li').find('.ajax_log').attr("data-log");
+        do_logshow(event_id,$(this).html());
     });
 }
 function callback_version(){
