@@ -58,7 +58,7 @@
                             <td>{{value.service_cname}}</td>
                             <td>
                           {% if 'manage_service' in user.actions %}
-                                <button type="button" class="greenbtn"  onclick="buid_relation('cancel','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
+                                <button type="button" class="redbtn"  onclick="buid_relation('cancel','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
                           {% endif %}
                           {% if 'git_pull' in user.actions or user.is_sys_admin %}
                                 <a class="greenbtn" data-toggle="modal" href="#linkinfo{{value.service_id}}">连接信息</a>
