@@ -159,7 +159,10 @@ margin-right: -15px;}
 .panel-heading .user{float: right;}
 .panel-heading .user button{margin-top: 4px;background-color: #fff;border: none;color: #28cb75;padding: 0px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
-#keylog .log{height: 10px;overflow: hidden;}
+#keylog .log{height: 10px;overflow: hidden;position: relative;}
+#keylog .log .log_type{position: fixed;top: 0;left: 0;}
+#keylog .log .log_type input[type="radio"]{margin: 0 10px;}
+#keylog .log .log_type label{margin-left: 20px;}
 #keylog .panel-body div.log_height{height: 300px !important;overflow-y: scroll !important;}
 #keylog .panel-body:before{
     width: 0px;
@@ -180,7 +183,6 @@ margin-right: -15px;}
 #keylog .panel div.log{padding-left: 10px;}
 #keylog .panel div.log p{line-height: 20px;}
 #keylog .panel div.user{float: right;text-align: right;padding-right: 10px;font-size: 14px;margin-top: 2px;}
-#keylog .panel .log_type{float: right;}
 #keylog .user p:nth-child(2){cursor: pointer;color: #999;}
 #keylog .user .hide_log{cursor: pointer;display: none;color: #999;}
 #keylog .load_more{display: none;}
