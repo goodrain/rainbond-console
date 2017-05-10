@@ -563,12 +563,12 @@ class L7ServiceSet(AuthedView):
             TenantServiceL7Info.objects.create(**attr_l7)
             data = {"action": "add", "attrs": attr_l7}
             logger.debug("addL7Info num < 1 %s" % data)
-            #regionClient.createL7Conf(service.service_region, service.service_id, json.dumps(data))
+            regionClient.createL7Conf(service.service_region, service.service_id, json.dumps(data))
         elif num == 1:
             TenantServiceL7Info.objects.filter(service_id=service.service_id, dep_service_id=self.dep_service_id).update(l7_json=self.l7_json)
             data = {"action": "update", "attrs": attr_l7}
             logger.debug("addL7Info num > 1 %s" % data)
-            #regionClient.createL7Conf(service.service_region, service.service_id, json.dumps(data))
+            regionClient.createL7Conf(service.service_region, service.service_id, json.dumps(data))
 
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
