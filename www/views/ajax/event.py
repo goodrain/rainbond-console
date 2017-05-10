@@ -40,8 +40,8 @@ class EventManager(AuthedView):
             if action == "deploy":
                 last_all_deploy_event = ServiceEvent.objects.filter(service_id=self.service.service_id,
                                                                     type="deploy").order_by("-start_time")
-                if last_all_deploy_event.count() > 0:
-                    last_deploy_event = last_all_deploy_event[0:1]
+                if last_all_deploy_event:
+                    last_deploy_event = last_all_deploy_event[0]
                     old_code_version = last_deploy_event.code_version
             
             result["status"] = "success"
@@ -54,7 +54,8 @@ class EventManager(AuthedView):
             result["event"]["old_code_version"] = old_code_version
             return JsonResponse(result, status=200)
         except Exception as e:
-            
+            if event:
+                event.delete()
             result["status"] = "failure"
             result["message"] = e.message
             return JsonResponse(result, status=500)
