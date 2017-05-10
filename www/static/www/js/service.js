@@ -777,5 +777,212 @@ function payed_upgrade(tenantName,url){
     });
 }
 
-
+///////
+function high_relation(curServiceName, depServiceName, tenantName) {
+	 $.ajax({
+        type : "GET",
+        url : "/ajax/" + tenantName + "/" + curServiceName + "/l7info",
+        data: {"dep_service_id" :depServiceName},
+        cache : false,
+        async : false,
+        beforeSend : function(xhr, settings) {
+            var csrftoken = $.cookie('csrftoken');
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success : function(data) {
+            console.log(data);
+            var servenlayer = data;
+            //  展示 弹出层 start
+            var oStrH = '<div class="layerbg" id="servenLayer"><div class="servenlayer">'
+			//var domainUrl = servenlayer["domain"];
+			//var headArray = servenlayer["header"];
+			//var statistic = servenlayer["statistic"];
+			var cricuit = servenlayer["cricuit"];
+			/*
+			if(domainUrl == "off"){
+				oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
+			}else{
+				oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
+			}
+			for(var i=0;i<headArray.length;i++){
+				oStrH += '<p class="clearfix headerp"><span>&nbsp;</span><input type="text" value="' + headArray[i]["key"] + '" /><input type="text" value="' + headArray[i]["value"] + '" /></p>'
+			}
+			oStrH +='</div></div>';
+			if(statistic == "off"){
+				oStrH += '<p class="onoffbox clearfix"><span>统计</span><input type="checkbox" name="statisticsbox"  id="statisticsbox"  class="checkhide"/><label class="checkshow" for="statisticsbox"></label></p>';
+			}else{
+				oStrH += '<p class="onoffbox clearfix"><span>统计</span><input type="checkbox" name="statisticsbox"  id="statisticsbox"  class="checkhide" checked="true"/><label class="checkshow" for="statisticsbox"></label></p>';
+			}
+			*/
+			if(cricuit == "1025"){
+				oStrH += '<p class="onoffbox clearfix"><span>熔断</span><input type="checkbox" name="cricuitonoff"  id="cricuitonoff"  class="checkhide" /><label class="checkshow" for="cricuitonoff"></label></p>';
+				oStrH += '<p class="fusingbox clearfix" style="display:none;"  id="fusingbox"><span>&nbsp;</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select></p>';
+			}else{
+				oStrH += '<p class="onoffbox clearfix"><span>熔断</span><input type="checkbox" name="cricuitonoff"  id="cricuitonoff"  class="checkhide" checked="true"/><label class="checkshow" for="cricuitonoff"></label></p>';
+				oStrH += '<p class="fusingbox clearfix" id="fusingbox"><span>&nbsp;</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select></p>';
+				$("#fusing option").each(function(){
+					var othis = $(this);
+					var thisval = $(this).attr("value");
+					if(thisval == cricuit){
+						$(othis).attr("selected",true);
+					}
+				});
+			}
+			oStrH += '<div class="clearfix  servenbtn"><button  type="button" class="greenbtn" id="hrelsure" data-tenantName="'+ tenantName +'" data-servicealias = "' + curServiceName +'" data-valuealias ="' + depServiceName + '">确定</button><button  type="button" id="hreldel" class="redbtn">取消</button></div>';
+			oStrH += '</div></div>'
+			$(oStrH).appendTo("body");
+			/*
+			if(domainUrl == "off" && headArray.length == 0){
+				$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");
+			}else{
+				$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+			}
+			*/
+			//  展示 弹出层 end
+			//取消弹出层 start 
+			$("#hreldel").click(function(){
+				$("#servenLayer").remove();
+			});
+			//取消弹出层 end
+			//熔断 start
+			$("#cricuitonoff").change(function(){
+		    	var crionoff = $("#cricuitonoff").prop("checked");
+		    	if(crionoff == true){
+		    		$("#fusingbox").show();
+		    	}else{
+		    		$("#fusingbox").hide();
+		    	}
+		    });
+			//熔断 end
+			/*
+			//网址输入框改变 start
+			$("#domainurl").change(function(){
+		    	var damainonoff = $("#domainurl").prop("checked");
+		    	if(damainonoff == true){
+		    		$("#headarrbox").show();
+		    	}else{
+		    		$("#headarrbox").hide();
+		    	}
+		    });
+			//网址输入框改变 end
+			//添加 key value  输入框  start
+			var keyvaluenum = $("#headpbox p").length;
+			if(keyvaluenum >= 4){
+				$("#addheader").hide();
+			}
+			$("#addheader").click(function(){
+				var cnum = $("#headpbox p").length;
+				if(cnum >= 4){
+					$("#addheader").hide();
+				}
+    			var oStrhp = '<p class="clearfix headerp"><span>&nbsp;</span><input type="text" value="" /><input type="text" value="" /></p>';
+    			$(oStrhp).appendTo($("#headpbox"));
+    		});
+			//添加 key value  输入框  end
+			*/
+			/*
+			//网址光标移出 start
+			$("#dourl").blur(function(){
+		    	var ourl = $("#dourl").val();
+		    	var hpnum = 0;
+		    	$("#headpbox p").each(function(){
+		    		var keyVal = $(this).find("input").eq(0).val();
+		    		var valVal = $(this).find("input").eq(1).val();
+		    		if(keyVal != "" && valVal !=""){
+		    			hpnum = 1;
+		    		}
+		    	});
+		    	if(ourl != "" || hpnum == 1){
+		    		$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+		    	}else{
+		    		$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");	
+		    	}
+		    });
+			//网址光标移出 end
+			//keyvalue  光标移出  start
+		    $("#headpbox input").blur(function(){
+		    	var ourl = $("#dourl").val();
+		    	var hpnum = 0;
+		    	console.log(hpnum);
+		    	$("#headpbox p").each(function(){
+		    		var keyVal = $(this).find("input").eq(0).val();
+		    		var valVal = $(this).find("input").eq(1).val();
+		    		if(keyVal != "" && valVal !=""){
+		    			hpnum = 1;
+		    		}
+		    	});
+		    	if(ourl != "" || hpnum == 1){
+		    		$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+		    	}else{
+		    		$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");	
+		    	}
+		    });
+			//keyvalue  光标移出  end
+			*/
+			//确定提交参数 start
+			$("#hrelsure").click(function(){
+		   		var obox = {};
+		   		//var headerbox=[];
+		   		//var domainval = $("#dourl").val();
+		   		var cricuitval = $("#fusing option:selected").attr("value");
+		   		//var statisticval = $("input#statisticsbox").prop("checked");
+		   		//obox["domain"]=domainval;
+		   		obox["cricuit"] = cricuitval;
+		   		//obox["statistic"] = (statisticval==true) ? "on" : "off";
+		   		//var oneonoff = $("#domainurl").prop("checked");
+		   		//var twoonoff = $("input#statisticsbox").prop("checked");
+		   		//var threeonoff = $("#cricuitonoff").prop("checked");
+		   		
+		   		if(threeonoff == false){
+		   			typeval = "del";
+		   		}else{
+		   			typeval = "add";
+		   		}
+		   		/*
+		   		$("#headpbox p").each(function(){
+		   			var kv={};
+		    		var keyVal = $(this).find("input").eq(0).val();
+		    		var valVal = $(this).find("input").eq(1).val();
+		    		if(keyVal != "" && valVal !=""){
+		    			kv["key"] = keyVal;
+		    			kv["value"] = valVal;
+		    		}
+		    		headerbox.push(kv);
+		    	});
+		    	obox["header"]= headerbox;
+		        console.log(obox);
+		        */
+		        ///ajax
+		        var oboxstr = JSON.stringify(obox)
+		        $.ajax({
+		            type : "POST",
+		            url : "/ajax/" + tenantName + "/" + curServiceName + "/l7info",
+		            data : {
+		                "dep_service_id" : depServiceName,
+		                "action":typeval,
+		                "l7_json":oboxstr
+		            },
+		            cache : false,
+		            async : false,
+		            beforeSend : function(xhr, settings) {
+		                var csrftoken = $.cookie('csrftoken');
+		                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		            },
+		            success : function(data) {
+		                $("#servenLayer").remove();
+		                swal("设置成功！");
+		            },
+		            error : function() {
+		                swal("系统异常");
+		            }
+		        });
+		        ///ajax
+		    });
+			//确定提交参数 end
+        },
+        error : function() {
+            swal("系统异常");
+        }
+    });
+}
 
