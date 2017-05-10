@@ -124,7 +124,7 @@ margin-right: -15px;}
     .form-public-app .login-wrap{width: 100%; float: none;}
  }
 
-#keylog{background-color: #edeeed;border-radius:10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;padding: 20px 0px;}
+#keylog{background-color: #edeeed;border-radius:10px;-webkit-border-radius: 10px;-moz-border-radius: 10px;padding: 20px 10px;}
 #keylog .timeline{position:relative;}
 #keylog .timeline .today_log{font-size: 20px;position: absolute;top: 0px;left: 100px;color: #999;display: none;}
 #keylog .timeline:before{
@@ -160,6 +160,7 @@ margin-right: -15px;}
 .panel-heading .user button{margin-top: 4px;background-color: #fff;border: none;color: #28cb75;padding: 0px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
 #keylog .span_src{display: inline-block;width: 30px;height: 30px;}
+#keylog .span_src img{width: 100%}
 #keylog .log{height: 10px;overflow: hidden;position: relative;}
 #keylog .log .log_type{padding: 5px 0px;}
 #keylog .log .log_content{}
