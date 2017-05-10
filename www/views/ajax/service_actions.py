@@ -581,7 +581,8 @@ class L7ServiceSet(AuthedView):
                 raise NoneParmsError("L7ServiceSet function get dep_service_id is None.")
 
             tsrlist = TenantServiceL7Info.objects.filter(service_id=self.service.service_id, dep_service_id=self.dep_service_id)
-            logger.debug("get_l7_info %s" % tsrlist)
+            logger.debug(tsrlist)
+            logger.debug("get_l7_info %s" % type(tsrlist))
             if tsrlist:
                 result = tsrlist[0].get('l7_json')
             logger.debug("level7 query is %s" % result)
