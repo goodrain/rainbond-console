@@ -966,7 +966,11 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 		            },
 		            success : function(data) {
 		                $("#servenLayer").remove();
-		                swal("设置成功！");
+		                if(data.status == "failure"){
+		                	swal("设置失败！");
+		                }else{
+		                	swal("设置成功！");
+		                }
 		            },
 		            error : function() {
 		                swal("系统异常");
