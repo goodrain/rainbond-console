@@ -178,6 +178,11 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
                 result["status"] = "success"
             except Exception, e:
+                if event:
+                    event.message = u"停止应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', False)
@@ -200,6 +205,11 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
                 result["status"] = "success"
             except Exception, e:
+                if event:
+                    event.message = u"启动应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', False)
@@ -229,6 +239,11 @@ class ServiceManage(AuthedView):
                 
                 result["status"] = "success"
             except Exception, e:
+                if event:
+                    event.message = u"重启应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_reboot', False)
@@ -333,6 +348,11 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
+                if event:
+                    event.message = u"删除应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', False)
@@ -358,6 +378,11 @@ class ServiceManage(AuthedView):
                 event.deploy_version = deploy_version
                 event.save()
             except Exception, e:
+                if event:
+                    event.message = u"回滚应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)
