@@ -160,9 +160,9 @@ margin-right: -15px;}
 .panel-heading .user button{margin-top: 4px;background-color: #fff;border: none;color: #28cb75;padding: 0px;}
 #keylog .panel-body{overflow: hidden;background-color: #fff;padding: 0px;}
 #keylog .log{height: 10px;overflow: hidden;position: relative;}
-#keylog .log .log_type{position: fixed;top: 0;left: 0;}
-#keylog .log .log_type input[type="radio"]{margin: 0 10px;}
-#keylog .log .log_type label{margin-left: 20px;}
+#keylog .log .log_type{}
+#keylog .log .log_type label{margin: 0px 20px;padding: 5px 10px;border: 1px solid #ececec;}
+#keylog .log .log_type label.active{border: 1px solid #28cb75;}
 #keylog .panel-body div.log_height{height: 300px !important;overflow-y: scroll !important;}
 #keylog .panel-body:before{
     width: 0px;
