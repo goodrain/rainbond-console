@@ -932,12 +932,13 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 		   		//var oneonoff = $("#domainurl").prop("checked");
 		   		//var twoonoff = $("input#statisticsbox").prop("checked");
 		   		//var threeonoff = $("#cricuitonoff").prop("checked");
-		   		
+		   		/*
 		   		if(threeonoff == false){
 		   			typeval = "del";
 		   		}else{
 		   			typeval = "add";
 		   		}
+		   		*/
 		   		/*
 		   		$("#headpbox p").each(function(){
 		   			var kv={};
@@ -959,7 +960,6 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 		            url : "/ajax/" + tenantName + "/" + curServiceName + "/l7info",
 		            data : {
 		                "dep_service_id" : depServiceName,
-		                "action":typeval,
 		                "l7_json":oboxstr
 		            },
 		            cache : false,
