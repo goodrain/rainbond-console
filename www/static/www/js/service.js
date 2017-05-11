@@ -324,6 +324,7 @@ function connectSocket(event_id,action) {
     }
     ws.onclose = function (evt) {
         $("#keylog .panel-heading").eq(0).css({"padding-bottom":"0px"});
+        $("#keylog .panel-heading .hide_log").eq(0).html('收起');
         console.log("连接关闭");
         ajax_getLog();
     }
