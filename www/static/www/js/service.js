@@ -291,7 +291,8 @@ function connectSocket(event_id,action) {
         var arr = m.time.split('.')[0];
         var time1 = arr.split('T')[0];
         var time2 = arr.split('T')[1].split('Z')[0];
-        tmpLog = "<p><span class='log_time'>" + time2+"</span><span class='log_msg'> "+ m.message + "</span></p>";
+        var time3 = time2.split('+')[0];
+        tmpLog = "<p class='clearfix'><span class='log_time'>" + time3+"</span><span class='log_msg'> "+ m.message + "</span></p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
         $(tmpLog).prependTo($("#keylog .log_content").eq(0));
         if( m.step == "callback" || m.step == "last" )
