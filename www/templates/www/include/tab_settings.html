@@ -544,10 +544,12 @@
     <!-- 06-->
     <!-- add 07 start -->
     {% if not is_private and cloud_assistant == 'goodrain' %}
-    <section class="content-tab">
-        <p class="tit-two">应用特性增强</p>
-        <p class="onoffbox clearfix"><input type="checkbox" name="hightraly"  id="hightraly"  class="checkhide" /><label class="checkshow" for="hightraly"></label></p>
-    </section>
+        {% if tenantServiceInfo.service_key == str(0000) %}
+        <section class="content-tab">
+            <p class="tit-two">应用特性增强</p>
+            <p class="onoffbox clearfix"><input type="checkbox" name="hightraly"  id="hightraly"  class="checkhide" /><label class="checkshow" for="hightraly"></label></p>
+        </section>
+        {% endif %}
     {% endif %}
     <!-- add 07 end -->
     <!-- 07-->
