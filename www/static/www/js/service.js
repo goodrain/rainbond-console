@@ -138,6 +138,7 @@ function createEvents(name, service, action) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
         },
         success: function (data) {
+            console.log(data["status"]);
             if (data["status"] == "often") {
                 swal("上次操作进行中，请稍后！");
                 return ""
@@ -367,17 +368,27 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
             if (dataObj["status"] == "success") {
                 swal("操作成功");
             } else if (dataObj["status"] == "often") {
-                swal("操作正在进行中，请稍后")
+                swal("操作正在进行中，请稍后");
+                ws.onclose();
+                history.go(0);
             } else if (dataObj["status"] == "owed") {
-                swal("余额不足请及时充值")
+                swal("余额不足请及时充值");
+                ws.onclose();
+                history.go(0);
             } else if (dataObj["status"] == "expired") {
-                swal("试用已到期")
+                swal("试用已到期");
+                ws.onclose();
+                history.go(0);
             } else if (dataObj["status"] == "over_memory") {
-                swal("资源已达上限，不能升级")
+                swal("资源已达上限，不能升级");
+                ws.onclose();
+                history.go(0);
             } else if (dataObj["status"] == "over_money") {
-                swal("余额不足，不能升级")
+                swal("余额不足，不能升级");
+                ws.onclose();
+                history.go(0);
             } else {
-                swal("操作失败")
+                swal("操作失败");
             }
             $("#operate_" + service_id).removeAttr("disabled")
         },
