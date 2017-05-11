@@ -147,16 +147,6 @@ class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
-        action = request.POST["action"]
-        user_actions = ("rollback", "restart", "reboot")
-        if action in user_actions:
-            if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
-                result["status"] = "owed"
-                return JsonResponse(result, status=200)
-            
-            if tenantAccountService.isExpired(self.tenant, self.service):
-                result["status"] = "expired"
-                return JsonResponse(result, status=200)
         
         if 'event_id' not in request.POST:
             result["status"] = "failure"
@@ -169,6 +159,20 @@ class ServiceManage(AuthedView):
             result["message"] = "event is not exist."
             return JsonResponse(result, status=412)
         event.deploy_version = self.service.deploy_version
+        
+        action = request.POST["action"]
+        user_actions = ("rollback", "restart", "reboot")
+        if action in user_actions:
+            if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
+                result["status"] = "owed"
+                self.update_event(event, "余额不足请及时充值", "failure")
+                return JsonResponse(result, status=200)
+            
+            if tenantAccountService.isExpired(self.tenant, self.service):
+                result["status"] = "expired"
+                self.update_event(event, "试用已到期", "failure")
+                return JsonResponse(result, status=200)
+        
         if action == "stop":
             try:
                 body = {}
@@ -194,8 +198,10 @@ class ServiceManage(AuthedView):
                 if not flag:
                     if rt_type == "memory":
                         result["status"] = "over_memory"
+                        self.update_event(event, "资源已达上限，不能升级", "failure")
                     else:
                         result["status"] = "over_money"
+                        self.update_event(event, "余额不足，不能升级", "failure")
                     return JsonResponse(result, status=200)
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
@@ -220,8 +226,10 @@ class ServiceManage(AuthedView):
                 if not flag:
                     if rt_type == "memory":
                         result["status"] = "over_memory"
+                        self.update_event(event, "资源不足，不能升级", "failure")
                     else:
                         result["status"] = "over_money"
+                        self.update_event(event, "余额不足，不能升级", "failure")
                     return JsonResponse(result, status=200)
                 # stop service
                 body = {}
@@ -365,8 +373,10 @@ class ServiceManage(AuthedView):
                     if not flag:
                         if rt_type == "memory":
                             result["status"] = "over_memory"
+                            self.update_event(event, "资源不足，不能升级", "failure")
                         else:
                             result["status"] = "over_money"
+                            self.update_event(event, "余额不足，不能升级", "failure")
                         return JsonResponse(result, status=200)
                     body = {}
                     body["event_id"] = event_id
