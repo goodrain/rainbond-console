@@ -163,7 +163,7 @@ function createEvents(name, service, action) {
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中@'+event["user_name"]+'</span><div class="user"><p>';
-                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: none;">查看日志</p><p class="hide_log" style="display: block;">查看日志</p></div></div><div class="panel-body"><div class="log"><p class="log_type" style="display: none;"><label class="active" data-log="info">Info日志</label><label data-log="debug">Debug日志</label><label data-log="error">Error日志</label></p><div class="log_content log_height2 log_'+event["event_id"]+'"></div></div></div></div></div></li>'
+                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: none;">查看详情</p><p class="hide_log" style="display: block;">查看详情</p></div></div><div class="panel-body"><div class="log"><p class="log_type" style="display: none;"><label class="active" data-log="info">Info日志</label><label data-log="debug">Debug日志</label><label data-log="error">Error日志</label></p><div class="log_content log_height2 log_'+event["event_id"]+'"></div></div></div></div></div></li>'
 
                 if( event["event_type"] == "deploy" && event["old_deploy_version"] )
                 {
@@ -765,7 +765,7 @@ function log_page(){
                         else{
                             str_log += '<i class="fa '+color+' tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[log["type"]]+status+' @'+log["user_name"]+'</span><div class="user"><p></p><p class="ajax_log" data-log="'+log["event_id"];
                         }
-                        str_log += '">查看日志</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type"><label class="active" data-log="info">Info日志</label><label data-log="debug">Debug日志</label><label data-log="error">Error日志</label></p><div class="log_content log_'+log["event_id"]+'"></div></div></div></div></div></li>'
+                        str_log += '">查看详情</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type"><label class="active" data-log="info">Info日志</label><label data-log="debug">Debug日志</label><label data-log="error">Error日志</label></p><div class="log_content log_'+log["event_id"]+'"></div></div></div></div></div></li>'
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
                         {
                             str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+log["old_deploy_version"]+')</span>';
