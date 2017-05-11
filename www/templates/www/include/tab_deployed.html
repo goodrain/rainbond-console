@@ -537,7 +537,7 @@
                     var time1 = time.split('T')[0];
                     var time2 = time.split('T')[1].split('Z')[0];
                     var time3 = time2.split('+')[0];
-                    log = "<p><span>"+time3+"</span><span> "+newLog[i]["message"]+"</span></p>";
+                    log = "<p><span class='log_time'>"+time3+"</span><span class='log_msg'> "+newLog[i]["message"]+"</span></p>";
                     $(".log_" + event_id + "").prepend(log);
                 }
 //                var address = location.href.split("?");
