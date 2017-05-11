@@ -142,7 +142,7 @@ function createEvents(name, service, action) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
         },
         success: function (data) {
-            console.log(data["status"]);
+            console.log(data["status"] == "often");
             if (data["status"] == "often") {
                 swal("上次操作进行中，请稍后！");
                 return ""
