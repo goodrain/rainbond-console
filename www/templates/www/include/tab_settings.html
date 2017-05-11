@@ -544,7 +544,7 @@
     <!-- 06-->
     <!-- add 07 start -->
     {% if not is_private and cloud_assistant == 'goodrain' %}
-        {% if tenantServiceInfo.service_key == '0000' %}
+        {% if tenantServiceInfo.service_key == '0000' or tenantServiceInfo.category == "app_publish" %}
         <section class="content-tab">
             <p class="tit-two">应用特性增强</p>
             <p class="onoffbox clearfix"><input type="checkbox" name="hightraly"  id="hightraly"  class="checkhide" /><label class="checkshow" for="hightraly"></label></p>
