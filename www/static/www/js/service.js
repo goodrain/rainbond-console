@@ -91,9 +91,13 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
             if (dataObj["status"] == "success") {
                 swal.close();
             } else if (dataObj["status"] == "owed") {
-                swal("余额不足请及时充值")
+                swal("余额不足请及时充值");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "expired") {
-                swal("试用已到期")
+                swal("试用已到期");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "language") {
                 swal("应用语言监测未通过")
                 forurl = "/apps/" + tenantName + "/" + serviceAlias
@@ -369,8 +373,7 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
                 swal("操作成功");
             } else if (dataObj["status"] == "often") {
                 swal("操作正在进行中，请稍后");
-                ws.close();
-                history.go(0);
+
             } else if (dataObj["status"] == "owed") {
                 swal("余额不足请及时充值");
                 ws.close();
@@ -431,17 +434,29 @@ function service_onOperation(service_id, service_alias, tenantName) {
             if (dataObj["status"] == "success") {
                 swal.close();
             } else if (dataObj["status"] == "often") {
-                swal("操作正在进行中，请稍后")
+                swal("操作正在进行中，请稍后");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "owed") {
-                swal("余额不足请及时充值")
+                swal("余额不足请及时充值");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "expired") {
-                swal("试用已到期")
+                swal("试用已到期");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "over_memory") {
-                swal("免费资源已达上限，不能操作")
+                swal("免费资源已达上限，不能操作");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "over_money") {
-                swal("余额不足，不能操作")
+                swal("余额不足，不能操作");
+                ws.close();
+                history.go(0);
             } else {
-                swal("操作失败")
+                swal("操作失败");
+                ws.close();
+                history.go(0);
             }
             $("#service_status_operate").removeAttr("disabled")
         },
