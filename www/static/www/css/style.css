@@ -5663,7 +5663,7 @@ a.guest-on i {
 
 .layermainlog{width: 500px; background: #fff; position: absolute; top: 20%; left: 50%; margin:0 0 0 -250px; padding:20px;}
 .titlog{color: #303030; font-size: 16px; line-height: 40px; text-align: center; background: #f7f7f7;}
-.layertitlog{color: #303030; font-size: 16px; line-height: 30px; }
+.layertitlog{color: #303030; font-size: 16px; line-height: 30px; padding-top: 10px;}
 .tipstextlog{color: #838383; font-size:14px; line-height: 24px;}
 .text-center button{margin:5px;}
 .fm-div{width: 100%; height: 100px; overflow-y: auto; padding:0 5px;}
