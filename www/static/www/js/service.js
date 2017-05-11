@@ -45,17 +45,17 @@ function service_my_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
                 swal("余额不足，不能升级")
             } else {
                 swal("操作失败")
-                $("#onekey_deploy").removeAttr("disabled")
+                //$("#onekey_deploy").removeAttr("disabled")
             }
             if (isreload == 'yes') {
                 forurl = "/apps/" + tenantName + "/" + serviceAlias
                     + "/detail/"
                 window.open(forurl, target = "_parent")
             }
-            $("#onekey_deploy").removeAttr("disabled")
+            //$("#onekey_deploy").removeAttr("disabled")
         },
         error: function () {
-            $("#onekey_deploy").removeAttr("disabled")
+            //$("#onekey_deploy").removeAttr("disabled")
             swal("系统异常");
         }
     });
@@ -109,17 +109,17 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
                 swal("余额不足，不能升级")
             } else {
                 swal("操作失败")
-                $("#onekey_deploy").removeAttr("disabled")
+                //$("#onekey_deploy").removeAttr("disabled")
             }
             if (isreload == 'yes') {
                 forurl = "/apps/" + tenantName + "/" + serviceAlias
                     + "/detail/"
                 window.open(forurl, target = "_parent")
             }
-            $("#onekey_deploy").removeAttr("disabled")
+            //$("#onekey_deploy").removeAttr("disabled")
         },
         error: function () {
-            $("#onekey_deploy").removeAttr("disabled")
+            //$("#onekey_deploy").removeAttr("disabled")
             swal("系统异常");
         }
     });
@@ -276,6 +276,8 @@ function connectSocket(event_id,action) {
     $(".load_more").attr("data-num",parseInt(num)+1);
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
+        $("#service_status_operate").attr("disabled","disabled");
+        $("#onekey_deploy").attr('disabled','disabled');
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
@@ -458,11 +460,11 @@ function service_onOperation(service_id, service_alias, tenantName) {
                 ws.close();
                 history.go(0);
             }
-            $("#service_status_operate").removeAttr("disabled");
+            //$("#service_status_operate").removeAttr("disabled");
         },
         error: function () {
             swal("系统异常");
-            $("#service_status_operate").removeAttr("disabled");
+            //$("#service_status_operate").removeAttr("disabled");
         }
     })
 }
@@ -1190,11 +1192,11 @@ function service_reboot(service_id, service_alias, tenantName) {
             } else {
                 swal("操作失败")
             }
-            $("#service_status_operate").removeAttr("disabled")
+            //$("#service_status_operate").removeAttr("disabled")
         },
         error: function () {
             swal("系统异常");
-            $("#service_status_operate").removeAttr("disabled");
+            //$("#service_status_operate").removeAttr("disabled");
         }
     });
 }
