@@ -2200,6 +2200,7 @@ ul.inbox-pagination li {
 .modal-header h4.modal-title {
     font-weight: 100;
     font-size: 16px;  text-align: center; background: #f7f7f7;
+    line-height: 40px;
     font-family: "Microsoft YaHei",Arial,"Hiragino Sans GB",STHeiti,"WenQuanYi Micro Hei",SimSun,sans-serif;
 }
 
