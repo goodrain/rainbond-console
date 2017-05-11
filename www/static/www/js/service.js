@@ -369,26 +369,28 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
                 swal("操作成功");
             } else if (dataObj["status"] == "often") {
                 swal("操作正在进行中，请稍后");
-                ws.onclose();
+                ws.close();
                 history.go(0);
             } else if (dataObj["status"] == "owed") {
                 swal("余额不足请及时充值");
-                ws.onclose();
+                ws.close();
                 history.go(0);
             } else if (dataObj["status"] == "expired") {
                 swal("试用已到期");
-                ws.onclose();
+                ws.close();
                 history.go(0);
             } else if (dataObj["status"] == "over_memory") {
                 swal("资源已达上限，不能升级");
-                ws.onclose();
+                ws.close();
                 history.go(0);
             } else if (dataObj["status"] == "over_money") {
                 swal("余额不足，不能升级");
-                ws.onclose();
+                ws.close();
                 history.go(0);
             } else {
                 swal("操作失败");
+                ws.close();
+                history.go(0);
             }
             $("#operate_" + service_id).removeAttr("disabled")
         },
