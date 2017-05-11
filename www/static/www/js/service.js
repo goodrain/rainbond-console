@@ -45,31 +45,29 @@ function service_my_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
                 swal("余额不足，不能升级")
             } else {
                 swal("操作失败")
-                $("#onekey_deploy").removeAttr("disabled")
+                //$("#onekey_deploy").removeAttr("disabled")
             }
             if (isreload == 'yes') {
                 forurl = "/apps/" + tenantName + "/" + serviceAlias
                     + "/detail/"
                 window.open(forurl, target = "_parent")
             }
-            $("#onekey_deploy").removeAttr("disabled")
+            //$("#onekey_deploy").removeAttr("disabled")
         },
         error: function () {
-            $("#onekey_deploy").removeAttr("disabled")
+            //$("#onekey_deploy").removeAttr("disabled")
             swal("系统异常");
         }
     });
 }
 function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
-
-    event_id = createEvents(tenantName, serviceAlias, "deploy")
-
+    $("#onekey_deploy").attr('disabled', "true")
+    event_id = createEvents(tenantName, serviceAlias, "deploy");
     if (event_id == "") {
         return false
     }
     connectSocket(event_id,"deploy");
 
-    $("#onekey_deploy").attr('disabled', "true")
     _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
     if (categroy == "application") {
         _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
@@ -91,9 +89,13 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
             if (dataObj["status"] == "success") {
                 swal.close();
             } else if (dataObj["status"] == "owed") {
-                swal("余额不足请及时充值")
+                swal("余额不足请及时充值");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "expired") {
-                swal("试用已到期")
+                swal("试用已到期");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "language") {
                 swal("应用语言监测未通过")
                 forurl = "/apps/" + tenantName + "/" + serviceAlias
@@ -107,17 +109,17 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
                 swal("余额不足，不能升级")
             } else {
                 swal("操作失败")
-                $("#onekey_deploy").removeAttr("disabled")
+                //$("#onekey_deploy").removeAttr("disabled")
             }
             if (isreload == 'yes') {
                 forurl = "/apps/" + tenantName + "/" + serviceAlias
                     + "/detail/"
                 window.open(forurl, target = "_parent")
             }
-            $("#onekey_deploy").removeAttr("disabled")
+            //$("#onekey_deploy").removeAttr("disabled")
         },
         error: function () {
-            $("#onekey_deploy").removeAttr("disabled")
+            //$("#onekey_deploy").removeAttr("disabled")
             swal("系统异常");
         }
     });
@@ -274,6 +276,8 @@ function connectSocket(event_id,action) {
     $(".load_more").attr("data-num",parseInt(num)+1);
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
+        $("#service_status_operate").attr("disabled","disabled");
+        $("#onekey_deploy").attr('disabled','disabled');
     }
     ws.onmessage = function (evt) {
         //var m = jQuery.parseJSON(evt.data)
@@ -320,6 +324,8 @@ function connectSocket(event_id,action) {
             $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"0px"});
             $("#keylog li").eq(0).find('.log').css({"height":"0px"});
             $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
+            $("#service_status_operate").removeAttr("disabled");
+            $("#onekey_deploy").removeAttr('disabled');
         }
     }
     ws.onclose = function (evt) {
@@ -342,7 +348,7 @@ function closeSocket() {
 }
 
 function service_my_onOperation(service_id, service_alias, tenantName) {
-    $("#operate_" + service_id).attr('disabled', "true")
+    $("#service_status_operate").attr('disabled', "true")
     var taction = $("#operate_" + service_id).attr("data" + service_id)
     if (taction != "stop" && taction != "restart") {
         swal("系统异常");
@@ -367,17 +373,28 @@ function service_my_onOperation(service_id, service_alias, tenantName) {
             if (dataObj["status"] == "success") {
                 swal("操作成功");
             } else if (dataObj["status"] == "often") {
-                swal("操作正在进行中，请稍后")
+                swal("操作正在进行中，请稍后");
+
             } else if (dataObj["status"] == "owed") {
-                swal("余额不足请及时充值")
+                swal("余额不足请及时充值");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "expired") {
-                swal("试用已到期")
+                swal("试用已到期");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "over_memory") {
-                swal("资源已达上限，不能升级")
+                swal("资源已达上限，不能升级");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "over_money") {
-                swal("余额不足，不能升级")
+                swal("余额不足，不能升级");
+                ws.close();
+                history.go(0);
             } else {
-                swal("操作失败")
+                swal("操作失败");
+                ws.close();
+                history.go(0);
             }
             $("#operate_" + service_id).removeAttr("disabled")
         },
@@ -396,6 +413,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
         swal("参数异常");
         window.location.href = window.location.href;
     }
+    $("#service_status_operate").attr('disabled', "true");
     event_id = createEvents(tenantName, service_alias, taction)
     if (event_id == "") {
         swal("创建操作错误");
@@ -403,7 +421,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
     }
     connectSocket(event_id,taction);
 
-    $("#service_status_operate").attr('disabled', "true")
+
     $.ajax({
         type: "POST",
         url: "/ajax/" + tenantName + "/" + service_alias + "/manage",
@@ -418,23 +436,35 @@ function service_onOperation(service_id, service_alias, tenantName) {
             if (dataObj["status"] == "success") {
                 swal.close();
             } else if (dataObj["status"] == "often") {
-                swal("操作正在进行中，请稍后")
+                swal("操作正在进行中，请稍后");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "owed") {
-                swal("余额不足请及时充值")
+                swal("余额不足请及时充值");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "expired") {
-                swal("试用已到期")
+                swal("试用已到期");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "over_memory") {
-                swal("免费资源已达上限，不能操作")
+                swal("免费资源已达上限，不能操作");
+                ws.close();
+                history.go(0);
             } else if (dataObj["status"] == "over_money") {
-                swal("余额不足，不能操作")
+                swal("余额不足，不能操作");
+                ws.close();
+                history.go(0);
             } else {
-                swal("操作失败")
+                swal("操作失败");
+                ws.close();
+                history.go(0);
             }
-            $("#service_status_operate").removeAttr("disabled")
+            //$("#service_status_operate").removeAttr("disabled");
         },
         error: function () {
             swal("系统异常");
-            $("#service_status_operate").removeAttr("disabled");
+            //$("#service_status_operate").removeAttr("disabled");
         }
     })
 }
@@ -1162,11 +1192,11 @@ function service_reboot(service_id, service_alias, tenantName) {
             } else {
                 swal("操作失败")
             }
-            $("#service_status_operate").removeAttr("disabled")
+            //$("#service_status_operate").removeAttr("disabled")
         },
         error: function () {
             swal("系统异常");
-            $("#service_status_operate").removeAttr("disabled");
+            //$("#service_status_operate").removeAttr("disabled");
         }
     });
 }
