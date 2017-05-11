@@ -522,7 +522,7 @@ class UseMidRain(AuthedView):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
         if num > 0:
             TenantServiceEnvVar.objects.get(service_id=service.service_id, attr_name="SEVEN_LEVEL").delete()
-            data = {"action": "delete", "attr_names": "SEVEN_LEVEL"}
+            data = {"action": "delete", "attr_names": ["SEVEN_LEVEL"]}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
 
     def saveAdapterEnv(self, service):
