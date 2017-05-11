@@ -412,6 +412,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
         swal("参数异常");
         window.location.href = window.location.href;
     }
+    $("#service_status_operate").attr('disabled', "true")
     event_id = createEvents(tenantName, service_alias, taction)
     if (event_id == "") {
         swal("创建操作错误");
@@ -419,7 +420,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
     }
     connectSocket(event_id,taction);
 
-    $("#service_status_operate").attr('disabled', "true")
+
     $.ajax({
         type: "POST",
         url: "/ajax/" + tenantName + "/" + service_alias + "/manage",
