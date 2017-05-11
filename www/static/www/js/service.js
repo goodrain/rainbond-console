@@ -61,15 +61,13 @@ function service_my_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
     });
 }
 function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
-
-    event_id = createEvents(tenantName, serviceAlias, "deploy")
-
+    $("#onekey_deploy").attr('disabled', "true")
+    event_id = createEvents(tenantName, serviceAlias, "deploy");
     if (event_id == "") {
         return false
     }
     connectSocket(event_id,"deploy");
 
-    $("#onekey_deploy").attr('disabled', "true")
     _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
     if (categroy == "application") {
         _url = "/ajax/" + tenantName + '/' + serviceAlias + "/app-deploy/"
@@ -144,7 +142,9 @@ function createEvents(name, service, action) {
         success: function (data) {
             console.log(data["status"] == "often");
             if (data["status"] == "often") {
+                console.log('111');
                 swal("上次操作进行中，请稍后！");
+                console.log(222);
                 return ""
             } else if (data["status"] == "success") {
                 event = data["event"]
@@ -325,6 +325,8 @@ function connectSocket(event_id,action) {
             $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"0px"});
             $("#keylog li").eq(0).find('.log').css({"height":"0px"});
             $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
+            $("#service_status_operate").removeAttr("disabled");
+            $("#onekey_deploy").removeAttr('disabled');
         }
     }
     ws.onclose = function (evt) {
@@ -347,7 +349,7 @@ function closeSocket() {
 }
 
 function service_my_onOperation(service_id, service_alias, tenantName) {
-    $("#operate_" + service_id).attr('disabled', "true")
+    $("#service_status_operate").attr('disabled', "true")
     var taction = $("#operate_" + service_id).attr("data" + service_id)
     if (taction != "stop" && taction != "restart") {
         swal("系统异常");
@@ -412,7 +414,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
         swal("参数异常");
         window.location.href = window.location.href;
     }
-    $("#service_status_operate").attr('disabled', "true")
+    $("#service_status_operate").attr('disabled', "true");
     event_id = createEvents(tenantName, service_alias, taction)
     if (event_id == "") {
         swal("创建操作错误");
@@ -459,7 +461,7 @@ function service_onOperation(service_id, service_alias, tenantName) {
                 ws.close();
                 history.go(0);
             }
-            $("#service_status_operate").removeAttr("disabled")
+            $("#service_status_operate").removeAttr("disabled");
         },
         error: function () {
             swal("系统异常");
