@@ -57,16 +57,17 @@
                                     <textarea class="form-control app_content" name="release_note" rows="3" maxlength="1024" {% if service.category == "app_publish" and published_service.info %}readonly="readonly"{% endif %}>{% if service.category == "app_publish" %}{{published_service.info}}{% else %}{{app_service.info}}{% endif %}</textarea>
                                 </div>
                             </div>
-
-                            <div class="show-box" style="display: none">
-                                <div class="form-group">
-                                    <label class="col-sm-2 control-label">是否初始化用户</label>
-                                    <div class="col-sm-8">
-                                        <div class="switch switch-mini">
-                                            <input class="is_init" data-switch="mini" name="is_init" type="checkbox"/>
-                                        </div>
+                            <div class="form-group">
+                                <label class="col-sm-2 control-label">是否初始化用户</label>
+                                <div class="col-sm-8">
+                                    <div class="switch switch-mini">
+                                        <input class="is_init" data-switch="mini" name="is_init" type="checkbox"/>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="show-box" style="display: none">
+
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label">分发到云市</label>
                                     <div class="col-sm-8">

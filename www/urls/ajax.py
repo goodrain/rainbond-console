@@ -14,6 +14,7 @@ from www.views.ajax.price_detail import PriceDetailView
 from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateServiceGroupView
 from www.views.service import CreateServiceDepInfo
 from www.views.ajax.third_app import *
+from www.views.ajax.event import *
 
 urlpatterns = patterns(
     '',
@@ -26,6 +27,8 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/net-disk', ajax.ServiceNetAndDisk.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/log', ajax.ServiceLog.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/relation', ajax.ServiceRelation.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/is_midrain', ajax.UseMidRain.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/l7info', ajax.L7ServiceSet.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/check', ajax.ServiceCheck.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/mapping-port', ajax.ServiceMappingPort.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/domain$', ajax.ServiceDomainManager.as_view()),
@@ -98,5 +101,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/regionServiceList', ajax.RegionServiceConsumeView.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/serviceCostDetail', ajax.RegionServiceDetailConsumeView.as_view()),
 
-
+    # event
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/events', EventManager.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/event/(?P<event_id>[\w\-]+)/log', EventLogManager.as_view()),
 )

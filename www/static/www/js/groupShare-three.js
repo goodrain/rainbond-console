@@ -34,7 +34,7 @@ $(function () {
             app_data["name"] = $.trim($("input.app_name").eq(i).val());
             app_data["version"] = $.trim($("input.app_version").eq(i).val());
             app_data["content"] = $.trim($("textarea.app_content").eq(i).val());
-            // app_data["is_init"] = $("input.is_init").eq(i).prop("checked")?1:0;
+            app_data["is_init"] = $("input.is_init").eq(i).prop("checked")?1:0;
             // var one = $("input.is_outer").eq(i).prop("checked")?1:0;
             // var two = $("input.is_private").eq(i).prop("checked")?1:0;
             // var three = $("input.show_assistant").eq(i).prop("checked")?1:0;

@@ -365,9 +365,9 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     app_alias = pro_map.get("name")
                     app_version = pro_map.get("version")
                     app_content = pro_map.get("content")
-                    # is_init = pro_map.get("is_init") == 1
+                    is_init = pro_map.get("is_init") == 1
                     # 默认初始化账户
-                    is_init = True
+                    # is_init = False
                     is_outer = app_service_group.is_market == 1
                     is_private = app_service_group.is_market == 0
                     # 云帮不显示
@@ -395,8 +395,8 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     # 服务依赖关系
                     service = service_map.get(pro_service_id)
                     app_service = app_service_map.get(pro_service_id)
-                    self.add_app_relation(service, app_service.service_key, app_service.app_version, app_service.app_alias)
-                    logger.debug(u'group.share.service. now add group share service relation for service {0} ok'.format(service.service_id))
+                    result = self.add_app_relation(service, app_service.service_key, app_service.app_version, app_service.app_alias)
+                    logger.debug(u'group.share.service. now add group share service relation for service {0} ok'.format(service.service_id),result)
 
                 # flag = PublishedGroupServiceRelation.objects.filter(group_pk=groupId).exists()
                 # if not flag:
@@ -601,6 +601,8 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
         if len(dep_service_ids) == 0:
             return None
         # 依赖服务的信息
+        logger.debug(dep_service_ids)
+
         try:
             dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)
             app_relation_list = []
@@ -609,10 +611,10 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     dep_app_count = 0
                     if dep_service.service_key != 'application':
                         # 首先检查key-version，不存在检查service_id,取最近的一个
-                        dep_app_count = AppService.objets.filter(service_key=dep_service.service_key,app_version=dep_service.version).count()
+                        dep_app_count = AppService.objects.filter(service_key=dep_service.service_key,app_version=dep_service.version).count()
                     if dep_app_count == 0:
                         # service_key, version不存在, 检查service_id取最近的一个
-                        dep_app_count = AppService.objets.filter(service_id=dep_service.service_id).count()
+                        dep_app_count = AppService.objects.filter(service_id=dep_service.service_id).count()
                     else:
                         dep_app_service = AppService.objects.get(service_key=dep_service.service_key,app_version=dep_service.version)
 
@@ -626,13 +628,13 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     relation_count = AppServiceRelation.objects.filter(service_key=service_key,
                                                                        app_version=app_version,
                                                                        dep_service_key=dep_app_service.service_key,
-                                                                       dep_app_version=dep_app_service.version).count()
+                                                                       dep_app_version=dep_app_service.app_version).count()
                     if relation_count == 0:
                         app_relation = AppServiceRelation(service_key=service_key,
                                                           app_version=app_version,
                                                           app_alias=app_alias,
                                                           dep_service_key=dep_app_service.service_key,
-                                                          dep_app_version=dep_app_service.version,
+                                                          dep_app_version=dep_app_service.app_version,
                                                           dep_app_alias=dep_app_service.app_alias)
                         app_relation_list.append(app_relation)
                 # 批量添加发布依赖
@@ -642,6 +644,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 # 依赖服务的实力已经被删除,理论上不存在这种情况
                 return 400
         except Exception as e:
+            logger.exception(e)
             logger.error(
                 "add app relation error service_key {0},app_version{1},app_alias{2}".format(service_key, app_version,
                                                                                             app_alias))

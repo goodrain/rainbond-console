@@ -370,6 +370,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["tenant"] = self.tenant
             context["region_name"] = self.service.service_region
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
+            context["event_websocket_uri"] = settings.EVENT_WEBSOCKET_URL[self.service.service_region]
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
             if ServiceGroupRelation.objects.filter(service_id=self.service.service_id).count() > 0:
                 gid = ServiceGroupRelation.objects.get(service_id=self.service.service_id).group_id
@@ -639,6 +640,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
                 for group in group_list:
                     serviceGroupNameMap[group.ID] = group.group_name
                 context["serviceGroupNameMap"] = serviceGroupNameMap
+                # cloud_assistant为goodrain表示为公有云
+                context['cloud_assistant'] = sn.instance.cloud_assistant
+                # is_private表示为私有云
+                context["is_private"] = sn.instance.is_private()
 
             elif fr == "cost":
                 # service_attach_info = None

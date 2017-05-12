@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import datetime
 import json
+import time
 from decimal import Decimal
 
 from share.manager.region_provier import RegionProviderManager
@@ -9,7 +10,7 @@ from www.models import Users, TenantServiceInfo, PermRelTenant, Tenants, \
     TenantServiceRelation, TenantServiceAuth, TenantServiceEnvVar, \
     TenantRegionInfo, TenantServicesPort, TenantServiceMountRelation, \
     TenantServiceVolume, ServiceInfo, AppServiceRelation, AppServiceEnv, \
-    AppServicePort, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo
+    AppServicePort, ServiceExtendMethod, AppServiceVolume, ServiceAttachInfo, ServiceEvent
 
 from www.models.main import TenantRegionPayModel
 from www.service_http import RegionServiceApi
@@ -22,7 +23,9 @@ from www.utils.giturlparse import parse as git_url_parse
 from www.utils.sn import instance
 from www.app_http import AppServiceApi
 
+from www.utils.crypt import make_uuid
 import logging
+
 logger = logging.getLogger('default')
 
 monitorhook = MonitorHook()
@@ -34,13 +37,13 @@ rpmManager = RegionProviderManager()
 
 
 class BaseTenantService(object):
-
     def get_service_list(self, tenant_pk, user, tenant_id, region):
         user_pk = user.pk
         tmp = TenantServiceInfo()
         if user.is_sys_admin:
             if hasattr(tmp, 'service_origin'):
-                services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region, service_origin='assistant')
+                services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region,
+                                                            service_origin='assistant')
             else:
                 services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region)
         else:
@@ -64,8 +67,9 @@ class BaseTenantService(object):
             except PermRelTenant.DoesNotExist:
                 if tenant_pk == 2250:
                     services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by('service_alias')
-        return services
 
+        return services
+    
     def getMaxPort(self, tenant_id, service_key, service_alias):
         cur_service_port = 0
         dsn = BaseConnection()
@@ -78,7 +82,7 @@ class BaseTenantService(object):
             if temp is not None:
                 cur_service_port = int(temp)
         return cur_service_port
-
+    
     def getInnerServicePort(self, tenant_id, service_key):
         cur_service_port = 0
         dsn = BaseConnection()
@@ -91,16 +95,17 @@ class BaseTenantService(object):
             if temp is not None:
                 cur_service_port = int(temp)
         return cur_service_port
-
+    
     def prepare_mapping_port(self, service, container_port):
-        port_list = TenantServicesPort.objects.filter(tenant_id=service.tenant_id, mapping_port__gt=container_port).values_list(
+        port_list = TenantServicesPort.objects.filter(tenant_id=service.tenant_id,
+                                                      mapping_port__gt=container_port).values_list(
             'mapping_port', flat=True).order_by('mapping_port')
-
+        
         port_list = list(port_list)
         port_list.insert(0, container_port)
         max_port = reduce(lambda x, y: y if (y - x) == 1 else x, port_list)
         return max_port + 1
-
+    
     def create_service(self, service_id, tenant_id, service_alias, service_cname, service, creater, region):
         tenantServiceInfo = {}
         tenantServiceInfo["service_id"] = service_id
@@ -147,7 +152,7 @@ class BaseTenantService(object):
         newTenantService = TenantServiceInfo(**tenantServiceInfo)
         newTenantService.save()
         return newTenantService
-
+    
     def create_region_service(self, newTenantService, domain, region, nick_name, do_deploy=True, dep_sids=None):
         data = {}
         data["tenant_id"] = newTenantService.tenant_id
@@ -178,27 +183,41 @@ class BaseTenantService(object):
         data["code_from"] = newTenantService.code_from
         data["dep_sids"] = dep_sids
         data["port_type"] = newTenantService.port_type
-
+        
         ports_info = TenantServicesPort.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'mapping_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         if ports_info:
             data["extend_info"]["ports"] = list(ports_info)
-
+        
         envs_info = TenantServiceEnvVar.objects.filter(service_id=newTenantService.service_id).values(
             'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
         if envs_info:
             data["extend_info"]["envs"] = list(envs_info)
-
+        
         # 获取数据持久化数据
         volume_info = TenantServiceVolume.objects.filter(service_id=newTenantService.service_id).values(
             'service_id', 'category', 'host_path', 'volume_path')
         if volume_info:
             data["extend_info"]["volume"] = list(volume_info)
-
-        logger.debug(newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
-        regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
-        logger.debug(newTenantService.tenant_id + " end create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
-
+        
+        logger.debug(
+            newTenantService.tenant_id + " start create_service:" + datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+        
+        try:
+            # 创建操作
+            event = ServiceEvent(event_id=make_uuid(), service_id=newTenantService.service_id,
+                                 tenant_id=newTenantService.tenant_id, type="create",
+                                 deploy_version=newTenantService.deploy_version if do_deploy else None,
+                                 user_name=nick_name, start_time=datetime.datetime.now())
+            event.save()
+            
+            data["event_id"] = event.event_id
+            regionClient.create_service(region, newTenantService.tenant_id, json.dumps(data))
+        except Exception as e:
+            logging.exception(e)
+            event.delete()
+            raise e
+    
     def create_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         dependS = TenantServiceInfo.objects.get(service_id=dep_service_id)
         task = {}
@@ -213,7 +232,7 @@ class BaseTenantService(object):
         tsr.dep_service_type = dependS.service_type
         tsr.dep_order = 0
         tsr.save()
-
+    
     def cancel_service_dependency(self, tenant_id, service_id, dep_service_id, region):
         task = {}
         task["dep_service_id"] = dep_service_id
@@ -221,7 +240,7 @@ class BaseTenantService(object):
         task["dep_service_type"] = "v"
         regionClient.cancelServiceDependency(region, service_id, json.dumps(task))
         TenantServiceRelation.objects.get(service_id=service_id, dep_service_id=dep_service_id).delete()
-
+    
     def create_service_env(self, tenant_id, service_id, region):
         tenantServiceEnvList = TenantServiceEnvVar.objects.filter(service_id=service_id)
         data = {}
@@ -234,14 +253,15 @@ class BaseTenantService(object):
         service = TenantServiceInfo.objects.get(service_id=service_id)
         task["container_port"] = service.inner_port
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
-
+    
     def cancel_service_env(self, tenant_id, service_id, region):
         task = {}
         task["tenant_id"] = tenant_id
         task["attr"] = {}
         regionClient.createServiceEnv(region, service_id, json.dumps(task))
-
-    def saveServiceEnvVar(self, tenant_id, service_id, container_port, name, attr_name, attr_value, isChange, scope="outer"):
+    
+    def saveServiceEnvVar(self, tenant_id, service_id, container_port, name, attr_name, attr_value, isChange,
+                          scope="outer"):
         tenantServiceEnvVar = {}
         tenantServiceEnvVar["tenant_id"] = tenant_id
         tenantServiceEnvVar["service_id"] = service_id
@@ -252,9 +272,11 @@ class BaseTenantService(object):
         tenantServiceEnvVar["is_change"] = isChange
         tenantServiceEnvVar["scope"] = scope
         TenantServiceEnvVar(**tenantServiceEnvVar).save()
-
-    def addServicePort(self, service, is_init_account, container_port=0, protocol='', port_alias='', is_inner_service=False, is_outer_service=False):
-        port = TenantServicesPort(tenant_id=service.tenant_id, service_id=service.service_id, container_port=container_port,
+    
+    def addServicePort(self, service, is_init_account, container_port=0, protocol='', port_alias='',
+                       is_inner_service=False, is_outer_service=False):
+        port = TenantServicesPort(tenant_id=service.tenant_id, service_id=service.service_id,
+                                  container_port=container_port,
                                   protocol=protocol, port_alias=port_alias, is_inner_service=is_inner_service,
                                   is_outer_service=is_outer_service)
         try:
@@ -263,20 +285,28 @@ class BaseTenantService(object):
                 mapping_port = self.prepare_mapping_port(service, container_port)
                 port.mapping_port = mapping_port
                 if service.language == "docker-compose":
-                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_PORT_" + str(container_port) + "_TCP_ADDR", "127.0.0.1", False, scope="outer")
-                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT_" + str(container_port) + "_TCP_PORT", mapping_port, False, scope="outer")
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址",
+                                           env_prefix + "_PORT_" + str(container_port) + "_TCP_ADDR", "127.0.0.1",
+                                           False, scope="outer")
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口",
+                                           env_prefix + "_PORT_" + str(container_port) + "_TCP_PORT", mapping_port,
+                                           False, scope="outer")
                 else:
-                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址", env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
-                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口", env_prefix + "_PORT", mapping_port, False, scope="outer")
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址",
+                                           env_prefix + "_HOST", "127.0.0.1", False, scope="outer")
+                    self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"端口",
+                                           env_prefix + "_PORT", mapping_port, False, scope="outer")
             if is_init_account:
                 password = service.service_id[:8]
                 TenantServiceAuth.objects.create(service_id=service.service_id, user="admin", password=password)
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, -1, u"用户名", env_prefix + "_USER", "admin", False, scope="both")
-                self.saveServiceEnvVar(service.tenant_id, service.service_id, -1, u"密码", env_prefix + "_PASS", password, False, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, -1, u"用户名", env_prefix + "_USER", "admin",
+                                       False, scope="both")
+                self.saveServiceEnvVar(service.tenant_id, service.service_id, -1, u"密码", env_prefix + "_PASS", password,
+                                       False, scope="both")
             port.save()
         except Exception, e:
             logger.exception(e)
-
+    
     def is_user_click(self, region, service_id):
         is_ok = True
         data = regionClient.getLatestServiceEvent(region, service_id)
@@ -289,7 +319,22 @@ class BaseTenantService(object):
                 if event.status == "start" and diffsec <= 180:
                     is_ok = False
         return is_ok
-
+    
+    # 检查事件是否超时，应用起停操作30s超时，其他操作3m超时
+    def checkEventTimeOut(self, event):
+        start_time = event.start_time
+        if event.type == "deploy" or event.type == "create":
+            if (datetime.datetime.now() - start_time).seconds > 180:
+                event.final_status = "timeout"
+                event.save()
+                return True
+        else:
+            if (datetime.datetime.now() - start_time).seconds > 30:
+                event.final_status = "timeout"
+                event.save()
+                return True
+        return False
+    
     def create_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
         dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
         task = {}
@@ -306,7 +351,7 @@ class BaseTenantService(object):
         tsr.mnt_dir = dependS.host_path
         tsr.dep_order = 0
         tsr.save()
-
+    
     def cancel_service_mnt(self, tenant_id, service_id, dep_service_alias, region):
         dependS = TenantServiceInfo.objects.get(tenant_id=tenant_id, service_alias=dep_service_alias)
         task = {}
@@ -316,7 +361,7 @@ class BaseTenantService(object):
         task["mnt_dir"] = "v"
         regionClient.cancelServiceMnt(region, service_id, json.dumps(task))
         TenantServiceMountRelation.objects.get(service_id=service_id, dep_service_id=dependS.service_id).delete()
-
+    
     def create_service_volume(self, service, volume_path):
         category = service.category
         region = service.service_region
@@ -338,7 +383,7 @@ class BaseTenantService(object):
         else:
             TenantServiceVolume.objects.filter(pk=volume_id).delete()
             return None
-
+    
     def cancel_service_volume(self, service, volume_id):
         # 发送到region进行删除
         region = service.service_region
@@ -359,7 +404,7 @@ class BaseTenantService(object):
             return True
         else:
             return False
-
+    
     def add_volume_list(self, service, volume_path):
         try:
             category = service.category
@@ -368,7 +413,7 @@ class BaseTenantService(object):
             service_id = service.service_id
             volume = TenantServiceVolume(service_id=service_id,
                                          category=category)
-
+            
             # 确定host_path
             if region == "ali-sh":
                 host_path = "/app-data/tenant/{0}/service/{1}{2}".format(tenant_id, service_id, volume_path)
@@ -380,15 +425,15 @@ class BaseTenantService(object):
             return host_path, volume.ID
         except Exception as e:
             logger.exception(e)
-
+    
     # 服务挂载卷类型 设置
     def custom_mnt_shar_type(self, service, volume_type):
         try:
             service_id = service.service_id
             region = service.service_region
             json_data = {
-                "service_id":service_id,
-                "volume_type":volume_type
+                "service_id": service_id,
+                "volume_type": volume_type
             }
             res, body = regionClient.mntShareSupport(region, service_id, json.dumps(json_data))
             if res.status == 200:
@@ -397,7 +442,7 @@ class BaseTenantService(object):
                 return None
         except Exception as e:
             logger.exception(e)
-
+    
     # 下载服务模版逻辑
     def download_service_info(self, service_key, app_version, action=None):
         num = ServiceInfo.objects.filter(service_key=service_key, version=app_version).count()
@@ -415,7 +460,7 @@ class BaseTenantService(object):
         else:
             info_list = ServiceInfo.objects.filter(service_key=service_key, version=app_version)
             base_info = list(info_list)[0]
-
+        
         # 下载依赖服务
         relation_list = AppServiceRelation.objects.filter(service_key=service_key, app_version=app_version)
         result_list = list(relation_list)
@@ -433,7 +478,7 @@ class BaseTenantService(object):
                 if status == 500:
                     return 500, None, None, "download {0}:{1} failed!".format(dep_key, dep_version)
         return 200, base_info, dep_map, "success"
-
+    
     # 下载服务模版数据
     def download_remote_service(self, service_key, version):
         """获取远程服务信息"""
@@ -581,7 +626,7 @@ class BaseTenantService(object):
                                               app_version=app_volume.get("app_version"),
                                               category=app_volume.get("category"),
                                               volume_path=app_volume.get("volume_path"));
-
+                    
                     volume_data.append(volume)
             AppServiceVolume.objects.filter(service_key=service_key, app_version=version).delete()
             if len(volume_data) > 0:
@@ -593,11 +638,10 @@ class BaseTenantService(object):
 
 
 class TenantUsedResource(object):
-
     def __init__(self):
         self.feerule = settings.REGION_RULE
         self.MODULES = settings.MODULES
-
+    
     def calculate_real_used_resource(self, tenant):
         totalMemory = 0
         tenant_region_list = TenantRegionInfo.objects.filter(tenant_id=tenant.tenant_id, is_active=True, is_init=True)
@@ -629,7 +673,7 @@ class TenantUsedResource(object):
                 else:
                     totalMemory = totalMemory + disk_storage
         return totalMemory
-
+    
     def calculate_guarantee_resource(self, tenant):
         memory = 0
         if tenant.pay_type == "company":
@@ -642,7 +686,7 @@ class TenantUsedResource(object):
                 for sqlobj in sqlobjs:
                     memory = memory + int(sqlobj["buy_memory"])
         return memory
-
+    
     def predict_next_memory(self, tenant, cur_service, newAddMemory, ischeckStatus):
         result = True
         rt_type = "memory"
@@ -662,7 +706,8 @@ class TenantUsedResource(object):
                 #     rt_type = 'money'
                 tm = self.calculate_real_used_resource(tenant) + newAddMemory
                 guarantee_memory = self.calculate_guarantee_resource(tenant)
-                logger.debug(tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
+                logger.debug(
+                    tenant.tenant_id + " used memory:" + str(tm) + " guarantee_memory:" + str(guarantee_memory))
                 if tm - guarantee_memory <= 102400:
                     ruleJson = self.feerule[cur_service.service_region]
                     unit_money = 0
@@ -679,7 +724,7 @@ class TenantUsedResource(object):
             elif tenant.pay_type == "unpay":
                 result = True
         return rt_type, result
-
+    
     def curServiceMemory(self, cur_service):
         memory = 0
         try:
@@ -695,7 +740,7 @@ class TenantUsedResource(object):
 class TenantAccountService(object):
     def __init__(self):
         self.MODULES = settings.MODULES
-
+    
     def isOwnedMoney(self, tenant, region_name):
         if self.MODULES["Owned_Fee"]:
             tenant_region = TenantRegionInfo.objects.get(tenant_id=tenant.tenant_id, region_name=region_name)
@@ -703,12 +748,12 @@ class TenantAccountService(object):
             if tenant.balance < 0 and tenant.pay_type == "payed":
                 return True
         return False
-
+    
     # def isExpired(self, tenant):
     #     if tenant.pay_type == "free" and tenant.expired_time < datetime.datetime.now():
     #         return True
     #     return False
-
+    
     def isExpired(self, tenant, service):
         if service.expired_time is not None:
             if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
@@ -717,7 +762,7 @@ class TenantAccountService(object):
             # 将原有免费用户的服务设置为7天后
             service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
         return False
-
+    
     def get_monthly_payment(self, tenant, region_name):
         # 0 未包月 1快到期 2 已到期 3离到期时间很长
         flag = 0;
@@ -734,24 +779,23 @@ class TenantAccountService(object):
                     flag = 3
             else:
                 flag = 2
-
+        
         return flag
-
-    # def isCloseToMonthlyExpired(self, tenant, region_name):
-    #     tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
-    #     if len(tenant_region_pay_list) == 0:
-    #         return False
-    #     tag = 1
-    #     for pay_model in tenant_region_pay_list:
-    #         if pay_model.buy_end_time > datetime.datetime.now():
-    #             timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
-    #             if timedelta > 0 and timedelta < 3:
-    #                 return True
-    #     return False
+        
+        # def isCloseToMonthlyExpired(self, tenant, region_name):
+        #     tenant_region_pay_list = TenantRegionPayModel.objects.filter(tenant_id=tenant.tenant_id, region_name=region_name)
+        #     if len(tenant_region_pay_list) == 0:
+        #         return False
+        #     tag = 1
+        #     for pay_model in tenant_region_pay_list:
+        #         if pay_model.buy_end_time > datetime.datetime.now():
+        #             timedelta = (pay_model.buy_end_time - datetime.datetime.now()).days
+        #             if timedelta > 0 and timedelta < 3:
+        #                 return True
+        #     return False
 
 
 class TenantRegionService(object):
-
     def init_for_region(self, region, tenant_name, tenant_id, user):
         success = True
         try:
@@ -761,10 +805,11 @@ class TenantRegionService(object):
             tenantRegion.tenant_id = tenant_id
             tenantRegion.region_name = region
             tenantRegion.save()
-
+        
         if not tenantRegion.is_init:
             api = RegionServiceApi()
-            logger.info("account.register", "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
+            logger.info("account.register",
+                        "create tenant {0} with tenant_id {1} on region {2}".format(tenant_name, tenant_id, region))
             try:
                 res, body = api.create_tenant(region, tenant_name, tenant_id)
             except api.CallApiError, e:
@@ -783,10 +828,9 @@ class TenantRegionService(object):
 
 
 class CodeRepositoriesService(object):
-
     def __init__(self):
         self.MODULES = settings.MODULES
-
+    
     def initRepositories(self, tenant, user, service, service_code_from, code_url, code_id, code_version):
         if service_code_from == "gitlab_new":
             if custom_config.GITLAB_SERVICE_API:
@@ -824,13 +868,13 @@ class CodeRepositoriesService(object):
             code_project_name = code_url.split("/")[4].split(".")[0]
             gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
             self.codeCheck(ts)
-
+    
     def codeCheck(self, service):
         data = {}
         data["tenant_id"] = service.tenant_id
         data["service_id"] = service.service_id
         data["git_url"] = "--branch " + service.code_version + " --depth 1 " + service.git_url
-
+        
         parsed_git_url = git_url_parse(service.git_url)
         if parsed_git_url.host == "code.goodrain.com" and service.code_from == "gitlab_new":
             gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
@@ -839,18 +883,19 @@ class CodeRepositoriesService(object):
             if settings.MODULES.get('Privite_Github', True):
                 gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
             else:
-                gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(createUser.github_token)
+                gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(
+                    createUser.github_token)
         else:
             gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
         data["git_url"] = gitUrl
-
+        
         task = {}
         task["tube"] = "code_check"
         task["service_id"] = service.service_id
         task["data"] = data
         logger.debug(json.dumps(task))
         regionClient.writeToRegionBeanstalk(service.service_region, service.service_id, json.dumps(task))
-
+    
     def showGitUrl(self, service):
         httpGitUrl = service.git_url
         if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
@@ -859,70 +904,72 @@ class CodeRepositoriesService(object):
         elif service.code_from == "gitlab_manual":
             httpGitUrl = service.git_url
         return httpGitUrl
-
+    
     def deleteProject(self, service):
         if custom_config.GITLAB_SERVICE_API:
             if service.code_from == "gitlab_new" and service.git_project_id > 0:
                 gitClient.deleteProject(service.git_project_id)
-
+    
     def getProjectBranches(self, project_id):
         if custom_config.GITLAB_SERVICE_API:
             return gitClient.getProjectBranches(project_id)
         return ""
-
+    
     def createUser(self, user, email, password, username, name):
         if custom_config.GITLAB_SERVICE_API:
             if user.git_user_id == 0:
-                logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
+                logger.info("account.login",
+                            "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
                 git_user_id = gitClient.createUser(email, password, username, name)
                 if git_user_id == 0:
-                    logger.info("account.gituser", "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
+                    logger.info("account.gituser",
+                                "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
                 else:
                     user.git_user_id = git_user_id
                     user.save()
                     logger.info("account.gituser", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
                 monitorhook.gitUserMonitor(user, git_user_id)
-
+    
     def modifyUser(self, user, password):
         if custom_config.GITLAB_SERVICE_API:
             gitClient.modifyUser(user.git_user_id, password=password)
-
+    
     def addProjectMember(self, git_project_id, git_user_id, level):
         if custom_config.GITLAB_SERVICE_API:
             gitClient.addProjectMember(git_project_id, git_user_id, level)
-
+    
     def listProjectMembers(self, git_project_id):
         if custom_config.GITLAB_SERVICE_API:
             return gitClient.listProjectMembers(git_project_id)
         return ""
-
+    
     def deleteProjectMember(self, project_id, git_user_id):
         if custom_config.GITLAB_SERVICE_API:
             gitClient.deleteProjectMember(project_id, git_user_id)
-
+    
     def addProjectMember(self, project_id, git_user_id, gitlab_identity):
         if custom_config.GITLAB_SERVICE_API:
             gitClient.addProjectMember(project_id, git_user_id, gitlab_identity)
-
+    
     def editMemberIdentity(self, project_id, git_user_id, gitlab_identity):
         if custom_config.GITLAB_SERVICE_API:
             gitClient.editMemberIdentity(project_id, git_user_id, gitlab_identity)
-
+    
     def get_gitHub_access_token(self, code):
         if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.get_access_token(code)
         return ""
-
+    
     def getgGitHubAllRepos(self, token):
         if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.getAllRepos(token)
         return ""
-
+    
     def gitHub_authorize_url(self, user):
         if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.authorize_url(user.pk)
         return ""
-
+    
     def gitHub_ReposRefs(self, user, repos, token):
         if custom_config.GITHUB_SERVICE_API:
             return gitHubClient.getReposRefs(user, repos, token)
@@ -930,7 +977,6 @@ class CodeRepositoriesService(object):
 
 
 class AppCreateService(object):
-
     def get_estimate_service_fee(self, service_attach_info, region_name):
         """根据附加信息获取服务的预估价格"""
         total_price = 0.00
