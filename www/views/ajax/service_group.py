@@ -6,13 +6,16 @@ import re
 from django.http import JsonResponse
 
 from www.monitorservice.monitorhook import MonitorHook
+from www.tenantservice.baseservice import BaseTenantService
+from www.utils.crypt import make_uuid
 from www.views import AuthedView
 from www.decorator import perm_required
 
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from goodrain_web.decorator import method_perf_time
-from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo, TenantServiceEnvVar, Users
+from www.models.main import ServiceGroup, ServiceGroupRelation, TenantServiceInfo, TenantServiceEnvVar, Users, \
+    ServiceEvent
 import logging
 
 from www.views.mixin import LeftSideBarMixin
@@ -21,6 +24,7 @@ logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
 monitorhook = MonitorHook()
+baseService = BaseTenantService()
 
 
 class AddGroupView(LeftSideBarMixin, AuthedView):
@@ -97,6 +101,31 @@ class UpdateServiceGroupView(LeftSideBarMixin, AuthedView):
 class BatchActionView(LeftSideBarMixin, AuthedView):
     """批量操作(批量启动,批量停止,批量部署)"""
 
+    def generate_event(self,service,action):
+        old_deploy_version = ""
+        events = ServiceEvent.objects.filter(service_id=service.service_id).order_by("-start_time")
+        if events:
+            last_event = events[0]
+            if last_event.final_status == "":
+                if not baseService.checkEventTimeOut(last_event):
+                    return "often",None
+            old_deploy_version = last_event.deploy_version
+        event = ServiceEvent(event_id=make_uuid(), service_id=service.service_id,
+                             tenant_id=self.tenant.tenant_id, type=action,
+                             deploy_version=service.deploy_version, old_deploy_version=old_deploy_version,
+                             user_name=self.user.nick_name, start_time=datetime.datetime.now())
+        event.save()
+        if action == "deploy":
+            last_all_deploy_event = ServiceEvent.objects.filter(service_id=service.service_id,
+                                                                type="deploy").order_by("-start_time")
+            if last_all_deploy_event:
+                last_deploy_event = last_all_deploy_event[0]
+                old_code_version = last_deploy_event.code_version
+                event.old_code_version = old_code_version
+                event.save()
+        return "success", event
+
+
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action", None)
@@ -111,7 +140,11 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 for service_id in service_ids:
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
+                    status, event = self.generate_event(current_service,action)
+                    if status == "often":
+                        continue
                     body = {}
+                    body["event_id"] = event.event_id
                     body["deploy_version"] = current_service.deploy_version
                     body["operator"] = str(self.user.nick_name)
                     regionClient.restart(current_service.service_region, service_id, json.dumps(body))
@@ -128,9 +161,13 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 for service_id in service_ids:
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
+                    status, event = self.generate_event(current_service,action)
+                    if status == "often":
+                        continue
                     gitUrl = current_service.git_url
                     if current_service.category == "application" and gitUrl is not None and gitUrl != "":
                         body = {}
+                        body["event_id"] = event.event_id
                         if current_service.deploy_version == "" or current_service.deploy_version is None:
                             body["action"] = "deploy"
                         else:
@@ -146,13 +183,13 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                         body["deploy_version"] = current_service.deploy_version
                         body["gitUrl"] = "--branch " + current_service.code_version + " --depth 1 " + clone_url
                         body["operator"] = str(self.user.nick_name)
-    
+
                         envs = {}
                         buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=("COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY"))
                         for benv in buildEnvs:
                             envs[benv.attr_name] = benv.attr_value
                         body["envs"] = json.dumps(envs)
-    
+
                         regionClient.build_service(current_service.service_region, service_id, json.dumps(body))
                         monitorhook.serviceMonitor(self.user.nick_name, current_service, 'app_deploy', True)
                 result = {"ok": True, "info": "部署成功"}
@@ -165,7 +202,11 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 for service_id in service_ids:
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
+                    status, event = self.generate_event(current_service,action)
+                    if status == "often":
+                        continue
                     body = {}
+                    body["event_id"] = event.event_id
                     body["operator"] = str(self.user.nick_name)
                     regionClient.stop(current_service.service_region, service_id, json.dumps(body))
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
