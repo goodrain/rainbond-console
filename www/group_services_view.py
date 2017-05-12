@@ -8,7 +8,8 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
-from www.models.main import ServiceAttachInfo, ServiceFeeBill, ServiceGroup, GroupCreateTemp
+from www.models.main import ServiceAttachInfo, ServiceFeeBill, ServiceGroup, GroupCreateTemp, TenantServiceEnvVar, \
+    TenantServicesPort, TenantServiceVolume, ServiceDomain
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
@@ -378,7 +379,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
         dep_service_ids = []
         if app_relations:
             for dep_app in app_relations:
-                temp = GroupCreateTemp.object.get(service_key=dep_app.dep_service_key)
+                temp = GroupCreateTemp.objects.get(service_key=dep_app.dep_service_key)
                 dep_service_ids.append(temp.service_id)
 
         for dep_id in dep_service_ids:
@@ -487,8 +488,10 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             logger.debug("===> after sort  :", [x.service_key for x in sorted_service])
 
             for service_info in sorted_service:
+                logger.debug("==========> ", service_info.service_key)
                 gct = GroupCreateTemp.objects.get(service_key=service_info.service_key)
                 service_id = gct.service_id
+                logger.debug("==========>",gct.service_id)
                 current_service_ids.append(service_id)
                 service_alias = "gr" + service_id[-6:]
                 # console层创建服务和组关系
@@ -504,12 +507,16 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                                                             region_name=self.response_region)
                 monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
                 # 创建服务依赖
+                logger.debug("===> create service dependency!")
                 self.create_dep_service(service_info, service_id)
                 # 环境变量
+                logger.debug("===> create service env!")
                 self.copy_envs(service_info, newTenantService)
                 # 端口信息
+                logger.debug("===> create service port!")
                 self.copy_ports(service_info, newTenantService)
                 # 持久化目录
+                logger.debug("===> create service volumn!")
                 self.copy_volumes(service_info, newTenantService)
 
                 dep_sids = []
@@ -526,7 +533,19 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
         except Exception as e:
             logger.exception(e)
-            TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_id__in=current_service_ids).delete()
+            try:
+                for service_id in current_service_ids:
+                    regionClient.delete(self.response_region, service_id)
+            except Exception as e:
+                pass
+            TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_id__in=current_service_ids).delete()
+            TenantServiceAuth.objects.filter(service_id__in=current_service_ids).delete()
+            ServiceDomain.objects.filter(service_id__in=current_service_ids).delete()
+            TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id__in=current_service_ids).delete()
+            TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, service_id__in=current_service_ids).delete()
+            TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id, service_id__in=current_service_ids).delete()
+            TenantServiceVolume.objects.filter(service_id__in=current_service_ids).delete()
+
             data.update({"success": False, "code": 500})
 
         return JsonResponse(data, status=200)
