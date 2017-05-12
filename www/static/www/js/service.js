@@ -1287,7 +1287,8 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 			*/
 			
 			//oStrH += '<p class="onoffbox clearfix"><span>熔断</span><input type="checkbox" name="cricuitonoff"  id="cricuitonoff"  class="checkhide" checked="true"/><label class="checkshow" for="cricuitonoff"></label></p>';
-			oStrH += '<p class="fusingbox clearfix" id="fusingbox"><span>熔断</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select><cite style="color: #838383; line-height: 30px; padding-left: 10px; font-size: 14px;">打开此开关则启动反向代理、负载均衡、熔断器等功能。熔断阀值需在依赖中对应的应用里设置。</cite></p>';
+			oStrH += '<p class="fusingbox clearfix" id="fusingbox" style="padding:10px 0"><span>熔断</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select></p>';
+            oStrH += '<p style="color: #838383; line-height: 22px; padding:10px 0; font-size: 14px;">说明：熔断器数值表示同一时刻最大所允许向下游访问的最大连接数，设置为0时则完全熔断。</p>'
 			oStrH += '<div class="clearfix  servenbtn"><button  type="button" class="greenbtn" id="hrelsure" data-tenantName="'+ tenantName +'" data-servicealias = "' + curServiceName +'" data-valuealias ="' + depServiceName + '">确定</button><button  type="button" id="hreldel" class="redbtn">取消</button></div>';
 			oStrH += '</div></div>'
 			$(oStrH).appendTo("body");
