@@ -365,9 +365,9 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     app_alias = pro_map.get("name")
                     app_version = pro_map.get("version")
                     app_content = pro_map.get("content")
-                    # is_init = pro_map.get("is_init") == 1
+                    is_init = pro_map.get("is_init") == 1
                     # 默认初始化账户
-                    is_init = True
+                    # is_init = False
                     is_outer = app_service_group.is_market == 1
                     is_private = app_service_group.is_market == 0
                     # 云帮不显示
