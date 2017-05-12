@@ -204,7 +204,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
         try:
             # 新创建的组ID
             group_id = request.GET.get("group_id")
-            service_group = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region, pk=group_id)
+            service_group = ServiceGroup.objects.filter(pk=group_id)
             if not service_group:
                 raise Http404
             context["group_id"] = group_id
@@ -215,6 +215,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             app_service_list = self.get_newest_published_service(service_id_list,tenant_id=self.tenant.tenant_id)
             published_service_list = []
             for app_service in app_service_list:
+                logger.debug("=======> app_service info "+app_service.service_key+"  -  "+app_service.app_version)
                 services = ServiceInfo.objects.filter(service_key=app_service.service_key,version=app_service.app_version)
                 services = list(services)
                 # 没有服务模板,需要下载模板
@@ -232,8 +233,8 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
                             app_service.service_key, app_service.app_version))
             # 发布的应用有不全的信息
             if len(published_service_list) != len(service_id_list):
-                logger("published_service_list ===== ",len(published_service_list))
-                logger("service_id_list ===== ",len(service_id_list))
+                logger.debug("published_service_list ===== ",len(published_service_list))
+                logger.debug("service_id_list ===== ",len(service_id_list))
                 logger.error("publised service is not found in table service")
                 context["success"] = False
                 return TemplateResponse(self.request, "www/group/group_app_create_step_2.html", context)
