@@ -212,7 +212,8 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = self.get_newest_published_service(service_id_list,tenant_id=self.tenant.tenant_id)
+            logger.debug("=======>", service_id_list)
+            app_service_list = self.get_newest_published_service(service_id_list)
             published_service_list = []
             for app_service in app_service_list:
                 logger.debug("=======> app_service info "+app_service.service_key+"  -  "+app_service.app_version)
@@ -418,7 +419,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = self.get_newest_published_service(service_id_list,tenant_id=tenant_id)
+            app_service_list = self.get_newest_published_service(service_id_list)
             app_port_map = {}
             app_relation_map = {}
             app_env_map = {}
