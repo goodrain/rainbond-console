@@ -547,7 +547,7 @@
         {% if tenantServiceInfo.service_key == '0000' or tenantServiceInfo.category == "app_publish" %}
         <section class="content-tab">
             <p class="tit-two">应用特性增强</p>
-            <p class="onoffbox clearfix"><input type="checkbox" name="hightraly"  id="hightraly"  class="checkhide" /><label class="checkshow" for="hightraly"></label></p>
+            <p class="onoffbox clearfix"><input type="checkbox" name="hightraly"  id="hightraly"  class="checkhide" /><label class="checkshow" for="hightraly"></label><cite style="color: #838383; line-height: 30px; padding-left: 10px; font-size: 14px;">打开此开关则启动反向代理、负载均衡、熔断器等功能。熔断阀值需在依赖中对应的应用里设置。</cite></p>
         </section>
         {% endif %}
     {% endif %}

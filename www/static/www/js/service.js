@@ -1268,6 +1268,7 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 			//var headArray = servenlayer["header"];
 			//var statistic = servenlayer["statistic"];
 			var cricuit = servenlayer["cricuit"];
+            oStrH += '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a><p class="layer-tit">设置</p>';
 			/*
 			if(domainUrl == "off"){
 				oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
@@ -1286,7 +1287,7 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 			*/
 			
 			//oStrH += '<p class="onoffbox clearfix"><span>熔断</span><input type="checkbox" name="cricuitonoff"  id="cricuitonoff"  class="checkhide" checked="true"/><label class="checkshow" for="cricuitonoff"></label></p>';
-			oStrH += '<p class="fusingbox clearfix" id="fusingbox"><span>熔断</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select></p>';
+			oStrH += '<p class="fusingbox clearfix" id="fusingbox"><span>熔断</span><select id="fusing"><option value="0">0</option><option value="128">128</option><option value="256">256</option><option value="512">512</option><option value="1024">1024</option></select><cite style="color: #838383; line-height: 30px; padding-left: 10px; font-size: 14px;">打开此开关则启动反向代理、负载均衡、熔断器等功能。熔断阀值需在依赖中对应的应用里设置。</cite></p>';
 			oStrH += '<div class="clearfix  servenbtn"><button  type="button" class="greenbtn" id="hrelsure" data-tenantName="'+ tenantName +'" data-servicealias = "' + curServiceName +'" data-valuealias ="' + depServiceName + '">确定</button><button  type="button" id="hreldel" class="redbtn">取消</button></div>';
 			oStrH += '</div></div>'
 			$(oStrH).appendTo("body");
@@ -1309,6 +1310,9 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 			$("#hreldel").click(function(){
 				$("#servenLayer").remove();
 			});
+            $(".fn-close").click(function(){
+                $("#servenLayer").remove();
+            });
 			//取消弹出层 end
 			//熔断 start
 			$("#cricuitonoff").change(function(){
