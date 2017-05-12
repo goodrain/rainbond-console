@@ -189,10 +189,10 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             data["status"] = "success"
         return need_create_service, is_pass, data
 
-    def get_newest_published_service(self, service_id_list, tenant_id):
+    def get_newest_published_service(self, service_id_list):
         result = []
         for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id, tenant_id=tenant_id).order_by("-ID")
+            apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
             if apps:
                 result.append(apps[0])
         return result
@@ -388,10 +388,10 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             baseService.create_service_dependency(self.tenant.tenant_id, service_id, dep_id, self.response_region)
         logger.info("create service info for service_id{0} ".format(service_id))
 
-    def get_newest_published_service(self, service_id_list, tenant_id):
+    def get_newest_published_service(self, service_id_list):
         result = []
         for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id, tenant_id=tenant_id).order_by("-ID")
+            apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
             if apps:
                 result.append(apps[0])
         return result

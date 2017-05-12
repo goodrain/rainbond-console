@@ -439,10 +439,10 @@ class PublishServiceView(APIView):
 
         return Response({"ok": True}, status=200)
 
-    def get_newest_published_service(self, service_id_list, tenant_id):
+    def get_newest_published_service(self, service_id_list):
         result = []
         for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id, tenant_id=tenant_id).order_by("-ID")
+            apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
             if apps:
                 result.append(apps[0])
         return result
