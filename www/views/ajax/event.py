@@ -31,6 +31,10 @@ class EventManager(AuthedView):
                         return JsonResponse(result, status=200)
                 old_deploy_version = last_event.deploy_version
             action = request.POST["action"]
+            if not action:
+                result["status"] = "failure"
+                result["msg"] = "action cannot be empty"
+                return JsonResponse(result, status=200)
             event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
                                  tenant_id=self.tenant.tenant_id, type=action,
                                  deploy_version=self.service.deploy_version, old_deploy_version=old_deploy_version,

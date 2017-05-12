@@ -140,7 +140,7 @@ class BatchActionView(LeftSideBarMixin, AuthedView):
                 for service_id in service_ids:
                     current_service = TenantServiceInfo.objects.get(tenant_id=self.tenant.tenant_id,
                                                                     service_id=service_id)
-                    status, event = self.generate_event(current_service,action)
+                    status, event = self.generate_event(current_service,"restart")
                     if status == "often":
                         continue
                     body = {}
