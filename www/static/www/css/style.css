@@ -5801,7 +5801,7 @@ i{font-style: normal; }
             transform: rotate(360deg); } }
 
 
-.servenlayer{position: absolute; top: 20%; left: 50%; width:320px; margin: 0 0 0 -160px; z-index: 1050; background: #fff; padding:10px;}
+.servenlayer{position: absolute; top: 20%; left: 50%; width:320px; margin: 0 0 0 -160px; z-index: 1050; background: #fff; padding:20px;}
 .onoffbox{margin-bottom: 10px;}
 .onoffbox span{color: #333; font-size: 16px; float: left; width: 60px; line-height: 30px;}
 
