@@ -128,7 +128,11 @@ function service_oneKeyDeploy(categroy, serviceAlias, tenantName, isreload) {
 //获取evevts
 function createEvents(name, service, action) {
     var currentEventID = ""
-    var ok = false
+    var ok = false;
+    if( !action )
+    {
+        return;
+    }
     $.ajax({
         type: "POST",
         url: "/ajax/" + name + '/' + service + "/events",
