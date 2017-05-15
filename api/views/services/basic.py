@@ -277,11 +277,11 @@ class PublishServiceView(APIView):
         data = {}
         isys = False
         serviceInfo = None
-        logger.debug("invoke publish service method")
         try:
             logger.debug("======= try block =======")
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
+            logger.debug("invoke publish service method  service_key:" + service_key +" service_version"+app_version)
             image = request.data.get('image', "")
             slug = request.data.get('slug', "")
             dest_yb = request.data.get('dest_yb', False)
