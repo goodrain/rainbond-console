@@ -468,12 +468,12 @@
                         str_log += '">查看详情</p><p class="hide_log">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type"><label class="active" data-log="info">Info日志</label><label data-log="debug">Debug日志</label><label data-log="error">Error日志</label></p><div class="log_content log_'+log["event_id"]+'"></div></div></div></div></div></li>'
                         if( log["type"] == "deploy" && log["old_deploy_version"] != "" )
                         {
-                            var version = log["old_deploy_version"];
+                            var version = '当前版本('+log["old_deploy_version"]+')';
                             if( log["old_code_version"] )
                             {
                                 version = log["old_code_version"];
                             }
-                            str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+version+')</span>';
+                            str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+version+'</span>';
                             str_log += '<div class="user"><button class="btn callback_version" data-version="'+log["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
                         }
                         $(str_log).appendTo($("#keylog ul"));
