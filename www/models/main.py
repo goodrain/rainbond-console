@@ -387,7 +387,7 @@ class ServiceInfo(BaseModel):
         # return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
     
     def is_image(self):
-        return not self.is_slug(self)
+        return not self.is_slug()
 
 
 class TenantServiceInfo(BaseModel):
