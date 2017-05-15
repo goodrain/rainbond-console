@@ -399,6 +399,7 @@ class PublishServiceView(APIView):
             except Exception as e:
                 logger.exception(e)
             try:
+                logger.debug(dest_ys)
                 if share_id is not None and dest_ys:
                     app_service_group = None
                     try:
