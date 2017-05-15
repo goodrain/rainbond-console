@@ -279,6 +279,7 @@ class PublishServiceView(APIView):
         serviceInfo = None
         logger.debug("invoke publish service method")
         try:
+            logger.debug("======= try block =======")
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
             image = request.data.get('image', "")
@@ -356,8 +357,13 @@ class PublishServiceView(APIView):
             logger.exception(e)
             return Response({"ok": False}, status=500)
 
+        logger.debug(" ==> isok",isok)
+        logger.debug(" ==> isys",isys)
+        logger.debug(" ==> Publish_YunShi", settings.MODULES["Publish_YunShi"])
+
         # 发布到云市,调用http接口发送数据
         if isok and isys and settings.MODULES["Publish_YunShi"]:
+            logger.debug(" =====> publish to app market!")
             data = self.init_data(app, slug, image)
             apputil = AppSendUtil(service_key, app_version)
             # 发送服务参数不发送图片参数
@@ -385,8 +391,13 @@ class PublishServiceView(APIView):
             # self.downloadImage(serviceInfo)
 
             # 判断是否服务组发布,发布是否成功
-            share_id = request.data.get('share_id', None)
-            logger.debug("group share_id is ",share_id)
+            logger.debug("========> before send app group !")
+            share_id = None
+            try:
+                share_id = request.data.get('share_id', None)
+                logger.debug("====> share id is "+share_id)
+            except Exception as e:
+                logger.exception(e)
             try:
                 if share_id is not None:
                     app_service_group = None
@@ -398,6 +409,7 @@ class PublishServiceView(APIView):
                         curr_step = app_service_group.step
                         if curr_step > 0:
                             curr_step -= 1
+                            logger.debug("remove one app from app_group !")
                             app_service_group.step = curr_step
                             app_service_group.save()
                         # 判断是否为最后一次调用,发布到最后一个应用后将组信息填写到云市
@@ -431,9 +443,9 @@ class PublishServiceView(APIView):
                                 num = apputil.send_group(param_data)
                                 if num != 0:
                                     logger.exception("publish service group failed!")
-                        # 应用组发布成功
-                        app_service_group.is_success = True
-                        app_service_group.save()
+                            # 应用组发布成功
+                            app_service_group.is_success = True
+                            app_service_group.save()
             except Exception as e:
                 logger.exception(e)
                 logger.error("publish service group failed!")
