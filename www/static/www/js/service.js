@@ -173,7 +173,12 @@ function createEvents(name, service, action) {
 
                 if( event["event_type"] == "deploy" && event["old_deploy_version"] )
                 {
-                    str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>当前版本('+event["old_deploy_version"]+')</span>';
+                    var version = '当前版本('+event["old_deploy_version"]+')';
+                    if( event["old_code_version"] )
+                    {
+                        version = event["old_code_version"];
+                    }
+                    str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+version+'</span>';
                     str_log += '<div class="user"><button class="btn callback_version" data-version="'+event["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
 
                 }
