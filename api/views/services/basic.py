@@ -357,9 +357,9 @@ class PublishServiceView(APIView):
             logger.exception(e)
             return Response({"ok": False}, status=500)
 
-        logger.debug(" ==> isok",isok)
-        logger.debug(" ==> isys",isys)
-        logger.debug(" ==> Publish_YunShi", settings.MODULES["Publish_YunShi"])
+        logger.debug(" ==> isok:{0}".format(isok))
+        logger.debug(" ==> isys:{0}".format(isys))
+        logger.debug(" ==> Publish_YunShi:{0}".format(settings.MODULES["Publish_YunShi"]))
 
         # 发布到云市,调用http接口发送数据
         if isok and isys and settings.MODULES["Publish_YunShi"]:
