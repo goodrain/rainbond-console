@@ -40,6 +40,7 @@ class BaseTenantService(object):
     def get_service_list(self, tenant_pk, user, tenant_id, region):
         user_pk = user.pk
         tmp = TenantServiceInfo()
+        services=[]
         if user.is_sys_admin:
             if hasattr(tmp, 'service_origin'):
                 services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region,
@@ -65,7 +66,7 @@ class BaseTenantService(object):
                         '''.format(tenant_id=tenant_id, user_id=user_pk, region=region, add_sql=add_sql)
                     services = dsn.query(query_sql)
             except PermRelTenant.DoesNotExist:
-                if tenant_pk == 2250:
+                if tenant_pk == 5073:
                     services = TenantServiceInfo.objects.filter(tenant_id=tenant_id, service_region=region).order_by('service_alias')
 
         return services
