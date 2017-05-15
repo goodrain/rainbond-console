@@ -386,6 +386,7 @@ class PublishServiceView(APIView):
 
             # 判断是否服务组发布,发布是否成功
             share_id = request.data.get('share_id', None)
+            logger.debug("group share_id is ",share_id)
             try:
                 if share_id is not None:
                     app_service_group = None
