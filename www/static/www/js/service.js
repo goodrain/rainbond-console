@@ -178,7 +178,7 @@ function createEvents(name, service, action) {
                     {
                         version = event["old_code_version"];
                     }
-                    str_log += '<li><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+version+'</span>';
+                    str_log += '<li><i class="fa tl-icon bg-version"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+version+'</span>';
                     str_log += '<div class="user"><button class="btn callback_version" data-version="'+event["old_deploy_version"]+'">回滚到此版本</button></div></div></div></div></li>'
 
                 }
