@@ -5,14 +5,16 @@ import re
 
 from django.http import JsonResponse
 from www.views import AuthedView
-# from www.decorator import perm_required
+from www.service_http import RegionServiceApi
+from django.conf import settings
 from www.models import ServiceGroupRelation, \
     TenantServiceInfo, \
     TenantServiceRelation, \
-    ServiceGroup
+    ServiceGroup, TenantServicesPort, TenantServiceEnvVar, ServiceDomain
 
 import logging
 logger = logging.getLogger('default')
+regionClient = RegionServiceApi()
 
 
 class TopologicalGraphView(AuthedView):
@@ -73,3 +75,101 @@ class TopologicalGraphView(AuthedView):
         return JsonResponse(result, status=200)
 
 
+class TopologicalServiceView(AuthedView):
+
+    def get(self, request, *args, **kwargs):
+        """获取拓扑图中服务信息"""
+        result = {}
+        # 服务信息
+        tenant_id = self.service.tenant_id
+        tenant_name = self.tenantName
+        service_id = self.service.service_id
+        service_alias = self.service.service_alias
+        service_cname = self.service.service_cname
+        service_region = self.service.service_region
+        deploy_version = self.service.deploy_version
+        total_memory = self.service.total_memory
+        # 服务名称
+        result['tenant_id'] = tenant_id
+        result['service_alias'] = service_alias
+        result['service_cname'] = service_cname
+        result['service_region'] = service_region
+        result['deploy_version'] = deploy_version
+        result['total_memory'] = total_memory
+        result['cur_status'] = 'Unknown'
+        # 服务端口信息
+        port_list = TenantServicesPort.objects.filter(service_id=service_id)
+        # result["ports"] = map(lambda x: x.to_dict(), port_list)
+        # 域名信息
+        service_domain_list = ServiceDomain.objects.filter(service_id=service_id)
+        port_map = {}
+        # 判断是否存在自定义域名
+        for port in port_list:
+            port_info = port.to_dict()
+            exist_service_domain = False
+            # 打开对内端口
+            if port.is_inner_service:
+                port_env_list = TenantServiceEnvVar.objects.filter(service_id=service_id, container_port=port.container_port)
+                if len(port_env_list) == 2:
+                    port_info['inner_url'] = '{0}:{1}'.format(port_env_list[0].attr_value, port_env_list[1].attr_value)
+                    port_info['inner_alias'] = '{0}:{1}'.format(port_env_list[0].attr_name, port_env_list[1].attr_name)
+                else:
+                    port_info['inner_url'] = 'query info error!'
+                    port_info['inner_alias'] = 'query info error!'
+            # 打开对外端口
+            if port.is_outer_service:
+                if port.protocol == 'stream':
+                    cur_region = service_region.replace("-1", "")
+                    domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_alias, tenant_name, cur_region)
+                    if settings.STREAM_DOMAIN_URL[service_region] != "":
+                        domain = settings.STREAM_DOMAIN_URL[service_region]
+                    outer_service = {"domain": domain}
+                    try:
+                        body = regionClient.findMappingPort(service_region, service_id)
+                        outer_service['port'] = body['port']
+                    except Exception as e:
+                        logger.exception(e)
+                        outer_service['port'] = '-1'
+                elif port.protocol == 'http':
+                    exist_service_domain = True
+                    outer_service = {
+                        "domain": "{0}.{1}{2}".format(service_alias, tenant_name, settings.WILD_DOMAINS[service_region]),
+                        "port": settings.WILD_PORTS[service_region]
+                    }
+                else:
+                    outer_service = {
+                        "domain": 'error',
+                        "port": '-1'
+                    }
+                # 外部url
+                if outer_service['port'] == '-1':
+                    port_info['outer_url'] = 'query error!'
+                else:
+                    if self.service.port_type == "multi_outer":
+                        if port.protocol == "http":
+                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'], outer_service['port'])
+                        else:
+                            port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+                    else:
+                        port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+            # 自定义域名
+            if exist_service_domain:
+                if len(service_domain_list) > 0:
+                    for domain in service_domain_list:
+                        if port.container_port == domain.container_port:
+                            if port_info.get('domain_list') is None:
+                                port_info['domain_list'] = [domain.domain_name]
+                            else:
+                                port_info['domain_list'].append(domain.domain_name)
+            port_map[port.container_port] = port_info
+        result["port_list"] = port_map
+        # pod节点信息
+        try:
+            region_data = regionClient.get_service_status(service_region, service_id)
+        except Exception as e:
+            logger.exception(e)
+            region_data = {}
+        # result["region_data"] = region_data
+        result = dict(result, **region_data)
+        result["status"] = 200
+        return JsonResponse(result, status=200)
