@@ -39,16 +39,18 @@ class EventManager(AuthedView):
                                  tenant_id=self.tenant.tenant_id, type=action,
                                  deploy_version=self.service.deploy_version, old_deploy_version=old_deploy_version,
                                  user_name=self.user.nick_name, start_time=datetime.datetime.now())
-            event.save()
             old_code_version = ""
             if action == "deploy":
                 last_all_deploy_event = ServiceEvent.objects.filter(service_id=self.service.service_id,
                                                                     type="deploy").order_by("-start_time")
                 if last_all_deploy_event:
+                    logger.debug("last_all_deploy_event__________", last_all_deploy_event[0].event_id)
+                    logger.debug("last_all_deploy_event__________", last_all_deploy_event[0].code_version)
                     last_deploy_event = last_all_deploy_event[0]
                     old_code_version = last_deploy_event.code_version
                     event.old_code_version = old_code_version
-                    event.save()
+
+            event.save()
             result["status"] = "success"
             result["event"] = {}
             result["event"]["event_id"] = event.event_id
