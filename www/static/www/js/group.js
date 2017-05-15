@@ -425,7 +425,12 @@ $(function(){
                 window.location.reload();
             },
             error : function() {
-                swal("系统异常,请重试");
+                console.log(XMLHttpRequest.status);
+                if (XMLHttpRequest.status == '403'){
+                    swal("您的权限不够");
+                }else {
+                    swal("系统异常,请重试");
+                }
             }
         });
         /////
