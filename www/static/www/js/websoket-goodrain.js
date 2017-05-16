@@ -53,10 +53,10 @@ extPushWebSocketConnect.prototype = {
 	init : function(obj,topic) {
 		this.socketStore = '';
 		var self = this, url = this.requestUrl;
-		console.log(url);
 		if( url )
 		{
 			this.socketStore = new WebSocket(url);
+			console.log(url);
 		}
 		// alert(this.client)
 		this.socketStore.onopen = function() {
