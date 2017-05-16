@@ -11,9 +11,33 @@ function extPushWebSocketClient() {
 
 }
 
-function extPushWebSocketConnect(websocket_uri) {
-	websocket_uri = websocket_uri
-	this.requestUrl = websocket_uri.split(","); // 扩充服务器
+function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
+	var that = this;
+	var websocket_uri = '';
+	$.ajax({
+		type : "GET",
+		url : "/ajax/" + tenantName + "/" + serviceAlias + "/log_instance",
+		data : {},
+		cache : false,
+		beforeSend : function(xhr, settings) {
+			var csrftoken = $.cookie('csrftoken');
+			xhr.setRequestHeader("X-CSRFToken", csrftoken);
+		},
+		success : function(msg) {
+			if( msg["ok"] == "True" )
+			{
+				websocket_uri = msg["ws_url"];
+				that.requestUrl = websocket_uri; // 扩充服务器
+			}
+			else{
+				$("#docker_log").html(msg["info"]);
+			}
+		},
+		error : function() {
+			swal("系统异常");
+		}
+	});
+	//this.requestUrl = websocket_uri.split(","); // 扩充服务器
 	this.socketStore = ''; // web_socket对象存储
 	this.keeplivetime = 5; // 心跳时间
 	this.trytimes = 1; // 重试次数
@@ -22,7 +46,7 @@ function extPushWebSocketConnect(websocket_uri) {
 
 extPushWebSocketConnect.prototype = {
 	// 连接初始化
-	init : function(client, topic, cmd, key, info) {
+	init : function(obj,topic) {
 		this.socketStore = '';
 		var self = this, url = this.requestUrl[this.linkIndex];
 		this.socketStore = new WebSocket(url);
@@ -32,10 +56,7 @@ extPushWebSocketConnect.prototype = {
 			// console.log("extPush:onopen");
 			// }
 			if (topic != undefined && topic != "undefined") {
-				if (info == undefined) {
-					info = ""
-				}
-				self.sendCmd(topic, cmd, key, info);
+				self.sendCmd(topic);
 			}
 			self.trytimes = 1;
 		};
@@ -59,10 +80,7 @@ extPushWebSocketConnect.prototype = {
 		this.keepWebSocketLive(client, topic, cmd, key, info);
 		this.windowCloseCheck();
 	},
-	sendCmd : function(topic, cmd, key, info) {
-		if (info == undefined) {
-			info = ""
-		}
+	sendCmd : function(topic) {
 		var self = this;
 		self.socketStore.send("service_id="+topic);
 	},
