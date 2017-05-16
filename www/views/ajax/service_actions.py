@@ -1755,11 +1755,11 @@ class DockerLogInstanceView(AuthedView):
                 result["host_id"] = re["host_id"]
                 result["ws_url"] = "{0}/docker_log?host_id={1}".format(
                     settings.EVENT_WEBSOCKET_URL[self.service.service_region], re["host_id"])
-            else:
-                result["ok"] = False
-                result["info"] = "获取失败，" + re["message"]
+                return JsonResponse(result)
         except Exception as e:
             logger.exception(e)
             result["ok"] = False
-            result["info"] = "获取失败"
+            result["info"] = "获取失败." + e.message
+        result["ws_url"] = "{0}/docker_log".format(
+            settings.EVENT_WEBSOCKET_URL[self.service.service_region])
         return JsonResponse(result)
