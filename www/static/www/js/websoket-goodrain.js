@@ -51,7 +51,7 @@ extPushWebSocketConnect.prototype = {
 	// 连接初始化
 	init : function(obj,topic) {
 		this.socketStore = '';
-		var self = this, url = this.requestUrl[this.linkIndex];
+		var self = this, url = this.requestUrl;
 		console.log(url);
 		this.socketStore = new WebSocket(url);
 		// alert(this.client)
