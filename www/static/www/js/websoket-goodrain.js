@@ -22,7 +22,7 @@ function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
 
 extPushWebSocketConnect.prototype = {
 	// 连接初始化
-	init : function(obj,topic,tenantName, serviceAlias) {
+	init : function(client,topic,tenantName, serviceAlias) {
 		var that = this;
 		$.ajax({
 			type : "GET",
@@ -43,7 +43,6 @@ extPushWebSocketConnect.prototype = {
 					// if (!$.browser.msie) {
 					// console.log("extPush:onopen");
 					// }
-					console.log(websocket_uri);
 					if (topic != undefined && topic != "undefined") {
 						self.sendCmd(topic);
 					}
