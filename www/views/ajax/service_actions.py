@@ -1759,7 +1759,7 @@ class DockerLogInstanceView(AuthedView):
         except Exception as e:
             logger.exception(e)
             result["ok"] = False
-            result["info"] = "获取失败." + e.message
+            result["info"] = "获取失败.{0}".format(e.message)
         result["ws_url"] = "{0}/docker_log".format(
             settings.EVENT_WEBSOCKET_URL[self.service.service_region])
         return JsonResponse(result)
