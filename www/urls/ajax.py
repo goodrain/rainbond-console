@@ -15,6 +15,7 @@ from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateSe
 from www.views.service import CreateServiceDepInfo
 from www.views.ajax.third_app import *
 from www.views.ajax.event import *
+from www.views.ajax.service_actions import DockerLogInstanceView
 
 urlpatterns = patterns(
     '',
@@ -105,4 +106,5 @@ urlpatterns = patterns(
     # event
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/events', EventManager.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/event/(?P<event_id>[\w\-]+)/log', EventLogManager.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/log_instance', DockerLogInstanceView.as_view()),
 )
