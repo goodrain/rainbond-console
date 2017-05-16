@@ -71,8 +71,8 @@
                 }
             }
         }
-        var connect = new extPushWebSocketConnect('{{websocket_uri}}');
-        connect.init(new extPushWebSocketClient(), service_id, "submsg", "submsg", "123456789", "987654321");
+        var connect = new extPushWebSocketConnect(service_id,"{{tenantName}}", "{{serviceAlias}}");
+        connect.init(new extPushWebSocketClient(), service_id, "{{tenantName}}", "{{serviceAlias}}");
     });
 
     function _pause() {
