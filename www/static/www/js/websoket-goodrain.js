@@ -64,7 +64,7 @@ extPushWebSocketConnect.prototype = {
 			info = ""
 		}
 		var self = this;
-		self.socketStore.send(cmd + ";" + topic + ";" + key + ";" + info);
+		self.socketStore.send("service_id="+topic);
 	},
 	closeWebSocket : function() {
 		var self = this;
