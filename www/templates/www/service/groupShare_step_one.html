@@ -21,8 +21,8 @@
             <p><span>3</span><cite>基本信息</cite></p>
         </div>
         <div class="infor-fm-box">
-
-            <div class="fm-input-radio clearfix">
+            <!--发布类型隐藏-->
+            <div class="fm-input-radio clearfix" style="display: none">
                 <label>发布为</label>
                 <input type="radio" name="publish_type" value="services_group" id="services_group" {% ifnotequal app_service_group.publish_type 'cloud_frame' %}checked="true" {% endifnotequal %} />
                 <label class="radio-bg" for="services_group"></label>

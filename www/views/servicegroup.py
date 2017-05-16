@@ -89,7 +89,7 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
                                                 is_success=False,
                                                 group_id=groupId,
                                                 step=len(array_ids),
-                                                publish_type="services_group",
+                                                publish_type="cloud_frame",
                                                 group_version="0.0.1",
                                                 is_market=False,
                                                 desc="",
