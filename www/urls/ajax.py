@@ -104,7 +104,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/serviceCostDetail', ajax.RegionServiceDetailConsumeView.as_view()),
 
     # event
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/events', EventManager.as_view()),
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/event/(?P<event_id>[\w\-]+)/log', EventLogManager.as_view()),
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/log_instance', DockerLogInstanceView.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/events$', EventManager.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/event/(?P<event_id>[\w\-]+)/log$', EventLogManager.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/log_instance$', DockerLogInstanceView.as_view()),
 )
