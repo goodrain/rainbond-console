@@ -99,6 +99,11 @@ class TopologicalServiceView(AuthedView):
         result['cur_status'] = 'Unknown'
         # 服务端口信息
         port_list = TenantServicesPort.objects.filter(service_id=service_id)
+        # 判断服务是否有对外端口
+        outer_port_exist = False
+        if len(port_list) > 0:
+            outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+        result['is_internet'] = outer_port_exist
         # result["ports"] = map(lambda x: x.to_dict(), port_list)
         # 域名信息
         service_domain_list = ServiceDomain.objects.filter(service_id=service_id)
@@ -108,14 +113,14 @@ class TopologicalServiceView(AuthedView):
             port_info = port.to_dict()
             exist_service_domain = False
             # 打开对内端口
-            if port.is_inner_service:
-                port_env_list = TenantServiceEnvVar.objects.filter(service_id=service_id, container_port=port.container_port)
-                if len(port_env_list) == 2:
-                    port_info['inner_url'] = '{0}:{1}'.format(port_env_list[0].attr_value, port_env_list[1].attr_value)
-                    port_info['inner_alias'] = '{0}:{1}'.format(port_env_list[0].attr_name, port_env_list[1].attr_name)
-                else:
-                    port_info['inner_url'] = 'query info error!'
-                    port_info['inner_alias'] = 'query info error!'
+            # if port.is_inner_service:
+            #     port_env_list = TenantServiceEnvVar.objects.filter(service_id=service_id, container_port=port.container_port)
+            #     if len(port_env_list) == 2:
+            #         port_info['inner_url'] = '{0}:{1}'.format(port_env_list[0].attr_value, port_env_list[1].attr_value)
+            #         port_info['inner_alias'] = '{0}:{1}'.format(port_env_list[0].attr_name, port_env_list[1].attr_name)
+            #     else:
+            #         port_info['inner_url'] = 'query info error!'
+            #         port_info['inner_alias'] = 'query info error!'
             # 打开对外端口
             if port.is_outer_service:
                 if port.protocol == 'stream':
@@ -171,5 +176,30 @@ class TopologicalServiceView(AuthedView):
             region_data = {}
         # result["region_data"] = region_data
         result = dict(result, **region_data)
+
+        # 依赖服务信息
+        relation_list = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
+        relation_id_list = set([x.dep_service_id for x in relation_list])
+        relation_service_list = TenantServiceInfo.objects.filter(service_id__in=relation_id_list)
+        relation_service_map = {x.service_id: x for x in relation_service_list}
+
+        relation_port_list = TenantServicesPort.objects.filter(service_id__in=relation_id_list)
+        relation_map = {}
+
+        for relation_port in relation_port_list:
+            tmp_service_id = relation_port.service_id
+            if tmp_service_id in relation_service_map.keys():
+                tmp_service = relation_service_map.get(tmp_service_id)
+                relation_info = relation_map.get(tmp_service_id)
+                if relation_info is None:
+                    relation_info = []
+                # 处理依赖服务端口
+                if relation_port.is_inner_service:
+                    relation_info.append({
+                        "service_cname": tmp_service.service_cname,
+                        "mapping_port": relation_port.mapping_port,
+                    })
+                    relation_map[tmp_service_id] = relation_info
+        result["relation_list"] = relation_map
         result["status"] = 200
         return JsonResponse(result, status=200)
