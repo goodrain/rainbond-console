@@ -30,7 +30,7 @@ function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
 				that.requestUrl = websocket_uri; // 扩充服务器
 			}
 			else{
-				$("#docker_log").html(msg["info"]);
+				swal(msg["info"]);
 			}
 		},
 		error : function() {
