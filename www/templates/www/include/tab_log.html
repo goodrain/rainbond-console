@@ -53,7 +53,7 @@
         extPushWebSocketClient.prototype = {
             onMessage: function (msg) {
                 console.log(msg);
-                if (typeof(msg) != "undefined" && pauseFlag == "start") {
+                if (typeof(msg) != "undefined" && msg != "ok") {
                     var msgs = msg.split(":")
                     if (msgs[0].trim() != "deploy" && msgs[0].trim() != "compile") {
                         var finalMsg = ""
