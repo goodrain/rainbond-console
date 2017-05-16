@@ -49,6 +49,15 @@ class TopologicalGraphView(AuthedView):
         service_map = {x.service_id: x for x in service_list}
         json_data = {}
         json_svg = {}
+        service_status_map = {}
+        if len(service_list) > 0:
+            service_region = service_list[0].service_region
+            id_string = ','.join(service_map.keys())
+            try:
+                service_status_map = regionClient.check_status(service_region, json.dumps({"service_ids": id_string}))
+            except Exception as e:
+                logger.error('batch query service status failed!')
+                logger.exception(e)
         for service_info in service_list:
             json_data[service_info.service_cname] = {
                 "service_id": service_info.service_id,
@@ -56,6 +65,16 @@ class TopologicalGraphView(AuthedView):
                 "service_alias": service_info.service_alias,
             }
             json_svg[service_info.service_cname] = []
+
+            # closed\running\starting\unusual\closed\unknown
+            status = service_status_map.get(service_info.service_id)
+            if status:
+                if status == "running" or status == 'starting':
+                    json_data[service_info.service_cname]['cur_status'] = 'running'
+                else:
+                    json_data[service_info.service_cname]['cur_status'] = 'closed'
+            else:
+                json_data[service_info.service_cname]['cur_status'] = 'Unknown'
 
         for service_relation in service_relation_list:
             tmp_id = service_relation.service_id
