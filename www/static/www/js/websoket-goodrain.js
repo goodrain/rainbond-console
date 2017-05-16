@@ -27,6 +27,7 @@ function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
 		success : function(msg) {
 			websocket_uri = msg["ws_url"];
 			that.requestUrl = websocket_uri; // 扩充服务器
+			that.socketStore = new WebSocket(websocket_uri);
 			if( msg["ok"] )
 			{
 
@@ -53,7 +54,10 @@ extPushWebSocketConnect.prototype = {
 		this.socketStore = '';
 		var self = this, url = this.requestUrl;
 		console.log(url);
-		this.socketStore = new WebSocket(url);
+		if( url )
+		{
+			this.socketStore = new WebSocket(url);
+		}
 		// alert(this.client)
 		this.socketStore.onopen = function() {
 			// if (!$.browser.msie) {
