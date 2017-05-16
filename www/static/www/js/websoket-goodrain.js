@@ -14,6 +14,7 @@ function extPushWebSocketClient() {
 function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
 	var that = this;
 	var websocket_uri = '';
+	this.requestUrl = '';
 	$.ajax({
 		type : "GET",
 		url : "/ajax/" + tenantName + "/" + serviceAlias + "/log_instance",
@@ -24,13 +25,15 @@ function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
 			xhr.setRequestHeader("X-CSRFToken", csrftoken);
 		},
 		success : function(msg) {
-			if( msg["ok"] == "True" )
+			websocket_uri = msg["ws_url"];
+			that.requestUrl = websocket_uri; // 扩充服务器
+			if( msg["ok"] )
 			{
-				websocket_uri = msg["ws_url"];
-				that.requestUrl = websocket_uri; // 扩充服务器
+
 			}
 			else{
-				swal(msg["info"]);
+				var str = '<p>'+msg["info"]+'</p>';
+				$(str).prependTo($("#docker_log"));
 			}
 		},
 		error : function() {
