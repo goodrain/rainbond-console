@@ -127,8 +127,9 @@ def check_perm(perm, user, tenantName=None, serviceAlias=None):
         except TenantServiceInfo.DoesNotExist:
             raise UrlParseError(404, 'no matching serviceAlias for {0}'.format(serviceAlias))
         except PermRelTenant.DoesNotExist:
-            if not user.is_sys_admin:
+            if not user.is_sys_admin and tenantName != "grdemo":
                 raise UrlParseError(403, 'no permissions for user {0} on tenant {1}'.format(user.nick_name, tenant.tenant_name))
+            user.actions.set_actions('tenant', p.keys('tenant_viewer_actions'))
         except PermRelService.DoesNotExist:
             pass
 

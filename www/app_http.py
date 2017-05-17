@@ -57,3 +57,8 @@ class AppServiceApi(BaseHttpClient):
             logger.exception("account.register", e)
             logger.error("account.register", "after register admin.send data to app failed!")
         return None, None
+
+    def publish_service_group(self, body):
+        url = self.url + "/api/v0/services/published_group"
+        res, body = self._post(url, self.default_headers, body)
+        return res, body

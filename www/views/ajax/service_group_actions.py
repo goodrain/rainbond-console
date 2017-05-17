@@ -5,14 +5,16 @@ import re
 
 from django.http import JsonResponse
 from www.views import AuthedView
-# from www.decorator import perm_required
+from www.service_http import RegionServiceApi
+from django.conf import settings
 from www.models import ServiceGroupRelation, \
     TenantServiceInfo, \
     TenantServiceRelation, \
-    ServiceGroup
+    ServiceGroup, TenantServicesPort, TenantServiceEnvVar, ServiceDomain
 
 import logging
 logger = logging.getLogger('default')
+regionClient = RegionServiceApi()
 
 
 class TopologicalGraphView(AuthedView):
@@ -47,6 +49,17 @@ class TopologicalGraphView(AuthedView):
         service_map = {x.service_id: x for x in service_list}
         json_data = {}
         json_svg = {}
+        service_status_map = {}
+        # 批量查询服务状态
+        if len(service_list) > 0:
+            service_region = service_list[0].service_region
+            id_string = ','.join(service_map.keys())
+            try:
+                service_status_map = regionClient.check_status(service_region, json.dumps({"service_ids": id_string}))
+            except Exception as e:
+                logger.error('batch query service status failed!')
+                logger.exception(e)
+        # 拼接服务状态
         for service_info in service_list:
             json_data[service_info.service_cname] = {
                 "service_id": service_info.service_id,
@@ -54,6 +67,23 @@ class TopologicalGraphView(AuthedView):
                 "service_alias": service_info.service_alias,
             }
             json_svg[service_info.service_cname] = []
+
+            # closed\running\starting\unusual\closed\unknown
+            status = service_status_map.get(service_info.service_id)
+            if status:
+                if status == "running" or status == 'starting':
+                    json_data[service_info.service_cname]['cur_status'] = 'running'
+                else:
+                    json_data[service_info.service_cname]['cur_status'] = 'closed'
+            else:
+                json_data[service_info.service_cname]['cur_status'] = 'Unknown'
+            # 查询是否打开对外服务端口
+            port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
+            # 判断服务是否有对外端口
+            outer_port_exist = False
+            if len(port_list) > 0:
+                outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+            json_data[service_info.service_cname]['is_internet'] = outer_port_exist
 
         for service_relation in service_relation_list:
             tmp_id = service_relation.service_id
@@ -73,3 +103,131 @@ class TopologicalGraphView(AuthedView):
         return JsonResponse(result, status=200)
 
 
+class TopologicalServiceView(AuthedView):
+
+    def get(self, request, *args, **kwargs):
+        """获取拓扑图中服务信息"""
+        result = {}
+        # 服务信息
+        tenant_id = self.service.tenant_id
+        tenant_name = self.tenantName
+        service_id = self.service.service_id
+        service_alias = self.service.service_alias
+        service_cname = self.service.service_cname
+        service_region = self.service.service_region
+        deploy_version = self.service.deploy_version
+        total_memory = self.service.total_memory
+        # 服务名称
+        result['tenant_id'] = tenant_id
+        result['service_alias'] = service_alias
+        result['service_cname'] = service_cname
+        result['service_region'] = service_region
+        result['deploy_version'] = deploy_version
+        result['total_memory'] = total_memory
+        result['cur_status'] = 'Unknown'
+        # 服务端口信息
+        port_list = TenantServicesPort.objects.filter(service_id=service_id)
+        # 判断服务是否有对外端口
+        # outer_port_exist = False
+        # if len(port_list) > 0:
+        #     outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+        # result['is_internet'] = outer_port_exist
+        # result["ports"] = map(lambda x: x.to_dict(), port_list)
+        # 域名信息
+        service_domain_list = ServiceDomain.objects.filter(service_id=service_id)
+        port_map = {}
+        # 判断是否存在自定义域名
+        for port in port_list:
+            port_info = port.to_dict()
+            exist_service_domain = False
+            # 打开对内端口
+            # if port.is_inner_service:
+            #     port_env_list = TenantServiceEnvVar.objects.filter(service_id=service_id, container_port=port.container_port)
+            #     if len(port_env_list) == 2:
+            #         port_info['inner_url'] = '{0}:{1}'.format(port_env_list[0].attr_value, port_env_list[1].attr_value)
+            #         port_info['inner_alias'] = '{0}:{1}'.format(port_env_list[0].attr_name, port_env_list[1].attr_name)
+            #     else:
+            #         port_info['inner_url'] = 'query info error!'
+            #         port_info['inner_alias'] = 'query info error!'
+            # 打开对外端口
+            if port.is_outer_service:
+                if port.protocol == 'stream':
+                    cur_region = service_region.replace("-1", "")
+                    domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_alias, tenant_name, cur_region)
+                    if settings.STREAM_DOMAIN_URL[service_region] != "":
+                        domain = settings.STREAM_DOMAIN_URL[service_region]
+                    outer_service = {"domain": domain}
+                    try:
+                        body = regionClient.findMappingPort(service_region, service_id)
+                        outer_service['port'] = body['port']
+                    except Exception as e:
+                        logger.exception(e)
+                        outer_service['port'] = '-1'
+                elif port.protocol == 'http':
+                    exist_service_domain = True
+                    outer_service = {
+                        "domain": "{0}.{1}{2}".format(service_alias, tenant_name, settings.WILD_DOMAINS[service_region]),
+                        "port": settings.WILD_PORTS[service_region]
+                    }
+                else:
+                    outer_service = {
+                        "domain": 'error',
+                        "port": '-1'
+                    }
+                # 外部url
+                if outer_service['port'] == '-1':
+                    port_info['outer_url'] = 'query error!'
+                else:
+                    if self.service.port_type == "multi_outer":
+                        if port.protocol == "http":
+                            port_info['outer_url'] = '{0}.{1}:{2}'.format(port.container_port, outer_service['domain'], outer_service['port'])
+                        else:
+                            port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+                    else:
+                        port_info['outer_url'] = '{0}:{1}'.format(outer_service['domain'], outer_service['port'])
+            # 自定义域名
+            if exist_service_domain:
+                if len(service_domain_list) > 0:
+                    for domain in service_domain_list:
+                        if port.container_port == domain.container_port:
+                            if port_info.get('domain_list') is None:
+                                port_info['domain_list'] = [domain.domain_name]
+                            else:
+                                port_info['domain_list'].append(domain.domain_name)
+            port_map[port.container_port] = port_info
+        result["port_list"] = port_map
+        # pod节点信息
+        try:
+            region_data = regionClient.get_service_status(service_region, service_id)
+        except Exception as e:
+            logger.exception(e)
+            region_data = {}
+        # result["region_data"] = region_data
+        result = dict(result, **region_data)
+
+        # 依赖服务信息
+        relation_list = TenantServiceRelation.objects.filter(tenant_id=tenant_id, service_id=service_id)
+        relation_id_list = set([x.dep_service_id for x in relation_list])
+        relation_service_list = TenantServiceInfo.objects.filter(service_id__in=relation_id_list)
+        relation_service_map = {x.service_id: x for x in relation_service_list}
+
+        relation_port_list = TenantServicesPort.objects.filter(service_id__in=relation_id_list)
+        relation_map = {}
+
+        for relation_port in relation_port_list:
+            tmp_service_id = relation_port.service_id
+            if tmp_service_id in relation_service_map.keys():
+                tmp_service = relation_service_map.get(tmp_service_id)
+                relation_info = relation_map.get(tmp_service_id)
+                if relation_info is None:
+                    relation_info = []
+                # 处理依赖服务端口
+                if relation_port.is_inner_service:
+                    relation_info.append({
+                        "service_cname": tmp_service.service_cname,
+                        "mapping_port": relation_port.mapping_port,
+                    })
+                    relation_map[tmp_service_id] = relation_info
+        result["relation_list"] = relation_map
+        result["status"] = 200
+        return JsonResponse(result, status=200)

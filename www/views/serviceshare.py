@@ -12,7 +12,6 @@ from www.service_http import RegionServiceApi
 from www.utils.crypt import make_uuid
 from www.servicetype import ServiceType
 from www.utils import sn
-
 from www.models import *
 
 import logging
@@ -23,20 +22,21 @@ regionClient = RegionServiceApi()
 
 class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
     """ 服务分享概览页面 """
+    
     def get_context(self):
         context = super(ShareServiceStep1View, self).get_context()
         return context
- 
+    
     def get(self, request, *args, **kwargs):
         context = self.get_context()
         context["myAppStatus"] = "active"
         # 端口信息
-        port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id).\
+        port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id). \
             values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         context["port_list"] = list(port_list)
         # 环境变量
         used_port = [x["container_port"] for x in port_list]
-        env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
+        env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id) \
             .exclude(container_port__in=used_port) \
             .exclude(attr_name="GD_ADAPTER") \
             .values('container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
@@ -52,24 +52,26 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
                 result_list.append(volume)
         context["volume_list"] = result_list
         # 依赖应用
-        dep_service_ids = TenantServiceRelation.objects.filter(service_id=self.service.service_id).values("dep_service_id")
-        dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)\
-            .values("service_key", "version", "service_alias", "service_type","service_cname")
+        dep_service_ids = TenantServiceRelation.objects.filter(service_id=self.service.service_id).values(
+            "dep_service_id")
+        dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids) \
+            .values("service_key", "version", "service_alias", "service_type", "service_cname")
         context["dep_service_list"] = dep_service_list
         # 检查依赖服务是否已经发布
         context["dep_status"] = True
         if len(dep_service_list) > 0:
             for dep_service in list(dep_service_list):
                 if dep_service["service_key"] == "application":
-                    context["dep_service_name"] = dep_service["service_alias"]
+                    context["dep_service_name"] = dep_service["service_cname"]
                     context["dep_status"] = False
                     break
-                count = AppService.objects.filter(service_key=dep_service["service_key"], app_version=dep_service["version"]).count()
+                count = AppService.objects.filter(service_key=dep_service["service_key"],
+                                                  app_version=dep_service["version"]).count()
                 if count == 0:
                     context["dep_status"] = False
-                    context["dep_service_name"] = dep_service["service_alias"]
+                    context["dep_service_name"] = dep_service["service_cname"]
                     break
-
+        
         # 内存、节点
         context["memory"] = self.service.min_memory
         context["node"] = self.service.min_node
@@ -77,7 +79,8 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
         context["tenant_name"] = self.tenantName
         context["service_alias"] = self.serviceAlias
         context["tenantServiceInfo"] = self.service
-        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True,
+                                             protocol='http').exists():
             context["hasHttpServices"] = True
         # 检查是否打开对外端口
         context["have_outer"] = False
@@ -93,41 +96,43 @@ class ShareServiceStep1View(LeftSideBarMixin, AuthedView):
 
 class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
     """服务分享step2:获取环境变量是否可修改"""
+    
     def get_context(self):
         context = super(ShareServiceStep2View, self).get_context()
         return context
-
+    
     def get(self, request, *args, **kwargs):
         # 获取服务的环境变量
         context = self.get_context()
         context["myAppStatus"] = "active"
-        port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id)\
+        port_list = TenantServicesPort.objects.filter(service_id=self.service.service_id) \
             .values_list('container_port', flat=True)
-        env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
-            .exclude(container_port__in=list(port_list))\
+        env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id) \
+            .exclude(container_port__in=list(port_list)) \
             .values('ID', 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-
+        
         dep_num = TenantServiceRelation.objects.filter(service_id=self.service.service_id).count()
         if dep_num > 0:
             env_list = env_list.exclude(attr_name="GD_ADAPTER")
-
+        
         env_ids = [str(x["ID"]) for x in list(env_list)]
         if len(env_ids) == 0:
             return self.redirect_to("/apps/{0}/{1}/share/step3".format(self.tenantName, self.serviceAlias))
-
+        
         context["env_ids"] = ",".join(env_ids)
         context["env_list"] = list(env_list)
         # path param
         context["tenant_name"] = self.tenantName
         context["service_alias"] = self.serviceAlias
         context["tenantServiceInfo"] = self.service
-        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True,
+                                             protocol='http').exists():
             context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_2.html',
                                 context)
-
+    
     def post(self, request, *args, **kwargs):
         # 服务的环境是否可修改存储
         post_data = request.POST.dict()
@@ -156,10 +161,11 @@ class ShareServiceStep2View(LeftSideBarMixin, AuthedView):
 
 class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
     """ 服务关系配置页面 """
+    
     def get_context(self):
         context = super(ShareServiceStep3View, self).get_context()
         return context
-
+    
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
@@ -168,6 +174,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
             "app_alias": self.service.service_alias,
+            "app_cname": self.service.service_cname,
             "desc": self.service.desc,
             # "info": "",
             # "logo": "",
@@ -196,7 +203,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             #     app["category_first"] = first
             #     app["category_second"] = second
             #     app["category_third"] = third
-
+            
             try:
                 extend_info = AppServiceExtend.objects.get(service_key=first_app.service_key,
                                                            app_version=first_app.app_version)
@@ -207,14 +214,14 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                 app["release_note"] = extend_info.release_note
             except AppServiceExtend.DoesNotExist:
                 logger.error("[share service] extend info query error!")
-
+            
             app["service_key"] = first_app.service_key
             app["app_version"] = first_app.app_version
             app["is_outer"] = first_app.is_outer
             app["is_private"] = first_app.status == "private"
             app["show_app"] = first_app.show_app
             app["show_assistant"] = first_app.show_assistant
-
+        
         context["data"] = app
         # path param
         context["tenant_name"] = self.tenantName
@@ -223,13 +230,14 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         if state is not None:
             context["state"] = state
         context["tenantServiceInfo"] = self.service
-        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True,
+                                             protocol='http').exists():
             context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request,
                                 'www/service/share_step_3.html',
                                 context)
-
+    
     # form提交.
     def post(self, request, *args, **kwargs):
         # 获取form表单
@@ -239,7 +247,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         # 服务基础信息
         service_key = form_data.cleaned_data['service_key']
         app_version = form_data.cleaned_data['app_version']
-
+        
         # 获取服务基本信息
         url_site = form_data.cleaned_data.get('url_site', '')
         url_source = form_data.cleaned_data.get('url_source', '')
@@ -258,7 +266,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                                            release_note=release_note.strip())
             extend_info.save()
         else:
-            AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version)\
+            AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version) \
                 .update(url_site=url_site,
                         url_source=url_source,
                         url_demo=url_demo,
@@ -272,7 +280,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             logo = image.logo
         except AppServiceImages.DoesNotExist:
             pass
-
+        
         info = form_data.cleaned_data.get('info', '')
         desc = form_data.cleaned_data.get('desc', '')
         category_first = form_data.cleaned_data['category_first']
@@ -280,6 +288,9 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         category_third = form_data.cleaned_data['category_third']
         is_outer = form_data.cleaned_data.get('is_outer', False)
         is_private = form_data.cleaned_data.get('is_private', False)
+        # 如果发布到云市,就不能为私有云帮
+        if is_outer:
+            is_private = False
         show_app = form_data.cleaned_data.get('show_app', False)
         show_assistant = form_data.cleaned_data.get('show_assistant', False)
         logger.debug("{0}:{1}:{2}".format(is_outer, show_app, show_assistant))
@@ -348,7 +359,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         AppServicePort.objects.filter(service_key=service_key, app_version=app_version).delete()
         # query new port
         port_list = TenantServicesPort.objects.filter(tenant_id=self.service.tenant_id,
-                                                      service_id=self.service.service_id)\
+                                                      service_id=self.service.service_id) \
             .values('container_port', 'protocol', 'port_alias', 'is_inner_service', 'is_outer_service')
         port_data = []
         for port in list(port_list):
@@ -367,10 +378,10 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
         # 保存env
         AppServiceEnv.objects.filter(service_key=service_key, app_version=app_version).delete()
         export = [x["container_port"] for x in list(port_list)]
-        env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id)\
-            .exclude(container_port__in=export)\
+        env_list = TenantServiceEnvVar.objects.filter(service_id=self.service.service_id) \
+            .exclude(container_port__in=export) \
             .values('ID', 'container_port', 'name', 'attr_name', 'attr_value', 'is_change', 'scope')
-        share_info_list = AppServiceShareInfo.objects.filter(service_id=self.service.service_id)\
+        share_info_list = AppServiceShareInfo.objects.filter(service_id=self.service.service_id) \
             .values("tenant_env_id", "is_change")
         share_info_map = {x["tenant_env_id"]: x["is_change"] for x in list(share_info_list)}
         env_data = []
@@ -391,7 +402,7 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             logger.debug(len(env_data))
             AppServiceEnv.objects.bulk_create(env_data)
         logger.debug(u'share.service. now add shared service env ok')
-
+        
         # 保存extend_info
         count = ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version).count()
         if count == 0:
@@ -407,10 +418,10 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                 is_restart=False)
             extend_method.save()
         else:
-            ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version)\
+            ServiceExtendMethod.objects.filter(service_key=service_key, app_version=app_version) \
                 .update(min_node=self.service.min_node, min_memory=self.service.min_memory)
         logger.debug(u'share.service. now add shared service extend method ok')
-
+        
         # 保存持久化设置
         if self.service.category == "application":
             volume_list = TenantServiceVolume.objects.filter(service_id=self.service.service_id)
@@ -442,7 +453,8 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
                 # dep_app_alias需要获取对应app_service中的app_alias
                 dep_service_alias = dep_service.service_cname
                 try:
-                    app_service = AppService.objects.get(service_key=dep_service.service_key, app_version=dep_service.version)
+                    app_service = AppService.objects.get(service_key=dep_service.service_key,
+                                                         app_version=dep_service.version)
                     dep_service_alias = app_service.app_alias
                 except Exception as e:
                     logger.exception(e)
@@ -457,7 +469,9 @@ class ShareServiceStep3View(LeftSideBarMixin, AuthedView):
             logger.debug(len(app_relation_list))
             AppServiceRelation.objects.bulk_create(app_relation_list)
         # 跳转到套餐设置
-        return self.redirect_to('/apps/{0}/{1}/share/step4?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias, service_key, app_version))
+        return self.redirect_to(
+            '/apps/{0}/{1}/share/step4?service_key={2}&app_version={3}'.format(self.tenantName, self.serviceAlias,
+                                                                               service_key, app_version))
 
 
 class ShareServiceForm(forms.Form):
@@ -468,12 +482,12 @@ class ShareServiceForm(forms.Form):
     category_first = forms.CharField(required=False, help_text=u"分类1")
     category_second = forms.CharField(required=False, help_text=u"分类2")
     category_third = forms.CharField(required=False, help_text=u"分类3")
-
+    
     url_site = forms.CharField(required=False, help_text=u"网站url")
     url_source = forms.CharField(required=False, help_text=u"源码url")
     url_demo = forms.CharField(required=False, help_text=u"样例代码url")
     url_feedback = forms.CharField(required=False, help_text=u"反馈url")
-
+    
     service_key = forms.CharField(help_text=u"服务发布key")
     app_version = forms.CharField(help_text=u"版本")
     release_note = forms.CharField(help_text=u"更新说明")
@@ -490,7 +504,6 @@ class ShareServiceImageForm(forms.Form):
 
 
 class ShareServiceImageView(BaseView):
-
     def post(self, request, *args, **kwargs):
         # 获取表单信息
         service_id = request.POST['service_id']
@@ -514,10 +527,11 @@ class ShareServiceImageView(BaseView):
 
 class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
     """分享设置套餐"""
+    
     def get_context(self):
         context = super(ShareServiceStep4View, self).get_context()
         return context
-
+    
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
@@ -541,12 +555,13 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
                 package.total_price = round(package.total_price, 2)
                 dep_service_map = {}
                 if len(dep_service_json) > 0:
-                    dep_service_map = {'{0}-{1}'.format(x.get("service_key"), x.get("app_version")): x for x in dep_service_json}
+                    dep_service_map = {'{0}-{1}'.format(x.get("service_key"), x.get("app_version")): x for x in
+                                       dep_service_json}
                 for dep_service in list(dep_service_list):
                     service_key = dep_service.dep_service_key
                     app_version = dep_service.dep_app_version
                     service_alias = dep_service.dep_app_alias
-
+                    
                     key = '{0}-{1}'.format(service_key, app_version)
                     if key in dep_service_map.keys():
                         pass
@@ -587,11 +602,12 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             context["dep_service_model"] = "[]"
         context["service_package"] = service_package
         context["tenantServiceInfo"] = self.service
-        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True, protocol='http').exists():
+        if TenantServicesPort.objects.filter(service_id=self.service.service_id, is_outer_service=True,
+                                             protocol='http').exists():
             context["hasHttpServices"] = True
         # 返回页面
         return TemplateResponse(request, 'www/service/share_step_4.html', context)
-
+    
     # form提交.
     def post(self, request, *args, **kwargs):
         # 获取form表单
@@ -603,31 +619,35 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         except Exception as e:
             logger.exception(e)
             raise http.Http404
-        # region发送请求
-        if app.is_slug():
-            self.upload_slug(app)
-        elif app.is_image():
-            self.upload_image(app)
-        if not app.is_outer:
-            return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
-        return self.redirect_to('/apps/{0}/{1}/share/step5'.format(self.tenantName, self.serviceAlias))
-
-    def _create_publish_event(self, info):
-        template = {
-            "user_id": self.user.nick_name,
-            "tenant_id": self.service.tenant_id,
-            "service_id": self.service.service_id,
-            "type": "publish",
-            "desc": info + u"应用发布中...",
-            "show": True,
-        }
         try:
-            body = regionClient.create_event(self.service.service_region, json.dumps(template))
-            return body.event_id
+            # region发送请求
+            if app.is_slug():
+                self.upload_slug(app)
+            elif app.is_image():
+                self.upload_image(app)
+            if not app.is_outer:
+                return self.redirect_to('/apps/{0}/{1}/detail/'.format(self.tenantName, self.serviceAlias))
+            return self.redirect_to('/apps/{0}/{1}/share/step5'.format(self.tenantName, self.serviceAlias))
         except Exception as e:
-            logger.exception("service.publish", e)
-            return None
-
+            logger.exception(e)
+            return HttpResponse(status=500, content=e.__str__())
+    
+    def _create_publish_event(self, info):
+        
+        try:
+            import datetime
+            event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
+                                 tenant_id=self.tenant.tenant_id, type="share-{0}".format(info),
+                                 deploy_version=self.service.deploy_version,
+                                 old_deploy_version=self.service.deploy_version,
+                                 user_name=self.user.nick_name, start_time=datetime.datetime.now())
+            event.save()
+            self.event = event
+            return event.event_id
+        except Exception as e:
+            self.event = None
+            raise e
+    
     def upload_slug(self, app):
         """ 上传slug包 """
         oss_upload_task = {
@@ -641,18 +661,22 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
         }
         try:
             # 生成发布事件
-            event_id = self._create_publish_event(u"云帮")
+            event_id = self._create_publish_event("yb")
             oss_upload_task.update({"dest": "yb", "event_id": event_id})
             regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
             if app.is_outer:
-                event_id = self._create_publish_event(u"云市")
+                event_id = self._create_publish_event("ys")
                 oss_upload_task.update({"dest": "ys", "event_id": event_id})
                 regionClient.send_task(self.service.service_region, 'app_slug', json.dumps(oss_upload_task))
         except Exception as e:
-            logger.error("service.publish",
-                         "upload_slug for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
-            logger.exception("service.publish", e)
-
+            if self.event:
+                self.event.message = u"生成发布事件错误，" + e.message
+                self.event.final_status = "complete"
+                self.event.status = "failure"
+                self.event.save()
+            logger.exception(e)
+            raise e
+    
     def upload_image(self, app):
         """ 上传image镜像 """
         image_upload_task = {
@@ -663,25 +687,30 @@ class ShareServiceStep4View(LeftSideBarMixin, AuthedView):
             "is_outer": app.is_outer,
         }
         try:
-            event_id = self._create_publish_event(u"云帮")
+            event_id = self._create_publish_event("yb")
             image_upload_task.update({"dest": "yb", "event_id": event_id})
             regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
             if app.is_outer:
-                event_id = self._create_publish_event(u"云市")
+                event_id = self._create_publish_event("ys")
                 image_upload_task.update({"dest": "ys", "event_id": event_id})
                 regionClient.send_task(self.service.service_region, 'app_image', json.dumps(image_upload_task))
         except Exception as e:
-            logger.error("service.publish",
-                         "upload_image for {0}({1}), but an error occurred".format(app.service_key, app.app_version))
-            logger.exception("service.publish", e)
+            if self.event:
+                self.event.message = u"生成发布事件错误，" + e.message
+                self.event.final_status = "complete"
+                self.event.status = "failure"
+                self.event.save()
+            logger.exception(e)
+            raise e
 
 
 class ShareServiceStep5View(LeftSideBarMixin, AuthedView):
     """用户选择编辑或返回界面"""
+    
     def get_context(self):
         context = super(ShareServiceStep5View, self).get_context()
         return context
-
+    
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         context = self.get_context()
@@ -694,10 +723,11 @@ class ShareServiceStep5View(LeftSideBarMixin, AuthedView):
 
 class ShareServicePackageView(BaseView):
     """添加套餐接口"""
+    
     def get_context(self):
         context = super(ShareServicePackageView, self).get_context()
         return context
-
+    
     def get(self, request, *args, **kwargs):
         # 跳转到服务关系发布页面
         package_id = request.POST.get("id", None)
@@ -716,7 +746,7 @@ class ShareServicePackageView(BaseView):
             "data-total": round(service_package.total_price, 2),
         }
         return JsonResponse(status=200, data=data)
-
+    
     def post(self, request, *args, **kwargs):
         # 获取类型
         action = request.POST.get("action")
@@ -731,7 +761,7 @@ class ShareServicePackageView(BaseView):
         app_version = request.POST.get("app_version", None)
         dep_info = request.POST.get("dep_info", "[]")
         logger.debug(request.POST)
-
+        
         if action == "delete":
             # delete
             AppServicePackages.objects.filter(pk=package_id).delete()
@@ -776,4 +806,3 @@ class ShareServicePackageView(BaseView):
                 "data-total": service_package.total_price,
             }
             return JsonResponse(status=200, data=data)
-

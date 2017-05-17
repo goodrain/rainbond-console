@@ -13,7 +13,8 @@ from www.models import (ServiceInfo, AppService, TenantServiceInfo,
                         TenantRegionInfo, PermRelService, TenantServiceRelation,
                         TenantServiceInfoDelete, Users, TenantServiceEnv,
                         TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
-                        TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume)
+                        TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume, ServiceEvent, TenantServiceL7Info)
+
 from www.service_http import RegionServiceApi
 from django.conf import settings
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
@@ -24,6 +25,7 @@ from www.utils.giturlparse import parse as git_url_parse
 from www.forms.services import EnvCheckForm
 
 import logging
+from www.utils.crypt import make_uuid
 
 logger = logging.getLogger('default')
 
@@ -50,6 +52,17 @@ class AppDeploy(AuthedView):
     @perm_required('code_deploy')
     def post(self, request, *args, **kwargs):
         data = {}
+        if 'event_id' not in request.POST:
+            data["status"] = "failure"
+            data["message"] = "event is not exist."
+            return JsonResponse(data, status=412)
+        event_id = request.POST["event_id"]
+        event = ServiceEvent.objects.get(event_id=event_id)
+        
+        if not event:
+            data["status"] = "failure"
+            data["message"] = "event is not exist."
+            return JsonResponse(data, status=412)
         
         if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             data["status"] = "owed"
@@ -65,11 +78,12 @@ class AppDeploy(AuthedView):
         
         tenant_id = self.tenant.tenant_id
         service_id = self.service.service_id
-        oldVerion = self.service.deploy_version
-        if oldVerion is not None and oldVerion != "":
-            if not baseService.is_user_click(self.service.service_region, service_id):
-                data["status"] = "often"
-                return JsonResponse(data, status=200)
+        
+        # oldVerion = self.service.deploy_version
+        # if oldVerion is not None and oldVerion != "":
+        #     if not baseService.is_user_click(self.service.service_region, service_id):
+        #         data["status"] = "often"
+        #         return JsonResponse(data, status=200)
         
         # calculate resource
         rt_type, flag = tenantUsedResource.predict_next_memory(self.tenant, self.service, 0, True)
@@ -97,6 +111,10 @@ class AppDeploy(AuthedView):
             self.service.deploy_version = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
             self.service.save()
             
+            # 保存最新 deploy_version
+            event.deploy_version = self.service.deploy_version
+            event.save()
+            
             clone_url = self.service.git_url
             if self.service.code_from == "github":
                 code_user = clone_url.split("/")[3]
@@ -106,7 +124,7 @@ class AppDeploy(AuthedView):
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             body["operator"] = str(self.user.nick_name)
-            
+            body["event_id"] = event_id
             envs = {}
             buildEnvs = TenantServiceEnvVar.objects.filter(service_id=service_id, attr_name__in=(
                 "COMPILE_ENV", "NO_CACHE", "DEBUG", "PROXY", "SBT_EXTRAS_OPTS"))
@@ -130,32 +148,46 @@ class ServiceManage(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
+        
+        if 'event_id' not in request.POST:
+            result["status"] = "failure"
+            result["message"] = "event is not exist."
+            return JsonResponse(result, status=412)
+        event_id = request.POST["event_id"]
+        event = ServiceEvent.objects.get(event_id=event_id)
+        if not event:
+            result["status"] = "failure"
+            result["message"] = "event is not exist."
+            return JsonResponse(result, status=412)
+        event.deploy_version = self.service.deploy_version
+        
         action = request.POST["action"]
         user_actions = ("rollback", "restart", "reboot")
         if action in user_actions:
             if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
                 result["status"] = "owed"
+                self.update_event(event, "余额不足请及时充值", "failure")
                 return JsonResponse(result, status=200)
-
+            
             if tenantAccountService.isExpired(self.tenant, self.service):
                 result["status"] = "expired"
+                self.update_event(event, "试用已到期", "failure")
                 return JsonResponse(result, status=200)
         
-        oldVerion = self.service.deploy_version
-        if oldVerion is not None and oldVerion != "":
-            if not baseService.is_user_click(self.service.service_region, self.service.service_id):
-                result["status"] = "often"
-                return JsonResponse(result, status=200)
-        
-
         if action == "stop":
             try:
                 body = {}
                 body["operator"] = str(self.user.nick_name)
+                body["event_id"] = event_id
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
                 result["status"] = "success"
             except Exception, e:
+                if event:
+                    event.message = u"停止应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', False)
@@ -167,17 +199,24 @@ class ServiceManage(AuthedView):
                 if not flag:
                     if rt_type == "memory":
                         result["status"] = "over_memory"
+                        self.update_event(event, "资源已达上限，不能升级", "failure")
                     else:
                         result["status"] = "over_money"
+                        self.update_event(event, "余额不足，不能升级", "failure")
                     return JsonResponse(result, status=200)
-                
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
+                body["event_id"] = event_id
                 regionClient.restart(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', True)
                 result["status"] = "success"
             except Exception, e:
+                if event:
+                    event.message = u"启动应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_start', False)
@@ -188,13 +227,15 @@ class ServiceManage(AuthedView):
                 if not flag:
                     if rt_type == "memory":
                         result["status"] = "over_memory"
+                        self.update_event(event, "资源不足，不能升级", "failure")
                     else:
                         result["status"] = "over_money"
+                        self.update_event(event, "余额不足，不能升级", "failure")
                     return JsonResponse(result, status=200)
-                
                 # stop service
                 body = {}
                 body["operator"] = str(self.user.nick_name)
+                body["event_id"] = event_id
                 regionClient.stop(self.service.service_region, self.service.service_id, json.dumps(body))
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_stop', True)
                 
@@ -207,28 +248,37 @@ class ServiceManage(AuthedView):
                 
                 result["status"] = "success"
             except Exception, e:
+                if event:
+                    event.message = u"重启应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_reboot', False)
         elif action == "delete":
             try:
                 now = datetime.datetime.now()
-                service_attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id)
+                service_attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id,
+                                                                    tenant_id=self.tenant.tenant_id)
                 has_prepaid_items = False
-                if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method=="prepaid":
+                if service_attach_info.memory_pay_method == "prepaid" or service_attach_info.disk_pay_method == "prepaid":
                     has_prepaid_items = True
-                unpayed_bills = ServiceFeeBill.objects.filter(service_id=self.service.service_id, tenant_id=self.tenant.tenant_id, pay_status="unpayed")
+                unpayed_bills = ServiceFeeBill.objects.filter(service_id=self.service.service_id,
+                                                              tenant_id=self.tenant.tenant_id, pay_status="unpayed")
                 if has_prepaid_items:
                     if now < service_attach_info.buy_end_time:
                         #  开始计费之前,如果已经付款
                         if not unpayed_bills:
                             result["status"] = "payed"
                             result["info"] = u"已付款应用无法删除"
+                            self.update_event(event, "已付款应用无法删除", "failure")
                             return JsonResponse(result)
-
+                
                 published = AppService.objects.filter(service_id=self.service.service_id).count()
                 if published:
                     result["status"] = "published"
+                    self.update_event(event, "关联了已发布服务, 不可删除", "failure")
                     result["info"] = u"关联了已发布服务, 不可删除"
                     return JsonResponse(result)
                 
@@ -247,6 +297,7 @@ class ServiceManage(AuthedView):
                             depalias = depalias + alias["service_cname"]
                         result["dep_service"] = depalias
                         result["status"] = "evn_dependency"
+                        self.update_event(event, "被依赖, 不可删除", "failure")
                         return JsonResponse(result)
                 
                 dependSids = TenantServiceMountRelation.objects.filter(dep_service_id=self.service.service_id).values(
@@ -264,6 +315,7 @@ class ServiceManage(AuthedView):
                             depalias = depalias + alias["service_alias"]
                         result["dep_service"] = depalias
                         result["status"] = "mnt_dependency"
+                        self.update_event(event, "被依赖, 不可删除", "failure")
                         return JsonResponse(result)
                 
                 data = self.service.toJSON()
@@ -290,15 +342,31 @@ class ServiceManage(AuthedView):
                                                     tenant_id=self.tenant.tenant_id).delete()
                 ServiceAttachInfo.objects.filter(service_id=self.service.service_id).delete()
                 ServiceCreateStep.objects.filter(service_id=self.service.service_id).delete()
+                
+                events = ServiceEvent.objects.filter(service_id=self.service.service_id)
+                deleteEventID = []
+                if events:
+                    for event in events:
+                        deleteEventID.append(event.event_id)
+                if len(deleteEventID) > 0:
+                    regionClient.deleteEventLog(self.service.service_region,
+                                                json.dumps({"event_ids": deleteEventID}))
+                
+                ServiceEvent.objects.filter(service_id=self.service.service_id).delete()
+                
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
             except Exception, e:
+                if event:
+                    event.message = u"删除应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', False)
         elif action == "rollback":
             try:
-                event_id = request.POST["event_id"]
                 deploy_version = request.POST["deploy_version"]
                 if event_id != "":
                     # calculate resource
@@ -306,8 +374,10 @@ class ServiceManage(AuthedView):
                     if not flag:
                         if rt_type == "memory":
                             result["status"] = "over_memory"
+                            self.update_event(event, "资源不足，不能升级", "failure")
                         else:
                             result["status"] = "over_money"
+                            self.update_event(event, "余额不足，不能升级", "failure")
                         return JsonResponse(result, status=200)
                     body = {}
                     body["event_id"] = event_id
@@ -316,17 +386,43 @@ class ServiceManage(AuthedView):
                     regionClient.rollback(self.service.service_region, self.service.service_id, json.dumps(body))
                     monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', True)
                 result["status"] = "success"
+                event.deploy_version = deploy_version
+                event.save()
             except Exception, e:
+                if event:
+                    event.message = u"回滚应用失败" + e.message
+                    event.final_status = "complete"
+                    event.status = "failure"
+                    event.save()
                 logger.exception(e)
                 result["status"] = "failure"
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_rollback', False)
         return JsonResponse(result)
+    
+    def update_event(self, event, message, status):
+        event.status = status
+        event.final_status = "complete"
+        event.message = message
+        event.end_time = datetime.datetime.now()
+        if event.status == "failure" and event.type == "callback":
+            event.deploy_version = event.old_deploy_version
+        event.save()
 
 
 class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
+        if 'event_id' not in request.POST:
+            result["status"] = "failure"
+            result["message"] = "event is not exist."
+            return JsonResponse(result, status=412)
+        event_id = request.POST["event_id"]
+        event = ServiceEvent.objects.get(event_id=event_id)
+        if not event:
+            result["status"] = "failure"
+            result["message"] = "event is not exist."
+            return JsonResponse(result, status=412)
         
         if tenantAccountService.isOwnedMoney(self.tenant, self.service.service_region):
             result["status"] = "owed"
@@ -335,12 +431,6 @@ class ServiceUpgrade(AuthedView):
         if tenantAccountService.isExpired(self.tenant, self.service):
             result["status"] = "expired"
             return JsonResponse(result, status=200)
-        
-        oldVerion = self.service.deploy_version
-        if oldVerion is not None and oldVerion != "":
-            if not baseService.is_user_click(self.service.service_region, self.service.service_id):
-                result["status"] = "often"
-                return JsonResponse(result, status=200)
         
         action = request.POST["action"]
         try:
@@ -371,6 +461,7 @@ class ServiceUpgrade(AuthedView):
                         body["deploy_version"] = self.service.deploy_version
                         body["container_cpu"] = upgrade_container_cpu
                         body["operator"] = str(self.user.nick_name)
+                        body["event_id"] = event_id
                         regionClient.verticalUpgrade(self.service.service_region, self.service.service_id,
                                                      json.dumps(body))
                         
@@ -399,6 +490,7 @@ class ServiceUpgrade(AuthedView):
                     body["node_num"] = new_node_num
                     body["deploy_version"] = self.service.deploy_version
                     body["operator"] = str(self.user.nick_name)
+                    body["event_id"] = event_id
                     regionClient.horizontalUpgrade(self.service.service_region, self.service.service_id,
                                                    json.dumps(body))
                     
@@ -411,6 +503,7 @@ class ServiceUpgrade(AuthedView):
                 if self.service.category == "application":
                     body = {}
                     body["extend_method"] = extend_method
+                    body["event_id"] = event_id
                     regionClient.extendMethodUpgrade(self.service.service_region, self.service.service_id,
                                                      json.dumps(body))
                     self.service.extend_method = extend_method
@@ -460,6 +553,71 @@ class ServiceRelation(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
+    
+    def saveAdapterEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner",
+                    "container_port": -1}
+            TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+
+class NoneParmsError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+class UseMidRain(AuthedView):
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        result = {}
+        action = request.POST.get("action", None)
+        try:
+            if not action:
+                raise NoneParmsError("UseMidRain need action.")
+            if action == "add":
+                self.saveAdapterEnv(self.service)
+                self.addSevenLevelEnv(self.service)
+            elif action == "del":
+                self.delSevenLevelEnv(self.service)
+            elif action == "check":
+                if self.checkSevenLevelEnv(self.service):
+                    result["is_mid"] = "no"
+                else:
+                    result["is_mid"] = "yes"
+
+            result["status"] = "success"
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return JsonResponse(result)
+
+    def checkSevenLevelEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
+        if num < 1:
+            return 1
+        else:
+            return 0
+
+    def addSevenLevelEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "SEVEN_LEVEL",
+                    "attr_name": "SEVEN_LEVEL", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+            TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+
+    def delSevenLevelEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
+        if num > 0:
+            TenantServiceEnvVar.objects.get(service_id=service.service_id, attr_name="SEVEN_LEVEL").delete()
+            data = {"action": "delete", "attr_names": ["SEVEN_LEVEL"]}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
 
     def saveAdapterEnv(self, service):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
@@ -469,6 +627,62 @@ class ServiceRelation(AuthedView):
             TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+
+class L7ServiceSet(AuthedView):
+    @perm_required('manage_service')
+    def post(self, request, *args, **kwargs):
+        self.l7_json = request.POST["l7_json"]
+        logger.debug("l7_json %s" % str(self.l7_json))
+        self.dep_service_id = request.POST["dep_service_id"]
+        result = {}
+        try:
+            self.addL7Info(self.service)
+            result["status"] = "success"
+        except Exception, e:
+            logger.exception(e)
+            result["status"] = "failure"
+        return JsonResponse(result)
+
+    def addL7Info(self, service):
+
+        attr_l7 = {
+            "tenant_id": self.service.tenant_id,
+            "service_id": self.service.service_id,
+            "dep_service_id": self.dep_service_id,
+            "l7_json": self.l7_json
+        }
+
+        num = TenantServiceL7Info.objects.filter(service_id=service.service_id, dep_service_id=self.dep_service_id).count()
+        if num < 1:
+            TenantServiceL7Info.objects.create(**attr_l7)
+            data = {"action": "add", "attrs": attr_l7}
+            logger.debug("addL7Info num < 1 %s" % data)
+            regionClient.createL7Conf(service.service_region, service.service_id, json.dumps(data))
+        elif num == 1:
+            TenantServiceL7Info.objects.filter(service_id=service.service_id, dep_service_id=self.dep_service_id).update(l7_json=self.l7_json)
+            data = {"action": "update", "attrs": attr_l7}
+            logger.debug("addL7Info num > 1 %s" % data)
+            regionClient.createL7Conf(service.service_region, service.service_id, json.dumps(data))
+
+    @perm_required('manage_service')
+    def get(self, request, *args, **kwargs):
+        result = {
+            'cricuit':'1024'
+        }
+        self.dep_service_id = request.GET.get("dep_service_id", None)
+        try:
+            if not self.dep_service_id:
+                raise NoneParmsError("L7ServiceSet function get dep_service_id is None.")
+
+            tsrlist = TenantServiceL7Info.objects.filter(service_id=self.service.service_id, dep_service_id=self.dep_service_id)
+            if tsrlist:
+                result = eval(tsrlist[0].l7_json)
+                logger.debug("level7query is %s" % result)
+        except Exception, e:
+            logger.exception(e)
+            return JsonResponse(result)
+
+        return JsonResponse(result)
 
 
 class AllServiceInfo(AuthedView):
@@ -595,13 +809,13 @@ class ServiceDetail(AuthedView):
                     result["tips"] = "应用尚未运行"
                 else:
                     body = regionClient.check_service_status(self.service.service_region, self.service.service_id)
-                    status = body[self.service.service_id]
+                    status = body["status"]
                     service_pay_status, tips, cost_money, need_pay_money, start_time_str = self.get_pay_status(status)
                     result["service_pay_status"] = service_pay_status
                     result["tips"] = tips
                     result["cost_money"] = cost_money
                     result["need_pay_money"] = need_pay_money
-                    result["start_time_str"]=start_time_str
+                    result["start_time_str"] = start_time_str
                     if status == "running":
                         result["totalMemory"] = self.service.min_node * self.service.min_memory
                     else:
@@ -615,30 +829,33 @@ class ServiceDetail(AuthedView):
             result["service_pay_status"] = "unknown"
             result["tips"] = "服务状态未知"
         return JsonResponse(result)
-
+    
     def get_pay_status(self, service_current_status):
-
+        
         rt_status = "unknown"
         rt_tips = "应用状态未知"
         rt_money = 0.0
         need_pay_money = 0.0
         start_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+        
         status = service_current_status
         now = datetime.datetime.now()
-        service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,service_id=self.service.service_id)
+        service_attach_info = ServiceAttachInfo.objects.get(tenant_id=self.tenant.tenant_id,
+                                                            service_id=self.service.service_id)
         buy_start_time = service_attach_info.buy_start_time
         buy_end_time = service_attach_info.buy_end_time
         memory_pay_method = service_attach_info.memory_pay_method
         disk_pay_method = service_attach_info.disk_pay_method
-
-        service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id,service_id=self.service.service_id).order_by("-ID")
+        
+        service_consume_list = ServiceConsume.objects.filter(tenant_id=self.tenant.tenant_id,
+                                                             service_id=self.service.service_id).order_by("-ID")
         last_hour_cost = None
         if service_consume_list:
             last_hour_cost = service_consume_list[0]
             rt_money = last_hour_cost.pay_money
-
-        service_unpay_bill_list = ServiceFeeBill.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id,pay_status="unpayed")
+        
+        service_unpay_bill_list = ServiceFeeBill.objects.filter(service_id=self.service.service_id,
+                                                                tenant_id=self.tenant.tenant_id, pay_status="unpayed")
         buy_start_time_str = buy_start_time.strftime("%Y-%m-%d %H:%M:%S")
         diff_minutes = int((buy_start_time - now).total_seconds() / 60)
         if status == "running":
@@ -646,7 +863,7 @@ class ServiceDetail(AuthedView):
                 if memory_pay_method == "prepaid" or disk_pay_method == "prepaid":
                     if service_unpay_bill_list:
                         rt_status = "wait_for_pay"
-                        rt_tips = "请于{0}前支付{1}元".format(buy_start_time_str,service_unpay_bill_list[0].prepaid_money)
+                        rt_tips = "请于{0}前支付{1}元".format(buy_start_time_str, service_unpay_bill_list[0].prepaid_money)
                         need_pay_money = service_unpay_bill_list[0].prepaid_money
                         start_time_str = buy_start_time_str
                     else:
@@ -673,8 +890,9 @@ class ServiceDetail(AuthedView):
             else:
                 rt_status = "show_money"
                 rt_tips = "应用尚未运行"
-
+        
         return rt_status, rt_tips, rt_money, need_pay_money, start_time_str
+
 
 class ServiceNetAndDisk(AuthedView):
     @method_perf_time
@@ -706,11 +924,22 @@ class ServiceLog(AuthedView):
                 service_id = self.service.service_id
                 tenant_id = self.service.tenant_id
                 if action == "operate":
-                    body = regionClient.get_userlog(self.service.service_region, service_id)
-                    eventDataList = body.get("event_data")
+                    # body = regionClient.get_userlog(self.service.service_region, service_id)
+                    # eventDataList = body.get("event_data")
+                    events = ServiceEvent.objects.filter(service_id=service_id).order_by("-start_time")
+                    reEvents = []
+                    for event in list(events):
+                        eventRe = {}
+                        eventRe["start_time"] = event.start_time
+                        eventRe["end_time"] = event.end_time
+                        eventRe["user_name"] = event.user_name
+                        eventRe["message"] = event.message
+                        eventRe["type"] = event.type
+                        eventRe["status"] = event.status
+                        reEvents.append(eventRe)
                     result = {}
-                    result["log"] = eventDataList
-                    result["num"] = len(eventDataList)
+                    result["log"] = reEvents
+                    result["num"] = len(reEvents)
                     return JsonResponse(result)
                 elif action == "service":
                     body = {}
@@ -981,7 +1210,7 @@ class ServicePort(AuthedView):
     def check_port(self, port):
         if not re.match(r'^\d{2,5}$', str(port)):
             return False, u"格式不符合要求^\d{2,5}"
-
+        
         if self.service.code_from == "image_manual":
             if port > 65535 or port < 1:
                 return False, u"端口号必须在1~65535之间！"
@@ -1085,7 +1314,8 @@ class ServicePort(AuthedView):
                     try:
                         mysql_envs = TenantServiceEnvVar.objects.only('attr_name') \
                             .filter(service_id=deal_port.service_id,
-                                    attr_name__in=['MYSQL_USER', 'MYSQL_PASS', '{0}_USER'.format(old_port_alias), '{0}_PASS'.format(old_port_alias)])
+                                    attr_name__in=['MYSQL_USER', 'MYSQL_PASS', '{0}_USER'.format(old_port_alias),
+                                                   '{0}_PASS'.format(old_port_alias)])
                         for env in mysql_envs:
                             old_attr_name = env.attr_name.replace(old_port_alias, '')
                             if old_attr_name == env.attr_name:

@@ -276,3 +276,39 @@ class AppServicePackages(BaseModel):
     total_price = models.FloatField(help_text=u"定价元/月")
     dep_info = models.CharField(max_length=2000, default='[]', help_text=u"依赖服务内存、节点信息")
 
+group_publish_type = (
+    ('services_group', u'应用组'), ("cloud_frame", u'云框架'),
+)
+
+
+class AppServiceGroup(BaseModel):
+    """服务组分享记录"""
+
+    class Meta:
+        db_table = "app_service_group"
+
+    group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
+    group_share_alias = models.CharField(max_length=100, help_text=u"服务组发布名称")
+    group_id = models.CharField(max_length=100, help_text=u"对应的服务组")
+    service_ids = models.CharField(max_length=200, null=False, help_text=u"对应的服务id")
+    is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
+    step = models.IntegerField(default=0, help_text=u"当前发布进度")
+    publish_type = models.CharField(max_length=16, choices=group_publish_type, help_text=u"发布的应用组类型")
+    group_version = models.CharField(max_length=20, null=False, help_text=u"服务组版本")
+    is_market = models.BooleanField(default=False, blank=True, help_text=u"是否发布到公有市场")
+    desc = models.CharField(max_length=400, null=True, blank=True, help_text=u"更新说明")
+    installable = models.BooleanField(default=True, blank=True, help_text=u"发布到云市后是否允许安装")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    update_time = models.DateTimeField(auto_now_add=True, help_text=u"更新时间")
+
+
+class PublishedGroupServiceRelation(BaseModel):
+    """分享的服务组和服务的关系"""
+
+    class Meta:
+        db_table = "publish_group_service_relation"
+
+    group_pk = models.IntegerField(max_length=10)
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    service_key = models.CharField(max_length=32, help_text=u"服务key")
+    version = models.CharField(max_length=20, help_text=u"当前最新版本")
