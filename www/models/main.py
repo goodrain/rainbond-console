@@ -464,7 +464,7 @@ class TenantServiceInfo(BaseModel):
             return git_url
         else:
             return self.git_url
-
+    
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
         return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
@@ -781,7 +781,7 @@ class TenantRegionPayModel(BaseModel):
 class TenantServiceL7Info(BaseModel):
     class Meta:
         db_table = 'tenant_l7_info'
-
+    
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务id")
     dep_service_id = models.CharField(max_length=32, help_text=u"依赖服务id")
@@ -1081,7 +1081,7 @@ class ServiceEvent(BaseModel):
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     user_name = models.CharField(max_length=50, help_text=u"操作用户")
     start_time = models.DateTimeField(help_text=u"操作开始时间")
-    end_time = models.DateTimeField(help_text=u"操作结束时间")
+    end_time = models.DateTimeField(help_text=u"操作结束时间", null=True)
     type = models.CharField(max_length=20, help_text=u"操作类型")
     status = models.CharField(max_length=20, help_text=u"操作处理状态 success failure")
     final_status = models.CharField(max_length=20, default="", help_text=u"操作状态，complete or timeout or null")
@@ -1091,13 +1091,14 @@ class ServiceEvent(BaseModel):
     code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
     old_code_version = models.CharField(max_length=200, help_text=u"历史部署代码版本")
 
+
 class GroupCreateTemp(BaseModel):
     class Meta:
         db_table = 'group_create_temp'
+    
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     share_group_id = models.IntegerField(help_text=u"服务组发布id")
     service_group_id = models.IntegerField(help_text=u"服务所属组")
     service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
-
