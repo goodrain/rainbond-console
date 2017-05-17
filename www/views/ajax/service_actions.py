@@ -1745,21 +1745,27 @@ class ServiceLogTypeView(AuthedView):
 
 
 class DockerLogInstanceView(AuthedView):
+    def make_event_ws_uri(self, default_uri):
+        if default_uri != 'auto':
+            return '{}/{}'.format(default_uri, 'docker_log')
+        else:
+            host = self.request.META.get('HTTP_HOST').split(':')[0]
+            return 'ws://{}:6363/{}'.format(host, 'docker_log')
+
     def get(self, request, *args, **kwargs):
         result = {}
+        ws_url = self.make_event_ws_uri(settings.EVENT_WEBSOCKET_URL[self.service.service_region])
         try:
             re = regionClient.getDockerLogInstance(region=self.service.service_region,
                                                    service_id=self.service.service_id)
             if re["status"] == "success":
                 result["ok"] = True
                 result["host_id"] = re["host_id"]
-                result["ws_url"] = "{0}/docker_log?host_id={1}".format(
-                    settings.EVENT_WEBSOCKET_URL[self.service.service_region], re["host_id"])
+                result["ws_url"] = "{}?host_id={}".format(ws_url, re["host_id"])
                 return JsonResponse(result)
         except Exception as e:
             logger.exception(e)
             result["ok"] = False
             result["info"] = "获取失败.{0}".format(e.message)
-        result["ws_url"] = "{0}/docker_log".format(
-            settings.EVENT_WEBSOCKET_URL[self.service.service_region])
+        result["ws_url"] = ws_url
         return JsonResponse(result)
