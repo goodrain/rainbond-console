@@ -60,6 +60,7 @@ class EventManager(AuthedView):
             result["event"]["old_code_version"] = old_code_version
             return JsonResponse(result, status=200)
         except Exception as e:
+            logger.exception(e)
             result["status"] = "failure"
             result["message"] = e.message
             ServiceEvent.objects.filter(event_id=event_id).delete()
