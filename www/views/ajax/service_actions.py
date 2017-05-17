@@ -13,7 +13,8 @@ from www.models import (ServiceInfo, AppService, TenantServiceInfo,
                         TenantRegionInfo, PermRelService, TenantServiceRelation,
                         TenantServiceInfoDelete, Users, TenantServiceEnv,
                         TenantServiceAuth, ServiceDomain, TenantServiceEnvVar,
-                        TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume, ServiceEvent, TenantServiceL7Info)
+                        TenantServicesPort, TenantServiceMountRelation, TenantServiceVolume, ServiceEvent,
+                        TenantServiceL7Info)
 
 from www.service_http import RegionServiceApi
 from django.conf import settings
@@ -564,12 +565,14 @@ class ServiceRelation(AuthedView):
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
 
+
 class NoneParmsError(Exception):
     def __init__(self, value):
         self.value = value
-
+    
     def __str__(self):
         return repr(self.value)
+
 
 class UseMidRain(AuthedView):
     @perm_required('manage_service')
@@ -589,44 +592,47 @@ class UseMidRain(AuthedView):
                     result["is_mid"] = "no"
                 else:
                     result["is_mid"] = "yes"
-
+            
             result["status"] = "success"
         except Exception, e:
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
-
+    
     def checkSevenLevelEnv(self, service):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
         if num < 1:
             return 1
         else:
             return 0
-
+    
     def addSevenLevelEnv(self, service):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
         if num < 1:
             attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "SEVEN_LEVEL",
-                    "attr_name": "SEVEN_LEVEL", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+                    "attr_name": "SEVEN_LEVEL", "attr_value": "true", "is_change": 0, "scope": "inner",
+                    "container_port": -1}
             TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
-
+    
     def delSevenLevelEnv(self, service):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
         if num > 0:
             TenantServiceEnvVar.objects.get(service_id=service.service_id, attr_name="SEVEN_LEVEL").delete()
             data = {"action": "delete", "attr_names": ["SEVEN_LEVEL"]}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
-
+    
     def saveAdapterEnv(self, service):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
         if num < 1:
             attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
-                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner",
+                    "container_port": -1}
             TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+
 
 class L7ServiceSet(AuthedView):
     @perm_required('manage_service')
@@ -642,46 +648,49 @@ class L7ServiceSet(AuthedView):
             logger.exception(e)
             result["status"] = "failure"
         return JsonResponse(result)
-
+    
     def addL7Info(self, service):
-
+        
         attr_l7 = {
             "tenant_id": self.service.tenant_id,
             "service_id": self.service.service_id,
             "dep_service_id": self.dep_service_id,
             "l7_json": self.l7_json
         }
-
-        num = TenantServiceL7Info.objects.filter(service_id=service.service_id, dep_service_id=self.dep_service_id).count()
+        
+        num = TenantServiceL7Info.objects.filter(service_id=service.service_id,
+                                                 dep_service_id=self.dep_service_id).count()
         if num < 1:
             TenantServiceL7Info.objects.create(**attr_l7)
             data = {"action": "add", "attrs": attr_l7}
             logger.debug("addL7Info num < 1 %s" % data)
             regionClient.createL7Conf(service.service_region, service.service_id, json.dumps(data))
         elif num == 1:
-            TenantServiceL7Info.objects.filter(service_id=service.service_id, dep_service_id=self.dep_service_id).update(l7_json=self.l7_json)
+            TenantServiceL7Info.objects.filter(service_id=service.service_id,
+                                               dep_service_id=self.dep_service_id).update(l7_json=self.l7_json)
             data = {"action": "update", "attrs": attr_l7}
             logger.debug("addL7Info num > 1 %s" % data)
             regionClient.createL7Conf(service.service_region, service.service_id, json.dumps(data))
-
+    
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
         result = {
-            'cricuit':'1024'
+            'cricuit': '1024'
         }
         self.dep_service_id = request.GET.get("dep_service_id", None)
         try:
             if not self.dep_service_id:
                 raise NoneParmsError("L7ServiceSet function get dep_service_id is None.")
-
-            tsrlist = TenantServiceL7Info.objects.filter(service_id=self.service.service_id, dep_service_id=self.dep_service_id)
+            
+            tsrlist = TenantServiceL7Info.objects.filter(service_id=self.service.service_id,
+                                                         dep_service_id=self.dep_service_id)
             if tsrlist:
                 result = eval(tsrlist[0].l7_json)
                 logger.debug("level7query is %s" % result)
         except Exception, e:
             logger.exception(e)
             return JsonResponse(result)
-
+        
         return JsonResponse(result)
 
 
@@ -1732,4 +1741,25 @@ class ServiceLogTypeView(AuthedView):
             logger.exception(e)
             result["ok"] = False
             result["info"] = "获取失败"
+        return JsonResponse(result)
+
+
+class DockerLogInstanceView(AuthedView):
+    def get(self, request, *args, **kwargs):
+        result = {}
+        try:
+            re = regionClient.getDockerLogInstance(region=self.service.service_region,
+                                                   service_id=self.service.service_id)
+            if re["status"] == "success":
+                result["ok"] = True
+                result["host_id"] = re["host_id"]
+                result["ws_url"] = "{0}/docker_log?host_id={1}".format(
+                    settings.EVENT_WEBSOCKET_URL[self.service.service_region], re["host_id"])
+                return JsonResponse(result)
+        except Exception as e:
+            logger.exception(e)
+            result["ok"] = False
+            result["info"] = "获取失败.{0}".format(e.message)
+        result["ws_url"] = "{0}/docker_log".format(
+            settings.EVENT_WEBSOCKET_URL[self.service.service_region])
         return JsonResponse(result)
