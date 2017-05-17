@@ -318,10 +318,10 @@ class TenantService(LeftSideBarMixin, AuthedView):
 
     def make_event_ws_uri(self, default_uri):
         if default_uri != 'auto':
-            return '{}/{}'.format(default_uri, 'event-log')
+            return '{}/{}'.format(default_uri, 'event_log')
         else:
             host = self.request.META.get('HTTP_HOST').split(':')[0]
-            return 'ws://{}:6363/{}'.format(host, 'event-log')
+            return 'ws://{}:6363/{}'.format(host, 'event_log')
 
     @never_cache
     @perm_required('view_service')
