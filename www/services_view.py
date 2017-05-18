@@ -321,7 +321,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
             return '{}/{}'.format(default_uri, 'event_log')
         else:
             host = self.request.META.get('HTTP_HOST').split(':')[0]
-            return 'ws://{}:6363/{}'.format(host, 'event_log')
+            return 'ws://{}:6060/{}'.format(host, 'event_log')
 
     @never_cache
     @perm_required('view_service')
@@ -796,6 +796,13 @@ class ServiceHistoryLog(AuthedView):
                                                                          'www/js/jquery.scrollTo.min.js')
         return media
 
+    def make_log_domain(self, default_uri):
+        if default_uri != 'auto':
+            return default_uri
+        else:
+            host = self.request.META.get('HTTP_HOST').split(':')[0]
+            return '{}:8083'.format(host)
+
     @never_cache
     def get(self, request, *args, **kwargs):
         try:
@@ -803,7 +810,7 @@ class ServiceHistoryLog(AuthedView):
             body = regionClient.history_log(self.service.service_region, self.service.service_id)
             context["log_paths"] = body["log_path"]
             context["tenantService"] = self.service
-            context["log_domain"] = settings.LOG_DOMAIN[self.service.service_region]
+            context["log_domain"] = self.make_log_domain(settings.LOG_DOMAIN[self.service.service_region])
         except Exception as e:
             logger.exception(e)
         return TemplateResponse(self.request, "www/service_history_log.html", context)
@@ -813,6 +820,13 @@ class ServiceDockerContainer(AuthedView):
     def get_media(self):
         media = super(ServiceDockerContainer, self).get_media()
         return media
+
+    def make_docker_ws_uri(self, default_uri):
+        if default_uri != 'auto':
+            return default_uri
+        else:
+            host = self.request.META.get('HTTP_HOST').split(':')[0]
+            return '{}:8188'.format(host)
 
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -831,7 +845,7 @@ class ServiceDockerContainer(AuthedView):
                 context["host_id"] = t_docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
                 pro = settings.DOCKER_WSS_URL.get("type", "ws")
-                context["host_name"] = settings.DOCKER_WSS_URL[self.service.service_region]
+                context["host_name"] = self.make_docker_ws_uri(settings.DOCKER_WSS_URL[self.service.service_region])
                 if pro == "ws":
                     context["wss"] = pro + "://" + "{{DOCKER_WSS_URL}}" + "/ws?nodename=" + t_docker_h_id
                 else:
