@@ -907,7 +907,7 @@ class ServiceRule(BaseModel):
     maxvalue = models.IntegerField(default=0)
     minvalue = models.IntegerField(default=0)
     status = models.BooleanField(default=False, blank=True, help_text=u"是否生效；0:停止；1:生效")
-    count = models.IntegerField(max_length=10, default=0)
+    count = models.IntegerField(default=0)
     node_number = models.IntegerField(help_text=u"实例启动个数", default=1)
     port = models.CharField(max_length=10)
     port_type = models.CharField(max_length=15, default='multi_outer',
