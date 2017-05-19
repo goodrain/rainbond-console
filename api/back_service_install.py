@@ -223,7 +223,8 @@ class BackServiceInstall(object):
                                                   dep_sids=json.dumps(dep_sids))
                 monitorhook.serviceMonitor(self.nick_name, newTenantService, 'init_region_service', True)
                 current_services.append(newTenantService)
-                url_map = self.getServicePreviewUrls(current_services)
+            url_map = self.getServicePreviewUrls(current_services)
+            logger.debug("===> url_map:{} ".format(url_map))
 
         except Exception as e:
             logger.exception(e)
@@ -254,16 +255,15 @@ class BackServiceInstall(object):
         wild_domain = settings.WILD_DOMAINS[self.region_name]
         http_port_str = settings.WILD_PORTS[self.region_name]
         for service in current_services:
-            # 非自研应用直接跳过
-            if service.category != "application":
-                continue
+            logger.debug("====> service_id:{}".format(service.service_id))
             out_service_port_list = TenantServicesPort.objects.filter(service_id=service.service_id,
                                                                       is_outer_service=True, protocol='http')
             port_map = {}
-            for port in out_service_port_list:
+            for ts_port in out_service_port_list:
+                port = ts_port.container_port
                 # preview_url = "http://" + port + ".{{serviceAlias}}.{{tenantName}}{{wild_domain}}{{http_port_str}}"
                 preview_url = "http://{0}.{1}.{2}{3}:{4}".format(port, service.service_alias, self.tenant_name,
                                                                  wild_domain, http_port_str)
-                port_map[port] = preview_url
+                port_map[str(port)] = preview_url
             url_map[service.service_cname] = port_map
         return url_map

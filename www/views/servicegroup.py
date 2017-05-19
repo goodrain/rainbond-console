@@ -59,6 +59,7 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
         for s in self_develop_services:
             body = regionClient.check_service_status(self.response_region,s.service_id)
             status = body["status"]
+            logger.debug("status ===> {}".format(status))
             if status != "running":
                 data = {"success": False, "code": 412, 'msg': '您的自研应用未运行。'}
                 return JsonResponse(data, status=200)
