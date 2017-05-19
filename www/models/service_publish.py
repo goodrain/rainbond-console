@@ -289,7 +289,7 @@ class AppServiceGroup(BaseModel):
 
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
     group_share_alias = models.CharField(max_length=100, help_text=u"服务组发布名称")
-    group_id = models.CharField(help_text=u"对应的服务组")
+    group_id = models.CharField(max_length=100, help_text=u"对应的服务组")
     service_ids = models.CharField(max_length=200, null=False, help_text=u"对应的服务id")
     is_success = models.BooleanField(default=False, help_text=u"发布是否成功")
     step = models.IntegerField(default=0, help_text=u"当前发布进度")

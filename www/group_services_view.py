@@ -212,11 +212,11 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
-            logger.debug("=======>", service_id_list)
+            logger.debug("service_id_list: {}".format(service_id_list))
             app_service_list = self.get_newest_published_service(service_id_list)
             published_service_list = []
             for app_service in app_service_list:
-                logger.debug("=======> app_service info "+app_service.service_key+"  -  "+app_service.app_version)
+                logger.debug("app_service info:"+app_service.service_key+"  -  "+app_service.app_version)
                 services = ServiceInfo.objects.filter(service_key=app_service.service_key,version=app_service.app_version)
                 services = list(services)
                 # 没有服务模板,需要下载模板
@@ -234,8 +234,8 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
                             app_service.service_key, app_service.app_version))
             # 发布的应用有不全的信息
             if len(published_service_list) != len(service_id_list):
-                logger.debug("published_service_list ===== ",len(published_service_list))
-                logger.debug("service_id_list ===== ",len(service_id_list))
+                logger.debug("published_service_list ===== {0}".format(len(published_service_list)))
+                logger.debug("service_id_list ===== {}".format(len(service_id_list)))
                 logger.error("publised service is not found in table service")
                 context["success"] = False
                 return TemplateResponse(self.request, "www/group/group_app_create_step_2.html", context)
@@ -265,7 +265,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
             need_create_service, is_pass, result = self.preprocess(services)
-            logger.debug("=======> need_create_service ",need_create_service)
+            logger.debug("need_create_service: {}".format(need_create_service))
             if not is_pass:
                 return JsonResponse(result, status=200)
             is_success = True
@@ -350,7 +350,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 key_app_map[app.service_key] = [ds.dep_service_key for ds in dep_services]
             else:
                 key_app_map[app.service_key] = []
-        logger.debug("=====> service_map ",service_map)
+        logger.debug(" service_map:{} ".format(service_map))
         service_keys = self.topological_sort(key_app_map)
 
         for key in service_keys:
@@ -412,7 +412,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             if len(temp_list) == 0:
                 return self.redirect_to("/apps/{0}/group-deploy/{1}/step1/".format(self.tenantName, groupId))
             service_cname_map = {tmp.service_key:tmp.service_cname for tmp in temp_list}
-            logger.debug("====> service_cname_map",service_cname_map)
+            logger.debug("service_cname_map:{}".format(service_cname_map))
             context["service_cname_map"] = service_cname_map
 
             shared_group = AppServiceGroup.objects.get(ID=groupId)
@@ -484,16 +484,16 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 if service_list:
                     published_services.append(service_list[0])
 
-            logger.debug("===> before sort  :", [x.service_key for x in published_services])
+            logger.debug("===> before sort  :{}".format([x.service_key for x in published_services]))
             # 根据依赖关系将服务进行排序
             sorted_service = self.sort_service(published_services)
-            logger.debug("===> after sort  :", [x.service_key for x in sorted_service])
+            logger.debug("===> after sort  :{}".format([x.service_key for x in sorted_service]))
 
             for service_info in sorted_service:
-                logger.debug("==========> ", service_info.service_key)
+                logger.debug("service_info.service_key: {}".format(service_info.service_key))
                 gct = GroupCreateTemp.objects.get(service_key=service_info.service_key)
                 service_id = gct.service_id
-                logger.debug("==========>",gct.service_id)
+                logger.debug("gct.service_id: {}".format(gct.service_id))
                 current_service_ids.append(service_id)
                 service_alias = "gr" + service_id[-6:]
                 # console层创建服务和组关系

@@ -863,7 +863,7 @@ class ServiceGroupRelation(BaseModel):
         db_table = 'service_group_relation'
     
     service_id = models.CharField(max_length=32, help_text=u"服务id")
-    group_id = models.IntegerField(max_length=10)
+    group_id = models.IntegerField()
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
 
