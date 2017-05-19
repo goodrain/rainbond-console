@@ -1557,7 +1557,8 @@ class ServiceDockerContainer(AuthedView):
     def get(self, request, *args, **kwargs):
         data = {}
         try:
-            data = regionClient.serviceContainerIds(self.service.service_region, self.service.service_id)
+            body = {"type": "short_id"}
+            data = regionClient.serviceContainerIds(self.service.service_region, self.service.service_id, json.dumps(body))
             logger.info(data)
         except Exception, e:
             logger.exception(e)
@@ -1573,10 +1574,10 @@ class ServiceDockerContainer(AuthedView):
             logger.info("h_id=" + h_id)
             if c_id != "" and h_id != "":
                 if settings.DOCKER_WSS_URL.get("is_wide_domain", False):
-                    fields = h_id.split('.')
-                    new_fields = map(lambda x: int(x) + int(fields[len(x)]), fields)
-                    key = '{:02X}{:02X}{:02X}{:02X}'.format(*new_fields)
-                    response.set_cookie('docker_h_id', key)
+                    #fields = h_id.split('.')
+                    #new_fields = map(lambda x: int(x) + int(fields[len(x)]), fields)
+                    #key = '{:02X}{:02X}{:02X}{:02X}'.format(*new_fields)
+                    response.set_cookie('docker_h_id', h_id)
                 else:
                     response.set_cookie('docker_h_id', h_id)
                 response.set_cookie('docker_c_id', c_id)

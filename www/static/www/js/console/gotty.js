@@ -3,18 +3,11 @@
     var s_id=document.getElementById("s_id").value;
     var c_id=document.getElementById("c_id").value;
     var md5=document.getElementById("md5").value;
-    var h_id=document.getElementById("h_id").value;
-    var tmp_url = document.getElementById("wss").value;
-    var is_community = document.getElementById("is_community").value;
-    var host_name = document.getElementById("host_name").value;
+    var ws_uri = document.getElementById("ws_uri").value;
     var autoReconnect = -1;
     var openWs = function() {
-        if(is_community == "True"){
-            host_name = window.location.hostname+":8188";
-        }
-        var url = tmp_url.replace("{{DOCKER_WSS_URL}}",host_name)
-        console.log(url)
-        var ws = new WebSocket(url);
+        console.log(ws_uri)
+        var ws = new WebSocket(ws_uri);
         var term;
         var pingTimer;
         ws.onopen = function(event) {
