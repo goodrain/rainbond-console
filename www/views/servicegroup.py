@@ -52,8 +52,17 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
             return JsonResponse(data, status=200)
 
         if len(array_ids) < 2:
-            data = {"success": False, "code": 404, "msg": "应用组发布的应用数至少为2个"}
+            data = {"success": False, "code": 404, "msg": "批量分享的应用数至少为2个"}
             return JsonResponse(data, status=200)
+        # 检查分析的应用是否运行
+        self_develop_services = [x for x in service_list if x.category == 'application']
+        for s in self_develop_services:
+            body = regionClient.check_service_status(self.response_region,s.service_id)
+            status = body["status"]
+            if status != "running":
+                data = {"success": False, "code": 412, 'msg': '您的自研应用未运行。'}
+                return JsonResponse(data, status=200)
+
 
         # 添加服务组分享信息
         service_ids = service_ids.replace(" ", "")

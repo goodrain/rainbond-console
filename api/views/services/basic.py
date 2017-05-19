@@ -13,6 +13,7 @@ import json
 from api.views.services.sendapp import AppSendUtil
 from django.conf import settings
 from www.region import RegionInfo
+from api.back_service_install import BackServiceInstall
 
 import logging
 
@@ -28,7 +29,7 @@ class SelectedServiceView(APIView):
     对单个服务的动作
     '''
     allowed_methods = ('PUT', 'POST',)
-    
+
     def get(self, request, serviceId, format=None):
         """
         查看服务属性
@@ -38,7 +39,7 @@ class SelectedServiceView(APIView):
             return Response({"ok": True}, status=200)
         except TenantServiceInfo.DoesNotExist, e:
             return Response({"ok": False, "reason": e.__str__()}, status=404)
-    
+
     def post(self, request, serviceId, format=None):
         """
         更新服务属性
@@ -90,7 +91,7 @@ class SelectedServiceView(APIView):
             logger.exception("api.service", e)
             logger.error("api.service", "start service error!")
         return Response({"success": True, "msg": "success!"}, status=200)
-    
+
     def put(self, request, serviceId, format=None):
         """
         更新服务属性,只针对docker image
@@ -109,7 +110,7 @@ class SelectedServiceView(APIView):
             volume_list = data.pop("volume_list", None)
             logger.debug(port_list)
             logger.debug(volume_list)
-            
+
             TenantServiceInfo.objects.filter(service_id=serviceId).update(**data)
             service = TenantServiceInfo.objects.get(service_id=serviceId)
             regionClient.update_service(service.service_region, serviceId, data)
@@ -174,7 +175,7 @@ class SelectedServiceView(APIView):
                         regionClient.createServiceVolume(service.service_region,
                                                          service.service_id,
                                                          json.dumps(json_data))
-            
+
             return Response({"ok": True}, status=201)
         except TenantServiceInfo.DoesNotExist as e:
             logger.error(e)
@@ -183,7 +184,7 @@ class SelectedServiceView(APIView):
 
 class PublishServiceView(APIView):
     allowed_methods = ('post',)
-    
+
     def init_data(self, app, slug, image):
         data = {}
         data["service_key"] = app.service_key
@@ -231,7 +232,7 @@ class PublishServiceView(APIView):
         # 租户信息
         data["tenant_id"] = app.tenant_id
         return data
-    
+
     def post(self, request, format=None):
         """
         获取某个租户信息(tenant_id或者tenant_name)
@@ -278,15 +279,14 @@ class PublishServiceView(APIView):
         isys = False
         serviceInfo = None
         try:
-            logger.debug("======= try block =======")
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
-            logger.debug("invoke publish service method  service_key:" + service_key +" service_version"+app_version)
+            logger.debug("invoke publish service method  service_key:" + service_key + " service_version" + app_version)
             image = request.data.get('image', "")
             slug = request.data.get('slug', "")
             dest_yb = request.data.get('dest_yb', False)
             dest_ys = request.data.get('dest_ys', False)
-            
+
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
             if not app.dest_yb:
                 app.dest_yb = dest_yb
@@ -395,7 +395,7 @@ class PublishServiceView(APIView):
             share_id = None
             try:
                 share_id = request.data.get('share_id', None)
-                logger.debug("====> share id is "+share_id)
+                logger.debug("====> share id is " + share_id)
             except Exception as e:
                 logger.exception(e)
             try:
@@ -422,15 +422,17 @@ class PublishServiceView(APIView):
                                           "group_key": app_service_group.group_share_id,
                                           "tenant_id": tenant_id, "group_version": app_service_group.group_version,
                                           "publish_type": app_service_group.publish_type,
-                                          "desc":app_service_group.desc,
+                                          "desc": app_service_group.desc,
                                           "installable": app_service_group.installable}
                             tmp_ids = app_service_group.service_ids
                             service_id_list = json.loads(tmp_ids)
                             if len(service_id_list) > 0:
                                 # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
                                 service_list = self.get_newest_published_service(service_id_list)
-                                tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
-                                service_category_map = {x.service_id: "self" if x.category == "application" else "other" for x in tenant_service_list}
+                                tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list,
+                                                                                       tenant_id=tenant_id)
+                                service_category_map = {x.service_id: "self" if x.category == "application" else "other"
+                                                        for x in tenant_service_list}
                                 service_data = []
                                 for service in service_list:
                                     service_map = {"service_key": service.service_key,
@@ -439,8 +441,15 @@ class PublishServiceView(APIView):
 
                                     service_data.append(service_map)
                                 param_data["data"] = service_data
-                                # 发送组信息到云市
+                                # 执行后台安装应用组流程
+                                backServiceInstall = BackServiceInstall()
+                                group_id, grdemo_service_ids, url_map = backServiceInstall.install_services(share_id)
+                                grdemo_console_url = "https://user.goodrain.com/apps/grdemo/myservice/?gid={}".format(
+                                    str(group_id))
 
+                                param_data.update({"console_url": grdemo_console_url})
+                                param_data.update({"preview_urls": url_map})
+                                # 发送组信息到云市
                                 num = apputil.send_group(param_data)
                                 if num != 0:
                                     logger.exception("publish service group failed!")
@@ -485,7 +494,7 @@ class PublishServiceView(APIView):
 class ReceiveServiceView(APIView):
     """ receive service info from cloud market to cloud assistant"""
     allowed_methods = ('post',)
-    
+
     def post(self, request, format=None):
         """
         获取从云市发送的服务信息
@@ -576,7 +585,7 @@ class ReceiveServiceView(APIView):
                 env_list = json_data.get('env_list', None)
                 port_list = json_data.get('port_list', None)
                 extend_list = json_data.get('extend_list', None)
-                
+
                 # 存在对应的service_key, app_version,清理对应的旧数据
                 AppServiceEnv.objects.filter(service_key=service_key,
                                              app_version=app_version).delete()
@@ -661,14 +670,14 @@ class ReceiveServiceView(APIView):
                 logger.debug('---add app service relation---ok---')
         except Exception as e:
             logger.exception(e)
-        
+
         return Response({"ok": True}, status=200)
 
 
 class QueryServiceView(APIView):
     """ receive service info from cloud market to cloud assistant"""
     allowed_methods = ('post',)
-    
+
     def post(self, request, format=None):
         """
         从云市查询服务信息
@@ -692,14 +701,14 @@ class QueryServiceView(APIView):
         """
         try:
             print request.data
-            
+
             service_key = request.POST.get('service_key')
             app_version = request.POST.get('app_version')
-            
+
             utils = AppSendUtil(service_key, app_version)
             json_data = utils.query_service(service_key, app_version)
             logger.debug('---receive data---{}'.format(json_data))
-            
+
             service_data = json_data.get('service', None)
             if not service_data:
                 logger.error('there is no service data! pls check request')
@@ -822,7 +831,7 @@ class QueryServiceView(APIView):
 class QueryTenantView(APIView):
     """根据用户email查询用户所有的租户信息"""
     allowed_methods = ('post',)
-    
+
     def post(self, request, format=None):
         """
         根据用户的email获取当前用户的所有租户信息
@@ -841,7 +850,7 @@ class QueryTenantView(APIView):
             user_info = Users.objects.get(user_id=user_id)
             nick_name = user_info.nick_name
             data = {"nick_name": nick_name}
-            
+
             # 获取所有的租户信息
             prt_list = PermRelTenant.objects.filter(user_id=user_id)
             tenant_id_list = [x.tenant_id for x in prt_list]
