@@ -821,12 +821,14 @@ class ServiceDockerContainer(AuthedView):
         media = super(ServiceDockerContainer, self).get_media()
         return media
 
-    def make_docker_ws_uri(self, default_uri):
-        if default_uri != 'auto':
-            return default_uri
+    def make_docker_ws_uri(self, ws_config, nodename):
+        protocol = ws_config.get("type", "ws")
+        host = ws_config.get(self.service.service_region)
+        if host != 'auto':
+            return '{}://{}/docker_console?nodename={}'.format(protocol, host, nodename)
         else:
             host = self.request.META.get('HTTP_HOST').split(':')[0]
-            return '{}:8188'.format(host)
+            return '{}://{}:6060/docker_console?nodename={}'.format(protocol, host, nodename)
 
     @never_cache
     def get(self, request, *args, **kwargs):
@@ -842,17 +844,8 @@ class ServiceDockerContainer(AuthedView):
                 context["tenant_id"] = self.service.tenant_id
                 context["service_id"] = docker_s_id
                 context["ctn_id"] = docker_c_id
-                context["host_id"] = t_docker_h_id
                 context["md5"] = md5fun(self.service.tenant_id + "_" + docker_s_id + "_" + docker_c_id)
-                pro = settings.DOCKER_WSS_URL.get("type", "ws")
-                context["host_name"] = self.make_docker_ws_uri(settings.DOCKER_WSS_URL[self.service.service_region])
-                if pro == "ws":
-                    context["wss"] = pro + "://" + "{{DOCKER_WSS_URL}}" + "/ws?nodename=" + t_docker_h_id
-                else:
-                    context["wss"] = pro + "://" + "{{DOCKER_WSS_URL}}" + "/ws?nodename=" + t_docker_h_id
-                context["community"] = False
-                if sn.instance.is_private():
-                    context["community"] = True
+                context["ws_uri"] = self.make_docker_ws_uri(settings.DOCKER_WSS_URL, t_docker_h_id)
                 response = TemplateResponse(self.request, "www/console.html", context)
             response.delete_cookie('docker_c_id')
             response.delete_cookie('docker_h_id')
