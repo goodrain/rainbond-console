@@ -724,3 +724,15 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             logger.exception("service.publish", e)
 
 
+class ServiceGroupShareFourView(LeftSideBarMixin,AuthedView):
+    def get_context(self):
+        context = super(ServiceGroupShareFourView, self).get_context()
+        return context
+
+    @perm_required('app_publish')
+    def get(self, request, groupId, shareId, *args, **kwargs):
+        context = self.get_context()
+        app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+        context["app_service_group"] = app_service_group
+        context["group_id"] = groupId
+        return TemplateResponse(request, 'www/service/groupShare_step_four.html', context)

@@ -1102,3 +1102,11 @@ class GroupCreateTemp(BaseModel):
     share_group_id = models.IntegerField(help_text=u"服务组发布id")
     service_group_id = models.IntegerField(help_text=u"服务所属组")
     service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
+
+
+class BackServiceInstallTemp(BaseModel):
+    class Meta:
+        db_table = "back_service_install_temp"
+    group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
+    group_pk = models.IntegerField(help_text=u"服务所在组ID")
+    success = models.BooleanField(default=True, help_text=u"成功安装")
