@@ -282,10 +282,11 @@ class BackServiceInstall(object):
                 pre_service_ids = ServiceGroupRelation.objects.filter(group_id=group_pk, tenant_id=self.tenant_id,
                                                                       region_name=self.region_name).values_list(
                     "service_id", flat=True)
+                logger.debug("previous service ids {}".format(pre_service_ids))
                 # 将服务安照依赖关系排序
                 result = []
                 service_list = TenantServiceInfo.objects.filter(service_id__in=pre_service_ids, tenant_id=self.tenant_id,
-                                                                region_name=self.region_name)
+                                                                service_region=self.region_name)
                 id_service_map = {}
                 service_map = {s.service_id: s for s in service_list}
                 for s_id in pre_service_ids:
@@ -300,8 +301,11 @@ class BackServiceInstall(object):
                     result.append(service_map.get(id))
                 result.reverse()
                 # 删除服务
+                logger.debug("delete previous services !")
                 for service in result:
                     self.__deleteService(service)
+                # 删除组
+                ServiceGroup.objects.filter(ID=group_pk, region_name=self.region_name).delete()
                 # 更新新的服务组
                 BackServiceInstallTemp.objects.update(group_pk=new_group_id)
             else:
