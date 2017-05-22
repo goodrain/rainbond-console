@@ -369,7 +369,14 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
 
                 app_service_map = {}
                 app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+                step = 0
                 for pro_service_id in pro_json:
+                    is_published, app = self.is_published(pro_service_id)
+                    # 已发布的应用,缓存app_service_map,并跳过此次循环
+                    if is_published:
+                        app_service_map[pro_service_id] = app
+                        continue
+
                     pro_map = pro_json.get(pro_service_id)
 
                     app_alias = pro_map.get("name")
@@ -400,6 +407,9 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     # 保存持久化设置
                     self.add_app_volume(service, app_service.service_key, app_version)
                     logger.debug(u'group.share.service. now add group share service volume for service {0} ok'.format(service.service_id))
+                    # 设置需要发布的步数
+                    step += 1
+                app_service_group.step = step
                 # 处理服务依赖关系
                 for pro_service_id in pro_json:
                     # 服务依赖关系
@@ -418,9 +428,25 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 #         pgsr = PublishedGroupServiceRelation(group_pk=groupId,service_id=service.service_id,service_key=app_service.service_key,version=app_service.app_version)
                 #         published_group_service_relation.append(pgsr)
                 #     PublishedGroupServiceRelation.objects.bulk_create(published_group_service_relation)
+                PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID).delete()
+                for s_id, app in app_service_map.items():
+                    pgsr_list =  PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID,service_id=s_id)
+                    if not pgsr_list:
+                        PublishedGroupServiceRelation.objects.create(group_pk=app_service_group.ID, service_id=s_id,
+                                                                     service_key=app.service_key,
+                                                                     version=app.app_version)
+                    else:
+                        PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID,
+                                                                     service_id=s_id).update(
+                            service_key=app.service_key,
+                            version=app.app_version)
 
                 # 设置所有发布服务状态为未发布
                 for pro_service_id in pro_json:
+                    is_published, rt_app = self.is_published(pro_service_id)
+                    # 跳过已发布的服务
+                    if is_published:
+                        continue
                     service = service_map.get(pro_service_id)
                     app_service = app_service_map.get(pro_service_id)
                     app_service.dest_yb = False
@@ -443,6 +469,30 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             data = {"success": False, "code": 500, 'msg': '系统异常!'}
         data = {"success": True, "code": 200, 'msg': '更新成功!'}
         return JsonResponse(data, status=200)
+
+    def is_published(self,service_id):
+        """
+        根据service_id判断服务是否发布过
+        :param service_id: 服务 ID
+        :return: 是否发布, 发布的服务对象
+        """
+        result = True
+        rt_app = None
+        service = TenantServiceInfo.objects.get(service_region=self.response_region, service_id=service_id)
+        if service.category != "app_publish":
+            result = False
+        else:
+            app_list = AppService.objects.filter(service_key=service.service_key, app_version=service.version).order_by(
+                "-ID")
+            if len(app_list) == 0:
+                app_list = AppService.objects.filter(service_key=service.service_key).order_by("-ID")
+                if len(app_list) == 0:
+                    result = False
+                else:
+                    rt_app = app_list[0]
+            else:
+                rt_app = app_list[0]
+        return result, rt_app
 
     def add_app_service(self, service, app_alias, app_version, app_content, is_init_accout, is_outer, is_private, show_assistant, show_cloud):
         # 获取表单信息

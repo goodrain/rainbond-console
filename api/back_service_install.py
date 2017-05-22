@@ -2,7 +2,8 @@
 from www.models import AppServiceGroup, ServiceGroup, AppService, ServiceInfo, AppServiceRelation, ServiceGroupRelation, \
     AppServicePort, AppServiceEnv, AppServiceVolume, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
     ServiceDomain, TenantServiceEnvVar, TenantServicesPort, TenantServiceVolume, BackServiceInstallTemp, \
-    TenantServiceEnv, TenantServiceMountRelation, ServiceAttachInfo, ServiceCreateStep, ServiceEvent
+    TenantServiceEnv, TenantServiceMountRelation, ServiceAttachInfo, ServiceCreateStep, ServiceEvent, \
+    PublishedGroupServiceRelation
 from www.monitorservice.monitorhook import MonitorHook
 from www.region import RegionInfo
 import random
@@ -56,10 +57,11 @@ class BackServiceInstall(object):
                                                     group_name=group_name)
                 return group.ID
 
-    def get_newest_published_service(self, service_id_list):
+    def get_published_service_info(self, groupId):
         result = []
-        for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
+        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=groupId)
+        for pgsr in pgsr_list:
+            apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
             if apps:
                 result.append(apps[0])
         return result
@@ -177,7 +179,7 @@ class BackServiceInstall(object):
             # 查询分享组中的服务ID
             service_ids = app_service_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = self.get_newest_published_service(service_id_list)
+            app_service_list = self.get_published_service_info(app_service_group.ID)
             published_service_list = self.getServiceModel(app_service_list, service_id_list)
             sorted_service = self.sort_service(published_service_list)
             # 先生成服务的service_id

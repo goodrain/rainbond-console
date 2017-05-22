@@ -462,9 +462,37 @@ class PublishServiceView(APIView):
 
         return Response({"ok": True}, status=200)
 
+    def is_published(self,service_id):
+        """
+        根据service_id判断服务是否发布过
+        :param service_id: 服务 ID
+        :return: 是否发布, 发布的服务对象
+        """
+        result = True
+        rt_app = None
+        service = TenantServiceInfo.objects.get(service_region=self.response_region, service_id=service_id)
+        if service.category != "app_publish":
+            result = False
+        else:
+            app_list = AppService.objects.filter(service_key=service.service_key, app_version=service.version).order_by(
+                "-ID")
+            if len(app_list) == 0:
+                app_list = AppService.objects.filter(service_key=service.service_key).order_by("-ID")
+                if len(app_list) == 0:
+                    result = False
+                else:
+                    rt_app = app_list[0]
+            else:
+                rt_app = app_list[0]
+        return result, rt_app
+
     def get_newest_published_service(self, service_id_list):
         result = []
         for service_id in service_id_list:
+            is_pubilsh, app = self.is_published(service_id)
+            if is_pubilsh:
+                result.append(app)
+                continue
             apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
             if apps:
                 result.append(apps[0])
