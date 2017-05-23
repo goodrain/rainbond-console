@@ -64,6 +64,10 @@ class BackServiceInstall(object):
             apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
             if apps:
                 result.append(apps[0])
+            else:
+                apps = AppService.objects.filter(service_key=pgsr.service_key).order_by("-ID")
+                if apps:
+                    result.append(apps[0])
         return result
 
     def getServiceModel(self, app_service_list, service_id_list):
