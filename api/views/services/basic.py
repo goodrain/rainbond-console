@@ -429,16 +429,18 @@ class PublishServiceView(APIView):
                             service_id_list = json.loads(tmp_ids)
                             if len(service_id_list) > 0:
                                 # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
-                                service_list = self.get_newest_published_service(service_id_list)
+                                app_service_list = self.get_newest_published_service(service_id_list)
                                 tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list,
                                                                                        tenant_id=tenant_id)
                                 service_category_map = {x.service_id: "self" if x.category == "application" else "other"
                                                         for x in tenant_service_list}
+                                logger.debug("===> service_category_map {}".format(service_category_map))
                                 service_data = []
-                                for service in service_list:
-                                    service_map = {"service_key": service.service_key,
-                                                   "version": service.app_version,
-                                                   "owner": service_category_map.get(service.service_id)}
+                                for app in app_service_list:
+                                    owner = service_category_map.get(app.service_id,"other")
+                                    service_map = {"service_key": app.service_key,
+                                                   "version": app.app_version,
+                                                   "owner": owner}
 
                                     service_data.append(service_map)
                                 param_data["data"] = service_data
