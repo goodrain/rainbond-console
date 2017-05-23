@@ -465,8 +465,8 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             #     AppServiceShareInfo.objects.bulk_create(app_share_list)
         except Exception as e:
             logger.error("service group publish failed")
-            logger.exception(e)
             data = {"success": False, "code": 500, 'msg': '系统异常!'}
+            logger.exception(e)
         data = {"success": True, "code": 200, 'msg': '更新成功!'}
         return JsonResponse(data, status=200)
 
