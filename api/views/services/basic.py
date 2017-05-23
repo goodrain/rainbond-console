@@ -398,10 +398,10 @@ class PublishServiceView(APIView):
                 logger.debug("====> share id is " + share_id)
             except Exception as e:
                 logger.exception(e)
+            app_service_group = None
             try:
                 logger.debug(dest_ys)
                 if share_id is not None and dest_ys:
-                    app_service_group = None
                     try:
                         app_service_group = AppServiceGroup.objects.get(group_share_id=share_id)
                     except AppServiceGroup.DoesNotExist as e:
@@ -458,6 +458,8 @@ class PublishServiceView(APIView):
                             app_service_group.is_success = True
                             app_service_group.save()
             except Exception as e:
+                app_service_group.is_success = False
+                app_service_group.save()
                 logger.exception(e)
                 logger.error("publish service group failed!")
 
