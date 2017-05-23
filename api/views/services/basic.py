@@ -471,7 +471,7 @@ class PublishServiceView(APIView):
         """
         result = True
         rt_app = None
-        service = TenantServiceInfo.objects.get(service_region=self.response_region, service_id=service_id)
+        service = TenantServiceInfo.objects.get(service_id=service_id)
         if service.category != "app_publish":
             result = False
         else:
