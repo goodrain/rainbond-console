@@ -411,6 +411,8 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     # 设置需要发布的步数
                     step += 1
                 app_service_group.step = step
+                app_service_group.save()
+                logger.debug("step ===> {}".format(step))
                 # 处理服务依赖关系
                 for pro_service_id in pro_json:
                     # 服务依赖关系

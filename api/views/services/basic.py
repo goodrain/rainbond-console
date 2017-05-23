@@ -409,8 +409,9 @@ class PublishServiceView(APIView):
                     if app_service_group is not None:
                         curr_step = app_service_group.step
                         if curr_step > 0:
+                            logger.debug("before remove one app from app_group ! step {}".format(curr_step))
                             curr_step -= 1
-                            logger.debug("remove one app from app_group !")
+                            logger.debug("after remove one app from app_group ! step {}".format(curr_step))
                             app_service_group.step = curr_step
                             app_service_group.save()
                         # 判断是否为最后一次调用,发布到最后一个应用后将组信息填写到云市
