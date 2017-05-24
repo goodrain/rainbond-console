@@ -615,7 +615,7 @@ class UseMidRain(AuthedView):
 
     def addIsHttpEnv(self, service):
         # add domposer-compose
-        is_compose = TenantServiceInfo.object.filter(service_id=self.service.service_id, language="docker-compose")
+        is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose")
         if is_compose:
             num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="IS_HTTP").count()
             if num < 1:
@@ -695,7 +695,7 @@ class L7ServiceSet(AuthedView):
                 # 兼容
                 if not result.get('domain', None):
                     result['domain'] = 'off'
-            is_compose = TenantServiceInfo.object.filter(service_id=self.service.service_id, language="docker-compose")
+            is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose")
             if not is_compose:
                 result["domain"] = "close"
             logger.debug("level7query is %s" % result)
