@@ -1278,12 +1278,13 @@ function high_relation(curServiceName, depServiceName, tenantName) {
             oStrH += '<a href="javascript:;" class="closebtn fn-close"><i class="fa fa-times"></i></a><p class="layer-tit">设置</p>';
 			if(domainUrl != "close"){
 				if(domainUrl == "off"){
-                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
+                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p>';
                 }else{
-                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
+                    oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide" checked="true"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="'+ domainUrl +'" id="dourl"/></p>';
                 }
 			}
-
+            oStrH += '</div>';
+             
 			//if(domainUrl == "off"){
 			//	oStrH +='<p class="onoffbox clearfix"><span>转发</span><input type="checkbox" name="domainurl"  id="domainurl"  class="checkhide"/><label class="checkshow" for="domainurl"></label></p><div class="headarrbox clearfix" id="headarrbox" style="display:none;"><p class="domainbox clearfix"><span>Domain</span><input type="text" value="" id="dourl" /></p><p class="headertit clearfix"><span>Header</span><cite>Key</cite><cite>Value</cite><a href="javascript:;" id="addheader">+</a></p><div id="headpbox">';
 			//}else{
@@ -1410,13 +1411,16 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 			$("#hrelsure").click(function(){
 		   		var obox = {};
 		   		//var headerbox=[];
-		   		//var domainval = $("#dourl").val();
+                var oneonoff = $("#domainurl").prop("checked");
+		   		var domainval = $("#dourl").val();
 		   		var cricuitval = $("#fusing option:selected").attr("value");
 		   		//var statisticval = $("input#statisticsbox").prop("checked");
-		   		//obox["domain"]=domainval;
+                if(oneonoff == true){
+                   obox["domain"]=domainval; 
+                }
 		   		obox["cricuit"] = cricuitval;
 		   		//obox["statistic"] = (statisticval==true) ? "on" : "off";
-		   		//var oneonoff = $("#domainurl").prop("checked");
+		   		
 		   		//var twoonoff = $("input#statisticsbox").prop("checked");
 		   		//var threeonoff = $("#cricuitonoff").prop("checked");
 		   		/*
