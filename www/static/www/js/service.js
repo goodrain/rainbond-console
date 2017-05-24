@@ -204,10 +204,10 @@ function ajax_getLog(){
     $(".ajax_log").off('click');
     $(".ajax_log").click(function(){
         var event_id = $(this).attr("data-log");
-        $(".log_"+event_id).html('');
+        //$(".log_"+event_id).html('');
         $(this).parents('li').find('.log_type label').removeClass('active');
         $(this).parents('li').find('.log_type label').eq(0).addClass('active');
-        do_logshow(event_id,'info');
+        //do_logshow(event_id,'info');
         $(this).hide();
         $(this).parent().find('.hide_log').show();
         //$(".log_" + event_id + "").addClass('log_height');
