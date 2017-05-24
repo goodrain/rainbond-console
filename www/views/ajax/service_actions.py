@@ -615,8 +615,10 @@ class UseMidRain(AuthedView):
 
     def addIsHttpEnv(self, service):
         # add domposer-compose
-        is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose")
-        if is_compose:
+        logger.debug("addIsHttpEnv")
+        is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose").count()
+        if is_compose > 0:
+            logger.debug("is_composer %s, IS_HTTP" % service.service_id)
             num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="IS_HTTP").count()
             if num < 1:
                 attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "IS_HTTP",
