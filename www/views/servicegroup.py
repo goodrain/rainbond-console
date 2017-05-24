@@ -369,7 +369,15 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
 
                 app_service_map = {}
                 app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+                step = 0
                 for pro_service_id in pro_json:
+                    is_published, app = self.is_published(pro_service_id)
+                    # 已发布的应用,缓存app_service_map,并跳过此次循环
+                    if is_published:
+                        app_service_map[pro_service_id] = app
+                        logger.debug("")
+                        continue
+
                     pro_map = pro_json.get(pro_service_id)
 
                     app_alias = pro_map.get("name")
@@ -400,6 +408,11 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     # 保存持久化设置
                     self.add_app_volume(service, app_service.service_key, app_version)
                     logger.debug(u'group.share.service. now add group share service volume for service {0} ok'.format(service.service_id))
+                    # 设置需要发布的步数
+                    step += 1
+                app_service_group.step = step
+                app_service_group.save()
+                logger.debug("step ===> {}".format(step))
                 # 处理服务依赖关系
                 for pro_service_id in pro_json:
                     # 服务依赖关系
@@ -418,9 +431,25 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 #         pgsr = PublishedGroupServiceRelation(group_pk=groupId,service_id=service.service_id,service_key=app_service.service_key,version=app_service.app_version)
                 #         published_group_service_relation.append(pgsr)
                 #     PublishedGroupServiceRelation.objects.bulk_create(published_group_service_relation)
+                PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID).delete()
+                for s_id, app in app_service_map.items():
+                    pgsr_list =  PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID,service_id=s_id)
+                    if not pgsr_list:
+                        PublishedGroupServiceRelation.objects.create(group_pk=app_service_group.ID, service_id=s_id,
+                                                                     service_key=app.service_key,
+                                                                     version=app.app_version)
+                    else:
+                        PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID,
+                                                                     service_id=s_id).update(
+                            service_key=app.service_key,
+                            version=app.app_version)
 
                 # 设置所有发布服务状态为未发布
                 for pro_service_id in pro_json:
+                    is_published, rt_app = self.is_published(pro_service_id)
+                    # 跳过已发布的服务
+                    if is_published:
+                        continue
                     service = service_map.get(pro_service_id)
                     app_service = app_service_map.get(pro_service_id)
                     app_service.dest_yb = False
@@ -439,10 +468,34 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             #     AppServiceShareInfo.objects.bulk_create(app_share_list)
         except Exception as e:
             logger.error("service group publish failed")
-            logger.exception(e)
             data = {"success": False, "code": 500, 'msg': '系统异常!'}
+            logger.exception(e)
         data = {"success": True, "code": 200, 'msg': '更新成功!'}
         return JsonResponse(data, status=200)
+
+    def is_published(self,service_id):
+        """
+        根据service_id判断服务是否发布过
+        :param service_id: 服务 ID
+        :return: 是否发布, 发布的服务对象
+        """
+        result = True
+        rt_app = None
+        service = TenantServiceInfo.objects.get(service_region=self.response_region, service_id=service_id)
+        if service.category != "app_publish":
+            result = False
+        else:
+            app_list = AppService.objects.filter(service_key=service.service_key, app_version=service.version).order_by(
+                "-ID")
+            if len(app_list) == 0:
+                app_list = AppService.objects.filter(service_key=service.service_key).order_by("-ID")
+                if len(app_list) == 0:
+                    result = False
+                else:
+                    rt_app = app_list[0]
+            else:
+                rt_app = app_list[0]
+        return result, rt_app
 
     def add_app_service(self, service, app_alias, app_version, app_content, is_init_accout, is_outer, is_private, show_assistant, show_cloud):
         # 获取表单信息
@@ -606,32 +659,36 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                 AppServiceVolume.objects.bulk_create(volume_data)
 
     def add_app_relation(self, service, service_key, app_version, app_alias):
+        logger.debug("service_id {0} service_key {1} app_service {2} app_alias {3}".format(service.service_id,service_key,app_version,app_alias))
         relation_list = TenantServiceRelation.objects.filter(service_id=service.service_id)
         dep_service_ids = [x.dep_service_id for x in list(relation_list)]
         if len(dep_service_ids) == 0:
             return None
         # 依赖服务的信息
-        logger.debug(dep_service_ids)
+        logger.debug("depended service are {}".format(dep_service_ids))
 
         try:
             dep_service_list = TenantServiceInfo.objects.filter(service_id__in=dep_service_ids)
             app_relation_list = []
             if len(dep_service_list) > 0:
                 for dep_service in dep_service_list:
-                    dep_app_count = 0
-                    if dep_service.service_key != 'application':
-                        # 首先检查key-version，不存在检查service_id,取最近的一个
-                        dep_app_count = AppService.objects.filter(service_key=dep_service.service_key,app_version=dep_service.version).count()
-                    if dep_app_count == 0:
-                        # service_key, version不存在, 检查service_id取最近的一个
-                        dep_app_count = AppService.objects.filter(service_id=dep_service.service_id).count()
+                    dep_app_service = None
+                    # 不为源码构建的应用
+                    if dep_service.service_key != "application":
+                        dep_app_list = AppService.objects.filter(service_key=dep_service.service_key, app_version=dep_service.version).order_by("-ID")
+                        if not dep_app_list:
+                            dep_app_list = AppService.objects.filter(service_key=dep_service.service_key).order_by("-ID")
+                            if dep_app_list:
+                                dep_app_service = dep_app_list[0]
+                            else:
+                                dep_app_list = AppService.objects.filter(service_id=dep_service.service_id).order_by("-ID")
+                        else:
+                            dep_app_service = dep_app_list[0]
                     else:
-                        dep_app_service = AppService.objects.get(service_key=dep_service.service_key,app_version=dep_service.version)
+                        dep_app_list = AppService.objects.filter(service_id=dep_service.service_id).order_by("-ID")
+                        dep_app_service = dep_app_list[0]
 
-                    if dep_app_count > 0:
-                        dep_app_service = AppService.objects.filter(service_id=dep_service.service_id).order_by("-ID")[0]
-                    else:
-                        # 不存在对应的app_service, 逻辑异常
+                    if not dep_app_service:
                         return 404
 
                     # 检查是否存在对应的app_relation
@@ -656,7 +713,7 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
         except Exception as e:
             logger.exception(e)
             logger.error(
-                "add app relation error service_key {0},app_version{1},app_alias{2}".format(service_key, app_version,
+                "add app relation error service_key {0},app_version {1},app_alias {2}".format(service_key, app_version,
                                                                                             app_alias))
 
     def _create_publish_event(self, service, info):
@@ -724,3 +781,15 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
             logger.exception("service.publish", e)
 
 
+class ServiceGroupShareFourView(LeftSideBarMixin,AuthedView):
+    def get_context(self):
+        context = super(ServiceGroupShareFourView, self).get_context()
+        return context
+
+    @perm_required('app_publish')
+    def get(self, request, groupId, shareId, *args, **kwargs):
+        context = self.get_context()
+        app_service_group = AppServiceGroup.objects.get(group_share_id=shareId)
+        context["app_service_group"] = app_service_group
+        context["group_id"] = groupId
+        return TemplateResponse(request, 'www/service/groupShare_step_four.html', context)

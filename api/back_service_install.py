@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 from www.models import AppServiceGroup, ServiceGroup, AppService, ServiceInfo, AppServiceRelation, ServiceGroupRelation, \
     AppServicePort, AppServiceEnv, AppServiceVolume, TenantServiceRelation, TenantServiceInfo, TenantServiceAuth, \
-    ServiceDomain, TenantServiceEnvVar, TenantServicesPort, TenantServiceVolume
+    ServiceDomain, TenantServiceEnvVar, TenantServicesPort, TenantServiceVolume, BackServiceInstallTemp, \
+    TenantServiceEnv, TenantServiceMountRelation, ServiceAttachInfo, ServiceCreateStep, ServiceEvent, \
+    PublishedGroupServiceRelation
 from www.monitorservice.monitorhook import MonitorHook
 from www.region import RegionInfo
 import random
@@ -55,12 +57,17 @@ class BackServiceInstall(object):
                                                     group_name=group_name)
                 return group.ID
 
-    def get_newest_published_service(self, service_id_list):
+    def get_published_service_info(self, groupId):
         result = []
-        for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
+        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=groupId)
+        for pgsr in pgsr_list:
+            apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
             if apps:
                 result.append(apps[0])
+            else:
+                apps = AppService.objects.filter(service_key=pgsr.service_key).order_by("-ID")
+                if apps:
+                    result.append(apps[0])
         return result
 
     def getServiceModel(self, app_service_list, service_id_list):
@@ -176,7 +183,7 @@ class BackServiceInstall(object):
             # 查询分享组中的服务ID
             service_ids = app_service_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = self.get_newest_published_service(service_id_list)
+            app_service_list = self.get_published_service_info(app_service_group.ID)
             published_service_list = self.getServiceModel(app_service_list, service_id_list)
             sorted_service = self.sort_service(published_service_list)
             # 先生成服务的service_id
@@ -225,6 +232,8 @@ class BackServiceInstall(object):
                 current_services.append(newTenantService)
             url_map = self.getServicePreviewUrls(current_services)
             logger.debug("===> url_map:{} ".format(url_map))
+            # 处理原来安装的服务
+            self.handleInstalledService(group_share_id, group_id)
 
         except Exception as e:
             logger.exception(e)
@@ -267,3 +276,88 @@ class BackServiceInstall(object):
                 port_map[str(port)] = preview_url
             url_map[service.service_cname] = port_map
         return url_map
+
+    def handleInstalledService(self, group_share_id, new_group_id):
+        bsi_temp_list = BackServiceInstallTemp.objects.filter(group_share_id=group_share_id)
+        try:
+            # 如果服务组被安装过
+            if bsi_temp_list:
+                bsi_temp = bsi_temp_list[0]
+                group_pk = bsi_temp.group_pk
+                # 查询出原来安装的组
+                pre_service_ids = ServiceGroupRelation.objects.filter(group_id=group_pk, tenant_id=self.tenant_id,
+                                                                      region_name=self.region_name).values_list(
+                    "service_id", flat=True)
+                logger.debug("previous service ids {}".format(pre_service_ids))
+                # 将服务安照依赖关系排序
+                result = []
+                service_list = TenantServiceInfo.objects.filter(service_id__in=pre_service_ids, tenant_id=self.tenant_id,
+                                                                service_region=self.region_name)
+                id_service_map = {}
+                service_map = {s.service_id: s for s in service_list}
+                for s_id in pre_service_ids:
+                    dep_services = TenantServiceRelation.objects.filter(tenant_id=self.tenant_id, service_id=s_id)
+                    if dep_services:
+                        id_service_map[s_id] = [ds.dep_service_id for ds in dep_services]
+                    else:
+                        id_service_map[s_id] = []
+                logger.debug(" service_map:{} ".format(service_map))
+                service_ids = self.topological_sort(id_service_map)
+                for id in service_ids:
+                    result.append(service_map.get(id))
+                result.reverse()
+                # 删除服务
+                logger.debug("delete previous services !")
+                for service in result:
+                    self.__deleteService(service)
+                # 删除组
+                ServiceGroup.objects.filter(ID=group_pk, region_name=self.region_name).delete()
+                # 更新新的服务组
+                BackServiceInstallTemp.objects.update(group_pk=new_group_id)
+            else:
+                # 创建grdemo的安装记录
+                BackServiceInstallTemp.objects.create(group_share_id=group_share_id,group_pk=new_group_id,success=True)
+
+        except Exception as e:
+            logger.error("handle installed service error !")
+            logger.exception(e)
+
+    def __deleteService(self,service):
+        try:
+            logger.debug("service_id - {0} - service_name {1} ".format(service.service_id,service.service_cname))
+            try:
+                regionClient.delete(service.service_region, service.service_id)
+            except Exception as e:
+                success = False
+                logger.error("region delete service error! ")
+                logger.exception(e)
+
+            TenantServiceInfo.objects.get(service_id=service.service_id).delete()
+            # env/auth/domain/relationship/envVar/volume delete
+            TenantServiceEnv.objects.filter(service_id=service.service_id).delete()
+            TenantServiceAuth.objects.filter(service_id=service.service_id).delete()
+            ServiceDomain.objects.filter(service_id=service.service_id).delete()
+            TenantServiceRelation.objects.filter(service_id=service.service_id).delete()
+            TenantServiceEnvVar.objects.filter(service_id=service.service_id).delete()
+            TenantServiceMountRelation.objects.filter(service_id=service.service_id).delete()
+            TenantServicesPort.objects.filter(service_id=service.service_id).delete()
+            TenantServiceVolume.objects.filter(service_id=service.service_id).delete()
+            ServiceGroupRelation.objects.filter(service_id=service.service_id,
+                                                tenant_id=self.tenant_id).delete()
+            ServiceAttachInfo.objects.filter(service_id=service.service_id).delete()
+            ServiceCreateStep.objects.filter(service_id=service.service_id).delete()
+            events = ServiceEvent.objects.filter(service_id=service.service_id)
+            deleteEventID = []
+            if events:
+                for event in events:
+                    deleteEventID.append(event.event_id)
+            if len(deleteEventID) > 0:
+                regionClient.deleteEventLog(service.service_region,
+                                            json.dumps({"event_ids": deleteEventID}))
+
+            ServiceEvent.objects.filter(service_id=service.service_id).delete()
+
+            monitorhook.serviceMonitor(self.nick_name, service, 'app_delete', True)
+        except Exception as e:
+            logger.error("back service delete error!")
+            logger.exception(e)
