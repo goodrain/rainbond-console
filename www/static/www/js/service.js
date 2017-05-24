@@ -207,7 +207,7 @@ function ajax_getLog(){
         $(".log_"+event_id).html('');
         $(this).parents('li').find('.log_type label').removeClass('active');
         $(this).parents('li').find('.log_type label').eq(0).addClass('active');
-        do_logshow(event_id,'info');
+        //do_logshow(event_id,'info');
         $(this).hide();
         $(this).parent().find('.hide_log').show();
         //$(".log_" + event_id + "").addClass('log_height');
@@ -287,7 +287,7 @@ function connectSocket(event_id,action) {
     $(".load_more").attr("data-num",parseInt(num)+1);
     ws.onopen = function (evt) {
         ws.send("event_id=" + event_id);
-        $("#service_status_operate").attr("disabled","disabled");
+        //$("#service_status_operate").attr("disabled","disabled");
         $("#onekey_deploy").attr('disabled','disabled');
     }
     ws.onmessage = function (evt) {
@@ -335,7 +335,7 @@ function connectSocket(event_id,action) {
             $("#keylog li").eq(0).find('.panel-heading').css({"padding-bottom":"0px"});
             $("#keylog li").eq(0).find('.log').css({"height":"0px"});
             $("#keylog .panel").eq(0).find(".panel-heading span").html(str);
-            $("#service_status_operate").removeAttr("disabled");
+            //$("#service_status_operate").removeAttr("disabled");
             $("#onekey_deploy").removeAttr('disabled');
         }
     }
