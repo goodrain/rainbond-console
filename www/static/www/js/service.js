@@ -1309,13 +1309,13 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 			oStrH += '<div class="clearfix  servenbtn"><button  type="button" class="greenbtn" id="hrelsure" data-tenantName="'+ tenantName +'" data-servicealias = "' + curServiceName +'" data-valuealias ="' + depServiceName + '">确定</button><button  type="button" id="hreldel" class="redbtn">取消</button></div>';
 			oStrH += '</div></div>'
 			$(oStrH).appendTo("body");
-			/*
-			if(domainUrl == "off" && headArray.length == 0){
-				$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");
-			}else{
-				$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+			if(domainUrl != "off" && domainUrl != "close"){
+			    if($("#dourl").val() == ""){
+                    $("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");
+                }else{
+                    $("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+                }
 			}
-			*/
 			$("#fusing option").each(function(){
 				var othis = $(this);
 				var thisval = $(this).attr("value");
@@ -1347,8 +1347,14 @@ function high_relation(curServiceName, depServiceName, tenantName) {
 		    	var damainonoff = $("#domainurl").prop("checked");
 		    	if(damainonoff == true){
 		    		$("#headarrbox").show();
+                    if($("#dourl").val() == ""){
+                        $("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");
+                    }else{
+                        $("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+                    }
 		    	}else{
 		    		$("#headarrbox").hide();
+                    $("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
 		    	}
 		    });
 		    /*
@@ -1368,25 +1374,31 @@ function high_relation(curServiceName, depServiceName, tenantName) {
     		});
 			//添加 key value  输入框  end
 			*/
-			/*
+			
 			//网址光标移出 start
 			$("#dourl").blur(function(){
 		    	var ourl = $("#dourl").val();
-		    	var hpnum = 0;
-		    	$("#headpbox p").each(function(){
-		    		var keyVal = $(this).find("input").eq(0).val();
-		    		var valVal = $(this).find("input").eq(1).val();
-		    		if(keyVal != "" && valVal !=""){
-		    			hpnum = 1;
-		    		}
-		    	});
-		    	if(ourl != "" || hpnum == 1){
-		    		$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
-		    	}else{
-		    		$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");	
-		    	}
+		    	//var hpnum = 0;
+		    	//$("#headpbox p").each(function(){
+		    	//	var keyVal = $(this).find("input").eq(0).val();
+		    	//	var valVal = $(this).find("input").eq(1).val();
+		    	//	if(keyVal != "" && valVal !=""){
+		    	//		hpnum = 1;
+		    	//	}
+		    	//});
+		    	//if(ourl != "" || hpnum == 1){
+		    	//	$("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+		    	//}else{
+		    	//	$("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true");	
+		    	//}
+                if(ourl != ""){
+                    $("#hrelsure").addClass("greenbtn").removeClass("graybtn").removeAttr("disabled");
+                }else{
+                    $("#hrelsure").addClass("graybtn").removeClass("greenbtn").attr("disabled","true"); 
+                }
 		    });
 			//网址光标移出 end
+            /*
 			//keyvalue  光标移出  start
 		    $("#headpbox input").blur(function(){
 		    	var ourl = $("#dourl").val();
