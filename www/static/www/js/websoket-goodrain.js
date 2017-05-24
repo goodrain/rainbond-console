@@ -117,7 +117,7 @@ extPushWebSocketConnect.prototype = {
 				// console.log("extPush:onerror");
 				// }
 			};
-			this.keepWebSocketLive(client, topic, cmd, key, info);
+			//this.keepWebSocketLive(client, topic, cmd, key, info);
 			this.windowCloseCheck();
 			//
 		}
