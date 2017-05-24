@@ -267,7 +267,9 @@ function callback_version(){
 }
 var ws = null
 function connectSocket(event_id,action) {
+
     var url = $("#event_websocket_uri").val();
+
     ws = new WebSocket(url);
     var type_json = {
         "deploy" : "部署",

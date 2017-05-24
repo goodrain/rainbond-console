@@ -36,51 +36,46 @@ extPushWebSocketConnect.prototype = {
 					xhr.setRequestHeader("X-CSRFToken", csrftoken);
 				},
 				success : function(msg) {
-					var websocket_uri = msg["ws_url"];
-					that.requestUrl = websocket_uri; // 扩充服务器
-					that.socketStore = '';
-					var self = that, url = that.requestUrl;
-					that.socketStore = new WebSocket(websocket_uri);
-					that.socketStore.onopen = function() {
-						// if (!$.browser.msie) {
-						// console.log("extPush:onopen");
-						// }
-						if (topic != undefined && topic != "undefined") {
-							self.sendCmd(topic);
-						}
-						self.trytimes = 1;
-					};
-					that.socketStore.onmessage = function(e) {
-						if (e.data) {
-							client.onMessage(e.data)
-						}
-					};
-					that.socketStore.onclose = function() {
-						// if (!$.browser.msie) {
-						// console.log("extPush:onclose");
-						// }
-						self.closeWebSocket();
-						self.init(client,topic,tenantName, serviceAlias)
-					};
-					that.socketStore.onerror = function() {
-						// if (!$.browser.msie) {
-						// console.log("extPush:onerror");
-						// }
-					};
-					//this.keepWebSocketLive(client, topic, cmd, key, info);
-					that.windowCloseCheck();
-					if( msg["ok"] )
-					{
+                    if (msg["ok"]) {
 
-					}
-					else{
-						var str = '<p>'+msg["info"]+'</p>';
-						$(str).prependTo($("#docker_log"));
-					}
-				},
-				error : function() {
-					swal("系统异常");
-				}
+                    } else {
+                        var str = '<p>' + msg["info"] + '</p>';
+                        $(str).prependTo($("#docker_log"));
+                    }
+                    var websocket_uri = msg["ws_url"];
+                    that.requestUrl = websocket_uri; // 扩充服务器
+                    that.socketStore = '';
+                    var self = that, url = that.requestUrl;
+                    that.socketStore = new WebSocket(websocket_uri);
+                    that.socketStore.onopen = function () {
+                        // if (!$.browser.msie) {
+                        // console.log("extPush:onopen");
+                        // }
+                        if (topic != undefined && topic != "undefined") {
+                            self.sendCmd(topic);
+                        }
+                        self.trytimes = 1;
+                    };
+                    that.socketStore.onmessage = function (e) {
+                        if (e.data) {
+                            client.onMessage(e.data)
+                        }
+                    };
+                    that.socketStore.onclose = function () {
+                        // if (!$.browser.msie) {
+                        // console.log("extPush:onclose");
+                        // }
+                        self.closeWebSocket();
+                        self.init(client, topic, tenantName, serviceAlias)
+                    };
+                    that.socketStore.onerror = function () {
+                        // if (!$.browser.msie) {
+                        // console.log("extPush:onerror");
+                        // }
+                    };
+                    //this.keepWebSocketLive(client, topic, cmd, key, info);
+                    that.windowCloseCheck();
+                }
 			});
 		}else{
 			//
