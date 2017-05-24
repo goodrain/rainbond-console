@@ -50,9 +50,12 @@
     }
     $(document).ready(function () {
         getLog();
+        console.log(2);
         extPushWebSocketClient.prototype = {
+            console.log(3);
             onMessage: function (msg) {
                 console.log(msg);
+                console.log(4);
                 if (typeof(msg) != "undefined" && msg != "ok") {
 //                    var msgs = msg.split(":")
 //                    if (msgs[0].trim() != "deploy" && msgs[0].trim() != "compile") {
