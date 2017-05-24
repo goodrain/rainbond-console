@@ -11,8 +11,8 @@ function extPushWebSocketClient() {
 
 }
 
-function extPushWebSocketConnect(websocket_uri) {
-	websocket_uri = websocket_uri
+function extPushWebSocketConnect(service_id,tenantName, serviceAlias) {
+	var websocket_uri = '';
 	this.requestUrl = websocket_uri.split(","); // 扩充服务器
 	this.socketStore = ''; // web_socket对象存储
 	this.keeplivetime = 5; // 心跳时间
@@ -22,49 +22,68 @@ function extPushWebSocketConnect(websocket_uri) {
 
 extPushWebSocketConnect.prototype = {
 	// 连接初始化
-	init : function(client, topic, cmd, key, info) {
-		this.socketStore = '';
-		var self = this, url = this.requestUrl[this.linkIndex];
-		this.socketStore = new WebSocket(url);
-		// alert(this.client)
-		this.socketStore.onopen = function() {
-			// if (!$.browser.msie) {
-			// console.log("extPush:onopen");
-			// }
-			if (topic != undefined && topic != "undefined") {
-				if (info == undefined) {
-					info = ""
+	init : function(client,topic,tenantName, serviceAlias) {
+		var that = this;
+		$.ajax({
+			type : "GET",
+			url : "/ajax/" + tenantName + "/" + serviceAlias + "/log_instance",
+			data : {},
+			cache : false,
+			beforeSend : function(xhr, settings) {
+				var csrftoken = $.cookie('csrftoken');
+				xhr.setRequestHeader("X-CSRFToken", csrftoken);
+			},
+			success : function(msg) {
+				var websocket_uri = msg["ws_url"];
+				that.requestUrl = websocket_uri; // 扩充服务器
+				that.socketStore = '';
+				var self = that, url = that.requestUrl;
+				that.socketStore = new WebSocket(websocket_uri);
+				that.socketStore.onopen = function() {
+					// if (!$.browser.msie) {
+					// console.log("extPush:onopen");
+					// }
+					if (topic != undefined && topic != "undefined") {
+						self.sendCmd(topic);
+					}
+					self.trytimes = 1;
+				};
+				that.socketStore.onmessage = function(e) {
+					if (e.data) {
+						client.onMessage(e.data)
+					}
+				};
+				that.socketStore.onclose = function() {
+					// if (!$.browser.msie) {
+					// console.log("extPush:onclose");
+					// }
+					self.closeWebSocket();
+					self.init(client)
+				};
+				that.socketStore.onerror = function() {
+					// if (!$.browser.msie) {
+					// console.log("extPush:onerror");
+					// }
+				};
+				//this.keepWebSocketLive(client, topic, cmd, key, info);
+				that.windowCloseCheck();
+				if( msg["ok"] )
+				{
+
 				}
-				self.sendCmd(topic, cmd, key, info);
+				else{
+					var str = '<p>'+msg["info"]+'</p>';
+					$(str).prependTo($("#docker_log"));
+				}
+			},
+			error : function() {
+				swal("系统异常");
 			}
-			self.trytimes = 1;
-		};
-		this.socketStore.onmessage = function(e) {
-			if (e.data) {
-				client.onMessage(e.data)
-			}
-		};
-		this.socketStore.onclose = function() {
-			// if (!$.browser.msie) {
-			// console.log("extPush:onclose");
-			// }
-			self.closeWebSocket();
-			self.init(client)
-		};
-		this.socketStore.onerror = function() {
-			// if (!$.browser.msie) {
-			// console.log("extPush:onerror");
-			// }
-		};
-		this.keepWebSocketLive(client, topic, cmd, key, info);
-		this.windowCloseCheck();
+		});
 	},
-	sendCmd : function(topic, cmd, key, info) {
-		if (info == undefined) {
-			info = ""
-		}
+	sendCmd : function(topic) {
 		var self = this;
-		self.socketStore.send(cmd + ";" + topic + ";" + key + ";" + info);
+		self.socketStore.send("service_id="+topic);
 	},
 	closeWebSocket : function() {
 		var self = this;

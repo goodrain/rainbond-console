@@ -50,11 +50,9 @@
     }
     $(document).ready(function () {
         getLog();
-        console.log(2);
         extPushWebSocketClient.prototype = {
             onMessage: function (msg) {
                 console.log(msg);
-                console.log(4);
                 if (typeof(msg) != "undefined" && msg != "ok") {
 //                    var msgs = msg.split(":")
 //                    if (msgs[0].trim() != "deploy" && msgs[0].trim() != "compile") {
@@ -76,8 +74,8 @@
                 }
             }
         }
-        //var connect = new extPushWebSocketConnect(service_id,"{{tenantName}}", "{{serviceAlias}}");
-        //connect.init(new extPushWebSocketClient(), service_id, "{{tenantName}}", "{{serviceAlias}}");
+        var connect = new extPushWebSocketConnect(service_id,"{{tenantName}}", "{{serviceAlias}}");
+        connect.init(new extPushWebSocketClient(), service_id, "{{tenantName}}", "{{serviceAlias}}");
     });
 
     function _pause() {
