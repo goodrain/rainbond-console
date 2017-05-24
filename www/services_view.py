@@ -386,7 +386,9 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["totalMemory"] = self.service.min_node * self.service.min_memory
             context["tenant"] = self.tenant
             context["region_name"] = self.service.service_region
+            
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
+            
             context["event_websocket_uri"] = settings.EVENT_WEBSOCKET_URL[self.service.service_region] + "/event_log"
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
             if ServiceGroupRelation.objects.filter(service_id=self.service.service_id).count() > 0:

@@ -27,6 +27,7 @@ from www.forms.services import EnvCheckForm
 
 import logging
 from www.utils.crypt import make_uuid
+from django.db import transaction
 
 logger = logging.getLogger('default')
 
@@ -147,6 +148,7 @@ class AppDeploy(AuthedView):
 
 class ServiceManage(AuthedView):
     @perm_required('manage_service')
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         result = {}
         
@@ -259,6 +261,7 @@ class ServiceManage(AuthedView):
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_reboot', False)
         elif action == "delete":
             try:
+                sid = transaction.savepoint()
                 now = datetime.datetime.now()
                 service_attach_info = ServiceAttachInfo.objects.get(service_id=self.service.service_id,
                                                                     tenant_id=self.tenant.tenant_id)
@@ -322,10 +325,14 @@ class ServiceManage(AuthedView):
                 data = self.service.toJSON()
                 newTenantServiceDelete = TenantServiceInfoDelete(**data)
                 newTenantServiceDelete.save()
+                
+                # 集群删除
                 try:
                     regionClient.delete(self.service.service_region, self.service.service_id)
-                except Exception as e:
-                    logger.exception(e)
+                except regionClient.CallApiError as e:
+                    if e.status != 404:
+                        raise e
+                
                 if self.service.code_from == 'gitlab_new' and self.service.git_project_id > 0:
                     codeRepositoriesService.deleteProject(self.service)
                 
@@ -357,14 +364,17 @@ class ServiceManage(AuthedView):
                 
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', True)
                 result["status"] = "success"
+                transaction.savepoint_commit(sid)
             except Exception, e:
+                transaction.savepoint_rollback(sid)
                 if event:
-                    event.message = u"删除应用失败" + e.message
+                    event.message = "删除应用失败 {0}".format(e.message)
                     event.final_status = "complete"
                     event.status = "failure"
                     event.save()
                 logger.exception(e)
                 result["status"] = "failure"
+                result["message"] = "删除应用失败 {0}".format(e.message)
                 monitorhook.serviceMonitor(self.user.nick_name, self.service, 'app_delete', False)
         elif action == "rollback":
             try:
@@ -1750,11 +1760,13 @@ class DockerLogInstanceView(AuthedView):
         try:
             re = regionClient.getDockerLogInstance(region=self.service.service_region,
                                                    service_id=self.service.service_id)
+            
             if re["status"] == "success":
                 result["ok"] = True
                 result["host_id"] = re["host_id"]
                 result["ws_url"] = "{0}/docker_log?host_id={1}".format(
                     settings.EVENT_WEBSOCKET_URL[self.service.service_region], re["host_id"])
+                
                 return JsonResponse(result)
         except Exception as e:
             logger.exception(e)

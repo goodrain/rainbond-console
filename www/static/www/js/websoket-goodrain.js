@@ -58,7 +58,7 @@ extPushWebSocketConnect.prototype = {
 					// console.log("extPush:onclose");
 					// }
 					self.closeWebSocket();
-					self.init(client)
+					self.init(client,topic,tenantName, serviceAlias)
 				};
 				that.socketStore.onerror = function() {
 					// if (!$.browser.msie) {
