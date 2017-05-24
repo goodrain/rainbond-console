@@ -206,7 +206,7 @@ function ajax_getLog(){
         var event_id = $(this).attr("data-log");
         $(this).parents('li').find('.log_type label').removeClass('active');
         $(this).parents('li').find('.log_type label').eq(0).addClass('active');
-        if($(this).parents('li').find('.log_type label').length !=0){
+        if($(this).parents('li').find('.log_type').css("display") != "none"){
             $(".log_"+event_id).html('');
             do_logshow(event_id,'info');
         }
