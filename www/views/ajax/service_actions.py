@@ -582,6 +582,7 @@ class UseMidRain(AuthedView):
             if action == "add":
                 self.saveAdapterEnv(self.service)
                 self.addSevenLevelEnv(self.service)
+                self.addIsHttpEnv(self.service)
             elif action == "del":
                 self.delSevenLevelEnv(self.service)
             elif action == "check":
@@ -611,6 +612,20 @@ class UseMidRain(AuthedView):
             TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+
+    def addIsHttpEnv(self, service):
+        # add domposer-compose
+        is_compose = TenantServiceInfo.object.filter(service_id=self.service.service_id, language="docker-compose")
+        if is_compose:
+            num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="IS_HTTP").count()
+            if num < 1:
+                attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "IS_HTTP",
+                        "attr_name": "IS_HTTP", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+                TenantServiceEnvVar.objects.create(**attr)
+                data = {"action": "add", "attrs": attr}
+                regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+        else:
+            pass
 
     def delSevenLevelEnv(self, service):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
@@ -667,17 +682,23 @@ class L7ServiceSet(AuthedView):
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
         result = {
-            'cricuit':'1024'
+            'cricuit':'1024',
+            'domain':'off'
         }
         self.dep_service_id = request.GET.get("dep_service_id", None)
         try:
             if not self.dep_service_id:
                 raise NoneParmsError("L7ServiceSet function get dep_service_id is None.")
-
             tsrlist = TenantServiceL7Info.objects.filter(service_id=self.service.service_id, dep_service_id=self.dep_service_id)
             if tsrlist:
                 result = eval(tsrlist[0].l7_json)
-                logger.debug("level7query is %s" % result)
+                # 兼容
+                if not result.get('domain', None):
+                    result['domain'] = 'off'
+            is_compose = TenantServiceInfo.object.filter(service_id=self.service.service_id, language="docker-compose")
+            if not is_compose:
+                result["domain"] = "close"
+            logger.debug("level7query is %s" % result)
         except Exception, e:
             logger.exception(e)
             return JsonResponse(result)
