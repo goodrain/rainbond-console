@@ -1,4 +1,5 @@
-var websocket_uri = "ws://123.59.40.70:6060/websocket"
+var websocket_uri = "ws://123.59.40.70:6060/websocket";
+
 
 WEB_SOCKET_SWF_LOCATION = '/static/www/js/WebSocketMain.swf';
 WEB_SOCKET_DEBUG = true;
@@ -84,7 +85,7 @@ extPushWebSocketConnect.prototype = {
 		}else{
 			//
 			this.socketStore = '';
-			var self = this, url = this.requestUrl[this.linkIndex];
+			var self = this, url = "ws://test.goodrain.com:6363/monitor_message";//this.requestUrl[this.linkIndex];
 			this.socketStore = new WebSocket(url);
 			// alert(this.client)
 			this.socketStore.onopen = function() {
