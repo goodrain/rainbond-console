@@ -394,12 +394,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
             context["region_name"] = self.service.service_region
             
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
-<<<<<<< HEAD
-            
-            context["event_websocket_uri"] = settings.EVENT_WEBSOCKET_URL[self.service.service_region] + "/event_log"
-=======
             context["event_websocket_uri"] = self.make_event_ws_uri(settings.EVENT_WEBSOCKET_URL[self.service.service_region])
->>>>>>> 170461106c3b5ef84ef52114fe3c2b8d0741558a
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
             if ServiceGroupRelation.objects.filter(service_id=self.service.service_id).count() > 0:
                 gid = ServiceGroupRelation.objects.get(service_id=self.service.service_id).group_id
