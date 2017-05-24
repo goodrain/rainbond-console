@@ -86,7 +86,7 @@ extPushWebSocketConnect.prototype = {
 			//
 			this.socketStore = '';
 			var self = this, url = this.requestUrl[this.linkIndex];
-			this.socketStore = new WebSocket("ws://test.goodrain.com:6363/monitor_message");
+			this.socketStore = new WebSocket("ws://test.goodrain.com:6364/monitor_message");
 			// alert(this.client)
 			this.socketStore.onopen = function() {
 				// if (!$.browser.msie) {
