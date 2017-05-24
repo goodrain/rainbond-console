@@ -60,7 +60,7 @@ extPushWebSocketConnect.prototype = {
 						// console.log("extPush:onclose");
 						// }
 						self.closeWebSocket();
-						self.init(client)
+						self.init(client,topic,tenantName, serviceAlias)
 					};
 					that.socketStore.onerror = function() {
 						// if (!$.browser.msie) {
@@ -93,9 +93,6 @@ extPushWebSocketConnect.prototype = {
 				// console.log("extPush:onopen");
 				// }
 				if (topic != undefined && topic != "undefined") {
-					if (info == undefined) {
-						info = ""
-					}
 					self.sendCmd(topic);
 				}
 				self.trytimes = 1;
@@ -110,7 +107,7 @@ extPushWebSocketConnect.prototype = {
 				// console.log("extPush:onclose");
 				// }
 				self.closeWebSocket();
-				self.init(client)
+				self.init(client,topic,tenantName, serviceAlias)
 			};
 			this.socketStore.onerror = function() {
 				// if (!$.browser.msie) {
@@ -124,7 +121,7 @@ extPushWebSocketConnect.prototype = {
 	},
 	sendCmd : function(topic) {
 		var self = this;
-		self.socketStore.send("service_id="+topic);
+		self.socketStore.send("topic="+topic);
 	},
 	closeWebSocket : function() {
 		var self = this;
