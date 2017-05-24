@@ -86,7 +86,7 @@ extPushWebSocketConnect.prototype = {
 			//
 			this.socketStore = '';
 			var self = this, url = this.requestUrl[this.linkIndex];
-			this.socketStore = new WebSocket("ws://123.59.40.70:6363/monitor_message");
+			this.socketStore = new WebSocket("ws://test.goodrain.com:6363/monitor_message");
 			// alert(this.client)
 			this.socketStore.onopen = function() {
 				// if (!$.browser.msie) {
@@ -96,7 +96,7 @@ extPushWebSocketConnect.prototype = {
 					if (info == undefined) {
 						info = ""
 					}
-					self.sendCmd(topic, cmd, key, info);
+					self.sendCmd(topic);
 				}
 				self.trytimes = 1;
 			};
