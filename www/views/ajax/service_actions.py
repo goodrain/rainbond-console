@@ -620,7 +620,9 @@ class UseMidRain(AuthedView):
         if is_compose > 0:
             logger.debug("is_composer %s, IS_HTTP" % service.service_id)
             num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="IS_HTTP").count()
+            logger.debug("start to inster Http env")
             if num < 1:
+                logger.debug("inster HTTP env")
                 attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "IS_HTTP",
                         "attr_name": "IS_HTTP", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
                 TenantServiceEnvVar.objects.create(**attr)
