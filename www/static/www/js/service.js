@@ -1267,9 +1267,11 @@ function high_relation(curServiceName, depServiceName, tenantName) {
         success : function(data) {
             console.log(data);
             var servenlayer = data;
+            var domainUrl = servenlayer["domain"];
+            console.log(domainUrl);
             //  展示 弹出层 start
             var oStrH = '<div class="layerbg" id="servenLayer"><div class="servenlayer">'
-			var domainUrl = servenlayer["domain"];
+
 			//var headArray = servenlayer["header"];
 			//var statistic = servenlayer["statistic"];
 			var cricuit = servenlayer["cricuit"];
