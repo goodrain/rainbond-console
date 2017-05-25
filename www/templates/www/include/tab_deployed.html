@@ -525,13 +525,15 @@
                 $(".log_" + event_id + "").html('');
                 var dataObj = msg;
                 var newLog = dataObj["data"];
+                /*
                 if( newLog.length == 0 )
                 {
-                    /*
+                    
                     var str = '<p style="text-align: center;margin-top: 100px;font-size: 18px;">暂无日志<span class="span_src"><img src="{% static "www/img/appOutline/log_src.png" %}"></span></p>'
-                    */
+                   
                     $(".log_" + event_id + "").prepend(str);
                 }
+                */
                 for (i = 0; i < newLog.length; i++) {
                     var time = newLog[i]["time"].split('.')[0];
                     var time1 = time.split('T')[0];

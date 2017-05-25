@@ -169,7 +169,7 @@ function createEvents(name, service, action) {
                 }
 
                 var str_log = '<li><time class="tl-time"><h4>'+time+'</h4></time><i class="fa bg-grey tl-icon"></i><div class="tl-content"><div class="panel panel-primary"><div class="panel-heading"><span>'+type_json[event["event_type"]]+'中@'+event["user_name"]+'</span><div class="user"><p>';
-                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: none;">查看详情</p><p class="hide_log" style="display: block;">查看详情</p></div></div><div class="panel-body"><div class="log"><p class="log_type" style="display: none;"><label class="active" data-log="info">Info日志</label><label data-log="debug">Debug日志</label><label data-log="error">Error日志</label></p><div class="log_content log_height2 log_'+event["event_id"]+'"></div></div></div></div></div></li>'
+                str_log += '</p><p class="ajax_log" data-log="'+event["event_id"]+'" style="display: none;">查看详情</p><p class="hide_log" style="display: block;">收起</p></div></div><div class="panel-body"><div class="log"><p class="log_type" style="display: none;"><label class="active" data-log="info">Info日志</label><label data-log="debug">Debug日志</label><label data-log="error">Error日志</label></p><div class="log_content log_height2 log_'+event["event_id"]+'"></div></div></div></div></div></li>'
 
                 if( event["event_type"] == "deploy" && event["old_deploy_version"] )
                 {
@@ -204,10 +204,12 @@ function ajax_getLog(){
     $(".ajax_log").off('click');
     $(".ajax_log").click(function(){
         var event_id = $(this).attr("data-log");
-        $(".log_"+event_id).html('');
         $(this).parents('li').find('.log_type label').removeClass('active');
         $(this).parents('li').find('.log_type label').eq(0).addClass('active');
-        //do_logshow(event_id,'info');
+        if($(this).parents('li').find('.log_type').css("display") != "none"){
+            $(".log_"+event_id).html('');
+            do_logshow(event_id,'info');
+        }
         $(this).hide();
         $(this).parent().find('.hide_log').show();
         //$(".log_" + event_id + "").addClass('log_height');
@@ -267,9 +269,7 @@ function callback_version(){
 }
 var ws = null
 function connectSocket(event_id,action) {
-
     var url = $("#event_websocket_uri").val();
-
     ws = new WebSocket(url);
     var type_json = {
         "deploy" : "部署",
