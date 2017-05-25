@@ -471,11 +471,11 @@ function service_onOperation(service_id, service_alias, tenantName) {
                 ws.close();
                 history.go(0);
             }
-            //$("#service_status_operate").removeAttr("disabled");
+            $("#service_status_operate").removeAttr("disabled");
         },
         error: function () {
             swal("系统异常");
-            //$("#service_status_operate").removeAttr("disabled");
+            $("#service_status_operate").removeAttr("disabled");
         }
     })
 }
@@ -1203,11 +1203,11 @@ function service_reboot(service_id, service_alias, tenantName) {
             } else {
                 swal("操作失败")
             }
-            //$("#service_status_operate").removeAttr("disabled")
+            $("#service_status_operate").removeAttr("disabled")
         },
         error: function () {
             swal("系统异常");
-            //$("#service_status_operate").removeAttr("disabled");
+            $("#service_status_operate").removeAttr("disabled");
         }
     });
 }
