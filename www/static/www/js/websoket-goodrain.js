@@ -39,8 +39,7 @@ extPushWebSocketConnect.prototype = {
                     if (msg["ok"]) {
 
                     } else {
-                        var str = '<p>' + msg["info"] + '</p>';
-                        $(str).prependTo($("#docker_log"));
+                        console.log(msg["info"])
                     }
                     var websocket_uri = msg["ws_url"];
                     that.requestUrl = websocket_uri; // 扩充服务器
