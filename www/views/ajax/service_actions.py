@@ -1308,6 +1308,7 @@ class ServicePort(AuthedView):
                 else:
                     mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
                 deal_port.mapping_port = mapping_port
+                logger.debug("mapping port is %s" %str(mapping_port))
                 deal_port.save(update_fields=['mapping_port'])
                 TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id,
                                                    container_port=deal_port.container_port).delete()
