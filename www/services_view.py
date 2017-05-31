@@ -303,6 +303,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         service_attach_info.buy_start_time = datetime.datetime.strptime(now, "%Y-%m-%d %H:%M:%S")
         service_attach_info.buy_end_time = datetime.datetime.strptime(now, "%Y-%m-%d %H:%M:%S")
         service_attach_info.create_time = datetime.datetime.now()
+        service_attach_info.region = self.response_region
         service_attach_info.save()
         return service_attach_info
 
