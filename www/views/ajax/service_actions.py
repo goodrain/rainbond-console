@@ -1761,7 +1761,7 @@ class DockerLogInstanceView(AuthedView):
             return '{}/{}'.format(default_uri, 'docker_log')
         else:
             host = self.request.META.get('HTTP_HOST').split(':')[0]
-            return 'ws://{}:6363/{}'.format(host, 'docker_log')
+            return 'ws://{}:6060/{}'.format(host, 'docker_log')
 
     def get(self, request, *args, **kwargs):
         result = {}
