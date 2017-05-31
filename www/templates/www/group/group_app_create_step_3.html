@@ -85,6 +85,35 @@
                     </tbody>
                 </table>
             </div>
+
+            <!--环境变量-->
+            <h4 class="column-tit">环境变量</h4>
+            <table class="tab-box">
+                <thead>
+                <tr>
+                    <th>变量名称</th>
+                    <th>变量值</th>
+                </tr>
+                </thead>
+                <tbody class="environment">
+                {% with env_list=app_env_map|mkey:service.service_key %}
+                {% for env in env_list %}
+                <tr>
+                    {% if 'direct_copy' in env.options %}
+                    <!-- SITE_URL 和 TRUSTED_DOMAIN 参数不显示-->
+                    <td name="attr_name" >{{env.attr_name}}</td>
+                    <td name="attr_value">{{env.attr_value}}</td>
+                    {% else %}
+                    <td name="attr_name">{{env.attr_name}}</td>
+                    <td><input name="attr_value" placeholder="举例: {{env.attr_value}}"></td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                {% endwith %}
+                </tbody>
+            </table>
+
+
         </section>
         {% endfor %}
         <p class="text-center">

@@ -407,6 +407,25 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                     result.append(apps[0])
         return result
 
+    def set_direct_copy_options(self, envs,service_id,service_key,version):
+        outer_ports = AppServicePort.objects.filter(service_key=service_key,
+                                                    app_version=version,
+                                                    is_outer_service=True,
+                                                    protocol='http')
+        service_alias = "gr" + service_id[-6:]
+        for env in envs:
+            if env.attr_name == 'SITE_URL' or env.attr_name == 'TRUSTED_DOMAIN':
+                if self.cookie_region in RegionInfo.valid_regions():
+                    env.options = 'direct_copy'
+                    if len(outer_ports) > 0:
+                        port = RegionInfo.region_port(self.response_region)
+                        domain = RegionInfo.region_domain(self.response_region)
+                        if env.attr_name == 'SITE_URL':
+                            env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, service_alias, self.tenantName, domain, port)
+                        else:
+                            env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, service_alias, self.tenantName, domain, port)
+
+
     @never_cache
     @perm_required('code_deploy')
     def get(self, request,groupId, *args, **kwargs):
@@ -440,7 +459,13 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.app_version)
                 app_port_map[app.service_key] = list(port_list)
                 # 环境变量
-                env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version)
+                env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version, container_port=0, is_change=True)
+                gct_list = GroupCreateTemp.objects.filter(service_key=app.service_key)
+                if gct_list:
+                    service_id = gct_list[0].service_id
+                else:
+                    service_id = None
+                self.set_direct_copy_options(env_list, service_id,app.service_key,app.app_version)
                 app_env_map[app.service_key] = list(env_list)
                 # 持久化路径
                 volumn_list = AppServiceVolume.objects.filter(service_key=app.service_key, app_version=app.app_version)

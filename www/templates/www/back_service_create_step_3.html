@@ -166,7 +166,7 @@
                     return;
                 }
 
-                $("#back_service_step2").attr('disabled', true);
+                $("#back_service_step_two").attr('disabled', true);
                 var tenantName = $('#tenantName').val();
                 var service_alias = $("#service_alias").val();
 
@@ -195,7 +195,7 @@
                         } else {
                             swal("创建失败");
                         }
-                        $("#back_service_step2").attr('disabled', false);
+                        $("#back_service_step_two").attr('disabled', false);
                     },
                     error: function () {
                         swal("系统异常,请重试");
