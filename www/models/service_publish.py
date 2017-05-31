@@ -308,7 +308,7 @@ class PublishedGroupServiceRelation(BaseModel):
     class Meta:
         db_table = "publish_group_service_relation"
 
-    group_pk = models.IntegerField(max_length=10)
+    group_pk = models.IntegerField()
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     version = models.CharField(max_length=20, help_text=u"当前最新版本")

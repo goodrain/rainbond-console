@@ -19,6 +19,7 @@ class EventManager(AuthedView):
     @perm_required('manage_service')
     def post(self, request, *args, **kwargs):
         result = {}
+        event_id = make_uuid()
         try:
             old_deploy_version = ""
             # 检查上次事件是否完成
@@ -35,7 +36,7 @@ class EventManager(AuthedView):
                 result["status"] = "failure"
                 result["msg"] = "action cannot be empty"
                 return JsonResponse(result, status=200)
-            event = ServiceEvent(event_id=make_uuid(), service_id=self.service.service_id,
+            event = ServiceEvent(event_id=event_id, service_id=self.service.service_id,
                                  tenant_id=self.tenant.tenant_id, type=action,
                                  deploy_version=self.service.deploy_version, old_deploy_version=old_deploy_version,
                                  user_name=self.user.nick_name, start_time=datetime.datetime.now())
@@ -59,14 +60,14 @@ class EventManager(AuthedView):
             result["event"]["old_code_version"] = old_code_version
             return JsonResponse(result, status=200)
         except Exception as e:
-            if event:
-                event.delete()
+            logger.exception(e)
             result["status"] = "failure"
             result["message"] = e.message
+            ServiceEvent.objects.filter(event_id=event_id).delete()
             return JsonResponse(result, status=500)
-    
+
     def get(self, request, *args, **kwargs):
-        
+
         result = {}
         try:
             page_size = request.GET.get("page_size", 6)
@@ -111,7 +112,7 @@ class EventManager(AuthedView):
 
 class EventLogManager(AuthedView):
     def get(self, request, event_id, *args, **kwargs):
-        
+
         result = {}
         try:
             level = request.GET.get("level", "info")

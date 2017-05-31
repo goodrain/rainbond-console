@@ -49,6 +49,17 @@ class TopologicalGraphView(AuthedView):
         service_map = {x.service_id: x for x in service_list}
         json_data = {}
         json_svg = {}
+        service_status_map = {}
+        # 批量查询服务状态
+        if len(service_list) > 0:
+            service_region = service_list[0].service_region
+            id_string = ','.join(service_map.keys())
+            try:
+                service_status_map = regionClient.check_status(service_region, json.dumps({"service_ids": id_string}))
+            except Exception as e:
+                logger.error('batch query service status failed!')
+                logger.exception(e)
+        # 拼接服务状态
         for service_info in service_list:
             json_data[service_info.service_cname] = {
                 "service_id": service_info.service_id,
@@ -56,6 +67,23 @@ class TopologicalGraphView(AuthedView):
                 "service_alias": service_info.service_alias,
             }
             json_svg[service_info.service_cname] = []
+
+            # closed\running\starting\unusual\closed\unknown
+            status = service_status_map.get(service_info.service_id)
+            if status:
+                if status == "running" or status == 'starting':
+                    json_data[service_info.service_cname]['cur_status'] = 'running'
+                else:
+                    json_data[service_info.service_cname]['cur_status'] = 'closed'
+            else:
+                json_data[service_info.service_cname]['cur_status'] = 'Unknown'
+            # 查询是否打开对外服务端口
+            port_list = TenantServicesPort.objects.filter(service_id=service_info.service_id)
+            # 判断服务是否有对外端口
+            outer_port_exist = False
+            if len(port_list) > 0:
+                outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+            json_data[service_info.service_cname]['is_internet'] = outer_port_exist
 
         for service_relation in service_relation_list:
             tmp_id = service_relation.service_id
@@ -100,10 +128,10 @@ class TopologicalServiceView(AuthedView):
         # 服务端口信息
         port_list = TenantServicesPort.objects.filter(service_id=service_id)
         # 判断服务是否有对外端口
-        outer_port_exist = False
-        if len(port_list) > 0:
-            outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
-        result['is_internet'] = outer_port_exist
+        # outer_port_exist = False
+        # if len(port_list) > 0:
+        #     outer_port_exist = reduce(lambda x, y: x or y, [t.is_outer_service for t in list(port_list)])
+        # result['is_internet'] = outer_port_exist
         # result["ports"] = map(lambda x: x.to_dict(), port_list)
         # 域名信息
         service_domain_list = ServiceDomain.objects.filter(service_id=service_id)

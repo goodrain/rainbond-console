@@ -73,10 +73,10 @@ function getParams() {
     var share_id = $("#share_id").val();
     var create_name = $("#create_name").val();
     var version_no = $("#version_no").val();
-    var publish_type = "services_group";
-    var is_clound_frame = $("#cloud_frame").prop("checked");
-    if (is_clound_frame)
-        publish_type = "cloud_frame";
+    var publish_type = "cloud_frame";
+    var is_services_group = $("#services_group").prop("checked");
+    if (is_services_group)
+        publish_type = "services_group";
     var desc = $("#desc").val();
     var is_market = true;
     var ys_dest = $("#ys_dest").prop("checked");

@@ -293,7 +293,8 @@ $(function(){
         $("#OneMemoryText").html(small_memory + "M");
     }
     if(is_tenant_free == "True"){
-        if(small_memory > 1024){
+        var tenant_name=$("#tenantName").val();
+        if(small_memory > 1024 && tenant_name !="sinoteach"){
             swal("免费用户应用内存最多1G！");
         }
     }
@@ -454,8 +455,9 @@ $(function(){
     $("#back_service_step1").click(function(event){
         var small_memory = $("#small-memory").attr("value");
         var is_tenant_free = $("#is_tenant_free").attr("value");
+        var tenant_name=$("#tenantName").val();
         if(is_tenant_free == "True"){
-            if(small_memory > 1024){
+            if(small_memory > 1024 && tenant_name !="sinoteach"){
                 swal("内存不够！");
                 return false;
             }
