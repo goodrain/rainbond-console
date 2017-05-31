@@ -21,7 +21,7 @@ $(function(){
             $(env_tr).each(function(){
                 var attr_name = $(this).find("td[name='attr_name']").html();
                 console.log("attr_name:"+attr_name);
-                var attr_value = $(this).find("[name='attr_value']").val();
+                var attr_value = $(this).find("[name='attr_value']").val() || $(this).find("[name='attr_value']").html() ;
                 console.log(attr_value);
                 var envMap = {
                     "attr_name":attr_name,
@@ -39,7 +39,7 @@ $(function(){
             group_id:service_group_id,
             envs:envs
         };
-/*
+
         $.ajax({
             type : "post",
             url : "/apps/" + tenantName + "/group-deploy/" + share_group_id+"/step3/",
@@ -63,7 +63,6 @@ $(function(){
                 $("#group_install_three").removeAttr('disabled');
             }
         })
-*/
 
     });
 

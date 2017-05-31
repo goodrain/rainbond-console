@@ -329,7 +329,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
     def create_console_service(self, published_services, service_group_id):
         for service_info in published_services:
-            gct = GroupCreateTemp.objects.get(service_key=service_info.service_key)
+            gct = GroupCreateTemp.objects.get(service_key=service_info.service_key,tenant_id=self.tenant.tenant_id,service_group_id=service_group_id)
             service_id = gct.service_id
             service_alias = "gr" + service_id[-6:]
 
@@ -381,13 +381,13 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 dfs(graph, start_node)
         return li
 
-    def create_dep_service(self, service_info, service_id):
+    def create_dep_service(self, service_info, service_id,service_group_id):
         app_relations = AppServiceRelation.objects.filter(service_key=service_info.service_key,
                                                           app_version=service_info.version)
         dep_service_ids = []
         if app_relations:
             for dep_app in app_relations:
-                temp = GroupCreateTemp.objects.get(service_key=dep_app.dep_service_key)
+                temp = GroupCreateTemp.objects.get(service_key=dep_app.dep_service_key,tenant_id=self.tenant.tenant_id,service_group_id=service_group_id)
                 dep_service_ids.append(temp.service_id)
 
         for dep_id in dep_service_ids:
@@ -438,7 +438,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
             context["createApp"] = "active"
             context["tenantName"] = self.tenantName
-            temp_list = GroupCreateTemp.objects.filter(share_group_id=groupId, tenant_id=tenant_id)
+            temp_list = GroupCreateTemp.objects.filter(share_group_id=groupId, tenant_id=tenant_id,service_group_id=group_id)
             if len(temp_list) == 0:
                 return self.redirect_to("/apps/{0}/group-deploy/{1}/step1/".format(self.tenantName, groupId))
             service_cname_map = {tmp.service_key:tmp.service_cname for tmp in temp_list}
@@ -460,7 +460,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 app_port_map[app.service_key] = list(port_list)
                 # 环境变量
                 env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version, container_port=0, is_change=True)
-                gct_list = GroupCreateTemp.objects.filter(service_key=app.service_key)
+                gct_list = GroupCreateTemp.objects.filter(service_key=app.service_key,tenant_id=self.tenant.tenant_id,service_group_id=group_id)
                 if gct_list:
                     service_id = gct_list[0].service_id
                 else:
@@ -504,6 +504,10 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 return JsonResponse(data, status=200)
 
             service_group_id = request.POST.get("group_id", None)
+            envs = request.POST.get("envs", "")
+            env_map = json.loads(envs)
+            logger.debug("====> env_map: {}".format(env_map))
+
             if not service_group_id:
                 data.update({"success": False, "status": "failure", "info": u"服务异常"})
                 return JsonResponse(data, status=500)
@@ -527,7 +531,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
             for service_info in sorted_service:
                 logger.debug("service_info.service_key: {}".format(service_info.service_key))
-                gct = GroupCreateTemp.objects.get(service_key=service_info.service_key)
+                gct = GroupCreateTemp.objects.get(service_key=service_info.service_key,tenant_id=self.tenant.tenant_id,service_group_id=service_group_id)
                 service_id = gct.service_id
                 logger.debug("gct.service_id: {}".format(gct.service_id))
                 current_service_ids.append(service_id)
@@ -544,12 +548,14 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                                                             tenant_id=self.tenant.tenant_id,
                                                             region_name=self.response_region)
                 monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
+
                 # 创建服务依赖
                 logger.debug("===> create service dependency!")
-                self.create_dep_service(service_info, service_id)
+                self.create_dep_service(service_info, service_id,service_group_id)
                 # 环境变量
                 logger.debug("===> create service env!")
-                self.copy_envs(service_info, newTenantService)
+                env_list = env_map.get(service_info.service_key)
+                self.copy_envs(service_info, newTenantService,env_list)
                 # 端口信息
                 logger.debug("===> create service port!")
                 self.copy_ports(service_info, newTenantService)
@@ -598,13 +604,21 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                                        port_alias=port.port_alias,
                                        is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
 
-    def copy_envs(self, service_info, current_service):
+    def copy_envs(self, service_info, current_service,env_list):
         s = current_service
         baseService = BaseTenantService()
+        has_env = []
+        for e in env_list:
+            source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version,
+                                                   attr_name=e["attr_name"])
+            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
+                                          e["attr_name"], e["attr_value"], source_env.is_change, source_env.scope)
+            has_env.append(source_env.attr_name)
         envs = AppServiceEnv.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
         for env in envs:
-            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, env.container_port, env.name,
-                                          env.attr_name, env.attr_value, env.is_change, env.scope)
+            if env.attr_name not in has_env:
+                baseService.saveServiceEnvVar(s.tenant_id, s.service_id, env.container_port, env.name,
+                                              env.attr_name, env.attr_value, env.is_change, env.scope)
 
     def copy_volumes(self, source_service, tenant_service):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key, app_version=source_service.version)
