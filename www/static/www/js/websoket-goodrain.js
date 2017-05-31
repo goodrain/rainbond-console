@@ -65,7 +65,9 @@ extPushWebSocketConnect.prototype = {
                         // console.log("extPush:onclose");
                         // }
                         self.closeWebSocket();
-                        self.init(client, topic, tenantName, serviceAlias)
+                        var t=setTimeout(function(){
+                        	self.init(client, topic, tenantName, serviceAlias);
+                        },2000);
                     };
                     that.socketStore.onerror = function () {
                         // if (!$.browser.msie) {
