@@ -14,7 +14,8 @@ from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
-                        AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep, AppServiceGroup)
+                        AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep, AppServiceGroup,
+                        PublishedGroupServiceRelation)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
     TenantRegionService, \
@@ -189,12 +190,17 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             data["status"] = "success"
         return need_create_service, is_pass, data
 
-    def get_newest_published_service(self, service_id_list):
+    def get_published_service_info(self, groupId):
         result = []
-        for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
+        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=groupId)
+        for pgsr in pgsr_list:
+            apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
             if apps:
                 result.append(apps[0])
+            else:
+                apps = AppService.objects.filter(service_key=pgsr.service_key).order_by("-ID")
+                if apps:
+                    result.append(apps[0])
         return result
 
     @never_cache
@@ -213,7 +219,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
             logger.debug("service_id_list: {}".format(service_id_list))
-            app_service_list = self.get_newest_published_service(service_id_list)
+            app_service_list = self.get_published_service_info(groupId)
             published_service_list = []
             for app_service in app_service_list:
                 logger.debug("app_service info:"+app_service.service_key+"  -  "+app_service.app_version)
@@ -388,12 +394,17 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             baseService.create_service_dependency(self.tenant.tenant_id, service_id, dep_id, self.response_region)
         logger.info("create service info for service_id{0} ".format(service_id))
 
-    def get_newest_published_service(self, service_id_list):
+    def get_published_service_info(self, groupId):
         result = []
-        for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
+        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=groupId)
+        for pgsr in pgsr_list:
+            apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
             if apps:
                 result.append(apps[0])
+            else:
+                apps = AppService.objects.filter(service_key=pgsr.service_key).order_by("-ID")
+                if apps:
+                    result.append(apps[0])
         return result
 
     @never_cache
@@ -419,7 +430,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = self.get_newest_published_service(service_id_list)
+            app_service_list = self.get_published_service_info(groupId)
             app_port_map = {}
             app_relation_map = {}
             app_env_map = {}
@@ -476,7 +487,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = AppService.objects.filter(service_id__in=service_id_list)
+            app_service_list = self.get_published_service_info(groupId)
             published_services = []
             for app in app_service_list:
                 # 第二步已经做过相应的判断,此处可以不用重复判断版本是否正确

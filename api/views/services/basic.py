@@ -398,10 +398,10 @@ class PublishServiceView(APIView):
                 logger.debug("====> share id is " + share_id)
             except Exception as e:
                 logger.exception(e)
+            app_service_group = None
             try:
                 logger.debug(dest_ys)
                 if share_id is not None and dest_ys:
-                    app_service_group = None
                     try:
                         app_service_group = AppServiceGroup.objects.get(group_share_id=share_id)
                     except AppServiceGroup.DoesNotExist as e:
@@ -409,8 +409,9 @@ class PublishServiceView(APIView):
                     if app_service_group is not None:
                         curr_step = app_service_group.step
                         if curr_step > 0:
+                            logger.debug("before remove one app from app_group ! step {}".format(curr_step))
                             curr_step -= 1
-                            logger.debug("remove one app from app_group !")
+                            logger.debug("after remove one app from app_group ! step {}".format(curr_step))
                             app_service_group.step = curr_step
                             app_service_group.save()
                         # 判断是否为最后一次调用,发布到最后一个应用后将组信息填写到云市
@@ -428,16 +429,18 @@ class PublishServiceView(APIView):
                             service_id_list = json.loads(tmp_ids)
                             if len(service_id_list) > 0:
                                 # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
-                                service_list = self.get_newest_published_service(service_id_list)
+                                app_service_list = self.get_newest_published_service(service_id_list)
                                 tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list,
                                                                                        tenant_id=tenant_id)
                                 service_category_map = {x.service_id: "self" if x.category == "application" else "other"
                                                         for x in tenant_service_list}
+                                logger.debug("===> service_category_map {}".format(service_category_map))
                                 service_data = []
-                                for service in service_list:
-                                    service_map = {"service_key": service.service_key,
-                                                   "version": service.app_version,
-                                                   "owner": service_category_map.get(service.service_id)}
+                                for app in app_service_list:
+                                    owner = service_category_map.get(app.service_id,"other")
+                                    service_map = {"service_key": app.service_key,
+                                                   "version": app.app_version,
+                                                   "owner": owner}
 
                                     service_data.append(service_map)
                                 param_data["data"] = service_data
@@ -457,14 +460,44 @@ class PublishServiceView(APIView):
                             app_service_group.is_success = True
                             app_service_group.save()
             except Exception as e:
+                app_service_group.is_success = False
+                app_service_group.save()
                 logger.exception(e)
                 logger.error("publish service group failed!")
 
         return Response({"ok": True}, status=200)
 
+    def is_published(self,service_id):
+        """
+        根据service_id判断服务是否发布过
+        :param service_id: 服务 ID
+        :return: 是否发布, 发布的服务对象
+        """
+        result = True
+        rt_app = None
+        service = TenantServiceInfo.objects.get(service_id=service_id)
+        if service.category != "app_publish":
+            result = False
+        else:
+            app_list = AppService.objects.filter(service_key=service.service_key, app_version=service.version).order_by(
+                "-ID")
+            if len(app_list) == 0:
+                app_list = AppService.objects.filter(service_key=service.service_key).order_by("-ID")
+                if len(app_list) == 0:
+                    result = False
+                else:
+                    rt_app = app_list[0]
+            else:
+                rt_app = app_list[0]
+        return result, rt_app
+
     def get_newest_published_service(self, service_id_list):
         result = []
         for service_id in service_id_list:
+            is_pubilsh, app = self.is_published(service_id)
+            if is_pubilsh:
+                result.append(app)
+                continue
             apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
             if apps:
                 result.append(apps[0])

@@ -69,7 +69,7 @@ $(function () {
             success: function (msg) {
                 var json_data = eval(msg);
                 if (json_data.code == 200) {
-                    location.href = "/apps/" + tenant_name + "/myservice/?gid=" + group_id;
+                    location.href="/apps/" + tenant_name + "/" + group_id + "/" + share_id + "/fourth/"
                 } else {
                     swal(json_data.msg);
                 }
