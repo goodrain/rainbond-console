@@ -10,7 +10,8 @@
   	   <a href="/apps/{{tenantName}}/{{serviceAlias}}/latest-log/" target="_blank" style="color: #28cb75;  line-height: 30px; text-decoration:underline">最新1000条日志</a>
     </p>
   </div>
-  <div class="">
+  <input type="hidden" value="{{ monitor_websocket_uri }}" id="web_url_log" />
+  <div class="" id="onofflogajax">
        <div id="docker_log" role="tabpanel" class="tab-pane active  blackbg">
        </div>
   </div>
@@ -52,27 +53,30 @@
         getLog();
         extPushWebSocketClient.prototype = {
             onMessage: function (msg) {
-                if (typeof(msg) != "undefined" && pauseFlag == "start") {
-                    var msgs = msg.split(":")
-                    if (msgs[0].trim() != "deploy" && msgs[0].trim() != "compile") {
-                        var finalMsg = ""
-                        var arr = $("#docker_log").html().split('<br>');
-                        var totalSize = 150;
-                        if (arr.length > totalSize) {
-                            for (var i = 0; i < totalSize; i++) {
-                                finalMsg += arr[totalSize - 1 - i] + "<br/>"
-                            }
-                        } else {
-                            finalMsg = $("#docker_log").html()
-                        }
-                        finalMsg = msg.substr(14) + "<br/>" + finalMsg
-                        $("#docker_log").html(finalMsg)
-                    }
+                console.log(msg);
+                if (typeof(msg) != "undefined" && msg != "ok") {
+//                    var msgs = msg.split(":")
+//                    if (msgs[0].trim() != "deploy" && msgs[0].trim() != "compile") {
+//                        var finalMsg = ""
+//                        var arr = $("#docker_log").html().split('<br>');
+//                        var totalSize = 150;
+//                        if (arr.length > totalSize) {
+//                            for (var i = 0; i < totalSize; i++) {
+//                                finalMsg += arr[totalSize - 1 - i] + "<br/>"
+//                            }
+//                        } else {
+//                            finalMsg = $("#docker_log").html()
+//                        }
+//                        finalMsg = msg.substr(14) + "<br/>" + finalMsg
+//                        $("#docker_log").html(finalMsg)
+//                    }
+                    var str = '<p>'+msg+'</p>';
+                    $(str).prependTo($("#docker_log"));
                 }
             }
         }
-        var connect = new extPushWebSocketConnect('{{websocket_uri}}');
-        connect.init(new extPushWebSocketClient(), service_id, "submsg", "submsg", "123456789", "987654321");
+        var connect = new extPushWebSocketConnect(service_id,"{{tenantName}}", "{{serviceAlias}}");
+        connect.init(new extPushWebSocketClient(), service_id, "{{tenantName}}", "{{serviceAlias}}");
     });
 
     function _pause() {

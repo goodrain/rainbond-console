@@ -61,12 +61,12 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/status/"
         res, body = self._post(url, self.default_headers, region=region)
         return body
-
+    
     def get_service_status(self, region, service_id):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/status/"
         res, body = self._get(url, self.default_headers, region=region)
         return body
-
+    
     def deploy(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/deploy/"
         res, body = self._post(url, self.default_headers, body, region=region)
@@ -161,12 +161,12 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/dependency/"
         res, body = self._put(url, self.default_headers, body, region=region)
         return body
-
+    
     def createL7Conf(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/l7_conf/"
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
-
+    
     def createServiceEnv(self, region, service_id, body):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/env-var/"
         logger.debug("api.region", "function: {0}, {1}".format('createServiceEnv', url))
@@ -271,9 +271,9 @@ class RegionServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body, region=region)
         return body
     
-    def serviceContainerIds(self, region, service_id):
+    def serviceContainerIds(self, region, service_id, body=None):
         url = self.region_map[region]['url'] + "/v1/services/lifecycle/" + service_id + "/containerIds/"
-        res, body = self._post(url, self.default_headers, region=region)
+        res, body = self._post(url, self.default_headers, body, region=region)
         return body
     
     def createServiceVolume(self, region, service_id, body):
@@ -332,4 +332,9 @@ class RegionServiceApi(BaseHttpClient):
         url = self.region_map[region]['url'] + "/v1/events/log"
         res, body = self._delete(url, self.default_headers, body=event_ids,
                                  region=region)
+        return body
+    
+    def getDockerLogInstance(self, region, service_id):
+        url = self.region_map[region]['url'] + "/v1/log/" + service_id + "/instance"
+        res, body = self._get(url, self.default_headers, region=region)
         return body

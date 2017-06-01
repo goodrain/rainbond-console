@@ -15,6 +15,7 @@ from www.views.ajax.service_group import AddGroupView, DeleteGroupView, UpdateSe
 from www.views.service import CreateServiceDepInfo
 from www.views.ajax.third_app import *
 from www.views.ajax.event import *
+from www.views.ajax.service_actions import DockerLogInstanceView
 
 urlpatterns = patterns(
     '',
@@ -25,7 +26,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/upgrade', ajax.ServiceUpgrade.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/detail', ajax.ServiceDetail.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/net-disk', ajax.ServiceNetAndDisk.as_view()),
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/log', ajax.ServiceLog.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/log$', ajax.ServiceLog.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/relation', ajax.ServiceRelation.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/is_midrain', ajax.UseMidRain.as_view()),
     url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/l7info', ajax.L7ServiceSet.as_view()),
@@ -103,6 +104,7 @@ urlpatterns = patterns(
     url(r'^(?P<tenantName>[\w\-]+)/serviceCostDetail', ajax.RegionServiceDetailConsumeView.as_view()),
 
     # event
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/events', EventManager.as_view()),
-    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/event/(?P<event_id>[\w\-]+)/log', EventLogManager.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/events$', EventManager.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/event/(?P<event_id>[\w\-]+)/log$', EventLogManager.as_view()),
+    url(r'^(?P<tenantName>[\w\-]+)/(?P<serviceAlias>[\w\-]+)/log_instance$', DockerLogInstanceView.as_view()),
 )
