@@ -7,6 +7,7 @@ import random
 import os
 from django.conf import settings
 from django.http import HttpResponse, Http404
+import logging
 
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -21,8 +22,8 @@ except ImportError:
     from io import BytesIO as StringIO
 
 from_top = 4
-
-current_path = os.path.normpath(os.path.dirname(__file__))
+logger = logging.getLogger('default')
+current_path = settings.BASE_DIR
 
 class ChekcCodeImage(BaseView):
     
@@ -38,9 +39,10 @@ class ChekcCodeImage(BaseView):
         mp_src = hashlib.md5(uid.encode("UTF-8")).hexdigest()
         text = mp_src[0:4]
         request.session["captcha_code"] = text
+        font_path = current_path+"/www/static/www/fonts/Vera.ttf"
+        logger.debug("======> font path "+str(font_path))
+        font = ImageFont.truetype(font_path,22)
 
-        font = ImageFont.truetype(current_path+"/Vera.ttf",22)
-        
         size = self.getsize(font, text)
         size = (size[0] * 2, int(size[1] * 1.4))
         

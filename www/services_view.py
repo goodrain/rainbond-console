@@ -322,6 +322,13 @@ class TenantService(LeftSideBarMixin, AuthedView):
         else:
             host = self.request.META.get('HTTP_HOST').split(':')[0]
             return 'ws://{}:6060/{}'.format(host, 'event_log')
+    
+    def make_monitor_ws_uri(self, default_uri):
+        if default_uri != 'auto':
+            return '{}/{}'.format(default_uri, 'monitor_message')
+        else:
+            host = self.request.META.get('HTTP_HOST').split(':')[0]
+            return 'ws://{}:6060/{}'.format(host, 'monitor_message')
 
     @never_cache
     @perm_required('view_service')
@@ -395,6 +402,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
             
             context["websocket_uri"] = settings.WEBSOCKET_URL[self.service.service_region]
             context["event_websocket_uri"] = self.make_event_ws_uri(settings.EVENT_WEBSOCKET_URL[self.service.service_region])
+            context["monitor_websocket_uri"] = self.make_monitor_ws_uri(
+                settings.EVENT_WEBSOCKET_URL[self.service.service_region])
             context["wild_domain"] = settings.WILD_DOMAINS[self.service.service_region]
             if ServiceGroupRelation.objects.filter(service_id=self.service.service_id).count() > 0:
                 gid = ServiceGroupRelation.objects.get(service_id=self.service.service_id).group_id
