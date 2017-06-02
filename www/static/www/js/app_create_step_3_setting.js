@@ -32,7 +32,9 @@ $(function () {
     //确定添加端口号
     $(".add").on("click",function(){
         var portNum = parseInt($(".add_port").val());
-        if( portNum>1024 && portNum<65536 )
+        var language = $("#language").val();
+        // dockerfile应用或者端口号在1024-65535之间
+        if((portNum>1024 && portNum<65536) || language == "docker" )
         {
             var addOnoff = matchArr(portNum,$(".portNum"));
             if( addOnoff )
