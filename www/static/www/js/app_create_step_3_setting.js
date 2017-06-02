@@ -23,6 +23,11 @@ $(function () {
         else{
             $(this).parents('tr').find('p.checkTip').css({"display":"block"});
         }
+        // dockerfile类型服务端口处理
+        var language = $("#language").val();
+        if (language == "docker") {
+            $(this).parents('tr').find('p.checkTip').css({"display":"none"});
+        }
     })
     //确定添加端口号
     $(".add").on("click",function(){

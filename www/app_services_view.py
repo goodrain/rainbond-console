@@ -373,7 +373,8 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
                 for mnt in mtsrs:
                     mntsids.append(mnt.dep_service_id)
             context["mntsids"] = mntsids
-
+            # 当前服务的类型;docker/docker-image/docker-compose
+            context['language'] = self.service.language
             ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).update(app_step=3)
 
         except Exception as e:
