@@ -336,7 +336,7 @@ class RegisterForm(forms.Form):
         validators=[password_len]
     )
     phone = forms.CharField(
-        required=True, label='',
+        required=False, label='',
         validators=[is_phone]
     )
     
@@ -465,11 +465,11 @@ class RegisterForm(forms.Form):
                     Hidden('origin', value=origin),
                     Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
                     Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
-                    Field('phone', css_class="form-control", placeholder='请输入手机号'),
+                    # Field('phone', css_class="form-control", placeholder='请输入手机号'),
                     AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
                                  css_class='input-xlarge', placeholder='图片验证码'),
-                    AppendedText('phone_code', '<a href="javascript:void(0)" id="PhoneCodeBtn" onclick="getPhoneCode();">点击发送验证码</a>  ',
-                                 css_class='input-xlarge', placeholder='手机验证码'),
+                    # AppendedText('phone_code', '<a href="javascript:void(0)" id="PhoneCodeBtn" onclick="getPhoneCode();">点击发送验证码</a>  ',
+                    #              css_class='input-xlarge', placeholder='手机验证码'),
                     HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="http://www.goodrain.com/product/goodrainlaws.html" target="_blank">云帮服务条款</a>》</div>"""),
                     FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                     HTML("""<p class="text-center">或使用以下账号注册</p>"""),
@@ -491,11 +491,11 @@ class RegisterForm(forms.Form):
                     Hidden('origin', value=origin),
                     Field('password', css_class="form-control", placeholder='请设置密码，至少包含8位字符'),
                     Field('password_repeat', css_class="form-control", placeholder='请再输入一次密码'),
-                    Field('phone', css_class="form-control", placeholder='请输入手机号'),
+                    # Field('phone', css_class="form-control", placeholder='请输入手机号'),
                     AppendedText('captcha_code', '<img id="captcha_code" src="/captcha" /> <a href="javascript:void(0)" onclick="refresh();">看不清，换一张</a>  ',
                                  css_class='input-xlarge', placeholder='验证码'),
-                    AppendedText('phone_code', '<a href="javascript:void(0)" id="PhoneCodeBtn" onclick="getPhoneCode();">点击发送验证码</a>  ',
-                                 css_class='input-xlarge', placeholder='手机验证码'),
+                    # AppendedText('phone_code', '<a href="javascript:void(0)" id="PhoneCodeBtn" onclick="getPhoneCode();">点击发送验证码</a>  ',
+                    #              css_class='input-xlarge', placeholder='手机验证码'),
                     HTML("""<div class="linkfw text-center">点击注册表示你已阅读并同意《<a href="http://www.goodrain.com/product/goodrainlaws.html" target="_blank">云帮服务条款</a>》</div>"""),
                     FormActions(Submit('register', u'注册', css_class='btn btn-lg btn-success btn-block')),
                     HTML("""<div class="linkregister text-center">直接<a href="/login{0}">登录</a></div>""".format(prefix_url)),
