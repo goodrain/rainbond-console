@@ -49,13 +49,13 @@
                     <td>{{service_port.protocol}}</td>
                     <td>
                         <div class="checkbox">
-                            <input type="checkbox" name="" value="" id="{{service_port.container_port}}inner" checked="true" disabled="disabled"/>
+                            <input type="checkbox" name="" value="" id="{{service_port.container_port}}inner" {% if service_port.is_inner_service %}checked="true"{% endif %} disabled="disabled"/>
                             <label class="check-bg" for="{{service_port.container_port}}inner"></label>
                         </div>
                     </td>
                     <td>
                         <div class="checkbox">
-                            <input class="checkDetail" type="checkbox" name="" value="" id="{{service_port.container_port}}outer" disabled="disabled"/>
+                            <input class="checkDetail" type="checkbox" name="" value="" id="{{service_port.container_port}}outer" {% if service_port.is_outer_service %}checked="true"{% endif %} disabled="disabled"/>
                             <label class="check-bg" for="{{service_port.container_port}}outer"></label>
                         </div>
                     </td>
