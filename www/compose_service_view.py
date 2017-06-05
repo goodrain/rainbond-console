@@ -459,6 +459,7 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             #     return JsonResponse(result, status=200)
             service_configs = request.POST.get("service_configs", "")
             service_configs = self.json_loads(service_configs)
+            logger.debug("service_configs %s" %service_configs)
 
             if service_configs != "":
                 deps = {}
