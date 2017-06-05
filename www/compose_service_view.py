@@ -478,6 +478,8 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     start_cmd = service_config.get("start_cmd")
 
                     depends_services_list = service_config.get("depends_services")
+                    logger.debug("depends_services_list is")
+                    logger.debug(depends_services_list)
 
                     newTenantService = None
                     try:
