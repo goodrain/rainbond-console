@@ -117,7 +117,7 @@ def compose_list(file_path):
                     # - "49100:22"
                     # - "127.0.0.1:8001:8001"
                     # - "127.0.0.1:5000-5010:5000-5010"
-                    if info_port.isdigit():
+                    if str(info_port).isdigit():
                         result.append(info_port)
                     else:
                         # 去掉ip
