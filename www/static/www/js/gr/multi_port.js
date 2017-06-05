@@ -274,6 +274,7 @@
         var dict = {csrfmiddlewaretoken: $.cookie('csrftoken'), "action": "add_port"};
         var add_tr = $(this).closest('table');
         var prefix = serviceAlias.toUpperCase();
+        var language = $("#language").val();
         console.log(prefix);
         add_tr.find('input.tab-alias').val(prefix + add_tr.find('input.tab-port').val());
           var flag = true;
@@ -292,7 +293,8 @@
                       return false;
                   }
               }else{
-                  if(value>=1025 && value<=65535){
+                  // Dockerfile应用端口号
+                  if((value>=1025 && value<=65535) || (language == "docker")){
                       console.log(value);
                   }else{
                       showMessage("端口号必须在1025~65535之间！");
