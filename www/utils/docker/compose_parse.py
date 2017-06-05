@@ -7,7 +7,9 @@ import json
 from www.models.compose import *
 from www.utils.md5Util import get_md5
 import re
+import logging
 
+logger = logging.getLogger('default')
 
 def get_config_path_from_options(options, environment):
     file_option = options.get('--file')
@@ -73,6 +75,7 @@ def compose_list(file_path):
             docker_service = DockerService(compose_id=yaml_info.ID)
 
             compose_name = service_info.get("name")
+            logger.debug("composer_name is %s" %compose_name)
             docker_service.name = compose_name
             compose_image = service_info.get("image")
             docker_service.image = compose_image

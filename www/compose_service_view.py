@@ -155,8 +155,6 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                 context["parse_error_info"] = info
             else:
                 for docker_service in service_list:
-                    logger.debug("docker_services")
-                    logger.debug(docker_service)
                     temp = []
                     service_id = make_uuid(tenant_id)
                     docker_service.service_id = service_id
