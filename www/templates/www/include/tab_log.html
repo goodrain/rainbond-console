@@ -49,6 +49,43 @@
             }
         })
     }
+
+    function MessageQueue(callback){
+        this.isStarted = false;
+        this.datas=[];
+        this.timer=null;
+        this.interval = 100;
+        this.callback = callback ||function(){};
+    }
+    MessageQueue.prototype = {
+        add:function(msg){
+            this.datas.push(msg);
+            if(!this.isStarted){
+                this.start();
+            }
+        },
+        start:function(){
+            var self = this;
+            this.timer = setInterval(function(){
+                if(self.datas.length){
+                    self.execute();
+                }else{
+                    self.stop();
+                }
+            }, this.interval)
+        },
+        stop:function(){
+            this.isStarted = false;
+            clearInterval(this.timer);
+        },
+        execute:function(){
+           this.callback(this.datas.shift());
+        }
+    }
+    var queue = new MessageQueue(function(msg){
+        $(msg).prependTo($("#docker_log"));
+    })
+
     $(document).ready(function () {
         getLog();
         extPushWebSocketClient.prototype = {
@@ -71,7 +108,8 @@
 //                        $("#docker_log").html(finalMsg)
 //                    }
                     var str = '<p>'+msg+'</p>';
-                    $(str).prependTo($("#docker_log"));
+                    queue.add(str)
+                    //$(str).prependTo($("#docker_log"));
                 }
             }
         }
