@@ -35,7 +35,7 @@
         }
       )
 
-      $('#permission tbody th input').click(
+      $('#permission tbody td input').click(
         function() {
           checked = $(this).prop('checked');
           
