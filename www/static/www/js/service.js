@@ -1,3 +1,38 @@
+function MessageQueue(callback){
+    this.isStarted = false;
+    this.datas=[];
+    this.timer=null;
+    this.interval = 100;
+    this.callback = callback ||function(){};
+}
+MessageQueue.prototype = {
+    add:function(msg){
+        this.datas.push(msg);
+        if(!this.isStarted){
+            this.start();
+        }
+    },
+    start:function(){
+        var self = this;
+        this.timer = setInterval(function(){
+            if(self.datas.length){
+                self.execute();
+            }else{
+                self.stop();
+            }
+        }, this.interval)
+    },
+    stop:function(){
+        this.isStarted = false;
+        clearInterval(this.timer);
+    },
+    execute:function(){
+       this.callback(this.datas.shift());
+    }
+}
+var queue = new MessageQueue(function(msg){
+    $(msg).prependTo($("#keylog .log_content").eq(0));
+})
 function goto_deploy(tenantName, service_alias) {
     window.location.href = "/apps/" + tenantName + "/" + service_alias
         + "/detail/"
@@ -308,7 +343,8 @@ function connectSocket(event_id,action) {
         var time3 = time2.split('+')[0];
         tmpLog = "<p class='clearfix'><span class='log_time'>" + time3+"</span><span class='log_msg'> "+ m.message + "</span></p>";
         //$("#keylog").children("div:first-child").before(tmpLog)
-        $(tmpLog).prependTo($("#keylog .log_content").eq(0));
+        //$(tmpLog).prependTo($("#keylog .log_content").eq(0));
+        queue.add(tmpLog);
         if( m.step == "callback" || m.step == "last" )
         {
             ws.close();
