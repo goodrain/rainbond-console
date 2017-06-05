@@ -2,7 +2,7 @@ function MessageQueue(callback){
     this.isStarted = false;
     this.datas=[];
     this.timer=null;
-    this.interval = 200;
+    this.interval = 100;
     this.callback = callback ||function(){};
 }
 MessageQueue.prototype = {
