@@ -499,6 +499,7 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
                     for dep_service in depends_services_list:
                         dep_service_id = deps[dep_service]
+                        logger.debug("service_id is %s" %service_id)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id,
                                                               self.response_region)
 
