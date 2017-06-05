@@ -2551,8 +2551,8 @@
  * -------------------------- */
 @font-face {
   font-family: 'FontAwesome';
-  src: url(／static/www/weavescope/674f50d287a8c48dc19ba404d20fe713.eot);
-  src: url(／static/www/weavescope/674f50d287a8c48dc19ba404d20fe713.eot?#iefix&v=4.7.0) format("embedded-opentype"), url(／static/www/weavescope/af7ae505a9eed503f8b8e6982036873e.woff2) format("woff2"), url(／static/www/weavescope/fee66e712a8a08eef5805a46892932ad.woff) format("woff"), url(／static/www/weavescope/b06871f281fee6b241d60582ae9369b9.ttf) format("truetype"), url(／static/www/weavescope/912ec66d7572ff821749319396470bde.svg#fontawesomeregular) format("svg");
+  src: url(/static/www/weavescope/674f50d287a8c48dc19ba404d20fe713.eot);
+  src: url(/static/www/weavescope/674f50d287a8c48dc19ba404d20fe713.eot?#iefix&v=4.7.0) format("embedded-opentype"), url(/static/www/weavescope/af7ae505a9eed503f8b8e6982036873e.woff2) format("woff2"), url(/static/www/weavescope/fee66e712a8a08eef5805a46892932ad.woff) format("woff"), url(/static/www/weavescope/b06871f281fee6b241d60582ae9369b9.ttf) format("truetype"), url(/static/www/weavescope/912ec66d7572ff821749319396470bde.svg#fontawesomeregular) format("svg");
   font-weight: normal;
   font-style: normal; }
 
@@ -4852,7 +4852,7 @@
 
 @font-face {
   font-family: "Roboto";
-  src: url(／static/www/weavescope/2751ee43015f9884c3642f103b7f70c9.woff2), url(／static/www/weavescope/ba3dcd8903e3d0af5de7792777f8ae0d.woff), url(／static/www/weavescope/df7b648ce5356ea1ebce435b3459fd60.ttf); }
+  src: url(/static/www/weavescope/2751ee43015f9884c3642f103b7f70c9.woff2), url(/static/www/weavescope/ba3dcd8903e3d0af5de7792777f8ae0d.woff), url(/static/www/weavescope/df7b648ce5356ea1ebce435b3459fd60.ttf); }
 
 .browsehappy {
   margin: 0.2em 0;
