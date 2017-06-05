@@ -146,8 +146,6 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             compose_file_path = yaml_file.compose_file.path
             context["compose_file_name"] = yaml_file.compose_file.name
             service_list, info = compose_list(compose_file_path)
-            logger.debug("service_list")
-            logger.debug(service_list)
             context["compose_file_path"] = compose_file_path
             tenant_id = self.tenant.tenant_id
             linked = []
@@ -157,6 +155,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                 context["parse_error_info"] = info
             else:
                 for docker_service in service_list:
+                    logger.debug("docker_services")
+                    logger.debug(docker_service)
                     temp = []
                     service_id = make_uuid(tenant_id)
                     docker_service.service_id = service_id
