@@ -146,6 +146,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             compose_file_path = yaml_file.compose_file.path
             context["compose_file_name"] = yaml_file.compose_file.name
             service_list, info = compose_list(compose_file_path)
+            logger.debug("service_list")
+            logger.debug(service_list)
             context["compose_file_path"] = compose_file_path
             tenant_id = self.tenant.tenant_id
             linked = []
