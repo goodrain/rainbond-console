@@ -155,7 +155,28 @@ class BackServiceInstall(object):
         s = current_service
         baseService = BaseTenantService()
         envs = AppServiceEnv.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
+        outer_ports = AppServicePort.objects.filter(service_key=service_info.service_key,
+                                                    app_version=service_info.version,
+                                                    is_outer_service=True,
+                                                    protocol='http')
         for env in envs:
+            if env.attr_name == 'SITE_URL':
+                if self.region_name in RegionInfo.valid_regions():
+                    port = RegionInfo.region_port(self.region_name)
+                    domain = RegionInfo.region_domain(self.region_name)
+                    env.options="direct_copy"
+                    if len(outer_ports)>0:
+                        env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, current_service.serviceAlias,self.tenant_name, domain, port)
+                    logger.debug("SITE_URL = {} options = {}".format(env.attr_value, env.options))
+            elif env.attr_name == "TRUSTED_DOMAIN":
+                if self.region_name in RegionInfo.valid_regions():
+                    port = RegionInfo.region_port(self.region_name)
+                    domain = RegionInfo.region_domain(self.region_name)
+                    env.options = 'direct_copy'
+                    if len(outer_ports) > 0:
+                        env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, current_service.serviceAlias, self.tenant_name, domain, port)
+                    logger.debug("TRUSTED_DOMAIN = {} options = {}".format(env.attr_value, env.options))
+
             baseService.saveServiceEnvVar(s.tenant_id, s.service_id, env.container_port, env.name,
                                           env.attr_name, env.attr_value, env.is_change, env.scope)
 

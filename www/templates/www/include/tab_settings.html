@@ -159,6 +159,7 @@
         </div>
     </section>
     <input type="hidden" id="service_port_type" value="{{ tenantServiceInfo.port_type }}">
+    <input type="hidden" id="language" value="{{ tenantServiceInfo.language }}">
     <!-- 01 -->
     <!-- 多端口修改开始 02 -->
     <section class="content-tab">
@@ -312,7 +313,7 @@
     </section>
     <!-- 03-->
     <!-- 04-->
-    {% if tenantServiceInfo.category == "application" %}
+
         <section class="content-tab">
             <p class="tit-two">持久化数据设置<span>(设置后需要重启服务)</span></p>
 
@@ -328,24 +329,26 @@
                     <tr>
                         <td>{{ volume.volume_path }}</td>
                         <td>
+                            {% if tenantServiceInfo.category == "application" %}
                             <button type="button" class="btn btn-danger btn-xs"
                                     data-id="{{ volume.ID }}" onclick="cancel_volume(this);">
                                 <i class="fa fa-trash-o"></i>
                             </button>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
-
             <div id="edit_volume_div" style="margin-top: 10px;"></div>
             <div class="clearfix" style="padding: 8px;"></div>
+            {% if tenantServiceInfo.category == "application" %}
             <button type="button" class="btn greenbtn" id="add_volume_attr" style="margin-top: 10px;"
                     data-language="{{ tenantServiceInfo.language }}">新增持久化设置
             </button>
-
+            {% endif %}
         </section>
-    {% endif %}
+
     <!-- 04-->
     <!-- 05-->
     <section class="content-tab">

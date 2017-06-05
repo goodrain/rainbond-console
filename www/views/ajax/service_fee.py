@@ -126,10 +126,12 @@ class MemoryPayMethodView(AuthedView):
                 else:
                     if not is_period_hour:
                         pay_period = pay_period * 24 * 30
+                    create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                                         "prepaid_money": need_money, "pay_status": "payed", "cost_type": "change_memory",
                                         "node_memory": self.service.min_memory, "node_num": self.service.min_node,
-                                        "disk": 0, "buy_period": pay_period}
+                                        "disk": 0, "buy_period": pay_period, "create_time": create_time,
+                                        "pay_time": create_time}
                     ServiceFeeBill.objects.create(**service_fee_bill)
                     service_attach_info.memory_pay_method = "prepaid"
                     if not is_period_hour:
@@ -251,10 +253,12 @@ class DiskPayMethodView(AuthedView):
                 if balance < need_pay_money:
                     return JsonResponse({"status": "not_enough"}, status=200)
                 else:
+                    create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                                         "prepaid_money": need_pay_money, "pay_status": "payed", "cost_type": "change_disk",
                                         "node_memory": self.service.min_memory, "node_num": self.service.min_node,
-                                        "disk": buy_disk*1024, "buy_period": pay_period}
+                                        "disk": buy_disk*1024, "buy_period": pay_period,
+                                        "create_time": create_time, "pay_time": create_time}
                     ServiceFeeBill.objects.create(**service_fee_bill)
                     service_attach_info.disk_pay_method = "prepaid"
                     service_attach_info.disk = buy_disk*1024
@@ -399,10 +403,11 @@ class ExtendServiceView(AuthedView):
             service_attach_info.save()
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
                 # 预付费期间扩容,扣钱
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                                     "prepaid_money": need_pay_money, "pay_status": "payed", "cost_type": "extend",
                                     "node_memory": int(node_memory), "node_num": int(node_num),
-                                    "disk": 0, "buy_period": 0}
+                                    "disk": 0, "buy_period": 0, "create_time": create_time, "pay_time": create_time}
                 ServiceFeeBill.objects.create(**service_fee_bill)
                 if need_pay_money > 0:
                     self.tenant.balance = balance - Decimal(need_pay_money)
@@ -489,10 +494,12 @@ class PrePaidPostponeView(AuthedView):
             if balance < need_money:
                 result["status"] = "not_enough"
                 return JsonResponse(result, status=200)
+            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                                 "prepaid_money": need_money, "pay_status": "payed", "cost_type": "renew",
                                 "node_memory": service_attach_info.min_memory, "node_num": service_attach_info.min_node,
-                                "disk": service_attach_info.disk, "buy_period": extend_time * 30 * 24}
+                                "disk": service_attach_info.disk, "buy_period": extend_time * 30 * 24,
+                                "create_time": create_time,"pay_time": create_time}
             ServiceFeeBill.objects.create(**service_fee_bill)
             now = datetime.datetime.now()
             if service_attach_info.buy_end_time < now:

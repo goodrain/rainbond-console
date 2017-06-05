@@ -381,6 +381,14 @@ class PublishServiceView(APIView):
             num = AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version).count()
             if num == 1:
                 data["publish_flow_type"] = 1
+
+            share_id = None
+            try:
+                share_id = request.data.get('share_id', None)
+                logger.debug("====> share id is " + share_id)
+            except Exception as e:
+                logger.exception(e)
+            data["share_id"] = share_id
             apputil.send_services(data)
             # 发送图片
             if str(app.logo) is not None and str(app.logo) != "":
@@ -392,12 +400,6 @@ class PublishServiceView(APIView):
 
             # 判断是否服务组发布,发布是否成功
             logger.debug("========> before send app group !")
-            share_id = None
-            try:
-                share_id = request.data.get('share_id', None)
-                logger.debug("====> share id is " + share_id)
-            except Exception as e:
-                logger.exception(e)
             app_service_group = None
             try:
                 logger.debug(dest_ys)

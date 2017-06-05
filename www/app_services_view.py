@@ -185,13 +185,14 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
             sai.buy_end_time = endTime
             sai.create_time = create_time
             sai.pre_paid_money = appCreateService.get_estimate_service_fee(sai, self.response_region)
+            sai.region = self.response_region
             sai.save()
             # 创建订单
             if sai.pre_paid_money > 0:
                 ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
                                               prepaid_money=sai.pre_paid_money, pay_status="unpayed",
                                               cost_type="first_create", node_memory=min_memory, node_num=min_node,
-                                              disk=disk, buy_period=pre_paid_period * 24 * 30)
+                                              disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time)
 
             # create console service
             service.desc = service_desc
@@ -373,7 +374,8 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
                 for mnt in mtsrs:
                     mntsids.append(mnt.dep_service_id)
             context["mntsids"] = mntsids
-
+            # 当前服务的类型;docker/docker-image/docker-compose
+            context['language'] = self.service.language
             ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).update(app_step=3)
 
         except Exception as e:

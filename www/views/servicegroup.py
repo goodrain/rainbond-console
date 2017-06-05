@@ -421,16 +421,6 @@ class ServiceGroupShareThreeView(LeftSideBarMixin, AuthedView):
                     result = self.add_app_relation(service, app_service.service_key, app_service.app_version, app_service.app_alias)
                     logger.debug(u'group.share.service. now add group share service relation for service {0} ok'.format(service.service_id),result)
 
-                # flag = PublishedGroupServiceRelation.objects.filter(group_pk=groupId).exists()
-                # if not flag:
-                #     # 添加分享的服务组和服务的关系
-                #     published_group_service_relation = []
-                #     for pro_service_id in pro_json:
-                #         service = service_map.get(pro_service_id)
-                #         app_service = app_service_map.get(pro_service_id)
-                #         pgsr = PublishedGroupServiceRelation(group_pk=groupId,service_id=service.service_id,service_key=app_service.service_key,version=app_service.app_version)
-                #         published_group_service_relation.append(pgsr)
-                #     PublishedGroupServiceRelation.objects.bulk_create(published_group_service_relation)
                 PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID).delete()
                 for s_id, app in app_service_map.items():
                     pgsr_list =  PublishedGroupServiceRelation.objects.filter(group_pk=app_service_group.ID,service_id=s_id)
