@@ -5,7 +5,6 @@
 {% block extracss %}
 {{ block.super }}
 <link rel="stylesheet" href='{% static "www/css/grouping.css" %}' />
-<link href='{% static "www/weavescope/style-app-75a30113752fe3ca4ee8.css?a552be8a3b02183f1f30" %}' rel="stylesheet">
 {% endblock %}
 {% block extrajs %}
 <script src='{% static "www/js/group.js" %}'></script>
@@ -333,8 +332,5 @@
     		renderTarget:'svg-box'
     	}
     </script>
-    <script src='{% static "www/js/group.js" %}'></script>
-    <script type="text/javascript" src='{% static "www/weavescope/vendors.js?a552be8a3b02183f1f30" %}'></script>
-    <script type="text/javascript" src='{% static "www/weavescope/app-75a30113752fe3ca4ee8.js?a552be8a3b02183f1f30" %}'></script>
 </section>
 {% endblock %}
