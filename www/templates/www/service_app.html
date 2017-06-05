@@ -323,8 +323,13 @@
             setInterval("checkStatus()", 15000);
 	    	setInterval("checkTenantsStorage()", 30000);
         });
+    </script>
 
-	
+    <!-- weave scope 资源设置  -->
+    <script type="text/javascript">
+    	window.WEAVESCOPE = {
+    		nodesUrl:"/ajax/{{tenantName}}/topological/{{group_id}}"
+    	}
     </script>
 </section>
 {% endblock %}
