@@ -459,7 +459,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             #     return JsonResponse(result, status=200)
             service_configs = request.POST.get("service_configs", "")
             service_configs = self.json_loads(service_configs)
-            logger.debug("service_configs %s" %service_configs)
 
             if service_configs != "":
                 deps = {}
@@ -479,9 +478,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     start_cmd = service_config.get("start_cmd")
 
                     depends_services_list = service_config.get("depends_services")
-                    logger.debug("depends_services_list is")
-                    logger.debug(depends_services_list)
-
                     newTenantService = None
                     try:
                         newTenantService = TenantServiceInfo.objects.get(service_id=service_id)
@@ -502,7 +498,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
                     for dep_service in depends_services_list:
                         dep_service_id = deps[dep_service]
-                        logger.debug("service_id is %s" %service_id)
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id,
                                                               self.response_region)
 
