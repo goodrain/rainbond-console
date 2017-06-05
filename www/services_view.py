@@ -559,8 +559,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
             elif fr == "statistic":
                 context['statistic_type'] = self.statistic_type
                 if self.service.service_type in ('mysql',):
-                    context['ws_topic'] = '{0}.{1}.statistic'.format(''.join(list(self.tenant.tenant_id)[1::2]),
-                                                                     ''.join(list(self.service.service_id)[::2]))
+                    context['ws_topic'] = '{0}.{1}.statistic'.format(''.join(list(self.tenant.tenant_id)[-12:]),
+                                                                     ''.join(list(self.service.service_id)[-12:]))
                 else:
                     # context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
                     if self.service.port_type == "multi_outer":
