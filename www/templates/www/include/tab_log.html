@@ -85,7 +85,12 @@
     }
     var queue = new MessageQueue(function(msg){
         $(msg).prependTo($("#docker_log"));
+        console.log(msg);
+        console.log($("#docker_log"));
     })
+    var timernew = setInterval(function(){
+            queue.add(88888);
+        },1000);
     $(document).ready(function () {
         
         getLog();
