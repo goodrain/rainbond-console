@@ -60,6 +60,7 @@
     MessageQueue.prototype = {
         add:function(msg){
             this.datas.push(msg);
+            console.log(msg, this.isStarted）
             if(!this.isStarted){
                 this.start();
             }
