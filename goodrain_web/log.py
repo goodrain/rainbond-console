@@ -1,3 +1,4 @@
+import time
 import socket
 import logging
 import zmq
@@ -39,11 +40,18 @@ class ZmqHandler(PUBHandler):
         logging.Handler.__init__(self)
 
         self.ctx = zmq.Context()
-        self.socket = self.ctx.socket(zmq.PUB)
-        self.socket.connect(address)
+        self.socket = None
         if '.' in root_topic:
             raise AttributeError("root_topic should not contains any '.', provided '%s'" % root_topic)
         self.root_topic = root_topic
+        self.zmq_address = address
+
+    def is_connected(self):
+        return bool(self.socket is not None)
+
+    def connect(self):
+        self.socket = self.ctx.socket(zmq.PUB)
+        self.socket.connect(self.zmq_address)
 
     def format(self, record):
         fmt = self.formatter
@@ -70,4 +78,7 @@ class ZmqHandler(PUBHandler):
         btopic = b'.'.join(cast_bytes(t) for t in topic_list)
         blevel = cast_bytes(record.levelname)
 
+        if not self.is_connected():
+            self.connect()
+            time.sleep(0.1)
         self.socket.send_multipart([btopic, blevel, bmsg])
