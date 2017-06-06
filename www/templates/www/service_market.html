@@ -204,12 +204,6 @@
                 </div>
                 <script>
 
-                    function group_create(tenantName, group_key, group_version) {
-                        window.location.href = "/apps/" + tenantName
-                                + "/group-deploy/?group_key=" + group_key + "&group_version="+group_version
-
-                    }
-
                     //这里调用ajax请求云市服务数据
                     function remoteservice(service_key, app_version) {
                         window.location.href = '/ajax/{{tenantName}}/remote/market?service_key='
