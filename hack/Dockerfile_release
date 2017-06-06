@@ -1,15 +1,17 @@
-FROM ubuntu:14.04
+FROM alpine:3.6
 MAINTAINER qisy@goodrain.com
 
-RUN echo "Asia/Shanghai" > /etc/timezone;dpkg-reconfigure -f noninteractive tzdata
-RUN groupadd -g 200 rain && useradd -u 200 -g 200 -m -s /bin/bash rain
+RUN apk --no-cache add tzdata
+ENV TZ Asia/Shanghai
+
+RUN adduser -u 200 -D -S -s /bin/bash rain
 
 ENV PORT 7070
 ENV REGION_TAG cloudbang
 ADD entrypoint.sh /entrypoint.sh
 ADD app /app
 
-USER rain
+#USER rain
 WORKDIR /app
 
 ENTRYPOINT /entrypoint.sh

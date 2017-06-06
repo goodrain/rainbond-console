@@ -1,19 +1,10 @@
-FROM ubuntu:14.04
+FROM hub.goodrain.com/dc-deploy/pyinstaller:musl.py27
 MAINTAINER qisy@goodrain.com
 
-RUN echo "Asia/Shanghai" > /etc/timezone;dpkg-reconfigure -f noninteractive tzdata
-RUN groupadd -g 200 rain && useradd -u 200 -g 200 -m -s /bin/bash rain
+RUN apk --no-cache add rsync libmemcached-dev openjpeg-dev py2-pillow py-yaml py-mysqldb cyrus-sasl-dev
 
-ADD sources.list /etc/apt/sources.list
-RUN apt-get update
-
-ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get install -y curl wget rsync python2.7 python2.7-dev libzmq3 libzmq3-dev libmysqlclient-dev python-yaml python-crypto python-mysqldb
-
-RUN apt-get install -y libmemcached-dev python-pylibmc libjpeg-dev python-pil
+RUN curl lang.d.goodrain.com/public/alpine/libzmq-alpine-4.0.4.tar.gz | tar zxf - -C /usr/local/
 RUN curl https://bootstrap.pypa.io/get-pip.py | python -
-
-RUN pip install pyinstaller==3.2.1
 
 ENV REGION_TAG build
 ENV DJANGO_SETTINGS_MODULE goodrain_web.settings
@@ -26,8 +17,11 @@ COPY console_manage.spec $WORK_DIR/
 WORKDIR $WORK_DIR
 RUN tar zxf /tmp/source.tgz
 
+RUN rm -fv requirements.txt
 RUN pip install -r requirements_release.txt
-RUN pip install pyzmq==16.0.2
+RUN pip install pyzmq==16.0.2 --install-option --zmq=/usr/local/libzmq
 RUN python manage.py migrate
-RUN pyinstaller console_app.spec
-RUN pyinstaller console_manage.spec
+RUN /entrypoint.sh console_app.spec
+RUN /entrypoint.sh console_manage.spec
+
+ENTRYPOINT []
