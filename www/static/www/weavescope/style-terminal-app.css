@@ -4913,7 +4913,6 @@
 
 .scope-app, .terminal-app {
   -webkit-font-smoothing: antialiased;
-  background: linear-gradient(30deg, #e2e2ec 0%, #fafafc 100%);
   bottom: 0;
   color: #3c3c5a;
   font-family: "Roboto", sans-serif;
