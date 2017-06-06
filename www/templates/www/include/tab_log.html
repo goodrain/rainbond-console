@@ -91,12 +91,12 @@
     $(document).ready(function () {
         var timernew = setInterval(function(){
             var str = '<p>测试00000</p>';
-            queue.add(str)
+            queue.add(str);
+            console.log(str);
         },1000);
         getLog();
         extPushWebSocketClient.prototype = {
             onMessage: function (msg) {
-                console.log(msg);
                 if (typeof(msg) != "undefined" && msg != "ok") {
 //                    var msgs = msg.split(":")
 //                    if (msgs[0].trim() != "deploy" && msgs[0].trim() != "compile") {
