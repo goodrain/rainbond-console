@@ -14,20 +14,20 @@ docker exec $db_container mysql -e "grant all on console.* to build@'%' identifi
 docker exec $db_container mysql -e "flush privileges;"
 db_ip=$(docker inspect --format '{{.NetworkSettings.IPAddress}}' $db_container)
 
-RELEASE_TAG=$(git describe --tag)
-RELEASE_VERSION=${RELEASE_TAG%%-*}
+RELEASE_DESC=$(git describe --tag | sed 's/^v//')
+RELEASE_VER=${RELEASE_DESC%%-*}
 
 sed -e "/^WORKDIR/i ENV MYSQL_HOST $db_ip" \
   Dockerfile_build_template > Dockerfile_build
 
-echo $RELEASE_VERSION > VERSION
+echo $RELEASE_DESC > VERSION
 docker build -t console-build -f Dockerfile_build .
 
 rm -rf $PWD/app
 docker run -v $PWD/app:/app -w /app-build/dist console-build rsync -a console_app/ /app
 docker run -v $PWD/app:/app -w /app-build/dist console-build cp -v console_manage/console_manage /app/
 
-RELEASE_IMAGE="hub.goodrain.com/dc-deploy/console:$CURR_BRANCH"
+RELEASE_IMAGE="hub.goodrain.com/dc-deploy/console:$RELEASE_VER"
 PRE_IMAGE="${RELEASE_IMAGE}.pre"
 
 docker build -t $PRE_IMAGE -f Dockerfile_release .
