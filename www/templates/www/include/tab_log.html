@@ -84,14 +84,8 @@
         }
     }
     var queue = new MessageQueue(function(msg){
-        //$(msg).prependTo($("#docker_log"));
-        //console.log(msg);
-        console.log($("#docker_log"));
+        $(msg).prependTo($("#docker_log"));
     })
-    var timernew = setInterval(function(){
-            console.log(queue)
-            queue.add(88888);
-        },1000);
     $(document).ready(function () {
         
         getLog();
