@@ -84,6 +84,8 @@
     }
     var queue = new MessageQueue(function(msg){
         $(msg).prependTo($("#docker_log"));
+        console.log(msg);
+        console.log($("#docker_log"));
     })
 
     $(document).ready(function () {
