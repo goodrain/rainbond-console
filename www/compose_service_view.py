@@ -398,6 +398,8 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             compose_file_path = yaml_file.compose_file.path
             context["compose_file_name"] = yaml_file.compose_file.name
             service_list, info = compose_list(compose_file_path)
+            # 去重
+            list(set(service_list))
             linked = []
             compose_relations = {}
             if service_list is None:
