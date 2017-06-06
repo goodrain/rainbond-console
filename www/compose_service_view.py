@@ -398,8 +398,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
             compose_file_path = yaml_file.compose_file.path
             context["compose_file_name"] = yaml_file.compose_file.name
             service_list, info = compose_list(compose_file_path)
-            # 去重
-            list(set(service_list))
             linked = []
             compose_relations = {}
             if service_list is None:
@@ -480,6 +478,8 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     start_cmd = service_config.get("start_cmd")
 
                     depends_services_list = service_config.get("depends_services")
+                    # depend server去重
+                    list(set(depends_services_list))
                     newTenantService = None
                     try:
                         newTenantService = TenantServiceInfo.objects.get(service_id=service_id)
