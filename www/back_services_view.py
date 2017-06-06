@@ -62,6 +62,8 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             fr = request.GET.get("fr", "private")
             context["fr"] = fr
             if fr == "local":
+                cacheGroupList = AppServiceGroup.objects.filter(is_success=True)
+                context["cacheGroupList"] = cacheGroupList
                 cacheServiceList = ServiceInfo.objects.filter(status="published")
                 context["cacheServiceList"] = cacheServiceList
                 try:

@@ -30,7 +30,7 @@
                                     <h4>{{group.group_share_alias}}</h4>
                                     <h5>{{group.group_version}}</h5>
                                     <button type="button" class="btn btn-success greenbtn"
-                                            onclick="group_create('{{tenantName}}','{{group.group_share_alias}},{{group.group_version}}')">部署
+                                            onclick="group_create('{{tenantName}}','{{group.group_share_alias}}','{{group.group_version}}')">部署
                                     </button>
                                 </div>
                             </div>
@@ -60,7 +60,7 @@
                                     <h4>{{group.group_share_alias}}</h4>
                                     <h5>{{group.group_version}}</h5>
                                     <button type="button" class="btn btn-success greenbtn"
-                                            onclick="group_create('{{tenantName}}','{{group.group_share_alias}},{{group.group_version}}')">部署
+                                            onclick="group_create('{{tenantName}}','{{group.group_share_id}}','{{group.group_version}}')">部署
                                     </button>
                                 </div>
                             </div>
@@ -89,7 +89,7 @@
                                     <h4>{{group.group_share_alias}}</h4>
                                     <h5>{{group.group_version}}</h5>
                                     <button type="button" class="btn btn-success greenbtn"
-                                            onclick="group_create('{{tenantName}}','{{group.group_share_alias}},{{group.group_version}}')">部署
+                                            onclick="group_create('{{tenantName}}','{{group.group_share_id}}','{{group.group_version}}')">部署
                                     </button>
                                 </div>
                             </div>
@@ -162,7 +162,7 @@
                             <div class="col-lg-4 col-md-6 applistbox">
                                 <div  class="inbox">
                                     <h4><a target="_blank" href="">{{service.group_name}}</a></h4>
-                                    <h5>{{group.group_version}}</h5>
+                                    <h5>{{service.group_version}}</h5>
                                     <button type="button" class="btn btn-success greenbtn"
                                             onclick="group_create('{{tenantName}}','{{service.group_key}}', '{{service.group_version}}')">部署
                                     </button>
@@ -172,6 +172,22 @@
                     {% endfor %}
                     </div>
                 {% elif fr == "local" %}
+
+                    {% if cacheGroupList %}
+                        {% for cache in cacheGroupList %}
+                            <div class="col-lg-4 col-md-6 applistbox">
+                                <div  class="inbox">
+                                    <h4>{{cache.group_share_alias}}</h4>
+                                    <h5>{{cache.group_version}}</h5>
+                                    <div style="position:absolute;top:50%;right:20px;">
+                                        <button type="button" class="btn btn-success greenbtn" style="position: static;"
+                                                onclick="group_create('{{tenantName}}','{{cache.group_share_id}}', '{{cache.group_version}}')">部署
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                     {% if cacheServiceList %}
                     {% for cache in cacheServiceList %}
                     <div class="col-lg-4 col-md-6 applistbox">
