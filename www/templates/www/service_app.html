@@ -330,7 +330,9 @@
     <!-- weave scope 资源设置  -->
     <script type="text/javascript">
         try{
-        	localStorage.setItem('nodesUrl', '/ajax/{{tenantName}}/topological/{{group_id}}')
+        	localStorage.setItem('nodesUrl', '/ajax/{{tenantName}}/topological/{{group_id}}'),
+        	localStorage.setItem('tenantName', '{{tenantName}}');
+        	localStorage.setItem('groupId', '{{groupId}}')
         }catch(e){
 
         }
