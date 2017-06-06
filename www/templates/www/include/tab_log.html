@@ -87,6 +87,10 @@
     })
 
     $(document).ready(function () {
+        var timernew = setInterval(function(){
+            var str = '<p>测试00000</p>';
+            queue.add(str)
+        },1000);
         getLog();
         extPushWebSocketClient.prototype = {
             onMessage: function (msg) {
