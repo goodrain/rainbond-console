@@ -1,39 +1,3 @@
-function MessageQueue(callback){
-    this.isStarted = false;
-    this.datas=[];
-    this.timer=null;
-    this.interval = 100;
-    this.callback = callback ||function(){};
-}
-MessageQueue.prototype = {
-    add:function(msg){
-        this.datas.push(msg);
-        if(!this.isStarted){
-            this.start();
-        }
-    },
-    start:function(){
-        var self = this;
-        this.timer = setInterval(function(){
-            if(self.datas.length){
-                self.execute();
-            }else{
-                self.stop();
-            }
-        }, this.interval)
-    },
-    stop:function(){
-        this.isStarted = false;
-        clearInterval(this.timer);
-    },
-    execute:function(){
-       this.callback(this.datas.shift());
-    }
-}
-var queue = new MessageQueue(function(msg){
-    $(msg).prependTo($("#keylog .log_content").eq(0));
-})
-
 var websocket_uri = "ws://123.59.40.70:6060/websocket";
 var web_url_log = $("#web_url_log").val();
 
