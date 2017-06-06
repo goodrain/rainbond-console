@@ -92,7 +92,49 @@
             queue.add(88888);
         },1000);
     $(document).ready(function () {
-        
+        //
+        function MessageQueue(callback){
+            this.isStarted = false;
+            this.datas=[];
+            this.timer=null;
+            this.interval = 100;
+            this.callback = callback ||function(){};
+        }
+        MessageQueue.prototype = {
+            add:function(msg){
+                console.log(msg)
+                this.datas.push(msg);
+                if(!this.isStarted){
+                    this.start();
+                }
+            },
+            start:function(){
+                var self = this;
+                this.timer = setInterval(function(){
+                    if(self.datas.length){
+                        self.execute();
+                    }else{
+                        self.stop();
+                    }
+                }, this.interval)
+            },
+            stop:function(){
+                this.isStarted = false;
+                clearInterval(this.timer);
+            },
+            execute:function(){
+               this.callback(this.datas.shift());
+            }
+        }
+        var queue = new MessageQueue(function(msg){
+            $(msg).prependTo($("#docker_log"));
+            console.log(msg);
+            console.log($("#docker_log"));
+        })
+        var timernew = setInterval(function(){
+                queue.add(88888);
+            },1000);
+        //
         getLog();
         extPushWebSocketClient.prototype = {
             onMessage: function (msg) {
