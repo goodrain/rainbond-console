@@ -59,8 +59,8 @@
     }
     MessageQueue.prototype = {
         add:function(msg){
+            console.log(msg)
             this.datas.push(msg);
-            console.log(msg, this.isStarted)
             if(!this.isStarted){
                 this.start();
             }
@@ -93,7 +93,6 @@
         var timernew = setInterval(function(){
             var str = '<p>测试00000</p>';
             queue.add(str);
-            console.log(str);
         },1000);
         getLog();
         extPushWebSocketClient.prototype = {
