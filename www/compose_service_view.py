@@ -169,6 +169,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                     volumes_json = docker_service.volumes
                     docker_service.volumes = self.json_loads(volumes_json)
                     depends_on_json = docker_service.depends_on
+                    logger.debug("depends_on_json, type is %s" %type(depends_on_json))
+                    logger.debug(depends_on_json)
                     docker_service.depends_on = self.json_loads(depends_on_json)
                     linked.extend(docker_service.links)
                     linked.extend(docker_service.depends_on)
