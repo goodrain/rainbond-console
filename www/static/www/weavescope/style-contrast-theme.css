@@ -5228,6 +5228,26 @@
   bottom: 48px;
   transition: transform 0.33333s cubic-bezier(0, 0, 0.21, 1); }
 
+.node-details-header-relatives {
+  font-weight: bold; }
+
+.node-details-running .node-details-header {
+  background-color: #00d777; }
+
+.node-details-running a {
+  color: green; }
+
+.node-details-closed .node-details-header {
+  background-color: #ea583e; }
+
+.details a {
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: bold; }
+
+.details th {
+  font-size: 14px; }
+
 .node-details {
   height: 100%;
   width: 420px;
