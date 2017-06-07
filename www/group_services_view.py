@@ -71,7 +71,11 @@ class GroupServiceDeployView(LeftSideBarMixin, AuthedView):
             elif len(app_groups) == 0:
                 app_groups = AppServiceGroup.objects.filter(group_share_id=group_key).order_by("-update_time")
                 if len(app_groups) == 0:
-                    raise Http404
+                    code, group_info, msg = baseService.download_group_info(group_key, group_version, None)
+                    if not group_info:
+                        raise Http404
+                    else:
+                        share_group_pk = group_info.ID
                 else:
                     share_group_pk = app_groups[0].ID
             else:

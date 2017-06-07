@@ -25,6 +25,11 @@ class AppServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body)
         return res, body
 
+    def getGroupData(self, body):
+        url = self.url + "/api/v0/services/get_group"
+        res, body = self._post(url, self.default_headers, body)
+        return res, body
+
     def uploadFiles(self, body, files):
         url = self.url + "/api/v0/services/logo"
         res, body = self._post(url, self.default_headers, body, files=files)
