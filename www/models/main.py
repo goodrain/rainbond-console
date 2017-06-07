@@ -1050,8 +1050,8 @@ class ServiceFeeBill(BaseModel):
     node_num = models.IntegerField(help_text=u"节点个数", default=1)
     disk = models.IntegerField(help_text=u'磁盘大小')
     buy_period = models.IntegerField(help_text=u"预付费时长(单位:小时)", default=0)
-    create_time = models.DateTimeField(help_text=u"创建时间")
-    pay_time = models.DateTimeField(help_text=u"付款时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    pay_time = models.DateTimeField(auto_now_add=True, help_text=u"支付时间")
 
 
 class ServiceConsume(BaseModel):
