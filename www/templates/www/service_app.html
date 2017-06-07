@@ -332,7 +332,23 @@
         try{
         	localStorage.setItem('nodesUrl', '/ajax/{{tenantName}}/topological/{{group_id}}'),
         	localStorage.setItem('tenantName', '{{tenantName}}');
-        	localStorage.setItem('groupId', '{{groupId}}')
+        	localStorage.setItem('groupId', '{{groupId}}');
+
+        	//拓扑图点击服务事件
+        	window.handleClickService = function(key){
+
+        	}
+
+        	//拓扑图点击依赖服务事件
+        	window.handleClickRelation = function(relation){
+
+        	}
+
+        	//拓扑图点击续费事件
+        	window.handleClickGiveMoney = function(nodeDetails){
+        		
+        	}
+
         }catch(e){
 
         }
