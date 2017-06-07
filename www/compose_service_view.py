@@ -169,13 +169,9 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                     volumes_json = docker_service.volumes
                     docker_service.volumes = self.json_loads(volumes_json)
                     depends_on_json = docker_service.depends_on
-                    logger.debug("depends_on_json, type is %s" %type(depends_on_json))
-                    logger.debug(depends_on_json)
                     docker_service.depends_on = self.json_loads(depends_on_json)
                     linked.extend(docker_service.links)
                     linked.extend(docker_service.depends_on)
-                    logger.debug("linked_on_json")
-                    logger.debug(linked)
                     temp.extend(docker_service.links)
                     temp.extend(docker_service.depends_on)
                     compose_relations[docker_service.name] = temp
@@ -190,6 +186,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
             context['is_tenant_free'] = (self.tenant.pay_type == "free")
 
             context["compose_relations"] = json.dumps(compose_relations)
+            # linked去重
+            list(set(linked))
             context["linked_service"] = linked
             context["service_list"] = service_list
             context["compose_file_id"] = compose_file_id
@@ -482,9 +480,8 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     start_cmd = service_config.get("start_cmd")
 
                     depends_services_list = service_config.get("depends_services")
-                    # depend server去重
-                    logger.debug("depends_services")
-                    logger.debug(depends_services_list)
+                    # depends_services 去重
+                    list(set(depends_services_list))
                     newTenantService = None
                     try:
                         newTenantService = TenantServiceInfo.objects.get(service_id=service_id)
