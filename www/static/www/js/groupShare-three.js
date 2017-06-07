@@ -34,7 +34,7 @@ $(function () {
             app_data["name"] = $.trim($("input.app_name").eq(i).val());
             app_data["version"] = $.trim($("input.app_version").eq(i).val());
             app_data["content"] = $.trim($("textarea.app_content").eq(i).val());
-            // app_data["is_init"] = $("input.is_init").eq(i).prop("checked")?1:0;
+            app_data["is_init"] = $("input.is_init").eq(i).prop("checked")?1:0;
             // var one = $("input.is_outer").eq(i).prop("checked")?1:0;
             // var two = $("input.is_private").eq(i).prop("checked")?1:0;
             // var three = $("input.show_assistant").eq(i).prop("checked")?1:0;
@@ -69,7 +69,7 @@ $(function () {
             success: function (msg) {
                 var json_data = eval(msg);
                 if (json_data.code == 200) {
-                    location.href = "/apps/" + tenant_name + "/myservice/?gid=" + group_id;
+                    location.href="/apps/" + tenant_name + "/" + group_id + "/" + share_id + "/fourth/"
                 } else {
                     swal(json_data.msg);
                 }

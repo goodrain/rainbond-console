@@ -43,9 +43,9 @@
             <table>
                 <thead>
                 <tr>
-                    <th width="33%">应用类型</th>
-                    <th width="33%">应用名称</th>
-                    <th width="33%">操作</th>
+                    <th width="25%">应用类型</th>
+                    <th width="25%">应用名称</th>
+                    <th width="50%">操作</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -58,7 +58,7 @@
                             <td>{{value.service_cname}}</td>
                             <td>
                           {% if 'manage_service' in user.actions %}
-                                <button type="button" class="greenbtn"  onclick="buid_relation('cancel','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
+                                <button type="button" class="redbtn"  onclick="buid_relation('cancel','{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">取消</button>
                           {% endif %}
                           {% if 'git_pull' in user.actions or user.is_sys_admin %}
                                 <a class="greenbtn" data-toggle="modal" href="#linkinfo{{value.service_id}}">连接信息</a>
@@ -96,6 +96,7 @@
                                   </div>
                                 </div>
                           {% endif %}
+                           <a class="greenbtn fn-high-relation" href="javscript:;"  onclick="high_relation('{{tenantServiceInfo.service_alias}}','{{value.service_alias}}','{{tenantName}}');">设置</a>
                             </td>
                         </tr>
                         {% endwith %}
@@ -170,4 +171,34 @@
         </div>
     </section>
 </div>
+<script>
+  $(document).ready(function () {
+    ///ajax  加载判断  start 
+        $.ajax({
+            type : "POST",
+            url : "/ajax/{{tenantName}}/{{serviceAlias}}/is_midrain", 
+            data : {
+                   "action":"check"     
+            },
+            cache : false,
+            async : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(data) {
+                console.log(data);
+                if(data.is_mid == "yes"){
+                    $(".fn-high-relation").show();
+                }else{
+                    $(".fn-high-relation").hide();
+                }
+            },
+            error : function() {
+                console.log("系统异常");
+            }
+        });
+        ///ajax 加载判断 end 
+  });
+</script>
 <!-- relations end -->

@@ -387,7 +387,7 @@ class ServiceInfo(BaseModel):
         # return bool(self.image.endswith('/runner')) or bool(self.image.search('/runner:+'))
     
     def is_image(self):
-        return not self.is_slug(self)
+        return not self.is_slug()
 
 
 class TenantServiceInfo(BaseModel):
@@ -464,7 +464,7 @@ class TenantServiceInfo(BaseModel):
             return git_url
         else:
             return self.git_url
-
+    
     def is_slug(self):
         # return bool(self.image.startswith('goodrain.me/runner'))
         return bool(self.image.endswith('/runner')) or bool('/runner:' in self.image)
@@ -778,6 +778,16 @@ class TenantRegionPayModel(BaseModel):
     create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
+class TenantServiceL7Info(BaseModel):
+    class Meta:
+        db_table = 'tenant_l7_info'
+    
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, db_index=True, help_text=u"服务id")
+    dep_service_id = models.CharField(max_length=32, help_text=u"依赖服务id")
+    l7_json = models.CharField(max_length=255, help_text=u"高级应用特性信息")
+
+
 class TenantServiceEnvVar(BaseModel):
     class Meta:
         db_table = 'tenant_service_env_var'
@@ -853,7 +863,7 @@ class ServiceGroupRelation(BaseModel):
         db_table = 'service_group_relation'
     
     service_id = models.CharField(max_length=32, help_text=u"服务id")
-    group_id = models.IntegerField(max_length=10)
+    group_id = models.IntegerField()
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     region_name = models.CharField(max_length=20, help_text=u"区域中心名称")
 
@@ -897,7 +907,7 @@ class ServiceRule(BaseModel):
     maxvalue = models.IntegerField(default=0)
     minvalue = models.IntegerField(default=0)
     status = models.BooleanField(default=False, blank=True, help_text=u"是否生效；0:停止；1:生效")
-    count = models.IntegerField(max_length=10, default=0)
+    count = models.IntegerField(default=0)
     node_number = models.IntegerField(help_text=u"实例启动个数", default=1)
     port = models.CharField(max_length=10)
     port_type = models.CharField(max_length=15, default='multi_outer',
@@ -961,6 +971,7 @@ class ThirdAppInfo(BaseModel):
     delete = models.BooleanField(default=0, help_text=u"是否删除状态")
     create_user = models.IntegerField(help_text=u"创建的用户的user_id")
 
+
 class CDNTrafficRecord(BaseModel):
     class Meta:
         db_table = 'cdn_traffic_record'
@@ -988,6 +999,7 @@ class CDNTrafficHourRecord(BaseModel):
     balance = models.IntegerField(help_text=u"流量包余额")
     create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
     order_id = models.CharField(max_length=32, help_text=u"扣除流量的订单id")
+
 
 class ThirdAppOperator(BaseModel):
     class Meta:
@@ -1027,6 +1039,7 @@ pay_status = (
 class ServiceFeeBill(BaseModel):
     class Meta:
         db_table = 'service_fee_bill'
+    
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     prepaid_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"付费金额")
@@ -1043,6 +1056,7 @@ class ServiceFeeBill(BaseModel):
 class ServiceConsume(BaseModel):
     class Meta:
         db_table = 'service_consume'
+    
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     memory = models.IntegerField(help_text=u"内存大小单位（M）", default=0)
@@ -1061,12 +1075,41 @@ class ServiceConsume(BaseModel):
     real_disk_money = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text=u"磁盘按需金额")
 
 
+class ServiceEvent(BaseModel):
+    class Meta:
+        db_table = 'service_event'
+    
+    event_id = models.CharField(max_length=32, help_text=u"操作id")
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
+    service_id = models.CharField(max_length=32, help_text=u"服务id")
+    user_name = models.CharField(max_length=50, help_text=u"操作用户")
+    start_time = models.DateTimeField(help_text=u"操作开始时间")
+    end_time = models.DateTimeField(help_text=u"操作结束时间", null=True)
+    type = models.CharField(max_length=20, help_text=u"操作类型")
+    status = models.CharField(max_length=20, help_text=u"操作处理状态 success failure")
+    final_status = models.CharField(max_length=20, default="", help_text=u"操作状态，complete or timeout or null")
+    message = models.CharField(max_length=200, help_text=u"操作说明")
+    deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
+    old_deploy_version = models.CharField(max_length=20, help_text=u"部署版本")
+    code_version = models.CharField(max_length=200, help_text=u"部署代码版本")
+    old_code_version = models.CharField(max_length=200, help_text=u"历史部署代码版本")
+
+
 class GroupCreateTemp(BaseModel):
     class Meta:
         db_table = 'group_create_temp'
+    
     tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     service_id = models.CharField(max_length=32, help_text=u"服务id")
     service_key = models.CharField(max_length=32, help_text=u"服务key")
     share_group_id = models.IntegerField(help_text=u"服务组发布id")
     service_group_id = models.IntegerField(help_text=u"服务所属组")
     service_cname = models.CharField(max_length=100, default='', help_text=u"服务名")
+
+
+class BackServiceInstallTemp(BaseModel):
+    class Meta:
+        db_table = "back_service_install_temp"
+    group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
+    group_pk = models.IntegerField(help_text=u"服务所在组ID")
+    success = models.BooleanField(default=True, help_text=u"成功安装")

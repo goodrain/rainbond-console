@@ -195,6 +195,7 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                                               disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time,
                                               pay_time=create_time)
 
+
             # create console service
             service.desc = service_desc
             newTenantService = baseService.create_service(
@@ -375,7 +376,8 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
                 for mnt in mtsrs:
                     mntsids.append(mnt.dep_service_id)
             context["mntsids"] = mntsids
-
+            # 当前服务的类型;docker/docker-image/docker-compose
+            context['language'] = self.service.language
             ServiceCreateStep.objects.filter(service_id=self.service.service_id,tenant_id=self.tenant.tenant_id).update(app_step=3)
 
         except Exception as e:
@@ -430,7 +432,7 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             logger.debug(depIds)
             if len(depIds) > 0:
                 # 检查当前服务是否有GDADAPTER参数
-                # self.saveAdapterEnv(newTenantService)
+                self.saveAdapterEnv(newTenantService)
                 for sid in depIds:
                     try:
                         baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, sid, self.response_region)

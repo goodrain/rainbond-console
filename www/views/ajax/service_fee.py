@@ -126,6 +126,7 @@ class MemoryPayMethodView(AuthedView):
                 else:
                     if not is_period_hour:
                         pay_period = pay_period * 24 * 30
+                    create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                                         "prepaid_money": need_money, "pay_status": "payed", "cost_type": "change_memory",
                                         "node_memory": self.service.min_memory, "node_num": self.service.min_node,
@@ -254,6 +255,7 @@ class DiskPayMethodView(AuthedView):
                 if balance < need_pay_money:
                     return JsonResponse({"status": "not_enough"}, status=200)
                 else:
+                    create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                                         "prepaid_money": need_pay_money, "pay_status": "payed", "cost_type": "change_disk",
                                         "node_memory": self.service.min_memory, "node_num": self.service.min_node,
@@ -405,6 +407,7 @@ class ExtendServiceView(AuthedView):
             service_attach_info.save()
             if service_attach_info.memory_pay_method == "prepaid" and buy_end_time > now:
                 # 预付费期间扩容,扣钱
+                create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                                     "prepaid_money": need_pay_money, "pay_status": "payed", "cost_type": "extend",
                                     "node_memory": int(node_memory), "node_num": int(node_num),
@@ -498,6 +501,7 @@ class PrePaidPostponeView(AuthedView):
             if balance < need_money:
                 result["status"] = "not_enough"
                 return JsonResponse(result, status=200)
+            create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             service_fee_bill = {"tenant_id": self.service.tenant_id, "service_id": self.service.service_id,
                                 "prepaid_money": need_money, "pay_status": "payed", "cost_type": "renew",
                                 "node_memory": service_attach_info.min_memory, "node_num": service_attach_info.min_node,

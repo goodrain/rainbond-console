@@ -11,7 +11,7 @@ from main import BaseModel
 class DockerService(BaseModel):
     class Meta:
         db_table = 'docker_service'
-    compose_id = models.IntegerField(max_length=11, help_text=u"DockerComposeYaml的ID")
+    compose_id = models.IntegerField(help_text=u"DockerComposeYaml的ID")
     command = models.CharField(max_length=100, null=True, blank=True, help_text=u"替换默认的command")
 
     name = models.CharField(max_length=100, help_text=u"服务的节点名称")

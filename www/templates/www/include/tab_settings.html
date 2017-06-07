@@ -7,14 +7,14 @@
         <div class="">
             <div class="row">
                 <label class="col-xs-2 control-label text-right">应用名称</label>
-                <label class="col-xs-8 control-label" id="lit-appname">
+                <label class="col-xs-8 control-label text-left" id="lit-appname">
                     {{ tenantServiceInfo.service_cname }}
                     <a href="javascript:;" class="fn-rename" style="color: #28cb75; text-decoration: underline; padding-left: 10px;">更名</a>
                 </label>
             </div>
             <div class="row">
                 <label class="col-xs-2 control-label text-right">所属组</label>
-                <div class="fn-choose-group col-xs-8  choose-group-box ">
+                <div class="fn-choose-group col-xs-8  choose-group-box text-left">
                     <a href="javascript:;" class="fn-name">
                         {% with cur_group=serviceGroupIdMap|mkey:tenantServiceInfo.service_id %}
                             {% with groupName=serviceGroupNameMap|mkey:cur_group %}
@@ -73,7 +73,12 @@
                                 }
                             },
                             error: function () {
-                                swal("系统异常,请重试");
+                                console.log(XMLHttpRequest.status);
+                                if (XMLHttpRequest.status == '403'){
+                                    swal("您的权限不够");
+                                }else {
+                                    swal("系统异常,请重试");
+                                }
                             }
                         });
                         /////
@@ -87,7 +92,7 @@
             {% if tenantServiceInfo.category == "application" and show_git %}
                 <div class="row">
                     <label class="col-xs-2 control-label text-right">Git仓库</label>
-                    <label class="col-xs-6 control-label">
+                    <label class="col-xs-6 control-label text-left">
                         {% if tenantServiceInfo.code_from == "gitlab_manual" %}
                             <a href="{{ href_url|default:httpGitUrl }}">{{ httpGitUrl }}</a>
                         {% else %}
@@ -95,7 +100,7 @@
                         {% endif %}
                     </label>
                     {% if 'manage_service' in user.actions  and git_tag and tenantServiceInfo.code_from != "gitlab_manual" %}
-                        <div class="col-xs-4">
+                        <div class="col-xs-4 text-left">
                             <div class="col-xs-4 control-label">
                                 <select name="branch" id="git_branch" class="git-branch-change" style="width:100%;">
                                 </select>
@@ -108,14 +113,14 @@
                             </div>
                         </div>
                     {% else %}
-                        <div class="col-xs-4">{{ tenantServiceInfo.code_version }}</div>
+                        <div class="col-xs-4 text-left">{{ tenantServiceInfo.code_version }}</div>
                     {% endif %}
                 </div>
             {% endif %}
 
             <div class="row">
                 <label class="col-xs-2 control-label text-right">持久化配置</label>
-                <div class="col-xs-2" style="line-height: 30px;">共享</div>
+                <div class="col-xs-2 text-left" style="line-height: 30px;">共享</div>
             </div>
 
             <div class="row" style="display: none;">
@@ -154,6 +159,7 @@
         </div>
     </section>
     <input type="hidden" id="service_port_type" value="{{ tenantServiceInfo.port_type }}">
+    <input type="hidden" id="language" value="{{ tenantServiceInfo.language }}">
     <!-- 01 -->
     <!-- 多端口修改开始 02 -->
     <section class="content-tab">
@@ -307,7 +313,7 @@
     </section>
     <!-- 03-->
     <!-- 04-->
-    {% if tenantServiceInfo.category == "application" %}
+
         <section class="content-tab">
             <p class="tit-two">持久化数据设置<span>(设置后需要重启服务)</span></p>
 
@@ -323,24 +329,26 @@
                     <tr>
                         <td>{{ volume.volume_path }}</td>
                         <td>
+                            {% if tenantServiceInfo.category == "application" %}
                             <button type="button" class="btn btn-danger btn-xs"
                                     data-id="{{ volume.ID }}" onclick="cancel_volume(this);">
                                 <i class="fa fa-trash-o"></i>
                             </button>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
-
             <div id="edit_volume_div" style="margin-top: 10px;"></div>
             <div class="clearfix" style="padding: 8px;"></div>
+            {% if tenantServiceInfo.category == "application" %}
             <button type="button" class="btn greenbtn" id="add_volume_attr" style="margin-top: 10px;"
                     data-language="{{ tenantServiceInfo.language }}">新增持久化设置
             </button>
-
+            {% endif %}
         </section>
-    {% endif %}
+
     <!-- 04-->
     <!-- 05-->
     <section class="content-tab">
@@ -542,6 +550,16 @@
     {% endif %}
     <!--end permission-->
     <!-- 06-->
+    <!-- add 07 start -->
+    {% if not is_private and cloud_assistant == 'goodrain' %}
+        {% if tenantServiceInfo.service_key == '0000' or tenantServiceInfo.category == "app_publish" %}
+        <section class="content-tab">
+            <p class="tit-two">应用特性增强</p>
+            <p class="onoffbox clearfix"><input type="checkbox" name="hightraly"  id="hightraly"  class="checkhide" /><label class="checkshow" for="hightraly"></label><cite style="color: #838383; line-height: 30px; padding-left: 10px; font-size: 14px;">打开此开关则启动反向代理、负载均衡、熔断器等功能。熔断阀值需在依赖中对应的应用里设置。</cite></p>
+        </section>
+        {% endif %}
+    {% endif %}
+    <!-- add 07 end -->
     <!-- 07-->
     {% if 'delete_service' in user.actions %}
 
@@ -628,6 +646,67 @@
                 $("a[name='custom_domain_select']").html(target_str);
             }
         });
+        // 高级依赖
+        ///ajax  加载判断  start 
+        $.ajax({
+            type : "POST",
+            url : "/ajax/{{tenantName}}/{{serviceAlias}}/is_midrain", 
+            data : {
+                   "action":"check"     
+            },
+            cache : false,
+            async : false,
+            beforeSend : function(xhr, settings) {
+                var csrftoken = $.cookie('csrftoken');
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success : function(data) {
+                console.log(data);
+                if(data.is_mid == "yes"){
+                    $("#hightraly").attr("checked","true");
+                }else{
+                    $("#hightraly").removeAttr("checked");
+                }
+            },
+            error : function() {
+                console.log("系统异常");
+            }
+        });
+        ///ajax 加载判断 end 
+        // 修改
+        $("#hightraly").change(function(){
+            var hightonoff = $("#hightraly").prop("checked");
+            var highonoff = "";
+            if(hightonoff == true){
+                highonoff  = "add";
+            }else{
+                highonoff  = "del";
+            }
+            ///ajax 
+            $.ajax({
+                type : "POST",
+                url : "/ajax/{{tenantName}}/{{serviceAlias}}/is_midrain", 
+                data : {
+                       "action":highonoff   
+                },
+                cache : false,
+                async : false,
+                beforeSend : function(xhr, settings) {
+                    var csrftoken = $.cookie('csrftoken');
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success : function(data) {
+                    if(data.status == "success"){
+                        swal("设置成功。");
+                    }
+                },
+                error : function() {
+                    swal("系统异常");
+                }
+            });
+            ///ajax  
+        });
+        // 高级依赖
     });
 
     function clear_volume() {
@@ -840,7 +919,12 @@
                 }
             },
             error: function () {
-                swal("系统异常");
+                console.log(XMLHttpRequest.status);
+                if (XMLHttpRequest.status == '403'){
+                    swal("您的权限不够");
+                }else {
+                    swal("系统异常,请重试");
+                }
             }
         })
     }
@@ -864,7 +948,12 @@
                 }
             },
             error: function () {
-                swal("系统异常");
+                console.log(XMLHttpRequest.status);
+                if (XMLHttpRequest.status == '403'){
+                    swal("您的权限不够");
+                }else {
+                    swal("系统异常,请重试");
+                }
             }
         })
     }
@@ -888,7 +977,12 @@
                 }
             },
             error: function () {
-                swal("系统异常");
+                console.log(XMLHttpRequest.status);
+                if (XMLHttpRequest.status == '403'){
+                    swal("您的权限不够");
+                }else {
+                    swal("系统异常,请重试");
+                }
             }
         })
     }
@@ -923,7 +1017,12 @@
                 flush()
             },
             error: function () {
-                swal("系统异常");
+                console.log(XMLHttpRequest.status);
+                if (XMLHttpRequest.status == '403'){
+                    swal("您的权限不够");
+                }else {
+                    swal("系统异常,请重试");
+                }
             }
         })
     }

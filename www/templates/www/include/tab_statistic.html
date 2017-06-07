@@ -6,7 +6,8 @@
         <a href="/apps/{{tenantName}}/{{serviceAlias}}/detail/?fr=statistic&type=realtime" class="writebtn  {% if statistic_type == 'realtime' %} gre {% endif %}" data-id="realtime">实时分析</a>
         {% endif %}
     </div>
-  <input type="hidden" id="websocketUrl" name="websocketUrl" value="{{websocket_uri}}">
+     <input type="hidden" value="{{ monitor_websocket_uri }}" id="web_url_log" />
+  
   {% if statistic_type == 'history' %}
    <div style="margin-top: -50px; margin-bottom: 60px;">
      <div class="col-xs-9"></div>

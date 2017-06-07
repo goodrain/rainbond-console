@@ -13,8 +13,10 @@ import json
 from api.views.services.sendapp import AppSendUtil
 from django.conf import settings
 from www.region import RegionInfo
+from api.back_service_install import BackServiceInstall
 
 import logging
+
 logger = logging.getLogger('default')
 
 regionClient = RegionServiceApi()
@@ -26,7 +28,7 @@ class SelectedServiceView(APIView):
     '''
     对单个服务的动作
     '''
-    allowed_methods = ('PUT','POST',)
+    allowed_methods = ('PUT', 'POST',)
 
     def get(self, request, serviceId, format=None):
         """
@@ -51,6 +53,7 @@ class SelectedServiceView(APIView):
         """
         logger.debug("api.service", request.data)
         image = request.data.get("image", None)
+        event_id = request.data.get("event_id", "")
         if serviceId is None or image is None:
             return Response({"success": False, "msg": "param is error!"}, status=500)
         service_num = TenantServiceInfo.objects.filter(service_id=serviceId).count()
@@ -79,7 +82,8 @@ class SelectedServiceView(APIView):
             user = Users.objects.get(pk=user_id)
             body = {
                 "deploy_version": service.deploy_version,
-                "operator": user.nick_name
+                "operator": user.nick_name,
+                "event_id": event_id,
             }
             regionClient.start(service.service_region, service.service_id, json.dumps(body))
             monitorhook.serviceMonitor(user.nick_name, service, 'app_start', True)
@@ -274,15 +278,15 @@ class PublishServiceView(APIView):
         data = {}
         isys = False
         serviceInfo = None
-        logger.debug("invoke publish service method")
         try:
             service_key = request.data.get('service_key', "")
             app_version = request.data.get('app_version', "")
+            logger.debug("invoke publish service method  service_key:" + service_key + " service_version" + app_version)
             image = request.data.get('image', "")
             slug = request.data.get('slug', "")
             dest_yb = request.data.get('dest_yb', False)
             dest_ys = request.data.get('dest_ys', False)
-            
+
             app = AppService.objects.get(service_key=service_key, app_version=app_version)
             if not app.dest_yb:
                 app.dest_yb = dest_yb
@@ -353,8 +357,13 @@ class PublishServiceView(APIView):
             logger.exception(e)
             return Response({"ok": False}, status=500)
 
+        logger.debug(" ==> isok:{0}".format(isok))
+        logger.debug(" ==> isys:{0}".format(isys))
+        logger.debug(" ==> Publish_YunShi:{0}".format(settings.MODULES["Publish_YunShi"]))
+
         # 发布到云市,调用http接口发送数据
         if isok and isys and settings.MODULES["Publish_YunShi"]:
+            logger.debug(" =====> publish to app market!")
             data = self.init_data(app, slug, image)
             apputil = AppSendUtil(service_key, app_version)
             # 发送服务参数不发送图片参数
@@ -372,6 +381,14 @@ class PublishServiceView(APIView):
             num = AppServiceExtend.objects.filter(service_key=service_key, app_version=app_version).count()
             if num == 1:
                 data["publish_flow_type"] = 1
+
+            share_id = None
+            try:
+                share_id = request.data.get('share_id', None)
+                logger.debug("====> share id is " + share_id)
+            except Exception as e:
+                logger.exception(e)
+            data["share_id"] = share_id
             apputil.send_services(data)
             # 发送图片
             if str(app.logo) is not None and str(app.logo) != "":
@@ -382,10 +399,11 @@ class PublishServiceView(APIView):
             # self.downloadImage(serviceInfo)
 
             # 判断是否服务组发布,发布是否成功
-            share_id = request.data.get('share_id', None)
+            logger.debug("========> before send app group !")
+            app_service_group = None
             try:
-                if share_id is not None:
-                    app_service_group = None
+                logger.debug(dest_ys)
+                if share_id is not None and dest_ys:
                     try:
                         app_service_group = AppServiceGroup.objects.get(group_share_id=share_id)
                     except AppServiceGroup.DoesNotExist as e:
@@ -393,7 +411,9 @@ class PublishServiceView(APIView):
                     if app_service_group is not None:
                         curr_step = app_service_group.step
                         if curr_step > 0:
+                            logger.debug("before remove one app from app_group ! step {}".format(curr_step))
                             curr_step -= 1
+                            logger.debug("after remove one app from app_group ! step {}".format(curr_step))
                             app_service_group.step = curr_step
                             app_service_group.save()
                         # 判断是否为最后一次调用,发布到最后一个应用后将组信息填写到云市
@@ -405,41 +425,82 @@ class PublishServiceView(APIView):
                                           "group_key": app_service_group.group_share_id,
                                           "tenant_id": tenant_id, "group_version": app_service_group.group_version,
                                           "publish_type": app_service_group.publish_type,
-                                          "desc":app_service_group.desc,
+                                          "desc": app_service_group.desc,
                                           "installable": app_service_group.installable}
                             tmp_ids = app_service_group.service_ids
                             service_id_list = json.loads(tmp_ids)
                             if len(service_id_list) > 0:
                                 # 查询最新发布的信息发送到云市。现在同一service_id会发布不同版本存在于云市,取出最新发布的
-                                service_list = self.get_newest_published_service(service_id_list, tenant_id)
-                                tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list, tenant_id=tenant_id)
-                                service_category_map = {x.service_id: "self" if x.category == "application" else "other" for x in tenant_service_list}
+                                app_service_list = self.get_newest_published_service(service_id_list)
+                                tenant_service_list = TenantServiceInfo.objects.filter(service_id__in=service_id_list,
+                                                                                       tenant_id=tenant_id)
+                                service_category_map = {x.service_id: "self" if x.category == "application" else "other"
+                                                        for x in tenant_service_list}
+                                logger.debug("===> service_category_map {}".format(service_category_map))
                                 service_data = []
-                                for service in service_list:
-                                    service_map = {"service_key": service.service_key,
-                                                   "version": service.app_version,
-                                                   "owner": service_category_map.get(service.service_id)}
+                                for app in app_service_list:
+                                    owner = service_category_map.get(app.service_id,"other")
+                                    service_map = {"service_key": app.service_key,
+                                                   "version": app.app_version,
+                                                   "owner": owner}
 
                                     service_data.append(service_map)
                                 param_data["data"] = service_data
-                                # 发送组信息到云市
+                                # 执行后台安装应用组流程
+                                backServiceInstall = BackServiceInstall()
+                                group_id, grdemo_service_ids, url_map = backServiceInstall.install_services(share_id)
+                                grdemo_console_url = "https://user.goodrain.com/apps/grdemo/myservice/?gid={}".format(
+                                    str(group_id))
 
+                                param_data.update({"console_url": grdemo_console_url})
+                                param_data.update({"preview_urls": url_map})
+                                # 发送组信息到云市
                                 num = apputil.send_group(param_data)
                                 if num != 0:
                                     logger.exception("publish service group failed!")
-                        # 应用组发布成功
-                        app_service_group.is_success = True
-                        app_service_group.save()
+                            # 应用组发布成功
+                            app_service_group.is_success = True
+                            app_service_group.save()
             except Exception as e:
+                app_service_group.is_success = False
+                app_service_group.save()
                 logger.exception(e)
                 logger.error("publish service group failed!")
 
         return Response({"ok": True}, status=200)
 
-    def get_newest_published_service(self, service_id_list, tenant_id):
+    def is_published(self,service_id):
+        """
+        根据service_id判断服务是否发布过
+        :param service_id: 服务 ID
+        :return: 是否发布, 发布的服务对象
+        """
+        result = True
+        rt_app = None
+        service = TenantServiceInfo.objects.get(service_id=service_id)
+        if service.category != "app_publish":
+            result = False
+        else:
+            app_list = AppService.objects.filter(service_key=service.service_key, app_version=service.version).order_by(
+                "-ID")
+            if len(app_list) == 0:
+                app_list = AppService.objects.filter(service_key=service.service_key).order_by("-ID")
+                if len(app_list) == 0:
+                    result = False
+                else:
+                    rt_app = app_list[0]
+            else:
+                rt_app = app_list[0]
+        return result, rt_app
+
+    def get_newest_published_service(self, service_id_list):
         result = []
         for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id, tenant_id=tenant_id).order_by("-ID")
+            is_pubilsh, app = self.is_published(service_id)
+            if is_pubilsh:
+                result.append(app)
+                continue
+            apps = AppService.objects.filter(service_id=service_id).order_by("-ID")
             if apps:
                 result.append(apps[0])
         return result
@@ -450,12 +511,15 @@ class PublishServiceView(APIView):
         try:
             download_task = {}
             if base_info.is_slug():
-                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key, "app_version": base_info.version, "namespace": base_info.namespace, "dep_sids": json.dumps([])}
+                download_task = {"action": "download_and_deploy", "app_key": base_info.service_key,
+                                 "app_version": base_info.version, "namespace": base_info.namespace,
+                                 "dep_sids": json.dumps([])}
                 for region in RegionInfo.valid_regions():
                     logger.info(region)
                     regionClient.send_task(region, 'app_slug', json.dumps(download_task))
             else:
-                download_task = {"action": "download_and_deploy", "image": base_info.image, "namespace": base_info.namespace, "dep_sids": json.dumps([])}
+                download_task = {"action": "download_and_deploy", "image": base_info.image,
+                                 "namespace": base_info.namespace, "dep_sids": json.dumps([])}
                 for region in RegionInfo.valid_regions():
                     regionClient.send_task(region, 'app_image', json.dumps(download_task))
         except Exception as e:
@@ -836,5 +900,3 @@ class QueryTenantView(APIView):
         except Users.DoesNotExist:
             logger.error("---no user info for:{}".format(user_id))
         return Response(status=500)
-
-

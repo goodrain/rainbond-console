@@ -16,4 +16,5 @@ __all__ = ('ServiceIdentity',
            'FormValidView',
            'ServiceGraph',
            'RemoteServiceMarketAjax',
-           'TopologicalGraphView')
+           'TopologicalGraphView',
+           'TopologicalServiceView',)

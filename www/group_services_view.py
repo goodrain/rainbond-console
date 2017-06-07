@@ -8,12 +8,14 @@ from django.template.response import TemplateResponse
 from django.http import JsonResponse
 
 from share.manager.region_provier import RegionProviderManager
-from www.models.main import ServiceAttachInfo, ServiceFeeBill, ServiceGroup, GroupCreateTemp
+from www.models.main import ServiceAttachInfo, ServiceFeeBill, ServiceGroup, GroupCreateTemp, TenantServiceEnvVar, \
+    TenantServicesPort, TenantServiceVolume, ServiceDomain
 from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
-                        AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep, AppServiceGroup)
+                        AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep, AppServiceGroup,
+                        PublishedGroupServiceRelation)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, \
     TenantRegionService, \
@@ -188,12 +190,17 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             data["status"] = "success"
         return need_create_service, is_pass, data
 
-    def get_newest_published_service(self, service_id_list, tenant_id):
+    def get_published_service_info(self, groupId):
         result = []
-        for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id, tenant_id=tenant_id).order_by("-ID")
+        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=groupId)
+        for pgsr in pgsr_list:
+            apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
             if apps:
                 result.append(apps[0])
+            else:
+                apps = AppService.objects.filter(service_key=pgsr.service_key).order_by("-ID")
+                if apps:
+                    result.append(apps[0])
         return result
 
     @never_cache
@@ -203,7 +210,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
         try:
             # 新创建的组ID
             group_id = request.GET.get("group_id")
-            service_group = ServiceGroup.objects.filter(tenant_id=self.tenant.tenant_id, region_name=self.response_region, pk=group_id)
+            service_group = ServiceGroup.objects.filter(pk=group_id)
             if not service_group:
                 raise Http404
             context["group_id"] = group_id
@@ -211,9 +218,11 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = self.get_newest_published_service(service_id_list,tenant_id=self.tenant.tenant_id)
+            logger.debug("service_id_list: {}".format(service_id_list))
+            app_service_list = self.get_published_service_info(groupId)
             published_service_list = []
             for app_service in app_service_list:
+                logger.debug("app_service info:"+app_service.service_key+"  -  "+app_service.app_version)
                 services = ServiceInfo.objects.filter(service_key=app_service.service_key,version=app_service.app_version)
                 services = list(services)
                 # 没有服务模板,需要下载模板
@@ -231,8 +240,8 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
                             app_service.service_key, app_service.app_version))
             # 发布的应用有不全的信息
             if len(published_service_list) != len(service_id_list):
-                logger("published_service_list ===== ",len(published_service_list))
-                logger("service_id_list ===== ",len(service_id_list))
+                logger.debug("published_service_list ===== {0}".format(len(published_service_list)))
+                logger.debug("service_id_list ===== {}".format(len(service_id_list)))
                 logger.error("publised service is not found in table service")
                 context["success"] = False
                 return TemplateResponse(self.request, "www/group/group_app_create_step_2.html", context)
@@ -262,7 +271,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
                 data["status"] = "failure"
                 return JsonResponse(data, status=200)
             need_create_service, is_pass, result = self.preprocess(services)
-            logger.debug("=======> need_create_service ",need_create_service)
+            logger.debug("need_create_service: {}".format(need_create_service))
             if not is_pass:
                 return JsonResponse(result, status=200)
             is_success = True
@@ -320,7 +329,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
     def create_console_service(self, published_services, service_group_id):
         for service_info in published_services:
-            gct = GroupCreateTemp.objects.get(service_key=service_info.service_key)
+            gct = GroupCreateTemp.objects.get(service_key=service_info.service_key,tenant_id=self.tenant.tenant_id,service_group_id=service_group_id)
             service_id = gct.service_id
             service_alias = "gr" + service_id[-6:]
 
@@ -347,7 +356,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 key_app_map[app.service_key] = [ds.dep_service_key for ds in dep_services]
             else:
                 key_app_map[app.service_key] = []
-        logger.debug("=====> service_map ",service_map)
+        logger.debug(" service_map:{} ".format(service_map))
         service_keys = self.topological_sort(key_app_map)
 
         for key in service_keys:
@@ -372,26 +381,50 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 dfs(graph, start_node)
         return li
 
-    def create_dep_service(self, service_info, service_id):
+    def create_dep_service(self, service_info, service_id,service_group_id):
         app_relations = AppServiceRelation.objects.filter(service_key=service_info.service_key,
                                                           app_version=service_info.version)
         dep_service_ids = []
         if app_relations:
             for dep_app in app_relations:
-                temp = GroupCreateTemp.object.get(service_key=dep_app.dep_service_key)
+                temp = GroupCreateTemp.objects.get(service_key=dep_app.dep_service_key,tenant_id=self.tenant.tenant_id,service_group_id=service_group_id)
                 dep_service_ids.append(temp.service_id)
 
         for dep_id in dep_service_ids:
             baseService.create_service_dependency(self.tenant.tenant_id, service_id, dep_id, self.response_region)
         logger.info("create service info for service_id{0} ".format(service_id))
 
-    def get_newest_published_service(self, service_id_list, tenant_id):
+    def get_published_service_info(self, groupId):
         result = []
-        for service_id in service_id_list:
-            apps = AppService.objects.filter(service_id=service_id, tenant_id=tenant_id).order_by("-ID")
+        pgsr_list = PublishedGroupServiceRelation.objects.filter(group_pk=groupId)
+        for pgsr in pgsr_list:
+            apps = AppService.objects.filter(service_key=pgsr.service_key,app_version=pgsr.version).order_by("-ID")
             if apps:
                 result.append(apps[0])
+            else:
+                apps = AppService.objects.filter(service_key=pgsr.service_key).order_by("-ID")
+                if apps:
+                    result.append(apps[0])
         return result
+
+    def set_direct_copy_options(self, envs,service_id,service_key,version):
+        outer_ports = AppServicePort.objects.filter(service_key=service_key,
+                                                    app_version=version,
+                                                    is_outer_service=True,
+                                                    protocol='http')
+        service_alias = "gr" + service_id[-6:]
+        for env in envs:
+            if env.attr_name == 'SITE_URL' or env.attr_name == 'TRUSTED_DOMAIN':
+                if self.cookie_region in RegionInfo.valid_regions():
+                    env.options = 'direct_copy'
+                    if len(outer_ports) > 0:
+                        port = RegionInfo.region_port(self.response_region)
+                        domain = RegionInfo.region_domain(self.response_region)
+                        if env.attr_name == 'SITE_URL':
+                            env.attr_value = 'http://{}.{}.{}{}:{}'.format(outer_ports[0].container_port, service_alias, self.tenantName, domain, port)
+                        else:
+                            env.attr_value = '{}.{}.{}{}:{}'.format(outer_ports[0].container_port, service_alias, self.tenantName, domain, port)
+
 
     @never_cache
     @perm_required('code_deploy')
@@ -405,18 +438,18 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
             context["createApp"] = "active"
             context["tenantName"] = self.tenantName
-            temp_list = GroupCreateTemp.objects.filter(share_group_id=groupId, tenant_id=tenant_id)
+            temp_list = GroupCreateTemp.objects.filter(share_group_id=groupId, tenant_id=tenant_id,service_group_id=group_id)
             if len(temp_list) == 0:
                 return self.redirect_to("/apps/{0}/group-deploy/{1}/step1/".format(self.tenantName, groupId))
             service_cname_map = {tmp.service_key:tmp.service_cname for tmp in temp_list}
-            logger.debug("====> service_cname_map",service_cname_map)
+            logger.debug("service_cname_map:{}".format(service_cname_map))
             context["service_cname_map"] = service_cname_map
 
             shared_group = AppServiceGroup.objects.get(ID=groupId)
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = self.get_newest_published_service(service_id_list,tenant_id=tenant_id)
+            app_service_list = self.get_published_service_info(groupId)
             app_port_map = {}
             app_relation_map = {}
             app_env_map = {}
@@ -426,7 +459,13 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 port_list = AppServicePort.objects.filter(service_key=app.service_key, app_version=app.app_version)
                 app_port_map[app.service_key] = list(port_list)
                 # 环境变量
-                env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version)
+                env_list = AppServiceEnv.objects.filter(service_key=app.service_key, app_version=app.app_version, container_port=0, is_change=True)
+                gct_list = GroupCreateTemp.objects.filter(service_key=app.service_key,tenant_id=self.tenant.tenant_id,service_group_id=group_id)
+                if gct_list:
+                    service_id = gct_list[0].service_id
+                else:
+                    service_id = None
+                self.set_direct_copy_options(env_list, service_id,app.service_key,app.app_version)
                 app_env_map[app.service_key] = list(env_list)
                 # 持久化路径
                 volumn_list = AppServiceVolume.objects.filter(service_key=app.service_key, app_version=app.app_version)
@@ -465,6 +504,10 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 return JsonResponse(data, status=200)
 
             service_group_id = request.POST.get("group_id", None)
+            envs = request.POST.get("envs", "")
+            env_map = json.loads(envs)
+            logger.debug("====> env_map: {}".format(env_map))
+
             if not service_group_id:
                 data.update({"success": False, "status": "failure", "info": u"服务异常"})
                 return JsonResponse(data, status=500)
@@ -473,7 +516,7 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             # 查询分享组中的服务ID
             service_ids = shared_group.service_ids
             service_id_list = json.loads(service_ids)
-            app_service_list = AppService.objects.filter(service_id__in=service_id_list)
+            app_service_list = self.get_published_service_info(groupId)
             published_services = []
             for app in app_service_list:
                 # 第二步已经做过相应的判断,此处可以不用重复判断版本是否正确
@@ -481,14 +524,16 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                 if service_list:
                     published_services.append(service_list[0])
 
-            logger.debug("===> before sort  :", [x.service_key for x in published_services])
+            logger.debug("===> before sort  :{}".format([x.service_key for x in published_services]))
             # 根据依赖关系将服务进行排序
             sorted_service = self.sort_service(published_services)
-            logger.debug("===> after sort  :", [x.service_key for x in sorted_service])
+            logger.debug("===> after sort  :{}".format([x.service_key for x in sorted_service]))
 
             for service_info in sorted_service:
-                gct = GroupCreateTemp.objects.get(service_key=service_info.service_key)
+                logger.debug("service_info.service_key: {}".format(service_info.service_key))
+                gct = GroupCreateTemp.objects.get(service_key=service_info.service_key,tenant_id=self.tenant.tenant_id,service_group_id=service_group_id)
                 service_id = gct.service_id
+                logger.debug("gct.service_id: {}".format(gct.service_id))
                 current_service_ids.append(service_id)
                 service_alias = "gr" + service_id[-6:]
                 # console层创建服务和组关系
@@ -503,13 +548,19 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                                                             tenant_id=self.tenant.tenant_id,
                                                             region_name=self.response_region)
                 monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
+
                 # 创建服务依赖
-                self.create_dep_service(service_info, service_id)
+                logger.debug("===> create service dependency!")
+                self.create_dep_service(service_info, service_id,service_group_id)
                 # 环境变量
-                self.copy_envs(service_info, newTenantService)
+                logger.debug("===> create service env!")
+                env_list = env_map.get(service_info.service_key)
+                self.copy_envs(service_info, newTenantService,env_list)
                 # 端口信息
+                logger.debug("===> create service port!")
                 self.copy_ports(service_info, newTenantService)
                 # 持久化目录
+                logger.debug("===> create service volumn!")
                 self.copy_volumes(service_info, newTenantService)
 
                 dep_sids = []
@@ -526,7 +577,19 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
         except Exception as e:
             logger.exception(e)
-            TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id,service_id__in=current_service_ids).delete()
+            try:
+                for service_id in current_service_ids:
+                    regionClient.delete(self.response_region, service_id)
+            except Exception as e:
+                pass
+            TenantServiceInfo.objects.filter(tenant_id=self.tenant.tenant_id, service_id__in=current_service_ids).delete()
+            TenantServiceAuth.objects.filter(service_id__in=current_service_ids).delete()
+            ServiceDomain.objects.filter(service_id__in=current_service_ids).delete()
+            TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id__in=current_service_ids).delete()
+            TenantServiceEnvVar.objects.filter(tenant_id=self.tenant.tenant_id, service_id__in=current_service_ids).delete()
+            TenantServicesPort.objects.filter(tenant_id=self.tenant.tenant_id, service_id__in=current_service_ids).delete()
+            TenantServiceVolume.objects.filter(service_id__in=current_service_ids).delete()
+
             data.update({"success": False, "code": 500})
 
         return JsonResponse(data, status=200)
@@ -541,13 +604,21 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
                                        port_alias=port.port_alias,
                                        is_inner_service=port.is_inner_service, is_outer_service=port.is_outer_service)
 
-    def copy_envs(self, service_info, current_service):
+    def copy_envs(self, service_info, current_service,env_list):
         s = current_service
         baseService = BaseTenantService()
+        has_env = []
+        for e in env_list:
+            source_env = AppServiceEnv.objects.get(service_key=s.service_key, app_version=s.version,
+                                                   attr_name=e["attr_name"])
+            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, source_env.container_port, source_env.name,
+                                          e["attr_name"], e["attr_value"], source_env.is_change, source_env.scope)
+            has_env.append(source_env.attr_name)
         envs = AppServiceEnv.objects.filter(service_key=service_info.service_key, app_version=service_info.version)
         for env in envs:
-            baseService.saveServiceEnvVar(s.tenant_id, s.service_id, env.container_port, env.name,
-                                          env.attr_name, env.attr_value, env.is_change, env.scope)
+            if env.attr_name not in has_env:
+                baseService.saveServiceEnvVar(s.tenant_id, s.service_id, env.container_port, env.name,
+                                              env.attr_name, env.attr_value, env.is_change, env.scope)
 
     def copy_volumes(self, source_service, tenant_service):
         volumes = AppServiceVolume.objects.filter(service_key=source_service.service_key, app_version=source_service.version)

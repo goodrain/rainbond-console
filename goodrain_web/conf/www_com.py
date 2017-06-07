@@ -102,6 +102,13 @@ WEBSOCKET_URL = {
     'xunda-bj': 'wss://mpush-xunda-bj.goodrain.com:6060/websocket',
 }
 
+EVENT_WEBSOCKET_URL = {
+    'ali-sh': 'wss://event-ali-sh.goodrain.com:6360',
+    'xunda-bj': 'wss://event-xunda-bj.goodrain.com:6360',
+    'aws-jp-1': 'wss://event-aws-jp-1.goodrain.com:6360',
+    "test-ali": "ws://test.goodrain.com:6363"
+}
+
 REGION_RULE = {
     'ucloud-bj-1': {'personal_money': 0.083, 'company_money': 0.332, 'personal_month_money': 60,
                     'company_month_money': 120},
