@@ -3,7 +3,7 @@ a:hover{text-decoration: none;}
 div.applisttit{ margin:20px 20px 0; background: url('../images/titicon.png') no-repeat; height: 48px; line-height: 48px; color: #666;  clear:both; color: #666666; font-size: 30px; line-height: 48px; text-indent: 60px;}
 em,cite,span{font-style: normal;}
 
-#app-group{padding-bottom: 10px;}
+#app-group{padding-bottom: 10px;position:relative;z-index:10;}
 #app-group select{width: 100px; height: 30px; line-height: 30px;}
 .bs-checkbox{text-align: center;}
 .numbers-box{padding-top: 10px;}
