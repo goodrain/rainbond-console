@@ -297,7 +297,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                     ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
                                                   prepaid_money=sai.pre_paid_money, pay_status="unpayed",
                                                   cost_type="first_create", node_memory=min_memory, node_num=min_node,
-                                                  disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time)
+                                                  disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time,
+                                                  pay_time=create_time)
 
                 service_alias = "gr" + service_id[-6:]
                 service_image = service_attach_info.get("service_image")
