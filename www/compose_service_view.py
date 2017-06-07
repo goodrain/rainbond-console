@@ -187,10 +187,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
 
             context["compose_relations"] = json.dumps(compose_relations)
             # linked去重
-            logger.debug("linked_json type %s" %type(linked))
             linked = list(set(linked))
-            logger.debug("linked_json")
-            logger.debug(linked)
             context["linked_service"] = linked
             context["service_list"] = service_list
             context["compose_file_id"] = compose_file_id
@@ -503,8 +500,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
                     baseService.create_region_service(newTenantService, self.tenantName, self.response_region,
                                                       self.user.nick_name, dep_sids=json.dumps([]))
                     monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'init_region_service', True)
-                    logger.debug("depends_services")
-                    logger.debug(depends_services_list)
                     for dep_service in depends_services_list:
                         dep_service_id = deps[dep_service]
                         baseService.create_service_dependency(tenant_id, service_id, dep_service_id,
