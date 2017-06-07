@@ -40,7 +40,7 @@ def send_phone_message(phone, phonecode):
     # 3.1 设置SMSSignName和SMSTempateCode
     direct_sms_attr = DirectSMSInfo(free_sign_name=sign_name, template_code=template_code, single=False)
     # 3.2 指定接收短信的手机号并指定发送给该接收人的短信中的参数值（在短信模板中定义的）
-    direct_sms_attr.add_receiver(receiver=receiver_phone_number, params={"code": phonecode})
+    direct_sms_attr.add_receiver(receiver=receiver_phone_number, params={"code": str(phonecode)})
     # Step 4. 生成SMS消息属性，single=True表示每个接收者参数一样
     # direct_sms_attr2 = DirectSMSInfo(free_sign_name="$YourSignName", template_code="$YourSMSTemplateCode", single=True)
     # direct_sms_attr2.add_receiver(receiver="$YourReceiverPhoneNumber1")
