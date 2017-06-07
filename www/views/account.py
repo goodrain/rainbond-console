@@ -843,13 +843,16 @@ class PhoneCodeView(BaseView):
                     result["status"] = "limited"
                     return JsonResponse(result)
             phone_code = random.randrange(0, 1000001, 6)
-            send_result = send_phone_message(phone, phone_code)
-            if not send_result:
-                send_result = send_phone_message(phone, phone_code)
-            newpc = PhoneCode(phone=phone, type="register", code=phone_code)
-            newpc.save()
-            monitorhook.phoneCodeMonitor(phone, phone_code, send_result)
-            result["status"] = "success"
+            send_result, message_id = send_phone_message(phone, phone_code)
+            # if not send_result:
+            #     send_result, message_id = send_phone_message(phone, phone_code)
+            if send_result:
+                newpc = PhoneCode(phone=phone, type="register", code=phone_code, message_id=message_id)
+                newpc.save()
+                monitorhook.phoneCodeMonitor(phone, phone_code, send_result)
+                result["status"] = "success"
+            else:
+                result["status"] = "error"
             return JsonResponse(result)
         except Exception as e:
             logger.exception(e)

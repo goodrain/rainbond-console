@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import os
 
 DEBUG = os.environ.get('DEBUG') or False
@@ -218,4 +219,14 @@ TENANT_VALID_TIME = 7
 YOUPAI = {
     'ACCESS_TOKEN': 'f67c2c20-e1f6-420a-b7d2-c0bbdef81a5f',
     'URL': 'https://api.upyun.com/'
+}
+
+ALIYUN_MNS = {
+    'ACCOUNTID': '1717643489397966',
+    'ACCESSKEYID': 'nMscVs3CaIXPEDUd',
+    'ACCESSKEYSECRET': 'g4RWmftifuJxqUdqEWc69h0exO2V46',
+    'ENDPOINT': 'http://1717643489397966.mns.cn-hangzhou.aliyuncs.com',
+    'TOPICNAME': 'sms.topic-cn-hangzhou',
+    'SIGNNAME': str('好雨科技'),
+    'TEMPLATECODE': 'SMS_70145489',
 }
