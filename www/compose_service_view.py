@@ -484,7 +484,7 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
 
                     depends_services_list = service_config.get("depends_services")
                     # depends_services 去重
-                    list(set(depends_services_list))
+                    depends_services_list = list(set(depends_services_list))
                     newTenantService = None
                     try:
                         newTenantService = TenantServiceInfo.objects.get(service_id=service_id)
