@@ -336,7 +336,8 @@
 
         	//拓扑图点击服务事件
         	window.handleClickService = function(nodeDetails){
-        		console.log(nodeDetails)
+        		var url = "/apps/{{tenantName}}/"+nodeDetails.service_alias+"/detail/";
+        		location.href=url;
         		
         	}
 
@@ -347,7 +348,7 @@
 
         	//拓扑图点击续费事件
         	window.handleClickGiveMoney = function(nodeDetails){
-        		console.log(nodeDetails)
+        		location.href='/apps/goodrain/recharge/';
         	}
 
         }catch(e){
