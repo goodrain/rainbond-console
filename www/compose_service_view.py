@@ -174,6 +174,8 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
                     docker_service.depends_on = self.json_loads(depends_on_json)
                     linked.extend(docker_service.links)
                     linked.extend(docker_service.depends_on)
+                    logger.debug("linked_on_json")
+                    logger.debug(linked)
                     temp.extend(docker_service.links)
                     temp.extend(docker_service.depends_on)
                     compose_relations[docker_service.name] = temp
@@ -481,7 +483,6 @@ class ComposeCreateStep3(LeftSideBarMixin, AuthedView):
 
                     depends_services_list = service_config.get("depends_services")
                     # depend server去重
-                    list(set(depends_services_list))
                     logger.debug("depends_services")
                     logger.debug(depends_services_list)
                     newTenantService = None
