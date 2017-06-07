@@ -187,6 +187,7 @@ class ComposeCreateStep2(LeftSideBarMixin, AuthedView):
 
             context["compose_relations"] = json.dumps(compose_relations)
             # linked去重
+            logger.debug("linked_json type %s" %type(linked))
             list(set(linked))
             logger.debug("linked_json")
             logger.debug(linked)
