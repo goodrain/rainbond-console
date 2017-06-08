@@ -5242,6 +5242,11 @@
   cursor: pointer;
   font-weight: bold; }
 
+.node-details-header a {
+  color: #fff;
+  display: inline-block;
+  border-bottom: 2px solid #fff; }
+
 .node-details {
   height: 100%;
   width: 420px;
