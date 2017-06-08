@@ -352,6 +352,14 @@
         		location.href='/apps/goodrain/recharge/';
         	}
 
+        	// 当拓扑图没有数据时调用
+        	window.onNodesEmpty = function(){
+        		$("#imgbtn").hide().removeClass("sed");
+		        $("#imgBox").hide();
+		        $("#tabBox").show();
+		        $("#tabbtn").addClass("sed");
+        	}
+
         }catch(e){
 
         }
