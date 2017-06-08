@@ -55,7 +55,7 @@
             <!-- 总览  -->
             <section id="overview" class="fn-app-box" style="display: block;">
                 <div class="view-svg" id="view-svg">
-                      <!-- weave scope 组件 -->
+                      <!-- weave scope 组件配置 -->
                       <script type="text/javascript">
                           window.weavescope  = {
                              getNodes:function(){
@@ -91,7 +91,14 @@
                                 
                              },
                              onNodeClick:function(nodeInfo){
-                                console.log(nodeInfo)
+                                $(".tablink a").each(function(){
+                                    var oText = $(this).html();
+                                    if(oText == oHtml){
+                                        $(this).addClass('sed').show();
+                                    }else{
+                                        $(this).removeClass('sed').hide();
+                                    }
+                                });
                              }
                           }
                       </script>

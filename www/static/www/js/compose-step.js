@@ -277,7 +277,7 @@ $(function(){
     }
     //
 
-    oSvgDiv.appendChild(oSvg);
+    //oSvgDiv.appendChild(oSvg);
     /// svg
     //图 end 
 
