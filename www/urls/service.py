@@ -81,10 +81,10 @@ urlpatterns = patterns(
 
     # new service group share
     url(r'^/(?P<groupId>[\w\-]+)/preview/$', ServiceGroupSharePreview.as_view()),
-    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/first/$', ServiceGroupShareOneView.as_view()),
-    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/second/$', ServiceGroupShareTwoView.as_view()),
-    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/third/$', ServiceGroupShareThreeView.as_view()),
-    url(r'^/(?P<groupId>[\w\-]+)/(?P<shareId>[\w\-]+)/fourth/$', ServiceGroupShareFourView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/first/$', ServiceGroupShareOneView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/second/$', ServiceGroupShareTwoView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/third/$', ServiceGroupShareThreeView.as_view()),
+    url(r'^/(?P<groupId>[\w\-]+)/(?P<share_pk>[\w\-]+)/fourth/$', ServiceGroupShareFourView.as_view()),
 
     # consume details
     url(r'^/cost-detail/$', login_required(ConsumeCostDetail.as_view())),

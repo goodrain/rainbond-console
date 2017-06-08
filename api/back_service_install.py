@@ -186,19 +186,19 @@ class BackServiceInstall(object):
         for volume in volumes:
             baseService.add_volume_list(tenant_service, volume.volume_path)
 
-    def install_services(self, group_share_id):
+    def install_services(self, share_pk):
         current_service_ids = []
         group_id = None
         current_services = []
         url_map = {}
         try:
-            app_service_groups = AppServiceGroup.objects.filter(group_share_id=group_share_id)
+            app_service_groups = AppServiceGroup.objects.filter(ID=share_pk)
             app_service_group = None
             if app_service_groups:
                 app_service_group = app_service_groups[0]
 
             if not app_service_group:
-                logger.debug("cannot find app_service_group for group_share_id {0}".format(group_share_id))
+                logger.debug("cannot find app_service_group for group_share_id {0}".format(share_pk))
                 return {"ok": False, "msg": "cannot find app_service_group"}
             group_id = self.__get_group_id(app_service_group.group_share_alias)
             # 查询分享组中的服务ID
@@ -254,7 +254,7 @@ class BackServiceInstall(object):
             url_map = self.getServicePreviewUrls(current_services)
             logger.debug("===> url_map:{} ".format(url_map))
             # 处理原来安装的服务
-            self.handleInstalledService(group_share_id, group_id)
+            self.handleInstalledService(share_pk, group_id)
 
         except Exception as e:
             logger.exception(e)
@@ -298,8 +298,8 @@ class BackServiceInstall(object):
             url_map[service.service_cname] = port_map
         return url_map
 
-    def handleInstalledService(self, group_share_id, new_group_id):
-        bsi_temp_list = BackServiceInstallTemp.objects.filter(group_share_id=group_share_id)
+    def handleInstalledService(self, share_pk, new_group_id):
+        bsi_temp_list = BackServiceInstallTemp.objects.filter(share_pk=share_pk)
         try:
             # 如果服务组被安装过
             if bsi_temp_list:
@@ -337,7 +337,7 @@ class BackServiceInstall(object):
                 BackServiceInstallTemp.objects.update(group_pk=new_group_id)
             else:
                 # 创建grdemo的安装记录
-                BackServiceInstallTemp.objects.create(group_share_id=group_share_id,group_pk=new_group_id,success=True)
+                BackServiceInstallTemp.objects.create(share_pk=share_pk,group_pk=new_group_id,success=True)
 
         except Exception as e:
             logger.error("handle installed service error !")

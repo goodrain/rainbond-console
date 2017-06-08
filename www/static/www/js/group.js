@@ -180,19 +180,20 @@ $(function(){
 
     //批量分享
     $("#groupShare").click(function(){
-        var Arraycheck = [];
-        $(".fn-SelectItem input:checked").each(function(){
-            Arraycheck.push($(this).val());
-        });
-        Arraycheck.sort();
-        var data = Arraycheck.join(',');
-        console.log(data);
+        // var Arraycheck = [];
+        // $(".fn-SelectItem input:checked").each(function(){
+        //     Arraycheck.push($(this).val());
+        // });
+        // Arraycheck.sort();
+        // var data = Arraycheck.join(',');
+        // console.log(data);
         var group_id = $("#group_id_input").val();
         $.ajax({
             type : "POST",
             url : "/apps/" + tenantName + "/" + group_id + "/preview/",
             data : {
-                "service_ids":JSON.stringify(Arraycheck)
+                // "service_ids":JSON.stringify(Arraycheck)
+                "group_id":group_id
             },
             cache : false,
             beforeSend : function(xhr, settings) {

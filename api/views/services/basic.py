@@ -405,7 +405,7 @@ class PublishServiceView(APIView):
                 logger.debug(dest_ys)
                 if share_id is not None and dest_ys:
                     try:
-                        app_service_group = AppServiceGroup.objects.get(group_share_id=share_id)
+                        app_service_group = AppServiceGroup.objects.get(ID=share_id)
                     except AppServiceGroup.DoesNotExist as e:
                         logger.exception(e)
                     if app_service_group is not None:

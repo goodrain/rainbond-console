@@ -20,7 +20,7 @@ $(function () {
 
         $.ajax({
             type: "POST",
-            url: "/apps/" + params.tenant_name + "/" + params.group_id + "/" + params.share_id + "/first/",
+            url: "/apps/" + params.tenant_name + "/" + params.group_id + "/first/",
             data: {
                 "alias": params.create_name,
                 "publish_type":params.publish_type,
@@ -70,7 +70,6 @@ $(function () {
 function getParams() {
     var tenant_name = $("#tenant_name").val();
     var group_id = $("#group_id").val();
-    var share_id = $("#share_id").val();
     var create_name = $("#create_name").val();
     var version_no = $("#version_no").val();
     var publish_type = "cloud_frame";
@@ -87,8 +86,8 @@ function getParams() {
     if (not_allow_install)
         installable = false;
     var params = {
-        tenant_name: tenant_name, group_id: group_id, share_id: share_id, create_name: $.trim(create_name),
+        tenant_name: tenant_name, group_id: group_id, create_name: $.trim(create_name),
         version_no: $.trim(version_no), publish_type: publish_type, desc: desc, is_market: is_market, installable: installable
-    }
+    };
     return params;
 }

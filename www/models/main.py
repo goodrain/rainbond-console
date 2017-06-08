@@ -1111,5 +1111,6 @@ class BackServiceInstallTemp(BaseModel):
     class Meta:
         db_table = "back_service_install_temp"
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
+    share_pk = models.IntegerField(help_text=u"发布的服务组PK 对应app_service_group中的ID")
     group_pk = models.IntegerField(help_text=u"服务所在组ID")
     success = models.BooleanField(default=True, help_text=u"成功安装")
