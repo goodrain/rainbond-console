@@ -287,6 +287,7 @@ class AppServiceGroup(BaseModel):
     class Meta:
         db_table = "app_service_group"
 
+    tenant_id = models.CharField(max_length=32, help_text=u"租户id")
     group_share_id = models.CharField(max_length=32, unique=True, help_text=u"服务组发布id")
     group_share_alias = models.CharField(max_length=100, help_text=u"服务组发布名称")
     group_id = models.CharField(max_length=100, help_text=u"对应的服务组")
