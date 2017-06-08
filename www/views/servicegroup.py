@@ -58,118 +58,12 @@ class ServiceGroupSharePreview(LeftSideBarMixin, AuthedView):
                 if status != "running":
                     data = {"success": False, "code": 412, 'msg': '您的应用{0}未运行。'.format(s.service_cname)}
                     return JsonResponse(data, status=200)
-            # share_group_list = AppServiceGroup.objects.filter(group_id=groupId)
-            # if len(share_group_list) == 1:
-            #     app_service_group = AppServiceGroup.objects.get(group_id=groupId)
-            #     app_service_group.step = len(can_publish_list)
-            #     app_service_group.save()
-            #     next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
-            #     data = {"success": True, "code": 201, "next_url": next_url}
-            #     return JsonResponse(data, status=200)
-            # elif len(share_group_list) > 1:
-            #     data = {"success": False, "code": 500, 'msg': '系统异常,请联系管理员!'}
-            #     return JsonResponse(data, status=200)
-            # else:
-            #     # 添加发布记录
-            #     group_name = ServiceGroup.objects.get(ID=groupId).group_name
-            #     now = datetime.datetime.now()
-            #     group_share_id = make_uuid(group_name)
-            #     app_service_group = AppServiceGroup(group_share_id=group_share_id,
-            #                                         group_share_alias=group_name,
-            #                                         service_ids=service_ids,
-            #                                         is_success=False,
-            #                                         group_id=groupId,
-            #                                         step=len(can_publish_list),
-            #                                         publish_type="cloud_frame",
-            #                                         group_version="0.0.1",
-            #                                         is_market=False,
-            #                                         desc="",
-            #                                         installable=True,
-            #                                         create_time=now,
-            #                                         update_time=now)
-            #     app_service_group.save()
             next_url = "/apps/{0}/{1}/first/".format(self.tenantName, groupId)
             data = {"success": False, "code": 200, 'next_url': next_url}
             return JsonResponse(data, status=200)
 
         except Exception as e:
             logger.exception(e)
-
-        if 1 == 2 :
-            # 获取要发布的服务id
-            service_ids = request.POST.get("service_ids", None)
-            if service_ids is None:
-                data = {"success": False, "code": 404, 'msg': '请选择发布的服务!'}
-                return JsonResponse(data, status=200)
-            array_ids = json.loads(service_ids)
-            if len(array_ids) == 0:
-                data = {"success": False, "code": 404, 'msg': '请选择发布的服务!'}
-                return JsonResponse(data, status=200)
-            # 检查服务是否安装的镜像服务
-            service_list = TenantServiceInfo.objects.filter(service_id__in=array_ids)
-            category_list = [x.category for x in service_list if x.category == 'application']
-            if len(category_list) == 0:
-                data = {"success": False, "code": 406, 'msg': '您的应用组中没有自研应用,请重新选择。'}
-                return JsonResponse(data, status=200)
-
-            if len(array_ids) < 2:
-                data = {"success": False, "code": 404, "msg": "批量分享的应用数至少为2个"}
-                return JsonResponse(data, status=200)
-            # 检查分析的应用是否运行
-            self_develop_services = [x for x in service_list if x.category == 'application']
-            for s in self_develop_services:
-                body = regionClient.check_service_status(self.response_region,s.service_id)
-                status = body["status"]
-                logger.debug("status ===> {}".format(status))
-                if status != "running":
-                    data = {"success": False, "code": 412, 'msg': '您的自研应用未运行。'}
-                    return JsonResponse(data, status=200)
-
-            # 添加服务组分享信息
-            service_ids = service_ids.replace(" ", "")
-            # 检查对应的service_id是否存在
-            group_count = AppServiceGroup.objects.filter(service_ids=service_ids).count()
-            group_share_id = make_uuid(service_ids)
-            if group_count == 1:
-                app_service_group = AppServiceGroup.objects.get(service_ids=service_ids)
-
-                app_service_group.step = len(array_ids)
-                # 重新保存信息
-                app_service_group.save()
-                next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
-                data = {"success": True, "code": 201, "next_url": next_url}
-                return JsonResponse(data,status=200)
-                # if app_service_group.is_success:
-                #     data = {"success": False, "code": 405, 'msg': '相同服务组已经发布!'}
-                #     return JsonResponse(data, status=200)
-                # else:
-                #     app_service_group.step = len(array_ids)
-                #     next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, app_service_group.group_share_id)
-                #     data = {"success": False, "code": 201, 'next_url': next_url}
-                #     return JsonResponse(data, status=200)
-            elif group_count > 1:
-                data = {"success": False, "code": 500, 'msg': '系统异常,请联系管理员!'}
-                return JsonResponse(data, status=200)
-            else:
-                # 添加发布记录
-                now = datetime.datetime.now()
-                app_service_group = AppServiceGroup(group_share_id=group_share_id,
-                                                    group_share_alias=group_share_id,
-                                                    service_ids=service_ids,
-                                                    is_success=False,
-                                                    group_id=groupId,
-                                                    step=len(array_ids),
-                                                    publish_type="cloud_frame",
-                                                    group_version="0.0.1",
-                                                    is_market=False,
-                                                    desc="",
-                                                    installable=True,
-                                                    create_time=now,
-                                                    update_time=now)
-                app_service_group.save()
-            next_url = "/apps/{0}/{1}/{2}/first/".format(self.tenantName, groupId, group_share_id)
-            data = {"success": False, "code": 200, 'next_url': next_url}
-            return JsonResponse(data, status=200)
 
 
 class ServiceGroupShareOneView(LeftSideBarMixin, AuthedView):

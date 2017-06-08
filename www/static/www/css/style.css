@@ -5586,7 +5586,7 @@ a.guest-on i {
 .tipsbox{padding:10px 35px 10px 10px; margin:0 0 10px; position: relative; font-size: 14px; -moz-border-radius:6px; -webkit-border-radius:6px; border-radius:6px;}
 .tipsbox a.close{position: absolute; font-size: 20px; font-weight: bold; color: #fff; text-shadow: 0 1px 0 #fff; text-align: center; top:10px; right: 10px;}
 .tipsbox a.greenlink{color: #28cb75; padding-left: 10px;}
-.blackbg{padding:20px; background: #1f262d; line-height: 30px; color: #999; margin-top: 10px; border-radius:10px;-webkit-border-radius:10px;-moz-border-radius:10px; height: 800px; overflow-y:auto; }
+.blackbg{padding:20px; background: #1f262d; line-height: 30px; color: #999; margin-top: 10px; border-radius:10px;-webkit-border-radius:10px;-moz-border-radius:10px; max-height: 600px; overflow-y:auto; }
 
 .borbompad{padding-bottom: 20px; border-bottom: 1px #ddd dashed;}
 .modal-dialog{background: #fff;}
@@ -5802,7 +5802,7 @@ i{font-style: normal; }
 
 
 .servenlayer{position: absolute; top: 20%; left: 50%; width:320px; margin: 0 0 0 -160px; z-index: 1050; background: #fff; padding:20px;}
-.onoffbox{margin-bottom: 10px;}
+.onoffbox{margin: 10px 0;}
 .onoffbox span{color: #333; font-size: 16px; float: left; width: 60px; line-height: 30px;}
 
 input.checkhide{float: left;}

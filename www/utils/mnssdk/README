@@ -1,0 +1,212 @@
+阿里云消息服务 Message Service Python SDK说明文档
+===============================================================
+阿里云消息服务官方网站：
+    http://www.aliyun.com/product/mns/
+
+阿里云消息服务
+===============================================================
+
+一、简介
+===============================================================
+这篇文档主要介绍如何使用Python来进行Message Service API调用，并
+且介绍mnscmd的简单使用方法。
+这篇文档假设您已经熟悉Python，熟悉Message Service的相关概念，并
+且已经注册阿里云账号、开通阿里云的消息服务，且获得了相应的
+AccessKeyId、AccessKeySecret和AccountId。如果您还没有开通或者还
+不了解Message Service，请移步阿里云消息服务官方网站。
+
+二、环境要求
+===============================================================
+Python SDK需要：安装python 2.5 (包括) 以上且在3.0 (不包括) 以下
+的版本。
+可以在Windows平台和Linux平台使用。
+
+三、使用说明
+===============================================================
+安装sdk和mnscmd
+===============================================================
+1. linux平台
+   sudo python setup.py install
+
+2. Windows平台
+   python.exe setup.py install
+
+===============================================================
+注意事项
+===============================================================
+1. Account, Queue, Topic, Subscription均不是线程安全的，多线程
+ 场景下请独立构造对象；
+
+===============================================================
+运行sample.py
+===============================================================
+1. 访问阿里云官网获取的AccessKeyId、AccessKeySecret、AccountId；
+2. 访问阿里云消息服务官网，进入控制台获取Endpoint；
+3. 将AccessKeyId、AccessKeySecret、Endpoint填写到sample.cfg中；
+4. linux平台运行"python sample.py"，Windows平台运行"python.exe sample.py"。
+
+===============================================================
+运行simple_notify_endpoint.py
+===============================================================
+1. 下载并安装M2Crypto, 地址：https://pypi.python.org/pypi/M2Crypto；
+2. linux平台运行"python simple_notify_endpoint.py [port]"，Windows平台运行"python.exe simple_notify_endpoint.py [port]", 端口号默认为8000；
+3. 启动simple_notify_endpoint.py后会输出监听的地址：http://$localIp:$port, 将该地址作为Subscription的Endpoint属性即可接收推送到该Subscription的消息。
+
+===============================================================
+使用mnscmd
+注意：在Windows平台cmd中mnscmd不能直接运行，需要进入bin目录，用"python.exe mnscmd"替换使用帮助中的"mnscmd";
+===============================================================
+## 配置
+配置访问MNS所需要的认证码
+   命令：mnscmd config --mnsendpoint=http://$accountid.mns.cn-hangzhou.aliyuncs.com --accesskeyid=YOUR_ACCESSKEYID --accesskeysecret=YOUR_ACCESSKEYSECRET
+
+## Account相关命令
+1. 获取Account的属性
+   命令：mnscmd getaccountattr
+
+## Queue相关命令
+1. 列出创建的queue
+   命令：mnscmd listqueue
+   如果是刚刚使用MNS的用户因为没有创建queue，输出是空
+
+2. 创建queue
+   命令：mnscmd createqueue --queuename=myqueue
+   帮助：mnscmd createqueue --info
+   "myqueue"可以根据需求修改为符合规则的queue name
+   queue name的详细规则请移步阿里云消息服务官方网站
+   更多属性指定，运行帮助命令
+
+3. 获取queue
+   命令：mnscmd getqueueattr --queuename=myqueue
+   命令返回queue的各项属性
+
+4. 设置queue属性
+   命令：mnscmd setqueueattr --queuename=myqueue --delaysec=5
+   帮助：mnscmd setqueueattr --info
+   设置queue的delayseconds为5秒
+   更多属性设置，运行帮助命令
+
+5. 发送message
+   命令：mnscmd sendmessage --queuename=myqueue --body="I am a test message."
+   帮助：mnscmd sendmessage --info
+   发送一条消息到队列myqueue中
+   更多属性指定，运行帮助命令
+
+6. 查看message
+   命令：mnscmd peekmessage --queuename=myqueue
+   查看myqueue中的第一条消息
+
+7. 消费message
+   命令：mnscmd receivemessage --queuename=myqueue
+   消费myqueue中的第一条消息
+   命令返回消息基本信息和临时句柄(ReceiptHandle)
+
+8. 修改message下次可消费时间
+   命令：mnscmd changevisibility --queuename=myqueue --handle=YOUR_RECEIPTHANDLE --vistimeout=10
+   YOUR_RECEIPTHANDLE是receivemessage返回的ReceiptHandle
+   消息10秒后可再次被消费，命令返回新的ReceiptHandle
+
+9. 删除message
+   命令：mnscmd deletemessage --queuename=myqueue --handle=YOUR_RECEIPTHANDLE
+   YOUR_RECEIPTHANDLE是最近一次操作返回的ReceiptHandle，即第9步返回的ReceiptHandle
+
+10. 删除queue
+   命令：mnscmd deletequeue --queuename=myqueue
+   注意，如果queue中有message，所有message都会被删除
+
+## Topic相关命令
+1. 列出创建的topic
+   命令：mnscmd listtopic
+   帮助：mnscmd listtopic --info
+   命令返回topic的URL列表，--prefix指定topic名称的前缀，--retnum指定返回的topic个数，--marker指定topic的起始位置
+
+2. 创建topic
+   命令：mnscmd createtopic --topicname=mytopic
+   帮助：mnscmd createtopic --info
+   创建名称为"my topic"的主题，"my topic"可以根据需要修改为符合规则的topic name
+   topic name的详细规则请移步阿里云消息服务官方网站
+
+3. 获取topic属性
+   命令：mnscmd gettopicattr --topicname=mytopic
+   帮助：mnscmd gettopicattr --info
+   命令获取topic的各项属性
+
+4. 设置topic属性
+   命令：mnscmd settopicattr --topicname=mytopic --maxmsgsize=1024
+   帮助：mnscmd settopicattr --info
+   设置topic的最大消息长度1024 Byte
+
+5. 发布消息
+   命令：mnscmd publishmessage --topicname=mytopic --body="I am a test message."
+   帮助：mnscmd publishmessage --info
+   发送一条消息到主题mytopic中
+
+6. 列出topic的subscription
+   命令：mnscmd listsub --topicname=mytopic
+   帮助：mnscmd listsub --info
+   命令返回订阅mytopic的subscription URL列表，--prefix指定subscription名称的前缀，--retnum指定返回的subscription个数，--marker指定起始位置
+
+7. 创建subscription
+   命令：mnscmd subscribe --topicname=mytopic --subname=mysub --endpoint=http://test-endpoint
+   帮助：mnscmd subscribe --info
+   创建一个名叫mysub的subscription，订阅mytopic，指定endpoint为：http://test-endpoint
+
+8. 获取subscription属性
+   命令：mnscmd getsubattr --topicname=mytopic --subname=mysub
+   帮助：mnscmd getsubattr --info
+   获取mysub的各项属性
+
+9. 设置subscription属性
+   命令：mnscmd setsubattr --topicname=mytopic --subname=mysub --notifystrategy=BACKOFF_RETRY
+   帮助：mnscmd setsubattr --info
+   设置mysub的重传策略为BACKOFF_RETRY
+
+10.删除subscription
+   命令：mnscmd unsubscribe --topicname=mytopic --subname=mysub
+   帮助：mnscmd unsubscribe --info
+   删除mysub
+
+11.删除topic
+   命令：mnscmd deletetopic --topicname=mytopic
+   帮助：mnscmd deletetopic --info
+   删除mytopic，注意：该操作会删除mytopic的所有消息和订阅该topic的subscription
+   帮助：mnscmd listsub --info
+
+四、ChangeHistory
+===============================================================
+1.1.4 - 2017-03-14
+* 主题模型支持短信推送
+* 队列/主题支持消息包含中文
+* mnscmd 支持参数指定host、accesskey对
+* mnscmd支持指定是否对队列消息做base64编码和解码
+
+1.1.3 - 2016-09-13
+* 支持透传RequestID到MNS端
+* Topic推送支持QueueEndpoint和MailEndpoint
+* 主题消息推送支持json格式
+* mnscmd 支持 --config_file 指定配置文件
+
+1.1.2 - 2016-04-25
+* Topic推送支持消息过滤
+* 增加sample目录，包含更详细的示例代码
+
+1.1.1 - 2016-03-25
+* 支持Https访问
+* Queue和Topic支持LoggingEnabled属性设置和查询
+* 支持设置和获取Account的属性
+
+1.1.0 - 2016-01-05
+* 支持Topic相关接口
+* 提供simple_http_notify_endpoint.py和simple_https_notify_endpoint.py
+* 支持STS访问
+
+1.0.2 - 2015-06-01
+* 支持SDK安装
+* 提供mnscmd命令
+
+1.0.1 - 2015-02-03
+* 统一队列非字符串属性为int类型；
+* 修正SetQueueAttr的http状态码为204。
+
+1.0.0 - 2014-08-01
+* SDK支持queue的创建、修改、获取、删除，message的发送、查看、消费、删除和修改下次可消费时间。

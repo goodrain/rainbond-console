@@ -225,6 +225,7 @@ class TopologicalServiceView(AuthedView):
                 if relation_port.is_inner_service:
                     relation_info.append({
                         "service_cname": tmp_service.service_cname,
+                        "service_alias": tmp_service.service_alias,
                         "mapping_port": relation_port.mapping_port,
                     })
                     relation_map[tmp_service_id] = relation_info

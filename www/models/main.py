@@ -757,8 +757,9 @@ class PhoneCode(BaseModel):
     phone = models.CharField(max_length=11, help_text=u"手机号码")
     type = models.CharField(max_length=10, help_text=u"类型")
     code = models.CharField(max_length=10, help_text=u"类型")
-    create_time = models.DateTimeField(
-        auto_now_add=True, blank=True, help_text=u"创建时间")
+    message_id = models.CharField(max_length=100, help_text=u"aliyun发送的message_id")
+    status = models.IntegerField(help_text=u'发送状态0已发送1发送成功2发送失败', default=0)
+    create_time = models.DateTimeField(auto_now_add=True, blank=True, help_text=u"创建时间")
 
 
 class TenantRegionPayModel(BaseModel):
@@ -1049,8 +1050,8 @@ class ServiceFeeBill(BaseModel):
     node_num = models.IntegerField(help_text=u"节点个数", default=1)
     disk = models.IntegerField(help_text=u'磁盘大小')
     buy_period = models.IntegerField(help_text=u"预付费时长(单位:小时)", default=0)
-    create_time = models.DateTimeField(help_text=u"创建时间")
-    pay_time = models.DateTimeField(help_text=u"付款时间")
+    create_time = models.DateTimeField(auto_now_add=True, help_text=u"创建时间")
+    pay_time = models.DateTimeField(auto_now_add=True, help_text=u"支付时间")
 
 
 class ServiceConsume(BaseModel):

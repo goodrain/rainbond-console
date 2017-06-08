@@ -123,6 +123,10 @@ class AppDeploy(AuthedView):
                 code_project_name = clone_url.split("/")[4].split(".")[0]
                 createUser = Users.objects.get(user_id=self.service.creater)
                 clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+
+            deps = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+            if deps:
+                self._saveAdapterEnv(self.service)
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             body["operator"] = str(self.user.nick_name)
@@ -207,6 +211,9 @@ class ServiceManage(AuthedView):
                         result["status"] = "over_money"
                         self.update_event(event, "余额不足，不能升级", "failure")
                     return JsonResponse(result, status=200)
+                deps = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+                if deps:
+                    self.saveAdapterEnv(self.service)
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
@@ -419,6 +426,15 @@ class ServiceManage(AuthedView):
             event.deploy_version = event.old_deploy_version
         event.save()
 
+    def saveAdapterEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+            TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+
 
 class ServiceUpgrade(AuthedView):
     @perm_required('manage_service')
@@ -595,6 +611,7 @@ class UseMidRain(AuthedView):
             if action == "add":
                 self.saveAdapterEnv(self.service)
                 self.addSevenLevelEnv(self.service)
+                self.addIsHttpEnv(self.service)
             elif action == "del":
                 self.delSevenLevelEnv(self.service)
             elif action == "check":
@@ -625,7 +642,24 @@ class UseMidRain(AuthedView):
             TenantServiceEnvVar.objects.create(**attr)
             data = {"action": "add", "attrs": attr}
             regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
-    
+
+    def addIsHttpEnv(self, service):
+        # add domposer-compose
+        is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose").count()
+        if is_compose > 0:
+            logger.debug("is_composer %s, IS_HTTP" % service.service_id)
+            num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="IS_HTTP").count()
+            logger.debug("start to inster Http env")
+            if num < 1:
+                logger.debug("inster HTTP env")
+                attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "IS_HTTP",
+                        "attr_name": "IS_HTTP", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+                TenantServiceEnvVar.objects.create(**attr)
+                data = {"action": "add", "attrs": attr}
+                regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
+        else:
+            pass
+
     def delSevenLevelEnv(self, service):
         num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="SEVEN_LEVEL").count()
         if num > 0:
@@ -685,18 +719,24 @@ class L7ServiceSet(AuthedView):
     @perm_required('manage_service')
     def get(self, request, *args, **kwargs):
         result = {
-            'cricuit': '1024'
+            'cricuit':'1024',
+            'domain':'off'
         }
         self.dep_service_id = request.GET.get("dep_service_id", None)
         try:
             if not self.dep_service_id:
                 raise NoneParmsError("L7ServiceSet function get dep_service_id is None.")
-            
-            tsrlist = TenantServiceL7Info.objects.filter(service_id=self.service.service_id,
-                                                         dep_service_id=self.dep_service_id)
+            tsrlist = TenantServiceL7Info.objects.filter(service_id=self.service.service_id, dep_service_id=self.dep_service_id)
+
             if tsrlist:
                 result = eval(tsrlist[0].l7_json)
-                logger.debug("level7query is %s" % result)
+                # 兼容
+                if not result.get('domain', ""):
+                    result['domain'] = 'off'
+            is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose")
+            if not is_compose:
+                result["domain"] = "close"
+            logger.debug("level7query is %s" % result)
         except Exception, e:
             logger.exception(e)
             return JsonResponse(result)
@@ -1278,8 +1318,13 @@ class ServicePort(AuthedView):
             logger.info(deal_port.mapping_port)
             baseService = BaseTenantService()
             if deal_port.mapping_port <= 1:
-                mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
+                is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose").count()
+                if is_compose > 0:
+                    mapping_port = deal_port.container_port
+                else:
+                    mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
                 deal_port.mapping_port = mapping_port
+                logger.debug("mapping port is %s" %str(mapping_port))
                 deal_port.save(update_fields=['mapping_port'])
                 TenantServiceEnvVar.objects.filter(service_id=deal_port.service_id,
                                                    container_port=deal_port.container_port).delete()

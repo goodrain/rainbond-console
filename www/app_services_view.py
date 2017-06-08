@@ -192,7 +192,9 @@ class AppCreateView(LeftSideBarMixin, AuthedView):
                 ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
                                               prepaid_money=sai.pre_paid_money, pay_status="unpayed",
                                               cost_type="first_create", node_memory=min_memory, node_num=min_node,
-                                              disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time)
+                                              disk=disk, buy_period=pre_paid_period * 24 * 30,create_time=create_time,
+                                              pay_time=create_time)
+
 
             # create console service
             service.desc = service_desc
@@ -430,7 +432,7 @@ class AppSettingsView(LeftSideBarMixin,AuthedView,CopyPortAndEnvMixin):
             logger.debug(depIds)
             if len(depIds) > 0:
                 # 检查当前服务是否有GDADAPTER参数
-                # self.saveAdapterEnv(newTenantService)
+                self.saveAdapterEnv(newTenantService)
                 for sid in depIds:
                     try:
                         baseService.create_service_dependency(self.tenant.tenant_id, self.service.service_id, sid, self.response_region)

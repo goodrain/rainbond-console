@@ -25,6 +25,11 @@ class AppServiceApi(BaseHttpClient):
         res, body = self._post(url, self.default_headers, body)
         return res, body
 
+    def getGroupData(self, body):
+        url = self.url + "/api/v0/services/get_group"
+        res, body = self._post(url, self.default_headers, body)
+        return res, body
+
     def uploadFiles(self, body, files):
         url = self.url + "/api/v0/services/logo"
         res, body = self._post(url, self.default_headers, body, files=files)
@@ -32,6 +37,16 @@ class AppServiceApi(BaseHttpClient):
 
     def getRemoteServices(self, limit=10, key=None, timeout=None):
         url = self.url + "/api/v0/services/published"
+        if key is not None:
+            url += "?key={0}&limit={1}".format(key, limit)
+        if timeout is None:
+            res, body = self._get(url, self.default_headers)
+        else:
+            res, body = self._get(url, self.default_headers, timeout=timeout)
+        return res, body
+
+    def getPublishedGroupAndService(self,limit=10, key=None, timeout=None):
+        url = self.url + "/api/v0/services/get_published"
         if key is not None:
             url += "?key={0}&limit={1}".format(key, limit)
         if timeout is None:
