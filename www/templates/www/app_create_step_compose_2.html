@@ -93,7 +93,7 @@
                              onNodeClick:function(nodeInfo){
                                 $(".tablink a").each(function(){
                                     var oText = $(this).html();
-                                    if(oText == oHtml){
+                                    if(oText == nodeInfo){
                                         $(this).addClass('sed').show();
                                     }else{
                                         $(this).removeClass('sed').hide();
