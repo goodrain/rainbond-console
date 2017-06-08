@@ -343,7 +343,8 @@
 
         	//拓扑图点击依赖服务事件
         	window.handleClickRelation = function(relation){
-        		console.log(relation)
+        		var url = "/apps/{{tenantName}}/"+relation.service_alias+"/detail/";
+        		location.href=url;
         	}
 
         	//拓扑图点击续费事件
