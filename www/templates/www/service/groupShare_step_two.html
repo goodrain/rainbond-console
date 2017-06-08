@@ -45,7 +45,7 @@
                                 <td>{{service_port.container_port}}</td>
                                 <td>{{service_port.protocol}}</td>
                                 <td>
-                                    <input type="checkbox" {% if service_port.is_outer_service %}checked="checked"{% endif %} disabled="disabled">
+                                    <input type="checkbox" {% if service_port.is_inner_service %}checked="checked"{% endif %} disabled="disabled">
                                 </td>
                                 <td>
                                     <input type="checkbox" {% if service_port.is_outer_service %}checked="checked"{% endif %} disabled="disabled">

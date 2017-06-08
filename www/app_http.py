@@ -40,6 +40,16 @@ class AppServiceApi(BaseHttpClient):
             res, body = self._get(url, self.default_headers, timeout=timeout)
         return res, body
 
+    def getPublishedGroupAndService(self,limit=10, key=None, timeout=None):
+        url = self.url + "/api/v0/services/get_published"
+        if key is not None:
+            url += "?key={0}&limit={1}".format(key, limit)
+        if timeout is None:
+            res, body = self._get(url, self.default_headers)
+        else:
+            res, body = self._get(url, self.default_headers, timeout=timeout)
+        return res, body
+
     def post_statics_tenant(self, tenant_id, statics_id):
         try:
             url = self.url + "/api/v0/services/statics/{}/{}/".format(tenant_id, statics_id)

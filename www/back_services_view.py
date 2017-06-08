@@ -13,7 +13,7 @@ from www.views import AuthedView, LeftSideBarMixin, CopyPortAndEnvMixin
 from www.decorator import perm_required
 from www.models import (ServiceInfo, TenantServiceInfo, TenantServiceAuth, TenantServiceRelation,
                         AppServicePort, AppServiceEnv, AppServiceRelation, ServiceExtendMethod,
-                        AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep)
+                        AppServiceVolume, AppService, ServiceGroupRelation, ServiceCreateStep, AppServiceGroup)
 from service_http import RegionServiceApi
 from www.tenantservice.baseservice import BaseTenantService, TenantUsedResource, TenantAccountService, TenantRegionService, \
     AppCreateService
@@ -62,6 +62,8 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
             fr = request.GET.get("fr", "private")
             context["fr"] = fr
             if fr == "local":
+                cacheGroupList = AppServiceGroup.objects.filter(is_success=True)
+                context["cacheGroupList"] = cacheGroupList
                 cacheServiceList = ServiceInfo.objects.filter(status="published")
                 context["cacheServiceList"] = cacheServiceList
                 try:
@@ -86,15 +88,23 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                     .exclude(service_key='application') \
                     .exclude(service_key='redis', app_version='2.8.20_51501') \
                     .exclude(service_key='wordpress', app_version='4.2.4')
+                group_list = AppServiceGroup.objects.filter(is_success=True)
                 # 团队共享
                 tenant_service_list = [x for x in service_list if x.status == "private"]
+                tenant_group_list = [x for x in group_list if x.tenant_id == self.tenant.tenant_id ]
                 # 云帮共享
                 assistant_service_list = [x for x in service_list if x.status != "private" and not x.dest_ys]
+                assistant_group_list = [x for x in group_list if not x.is_market]
                 # 云市共享
                 cloud_service_list = [x for x in service_list if x.status != "private" and x.dest_ys]
+                cloud_group_list = [x for x in group_list if x.is_market]
                 context["tenant_service_list"] = tenant_service_list
                 context["assistant_service_list"] = assistant_service_list
                 context["cloud_service_list"] = cloud_service_list
+
+                context["assistant_group_list"] = assistant_group_list
+                context["cloud_group_list"] = cloud_group_list
+                context["tenant_group_list"] = tenant_group_list
             elif fr == "deploy":
                 # 当前租户最新部署的应用
                 tenant_id = self.tenant.tenant_id
@@ -146,7 +156,8 @@ class ServiceMarket(LeftSideBarMixin, AuthedView):
                     context["service_list"] = service_list
             elif fr == "new":
                 # 云市最新的应用
-                res, resp = appClient.getRemoteServices(key="newest", limit=18)
+                # res, resp = appClient.getRemoteServices(key="newest", limit=18)
+                res, resp = appClient.getPublishedGroupAndService(key="newest", limit=18)
                 if res.status == 200:
                     service_list = json.loads(resp.data)
                     context["service_list"] = service_list
@@ -451,13 +462,15 @@ class ServiceMarketDeploy(LeftSideBarMixin, AuthedView, CopyPortAndEnvMixin):
             sai.buy_end_time = endTime
             sai.create_time = create_time
             sai.pre_paid_money = appCreateService.get_estimate_service_fee(sai, self.response_region)
+            sai.region = self.response_region
             sai.save()
             # 创建预付费订单
             if sai.pre_paid_money > 0:
                 ServiceFeeBill.objects.create(tenant_id=tenant_id, service_id=service_id,
                                               prepaid_money=sai.pre_paid_money, pay_status="unpayed",
                                               cost_type="first_create", node_memory=min_memory, node_num=min_node,
-                                              disk=disk, buy_period=pre_paid_period * 24 * 30)
+                                              disk=disk, buy_period=pre_paid_period * 24 * 30, create_time=create_time,
+                                              pay_time=create_time)
 
             if min_memory != "":
                 cm = int(min_memory)

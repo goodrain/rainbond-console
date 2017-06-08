@@ -8,6 +8,7 @@ from www.app_services_view import GitLabWebHook, GitHubWebHook, GitCheckCode
 from www.views import GrRedirectView
 from www.captcha.CodeImage import ChekcCodeImage
 from www.tests import TestView
+from www.views.alimns import *
 from django.conf import settings
 from www.views.wechat import WeChatCheck
 
@@ -32,6 +33,9 @@ urlpatterns = patterns(
     url(r'^wechat/', include('www.urls.wechat')),
     # url(r'^send_invite', views.SendInviteView.as_view()),
     url(r'^phone_code', views.PhoneCodeView.as_view()),
+    url(r'^phone_notify_success$', csrf_exempt(PhoneCodeSuccessView.as_view())),
+    url(r'^phone_notify_failed$', csrf_exempt(PhoneCodeFailedView.as_view())),
+
     url(r'^captcha', ChekcCodeImage.as_view()),
     url(r'^invite$', views.InviteRegistation.as_view()),
     url(r'^register$', views.Registation.as_view()),

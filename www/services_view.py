@@ -249,10 +249,12 @@ class TenantService(LeftSideBarMixin, AuthedView):
             else:
                 # 根据服务版本获取对应phpmyadmin版本,暂时解决方法,待优化
                 app_version = '4.4.12'
+                key = "phpmyadmin"
                 if self.service.version == "5.6.30":
                     app_version = '4.6.3'
-                service_manager['url'] = '/apps/{0}/service-deploy/?service_key=phpmyadmin&app_version={1}'.format(
-                    self.tenant.tenant_name, app_version)
+                    key = "f3a5fcc551a7990315bd70f139412d25"
+                service_manager['url'] = '/apps/{0}/service-deploy/?service_key={1}&app_version={2}'.format(
+                    self.tenant.tenant_name, key, app_version)
         return service_manager
 
     def memory_choices(self):
@@ -313,6 +315,7 @@ class TenantService(LeftSideBarMixin, AuthedView):
         service_attach_info.buy_start_time = datetime.datetime.strptime(now, "%Y-%m-%d %H:%M:%S")
         service_attach_info.buy_end_time = datetime.datetime.strptime(now, "%Y-%m-%d %H:%M:%S")
         service_attach_info.create_time = datetime.datetime.now()
+        service_attach_info.region = self.response_region
         service_attach_info.save()
         return service_attach_info
 
@@ -558,8 +561,8 @@ class TenantService(LeftSideBarMixin, AuthedView):
             elif fr == "statistic":
                 context['statistic_type'] = self.statistic_type
                 if self.service.service_type in ('mysql',):
-                    context['ws_topic'] = '{0}.{1}.statistic'.format(''.join(list(self.tenant.tenant_id)[1::2]),
-                                                                     ''.join(list(self.service.service_id)[::2]))
+                    context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_id[-12:],
+                                                                     self.service.service_id[-12:])
                 else:
                     # context['ws_topic'] = '{0}.{1}.statistic'.format(self.tenant.tenant_name, self.service.service_alias)
                     if self.service.port_type == "multi_outer":
