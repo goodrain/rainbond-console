@@ -218,11 +218,7 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
             if not service_group:
                 raise Http404
             context["group_id"] = group_id
-            shared_group = AppServiceGroup.objects.get(ID=groupId)
-            # 查询分享组中的服务ID
-            service_ids = shared_group.service_ids
-            service_id_list = json.loads(service_ids)
-            logger.debug("service_id_list: {}".format(service_id_list))
+
             app_service_list = self.get_published_service_info(groupId)
             published_service_list = []
             for app_service in app_service_list:
@@ -243,9 +239,9 @@ class GroupServiceDeployStep2(LeftSideBarMixin, AuthedView):
                         "service_key {0} version {1} is not found in table service or can be download from market".format(
                             app_service.service_key, app_service.app_version))
             # 发布的应用有不全的信息
-            if len(published_service_list) != len(service_id_list):
+            if len(published_service_list) != len(app_service_list):
                 logger.debug("published_service_list ===== {0}".format(len(published_service_list)))
-                logger.debug("service_id_list ===== {}".format(len(service_id_list)))
+                logger.debug("service_id_list ===== {}".format(len(app_service_list)))
                 logger.error("publised service is not found in table service")
                 context["success"] = False
                 return TemplateResponse(self.request, "www/group/group_app_create_step_2.html", context)
@@ -350,7 +346,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
             monitorhook.serviceMonitor(self.user.nick_name, newTenantService, 'create_service', True)
 
     def sort_service(self, publish_service_list):
-        # service_keys = [s.service_key for s in publish_service_list]
         service_map = {s.service_key: s for s in publish_service_list}
         result = []
         key_app_map = {}
@@ -451,8 +446,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
             shared_group = AppServiceGroup.objects.get(ID=groupId)
             # 查询分享组中的服务ID
-            service_ids = shared_group.service_ids
-            service_id_list = json.loads(service_ids)
             app_service_list = self.get_published_service_info(groupId)
             app_port_map = {}
             app_relation_map = {}
@@ -518,8 +511,6 @@ class GroupServiceDeployStep3(LeftSideBarMixin, AuthedView):
 
             shared_group = AppServiceGroup.objects.get(ID=groupId)
             # 查询分享组中的服务ID
-            service_ids = shared_group.service_ids
-            service_id_list = json.loads(service_ids)
             app_service_list = self.get_published_service_info(groupId)
             published_services = []
             for app in app_service_list:

@@ -493,8 +493,8 @@ class BaseTenantService(object):
             group_info.tenant_id = group_data.get("publisher_tenant_id")
             group_info.group_share_alias = group_data.get("group_name")
             group_info.group_share_id = group_data.get("group_key")
-            group_info.group_id = group_data.get("0")
-            group_info.service_ids = group_data.get("")
+            group_info.group_id = "0"
+            group_info.service_ids = ""
             group_info.group_version = group_data.get("group_version")
             group_info.desc = group_data.get("info")
             group_info.save()
