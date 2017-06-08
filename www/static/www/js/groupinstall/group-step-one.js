@@ -23,7 +23,7 @@ $(function () {
                 if (dataObj["success"]) {
                     window.location.href=dataObj["next_url"]
                 } else {
-                    swal("创建失败");
+                    swal(dataObj["info"]);
                     $("#group_install_one").removeAttr('disabled');
                 }
             },
