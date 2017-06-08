@@ -123,6 +123,10 @@ class AppDeploy(AuthedView):
                 code_project_name = clone_url.split("/")[4].split(".")[0]
                 createUser = Users.objects.get(user_id=self.service.creater)
                 clone_url = "https://" + createUser.github_token + "@github.com/" + code_user + "/" + code_project_name + ".git"
+
+            deps = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+            if deps:
+                self._saveAdapterEnv(self.service)
             body["deploy_version"] = self.service.deploy_version
             body["gitUrl"] = "--branch " + self.service.code_version + " --depth 1 " + clone_url
             body["operator"] = str(self.user.nick_name)
@@ -207,6 +211,9 @@ class ServiceManage(AuthedView):
                         result["status"] = "over_money"
                         self.update_event(event, "余额不足，不能升级", "failure")
                     return JsonResponse(result, status=200)
+                deps = TenantServiceRelation.objects.filter(tenant_id=self.tenant.tenant_id, service_id=self.service.service_id)
+                if deps:
+                    self.saveAdapterEnv(self.service)
                 body = {}
                 body["deploy_version"] = self.service.deploy_version
                 body["operator"] = str(self.user.nick_name)
@@ -418,6 +425,15 @@ class ServiceManage(AuthedView):
         if event.status == "failure" and event.type == "callback":
             event.deploy_version = event.old_deploy_version
         event.save()
+
+    def saveAdapterEnv(self, service):
+        num = TenantServiceEnvVar.objects.filter(service_id=service.service_id, attr_name="GD_ADAPTER").count()
+        if num < 1:
+            attr = {"tenant_id": service.tenant_id, "service_id": service.service_id, "name": "GD_ADAPTER",
+                    "attr_name": "GD_ADAPTER", "attr_value": "true", "is_change": 0, "scope": "inner", "container_port":-1}
+            TenantServiceEnvVar.objects.create(**attr)
+            data = {"action": "add", "attrs": attr}
+            regionClient.createServiceEnv(service.service_region, service.service_id, json.dumps(data))
 
 
 class ServiceUpgrade(AuthedView):
