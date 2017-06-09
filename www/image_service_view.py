@@ -16,6 +16,7 @@ from www.service_http import RegionServiceApi
 from www.tenantservice.baseservice import TenantRegionService, TenantAccountService, TenantUsedResource, \
     BaseTenantService, AppCreateService
 from www.utils.crypt import make_uuid
+from www.utils.imageD import ImageAnalyst
 from www.views.base import AuthedView
 from www.views.mixin import LeftSideBarMixin
 from django.conf import settings
@@ -85,8 +86,10 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
         try:
             tenant_id = self.tenant.tenant_id
             service_id = request.POST.get("service_id", "")
-            image_url = request.POST.get("image_url", "")
+            image_input = request.POST.get("image_url", "")
             service_cname = request.POST.get("create_app_name", "")
+            _is, list_args = ImageAnalyst.analystImage(image_input)
+            image_url = list_args[-1]
             result["image_url"] = image_url
             if image_url != "":
                 imagesr = None
@@ -182,6 +185,8 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                     if group_id > 0:
                         ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
                                                             tenant_id=self.tenant.tenant_id, region_name=self.response_region)
+                if _is == "is_docker":
+                    pass
             else:
                 result["status"] = "no_image_url"
                 return JsonResponse(result, status=500)
