@@ -5226,8 +5226,7 @@
   transition: transform 0.33333s cubic-bezier(0, 0, 0.21, 1); }
 
 .node-details-running .node-details-header {
-  background-color: #00d777;
-  color: #fff; }
+  background-color: #00d777; }
 
 .node-details-running a {
   color: green; }
@@ -5242,6 +5241,9 @@
   text-decoration: none;
   cursor: pointer;
   font-weight: bold; }
+
+.node-details-header {
+  color: #fff; }
 
 .node-details-header a {
   color: #fff;
