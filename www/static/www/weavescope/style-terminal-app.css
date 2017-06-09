@@ -5243,7 +5243,8 @@
   font-weight: bold; }
 
 .node-details-header {
-  color: #fff; }
+  color: #fff;
+  font-weight: bold; }
 
 .node-details-header a {
   color: #fff;
