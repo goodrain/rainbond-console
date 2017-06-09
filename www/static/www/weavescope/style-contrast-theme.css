@@ -5229,7 +5229,8 @@
   transition: transform 0.33333s cubic-bezier(0, 0, 0.21, 1); }
 
 .node-details-running .node-details-header {
-  background-color: #00d777; }
+  background-color: #00d777;
+  color: #fff; }
 
 .node-details-running a {
   color: green; }
