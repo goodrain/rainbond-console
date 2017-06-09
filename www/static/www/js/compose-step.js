@@ -70,7 +70,9 @@ $(function(){
     // // //上传compose文件 end
 
     // // // 第二步 基本设置 start
+
     // 图 start 
+    /*
     var json_svg_ = $("#compose_relations").attr("value");
     var json_svg = JSON.parse(json_svg_);
     //console.log(json_svg_);
@@ -280,7 +282,7 @@ $(function(){
     //oSvgDiv.appendChild(oSvg);
     /// svg
     //图 end 
-
+    */
     /////切换 start
     $(".tablink a").click(function(){
         var num = $(this).index();
