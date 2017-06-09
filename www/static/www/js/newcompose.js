@@ -488,6 +488,7 @@ $(function(){
 		}
 	});*/
 	// 图
+	/*
 	var json_svg_ = $("#compose_relations").attr("value");
 	var json_svg = JSON.parse(json_svg_);
 	//console.log(json_svg_);
@@ -696,6 +697,7 @@ $(function(){
 
     oSvgDiv.appendChild(oSvg);
 	/// svg
+	*/
 	//图
 
 	///// 提交
