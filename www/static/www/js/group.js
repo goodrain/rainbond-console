@@ -4,6 +4,7 @@ $(function(){
     var tenant_Name = $("#app-group").attr("data-tenantName");
 	// 复选框开始
 	var chackboxnums = $(".fn-SelectItem input:checked").length;
+    
     if(chackboxnums == 0){
         $("#batchStart").prop("disabled",true);
         $("#batchEnd").prop("disabled",true);
@@ -480,9 +481,9 @@ $(function(){
                 if(oData.status == 200){
                     //console.log(oData.json_svg);
                     //console.log(oData.json_data);
-                    FnSvg(oData.json_svg,oData.json_data);
+                   // FnSvg(oData.json_svg,oData.json_data);
                 }else{
-                     swal(oData.msg);
+                    // swal(oData.msg);
                 }
             },
             error : function() {
