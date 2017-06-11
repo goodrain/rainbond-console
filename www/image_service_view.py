@@ -24,6 +24,7 @@ import httplib2
 import datetime
 from dateutil.relativedelta import relativedelta
 from www.utils import sn
+import base64
 
 logger = logging.getLogger('default')
 tenantRegionService = TenantRegionService()
@@ -186,7 +187,14 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                         ServiceGroupRelation.objects.create(service_id=service_id, group_id=group_id,
                                                             tenant_id=self.tenant.tenant_id, region_name=self.response_region)
                 if _is == "is_docker":
-                    pass
+                    args = ""
+                    for mm in list_args[:-1]:
+                        if args:
+                            args = "{0}^_^{1}={2}".format(args, mm[0], mm[1])
+                        else:
+                            args = "{0}={1}".format(args, mm[0], mm[1])
+
+                    result["params"] = base64.b64encode(args)
             else:
                 result["status"] = "no_image_url"
                 return JsonResponse(result, status=500)

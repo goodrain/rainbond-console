@@ -20,7 +20,8 @@ def analystImage(image_url):
         return IS_URL, [image_url]
     else:
         list_params=rc_split[1].split(" ")[1:]
-        opts, args = _getopt(list_params, "p:v:e:", ["expose=", "link=", "volumes-from", "name="])
+        opts, args = _getopt(list_params, "p:v:e:", ["expose=", "link=", "volumes-from=", "name="])
+        opts = [(mm[0], (lambda x:x.split(":")[-1])(mm[1])) for mm in opts[:-1] if mm[1]]
         opts.append(args[-1])
         return IS_DOCKER, opts
 
@@ -157,11 +158,25 @@ def short_has_arg(opt, shortopts):
 if __name__ == '__main__':
     image = "hubimage/wrk:V2"
     image1 = "daf docker run docker"
-    image2 = "docker run -m -it -d -p 80:80 -p 9000:8080 -p 127.0.0.1:5000:5000 --va=test piggymetrics"
-    image3 = "docker run -d -p 80:80 -p 9000:8080 -p 127.0.0.1:5000:5000 --expose=9000 --link config:config \
-                -e SERVICE_PASSWORD=root --name=example -v /home/test_volume/:/home/test --volumes-from dbdata \
-                goodraincloudframeworks/piggymetrics-statistics-service"
+    image2 = "docker run -m -it -d -p 80 -p 9000:8080 -p 127.0.0.1:5000:5000 --va=test piggymetrics"
+    image3 = "docker run -d -p 90:90 -p 9000:8080 -p 127.0.0.1:5000:5000 --expose=9000 --link config " \
+             "-e SERVICE_PASSWORD=root --name=example -v /home/test_volume/:/home/test --volumes-from dbdata " \
+             "-e PASS=root goodraincloudframeworks/piggymetrics-statistics-service"
     _is, list_args = analystImage(image3)
     print _is
     print list_args
     print list_args[-1]
+    print list_args[:-1]
+    args = ""
+    for mm in list_args[:-1]:
+        if args:
+            args = "{0}^_^{1}={2}".format(args, mm[0], mm[1])
+        else:
+            args = "{0}={1}".format(mm[0], mm[1])
+
+    import base64
+    args64 = base64.b64encode(args)
+    print args64
+    print base64.b64decode(args64)
+
+    #print regex.sub(lambda m: '[' + m.group(0) + ']', text)
