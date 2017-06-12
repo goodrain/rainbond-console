@@ -114,14 +114,18 @@
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开对外服务，其他应用即可访问当前应用。">
-                                <input  type="checkbox" name="" value="" id="{{outer_port}}inner" />
-                                <label class="check-bg" for="{{outer_port}}inner"></label>
+                                <label>
+                                    <input  type="checkbox" name="" value="" id="{{service.name}}{{outer_port}}inner" />
+                                    <span class="check-bg"></span>
+                                </label>
                             </div>
                         </td>
                         <td>
                             <div class="checkbox fn-tips" data-tips="打开外部访问，用户即可通过网络访问当前应用。">
-                                <input class="checkDetail" type="checkbox" name="" value="" id="{{outer_port}}outer" />
-                                <label class="check-bg" for="{{outer_port}}outer"></label>
+                                <label>
+                                    <input class="checkDetail" type="checkbox" name="" value="" id="{{service.name}}{{outer_port}}outer" />
+                                    <span class="check-bg"></span>
+                                </label>
                             </div>
                         </td>
                         <td>
