@@ -176,8 +176,10 @@
 		</section>
 		<!-- biaoge end-->
 		<!-- tu start -->
-		<section id="imgBox" class="content-tab">
-			<div id="svg-box"></div>
+		<section id="imgBox" class="content-tab" style="position:relative;">
+			<div id="svg-box">
+				<iframe src='{% static "www/weavescope/index.html?20170605" %}' style="position:absolute;left:20px;top:20px;width:95%;height:85%;" frameborder="no" border="0" marginwidth="0" marginheight="0" ></iframe>
+			</div>
 		</section>
 		<!-- tu end -->
 	<!-- main end -->
@@ -323,8 +325,44 @@
             setInterval("checkStatus()", 15000);
 	    	setInterval("checkTenantsStorage()", 30000);
         });
+    </script>
 
-	
+    <!-- weave scope 资源设置  -->
+    <script type="text/javascript">
+        try{
+        	localStorage.setItem('nodesUrl', '/ajax/{{tenantName}}/topological/{{group_id}}'),
+        	localStorage.setItem('tenantName', '{{tenantName}}');
+        	localStorage.setItem('groupId', '{{groupId}}');
+
+        	//拓扑图点击服务事件
+        	window.handleClickService = function(nodeDetails){
+        		var url = "/apps/{{tenantName}}/"+nodeDetails.service_alias+"/detail/";
+        		location.href=url;
+        		
+        	}
+
+        	//拓扑图点击依赖服务事件
+        	window.handleClickRelation = function(relation){
+        		var url = "/apps/{{tenantName}}/"+relation.service_alias+"/detail/";
+        		location.href=url;
+        	}
+
+        	//拓扑图点击续费事件
+        	window.handleClickGiveMoney = function(nodeDetails){
+        		location.href='/apps/goodrain/recharge/';
+        	}
+
+        	// 当拓扑图没有数据时调用
+        	window.onNodesEmpty = function(){
+        		$("#imgbtn").hide().removeClass("sed");
+		        $("#imgBox").hide();
+		        $("#tabBox").show();
+		        $("#tabbtn").addClass("sed");
+        	}
+
+        }catch(e){
+
+        }
     </script>
 </section>
 {% endblock %}

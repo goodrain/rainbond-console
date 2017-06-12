@@ -55,7 +55,57 @@
             <!-- 总览  -->
             <section id="overview" class="fn-app-box" style="display: block;">
                 <div class="view-svg" id="view-svg">
-                    
+                      <!-- weave scope 组件配置 -->
+                      <script type="text/javascript">
+                          window.weavescope  = {
+                             zoomDisabled:true,
+                             getNodes:function(){
+                                const scopeData = {
+                                    add: [],
+                                    update: null,
+                                    remove: null
+                                };
+                                var boundData = document.querySelector('#compose_relations').value;
+                                try{
+                                    boundData = JSON.parse(boundData);
+                                }catch(e){
+                                    boundData = {};
+                                }
+
+                                for(var key in boundData){
+                                    node = {};
+                                    node.cur_status = 'closed';
+                                    node.service_cname = key;
+                                    node.service_alias = key;
+                                    node.id = key;
+                                    node.label = key;
+                                    node.labelMinor = '';
+                                    //根据状态改变颜色用
+                                    node.rank = 'closed';
+                                    node.shape = 'hexagon';
+                                    node.stack = true;
+                                    node.linkable = true;
+                                    node.adjacency = boundData[key] || [];
+                                    scopeData.add.push(node);
+                                }
+                                return scopeData;
+                                
+                             },
+                             onNodeClick:function(nodeInfo){
+                                $(".tablink a").each(function(){
+                                    var oText = $(this).html();
+                                    if(oText == nodeInfo){
+                                        $(this).addClass('sed').show();
+                                        $("section.fn-app-box").hide();
+                                        $("section.fn-app-box").eq($(this).index()).show();
+                                    }else{
+                                        $(this).removeClass('sed');
+                                    }
+                                });
+                             }
+                          }
+                      </script>
+                      <iframe src='{% static "www/weavescope/index.html" %}' style="width:95%;height:600px;" frameborder="no" border="0" marginwidth="0" marginheight="0" ></iframe>
                 </div>
             </section>
             {% for service in service_list %}
