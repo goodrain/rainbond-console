@@ -5228,7 +5228,8 @@
 .node-details-text {
   display: inline-block;
   max-width: 320px;
-  vertical-align: middle; }
+  vertical-align: middle;
+  line-height: normal; }
 
 .node-details-running .node-details-header {
   background-color: #00d777; }
