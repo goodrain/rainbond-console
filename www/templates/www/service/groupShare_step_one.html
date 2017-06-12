@@ -12,7 +12,6 @@
 {% block main-content %}
 <input type="hidden" id="tenant_name" value="{{tenant_name}}"/>
 <input type="hidden" id="group_id" value="{{group_id}}"/>
-<input type="hidden" id="share_id" value="{{share_id}}"/>
 <section class="wrapper site-min-height">
     <section class="main-box">
         <div class="app-step clearfix three">
@@ -40,13 +39,13 @@
 
             <div class="fm-input-text clearfix">
                 <label for="version_no">版本号</label>
-                <input type="text" id="version_no" name="version_no" value="{{app_service_group.group_version}}" placeholder="应用组版本"/>
+                <input type="text" id="version_no" name="version_no" value="{% if app_service_group %}{{app_service_group.group_version}}{% endif %}" placeholder="应用组版本"/>
             </div>
             <p class="fm-tips" id="version_no_notice">请输入应用组版本号！</p>
 
             <div class="fm-input-textarea clearfix">
                 <label for="desc">更新说明</label>
-                <textarea class="textarea" id="desc" name="desc" maxlength="400" value="{{app_service_group.desc}}" ></textarea>
+                <textarea class="textarea" id="desc" name="desc" maxlength="400" value="{% if app_service_group %}{{app_service_group.desc}}{% endif %}" ></textarea>
             </div>
 
             <div class="fm-input-radio clearfix">
