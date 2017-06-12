@@ -162,7 +162,9 @@ if __name__ == '__main__':
     image3 = "docker run -d -p 90:90 -p 9000:8080 -p 127.0.0.1:5000:5000 --expose=9000 --link config " \
              "-e SERVICE_PASSWORD=root --name=example -v /home/test_volume/:/home/test --volumes-from dbdata " \
              "-e PASS=root goodraincloudframeworks/piggymetrics-statistics-service"
-    _is, list_args = analystImage(image3)
+
+    image4 = "docker run -d -p 80 -p 9000:8080 -p 127.0.0.1:5000:5000 --name=piggy_test -e PASSWD=root piggymetrics"
+    _is, list_args = analystImage(image4)
     print _is
     print list_args
     print list_args[-1]

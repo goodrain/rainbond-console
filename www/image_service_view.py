@@ -193,7 +193,8 @@ class ImageServiceDeploy(LeftSideBarMixin, AuthedView):
                             args = "{0}^_^{1}={2}".format(args, mm[0], mm[1])
                         else:
                             args = "{0}={1}".format(args, mm[0], mm[1])
-
+                    logger.debug(args)
+                    logger.debug(base64.b64decode(args))
                     result["params"] = base64.b64encode(args)
             else:
                 result["status"] = "no_image_url"
