@@ -98,7 +98,8 @@ $(function () {
         return out;  
     } 
     var str_url = utf8to16(base64decode(base64str)); 
-    console.log(str_url);
+    var str_url_Arr = str_url.split("^_^");
+    console.log(str_url_Arr);
     //
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
