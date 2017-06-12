@@ -2,7 +2,7 @@ $(function () {
     var main_url = window.location.href;
     var new_url = main_url.split('&params=');
     var base64str = new_url[new_url.length-1];
-    consele.log(base64str);
+    console.log(base64str);
     //打开新增端口号窗口
     $(".openAdd").on("click",function(){
         if( $(this).parents("tfoot").find("input.checkDetail").prop("checked") )
