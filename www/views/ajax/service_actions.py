@@ -1318,11 +1318,12 @@ class ServicePort(AuthedView):
             logger.info(deal_port.mapping_port)
             baseService = BaseTenantService()
             if deal_port.mapping_port <= 1:
-                is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose").count()
-                if is_compose > 0:
-                    mapping_port = deal_port.container_port
-                else:
-                    mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
+                #is_compose = TenantServiceInfo.objects.filter(service_id=self.service.service_id, language="docker-compose").count()
+                #if is_compose > 0:
+                #    mapping_port = deal_port.container_port
+                #else:
+                #    mapping_port = baseService.prepare_mapping_port(self.service, deal_port.container_port)
+                mapping_port = deal_port.container_port
                 deal_port.mapping_port = mapping_port
                 logger.debug("mapping port is %s" %str(mapping_port))
                 deal_port.save(update_fields=['mapping_port'])

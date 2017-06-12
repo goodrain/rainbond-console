@@ -285,7 +285,9 @@ class BaseTenantService(object):
             env_prefix = port_alias.upper() if bool(port_alias) else service.service_key.upper()
             if is_inner_service:
                 mapping_port = self.prepare_mapping_port(service, container_port)
-                port.mapping_port = mapping_port
+                #port.mapping_port = mapping_port
+                # 取消mapping端口
+                port.mapping_port = container_port
                 if service.language == "docker-compose":
                     self.saveServiceEnvVar(service.tenant_id, service.service_id, container_port, u"连接地址",
                                            env_prefix + "_PORT_" + str(container_port) + "_TCP_ADDR", "127.0.0.1",
